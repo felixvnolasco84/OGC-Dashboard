@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { Chart } from 'react-charts'
 import { Payment } from './Table'
 
@@ -150,13 +150,7 @@ export default function BarHorizontalChart({ constructionData }: { constructionD
                 top: 20,
                 bottom: 40
               },
-              dark: false,
-              getSeriesStyle: () => ({
-                bar: {
-                  rx: 4,
-                  ry: 4
-                }
-              } as any)
+              dark: false
             }}
           />
         </div>

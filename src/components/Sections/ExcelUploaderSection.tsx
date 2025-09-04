@@ -7,16 +7,30 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
+// Types for better TypeScript support
+type UploadResult = {
+  success: boolean;
+  message: string;
+  data?: {
+    successfulRecords?: number;
+    failedRecords?: number;
+    totalRecords?: number;
+    fileName?: string;
+    processedAt?: string;
+  };
+  errors?: string[];
+};
+
 const ExcelUploaderSection = () => {
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<UploadResult | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
   // Configuración de la API - ajustar según tu backend
   const API_BASE_URL = 'http://localhost:5069/api'; // Cambiar por tu URL
 
-  const handleDrag = useCallback((e) => {
+  const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
@@ -26,7 +40,7 @@ const ExcelUploaderSection = () => {
     }
   }, []);
 
-  const handleDrop = useCallback((e) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
@@ -40,7 +54,7 @@ const ExcelUploaderSection = () => {
     }
   }, []);
 
-  const validateFile = (file) => {
+  const validateFile = (file: File): boolean => {
     if (!file) return false;
 
     const validExtensions = ['.xlsx', '.xls'];
@@ -65,7 +79,7 @@ const ExcelUploaderSection = () => {
     return true;
   };
 
-  const handleFileInput = (e) => {
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && validateFile(selectedFile)) {
       setFile(selectedFile);
@@ -104,10 +118,11 @@ const ExcelUploaderSection = () => {
         });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       setResult({
         success: false,
         message: 'Error de conexión con el servidor',
-        errors: [error.message]
+        errors: [errorMessage]
       });
     } finally {
       setUploading(false);
@@ -120,7 +135,7 @@ const ExcelUploaderSection = () => {
     setUploading(false);
   };
 
-  const formatFileSize = (bytes) => {
+  const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -128,10 +143,11 @@ const ExcelUploaderSection = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getSuccessRate = () => {
+  const getSuccessRate = (): number => {
     if (!result?.data) return 0;
     const total = result.data.totalRecords || 1;
-    return Math.round((result.data.successfulRecords / total) * 100);
+    const successful = result.data.successfulRecords || 0;
+    return Math.round((successful / total) * 100);
   };
 
   return (
@@ -284,7 +300,7 @@ const ExcelUploaderSection = () => {
                   </div>
                 )}
 
-                {result.data && result.data.totalRecords > 0 && (
+                {result.data && (result.data.totalRecords || 0) > 0 && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Tasa de éxito</span>
