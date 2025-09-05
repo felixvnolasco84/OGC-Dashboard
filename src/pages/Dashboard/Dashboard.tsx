@@ -1,6 +1,3 @@
-import { DashboardTable } from "./Table";
-import { useQuery } from "@tanstack/react-query";
-import BarHorizontalChart from "./BarHorizontalChart";
 import React from "react";
 import {
   Select,
@@ -10,6 +7,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { DashboardTable } from "./Table";
+import BarHorizontalChart from "./BarHorizontalChart";
+// import BarHorizontalChart from "./BarHorizontalChart";
+
 
 export default function Dashboard() {
   
@@ -31,27 +34,33 @@ export default function Dashboard() {
   const [selectedFamily, setSelectedFamily] = React.useState('ACERO')
   const [selectedDevelopment, setSelectedDevelopment] = React.useState('torre-i')
 
-  const { isPending, error, data } = useQuery({
-    queryKey: ['partidas', selectedFamily],
-    queryFn: () =>
-      fetch(`http://localhost:5069/api/partidastable?familia=${encodeURIComponent(selectedFamily)}`).then((res) =>
-        res.json(),
-      ),
-    enabled: selectedFamily !== undefined,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  })
 
-  if (isPending) return 'Loading...'
+  const data = useQuery(api.partida.getByFamily, { family: selectedFamily })
 
-  if (error) return 'An error has occurred: ' + error.message
+  if (!data) return <p>No data available</p>
 
-  console.log(data) 
+  
+  // const { isPending, error, data } = useQuery({
+  //   queryKey: ['partidas', selectedFamily],
+  //   queryFn: () =>
+  //     fetch(`https://ogcbackend-dyeqaacvbsb7cqhy.mexicocentral-01.azurewebsites.net/api/partidastable?familia=${encodeURIComponent(selectedFamily)}`).then((res) =>
+  //       res.json(),
+  //     ),
+  //   enabled: selectedFamily !== undefined,
+  //   refetchOnWindowFocus: false,
+  //   refetchOnMount: false,
+  // })
+
+//   if (isPending) return 'Loading...'
+
+//   if (error) return 'An error has occurred: ' + error.message
+
+//   console.log(data) 
 
   
 
 
- if (!data || data.length === 0) return <p>No data available</p>
+//  if (!data || data.length === 0) return <p>No data available</p>
 
  const families: string[] = [
   'ACERO',
@@ -65,11 +74,11 @@ export default function Dashboard() {
   'CONCRETOS',
   'CONSUMIBLES'
  ]
-  
+   
   return (
     <div className="flex flex-col gap-4 py-12">
       <nav className="flex justify-between">
-        <h1>Dashboard</h1>
+        <h1>Dashboard</h1>       
         <div className="flex gap-4">
           {desarrollos.map((desarrollo) => (
             <button
@@ -97,9 +106,10 @@ export default function Dashboard() {
         </SelectContent>
       </Select>
     </div>
+    
     <div className="flex flex-col gap-4">
       <DashboardTable data={data}/>
-      <BarHorizontalChart constructionData={data}/>
+       <BarHorizontalChart constructionData={data}/> 
     </div>
     </div>
   )

@@ -28,7 +28,7 @@ const ExcelUploaderSection = () => {
   const [dragActive, setDragActive] = useState(false);
 
   // Configuración de la API - ajustar según tu backend
-  const API_BASE_URL = 'http://localhost:5069/api'; // Cambiar por tu URL
+  const API_BASE_URL = 'https://ogcbackend-dyeqaacvbsb7cqhy.mexicocentral-01.azurewebsites.net/api'; // Cambiar por tu URL
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();

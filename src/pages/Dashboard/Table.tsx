@@ -38,20 +38,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-
-export type Payment = {
-    id: number
-    nombre: string
-    familia: string
-    subPartida: string
-    total: number
-    aprobado: number
-    pagado: number
-    porLiquidar: number
-    actual: number
-    fechaCarga: string
-    archivoOrigen: string
-}
+import { partida } from "@/lib/utils"
 
 
 // const getData = async () => {
@@ -63,7 +50,7 @@ export type Payment = {
 // };
 
 
-export const columns: ColumnDef<Payment>[] = [
+export const columns: ColumnDef<partida>[] = [
     {
         id: "select",
         header: ({ table }) => (
@@ -98,36 +85,36 @@ export const columns: ColumnDef<Payment>[] = [
         cell: ({ row }) => <div className="lowercase">{row.getValue("familia")}</div>,
     },
     {
-        accessorKey: "subPartida",
+        accessorKey: "sub_partida",
         header: "Sub Partida",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("subPartida")}</div>,
+        cell: ({ row }) => <div className="lowercase">{row.getValue("sub_partida")}</div>,
     },
     {
-        accessorKey: "cantidad",
+        accessorKey: "Cantidad",
         header: "Cantidad",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("cantidad")}</div>,
+        cell: ({ row }) => <div className="lowercase">{row.getValue("Cantidad")}</div>,
     },
     {
-        accessorKey: "precioUnitario",
+        accessorKey: "PrecioUnitario",
         header: "Precio Unitario",
         cell: ({ row }) => {
-            const value = row.getValue("precioUnitario") as number;
+            const value = row.getValue("PrecioUnitario") as number;
             return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
         },
     },
     {
-        accessorKey: "subtotal",
+        accessorKey: "Subtotal",
         header: "Subtotal",
         cell: ({ row }) => {
-            const value = row.getValue("subtotal") as number;
+            const value = row.getValue("Subtotal") as number;
             return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
         },
     },
     {
-        accessorKey: "iva",
+        accessorKey: "Iva",
         header: "IVA",
         cell: ({ row }) => {
-            const value = row.getValue("iva") as number;
+            const value = row.getValue("Iva") as number;
             return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
         },
     },
@@ -156,10 +143,10 @@ export const columns: ColumnDef<Payment>[] = [
         },
     },
     {
-        accessorKey: "porLiquidar",
+        accessorKey: "por_liquidar",
         header: "Por Liquidar",
         cell: ({ row }) => {
-            const value = row.getValue("porLiquidar") as number;
+            const value = row.getValue("por_liquidar") as number;
             return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
         },
     },
@@ -171,14 +158,14 @@ export const columns: ColumnDef<Payment>[] = [
             return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
         },
     },
-    {
-        accessorKey: "fechaCarga",
-        header: "Fecha Carga",
-        cell: ({ row }) => {
-            const date = new Date(row.getValue("fechaCarga") as string);
-            return <div className="lowercase">{new Intl.DateTimeFormat('es-MX', { dateStyle: 'short' }).format(date)}</div>;
-        },
-    },
+    // {
+    //     accessorKey: "fechaCarga",
+    //     header: "Fecha Carga",
+    //     cell: ({ row }) => {
+    //         const date = new Date(row.getValue("fechaCarga") as string);
+    //         return <div className="lowercase">{new Intl.DateTimeFormat('es-MX', { dateStyle: 'short' }).format(date)}</div>;
+    //     },
+    // },
     {
         id: "actions",
         enableHiding: false,
@@ -209,7 +196,7 @@ export const columns: ColumnDef<Payment>[] = [
     },
 ]
 
-export function DashboardTable({ data }: { data: Payment[] }) {
+export function DashboardTable({ data }: { data: partida[] }) {
 
 
 

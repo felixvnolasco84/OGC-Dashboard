@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { Id } from "convex/_generated/dataModel";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -34,3 +35,21 @@ export const families: string[] = [
   'CONSUMIBLES'
  ]
   
+
+ export type  partida = {
+  _id: Id<"partidas">;
+  nombre: string;
+  familia: string;
+  sub_partida: string;
+  Cantidad: string;
+  PrecioUnitario: string;
+  Subtotal: string;
+  Iva: string;
+  total: string;
+  aprobado: string;
+  pagado: string;
+  por_liquidar: string;
+  actual: string;
+  fecha_carga: string;
+  archivo_origen: string;
+ }

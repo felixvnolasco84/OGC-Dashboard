@@ -1,6 +1,6 @@
+import { partida } from '@/lib/utils'
 import { useMemo } from 'react'
 import { Chart } from 'react-charts'
-import { Payment } from './Table'
 
 interface DataPoint {
   primary: string
@@ -16,12 +16,12 @@ interface GroupedData {
   [key: string]: number
 }
 
-export default function BarHorizontalChart({ constructionData }: { constructionData: Payment[] }) {
+export default function BarHorizontalChart({ constructionData }: { constructionData: partida[] }) {
   // Group and sum data by subPartida
   const groupedData = useMemo(() => {
     return constructionData.reduce<GroupedData>((acc, item) => {
-      const key = item.subPartida
-      acc[key] = (acc[key] || 0) + item.total
+      const key = item.sub_partida
+      acc[key] = (acc[key] || 0) + Number(item.total)
       return acc
     }, {})
   }, [constructionData])
@@ -30,8 +30,8 @@ export default function BarHorizontalChart({ constructionData }: { constructionD
   const data: Series[] = useMemo(() => {
     // Convert to array, sort by total (descending), and take top 20
     const sortedData = Object.entries(groupedData)
-      .map(([subPartida, total]) => ({
-        subPartida,
+      .map(([sub_partida, total]) => ({
+        sub_partida,
         total
       }))
       .sort((a, b) => b.total - a.total)
@@ -41,9 +41,9 @@ export default function BarHorizontalChart({ constructionData }: { constructionD
       {
         label: 'Total ($)',
         data: sortedData.map(item => ({
-          primary: item.subPartida.length > 40 
-            ? item.subPartida.substring(0, 40) + '...' 
-            : item.subPartida,
+          primary: item.sub_partida.length > 40 
+            ? item.sub_partida.substring(0, 40) + '...' 
+            : item.sub_partida,
           secondary: item.total
         }))
       }
@@ -53,12 +53,12 @@ export default function BarHorizontalChart({ constructionData }: { constructionD
   // Calculate totals for the summary cards
   const summaryTotals = useMemo(() => {
     const totals = Object.values(groupedData).reduce(
-      (sum, total) => sum + total,
+      (sum, total) => sum + Number(total),
       0
     )
     
     const pending = constructionData.reduce(
-      (sum, item) => sum + item.porLiquidar,
+      (sum, item) => sum + Number(item.por_liquidar),
       0
     )
     
