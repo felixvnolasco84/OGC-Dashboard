@@ -17,11 +17,16 @@ export default function Navbar() {
           </NavLink>
           <NavigationMenu>
             <NavigationMenuList className="hidden lg:flex">
-              <NavigationMenuItem>
+              <NavigationMenuItem className="flex gap-4">
                   <NavLink
                     to="/dashboard"
                   >
                     Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/dashboard/costos"
+                  >
+                    Costos
                   </NavLink>
                 </NavigationMenuItem>
             </NavigationMenuList>

@@ -7,11 +7,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
+import { 
+  useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { DashboardTable } from "./Table";
 import BarHorizontalChart from "./BarHorizontalChart";
-// import BarHorizontalChart from "./BarHorizontalChart";
 
 
 export default function Dashboard() {
@@ -39,29 +39,6 @@ export default function Dashboard() {
 
   if (!data) return <p>No data available</p>
 
-  
-  // const { isPending, error, data } = useQuery({
-  //   queryKey: ['partidas', selectedFamily],
-  //   queryFn: () =>
-  //     fetch(`https://ogcbackend-dyeqaacvbsb7cqhy.mexicocentral-01.azurewebsites.net/api/partidastable?familia=${encodeURIComponent(selectedFamily)}`).then((res) =>
-  //       res.json(),
-  //     ),
-  //   enabled: selectedFamily !== undefined,
-  //   refetchOnWindowFocus: false,
-  //   refetchOnMount: false,
-  // })
-
-//   if (isPending) return 'Loading...'
-
-//   if (error) return 'An error has occurred: ' + error.message
-
-//   console.log(data) 
-
-  
-
-
-//  if (!data || data.length === 0) return <p>No data available</p>
-
  const families: string[] = [
   'ACERO',
   'AGREGADOS',
@@ -77,6 +54,8 @@ export default function Dashboard() {
    
   return (
     <div className="flex flex-col gap-4 py-12">
+
+      
       <nav className="flex justify-between">
         <h1>Dashboard</h1>       
         <div className="flex gap-4">

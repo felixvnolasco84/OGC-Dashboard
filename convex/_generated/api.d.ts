@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as costos from "../costos.js";
 import type * as partida from "../partida.js";
 
 /**
@@ -24,6 +25,7 @@ import type * as partida from "../partida.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  costos: typeof costos;
   partida: typeof partida;
 }>;
 export declare const api: FilterApi<

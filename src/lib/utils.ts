@@ -53,3 +53,16 @@ export const families: string[] = [
   fecha_carga: string;
   archivo_origen: string;
  }
+
+
+ export type costo  =  {
+  _id: Id<"costos">;
+  administracion: string;
+  partida: string;
+  familia: string;
+  sub_partida: string;
+  monto: string;
+  fecha: string;
+  codigo_referencia: string;
+  factura: string;
+ }
