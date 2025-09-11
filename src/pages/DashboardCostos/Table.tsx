@@ -15,7 +15,8 @@ import {
 } from "@tanstack/react-table"
 import {
     // ArrowUpDown,
-    ChevronDown, MoreHorizontal
+    ChevronDown,
+    // MoreHorizontal
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -24,9 +25,12 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
+    // DropdownMenuItem,
+    // DropdownMenuLabel,
+    // DropdownMenuSeparator,
+    // DropdownMenuItem,
+    // DropdownMenuLabel,
+    // DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -39,6 +43,10 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { costo } from "@/lib/utils"
+import { Doc } from "convex/_generated/dataModel"
+import DropdownMenuComponentCosto from "@/components/DropdownMenu/DropdownMenuComponenCosto"
+// import DropdownMenuComponentCosto from "@/components/DropdownMenu/DropdownMenuComponenCosto"
+// import { Doc } from "convex/_generated/dataModel"
 
 
 // const getData = async () => {
@@ -104,14 +112,13 @@ export const columns: ColumnDef<costo>[] = [
         header: "Factura",
         cell: ({ row }) => <div className="lowercase">{row.getValue("factura")}</div>,
     },
-    // {
-    //     accessorKey: "fechaCarga",
-    //     header: "Fecha Carga",
-    //     cell: ({ row }) => {
-    //         const date = new Date(row.getValue("fechaCarga") as string);
-    //         return <div className="lowercase">{new Intl.DateTimeFormat('es-MX', { dateStyle: 'short' }).format(date)}</div>;
-    //     },
-    // },
+    {
+        accessorKey: "fecha",
+        header: "Fecha",
+        cell: ({ row }) => {
+            return <div className="lowercase">{row.getValue("fecha")}</div>;
+        },
+    },
     {
         id: "actions",
         enableHiding: false,
@@ -119,24 +126,25 @@ export const columns: ColumnDef<costo>[] = [
             const payment = row.original
 
             return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem
-                            onClick={() => navigator.clipboard.writeText(payment.administracion)}
-                        >
-                            Copiar administracion
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>Ver detalles de la partida</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <DropdownMenuComponentCosto costo={payment as Doc<"costos">} />
+                // <DropdownMenu>
+                //     <DropdownMenuTrigger asChild>
+                //         <Button variant="ghost" className="h-8 w-8 p-0">
+                //             <span className="sr-only">Open menu</span>
+                //             <MoreHorizontal />
+                //         </Button>
+                //     </DropdownMenuTrigger>
+                //     <DropdownMenuContent align="end">
+                //         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                //         <DropdownMenuItem
+                //             onClick={() => navigator.clipboard.writeText(payment.administracion)}
+                //         >
+                //             Copiar administracion
+                //         </DropdownMenuItem>
+                //         <DropdownMenuSeparator />
+                //         <DropdownMenuItem >Ver detalles </DropdownMenuItem>
+                //     </DropdownMenuContent>
+                // </DropdownMenu>
             )
         },
     },

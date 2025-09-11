@@ -11,6 +11,7 @@ import {
 } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { DashboardTable } from "./Table";
+import GanttChart from "@/components/Charts/GanttChart";
 // import BarHorizontalChart from "./BarHorizontalChart";
 
 
@@ -22,11 +23,11 @@ export default function Dashboard() {
   const [selectedSubPartida, setSelectedSubPartida] = React.useState('')
 
   const administraciones = useQuery(api.costos.getAllDiferentAdministracion)
-  
-  const families = useQuery(api.costos.getAllDiferentFamiliaByAdministracion, 
+
+  const families = useQuery(api.costos.getAllDiferentFamiliaByAdministracion,
     selectedAdministracion ? { administracion: selectedAdministracion } : "skip"
   )
-  const partidas = useQuery(api.costos.getAllDiferentPartidaByFamilia, 
+  const partidas = useQuery(api.costos.getAllDiferentPartidaByFamilia,
     selectedAdministracion && selectedFamily ? { administracion: selectedAdministracion, familia: selectedFamily } : "skip"
   )
   const subPartidas = useQuery(api.costos.getAllDiferentSubPartidaByPartida,
@@ -34,7 +35,7 @@ export default function Dashboard() {
   )
 
   // Use getByDiferentFilters with all selected filters
-  const data = useQuery(api.costos.getByDiferentFilters, 
+  const data = useQuery(api.costos.getByDiferentFilters,
     selectedAdministracion ? {
       administracion: selectedAdministracion,
       family: selectedFamily || undefined,
@@ -42,6 +43,8 @@ export default function Dashboard() {
       sub_partida: selectedSubPartida || undefined,
     } : "skip"
   )
+
+  console.log(data)
 
   // Reset dependent filters when parent filter changes
   React.useEffect(() => {
@@ -70,7 +73,7 @@ export default function Dashboard() {
 
           <Select value={selectedAdministracion} onValueChange={(value: string) => setSelectedAdministracion(value)}>
             <SelectTrigger className="w-[240px]">
-              <SelectValue placeholder="Seleccione una administracion" />
+              <SelectValue defaultValue={selectedAdministracion} placeholder="Seleccione una administracion" />
             </SelectTrigger>
             <SelectContent>
               {administraciones.map((administracion, index) => (
@@ -80,7 +83,7 @@ export default function Dashboard() {
               ))}
             </SelectContent>
           </Select>
-          
+
           <Select value={selectedFamily} onValueChange={(value: string) => setSelectedFamily(value)}>
             <SelectTrigger disabled={!selectedAdministracion || !families} className="w-[240px]">
               <SelectValue placeholder="Seleccione una familia" />
@@ -93,7 +96,7 @@ export default function Dashboard() {
               ))}
             </SelectContent>
           </Select>
-          
+
           <Select value={selectedPartida} onValueChange={(value: string) => setSelectedPartida(value)}>
             <SelectTrigger disabled={!selectedAdministracion} className="w-[240px]">
               <SelectValue placeholder="Seleccione una partida" />
@@ -106,7 +109,7 @@ export default function Dashboard() {
               ))}
             </SelectContent>
           </Select>
-          
+
           <Select value={selectedSubPartida} onValueChange={(value: string) => setSelectedSubPartida(value)}>
             <SelectTrigger disabled={!selectedAdministracion} className="w-[240px]">
               <SelectValue placeholder="Seleccione una sub partida" />
@@ -139,6 +142,7 @@ export default function Dashboard() {
 
       <div className="flex flex-col gap-4">
         {data && <DashboardTable data={data} />}
+        {data && <GanttChart data={data} />}
         {/* <BarHorizontalChart constructionData={data}/>  */}
       </div>
     </div>

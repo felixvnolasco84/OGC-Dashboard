@@ -231,7 +231,7 @@ export function DashboardTable({ data }: { data: partida[] }) {
         <div>
             <div className="flex items-center py-4">
                 <Input
-                    placeholder="Filter partidas..."
+                    placeholder="Filter..."
                     value={(table.getColumn("nombre")?.getFilterValue() as string) ?? ""}
                     onChange={(event) =>
                         table.getColumn("nombre")?.setFilterValue(event.target.value)
