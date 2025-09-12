@@ -74,9 +74,10 @@ export const getAllDiferentFamilia = query(async (ctx) => {
     return distinctValues;
 });
 
-export const getAllDiferentFamiliaByAdministracion = query({
+export const getAllDiferentFamiliaByPartida = query({
     args: {
         administracion: v.string(),
+        partida: v.string()
     },
     handler: async (ctx, args) => {
         const distinctValues: string[] = [];
@@ -84,6 +85,7 @@ export const getAllDiferentFamiliaByAdministracion = query({
             .query("costos")
             .withIndex("by_familia")
             .filter((q) => q.eq(q.field("administracion"), args.administracion))
+            .filter((q) => q.eq(q.field("partida"), args.partida))
             .order("desc")
             .first();
         while (doc !== null) {
@@ -93,6 +95,7 @@ export const getAllDiferentFamiliaByAdministracion = query({
                 .query("costos")
                 .withIndex("by_familia", (q) => q.lt("familia", familia))
                 .filter((q) => q.eq(q.field("administracion"), args.administracion))
+                .filter((q) => q.eq(q.field("partida"), args.partida))
                 .order("desc")
                 .first();
         }
@@ -121,10 +124,9 @@ export const getAllDiferentPartida = query(async (ctx) => {
     return distinctValues;
 })
 
-export const getAllDiferentPartidaByFamilia = query({
+export const getAllDiferentPartidaByAdministracion = query({
     args: {
         administracion: v.string(),
-        familia: v.string(),
     },
     handler: async (ctx, args) => {
         const distinctValues: string[] = [];
@@ -132,7 +134,6 @@ export const getAllDiferentPartidaByFamilia = query({
             .query("costos")
             .withIndex("by_partida")
             .filter((q) => q.eq(q.field("administracion"), args.administracion))
-            .filter((q) => q.eq(q.field("familia"), args.familia))
             .order("desc")
             .first();
         while (doc !== null) {
@@ -142,7 +143,6 @@ export const getAllDiferentPartidaByFamilia = query({
                 .query("costos")
                 .withIndex("by_partida", (q) => q.lt("partida", partida))
                 .filter((q) => q.eq(q.field("administracion"), args.administracion))
-                .filter((q) => q.eq(q.field("familia"), args.familia))
                 .order("desc")
                 .first();
         }
@@ -172,8 +172,8 @@ export const getAllDiferentSubPartida = query(async (ctx) => {
 export const getAllDiferentSubPartidaByPartida = query({
     args: {
         administracion: v.string(),
-        familia: v.string(),
         partida: v.string(),
+        familia: v.string(),
     },
     handler: async (ctx, args) => {
         const distinctValues: string[] = [];
@@ -181,8 +181,8 @@ export const getAllDiferentSubPartidaByPartida = query({
             .query("costos")
             .withIndex("by_sub_partida")
             .filter((q) => q.eq(q.field("administracion"), args.administracion))
-            .filter((q) => q.eq(q.field("familia"), args.familia))
             .filter((q) => q.eq(q.field("partida"), args.partida))
+            .filter((q) => q.eq(q.field("familia"), args.familia))
             .order("desc")
             .first();
         while (doc !== null) {
@@ -192,8 +192,8 @@ export const getAllDiferentSubPartidaByPartida = query({
                 .query("costos")
                 .withIndex("by_sub_partida", (q) => q.lt("sub_partida", sub_partida))
                 .filter((q) => q.eq(q.field("administracion"), args.administracion))
-                .filter((q) => q.eq(q.field("familia"), args.familia))
                 .filter((q) => q.eq(q.field("partida"), args.partida))
+                .filter((q) => q.eq(q.field("familia"), args.familia))
                 .order("desc")
                 .first();
         }
@@ -219,26 +219,27 @@ export const getByAdministracion = query({
 export const getByDiferentFilters = query({
     args: {
         administracion: v.string(),
-        family: v.optional(v.string()),
         partida: v.optional(v.string()),
         sub_partida: v.optional(v.string()),
+        family: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         let queryBuilder = ctx.db
             .query("costos")
             .filter((q) => q.eq(q.field("administracion"), args.administracion));
 
-        if (args.family) {
-            queryBuilder = queryBuilder.filter((q) => q.eq(q.field("familia"), args.family));
-        }
-
         if (args.partida) {
             queryBuilder = queryBuilder.filter((q) => q.eq(q.field("partida"), args.partida));
+        }
+
+        if (args.family) {
+            queryBuilder = queryBuilder.filter((q) => q.eq(q.field("familia"), args.family));
         }
 
         if (args.sub_partida) {
             queryBuilder = queryBuilder.filter((q) => q.eq(q.field("sub_partida"), args.sub_partida));
         }
+
 
         const tasks = await queryBuilder
             .order("desc")

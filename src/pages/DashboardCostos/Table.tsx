@@ -88,14 +88,14 @@ export const columns: ColumnDef<costo>[] = [
         cell: ({ row }) => <div className="lowercase">{row.getValue("administracion")}</div>,
     },
     {
-        accessorKey: "familia",
-        header: "Familia",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("familia")}</div>,
-    },
-    {
         accessorKey: "partida",
         header: "Partida",
         cell: ({ row }) => <div className="lowercase">{row.getValue("partida")}</div>,
+    },
+    {
+        accessorKey: "familia",
+        header: "Familia",
+        cell: ({ row }) => <div className="lowercase">{row.getValue("familia")}</div>,
     },
     {
         accessorKey: "sub_partida",

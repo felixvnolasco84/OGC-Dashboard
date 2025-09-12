@@ -18,21 +18,24 @@ import GanttChart from "@/components/Charts/GanttChart";
 export default function Dashboard() {
 
   const [selectedAdministracion, setSelectedAdministracion] = React.useState('')
-  const [selectedFamily, setSelectedFamily] = React.useState('')
   const [selectedPartida, setSelectedPartida] = React.useState('')
   const [selectedSubPartida, setSelectedSubPartida] = React.useState('')
+  const [selectedFamily, setSelectedFamily] = React.useState('')
 
   const administraciones = useQuery(api.costos.getAllDiferentAdministracion)
 
-  const families = useQuery(api.costos.getAllDiferentFamiliaByAdministracion,
+  const partidas = useQuery(api.costos.getAllDiferentPartidaByAdministracion,
     selectedAdministracion ? { administracion: selectedAdministracion } : "skip"
   )
-  const partidas = useQuery(api.costos.getAllDiferentPartidaByFamilia,
-    selectedAdministracion && selectedFamily ? { administracion: selectedAdministracion, familia: selectedFamily } : "skip"
+
+  const families = useQuery(api.costos.getAllDiferentFamiliaByPartida,
+    selectedAdministracion && selectedPartida ? { administracion: selectedAdministracion, partida: selectedPartida } : "skip"
   )
+
   const subPartidas = useQuery(api.costos.getAllDiferentSubPartidaByPartida,
-    selectedAdministracion && selectedFamily && selectedPartida ? { administracion: selectedAdministracion, familia: selectedFamily, partida: selectedPartida } : "skip"
+    selectedAdministracion && selectedPartida ? { administracion: selectedAdministracion, partida: selectedPartida, familia: selectedFamily } : "skip"
   )
+
 
   // Use getByDiferentFilters with all selected filters
   const data = useQuery(api.costos.getByDiferentFilters,
@@ -44,23 +47,21 @@ export default function Dashboard() {
     } : "skip"
   )
 
-  console.log(data)
-
   // Reset dependent filters when parent filter changes
   React.useEffect(() => {
-    setSelectedFamily('')
     setSelectedPartida('')
+    setSelectedFamily('')
     setSelectedSubPartida('')
   }, [selectedAdministracion])
 
   React.useEffect(() => {
-    setSelectedPartida('')
+    setSelectedFamily('')
     setSelectedSubPartida('')
-  }, [selectedFamily])
+  }, [selectedPartida])
 
   React.useEffect(() => {
     setSelectedSubPartida('')
-  }, [selectedPartida])
+  }, [selectedFamily])
 
   if (!administraciones) return <p>No administraciones available</p>
   if (!data && selectedAdministracion) return <p>Loading data...</p>
@@ -84,19 +85,6 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
 
-          <Select value={selectedFamily} onValueChange={(value: string) => setSelectedFamily(value)}>
-            <SelectTrigger disabled={!selectedAdministracion || !families} className="w-[240px]">
-              <SelectValue placeholder="Seleccione una familia" />
-            </SelectTrigger>
-            <SelectContent>
-              {families?.map((family, index) => (
-                <SelectItem key={index} value={family}>
-                  {family}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           <Select value={selectedPartida} onValueChange={(value: string) => setSelectedPartida(value)}>
             <SelectTrigger disabled={!selectedAdministracion} className="w-[240px]">
               <SelectValue placeholder="Seleccione una partida" />
@@ -110,8 +98,23 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
 
+          <Select value={selectedFamily} onValueChange={(value: string) => setSelectedFamily(value)}>
+            <SelectTrigger disabled={!selectedAdministracion || !families} className="w-[240px]">
+              <SelectValue placeholder="Seleccione una familia" />
+            </SelectTrigger>
+            <SelectContent>
+              {families?.map((family, index) => (
+                <SelectItem key={index} value={family}>
+                  {family}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+
+
           <Select value={selectedSubPartida} onValueChange={(value: string) => setSelectedSubPartida(value)}>
-            <SelectTrigger disabled={!selectedAdministracion} className="w-[240px]">
+            <SelectTrigger disabled={!selectedFamily} className="w-[240px]">
               <SelectValue placeholder="Seleccione una sub partida" />
             </SelectTrigger>
             <SelectContent>
@@ -125,20 +128,6 @@ export default function Dashboard() {
 
         </div>
       </nav>
-      {/* <div className="flex justify-end">
-      <Select value={selectedFamily} onValueChange={(value: string) => setSelectedFamily(value)}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Select a family" />
-        </SelectTrigger>
-        <SelectContent>
-          {families.map((family) => (
-            <SelectItem key={family} value={family}>
-              {family}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div> */}
 
       <div className="flex flex-col gap-4">
         {data && <DashboardTable data={data} />}
