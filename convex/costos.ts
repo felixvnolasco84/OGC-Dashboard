@@ -11,6 +11,7 @@ export const update = mutation({
         monto: v.string(),
         fecha: v.string(),
         codigo_referencia: v.string(),
+        monto_decimal: v.optional(v.number()),
         factura: v.string(),
     },
     handler: async (ctx, args) => {
@@ -193,7 +194,7 @@ export const getAllDiferentSubPartidaByPartida = query({
                 .withIndex("by_sub_partida", (q) => q.lt("sub_partida", sub_partida))
                 .filter((q) => q.eq(q.field("administracion"), args.administracion))
                 .filter((q) => q.eq(q.field("partida"), args.partida))
-                .filter((q) => q.eq(q.field("familia"), args.familia))
+
                 .order("desc")
                 .first();
         }

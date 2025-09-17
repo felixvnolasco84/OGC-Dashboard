@@ -14,7 +14,6 @@ import { DashboardTable } from "./Table";
 import GanttChart from "@/components/Charts/GanttChart";
 // import BarHorizontalChart from "./BarHorizontalChart";
 
-
 export default function Dashboard() {
 
   const [selectedAdministracion, setSelectedAdministracion] = React.useState('')
@@ -22,7 +21,9 @@ export default function Dashboard() {
   const [selectedSubPartida, setSelectedSubPartida] = React.useState('')
   const [selectedFamily, setSelectedFamily] = React.useState('')
 
+
   const administraciones = useQuery(api.costos.getAllDiferentAdministracion)
+
 
   const partidas = useQuery(api.costos.getAllDiferentPartidaByAdministracion,
     selectedAdministracion ? { administracion: selectedAdministracion } : "skip"
@@ -66,9 +67,9 @@ export default function Dashboard() {
   if (!administraciones) return <p>No administraciones available</p>
   if (!data && selectedAdministracion) return <p>Loading data...</p>
 
+
   return (
     <div className="flex flex-col gap-4 py-12">
-
       <nav className="flex justify-between">
         <div className="flex gap-4">
 

@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
 import Navbar from "./ui/Navbar";
 // import Footer from "./ui/Footer";
-// import { ModalProvider } from "./providers/modal-provider";
+import { ModalProvider } from "./providers/modal-provider";
 
 import {
   QueryClient,
@@ -16,7 +16,7 @@ function WebsiteLayout() {
       <div className="max-w-7xl mx-auto relative">
         <Navbar />
         <Outlet />
-        {/* <ModalProvider /> */}
+        <ModalProvider />
         {/* <Footer /> */}
         <Toaster />
       </div>
