@@ -318,3 +318,37 @@ export const createCosto = mutation({
         });
     },
 });
+export const getById = query({
+    args: {
+        id: v.id("costos"),
+    },
+    handler: async (ctx, args) => {
+        const costo = await ctx.db.get(args.id);
+
+        if (!costo) {
+            return null;
+        }
+
+        // Get all payments related to this cost
+        const pagos = await ctx.db
+            .query("pagos")
+            .filter((q) => q.eq(q.field("costo_id"), args.id))
+            .collect();
+
+        // Get informacion_facturacion_pago for each payment
+        const pagosWithFacturacion = await Promise.all(
+            pagos.map(async (pago) => {
+                if (pago.informacion_facturacion_pago) {
+                    const facturacion = await ctx.db.get(pago.informacion_facturacion_pago);
+                    return { ...pago, informacion_facturacion_pago: facturacion };
+                }
+                return pago;
+            })
+        );
+
+        return {
+            ...costo,
+            pagos: pagosWithFacturacion
+        };
+    },
+});

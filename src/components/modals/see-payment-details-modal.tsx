@@ -166,12 +166,12 @@ export default function SeePaymentDetailsModal() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
-                                        
-                                            <div>
-                                                <span className="font-medium">Banco:</span>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-muted-foreground">{payment.banco}</p>
-                                                    {payment.banco ? (
+
+                                        <div>
+                                            <span className="font-medium">Banco:</span>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-muted-foreground">{payment.banco}</p>
+                                                {payment.banco ? (
                                                     <img
                                                         src={payment.logo_banco}
                                                         alt={payment.banco}
@@ -180,9 +180,9 @@ export default function SeePaymentDetailsModal() {
                                                 ) : (
                                                     <p className="text-muted-foreground">Efectivo</p>
                                                 )}
-                                                </div>
                                             </div>
-                                        
+                                        </div>
+
                                         {payment.tarjeta && (
                                             <div>
                                                 <span className="font-medium">Tarjeta:</span>

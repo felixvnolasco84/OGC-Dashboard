@@ -34,6 +34,7 @@ export default defineSchema({
     factura: v.string(),
   }).index("by_administracion", { fields: ["administracion"] }).index("by_partida", { fields: ["partida"] }).index("by_familia", { fields: ["familia"] }).index("by_sub_partida", { fields: ["sub_partida"] }),
   pagos: defineTable({
+    costo_id: v.optional(v.id("costos")),
     administracion: v.string(),
     partida: v.string(),
     familia: v.string(),
@@ -53,6 +54,7 @@ export default defineSchema({
     informacion_facturacion_pago: v.optional(v.id("informacion_facturacion_pago")),
   }).index("by_administracion", { fields: ["administracion"] }).index("by_partida", { fields: ["partida"] }).index("by_familia", { fields: ["familia"] }).index("by_sub_partida", { fields: ["sub_partida"] }),
   informacion_facturacion_pago: defineTable({
+    pago_id: v.optional(v.id("pagos")),
     calle: v.string(),
     colonia: v.string(),
     municipio: v.string(),

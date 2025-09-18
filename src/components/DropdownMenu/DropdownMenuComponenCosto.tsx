@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import EditCostForm from "../Forms/EditCostForm";
 import { useSeePaymentDetailsModal } from "@/hooks/see-payment-details";
+import { useNavigate } from "react-router-dom";
 
 export default function DropdownMenuComponentCosto({
   costo,
@@ -14,6 +15,13 @@ export default function DropdownMenuComponentCosto({
   costo: Doc<"costos">;
 }) {
   const seePaymentDetailsModal = useSeePaymentDetailsModal();
+
+  const navigate = useNavigate();
+
+  //Navigate to cost details with react router
+  const handleViewDetails = () => {
+    navigate(`/dashboard/costos/${costo._id}`);
+  }
 
   const handleViewPayments = () => {
 
@@ -120,6 +128,14 @@ export default function DropdownMenuComponentCosto({
             >
               <CreditCard className="h-4 w-4" />
               Ver pagos
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start flex items-center gap-2"
+              onClick={handleViewDetails}
+            >
+              <CreditCard className="h-4 w-4" />
+              Ver detalles
             </Button>
           </div>
         </PopoverContent>

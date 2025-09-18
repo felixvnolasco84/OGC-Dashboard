@@ -12,6 +12,7 @@ import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
 import Dashboard from "./pages/Dashboard/Dashboard.tsx";
 import DashboardCostos from "./pages/DashboardCostos/DashboardCostos.tsx";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import CostoDetails from "./pages/CostoDetails/CostoDetails.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -27,6 +28,7 @@ createRoot(document.getElementById("root")!).render(
               <Route index element={<App />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/costos" element={<DashboardCostos />} />
+              <Route path="/dashboard/costos/:id" element={<CostoDetails />} />
               <Route path="/legal" element={<Legales />} />
               <Route path="/aviso-de-privacidad" element={<AvisoPrivacidad />} />
             </Route>
