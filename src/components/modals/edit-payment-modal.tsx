@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileUpload } from "@/components/ui/file-upload";
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -272,15 +273,13 @@ export default function EditPaymentModal() {
                             <CardTitle className="text-lg">Información Adicional</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="factura">Factura</Label>
-                                <Input
-                                    id="factura"
-                                    placeholder="Número de factura"
-                                    value={formData.factura || ''}
-                                    onChange={(e) => handleInputChange('factura', e.target.value)}
-                                />
-                            </div>
+                            <FileUpload
+                                label="Factura"
+                                value={formData.factura || ''}
+                                onChange={(url) => handleInputChange('factura', url)}
+                                accept="image/*,application/pdf,.txt,.doc,.docx"
+                                placeholder="Subir archivo de factura..."
+                            />
                         </CardContent>
                     </Card>
 
