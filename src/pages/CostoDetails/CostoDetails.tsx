@@ -8,7 +8,18 @@ import { useEditPaymentModal } from "@/hooks/edit-payment-modal";
 import { EllipsisVerticalIcon, Edit, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useMutation } from "convex/react";
 // Type for payment with populated billing information from getById query
 type PaymentWithBilling = Omit<Doc<"pagos">, "informacion_facturacion_pago"> & {
     informacion_facturacion_pago?: Doc<"informacion_facturacion_pago"> | null;
@@ -19,6 +30,9 @@ export default function CostoDetails() {
     const params = useParams();
     const id = params.id;
     const costo = useQuery(api.costos.getById, { id: id as Id<"costos"> });
+
+
+    const deletePayment = useMutation(api.pagos.deletePayment);
 
     console.log(costo);
 
@@ -74,7 +88,7 @@ export default function CostoDetails() {
 
 
     return (
-        <div className="bg-gray-50 py-8 m-4 rounded-lg min-h-screen">
+        <div className=" py-8 m-4 rounded-lg min-h-screen">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
@@ -152,7 +166,7 @@ export default function CostoDetails() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Monto</label>
-                                    <p className="mt-1 text-sm font-bold text-gray-900">{formatCurrency(costo.monto)}</p>
+                                    <p className="mt-1 text-sm font-bold text-gray-900">{formatCurrency(costo.monto_decimal?.toString() || '0')}</p>
                                 </div>
                             </div>
 
@@ -204,6 +218,7 @@ export default function CostoDetails() {
                                                         }`}>
                                                         {pago.tipo_pago}
                                                     </span>
+
                                                     <Popover>
                                                         <PopoverTrigger asChild>
                                                             <Button variant="outline" size="sm">
@@ -211,17 +226,33 @@ export default function CostoDetails() {
                                                             </Button>
                                                         </PopoverTrigger>
                                                         <PopoverContent className="w-fit" align="end">
-                                                        <div className="grid space-y-2">
-                                                            <Button variant={"ghost"} onClick={() => handleEditPayment(pago as PaymentWithBilling)}>
-                                                                <Edit className="h-4 w-4 mr-2" />
-                                                                Editar
-                                                            </Button>
-                                                            <Separator />
-                                                            <Button variant={"ghost"} className="text-red-600">
-                                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                                Eliminar
-                                                            </Button>
-                                                        </div>
+                                                            <div className="grid space-y-2">
+                                                                <Button variant={"ghost"} onClick={() => handleEditPayment(pago as PaymentWithBilling)}>
+                                                                    <Edit className="h-4 w-4 mr-2" />
+                                                                    Editar
+                                                                </Button>
+                                                                <Separator />
+                                                                <AlertDialog>
+                                                                    <AlertDialogTrigger>
+                                                                        <Button variant={"ghost"} className="text-red-600">
+                                                                            <Trash2 className="h-4 w-4 mr-2" />
+                                                                            Eliminar
+                                                                        </Button>
+                                                                    </AlertDialogTrigger>
+                                                                    <AlertDialogContent>
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                                            <AlertDialogDescription>
+                                                                                Esta acción no puede ser deshecha.
+                                                                            </AlertDialogDescription>
+                                                                        </AlertDialogHeader>
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                            <AlertDialogAction onClick={() => deletePayment({ id: pago._id })}>Eliminar</AlertDialogAction>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                            </div>
                                                         </PopoverContent>
                                                     </Popover>
                                                 </div>

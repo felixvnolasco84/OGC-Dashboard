@@ -1,3 +1,4 @@
+import { Id } from "./_generated/dataModel";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -241,12 +242,47 @@ export const getByDiferentFilters = query({
             queryBuilder = queryBuilder.filter((q) => q.eq(q.field("sub_partida"), args.sub_partida));
         }
 
-
         const tasks = await queryBuilder
             .order("desc")
             .take(100);
 
-        return tasks;
+        // Group data by partida -> familia -> sub_partida
+        const groupedData: {
+            [partida: string]: {
+                [familia: string]: Array<{
+                    _id: Id<"costos">;
+                    description: string;
+                    specification: string;
+                }>
+            }
+        } = {};
+
+        tasks.forEach(task => {
+            if (!groupedData[task.partida]) {
+                groupedData[task.partida] = {};
+            }
+            if (!groupedData[task.partida][task.familia]) {
+                groupedData[task.partida][task.familia] = [];
+            }
+            groupedData[task.partida][task.familia].push({
+                _id: task._id, // Keep the original string ID
+                description: task.sub_partida,
+                specification: `${task.monto} - ${task.fecha}`
+            });
+        });
+
+        // Transform to expected output format
+        const result = Object.entries(groupedData).map(([partidaName, familias], partidaIndex) => ({
+            id: partidaIndex + 1,
+            name: partidaName,
+            familias: Object.entries(familias).map(([familiaName, subpartidas], familiaIndex) => ({
+                id: familiaIndex + 1,
+                name: familiaName,
+                subpartidas: subpartidas
+            }))
+        }));
+
+        return result;
     },
 });
 

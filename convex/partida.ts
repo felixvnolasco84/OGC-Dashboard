@@ -10,17 +10,17 @@ export const getPartidas = query({
 
 
 export const getByFamily = query({
-    args: {
-        family: v.string(),
-    },
-    handler: async (ctx, args) => {
-        const tasks = await ctx.db
-          .query("partidas")
-          .filter((q) => q.eq(q.field("familia"), args.family))
-          .order("desc")
-          .take(100);
-        return tasks;
-      },
+  args: {
+    family: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const tasks = await ctx.db
+      .query("partidas")
+      .filter((q) => q.eq(q.field("familia"), args.family))
+      .order("desc")
+      .take(100);
+    return tasks;
+  },
 });
 
 
@@ -61,3 +61,4 @@ export const createPartida = mutation({
     });
   },
 });
+

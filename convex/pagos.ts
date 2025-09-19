@@ -54,7 +54,7 @@ export const update = mutation({
     },
     handler: async (ctx, args) => {
         const { id, ...updateData } = args;
-        
+
         const existingPayment = await ctx.db.get(id);
         if (!existingPayment) {
             throw new Error("Payment not found");
@@ -64,3 +64,19 @@ export const update = mutation({
         return updatedPayment;
     },
 });
+
+export const deletePayment = mutation({
+    args: {
+        id: v.id("pagos"),
+    },
+    handler: async (ctx, args) => {
+        const { id } = args;
+        const existingPayment = await ctx.db.get(id);
+        if (!existingPayment) {
+            throw new Error("Payment not found");
+        }
+        await ctx.db.delete(id);
+    },
+});
+
+

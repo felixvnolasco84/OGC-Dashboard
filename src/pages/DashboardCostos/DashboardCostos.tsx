@@ -10,8 +10,9 @@ import {
   useQuery,
 } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { DashboardTable } from "./Table";
-import GanttChart from "@/components/Charts/GanttChart";
+// import { DashboardTable } from "./Table";
+// import GanttChart from "@/components/Charts/GanttChart";
+import { CollapsibleTable } from "@/components/Tables/collapsible-table";
 // import BarHorizontalChart from "./BarHorizontalChart";
 
 export default function Dashboard() {
@@ -131,8 +132,10 @@ export default function Dashboard() {
       </nav>
 
       <div className="flex flex-col gap-4">
-        {data && <DashboardTable data={data} />}
-        {data && <GanttChart data={data} />}
+        {/* {data && <DashboardTable data={data} />}
+         */}
+        <CollapsibleTable data={data} />
+        {/* {data && <GanttChart data={data} />} */}
         {/* <BarHorizontalChart constructionData={data}/>  */}
       </div>
     </div>

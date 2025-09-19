@@ -1,7 +1,7 @@
 "use client";
 
 import { Doc, Id } from "convex/_generated/dataModel";
-import { MoreHorizontal, Pencil, CreditCard } from "lucide-react";
+import { MoreHorizontal, Pencil, CreditCard, MoreHorizontalIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -134,7 +134,7 @@ export default function DropdownMenuComponentCosto({
               className="w-full justify-start flex items-center gap-2"
               onClick={handleViewDetails}
             >
-              <CreditCard className="h-4 w-4" />
+              <MoreHorizontalIcon className="h-4 w-4" />
               Ver detalles
             </Button>
           </div>
