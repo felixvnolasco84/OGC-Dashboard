@@ -1,7 +1,7 @@
 #root {
   margin: 0 auto;
   text-align: center;
-  font-family: 'Fustat',
+  font-family: 'Helvetica Neue',
     sans-serif;
 }
 
@@ -11,9 +11,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -22,6 +24,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -39,7 +42,7 @@
 
 .read-the-docs {
   color: #888;
-} 
+}
 
 
 #mobile-menu-2 {
@@ -72,18 +75,6 @@
   font-weight: 500;
 }
 
-
-.noto-serif-display {
-    font-family: 'Noto Serif Display', serif;
-}
-
-.fustat {
-    font-family: 'Fustat', sans-serif;
-}
-
-.poppins {
-  font-family: "Poppins", sans-serif;
-}
 
 mux-player {
   --media-object-fit: cover;

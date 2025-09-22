@@ -88,7 +88,7 @@ export default function CostoDetails() {
 
 
     return (
-        <div className=" py-8 m-4 rounded-lg min-h-screen">
+        <div className=" p-6 m-4 rounded-lg min-h-screen">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">

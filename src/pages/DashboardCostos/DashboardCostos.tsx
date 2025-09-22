@@ -70,7 +70,7 @@ export default function Dashboard() {
 
 
   return (
-    <div className="flex flex-col gap-4 py-12">
+    <div className="flex flex-col gap-4 p-6">
       <nav className="flex justify-between">
         <div className="flex gap-4">
 

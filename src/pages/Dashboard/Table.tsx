@@ -76,88 +76,136 @@ export const columns: ColumnDef<partida>[] = [
 
     {
         accessorKey: "nombre",
-        header: "Nombre",
+        header: "Partida",
         cell: ({ row }) => <div className="lowercase">{row.getValue("nombre")}</div>,
     },
     {
         accessorKey: "familia",
         header: "Familia",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("familia")}</div>,
+        cell: ({ row }) => <div className="flex flex-col text-left">
+            <span className="capitalize">{row.getValue("familia")}</span>
+            <span className="text-xs text-muted-foreground capitalize">{row.getValue("sub_partida")}</span>
+        </div>,
     },
     {
         accessorKey: "sub_partida",
         header: "Sub Partida",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("sub_partida")}</div>,
+        cell: ({ row }) => <div className="lowercase hidden">{row.getValue("sub_partida")}</div>,
     },
-    {
-        accessorKey: "Cantidad",
-        header: "Cantidad",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("Cantidad")}</div>,
-    },
-    {
-        accessorKey: "PrecioUnitario",
-        header: "Precio Unitario",
-        cell: ({ row }) => {
-            const value = row.getValue("PrecioUnitario") as number;
-            return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
-        },
-    },
-    {
-        accessorKey: "Subtotal",
-        header: "Subtotal",
-        cell: ({ row }) => {
-            const value = row.getValue("Subtotal") as number;
-            return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
-        },
-    },
-    {
-        accessorKey: "Iva",
-        header: "IVA",
-        cell: ({ row }) => {
-            const value = row.getValue("Iva") as number;
-            return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
-        },
-    },
+    // {
+    //     accessorKey: "Cantidad",
+    //     header: "Cantidad",
+    //     cell: ({ row }) => <div className="lowercase">{row.getValue("Cantidad")}</div>,
+    // },
+    // {
+    //     accessorKey: "PrecioUnitario",
+    //     header: "Precio Unitario",
+    //     cell: ({ row }) => {
+    //         const value = row.getValue("PrecioUnitario") as number;
+    //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+    //     },
+    // },
+    // {
+    //     accessorKey: "Subtotal",
+    //     header: "Subtotal",
+    //     cell: ({ row }) => {
+    //         const value = row.getValue("Subtotal") as number;
+    //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+    //     },
+    // },
+    // {
+    //     accessorKey: "Iva",
+    //     header: "IVA",
+    //     cell: ({ row }) => {
+    //         const value = row.getValue("Iva") as number;
+    //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+    //     },
+    // },
     {
         accessorKey: "total",
-        header: "Total",
+        header: "Monto",
         cell: ({ row }) => {
             const value = row.getValue("total") as number;
             return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
         },
     },
+    // {
+    //     accessorKey: "aprobado",
+    //     header: "Aprobado",
+    //     cell: ({ row }) => {
+    //         const value = row.getValue("aprobado") as number;
+    //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+    //     },
+    // },
+    // {
+    //     accessorKey: "pagado",
+    //     header: "Pagado",
+    //     cell: ({ row }) => {
+    //         const value = row.getValue("pagado") as number;
+    //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+    //     },
+    // },
+    // {
+    //     accessorKey: "por_liquidar",
+    //     header: "Por Liquidar",
+    //     cell: ({ row }) => {
+    //         const value = row.getValue("por_liquidar") as number;
+    //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+    //     },
+    // },
     {
-        accessorKey: "aprobado",
-        header: "Aprobado",
-        cell: ({ row }) => {
-            const value = row.getValue("aprobado") as number;
-            return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+        accessorKey: "avance",
+        header: "Avance",
+        // cell: ({ row }) => {
+        cell: () => {
+            // const value = row.getValue("avance") as number;            
+            return <div className="lowercase">15%</div>
         },
     },
     {
-        accessorKey: "pagado",
-        header: "Pagado",
-        cell: ({ row }) => {
-            const value = row.getValue("pagado") as number;
-            return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+        accessorKey: "fechaPago",
+        header: "Fecha pago",
+        // cell: ({ row }) => {
+        cell: () => {
+            // const value = row.getValue("avance") as number;            
+            return <div className="lowercase">12 Sep 2025</div>
         },
     },
     {
-        accessorKey: "por_liquidar",
-        header: "Por Liquidar",
-        cell: ({ row }) => {
-            const value = row.getValue("por_liquidar") as number;
-            return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+        accessorKey: "proveedor",
+        header: "Proveedor",
+        // cell: ({ row }) => {
+        cell: () => {
+            // const value = row.getValue("avance") as number;            
+            return <div className="capitalize">Aceros Cabo Sa de CV</div>
         },
     },
     {
-        accessorKey: "actual",
-        header: "Actual",
-        cell: ({ row }) => {
-            const value = row.getValue("actual") as number;
-            return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+        accessorKey: "factura",
+        header: "Factura",
+        // cell: ({ row }) => {
+        cell: () => {
+            // const value = row.getValue("avance") as number;            
+            return <div className="lowercase">050333.pdf</div>
         },
     },
+    {
+        accessorKey: "numeroPago",
+        header: "#Pago",
+        // cell: ({ row }) => {
+        cell: () => {
+            // const value = row.getValue("avance") as number;            
+            return <div className="lowercase">01</div>
+        },
+    },
+    // {
+    //     accessorKey: "actual",
+    //     header: "Actual",
+    //     cell: ({ row }) => {
+    //         const value = row.getValue("actual") as number;
+    //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+    //     },
+    // },
     // {
     //     accessorKey: "fechaCarga",
     //     header: "Fecha Carga",

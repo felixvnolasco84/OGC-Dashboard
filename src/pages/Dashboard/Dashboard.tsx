@@ -7,16 +7,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils";
-import { 
-  useQuery } from "convex/react";
+import {
+  useQuery
+} from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { DashboardTable } from "./Table";
 import BarHorizontalChart from "./BarHorizontalChart";
 
 
 export default function Dashboard() {
-  
-    const desarrollos = [
+
+  const desarrollos = [
     {
       id: "torre-i",
       nombre: 'Torre I',
@@ -39,57 +40,55 @@ export default function Dashboard() {
 
   if (!data) return <p>No data available</p>
 
- const families: string[] = [
-  'ACERO',
-  'AGREGADOS',
-  'AIRE_ACONDICIONADO',
-  'CANCELERÍA',
-  'CARPINTERÍA',
-  'CEMENTANTES',
-  'CIMBRA',
-  'COCINA',
-  'CONCRETOS',
-  'CONSUMIBLES'
- ]
-   
+  const families: string[] = [
+    'ACERO',
+    'AGREGADOS',
+    'AIRE_ACONDICIONADO',
+    'CANCELERÍA',
+    'CARPINTERÍA',
+    'CEMENTANTES',
+    'CIMBRA',
+    'COCINA',
+    'CONCRETOS',
+    'CONSUMIBLES'
+  ]
+
   return (
     <div className="flex flex-col gap-4 py-12">
-
-      
       <nav className="flex justify-between">
-        <h1>Dashboard</h1>       
+        <h1>Dashboard</h1>
         <div className="flex gap-4">
           {desarrollos.map((desarrollo) => (
             <button
               key={desarrollo.id}
               onClick={() => setSelectedDevelopment(desarrollo.id)}
               className={cn("px-4 py-2 rounded-md hover:bg-gray-100", selectedDevelopment === desarrollo.id ? "bg-gray-100" : "")}
-              
+
             >
               {desarrollo.nombre}
             </button>
           ))}
         </div>
-      </nav>  
-    <div className="flex justify-end">
-      <Select value={selectedFamily} onValueChange={(value: string) => setSelectedFamily(value)}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Select a family" />
-        </SelectTrigger>
-        <SelectContent>
-          {families.map((family) => (
-            <SelectItem key={family} value={family}>
-              {family}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-    
-    <div className="flex flex-col gap-4">
-      <DashboardTable data={data}/>
-       <BarHorizontalChart constructionData={data}/> 
-    </div>
+      </nav>
+      <div className="flex justify-end">
+        <Select value={selectedFamily} onValueChange={(value: string) => setSelectedFamily(value)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select a family" />
+          </SelectTrigger>
+          <SelectContent>
+            {families.map((family) => (
+              <SelectItem key={family} value={family}>
+                {family}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <DashboardTable data={data} />
+        <BarHorizontalChart constructionData={data} />
+      </div>
     </div>
   )
 }
