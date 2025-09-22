@@ -150,7 +150,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Filters */}
-                <Card className="bg-white">
+                <Card className="bg-white sticky top-0 z-10">
                     <CardContent className="p-6">
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <div className="flex items-center space-x-4">
@@ -214,12 +214,8 @@ export default function HomePage() {
                 {/* Secondary Metrics and Chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Secondary Metrics */}
-
-
-
                     {/* Chart Area */}
                     <div className="lg:col-span-4 space-y-4">
-                        {/* TEST */}
                         <div className="space-y-4 grid grid-cols-3 gap-4">
                             <Card className="bg-white">
                                 <CardContent className="p-4">

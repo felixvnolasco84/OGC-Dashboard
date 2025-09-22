@@ -15,7 +15,7 @@ import {
 } from "@tanstack/react-table"
 import {
     // ArrowUpDown,
-    ChevronDown, MoreHorizontal
+    ChevronDown, MoreHorizontal, Search
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -38,6 +38,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { partida } from "@/lib/utils"
 
 
@@ -245,9 +246,7 @@ export const columns: ColumnDef<partida>[] = [
 ]
 
 export function DashboardTable({ data }: { data: partida[] }) {
-
-
-
+    
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
         []
@@ -255,6 +254,7 @@ export function DashboardTable({ data }: { data: partida[] }) {
     const [columnVisibility, setColumnVisibility] =
         React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
+    const [activeTab, setActiveTab] = React.useState("ultimos-movimientos")
 
     const table = useReactTable({
         data,
@@ -275,118 +275,171 @@ export function DashboardTable({ data }: { data: partida[] }) {
         },
     })
 
-    return (
-        <div>
-            <div className="flex items-center py-4">
-                <Input
-                    placeholder="Filter..."
-                    value={(table.getColumn("nombre")?.getFilterValue() as string) ?? ""}
-                    onChange={(event) =>
-                        table.getColumn("nombre")?.setFilterValue(event.target.value)
-                    }
-                    className="max-w-sm"
-                />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        {table
-                            .getAllColumns()
-                            .filter((column) => column.getCanHide())
-                            .map((column) => {
-                                return (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        className="capitalize"
-                                        checked={column.getIsVisible()}
-                                        onCheckedChange={(value) =>
-                                            column.toggleVisibility(!!value)
-                                        }
-                                    >
-                                        {column.id}
-                                    </DropdownMenuCheckboxItem>
-                                )
-                            })}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-            <div className="overflow-hidden rounded-md border">
-                <Table>
-                    <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => {
+    // Mock data for different tabs - you can replace this with actual data
+    const getTabData = (tabValue: string) => {
+        // For now, return the same data for all tabs
+        // In a real implementation, you would filter or fetch different data based on the tab
+        console.log(tabValue)
+        return data;
+    }
+
+    const renderTabContent = (tabValue: string) => {
+        // const tabData = getTabData(tabValue);
+        getTabData(tabValue);
+        
+        return (
+            <div>
+                <div className="flex items-center py-4 gap-4">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                            placeholder="Filtrar por..."
+                            value={(table.getColumn("nombre")?.getFilterValue() as string) ?? ""}
+                            onChange={(event) =>
+                                table.getColumn("nombre")?.setFilterValue(event.target.value)
+                            }
+                            className="pl-10"
+                        />
+                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline">
+                                Columns <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            {table
+                                .getAllColumns()
+                                .filter((column) => column.getCanHide())
+                                .map((column) => {
                                     return (
-                                        <TableHead key={header.id}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                        </TableHead>
+                                        <DropdownMenuCheckboxItem
+                                            key={column.id}
+                                            className="capitalize"
+                                            checked={column.getIsVisible()}
+                                            onCheckedChange={(value) =>
+                                                column.toggleVisibility(!!value)
+                                            }
+                                        >
+                                            {column.id}
+                                        </DropdownMenuCheckboxItem>
                                     )
                                 })}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-                    <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={row.getIsSelected() && "selected"}
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+                <div className="overflow-hidden rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map((header) => {
+                                        return (
+                                            <TableHead key={header.id}>
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
+                                                    )}
+                                            </TableHead>
+                                        )
+                                    })}
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={columns.length}
-                                    className="h-24 text-center"
-                                >
-                                    No results.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="text-muted-foreground flex-1 text-sm">
-                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                    {table.getFilteredRowModel().rows.length} row(s) selected.
+                            ))}
+                        </TableHeader>
+                        <TableBody>
+                            {table.getRowModel().rows?.length ? (
+                                table.getRowModel().rows.map((row) => (
+                                    <TableRow
+                                        key={row.id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={columns.length}
+                                        className="h-24 text-center"
+                                    >
+                                        No results.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
-                <div className="space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
+                <div className="flex items-center justify-end space-x-2 py-4">
+                    <div className="text-muted-foreground flex-1 text-sm">
+                        {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                        {table.getFilteredRowModel().rows.length} row(s) selected.
+                    </div>
+                    <div className="space-x-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => table.previousPage()}
+                            disabled={!table.getCanPreviousPage()}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => table.nextPage()}
+                            disabled={!table.getCanNextPage()}
+                        >
+                            Next
+                        </Button>
+                    </div>
                 </div>
             </div>
+        );
+    }
+
+    return (
+        <div className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                    <TabsTrigger value="ultimos-movimientos" className="text-sm">
+                        Últimos movimientos
+                    </TabsTrigger>
+                    <TabsTrigger value="cuentas-por-pagar" className="text-sm">
+                        Cuentas por pagar
+                    </TabsTrigger>
+                    <TabsTrigger value="pago-estimaciones" className="text-sm">
+                        Pago de Estimaciones
+                    </TabsTrigger>
+                    <TabsTrigger value="pago-anticipos" className="text-sm">
+                        Pago de Anticipos
+                    </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="ultimos-movimientos" className="space-y-4">
+                    {renderTabContent("ultimos-movimientos")}
+                </TabsContent>
+                
+                <TabsContent value="cuentas-por-pagar" className="space-y-4">
+                    {renderTabContent("cuentas-por-pagar")}
+                </TabsContent>
+                
+                <TabsContent value="pago-estimaciones" className="space-y-4">
+                    {renderTabContent("pago-estimaciones")}
+                </TabsContent>
+                
+                <TabsContent value="pago-anticipos" className="space-y-4">
+                    {renderTabContent("pago-anticipos")}
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }
