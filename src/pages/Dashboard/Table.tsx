@@ -15,14 +15,15 @@ import {
 } from "@tanstack/react-table"
 import {
     // ArrowUpDown,
-    ChevronDown, MoreHorizontal, Search
+    // ChevronDown,
+     MoreHorizontal, Search
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
     DropdownMenu,
-    DropdownMenuCheckboxItem,
+    // DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
@@ -62,13 +63,15 @@ export const columns: ColumnDef<partida>[] = [
                 }
                 onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
                 aria-label="Select all"
+                className="hidden"
             />
         ),
         cell: ({ row }) => (
-            <Checkbox
+            <Checkbox   
                 checked={row.getIsSelected()}
                 onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Select row"
+                aria-label="Select row"                
+                className="mr-6"
             />
         ),
         enableSorting: false,
@@ -85,7 +88,7 @@ export const columns: ColumnDef<partida>[] = [
         header: "Familia",
         cell: ({ row }) => <div className="flex flex-col text-left">
             <span className="capitalize">{row.getValue("familia")}</span>
-            <span className="text-xs text-muted-foreground capitalize">{row.getValue("sub_partida")}</span>
+            <span className="text-xs text-muted-foreground capitalize">{(row.getValue("sub_partida") as string).slice(0, 20)}...</span>
         </div>,
     },
     {
@@ -127,7 +130,15 @@ export const columns: ColumnDef<partida>[] = [
         header: "Monto",
         cell: ({ row }) => {
             const value = row.getValue("total") as number;
-            return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
+            return <div className="uppercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)} MXN</div>
+        },
+    },
+    {
+        accessorKey: "presupuesto",
+        header: "Presupuesto",
+        cell: () => {
+            // const value = row.getValue("presupuesto") as number;
+            return <div className="uppercase">$450,000 MXN</div>
         },
     },
     // {
@@ -291,17 +302,17 @@ export function DashboardTable({ data }: { data: partida[] }) {
             <div>
                 <div className="flex items-center py-4 gap-4">
                     <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                         <Input
                             placeholder="Filtrar por..."
                             value={(table.getColumn("nombre")?.getFilterValue() as string) ?? ""}
                             onChange={(event) =>
                                 table.getColumn("nombre")?.setFilterValue(event.target.value)
                             }
-                            className="pl-10"
+                            className="pl-10 border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
                         />
                     </div>
-                    <DropdownMenu>
+                    {/* <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline">
                                 Columns <ChevronDown className="ml-2 h-4 w-4" />
@@ -326,16 +337,16 @@ export function DashboardTable({ data }: { data: partida[] }) {
                                     )
                                 })}
                         </DropdownMenuContent>
-                    </DropdownMenu>
+                    </DropdownMenu> */}
                 </div>
-                <div className="overflow-hidden rounded-md border">
+                <div className="bg-white border border-gray-200 overflow-hidden">
                     <Table>
-                        <TableHeader>
+                        <TableHeader className="bg-gray-50">
                             {table.getHeaderGroups().map((headerGroup) => (
-                                <TableRow key={headerGroup.id}>
+                                <TableRow key={headerGroup.id} className="border-b border-gray-200">
                                     {headerGroup.headers.map((header) => {
                                         return (
-                                            <TableHead key={header.id}>
+                                            <TableHead key={header.id} className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">
                                                 {header.isPlaceholder
                                                     ? null
                                                     : flexRender(
@@ -353,10 +364,10 @@ export function DashboardTable({ data }: { data: partida[] }) {
                                 table.getRowModel().rows.map((row) => (
                                     <TableRow
                                         key={row.id}
-                                        data-state={row.getIsSelected() && "selected"}
+                                        className="border-b border-gray-100 hover:bg-gray-50"
                                     >
                                         {row.getVisibleCells().map((cell) => (
-                                            <TableCell key={cell.id}>
+                                            <TableCell key={cell.id} className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
                                                 {flexRender(
                                                     cell.column.columnDef.cell,
                                                     cell.getContext()
@@ -369,7 +380,7 @@ export function DashboardTable({ data }: { data: partida[] }) {
                                 <TableRow>
                                     <TableCell
                                         colSpan={columns.length}
-                                        className="h-24 text-center"
+                                        className="h-24 text-center text-gray-500"
                                     >
                                         No results.
                                     </TableCell>
@@ -409,17 +420,29 @@ export function DashboardTable({ data }: { data: partida[] }) {
     return (
         <div className="w-full">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-6">
-                    <TabsTrigger value="ultimos-movimientos" className="text-sm">
+                <TabsList className="h-auto w-full justify-start rounded-none border-b border-gray-200 bg-transparent p-0 mb-0">
+                    <TabsTrigger 
+                        value="ultimos-movimientos" 
+                        className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
+                    >
                         Últimos movimientos
                     </TabsTrigger>
-                    <TabsTrigger value="cuentas-por-pagar" className="text-sm">
+                    <TabsTrigger 
+                        value="cuentas-por-pagar" 
+                        className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
+                    >
                         Cuentas por pagar
                     </TabsTrigger>
-                    <TabsTrigger value="pago-estimaciones" className="text-sm">
+                    <TabsTrigger 
+                        value="pago-estimaciones" 
+                        className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
+                    >
                         Pago de Estimaciones
                     </TabsTrigger>
-                    <TabsTrigger value="pago-anticipos" className="text-sm">
+                    <TabsTrigger 
+                        value="pago-anticipos" 
+                        className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
+                    >
                         Pago de Anticipos
                     </TabsTrigger>
                 </TabsList>

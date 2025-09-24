@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AreaChart from "@/components/Charts/AreaChart";
 import { DashboardTable } from "../Dashboard/Table";
+import { Search } from "lucide-react";
 
 // Mockup data
 const mockData = {
@@ -38,7 +39,7 @@ const mockData = {
             amount: 83240580,
             percentage: 10,
             comparison: null,
-            comparisonLabel: "Restante 77% ↑"
+            comparisonLabel: "Pendiente 77%"
         }
     },
     filters: {
@@ -52,13 +53,13 @@ const mockData = {
         honorarios: 134042
     },
     chartData: [
-        { month: "01 Sep", manoDeObra: 200000, materiales: 150000, contratistas: 100000, equipos: 80000 },
-        { month: "05 Sep", manoDeObra: 250000, materiales: 180000, contratistas: 120000, equipos: 90000 },
-        { month: "10 Sep", manoDeObra: 300000, materiales: 220000, contratistas: 150000, equipos: 110000 },
-        { month: "15 Sep", manoDeObra: 350000, materiales: 280000, contratistas: 180000, equipos: 130000 },
-        { month: "20 Sep", manoDeObra: 400000, materiales: 320000, contratistas: 200000, equipos: 150000 },
-        { month: "25 Sep", manoDeObra: 450000, materiales: 350000, contratistas: 220000, equipos: 170000 },
-        { month: "30 Sep", manoDeObra: 500000, materiales: 380000, contratistas: 240000, equipos: 190000 }
+        { month: "01 Sep", manoDeObra: 200000, materiales: 150000, contratistas: 100000, equipos: 80000, date: "01 Sep" },
+        { month: "05 Sep", manoDeObra: 250000, materiales: 180000, contratistas: 120000, equipos: 90000, date: "05 Sep" },
+        { month: "10 Sep", manoDeObra: 300000, materiales: 220000, contratistas: 150000, equipos: 110000, date: "10 Sep" },
+        { month: "15 Sep", manoDeObra: 350000, materiales: 280000, contratistas: 180000, equipos: 130000, date: "15 Sep" },
+        { month: "20 Sep", manoDeObra: 400000, materiales: 320000, contratistas: 200000, equipos: 150000, date: "20 Sep" },
+        { month: "25 Sep", manoDeObra: 450000, materiales: 350000, contratistas: 220000, equipos: 170000, date: "25 Sep" },
+        { month: "30 Sep", manoDeObra: 500000, materiales: 380000, contratistas: 240000, equipos: 190000, date: "30 Sep" }
     ]
 };
 
@@ -76,27 +77,27 @@ export default function HomePage() {
     if (!data) return <p>No data available</p>
 
     return (
-        <div className="bg-white p-6">
+        <div className="bg-white px-12 py-6">
             <div className="max-w-full mx-auto space-y-6">
                 {/* Header */}
                 <div className="rounded-lg py-6">
                     <div className="flex items-start justify-between">
                         <div className="flex flex-col text-left">
                             <p className="text-sm text-gray-500 mb-1">{mockData.project.type}</p>
-                            <h1 className="text-2xl font-bold text-gray-900">{mockData.project.name}</h1>
+                            <h1 className="text-2xl text-gray-900">{mockData.project.name}</h1>
                         </div>
                     </div>
                 </div>
 
                 {/* Main Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-0 w-full xl:w-3/4">
                     {/* Presupuesto Aprobado */}
-                    <Card className="bg-transparent">
-                        <CardContent className="p-6 text-left">
+                    <Card className="bg-transparent shadow-none border-none">
+                        <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-sm text-gray-500">Presupuesto aprobado</p>
+                                <p className="text-xs text-gray-500">Presupuesto aprobado</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-3xl font-bold text-gray-900">
+                                    <span className="text-4xl text-gray-900">
                                         ${formatNumber(mockData.metrics.presupuestoAprobado.amount)}
                                     </span>
                                     {/* <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -104,186 +105,167 @@ export default function HomePage() {
                                     </Badge> */}
                                 </div>
 
-                                <p className="text-sm text-gray-500">
+                                <p className="text-lg text-gray-500">
                                     {/* ${formatNumber(mockData.metrics.presupuestoAprobado.comparison)} <Badge variant="secondary" className="bg-green-100 text-green-800 rounded-xl border-green-800">{mockData.metrics.presupuestoAprobado.comparisonLabel}</Badge> */}
-                                    ${formatNumber(mockData.metrics.presupuestoAprobado.comparison)} <Badge variant="secondary" className="bg-green-100 text-green-800 rounded-xl border-green-800">{mockData.metrics.presupuestoAprobado.percentage}%</Badge>
+                                    ${formatNumber(mockData.metrics.presupuestoAprobado.comparison)} <Badge variant="secondary" className="ml-6 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
+                                        <span>Reducción {mockData.metrics.presupuestoAprobado.percentage}%</span>
+                                    </Badge>
                                 </p>
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Gasto Total */}
-                    <Card className="bg-white">
-                        <CardContent className="p-6 text-left">
+                    <Card className="bg-white shadow-none border-none">
+                        <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-sm text-gray-500">Gasto total</p>
+                                <p className="text-xs text-gray-500">Gasto total</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-3xl font-bold text-red-600">
+                                    <span className="text-4xl text-[#802424]">
                                         ${formatNumber(mockData.metrics.gastoTotal.amount)}
                                     </span>
                                     {/* <Badge variant="secondary" className="bg-red-100 text-red-800">
                                         {mockData.metrics.gastoTotal.percentage}%
                                     </Badge> */}
                                 </div>
-                                <Badge variant="secondary" className="text-sm text-gray-500 rounded-xl border-gray-400">{mockData.metrics.gastoTotal.percentage}%</Badge>
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">Avance {mockData.metrics.gastoTotal.percentage}%</Badge>
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Por Gastar */}
-                    <Card className="bg-white">
-                        <CardContent className="p-6 text-left">
+                    <Card className="bg-white shadow-none border-none">
+                        <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-sm text-gray-500">Por gastar</p>
+                                <p className="text-xs text-gray-500">Por gastar</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-3xl font-bold text-green-600">
+                                    <span className="text-4xl text-[#1A5D21]">
                                         ${formatNumber(mockData.metrics.porGastar.amount)}
                                     </span>
                                     {/* <Badge variant="secondary" className="bg-green-100 text-green-800">
                                         {mockData.metrics.porGastar.percentage}%
                                     </Badge> */}
                                 </div>
-                                <Badge variant="secondary" className="text-sm text-gray-500 rounded-xl border-gray-400">{mockData.metrics.porGastar.comparisonLabel}</Badge>
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">{mockData.metrics.porGastar.comparisonLabel}</Badge>
                             </div>
                         </CardContent>
                     </Card>
                 </div>
 
                 {/* Filters */}
-                <Card className="bg-white sticky top-0 z-10">
-                    <CardContent className="p-6">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex items-center space-x-4">
-                                <div className="flex items-center space-x-2">
-                                    <span className="text-sm font-medium">🔍</span>
-                                    <Select value={selectedTorre} onValueChange={setSelectedTorre}>
-                                        <SelectTrigger className="w-32">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {mockData.filters.torres.map((torre) => (
-                                                <SelectItem key={torre} value={torre}>
-                                                    {torre}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                <div className="bg-white">
 
-                                <div className="flex items-center space-x-2">
-                                    <span className="text-sm text-gray-500">Análisis</span>
-                                    <Select value={selectedAnalisis} onValueChange={setSelectedAnalisis}>
-                                        <SelectTrigger className="w-40">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {mockData.filters.analisis.map((analisis) => (
-                                                <SelectItem key={analisis} value={analisis}>
-                                                    {analisis}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="flex items-center space-x-2">
-                                    <span className="text-sm text-gray-500">Rango de fecha</span>
-                                    <Select value={selectedPeriodo} onValueChange={setSelectedPeriodo}>
-                                        <SelectTrigger className="w-32">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {mockData.filters.periodos.map((periodo) => (
-                                                <SelectItem key={periodo} value={periodo}>
-                                                    {periodo}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-500">Fecha</span>
-                                <span className="text-sm font-medium">Septiembre</span>
-                            </div>
+                    <div className="grid grid-cols-4 items-center space-x-12">
+                        <div className="flex items-center space-x-3 text-left border-b border-gray-600 py-4 h-full">
+                            <Search className="w-4 h-4 text-gray-400" />
+                            <Select value={selectedTorre} onValueChange={setSelectedTorre}>
+                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {mockData.filters.torres.map((torre) => (
+                                        <SelectItem key={torre} value={torre}>
+                                            {torre}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                    </CardContent>
-                </Card>
+
+                        <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
+                            <span className="text-xs text-gray-500">Análisis</span>
+                            <Select value={selectedAnalisis} onValueChange={setSelectedAnalisis}>
+                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {mockData.filters.analisis.map((analisis) => (
+                                        <SelectItem key={analisis} value={analisis}>
+                                            {analisis}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
+                            <span className="text-xs text-gray-500">Rango de fecha</span>
+                            <Select value={selectedPeriodo} onValueChange={setSelectedPeriodo}>
+                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {mockData.filters.periodos.map((periodo) => (
+                                        <SelectItem key={periodo} value={periodo}>
+                                            {periodo}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
+                            <span className="text-xs text-gray-500">Fecha</span>
+                            <span className="text-sm font-normal text-gray-900">Septiembre</span>
+                        </div>
+                    </div>
+
+                </div>
 
                 {/* Secondary Metrics and Chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    {/* Secondary Metrics */}
-                    {/* Chart Area */}
-                    <div className="lg:col-span-4 space-y-4">
-                        <div className="space-y-4 grid grid-cols-3 gap-4">
-                            <Card className="bg-white">
-                                <CardContent className="p-4">
-                                    <div className="space-y-1">
-                                        <p className="text-sm text-gray-500">Gasto</p>
-                                        <p className="text-xl font-bold">${formatNumber(mockData.secondaryMetrics.gasto)}</p>
-                                        <p className="text-xs text-gray-400">10</p>
+                    {/* Chart Area with integrated metrics */}
+                    <div className="lg:col-span-4">
+                        <Card className="bg-white border-none shadow-none">
+                            <CardContent className="px-0 pt-12 pb-0">
+                                {/* Metrics Row */}
+                                <div className="flex items-start justify-between mb-8">
+                                    <div className="flex items-center space-x-12">
+                                        <div className="space-y-1 text-left">
+                                            <p className="text-xs text-gray-500">Gasto</p>
+                                            <p className="text-3xl">${formatNumber(mockData.secondaryMetrics.gasto)}<span className="text-sm font-normal text-gray-500">.10</span></p>
+                                        </div>
+                                        <div className="space-y-1 text-left">
+                                            <p className="text-xs text-gray-500">Por vencer</p>
+                                            <p className="text-3xl">${formatNumber(mockData.secondaryMetrics.porVencer)}<span className="text-sm font-normal text-gray-500">.10</span></p>
+                                        </div>
+                                        <div className="space-y-1 text-left">
+                                            <p className="text-xs text-gray-500">Honorarios</p>
+                                            <p className="text-3xl">${formatNumber(mockData.secondaryMetrics.honorarios)}<span className="text-sm font-normal text-gray-500">.10</span></p>
+                                        </div>
                                     </div>
-                                </CardContent>
-                            </Card>
 
-                            <Card className="bg-white">
-                                <CardContent className="p-4">
-                                    <div className="space-y-1">
-                                        <p className="text-sm text-gray-500">Por vencer</p>
-                                        <p className="text-xl font-bold">${formatNumber(mockData.secondaryMetrics.porVencer)}</p>
-                                        <p className="text-xs text-gray-400">10</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="bg-white">
-                                <CardContent className="p-4">
-                                    <div className="space-y-1">
-                                        <p className="text-sm text-gray-500">Honorarios</p>
-                                        <p className="text-xl font-bold">${formatNumber(mockData.secondaryMetrics.honorarios)}</p>
-                                        <p className="text-xs text-gray-400">10</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <Card className="bg-white h-96">
-                            <CardContent className="p-6 h-full">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center space-x-4">
+                                    {/* Legend */}
+                                    <div className="flex items-center space-x-6">
                                         <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                            <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
                                             <span className="text-sm text-gray-600">Mano de obra</span>
                                         </div>
                                         <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                            <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                                             <span className="text-sm text-gray-600">Materiales</span>
                                         </div>
                                         <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                            <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
                                             <span className="text-sm text-gray-600">Contratistas</span>
                                         </div>
                                         <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                            <div className="w-3 h-3 bg-red-400 rounded-full"></div>
                                             <span className="text-sm text-gray-600">Equipos y acabados</span>
                                         </div>
                                     </div>
-                                    <div className="text-sm text-gray-500">
-                                        1er Sept 2024 - $1,200,001
-                                    </div>
                                 </div>
 
-                                {/* Placeholder for chart - will be replaced with actual chart component */}
-                                <div className="w-full h-full">
+                                {/* Chart */}
+                                <div className="w-full h-80">
                                     <AreaChart data={mockData.chartData} />
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
-                    <div className="col-span-4">
-                        <DashboardTable data={data} />
-                    </div>
+                    {/* <div className="col-span-4 py-12"> */}
+                    <DashboardTable data={[]} />
+                    {/* </div> */}
                 </div>
             </div>
         </div>
