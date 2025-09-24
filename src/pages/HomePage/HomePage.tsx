@@ -105,12 +105,12 @@ export default function HomePage() {
                                     </Badge> */}
                                 </div>
 
-                                <p className="text-lg text-gray-500">
+                                <div className="text-lg text-gray-500">
                                     {/* ${formatNumber(mockData.metrics.presupuestoAprobado.comparison)} <Badge variant="secondary" className="bg-green-100 text-green-800 rounded-xl border-green-800">{mockData.metrics.presupuestoAprobado.comparisonLabel}</Badge> */}
                                     ${formatNumber(mockData.metrics.presupuestoAprobado.comparison)} <Badge variant="secondary" className="ml-6 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
-                                        <span>Reducción {mockData.metrics.presupuestoAprobado.percentage}%</span>
+                                        Reducción {mockData.metrics.presupuestoAprobado.percentage}%
                                     </Badge>
-                                </p>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
