@@ -76,6 +76,8 @@ export default function HomePage() {
 
     if (!data) return <p>No data available</p>
 
+    console.log(data) 
+
     return (
         <div className="bg-white px-12 py-6">
             <div className="max-w-full mx-auto space-y-6">
@@ -263,9 +265,9 @@ export default function HomePage() {
                             </CardContent>
                         </Card>
                     </div>
-                    {/* <div className="col-span-4 py-12"> */}
-                    <DashboardTable data={[]} />
-                    {/* </div> */}
+                    <div className="col-span-4 py-12">
+                    <DashboardTable data={data} />
+                    </div>
                 </div>
             </div>
         </div>
