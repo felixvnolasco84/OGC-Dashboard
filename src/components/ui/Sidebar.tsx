@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router";
 import { cn } from "@/lib/utils";
-import { Search } from "lucide-react";
+import { Home, Search } from "lucide-react";
 
 interface SidebarItem {
   id: string;
@@ -12,9 +12,15 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   {
+    id: "dashboard",
+    label: "Dashboard",
+    path: "/",
+    icon: <Home className="w-4 h-4" />
+  },
+  {
     id: "proyectos",
     label: "Proyectos",
-    path: "/dashboard",
+    path: "/proyectos",
     icon: <Search className="w-4 h-4" />
   },
   {

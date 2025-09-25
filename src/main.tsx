@@ -33,6 +33,7 @@ createRoot(document.getElementById("root")!).render(
               <Route element={<WebsiteLayout />}>
                 <Route index element={<HomePage />} />
                 <Route path="/upload" element={<App />} />
+                <Route path="/proyectos" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/documentos" element={<DocumentosPage />} />
                 <Route path="/dashboard/costos" element={<DashboardCostos />} />
