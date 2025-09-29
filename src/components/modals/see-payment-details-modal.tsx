@@ -7,16 +7,22 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet"
 import { useSeePaymentDetailsModal } from "@/hooks/see-payment-details";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { informacion_facturacion_pago } from "@/lib/utils";
+// import { informacion_facturacion_pago } from "@/lib/utils";
+import PaymentCard from "../Cards/PaymentCard";
+import { Button } from "../ui/button";
+import { Plus } from "lucide-react";
+import { useManageCostModal } from "@/hooks/manage-cost-modal";
+
 
 export default function SeePaymentDetailsModal() {
     const paymentContext = useSeePaymentDetailsModal((state) => state.paymentContext);
     const isOpen = useSeePaymentDetailsModal((state) => state.isOpen);
     const onClose = useSeePaymentDetailsModal((state) => state.onClose);
+    const openManageCostModal = useManageCostModal();
 
     const formatCurrency = (amount: string | number) => {
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -26,10 +32,10 @@ export default function SeePaymentDetailsModal() {
         }).format(numAmount);
     };
 
-    const calculatePaymentPercentage = (paymentAmount: string, totalAmount: number) => {
-        const amount = parseFloat(paymentAmount);
-        return totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
-    };
+    // const calculatePaymentPercentage = (paymentAmount: string, totalAmount: number) => {
+    //     const amount = parseFloat(paymentAmount);
+    //     return totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+    // };
 
     const getTotalPaidAmount = () => {
         if (!paymentContext?.payments) return 0;
@@ -50,66 +56,85 @@ export default function SeePaymentDetailsModal() {
 
     if (!paymentContext) return null;
 
-    const { payments, relatedCost, totalAmount } = paymentContext;
+    const { payments,
+        // relatedCost,
+        totalAmount } = paymentContext;
     const totalPaidPercentage = getTotalPaidPercentage();
     const remainingAmount = getRemainingAmount();
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+                <div className="flex justify-end mt-4">
+                    <Button variant="default" onClick={() => {openManageCostModal.onOpen({cost: paymentContext.relatedCost, mode: "create"})}}>
+                        <span>Nuevo Pago</span>
+                        <Plus className="h-4 w-4" />    
+                    </Button>
+                </div>
                 <SheetHeader>
-                    <SheetTitle>Detalles de Pagos</SheetTitle>
-                    <SheetDescription>
+                    <SheetTitle className="hidden">Detalles de Pagos</SheetTitle>
+                    <SheetDescription className="hidden">
                         Información detallada de los pagos realizados
                     </SheetDescription>
                 </SheetHeader>
 
                 {/* Payment Summary */}
-                <Card className="mt-4">
+                <Card className="mt-4 rounded-none border-none shadow-none">
                     <CardHeader>
-                        <CardTitle className="text-lg">Resumen de Pagos</CardTitle>
-                        <CardDescription>Estado general de los pagos</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Monto Total</p>
-                                <p className="text-2xl font-bold">{formatCurrency(totalAmount)}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Total Pagado</p>
-                                <p className="text-2xl font-bold text-green-600">{formatCurrency(getTotalPaidAmount())}</p>
-                            </div>
+                        <CardTitle className="text-lg font-normal">{paymentContext?.relatedCost?.partida}</CardTitle>
+                        <div className="grid grid-cols-2">
+                            <CardDescription className="text-muted-foreground">{(paymentContext?.relatedCost?.sub_partida)}</CardDescription>
+                            <span className="text-muted-foreground text-right">Sub Partida</span>
                         </div>
-
+                    </CardHeader>
+                    <CardContent className="space-y-8">
                         <div>
                             <div className="flex justify-between items-center mb-2">
-                                <p className="text-sm font-medium">Progreso de Pago</p>
-                                <Badge variant={totalPaidPercentage >= 100 ? "default" : "secondary"}>
+                                {/* <Badge variant={totalPaidPercentage >= 100 ? "default" : "secondary"}>
                                     {totalPaidPercentage.toFixed(1)}%
-                                </Badge>
+                                </Badge> */}
                             </div>
-                            <Progress value={Math.min(totalPaidPercentage, 100)} className="h-2" />
+                            <Progress className="bg-green-600 h-1" value={Math.min(totalPaidPercentage, 100)} />
                         </div>
 
-                        {remainingAmount > 0 && (
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Presupuesto Aprobado</p>
+                                <p className="text-lg">{formatCurrency(totalAmount)} MXN</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground text-center">Total Pagado</p>
+                                <p className="text-lg text-green-800 text-center">{formatCurrency(getTotalPaidAmount())} MXN</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground text-right">Por Ejercer</p>
+                                {remainingAmount > 0 && (
+                                    <p className="text-lg text-orange-800 text-right">{formatCurrency(totalAmount - getTotalPaidAmount())} MXN</p>
+                                )}
+                                {remainingAmount < 0 && (
+                                    <p className="text-lg text-red-800 text-right">{formatCurrency(totalAmount - getTotalPaidAmount())} MXN</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* {remainingAmount > 0 && (
                             <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
                                 <p className="text-sm font-medium text-orange-800">Monto Pendiente</p>
-                                <p className="text-lg font-bold text-orange-900">{formatCurrency(remainingAmount)}</p>
+                                <p className="text-lg text-orange-900">{formatCurrency(remainingAmount)} MXN</p>
                             </div>
-                        )}
+                        )} */}
 
-                        {remainingAmount < 0 && (
+                        {/* {remainingAmount < 0 && (
                             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
                                 <p className="text-sm font-medium text-red-800">Sobrepago</p>
-                                <p className="text-lg font-bold text-red-900">{formatCurrency(Math.abs(remainingAmount))}</p>
+                                <p className="text-lg text-red-900">{formatCurrency(Math.abs(remainingAmount))} MXN</p>
                             </div>
-                        )}
+                        )} */}
                     </CardContent>
                 </Card>
 
                 {/* Related Cost Information */}
-                {relatedCost && (
+                {/* {relatedCost && (
                     <Card className="mt-4">
                         <CardHeader>
                             <CardTitle className="text-lg">Información del Costo</CardTitle>
@@ -135,138 +160,23 @@ export default function SeePaymentDetailsModal() {
                             </div>
                         </CardContent>
                     </Card>
-                )}
+                )} */}
 
                 <Separator className="my-4" />
 
                 {/* Individual Payments */}
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Pagos Individuales ({payments.length})</h3>
 
-                    {payments.map((payment, index) => {
-                        const paymentPercentage = calculatePaymentPercentage(payment.monto, totalAmount);
+                {payments.map((payment, index) => {
+                    return (
+                        <PaymentCard
+                            key={payment._id || index}
+                            payment={payment}
+                            index={index}
+                            formatCurrency={formatCurrency}
+                        />
+                    );
+                })}
 
-                        return (
-                            <Card key={payment._id || index}>
-                                <CardHeader>
-                                    <div className="flex justify-between items-center">
-                                        <CardTitle className="text-base">Pago #{index + 1}</CardTitle>
-                                        <div className="flex gap-2">
-                                            <Badge variant="outline">
-                                                {paymentPercentage.toFixed(1)}%
-                                            </Badge>
-                                            <Badge variant={paymentPercentage <= 100 ? "default" : "destructive"}>
-                                                {formatCurrency(payment.monto)}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                    <CardDescription>
-                                        Fecha: {payment.fecha} | Tipo: {payment.tipo_pago}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-
-                                        <div>
-                                            <span className="font-medium">Banco:</span>
-                                            <div className="flex items-center gap-2">
-                                                <p className="text-muted-foreground">{payment.banco}</p>
-                                                {payment.banco ? (
-                                                    <img
-                                                        src={payment.logo_banco}
-                                                        alt={payment.banco}
-                                                        width={50}
-                                                    />
-                                                ) : (
-                                                    <p className="text-muted-foreground">Efectivo</p>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {payment.tarjeta && (
-                                            <div>
-                                                <span className="font-medium">Tarjeta:</span>
-                                                <p className="text-muted-foreground">{payment.tarjeta}</p>
-                                            </div>
-                                        )}
-                                        {payment.numero_cuenta && (
-                                            <div>
-                                                <span className="font-medium">Número de Cuenta:</span>
-                                                <p className="text-muted-foreground">{payment.numero_cuenta}</p>
-                                            </div>
-                                        )}
-                                        {payment.numero_transferencia && (
-                                            <div>
-                                                <span className="font-medium">Número de Transferencia:</span>
-                                                <p className="text-muted-foreground">{payment.numero_transferencia}</p>
-                                            </div>
-                                        )}
-                                        {payment.codigo_referencia && (
-                                            <div>
-                                                <span className="font-medium">Código de Referencia:</span>
-                                                <p className="text-muted-foreground">{payment.codigo_referencia}</p>
-                                            </div>
-                                        )}
-                                        {payment.factura && (
-                                            <div>
-                                                <span className="font-medium">Factura:</span>
-                                                <p className="text-muted-foreground">{payment.factura}</p>
-                                            </div>
-                                        )}
-                                        {payment.moneda && payment.moneda !== 'MXN' && (
-                                            <div>
-                                                <span className="font-medium">Moneda:</span>
-                                                <p className="text-muted-foreground">{payment.moneda}</p>
-                                            </div>
-                                        )}
-                                        {payment.tipo_cambio && payment.tipo_cambio !== '1' && (
-                                            <div>
-                                                <span className="font-medium">Tipo de Cambio:</span>
-                                                <p className="text-muted-foreground">{payment.tipo_cambio}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </CardContent>
-                                {
-
-                                    informacion_facturacion_pago.filter((facturacion) => facturacion._id === payment.informacion_facturacion_pago)[0]
-                                    && (
-                                        <>
-                                            <Separator />
-                                            <div className="m-6 bg-gray-100 p-4 rounded-xl space-y-4">
-                                                <h3 className="text-lg font-semibold">Información de Facturación</h3>
-                                                <CardFooter className="px-0">
-                                                    <div className="grid grid-cols-1 gap-2 text-sm w-full">
-                                                        <div className="flex flex-row w-full justify-between">
-                                                            <span className="font-semibold text-gray-700">Calle:</span>
-                                                            <p className="text-muted-foreground">{informacion_facturacion_pago.filter((facturacion) => facturacion._id === payment.informacion_facturacion_pago)[0].calle}</p>
-                                                        </div>
-                                                        <div className="flex flex-row w-full justify-between">
-                                                            <span className="font-semibold text-gray-700">Colonia:</span>
-                                                            <p className="text-muted-foreground">{informacion_facturacion_pago.filter((facturacion) => facturacion._id === payment.informacion_facturacion_pago)[0].colonia}</p>
-                                                        </div>
-                                                        <div className="flex flex-row w-full justify-between">
-                                                            <span className="font-semibold text-gray-700">Municipio:</span>
-                                                            <p className="text-muted-foreground">{informacion_facturacion_pago.filter((facturacion) => facturacion._id === payment.informacion_facturacion_pago)[0].municipio}</p>
-                                                        </div>
-                                                        <div className="flex flex-row w-full justify-between">
-                                                            <span className="font-semibold text-gray-700">Estado:</span>
-                                                            <p className="text-muted-foreground">{informacion_facturacion_pago.filter((facturacion) => facturacion._id === payment.informacion_facturacion_pago)[0].estado}</p>
-                                                        </div>
-                                                        <div className="flex flex-row w-full justify-between">
-                                                            <span className="font-semibold text-gray-700">Código Postal:</span>
-                                                            <p className="text-muted-foreground">{informacion_facturacion_pago.filter((facturacion) => facturacion._id === payment.informacion_facturacion_pago)[0].codigo_postal}</p>
-                                                        </div>
-                                                    </div>
-                                                </CardFooter>
-                                            </div>
-                                        </>
-                                    )
-                                }
-                            </Card>
-                        );
-                    })}
-                </div>
             </SheetContent>
         </Sheet>
     )

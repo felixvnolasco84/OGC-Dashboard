@@ -31,7 +31,7 @@ type PartidaItem = {
 function CostoActionsDropdown({ costoId }: { costoId: Id<"costos"> }) {
     const navigate = useNavigate();
     const seePaymentDetailsModal = useSeePaymentDetailsModal();
-    
+
     // Fetch the full cost data using the ID
     const costo = useQuery(api.costos.getById, { id: costoId });
 
@@ -166,9 +166,9 @@ function CostoActionsDropdown({ costoId }: { costoId: Id<"costos"> }) {
                     <div className="p-4">
                         <p>Funcionalidad de edición pendiente de implementar</p>
                         <p className="text-sm text-gray-600 mt-2">
-                            <strong>ID:</strong> {costoId}<br/>
-                            <strong>Partida:</strong> {costo.partida}<br/>
-                            <strong>Familia:</strong> {costo.familia}<br/>
+                            <strong>ID:</strong> {costoId}<br />
+                            <strong>Partida:</strong> {costo.partida}<br />
+                            <strong>Familia:</strong> {costo.familia}<br />
                             <strong>Sub-partida:</strong> {costo.sub_partida}
                         </p>
                     </div>

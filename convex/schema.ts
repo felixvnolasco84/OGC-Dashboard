@@ -20,6 +20,7 @@ export default defineSchema({
   }),
   desarrollos: defineTable({
     nombre: v.string(),
+    descripcion: v.string(),
     image: v.string(),
   }),
   costos: defineTable({

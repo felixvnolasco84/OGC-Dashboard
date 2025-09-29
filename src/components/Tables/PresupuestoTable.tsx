@@ -173,6 +173,8 @@ export default function PresupuestoTable() {
 
   const flattenedData = flattenData(budgetData);
 
+
+
   return (
     <div className="bg-white border border-gray-200 overflow-hidden">
       <Table>
@@ -198,6 +200,8 @@ export default function PresupuestoTable() {
             </TableHead>
             <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
               Fecha fin
+            </TableHead>
+            <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -273,6 +277,11 @@ export default function PresupuestoTable() {
                 </TableCell>
                 <TableCell className="px-6 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
                   {item.fechaFin}
+                </TableCell>
+                <TableCell className="px-6 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                  <Button variant="outline" size="sm">
+                    Ver pagos
+                  </Button>
                 </TableCell>
               </TableRow>
             );

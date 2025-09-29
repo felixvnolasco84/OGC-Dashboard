@@ -108,3 +108,5 @@ export const informacion_facturacion_pago: Doc<"informacion_facturacion_pago">[]
     correo: "correo@correo.com",
   },
 ]
+
+
