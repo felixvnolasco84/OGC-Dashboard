@@ -3,7 +3,7 @@ import { create } from "zustand";
 type ProjectFormData = {
     nombre: string;
     descripcion: string;
-    image: string;
+    excel: File | null;
 };
 
 type AddProjectModalStore = {
@@ -18,7 +18,7 @@ type AddProjectModalStore = {
 const initialFormData: ProjectFormData = {
     nombre: "",
     descripcion: "",
-    image: "",
+    excel: null,
 };
 
 export const useAddProjectModal = create<AddProjectModalStore>((set) => ({

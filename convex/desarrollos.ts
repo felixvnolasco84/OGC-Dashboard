@@ -24,11 +24,12 @@ export const create = mutation({
         image: v.string(),
     },
     handler: async (ctx, args) => {
-        return await ctx.db.insert("desarrollos", {
+        const project = await ctx.db.insert("desarrollos", {
             nombre: args.nombre,
             descripcion: args.descripcion,
             image: args.image,
         });
+        return project;
     },
 });
 

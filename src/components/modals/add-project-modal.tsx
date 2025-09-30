@@ -11,11 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useCallback } from 'react';
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Upload, Check, FolderPlus } from "lucide-react";
-import { useEdgeStore } from "@/lib/edgestore";
+import { Upload, FolderPlus, FileSpreadsheet } from "lucide-react";
 import ExcelUploaderSection from "../Sections/ExcelUploaderSection";
 import { Separator } from "@/components/ui/separator";
 
@@ -26,42 +25,171 @@ export default function AddProjectModal() {
     const updateFormData = useAddProjectModal((state) => state.updateFormData);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [uploadingImage, setUploadingImage] = useState(false);
     const [showExcelUploader, setShowExcelUploader] = useState(false);
+    const [dragActive, setDragActive] = useState(false);
+    const [, setResult] = useState<UploadResult | null>(null);
+    const [file, setFile] = useState<File | null>(null);
+
+
+    type UploadResult = {
+        success: boolean;
+        message: string;
+        data?: {
+            successfulRecords?: number;
+            failedRecords?: number;
+            totalRecords?: number;
+            fileName?: string;
+            processedAt?: string;
+        };
+        errors?: string[];
+    };
+
+
+
+    const handleDrag = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive(true);
+        } else if (e.type === "dragleave") {
+            setDragActive(false);
+        }
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const droppedFile = e.dataTransfer.files[0];
+            if (validateFile(droppedFile)) {
+                setFile(droppedFile);
+                updateFormData({ excel: droppedFile });
+                setResult(null);
+            }
+        }
+    }, [updateFormData]);
+
+    const validateFile = (file: File): boolean => {
+        if (!file) return false;
+
+        const validExtensions = ['.xlsx', '.xls'];
+        const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+
+        if (!validExtensions.includes(fileExtension)) {
+            setResult({
+                success: false,
+                message: 'Solo se permiten archivos Excel (.xlsx, .xls).'
+            });
+            return false;
+        }
+
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+            setResult({
+                success: false,
+                message: 'El archivo excede el tamaño máximo permitido (10MB).'
+            });
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (selectedFile && validateFile(selectedFile)) {
+            setFile(selectedFile);
+            updateFormData({ excel: selectedFile });
+            setResult(null);
+        }
+    };
+
+
+    const formatFileSize = (bytes: number): string => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+
 
     const createProject = useMutation(api.desarrollos.create);
-    const { edgestore } = useEdgeStore();
+
+    const uploadProjectData = useMutation(api.partida.createPartida);
 
     const handleInputChange = (field: string, value: string) => {
         updateFormData({ [field]: value });
     };
+    const handleExcelUpload = async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
 
-    const handleImageUpload = async (file: File) => {
-        if (!file) return;
+        const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
+            method: "POST",
+            body: formData,
+        });
 
-        setUploadingImage(true);
-        try {
-            const res = await edgestore.publicFiles.upload({
-                file,
-            });
-            updateFormData({ image: res.url });
-        } catch (error) {
-            console.error("Error uploading image:", error);
-        } finally {
-            setUploadingImage(false);
-        }
+        const data = await response.json();
+
+        console.log(data);
+        return data;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         setIsSubmitting(true);
+
         try {
-            await createProject({
+            if (!formData.excel) {
+                return;
+            }
+
+            const response = await handleExcelUpload(formData.excel);
+
+            console.log('Server response:', response);
+
+            if (!response.success || !response.data || response.data.length === 0) {
+                console.error('No data received from server');
+                return;
+            }
+
+            // Create the project
+            const project = await createProject({
                 nombre: formData.nombre,
                 descripcion: formData.descripcion,
-                image: formData.image || "",
+                image: "",
             });
+
+            console.log('Project created:', project);
+
+            // Upload all partidas from the Excel data
+            const uploadPromises = response.data.map((record: Record<string, string>) =>
+                uploadProjectData({
+                    nombre: record.partida || '',
+                    familia: record.familia || '',
+                    sub_partida: record.sub_partida || '',
+                    Cantidad: record.Cantidad || '0',
+                    PrecioUnitario: record.PrecioUnitario || '0',
+                    Subtotal: record.Subtotal || '0',
+                    Iva: record.Iva || '0',
+                    total: record.total || '0',
+                    aprobado: record.aprobado || '0',
+                    pagado: record.pagado || '0',
+                    por_liquidar: record.por_liquidar || '0',
+                    actual: record.actual || '0',
+                    fecha_carga: new Date().toISOString(),
+                    archivo_origen: response.fileName || formData.excel?.name || 'unknown',
+                    proyecto: project,
+                })
+            );
+
+            const partidas = await Promise.all(uploadPromises);
+            console.log(`Successfully uploaded ${partidas.length} partida records`);
+
             setShowExcelUploader(true);
         } catch (error) {
             console.error("Error creating project:", error);
@@ -76,7 +204,7 @@ export default function AddProjectModal() {
     };
 
     const isFormValid = () => {
-        return formData.nombre.trim() && formData.descripcion.trim();
+        return formData.nombre.trim() && formData.descripcion.trim() && formData.excel;
     };
 
     return (
@@ -125,8 +253,77 @@ export default function AddProjectModal() {
 
                         <Separator />
 
+                        <div
+                            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragActive
+                                ? 'border-blue-500 bg-blue-50'
+                                : file
+                                    ? 'border-green-500 bg-green-50'
+                                    : 'border-gray-300 hover:border-gray-400'
+                                }`}
+                            onDragEnter={handleDrag}
+                            onDragLeave={handleDrag}
+                            onDragOver={handleDrag}
+                            onDrop={handleDrop}
+                        >
+                            {file ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-center gap-3">
+                                        <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                                        <div className="text-left">
+                                            <p className="font-medium text-gray-900">{file.name}</p>
+                                            <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 justify-center">
+                                        {/* <Button disabled={isSubmitting}>
+                                            {isSubmitting ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Procesando...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="mr-2 h-4 w-4" />
+                                                    Subir Archivo
+                                                </>
+                                            )}
+                                        </Button> */}
+                                        {/* <Button variant="outline" onClick={resetUpload} disabled={isSubmitting}>
+                    Cancelar
+                  </Button> */}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="flex justify-center">
+                                        <Upload className="h-12 w-12 text-gray-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-lg font-medium text-gray-900">
+                                            Selecciona un archivo Excel
+                                        </p>
+                                        <p className="text-gray-500">Archivos soportados: .xlsx, .xls (máx. 10MB)</p>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="file-upload">
+                                            <Button variant="outline" className="cursor-pointer">
+                                                Explorar Archivos
+                                            </Button>
+                                        </label>
+                                        <input
+                                            id="file-upload"
+                                            type="file"
+                                            accept=".xlsx,.xls"
+                                            onChange={handleFileInput}
+                                            className="hidden"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Project Image Upload */}
-                        <div className="space-y-2">
+                        {/* <div className="space-y-2">
                             <Label htmlFor="image">Información del proyecto</Label>
                             <div className="border-2 border-dashed rounded-none p-4 hover:border-gray-400 transition-colors">
                                 <input
@@ -136,7 +333,7 @@ export default function AddProjectModal() {
                                     accept="image/*"
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
-                                        if (file) handleImageUpload(file);
+                                        if (file) handleExcelUpload(file);
                                     }}
                                 />
                                 <label
@@ -145,22 +342,29 @@ export default function AddProjectModal() {
                                 >
                                     <Upload className="w-5 h-5" />
                                     <span>Subir archivo Excel</span>
-                                    {uploadingImage && <span className="text-sm text-gray-500">Subiendo...</span>}
-                                    {formData.image && !uploadingImage && (
+                                    {isSubmitting && <span className="text-sm text-gray-500">Subiendo...</span>}
+                                    {formData.excel && !isSubmitting && (
                                         <Check className="w-5 h-5 text-green-600" />
                                     )}
                                 </label>
-                                {formData.image && !uploadingImage && (
+                                {formData.excel && !isSubmitting && (
                                     <div className="mt-4">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                                            <div className="text-left">
+                                                <p className="font-medium text-gray-900">{formData.excel.name}</p>
+                                                <p className="text-sm text-gray-500">{formatFileSize(formData.excel.size)}</p>
+                                            </div>
+                                        </div>
                                         <img
-                                            src={formData.image}
+                                            src={formData.excel}
                                             alt="Preview"
                                             className="max-h-40 rounded-lg object-cover"
                                         />
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </div> */}
 
                         {/* Form Actions */}
                         <div className="flex justify-end space-x-2 pt-4 border-t">

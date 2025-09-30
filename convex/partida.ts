@@ -41,9 +41,10 @@ export const createPartida = mutation({
     actual: v.string(),
     fecha_carga: v.string(),
     archivo_origen: v.string(),
+    proyecto: v.optional(v.id("desarrollos")),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("partidas", {
+    const partida = await ctx.db.insert("partidas", {
       nombre: args.nombre,
       familia: args.familia,
       sub_partida: args.sub_partida,
@@ -58,7 +59,9 @@ export const createPartida = mutation({
       actual: args.actual,
       fecha_carga: args.fecha_carga,
       archivo_origen: args.archivo_origen,
+      proyecto: args.proyecto,
     });
+    return partida;
   },
 });
 

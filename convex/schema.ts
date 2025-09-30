@@ -17,7 +17,8 @@ export default defineSchema({
     actual: v.string(),
     fecha_carga: v.string(),
     archivo_origen: v.string(),
-  }),
+    proyecto: v.optional(v.id("desarrollos")),
+  }).index("by_proyecto", { fields: ["proyecto"] }),
   desarrollos: defineTable({
     nombre: v.string(),
     descripcion: v.string(),
