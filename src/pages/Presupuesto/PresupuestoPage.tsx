@@ -1,6 +1,7 @@
-import { useState } from "react";
-// import { api } from "../../../convex/_generated/api";
-// import { useQuery } from "convex/react";
+import { useState, useEffect } from "react";
+import { api } from "../../../convex/_generated/api";
+import { useQuery } from "convex/react";
+import { Id } from "../../../convex/_generated/dataModel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -56,14 +57,69 @@ const formatNumber = (amount: number) => {
 };
 
 export default function PresupuestoPage() {
-  const [selectedPartida, setSelectedPartida] = useState("Partida");
-  const [selectedFamilia, setSelectedFamilia] = useState("Familia");
+  const [selectedPartida, setSelectedPartida] = useState<string | undefined>(undefined);
+  const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>(undefined);
   const [selectedFecha, setSelectedFecha] = useState("Semana");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // const data = useQuery(api.partida.getByFamily, { family: "ACERO" });
+  // Fetch projects
+  const projects = useQuery(api.desarrollos.getAll);
+  
+  // State for selected project (default to first project when available)
+  const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
+  
+  // Set default project when projects load
+  useEffect(() => {
+    if (projects && projects.length > 0 && !selectedProjectId) {
+      setSelectedProjectId(projects[0]._id);
+    }
+  }, [projects, selectedProjectId]);
 
-  // if (!data) return <p>No data available</p>;
+  // Fetch all partidas for selected project
+  const allPartidas = useQuery(
+    api.partida.getByProject,
+    selectedProjectId ? { projectId: selectedProjectId } : "skip"
+  );
+
+  // Calculate metrics from real data
+  const metrics = {
+    presupuestoOriginal: allPartidas?.reduce((sum, p) => sum + parseFloat(p.total || "0"), 0) || 0,
+    presupuestoAprobado: allPartidas?.reduce((sum, p) => sum + parseFloat(p.aprobado || "0"), 0) || 0,
+    gastoTotal: allPartidas?.reduce((sum, p) => sum + parseFloat(p.pagado || "0"), 0) || 0,
+    porGastar: allPartidas?.reduce((sum, p) => sum + parseFloat(p.por_liquidar || "0"), 0) || 0,
+  };
+
+  // Get unique partidas and familias for filters
+  const uniquePartidas = Array.from(new Set(allPartidas?.map(p => p.nombre) || []));
+  const uniqueFamilias = Array.from(new Set(allPartidas?.map(p => p.familia) || []));
+
+  // Filter data based on selections
+  const filteredPartidas = allPartidas?.filter(p => {
+    if (selectedPartida && p.nombre !== selectedPartida) return false;
+    if (selectedFamilia && p.familia !== selectedFamilia) return false;
+    if (searchTerm && !p.sub_partida.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  }) || [];
+
+  // Calculate percentage differences
+  const presupuestoReduction = metrics.presupuestoOriginal > 0 
+    ? Math.round(((metrics.presupuestoAprobado - metrics.presupuestoOriginal) / metrics.presupuestoOriginal) * 100)
+    : 0;
+  const avancePercentage = metrics.presupuestoAprobado > 0
+    ? Math.round((metrics.gastoTotal / metrics.presupuestoAprobado) * 100)
+    : 0;
+  const pendientePercentage = metrics.presupuestoAprobado > 0
+    ? Math.round((metrics.porGastar / metrics.presupuestoAprobado) * 100)
+    : 0;
+
+  if (!projects || !allPartidas) {
+    return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
+      <p className="text-gray-500">Cargando datos...</p>
+    </div>;
+  }
+
+  // Get current selected project
+  const currentProject = projects.find(p => p._id === selectedProjectId) || projects[0];
 
   return (
     <div className="bg-white px-12 py-6">
@@ -72,8 +128,26 @@ export default function PresupuestoPage() {
         <div className="rounded-lg py-6">
           <div className="flex items-start justify-between">
             <div className="flex flex-col text-left">
-              <p className="text-sm text-gray-500 mb-1">{mockData.project.breadcrumb}</p>
-              <h1 className="text-2xl text-gray-900">{mockData.project.name}</h1>
+              <p className="text-sm text-gray-500 mb-1">Presupuesto</p>
+              <h1 className="text-2xl text-gray-900">{currentProject?.nombre || 'Proyecto'}</h1>
+            </div>
+            <div className="flex flex-col space-y-1 text-left min-w-[250px]">
+              <span className="text-xs text-gray-500">Proyecto</span>
+              <Select 
+                value={selectedProjectId} 
+                onValueChange={(value) => setSelectedProjectId(value as Id<"desarrollos">)}
+              >
+                <SelectTrigger className="border border-gray-200 shadow-sm h-9 font-normal text-gray-900">
+                  <SelectValue placeholder="Seleccionar proyecto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project._id} value={project._id}>
+                      {project.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -84,11 +158,10 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">{mockData.metrics.presupuestoOriginal.label}</p>
+                <p className="text-xs text-gray-500">Presupuesto Original</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
-                    ${formatNumber(mockData.metrics.presupuestoOriginal.amount)}
-                    <span className="text-sm font-normal text-gray-500">.10</span>
+                    ${formatNumber(Math.round(metrics.presupuestoOriginal))}
                   </p>
                 </div>
               </div>
@@ -99,16 +172,15 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">{mockData.metrics.presupuestoAprobado.label}</p>
+                <p className="text-xs text-gray-500">Presupuesto aprobado</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
-                    ${formatNumber(mockData.metrics.presupuestoAprobado.amount)}
-                    <span className="text-sm font-normal text-gray-500">.05</span>
+                    ${formatNumber(Math.round(metrics.presupuestoAprobado))}
                   </p>
                 </div>
                 <div className="text-lg text-gray-500">
                   <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
-                    {mockData.metrics.presupuestoAprobado.badge}
+                    {presupuestoReduction < 0 ? 'Reducción' : 'Aumento'} {Math.abs(presupuestoReduction)}%
                   </Badge>
                 </div>
               </div>
@@ -119,15 +191,14 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">{mockData.metrics.gastoTotal.label}</p>
+                <p className="text-xs text-gray-500">Gasto total</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
-                    ${formatNumber(mockData.metrics.gastoTotal.amount)}
-                    <span className="text-sm font-normal text-gray-500">.05</span>
+                    ${formatNumber(Math.round(metrics.gastoTotal))}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
-                  {mockData.metrics.gastoTotal.badge}
+                  Avance {avancePercentage}%
                 </Badge>
               </div>
             </CardContent>
@@ -137,15 +208,14 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">{mockData.metrics.porGastar.label}</p>
+                <p className="text-xs text-gray-500">Por gastar</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
-                    ${formatNumber(mockData.metrics.porGastar.amount)}
-                    <span className="text-sm font-normal text-gray-500">.05</span>
+                    ${formatNumber(Math.round(metrics.porGastar))}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
-                  {mockData.metrics.porGastar.badge}
+                  Pendiente {pendientePercentage}%
                 </Badge>
               </div>
             </CardContent>
@@ -171,10 +241,11 @@ export default function PresupuestoPage() {
               <span className="text-xs text-gray-500">Partida</span>
               <Select value={selectedPartida} onValueChange={setSelectedPartida}>
                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
-                  <SelectValue />
+                  <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.filters.partidas.map((partida) => (
+                  <SelectItem value="all">Todas</SelectItem>
+                  {uniquePartidas.map((partida) => (
                     <SelectItem key={partida} value={partida}>
                       {partida}
                     </SelectItem>
@@ -188,10 +259,11 @@ export default function PresupuestoPage() {
               <span className="text-xs text-gray-500">Familia</span>
               <Select value={selectedFamilia} onValueChange={setSelectedFamilia}>
                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
-                  <SelectValue />
+                  <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.filters.familias.map((familia) => (
+                  <SelectItem value="all">Todas</SelectItem>
+                  {uniqueFamilias.map((familia) => (
                     <SelectItem key={familia} value={familia}>
                       {familia}
                     </SelectItem>
@@ -220,7 +292,7 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Budget Table Component */}
-        <PresupuestoTable />
+        <PresupuestoTable data={filteredPartidas} />
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import {
     VisibilityState,
 } from "@tanstack/react-table"
 import {
+    
     // ArrowUpDown,
     // ChevronDown,
      MoreHorizontal, Search
@@ -41,6 +42,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { partida } from "@/lib/utils"
+// import { Badge } from "@/components/ui/badge"
 
 
 // const getData = async () => {
@@ -126,19 +128,19 @@ export const columns: ColumnDef<partida>[] = [
     //     },
     // },
     {
-        accessorKey: "total",
+        accessorKey: "Subtotal",
         header: "Monto",
         cell: ({ row }) => {
-            const value = row.getValue("total") as number;
+            const value = row.getValue("Subtotal") as number;
             return <div className="uppercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)} MXN</div>
         },
     },
     {
-        accessorKey: "presupuesto",
+        accessorKey: "total",
         header: "Presupuesto",
-        cell: () => {
-            // const value = row.getValue("presupuesto") as number;
-            return <div className="uppercase">$450,000 MXN</div>
+        cell: ({ row }) => {
+            const value = row.getValue("total") as number;
+            return <div className="uppercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)} MXN</div>
         },
     },
     // {
@@ -149,14 +151,22 @@ export const columns: ColumnDef<partida>[] = [
     //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
     //     },
     // },
-    // {
-    //     accessorKey: "pagado",
-    //     header: "Pagado",
-    //     cell: ({ row }) => {
-    //         const value = row.getValue("pagado") as number;
-    //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
-    //     },
-    // },
+    {
+        accessorKey: "pagado",
+        header: "Avance",
+        cell: ({ row }) => {
+            const value = row.getValue("pagado") as number;
+            const total = row.getValue("total") as number;
+            const percentage = (value / total) * 100;
+            return   <div>{percentage.toFixed(2)}%</div> 
+            
+            // <div className="lowercase flex flex-col">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)} 
+            {/* <Badge className={cn("w-fit text-[10px] font-normal py-1.5 leading-none text-white rounded-xl border-gray-400", percentage > 100 ? "bg-red-800" : "bg-green-800")}> */}
+                // {percentage.toFixed(2)}%
+            {/* </Badge> */}
+            // </div>
+        },
+    },
     // {
     //     accessorKey: "por_liquidar",
     //     header: "Por Liquidar",
@@ -165,22 +175,21 @@ export const columns: ColumnDef<partida>[] = [
     //         return <div className="lowercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}</div>
     //     },
     // },
-    {
-        accessorKey: "avance",
-        header: "Avance",
-        // cell: ({ row }) => {
-        cell: () => {
-            // const value = row.getValue("avance") as number;            
-            return <div className="lowercase">15%</div>
-        },
-    },
+    // {
+    //     accessorKey: "avance",
+    //     header: "Avance",
+    //     cell: ({ row }) => {
+            
+    //         return <div className="lowercase">{(row.getValue("avance")) }</div>
+    //     },
+    // },
     {
         accessorKey: "fechaPago",
         header: "Fecha pago",
         // cell: ({ row }) => {
         cell: () => {
             // const value = row.getValue("avance") as number;            
-            return <div className="lowercase">12 Sep 2025</div>
+            return <div className="lowercase">-</div>
         },
     },
     {
@@ -189,7 +198,7 @@ export const columns: ColumnDef<partida>[] = [
         // cell: ({ row }) => {
         cell: () => {
             // const value = row.getValue("avance") as number;            
-            return <div className="capitalize">Aceros Cabo Sa de CV</div>
+            return <div className="capitalize">-</div>
         },
     },
     {
@@ -198,7 +207,7 @@ export const columns: ColumnDef<partida>[] = [
         // cell: ({ row }) => {
         cell: () => {
             // const value = row.getValue("avance") as number;            
-            return <div className="lowercase">050333.pdf</div>
+            return <div className="lowercase">-</div>
         },
     },
     {
@@ -207,7 +216,7 @@ export const columns: ColumnDef<partida>[] = [
         // cell: ({ row }) => {
         cell: () => {
             // const value = row.getValue("avance") as number;            
-            return <div className="lowercase">01</div>
+            return <div className="lowercase">-</div>
         },
     },
     // {

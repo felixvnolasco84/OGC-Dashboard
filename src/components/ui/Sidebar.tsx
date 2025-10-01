@@ -33,10 +33,15 @@ const sidebarItems: SidebarItem[] = [
     label: "Presupuesto",
     path: "/dashboard/presupuesto"
   },
+  // {
+  //   id: "control",
+  //   label: "Control",
+  //   path: "/dashboard/costos"
+  // },
   {
     id: "control",
     label: "Control",
-    path: "/dashboard/costos"
+    path: "/dashboard/control"
   },
   {
     id: "programa-obra",

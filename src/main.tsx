@@ -38,6 +38,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/documentos" element={<DocumentosPage />} />
                 <Route path="/dashboard/costos" element={<DashboardCostos />} />
+                <Route path="/dashboard/control" element={<HomePage />} />
                 <Route path="/dashboard/costos/:id" element={<CostoDetails />} />
                 <Route path="/dashboard/presupuesto" element={<PresupuestoPage />} />
                 <Route path="/dashboard/programa-obra" element={<ProgramaObra />} />

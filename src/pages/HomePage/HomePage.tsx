@@ -1,8 +1,10 @@
 import { useState } from "react";
+import React from "react";
 import { api } from "../../../convex/_generated/api";
 import {
     useQuery
 } from "convex/react";
+import { Doc } from "convex/_generated/dataModel";
 import {
     Select,
     SelectContent,
@@ -68,15 +70,110 @@ const formatNumber = (amount: number) => {
 };
 
 export default function HomePage() {
-    const [selectedTorre, setSelectedTorre] = useState("Torre G");
+    const [selectedProject, setSelectedProject] = useState<Doc<"desarrollos"> | undefined>(undefined)
     const [selectedAnalisis, setSelectedAnalisis] = useState("Por partida");
     const [selectedPeriodo, setSelectedPeriodo] = useState("Mensual");
 
-    const data = useQuery(api.partida.getByFamily, { family: "ACERO" })
+    // Fetch projects
+    const projects = useQuery(api.desarrollos.getAll);
 
-    if (!data) return <p>No data available</p>
 
-    console.log(data) 
+    console.log(projects)
+
+
+    // Fetch metrics
+    const metrics = useQuery(api.partida.getProjectMetrics, projects ? { projectId: projects[0]._id } : "skip");
+
+    console.log(metrics)
+
+    // Fetch all partidas for the table (table shows individual records)
+    const allPartidas = useQuery(
+        api.partida.getByProject,
+        projects ? { projectId: projects[0]._id } : "skip"
+    );
+
+    // Calculate secondary metrics from allPartidas
+    const secondaryMetrics = {
+        gasto: allPartidas?.reduce((sum, p) => sum + parseFloat(p.pagado || "0"), 0) || 0,
+        porVencer: allPartidas?.reduce((sum, p) => sum + parseFloat(p.por_liquidar || "0"), 0) || 0,
+        honorarios: allPartidas?.filter(p => p.familia === "HONORARIOS").reduce((sum, p) => sum + parseFloat(p.pagado || "0"), 0) || 0
+    };
+
+    // Get unique familias for the legend and chart
+    const uniqueFamilias = Array.from(new Set(allPartidas?.map(p => p.familia) || []));
+
+    // Define colors for each familia
+    const familiaColors: Record<string, string> = {
+        "ACERO": "#60A5FA",
+        "CONCRETO": "#34D399",
+        "MATERIALES": "#FB923C",
+        "MANO DE OBRA": "#F87171",
+        "EQUIPOS": "#A78BFA",
+        "HONORARIOS": "#FBBF24"
+    };
+
+    // Get color for familia (with fallback)
+    const getColorForFamilia = (familia: string, index: number) => {
+        return familiaColors[familia] || `hsl(${index * 137.5}, 70%, 60%)`;
+    };
+
+    // Transform data for chart - create cumulative view across time
+    const chartData = React.useMemo(() => {
+        if (!allPartidas || allPartidas.length === 0) return [];
+
+        // Sort partidas by creation time or by index to create a progression
+        const sortedPartidas = [...allPartidas].sort((a, b) => {
+            return a._creationTime - b._creationTime;
+        });
+
+        // Create time periods (distribute across dates for visualization)
+        const numPoints = Math.min(sortedPartidas.length, 10); // Show max 10 data points
+        const partidasPerPoint = Math.ceil(sortedPartidas.length / numPoints);
+        
+        const baseDate = new Date('2024-09-01'); // Start date for visualization
+        const dataPoints: { date: string; [key: string]: string | number }[] = [];
+
+        for (let i = 0; i < numPoints; i++) {
+            const startIdx = i * partidasPerPoint;
+            const endIdx = Math.min(startIdx + partidasPerPoint, sortedPartidas.length);
+
+            // Calculate cumulative totals up to this point
+            const cumulativePartidas = sortedPartidas.slice(0, endIdx);
+            const familiasTotals: Record<string, number> = {};
+
+            cumulativePartidas.forEach(partida => {
+                const familia = partida.familia || 'Otros';
+                if (!familiasTotals[familia]) {
+                    familiasTotals[familia] = 0;
+                }
+                familiasTotals[familia] += parseFloat(partida.pagado || "0");
+            });
+
+            // Create date label (spread across the month)
+            const dayOffset = Math.floor((i / numPoints) * 30);
+            const pointDate = new Date(baseDate);
+            pointDate.setDate(baseDate.getDate() + dayOffset);
+            const dateLabel = pointDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+
+            const dataPoint: { date: string; [key: string]: string | number } = { date: dateLabel };
+            uniqueFamilias.forEach(familia => {
+                dataPoint[familia] = familiasTotals[familia] || 0;
+            });
+            dataPoints.push(dataPoint);
+        }
+
+        return dataPoints;
+    }, [allPartidas, uniqueFamilias]);
+
+    if (!projects || !metrics) {
+        return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
+            <p className="text-gray-500">Cargando datos...</p>
+        </div>;
+    }
+
+    console.log('Metrics:', metrics);
+    console.log('All Partidas:', allPartidas);
+    console.log('Chart Data:', chartData);
 
     return (
         <div className="bg-white px-12 py-6">
@@ -84,10 +181,12 @@ export default function HomePage() {
                 {/* Header */}
                 <div className="rounded-lg py-6">
                     <div className="flex items-start justify-between">
-                        <div className="flex flex-col text-left">
-                            <p className="text-sm text-gray-500 mb-1">{mockData.project.type}</p>
-                            <h1 className="text-2xl text-gray-900">{mockData.project.name}</h1>
-                        </div>
+                        {selectedProject && (
+                            <div className="flex flex-col text-left">
+                                <p className="text-sm text-gray-500 mb-1">Proyecto</p>
+                                <h1 className="text-2xl text-gray-900">{selectedProject.nombre}</h1>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -100,19 +199,13 @@ export default function HomePage() {
                                 <p className="text-xs text-gray-500">Presupuesto aprobado</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-gray-900">
-                                        ${formatNumber(mockData.metrics.presupuestoAprobado.amount)}
+                                        ${formatNumber(Math.round(metrics.presupuestoAprobado))}
                                     </span>
-                                    {/* <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                        {mockData.metrics.presupuestoAprobado.percentage}%
-                                    </Badge> */}
                                 </div>
 
-                                <div className="text-lg text-gray-500">
-                                    {/* ${formatNumber(mockData.metrics.presupuestoAprobado.comparison)} <Badge variant="secondary" className="bg-green-100 text-green-800 rounded-xl border-green-800">{mockData.metrics.presupuestoAprobado.comparisonLabel}</Badge> */}
-                                    ${formatNumber(mockData.metrics.presupuestoAprobado.comparison)} <Badge variant="secondary" className="ml-6 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
-                                        Reducción {mockData.metrics.presupuestoAprobado.percentage}%
-                                    </Badge>
-                                </div>
+                                {/* <div className="text-lg text-gray-500">
+                                    <span className="text-sm text-gray-400">Total partidas: {metrics.totalPartidas}</span>
+                                </div> */}
                             </div>
                         </CardContent>
                     </Card>
@@ -124,13 +217,12 @@ export default function HomePage() {
                                 <p className="text-xs text-gray-500">Gasto total</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-[#802424]">
-                                        ${formatNumber(mockData.metrics.gastoTotal.amount)}
+                                        ${formatNumber(Math.round(metrics.gastoTotal))}
                                     </span>
-                                    {/* <Badge variant="secondary" className="bg-red-100 text-red-800">
-                                        {mockData.metrics.gastoTotal.percentage}%
-                                    </Badge> */}
                                 </div>
-                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">Avance {mockData.metrics.gastoTotal.percentage}%</Badge>
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                                    Avance {metrics.presupuestoAprobado > 0 ? Math.round((metrics.gastoTotal / metrics.presupuestoAprobado) * 100) : 0}%
+                                </Badge>
                             </div>
                         </CardContent>
                     </Card>
@@ -142,13 +234,12 @@ export default function HomePage() {
                                 <p className="text-xs text-gray-500">Por gastar</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-[#1A5D21]">
-                                        ${formatNumber(mockData.metrics.porGastar.amount)}
+                                        ${formatNumber(Math.round(metrics.porGastar))}
                                     </span>
-                                    {/* <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                        {mockData.metrics.porGastar.percentage}%
-                                    </Badge> */}
                                 </div>
-                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">{mockData.metrics.porGastar.comparisonLabel}</Badge>
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                                    Pendiente {metrics.presupuestoAprobado > 0 ? Math.round((metrics.porGastar / metrics.presupuestoAprobado) * 100) : 0}%
+                                </Badge>
                             </div>
                         </CardContent>
                     </Card>
@@ -160,14 +251,18 @@ export default function HomePage() {
                     <div className="grid grid-cols-4 items-center space-x-12">
                         <div className="flex items-center space-x-3 text-left border-b border-gray-600 py-4 h-full">
                             <Search className="w-4 h-4 text-gray-400" />
-                            <Select value={selectedTorre} onValueChange={setSelectedTorre}>
+                            <Select defaultValue={selectedProject?._id} value={selectedProject?._id}
+                                onValueChange={(value) => {
+                                    const project = projects?.find(p => p._id === value);
+                                    setSelectedProject(project);
+                                }}>
                                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
-                                    <SelectValue />
+                                    <SelectValue placeholder="Selecciona un proyecto" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {mockData.filters.torres.map((torre) => (
-                                        <SelectItem key={torre} value={torre}>
-                                            {torre}
+                                    {projects?.map((project) => (
+                                        <SelectItem key={project._id} value={project._id}>
+                                            {project.nombre}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -221,52 +316,45 @@ export default function HomePage() {
                         <Card className="bg-white border-none shadow-none">
                             <CardContent className="px-0 pt-12 pb-0">
                                 {/* Metrics Row */}
-                                <div className="flex items-start justify-between mb-8">
+                                <div className="flex items-start justify-between mb-8 gap-4">
                                     <div className="flex items-center space-x-12">
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-gray-500">Gasto</p>
-                                            <p className="text-3xl">${formatNumber(mockData.secondaryMetrics.gasto)}<span className="text-sm font-normal text-gray-500">.10</span></p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.gasto))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-gray-500">Por vencer</p>
-                                            <p className="text-3xl">${formatNumber(mockData.secondaryMetrics.porVencer)}<span className="text-sm font-normal text-gray-500">.10</span></p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-gray-500">Honorarios</p>
-                                            <p className="text-3xl">${formatNumber(mockData.secondaryMetrics.honorarios)}<span className="text-sm font-normal text-gray-500">.10</span></p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.honorarios))}</p>
                                         </div>
                                     </div>
 
-                                    {/* Legend */}
-                                    <div className="flex items-center space-x-6">
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                                            <span className="text-sm text-gray-600">Mano de obra</span>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                                            <span className="text-sm text-gray-600">Materiales</span>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
-                                            <span className="text-sm text-gray-600">Contratistas</span>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                                            <span className="text-sm text-gray-600">Equipos y acabados</span>
-                                        </div>
+                                    {/* Legend - Dynamic based on familias */}
+                                    <div className="flex items-center space-x-6 flex-wrap">
+                                        {uniqueFamilias.map((familia, index) => (
+                                            <div key={familia} className="flex items-center space-x-2">
+                                                <div
+                                                    className="w-3 h-3 rounded-full"
+                                                    style={{ backgroundColor: getColorForFamilia(familia, index) }}
+                                                ></div>
+                                                <span className="text-sm text-gray-600">{familia}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
                                 {/* Chart */}
                                 <div className="w-full h-80">
-                                    <AreaChart data={mockData.chartData} />
+                                    <AreaChart data={chartData.length > 0 ? chartData : mockData.chartData} />
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
                     <div className="col-span-4 py-12">
-                    <DashboardTable data={data} />
+                        <DashboardTable data={allPartidas || []} />
                     </div>
                 </div>
             </div>

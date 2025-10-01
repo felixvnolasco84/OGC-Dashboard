@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { api } from "../../../convex/_generated/api";
+import { useQuery } from "convex/react";
+import { Id } from "../../../convex/_generated/dataModel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,155 +14,7 @@ import {
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
-
-// Mock data structure matching the image
-const mockProgramaData = [
-  {
-    id: 1,
-    partida: "Cimentación",
-    presupuesto: 2345020,
-    expanded: false,
-    level: 0,
-    timeline: {
-      start: 1, // January
-      duration: 2, // 2 months
-      color: "bg-green-500",
-      progress: 85,
-      actualAmount: 2200000
-    },
-    children: []
-  },
-  {
-    id: 2,
-    partida: "Muros Planta Baja",
-    presupuesto: 345020,
-    expanded: false,
-    level: 0,
-    timeline: {
-      start: 2, // February
-      duration: 3, // 3 months
-      color: "bg-green-600",
-      progress: 70,
-      actualAmount: 380000
-    },
-    children: []
-  },
-  {
-    id: 3,
-    partida: "Losa Primer Nivel",
-    presupuesto: 1832020,
-    expanded: false,
-    level: 0,
-    timeline: {
-      start: 3, // March
-      duration: 2, // 2 months
-      color: "bg-green-400",
-      progress: 60,
-      actualAmount: 1211599
-    },
-    children: []
-  },
-  {
-    id: 4,
-    partida: "Electricidad",
-    presupuesto: 623498,
-    expanded: false,
-    level: 0,
-    timeline: {
-      start: 3, // March
-      duration: 5, // 5 months
-      color: "bg-green-300",
-      progress: 45,
-      actualAmount: 500000
-    },
-    children: []
-  },
-  {
-    id: 5,
-    partida: "Yeso y Pintura",
-    presupuesto: 2345020,
-    expanded: true,
-    level: 0,
-    timeline: null, // Parent doesn't have its own timeline
-    children: [
-      {
-        id: 6,
-        partida: "Yeso en muros",
-        presupuesto: 12000,
-        expanded: false,
-        level: 1,
-        timeline: {
-          start: 4, // April
-          duration: 3, // 3 months
-          color: "bg-green-400",
-          progress: 30,
-          actualAmount: 8500
-        },
-        children: []
-      },
-      {
-        id: 7,
-        partida: "Yeso en plafones",
-        presupuesto: 145020,
-        expanded: false,
-        level: 1,
-        timeline: {
-          start: 5, // May
-          duration: 4, // 4 months
-          color: "bg-green-500",
-          progress: 20,
-          actualAmount: 120000
-        },
-        children: []
-      },
-      {
-        id: 8,
-        partida: "Bufas",
-        presupuesto: 2345020,
-        expanded: false,
-        level: 1,
-        timeline: {
-          start: 6, // June
-          duration: 3, // 3 months
-          color: "bg-green-600",
-          progress: 10,
-          actualAmount: 2100000
-        },
-        children: []
-      }
-    ]
-  },
-  {
-    id: 9,
-    partida: "Plomería",
-    presupuesto: 2345020,
-    expanded: false,
-    level: 0,
-    timeline: {
-      start: 7, // July
-      duration: 2, // 2 months
-      color: "bg-green-400",
-      progress: 0,
-      actualAmount: 0
-    },
-    children: []
-  },
-  {
-    id: 10,
-    partida: "Aire Acondicionado",
-    presupuesto: 2345020,
-    expanded: false,
-    level: 0,
-    timeline: {
-      start: 8, // August
-      duration: 1, // 1 month
-      color: "bg-green-500",
-      progress: 0,
-      actualAmount: 0
-    },
-    children: []
-  }
-];
+// import ProgramaGanttChart from "@/components/Charts/ProgramaGanttChart";
 
 const months = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -176,7 +31,7 @@ const formatCurrency = (amount: number) => {
 };
 
 type ProgramaItem = {
-  id: number;
+  id: string;
   partida: string;
   presupuesto: number;
   expanded: boolean;
@@ -192,14 +47,109 @@ type ProgramaItem = {
 };
 
 export default function ProgramaObra() {
-  const [programaData, setProgramaData] = useState<ProgramaItem[]>(mockProgramaData);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPartida, setSelectedPartida] = useState("Partida");
-  const [selectedFamilia, setSelectedFamilia] = useState("Familia");
+  const [selectedPartida, setSelectedPartida] = useState<string | undefined>(undefined);
+  const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>(undefined);
   const [selectedFecha, setSelectedFecha] = useState("Semana");
 
+  // Fetch projects
+  const projects = useQuery(api.desarrollos.getAll);
+
+  // State for selected project
+  const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
+
+  // Set default project when projects load
+  useEffect(() => {
+    if (projects && projects.length > 0 && !selectedProjectId) {
+      setSelectedProjectId(projects[0]._id);
+    }
+  }, [projects, selectedProjectId]);
+
+  // Fetch all partidas for selected project
+  const allPartidas = useQuery(
+    api.partida.getByProject,
+    selectedProjectId ? { projectId: selectedProjectId } : "skip"
+  );
+
+  // Transform partidas data into hierarchical structure for Gantt chart
+  const programaData = useMemo(() => {
+    if (!allPartidas) return [];
+
+    type GroupedPartida = ProgramaItem & {
+      familias: Record<string, ProgramaItem>;
+    };
+
+    // Group by partida (nombre) -> familia
+    const grouped = allPartidas.reduce<Record<string, GroupedPartida>>((acc, item) => {
+      const partidaKey = item.nombre;
+      const familiaKey = item.familia;
+
+      if (!acc[partidaKey]) {
+        acc[partidaKey] = {
+          id: `partida-${partidaKey}`,
+          partida: partidaKey,
+          presupuesto: 0,
+          expanded: false,
+          level: 0,
+          timeline: null,
+          children: [],
+          familias: {} as Record<string, ProgramaItem>
+        };
+      }
+
+      const partidaGroup = acc[partidaKey];
+      partidaGroup.presupuesto += parseFloat(item.aprobado || "0");
+
+      // Create or update familia group
+      if (!partidaGroup.familias[familiaKey]) {
+        partidaGroup.familias[familiaKey] = {
+          id: `familia-${partidaKey}-${familiaKey}`,
+          partida: familiaKey,
+          presupuesto: 0,
+          expanded: false,
+          level: 1,
+          timeline: {
+            start: Math.floor(Math.random() * 8), // Mock timeline for now
+            duration: Math.floor(Math.random() * 4) + 1,
+            color: "bg-green-500",
+            progress: parseFloat(item.aprobado || "0") > 0
+              ? Math.round((parseFloat(item.pagado || "0") / parseFloat(item.aprobado || "0")) * 100)
+              : 0,
+            actualAmount: parseFloat(item.pagado || "0")
+          },
+          children: []
+        };
+        partidaGroup.children.push(partidaGroup.familias[familiaKey]);
+      }
+
+      const familiaGroup = partidaGroup.familias[familiaKey];
+      familiaGroup.presupuesto += parseFloat(item.aprobado || "0");
+
+      return acc;
+    }, {});
+
+    const result = Object.values(grouped).map((partidaGroup) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { familias, ...rest } = partidaGroup;
+      return rest;
+    });
+
+    return result as ProgramaItem[];
+  }, [allPartidas]);
+
+  const [programaDataState, setProgramaDataState] = useState<ProgramaItem[]>([]);
+
+  // Update state when data changes
+  useEffect(() => {
+    setProgramaDataState(programaData);
+  }, [programaData]);
+
+  // Get unique partidas and familias for filters
+  const uniquePartidas = Array.from(new Set(allPartidas?.map(p => p.nombre) || []));
+  const uniqueFamilias = Array.from(new Set(allPartidas?.map(p => p.familia) || []));
+
   // Function to toggle expanded state
-  const toggleExpanded = (id: number) => {
+  const toggleExpanded = (id: string) => {
     const updateExpanded = (items: ProgramaItem[]): ProgramaItem[] => {
       return items.map(item => {
         if (item.id === id) {
@@ -211,7 +161,7 @@ export default function ProgramaObra() {
         return item;
       });
     };
-    setProgramaData(updateExpanded(programaData));
+    setProgramaDataState(updateExpanded(programaDataState));
   };
 
   // Function to flatten hierarchical data for rendering
@@ -225,43 +175,24 @@ export default function ProgramaObra() {
     return result;
   };
 
-  const flattenedData = flattenData(programaData);
+  const flattenedData = flattenData(programaDataState);
 
-  const mockData = {
-    project: {
-      name: "Larena - Torre G",
-      breadcrumb: "Presupuesto"
-    },
-    metrics: {
-      presupuestoOriginal: {
-        amount: 104225001.10,
-        label: "Presupuesto Original"
-      },
-      presupuestoAprobado: {
-        amount: 96563399.05,
-        percentage: -4,
-        label: "Presupuesto aprobado",
-        badge: "Reducción 4%"
-      },
-      gastoTotal: {
-        amount: 22759332.05,
-        percentage: 23,
-        label: "Gasto total",
-        badge: "Avance 23%"
-      },
-      porGastar: {
-        amount: 83495599.05,
-        percentage: 77,
-        label: "Por gastar",
-        badge: "Pendiente 77%"
-      }
-    },
-    filters: {
-      partidas: ["Partida", "Cimentación", "Acero", "Cimbra"],
-      familias: ["Familia", "Estructural", "Acabados", "Instalaciones"],
-      fechas: ["Semana", "Mes", "Trimestre"]
-    }
-  };
+  // Filter data based on selections
+  const filteredData = flattenedData.filter(item => {
+    if (selectedPartida && item.partida !== selectedPartida && item.level === 0) return false;
+    if (selectedFamilia && item.partida !== selectedFamilia && item.level === 1) return false;
+    if (searchTerm && !item.partida.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  });
+
+  if (!projects || !allPartidas) {
+    return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
+      <p className="text-gray-500">Cargando datos...</p>
+    </div>;
+  }
+
+  // Get current selected project
+  const currentProject = projects.find(p => p._id === selectedProjectId) || projects[0];
 
   return (
     <div className="bg-white px-12 py-6">
@@ -271,8 +202,26 @@ export default function ProgramaObra() {
         <div className="rounded-lg py-6">
           <div className="flex items-start justify-between">
             <div className="flex flex-col text-left">
-              <p className="text-sm text-gray-500 mb-1">{mockData.project.breadcrumb}</p>
-              <h1 className="text-2xl text-gray-900">{mockData.project.name}</h1>
+              <p className="text-sm text-gray-500 mb-1">Programa de Obra</p>
+              <h1 className="text-2xl text-gray-900">{currentProject?.nombre || 'Proyecto'}</h1>
+            </div>
+            <div className="flex flex-col space-y-1 text-left min-w-[250px]">
+              <span className="text-xs text-gray-500">Proyecto</span>
+              <Select
+                value={selectedProjectId}
+                onValueChange={(value) => setSelectedProjectId(value as Id<"desarrollos">)}
+              >
+                <SelectTrigger className="border border-gray-200 shadow-sm h-9 font-normal text-gray-900">
+                  <SelectValue placeholder="Seleccionar proyecto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project._id} value={project._id}>
+                      {project.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -297,10 +246,11 @@ export default function ProgramaObra() {
               <span className="text-xs text-gray-500">Partida</span>
               <Select value={selectedPartida} onValueChange={setSelectedPartida}>
                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
-                  <SelectValue />
+                  <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.filters.partidas.map((partida) => (
+                  <SelectItem value="all">Todas</SelectItem>
+                  {uniquePartidas.map((partida) => (
                     <SelectItem key={partida} value={partida}>
                       {partida}
                     </SelectItem>
@@ -314,10 +264,11 @@ export default function ProgramaObra() {
               <span className="text-xs text-gray-500">Familia</span>
               <Select value={selectedFamilia} onValueChange={setSelectedFamilia}>
                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
-                  <SelectValue />
+                  <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.filters.familias.map((familia) => (
+                  <SelectItem value="all">Todas</SelectItem>
+                  {uniqueFamilias.map((familia) => (
                     <SelectItem key={familia} value={familia}>
                       {familia}
                     </SelectItem>
@@ -334,11 +285,9 @@ export default function ProgramaObra() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.filters.fechas.map((fecha) => (
-                    <SelectItem key={fecha} value={fecha}>
-                      {fecha}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="Semana">Semana</SelectItem>
+                  <SelectItem value="Mes">Mes</SelectItem>
+                  <SelectItem value="Trimestre">Trimestre</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -346,8 +295,7 @@ export default function ProgramaObra() {
         </div>
 
 
-      </div>
-
+      </div>  
       {/* Gantt Chart Container */}
       <div className="border border-gray-200 overflow-hidden bg-white">
         <div className="flex">
@@ -360,7 +308,7 @@ export default function ProgramaObra() {
 
             {/* Partidas List */}
             <div className="max-h-none overflow-y-auto">
-              {flattenedData.map((item) => (
+              {filteredData.map((item) => (
                 <div
                   key={item.id}
                   className="flex items-center justify-between px-4 py-4 border-b border-gray-100 hover:bg-gray-100 h-[81px] text-left"
@@ -424,7 +372,7 @@ export default function ProgramaObra() {
 
             {/* Timeline Rows */}
             <div className="relative">
-              {flattenedData.map((item) => (
+              {filteredData.map((item) => (
                 <div key={item.id} className="flex border-b border-gray-100 hover:bg-gray-50 relative">
                   <div className="px-4 py-4 text-sm text-gray-600 border-r border-gray-200 w-32 h-[81px] text-left">
                     {formatCurrency(item.presupuesto)}

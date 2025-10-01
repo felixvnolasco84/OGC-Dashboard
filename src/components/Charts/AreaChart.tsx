@@ -3,11 +3,7 @@ import { AxisOptions, Chart } from "react-charts";
 
 interface ChartDataPoint {
     date: string;
-    manoDeObra: number;
-    materiales: number;
-    contratistas: number;
-    equipos: number;
-    isProjection?: boolean;
+    [key: string]: string | number | boolean | undefined;
 }
 
 interface AreaChartProps {
@@ -26,10 +22,10 @@ type ReactChartsSeries = {
     data: ReactChartsDataPoint[];
 };
 
-export default function AreaChart({ data  }: AreaChartProps) {
+export default function AreaChart({ data }: AreaChartProps) {
     // Get today's datex
     // const today = new Date();
-    
+
     // Mock data with today's date as the dividing point
     const mockData: ChartDataPoint[] = [
         { date: '01 Sep', manoDeObra: 50000, materiales: 30000, contratistas: 20000, equipos: 15000 },
@@ -46,21 +42,20 @@ export default function AreaChart({ data  }: AreaChartProps) {
 
     // Transform data for react-charts format
     const transformedData: ReactChartsSeries[] = React.useMemo(() => {
-        const series = [
-            { key: 'manoDeObra', label: 'Mano de obra', color: '#60A5FA' },
-            { key: 'materiales', label: 'Materiales', color: '#34D399' },
-            { key: 'contratistas', label: 'Contratistas', color: '#FB923C' },
-            { key: 'equipos', label: 'Equipos y acabados', color: '#F87171' }
-        ];
+        if (chartData.length === 0) return [];
 
-        return series.map(({ key, label }) => ({
-            label,
-            data: chartData.map((d, index) => {
+        // Get all keys except 'date' to determine series
+        const firstDataPoint = chartData[0];
+        const seriesKeys = Object.keys(firstDataPoint).filter(key => key !== 'date');
+
+        return seriesKeys.map((key) => ({
+            label: key,
+            data: chartData.map((d, dataIndex) => {
                 // Create date from string (simplified - in real app you'd parse properly)
-                const date = new Date(2024, 8, index + 1); // September 2024
+                const date = new Date(2024, 8, dataIndex + 1); // September 2024
                 return {
                     primary: date,
-                    secondary: d[key as keyof ChartDataPoint] as number,
+                    secondary: (d[key] as number) || 0,
                 };
             }),
         }));

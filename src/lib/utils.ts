@@ -51,7 +51,7 @@ export type partida = {
   por_liquidar: string;
   actual: string;
   fecha_carga: string;
-  archivo_origen: string;
+  archivo_origen: string;  
 }
 
 

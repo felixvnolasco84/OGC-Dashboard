@@ -3,7 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 type ProgramaItem = {
-    id: number;
+    id: string;
     partida: string;
     presupuesto: number;
     expanded: boolean;

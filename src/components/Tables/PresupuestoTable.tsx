@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { Doc } from "convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,102 +13,10 @@ import {
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Mock hierarchical budget data
-const mockBudgetData = [
-  {
-    id: 1,
-    partida: "Cimentación",
-    presupuestoOriginal: 452000,
-    presupuestoAprobado: 450000,
-    pagado: 350000,
-    avance: 65,
-    fechaInicio: "12 Sep 2025",
-    fechaFin: "12 Sep 2025",
-    expanded: false,
-    level: 0,
-    children: [
-      {
-        id: 2,
-        partida: "Acero",
-        presupuestoOriginal: 452000,
-        presupuestoAprobado: 450000,
-        pagado: 350000,
-        avance: 35,
-        fechaInicio: "12 Sep 2025",
-        fechaFin: "12 Sep 2025",
-        expanded: false,
-        level: 1,
-        children: []
-      },
-      {
-        id: 3,
-        partida: "Cimbra",
-        presupuestoOriginal: 452000,
-        presupuestoAprobado: 450000,
-        pagado: 350000,
-        avance: 45,
-        fechaInicio: "12 Sep 2025",
-        fechaFin: "12 Sep 2025",
-        expanded: false,
-        level: 1,
-        children: [
-          {
-            id: 4,
-            partida: "Barrote de pino de 3A",
-            presupuestoOriginal: 452000,
-            presupuestoAprobado: 450000,
-            pagado: 350000,
-            avance: 65,
-            fechaInicio: "12 Sep 2025",
-            fechaFin: "12 Sep 2025",
-            expanded: false,
-            level: 2,
-            children: []
-          },
-          {
-            id: 5,
-            partida: "Polín de pino de 3A",
-            presupuestoOriginal: 452000,
-            presupuestoAprobado: 450000,
-            pagado: 350000,
-            avance: 65,
-            fechaInicio: "12 Sep 2025",
-            fechaFin: "12 Sep 2025",
-            expanded: false,
-            level: 2,
-            children: []
-          },
-          {
-            id: 6,
-            partida: "Cuña metálica para sujeción",
-            presupuestoOriginal: 452000,
-            presupuestoAprobado: 450000,
-            pagado: 350000,
-            avance: 65,
-            fechaInicio: "12 Sep 2025",
-            fechaFin: "12 Sep 2025",
-            expanded: false,
-            level: 2,
-            children: []
-          },
-          {
-            id: 7,
-            partida: "Distanciadores 20-30 cm",
-            presupuestoOriginal: 452000,
-            presupuestoAprobado: 450000,
-            pagado: 350000,
-            avance: 65,
-            fechaInicio: "12 Sep 2025",
-            fechaFin: "12 Sep 2025",
-            expanded: false,
-            level: 2,
-            children: []
-          }
-        ]
-      }
-    ]
-  }
-];
+// Hierarchical structure helper types
+type HierarchicalGroup = BudgetItem & {
+  familias: Record<string, BudgetItem>;
+};
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('es-MX', {
@@ -128,8 +37,10 @@ const getBudgetDifference = (original: number, approved: number) => {
 };
 
 type BudgetItem = {
-  id: number;
+  id: string;
   partida: string;
+  familia?: string;
+  subPartida?: string;
   presupuestoOriginal: number;
   presupuestoAprobado: number;
   pagado: number;
@@ -141,11 +52,120 @@ type BudgetItem = {
   children: BudgetItem[];
 };
 
-export default function PresupuestoTable() {
-  const [budgetData, setBudgetData] = useState<BudgetItem[]>(mockBudgetData);
+interface PresupuestoTableProps {
+  data: Doc<"partidas">[];
+}
+
+export default function PresupuestoTable({ data }: PresupuestoTableProps) {
+  // Transform flat partidas data into hierarchical structure
+  const hierarchicalData = useMemo(() => {
+    // Group by partida (nombre) -> familia -> sub_partida
+    const grouped = data.reduce<Record<string, HierarchicalGroup>>((acc, item) => {
+      const partidaKey = item.nombre;
+      const familiaKey = item.familia;
+      const subPartidaKey = item.sub_partida;
+
+      if (!acc[partidaKey]) {
+        acc[partidaKey] = {
+          id: `partida-${partidaKey}`,
+          partida: partidaKey,
+          presupuestoOriginal: 0,
+          presupuestoAprobado: 0,
+          pagado: 0,
+          avance: 0,
+          fechaInicio: "-",
+          fechaFin: "-",
+          expanded: false,
+          level: 0,
+          children: [] as BudgetItem[],
+          familias: {} as Record<string, BudgetItem>
+        };
+      }
+
+      const partidaGroup = acc[partidaKey];
+
+      // Add to partida totals
+      partidaGroup.presupuestoOriginal += parseFloat(item.total || "0");
+      partidaGroup.presupuestoAprobado += parseFloat(item.aprobado || "0");
+      partidaGroup.pagado += parseFloat(item.pagado || "0");
+
+      // Create or update familia group
+      if (!partidaGroup.familias[familiaKey]) {
+        partidaGroup.familias[familiaKey] = {
+          id: `familia-${partidaKey}-${familiaKey}`,
+          partida: familiaKey,
+          familia: familiaKey,
+          presupuestoOriginal: 0,
+          presupuestoAprobado: 0,
+          pagado: 0,
+          avance: 0,
+          fechaInicio: "-",
+          fechaFin: "-",
+          expanded: false,
+          level: 1,
+          children: [] as BudgetItem[]
+        };
+        partidaGroup.children.push(partidaGroup.familias[familiaKey]);
+      }
+
+      const familiaGroup = partidaGroup.familias[familiaKey];
+
+      // Add to familia totals
+      familiaGroup.presupuestoOriginal += parseFloat(item.total || "0");
+      familiaGroup.presupuestoAprobado += parseFloat(item.aprobado || "0");
+      familiaGroup.pagado += parseFloat(item.pagado || "0");
+
+      // Add sub_partida as a child of familia
+      familiaGroup.children.push({
+        id: item._id,
+        partida: subPartidaKey,
+        subPartida: subPartidaKey,
+        presupuestoOriginal: parseFloat(item.total || "0"),
+        presupuestoAprobado: parseFloat(item.aprobado || "0"),
+        pagado: parseFloat(item.pagado || "0"),
+        avance: parseFloat(item.aprobado || "0") > 0 
+          ? Math.round((parseFloat(item.pagado || "0") / parseFloat(item.aprobado || "0")) * 100)
+          : 0,
+        fechaInicio: "-",
+        fechaFin: "-",
+        expanded: false,
+        level: 2,
+        children: []
+      });
+
+      return acc;
+    }, {});
+
+    // Calculate avance for partidas and familias
+    const result = Object.values(grouped).map((partidaGroup) => {
+      partidaGroup.avance = partidaGroup.presupuestoAprobado > 0
+        ? Math.round((partidaGroup.pagado / partidaGroup.presupuestoAprobado) * 100)
+        : 0;
+      
+      partidaGroup.children.forEach((familia: BudgetItem) => {
+        familia.avance = familia.presupuestoAprobado > 0
+          ? Math.round((familia.pagado / familia.presupuestoAprobado) * 100)
+          : 0;
+      });
+
+      // Return without familias object
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { familias, ...budgetItem } = partidaGroup;
+      return budgetItem as BudgetItem;
+    });
+
+    return result;
+  }, [data]);
+
+  const [budgetData, setBudgetData] = useState<BudgetItem[]>([]);
+
+  // Update budgetData when hierarchicalData changes
+  useMemo(() => {
+    setBudgetData(hierarchicalData);
+  }, [hierarchicalData]);
 
   // Function to toggle expanded state of an item
-  const toggleExpanded = (id: number) => {
+  const toggleExpanded = (id: string) => {
     const updateExpanded = (items: BudgetItem[]): BudgetItem[] => {
       return items.map(item => {
         if (item.id === id) {
