@@ -115,28 +115,36 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
       familiaGroup.presupuestoAprobado += parseFloat(item.aprobado || "0");
       familiaGroup.pagado += parseFloat(item.pagado || "0");
 
-      // Add sub_partida as a child of familia
-      familiaGroup.children.push({
-        id: item._id,
-        partida: subPartidaKey,
-        subPartida: subPartidaKey,
-        presupuestoOriginal: parseFloat(item.total || "0"),
-        presupuestoAprobado: parseFloat(item.aprobado || "0"),
-        pagado: parseFloat(item.pagado || "0"),
-        avance: parseFloat(item.aprobado || "0") > 0 
-          ? Math.round((parseFloat(item.pagado || "0") / parseFloat(item.aprobado || "0")) * 100)
-          : 0,
-        fechaInicio: "-",
-        fechaFin: "-",
-        expanded: false,
-        level: 2,
-        children: []
-      });
+      // Add sub_partida as a child of familia only if it's meaningful
+      // (not empty, not the same as familia name)
+      const hasValidSubPartida = subPartidaKey && 
+                                  subPartidaKey.trim() !== '' && 
+                                  subPartidaKey !== familiaKey;
+      
+      if (hasValidSubPartida) {
+        familiaGroup.children.push({
+          id: item._id,
+          partida: subPartidaKey,
+          subPartida: subPartidaKey,
+          presupuestoOriginal: parseFloat(item.total || "0"),
+          presupuestoAprobado: parseFloat(item.aprobado || "0"),
+          pagado: parseFloat(item.pagado || "0"),
+          avance: parseFloat(item.aprobado || "0") > 0 
+            ? Math.round((parseFloat(item.pagado || "0") / parseFloat(item.aprobado || "0")) * 100)
+            : 0,
+          fechaInicio: "-",
+          fechaFin: "-",
+          expanded: false,
+          level: 2,
+          children: []
+        });
+      }
 
       return acc;
     }, {});
 
     // Calculate avance for partidas and familias
+    // Also filter out familias with no meaningful children
     const result = Object.values(grouped).map((partidaGroup) => {
       partidaGroup.avance = partidaGroup.presupuestoAprobado > 0
         ? Math.round((partidaGroup.pagado / partidaGroup.presupuestoAprobado) * 100)
@@ -146,6 +154,12 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
         familia.avance = familia.presupuestoAprobado > 0
           ? Math.round((familia.pagado / familia.presupuestoAprobado) * 100)
           : 0;
+        
+        // If familia has no children or only one child with same name, clear children array
+        if (familia.children.length === 0 || 
+            (familia.children.length === 1 && familia.children[0].partida === familia.partida)) {
+          familia.children = [];
+        }
       });
 
       // Return without familias object
