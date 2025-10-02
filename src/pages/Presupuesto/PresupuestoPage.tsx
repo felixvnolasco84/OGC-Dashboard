@@ -57,8 +57,8 @@ const formatNumber = (amount: number) => {
 };
 
 export default function PresupuestoPage() {
-  const [selectedPartida, setSelectedPartida] = useState<string | undefined>(undefined);
-  const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>(undefined);
+  const [selectedPartida, setSelectedPartida] = useState<string | undefined>("all");
+  const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>("all");
   const [selectedFecha, setSelectedFecha] = useState("Semana");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -89,14 +89,14 @@ export default function PresupuestoPage() {
     porGastar: allPartidas?.reduce((sum, p) => sum + parseFloat(p.por_liquidar || "0"), 0) || 0,
   };
 
-  // Get unique partidas and familias for filters
-  const uniquePartidas = Array.from(new Set(allPartidas?.map(p => p.nombre) || []));
-  const uniqueFamilias = Array.from(new Set(allPartidas?.map(p => p.familia) || []));
+  // Get unique partidas and familias for filters (filter out empty strings)
+  const uniquePartidas = Array.from(new Set(allPartidas?.map(p => p.nombre).filter(n => n && n.trim() !== '') || []));
+  const uniqueFamilias = Array.from(new Set(allPartidas?.map(p => p.familia).filter(f => f && f.trim() !== '') || []));
 
   // Filter data based on selections
   const filteredPartidas = allPartidas?.filter(p => {
-    if (selectedPartida && p.nombre !== selectedPartida) return false;
-    if (selectedFamilia && p.familia !== selectedFamilia) return false;
+    if (selectedPartida && selectedPartida !== "all" && p.nombre !== selectedPartida) return false;
+    if (selectedFamilia && selectedFamilia !== "all" && p.familia !== selectedFamilia) return false;
     if (searchTerm && !p.sub_partida.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   }) || [];
