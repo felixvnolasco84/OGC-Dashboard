@@ -3,7 +3,7 @@ import { create } from "zustand";
 
 type PaymentContext = {
     payments: Doc<"pagos">[];
-    relatedCost?: Doc<"costos">;
+    relatedPartida?: Doc<"partidas">;
     totalAmount: number;
 };
 

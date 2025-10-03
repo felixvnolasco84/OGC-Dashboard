@@ -12,10 +12,26 @@ import {
 } from "@/components/ui/table";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import DropdownMenuComponentPartida from "../DropdownMenu/DropdownMenuComponenPartida";
 
 // Hierarchical structure helper types
-type HierarchicalGroup = BudgetItem & {
-  familias: Record<string, BudgetItem>;
+// Extend Doc<"partidas"> with hierarchical properties
+type PartidaRow = Omit<Partial<Doc<"partidas">>, 'pagado' | 'total' | 'aprobado'> & {
+  displayName: string; // For rendering partida/familia/sub_partida name
+  presupuestoOriginal: number;
+  presupuestoAprobado: number;
+  pagado: number;
+  avance: number;
+  fechaInicio?: string;
+  fechaFin?: string;
+  expanded: boolean;
+  level: number; // 0 = partida, 1 = familia, 2 = sub_partida
+  children: PartidaRow[];
+  originalDoc?: Doc<"partidas">; // Store original doc for level 2 items
+};
+
+type HierarchicalGroup = PartidaRow & {
+  familias: Record<string, PartidaRow>;
 };
 
 const formatCurrency = (amount: number) => {
@@ -36,22 +52,6 @@ const getBudgetDifference = (original: number, approved: number) => {
   return { difference, isPositive, isNegative, isZero, formattedDifference };
 };
 
-type BudgetItem = {
-  id: string;
-  partida: string;
-  familia?: string;
-  subPartida?: string;
-  presupuestoOriginal: number;
-  presupuestoAprobado: number;
-  pagado: number;
-  avance: number;
-  fechaInicio: string;
-  fechaFin: string;
-  expanded: boolean;
-  level: number;
-  children: BudgetItem[];
-};
-
 interface PresupuestoTableProps {
   data: Doc<"partidas">[];
 }
@@ -67,8 +67,8 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
 
       if (!acc[partidaKey]) {
         acc[partidaKey] = {
-          id: `partida-${partidaKey}`,
-          partida: partidaKey,
+          displayName: partidaKey,
+          nombre: partidaKey,
           presupuestoOriginal: 0,
           presupuestoAprobado: 0,
           pagado: 0,
@@ -77,8 +77,8 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
           fechaFin: "-",
           expanded: false,
           level: 0,
-          children: [] as BudgetItem[],
-          familias: {} as Record<string, BudgetItem>
+          children: [] as PartidaRow[],
+          familias: {} as Record<string, PartidaRow>
         };
       }
 
@@ -92,8 +92,8 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
       // Create or update familia group
       if (!partidaGroup.familias[familiaKey]) {
         partidaGroup.familias[familiaKey] = {
-          id: `familia-${partidaKey}-${familiaKey}`,
-          partida: familiaKey,
+          displayName: familiaKey,
+          nombre: partidaKey,
           familia: familiaKey,
           presupuestoOriginal: 0,
           presupuestoAprobado: 0,
@@ -103,7 +103,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
           fechaFin: "-",
           expanded: false,
           level: 1,
-          children: [] as BudgetItem[]
+          children: [] as PartidaRow[]
         };
         partidaGroup.children.push(partidaGroup.familias[familiaKey]);
       }
@@ -117,26 +117,26 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
 
       // Add sub_partida as a child of familia only if it's meaningful
       // (not empty, not the same as familia name)
-      const hasValidSubPartida = subPartidaKey && 
-                                  subPartidaKey.trim() !== '' && 
-                                  subPartidaKey !== familiaKey;
-      
+      const hasValidSubPartida = subPartidaKey &&
+        subPartidaKey.trim() !== '' &&
+        subPartidaKey !== familiaKey;
+
       if (hasValidSubPartida) {
         familiaGroup.children.push({
-          id: item._id,
-          partida: subPartidaKey,
-          subPartida: subPartidaKey,
+          ...item, // Include all original partida properties
+          displayName: subPartidaKey,
           presupuestoOriginal: parseFloat(item.total || "0"),
           presupuestoAprobado: parseFloat(item.aprobado || "0"),
           pagado: parseFloat(item.pagado || "0"),
-          avance: parseFloat(item.aprobado || "0") > 0 
+          avance: parseFloat(item.aprobado || "0") > 0
             ? Math.round((parseFloat(item.pagado || "0") / parseFloat(item.aprobado || "0")) * 100)
             : 0,
           fechaInicio: "-",
           fechaFin: "-",
           expanded: false,
           level: 2,
-          children: []
+          children: [],
+          originalDoc: item // Store the original doc
         });
       }
 
@@ -149,15 +149,15 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
       partidaGroup.avance = partidaGroup.presupuestoAprobado > 0
         ? Math.round((partidaGroup.pagado / partidaGroup.presupuestoAprobado) * 100)
         : 0;
-      
-      partidaGroup.children.forEach((familia: BudgetItem) => {
+
+      partidaGroup.children.forEach((familia: PartidaRow) => {
         familia.avance = familia.presupuestoAprobado > 0
           ? Math.round((familia.pagado / familia.presupuestoAprobado) * 100)
           : 0;
-        
+
         // If familia has no children or only one child with same name, clear children array
-        if (familia.children.length === 0 || 
-            (familia.children.length === 1 && familia.children[0].partida === familia.partida)) {
+        if (familia.children.length === 0 ||
+          (familia.children.length === 1 && familia.children[0].displayName === familia.displayName)) {
           familia.children = [];
         }
       });
@@ -165,13 +165,13 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
       // Return without familias object
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { familias, ...budgetItem } = partidaGroup;
-      return budgetItem as BudgetItem;
+      return budgetItem as PartidaRow;
     });
 
     return result;
   }, [data]);
 
-  const [budgetData, setBudgetData] = useState<BudgetItem[]>([]);
+  const [budgetData, setBudgetData] = useState<PartidaRow[]>([]);
 
   // Update budgetData when hierarchicalData changes
   useMemo(() => {
@@ -179,10 +179,10 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
   }, [hierarchicalData]);
 
   // Function to toggle expanded state of an item
-  const toggleExpanded = (id: string) => {
-    const updateExpanded = (items: BudgetItem[]): BudgetItem[] => {
+  const toggleExpanded = (displayName: string, level: number) => {
+    const updateExpanded = (items: PartidaRow[]): PartidaRow[] => {
       return items.map(item => {
-        if (item.id === id) {
+        if (item.displayName === displayName && item.level === level) {
           return { ...item, expanded: !item.expanded };
         }
         if (item.children && item.children.length > 0) {
@@ -195,7 +195,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
   };
 
   // Function to flatten the hierarchical data for rendering
-  const flattenData = (items: BudgetItem[], result: BudgetItem[] = []): BudgetItem[] => {
+  const flattenData = (items: PartidaRow[], result: PartidaRow[] = []): PartidaRow[] => {
     items.forEach(item => {
       result.push(item);
       if (item.expanded && item.children && item.children.length > 0) {
@@ -244,7 +244,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
             const { difference, isPositive, isNegative, isZero, formattedDifference } = getBudgetDifference(item.presupuestoOriginal, item.presupuestoAprobado);
             return (
               <TableRow
-                key={item.id}
+                key={`${item.displayName}-${item.level}`}
                 className="border-b border-gray-100 hover:bg-gray-50"
               >
                 <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
@@ -256,7 +256,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toggleExpanded(item.id)}
+                        onClick={() => toggleExpanded(item.displayName, item.level)}
                         className="p-0 h-auto hover:bg-transparent"
                       >
                         {item.expanded ? (
@@ -269,7 +269,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
                       <div className="w-4" />
                     )}
                     <span className={`${item.level > 0 ? 'text-gray-600' : 'text-gray-900 font-medium'}`}>
-                      {item.partida}
+                      {item.displayName}
                     </span>
                   </div>
                 </TableCell>
@@ -307,14 +307,35 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
                   {item.avance}%
                 </TableCell>
                 <TableCell className="px-6 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
-                  {item.fechaInicio}
+                  {item.fechaInicio || '-'}
                 </TableCell>
                 <TableCell className="px-6 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
-                  {item.fechaFin}
+                  {item.fechaFin || '-'}
                 </TableCell>
                 <TableCell className="px-6 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
                   <Button variant="outline" size="sm">
-                    Ver pagos
+                    <DropdownMenuComponentPartida 
+                      partida={item.originalDoc || ({
+                        _id: item._id || `temp-${item.displayName}`,
+                        _creationTime: Date.now(),
+                        nombre: item.nombre || item.displayName,
+                        familia: item.familia || '',
+                        sub_partida: item.sub_partida || '',
+                        Cantidad: item.presupuestoOriginal.toString(),
+                        PrecioUnitario: '0',
+                        Subtotal: item.presupuestoOriginal.toString(),
+                        Iva: '0',
+                        total: item.presupuestoOriginal.toString(),
+                        aprobado: item.presupuestoAprobado.toString(),
+                        pagado: item.pagado.toString(),
+                        por_liquidar: (item.presupuestoAprobado - item.pagado).toString(),
+                        actual: item.pagado.toString(),
+                        fecha_carga: new Date().toLocaleDateString('es-MX'),
+                        archivo_origen: 'aggregated',
+                      } as Doc<"partidas">)}
+                      level={item.level}
+                      rowData={item}
+                    />
                   </Button>
                 </TableCell>
               </TableRow>

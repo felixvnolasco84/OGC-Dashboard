@@ -220,3 +220,37 @@ export const createPartida = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    id: v.id("partidas"),
+    nombre: v.string(),
+    familia: v.string(),
+    sub_partida: v.string(),
+    Cantidad: v.string(),
+    PrecioUnitario: v.string(),
+    Subtotal: v.string(),
+    Iva: v.string(),
+    total: v.string(),
+    aprobado: v.string(),
+    pagado: v.string(),
+    por_liquidar: v.string(),
+    actual: v.string(),
+    fecha_carga: v.string(),
+    archivo_origen: v.string(),
+    proyecto: v.optional(v.id("desarrollos")),
+  },
+  handler: async (ctx, args) => {
+
+    const { id, ...rest } = args;
+    const existingPartida = await ctx.db.get(id);
+
+    if (!existingPartida) {
+      throw new Error("Not found");
+    }
+
+    const updatedPartida = await ctx.db.patch(args.id, {
+      ...rest,
+    });
+    return updatedPartida;
+  },
+});

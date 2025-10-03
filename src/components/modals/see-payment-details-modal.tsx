@@ -66,7 +66,7 @@ export default function SeePaymentDetailsModal() {
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <div className="flex justify-end mt-4">
-                    <Button variant="default" onClick={() => {openManageCostModal.onOpen({cost: paymentContext.relatedCost, mode: "create"})}}>
+                    <Button variant="default" onClick={() => {openManageCostModal.onOpen({cost: paymentContext.relatedPartida, mode: "create"})}}>
                         <span>Nuevo Pago</span>
                         <Plus className="h-4 w-4" />    
                     </Button>
@@ -81,9 +81,9 @@ export default function SeePaymentDetailsModal() {
                 {/* Payment Summary */}
                 <Card className="mt-4 rounded-none border-none shadow-none">
                     <CardHeader>
-                        <CardTitle className="text-lg font-normal">{paymentContext?.relatedCost?.partida}</CardTitle>
+                        <CardTitle className="text-lg font-normal">{paymentContext?.relatedPartida?.nombre}</CardTitle>
                         <div className="grid grid-cols-2">
-                            <CardDescription className="text-muted-foreground">{(paymentContext?.relatedCost?.sub_partida)}</CardDescription>
+                            <CardDescription className="text-muted-foreground">{(paymentContext?.relatedPartida?.sub_partida)}</CardDescription>
                             <span className="text-muted-foreground text-right">Sub Partida</span>
                         </div>
                     </CardHeader>

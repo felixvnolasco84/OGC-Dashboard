@@ -2,7 +2,7 @@ import { Doc } from "../../convex/_generated/dataModel";
 import { create } from "zustand";
 
 type ManageCostContext = {
-    cost?: Doc<"costos">; // Optional - for editing existing cost
+    cost?: Doc<"partidas">; // Optional - for editing existing cost
     mode: "create" | "edit";
 };
 
@@ -74,14 +74,12 @@ export const useManageCostModal = create<ManageCostModalStore>((set) => ({
                 context,
                 formData: {
                     ...initialFormData,
-                    partida: context.cost.partida,
+                    partida: context.cost.nombre,
                     familia: context.cost.familia,
                     sub_partida: context.cost.sub_partida,
-                    monto: context.cost.monto,
-                    fecha_pago: context.cost.fecha,
-                    factura: context.cost.factura,
-                    administracion: context.cost.administracion,
-                    codigo_referencia: context.cost.codigo_referencia,
+                    monto: context.cost.Cantidad,
+                    fecha_pago: context.cost.fecha_carga,
+                    factura: context.cost.archivo_origen,
                 }
             });
         } else {
