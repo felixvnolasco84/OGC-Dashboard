@@ -9,30 +9,31 @@ import { Button } from "@/components/ui/button";
 import { Pencil, CreditCard, MoreHorizontal, MoreHorizontalIcon } from "lucide-react";
 import { useSeePaymentDetailsModal } from "@/hooks/see-payment-details";
 
-export function CustomPartidaDropdown({ costoId }: { costoId: Id<"costos"> }) {
+export function CustomPartidaDropdown({ partidaId }: { partidaId: Id<"partidas"> }) {
     const navigate = useNavigate();
     const seePaymentDetailsModal = useSeePaymentDetailsModal();
 
     // Fetch the full cost data using the ID
-    const costo = useQuery(api.costos.getById, { id: costoId });
+    const partida = useQuery(api.partida.getById, { id: partidaId });
 
     const handleViewDetails = () => {
-        navigate(`/dashboard/costos/${costoId}`);
+        navigate(`/dashboard/partidas/${partidaId}`);
     };
 
     const handleViewPayments = () => {
-        if (!costo) return;
+        if (!partida) return;
 
         // Create mock payments (same logic as DropdownMenuComponentCosto)
         const mockPayments: Doc<"pagos">[] = [
             {
+                partida_id: partidaId,
                 _id: "payment_1" as Id<"pagos">,
                 _creationTime: Date.now(),
-                administracion: costo.administracion,
-                partida: costo.partida,
-                familia: costo.familia,
-                sub_partida: costo.sub_partida,
-                monto: ((costo.monto_decimal || 0) * 0.6).toString(),
+                administracion: "",
+                partida: partida.nombre,
+                familia: partida.familia,
+                sub_partida: partida.sub_partida,
+                monto: ((Number(partida.total) || 0) * 0.6).toString(),
                 fecha: "15/01/2024",
                 tipo_pago: "Transferencia Bancaria",
                 tarjeta: "",
@@ -42,18 +43,19 @@ export function CustomPartidaDropdown({ costoId }: { costoId: Id<"costos"> }) {
                 logo_banco: "https://www.bbva.com/wp-content/uploads/2019/04/Logo-BBVA.jpg",
                 numero_cuenta: "1234567890123456",
                 numero_transferencia: "TRF20240115001",
-                codigo_referencia: costo.codigo_referencia,
-                factura: costo.factura,
+                codigo_referencia: partida._id,
+                factura: "",
                 informacion_facturacion_pago: "payment_1" as Id<"informacion_facturacion_pago">,
             },
             {
+                partida_id: partidaId,
                 _id: "payment_2" as Id<"pagos">,
                 _creationTime: Date.now(),
-                administracion: costo.administracion,
-                partida: costo.partida,
-                familia: costo.familia,
-                sub_partida: costo.sub_partida,
-                monto: ((costo.monto_decimal || 0) * 0.25).toString(),
+                administracion: "",
+                partida: partida.nombre,
+                familia: partida.familia,
+                sub_partida: partida.sub_partida,
+                monto: ((Number(partida.total) || 0) * 0.25).toString(),
                 fecha: "22/01/2024",
                 tipo_pago: "Tarjeta de Crédito",
                 tarjeta: "**** **** **** 4532",
@@ -63,18 +65,19 @@ export function CustomPartidaDropdown({ costoId }: { costoId: Id<"costos"> }) {
                 logo_banco: "https://upload.wikimedia.org/wikipedia/commons/c/c4/Banco_Santander_Logotipo_%282007-2018%29.svg",
                 numero_cuenta: "",
                 numero_transferencia: "",
-                codigo_referencia: "CC" + costo.codigo_referencia,
-                factura: costo.factura,
+                codigo_referencia: "CC" + partida._id,
+                factura: "",
                 informacion_facturacion_pago: "payment_2" as Id<"informacion_facturacion_pago">,
             },
             {
+                partida_id: partidaId,
                 _id: "payment_3" as Id<"pagos">,
                 _creationTime: Date.now(),
-                administracion: costo.administracion,
-                partida: costo.partida,
-                familia: costo.familia,
-                sub_partida: costo.sub_partida,
-                monto: ((costo.monto_decimal || 0) * 0.10).toString(),
+                administracion: "",
+                partida: partida.nombre,
+                familia: partida.familia,
+                sub_partida: partida.sub_partida,
+                monto: ((Number(partida.total) || 0) * 0.10).toString(),
                 fecha: "28/01/2024",
                 tipo_pago: "Efectivo",
                 tarjeta: "",
@@ -84,16 +87,16 @@ export function CustomPartidaDropdown({ costoId }: { costoId: Id<"costos"> }) {
                 logo_banco: "",
                 numero_cuenta: "",
                 numero_transferencia: "",
-                codigo_referencia: "EF" + costo.codigo_referencia,
-                factura: costo.factura,
+                codigo_referencia: "EF" + partida._id,
+                factura: "",
                 informacion_facturacion_pago: "payment_3" as Id<"informacion_facturacion_pago">,
             }
         ];
 
         const paymentContext = {
             payments: mockPayments,
-            relatedCost: costo,
-            totalAmount: costo.monto_decimal || 0,
+            relatedPartida: partida,
+            totalAmount: Number(partida.total) || 0,
         };
 
         seePaymentDetailsModal.onOpen(paymentContext);
@@ -143,14 +146,14 @@ export function CustomPartidaDropdown({ costoId }: { costoId: Id<"costos"> }) {
                     <DialogTitle>Editar Costo</DialogTitle>
                     <DialogDescription>Actualiza la información del costo</DialogDescription>
                 </DialogHeader>
-                {costo && (
+                {partida && (
                     <div className="p-4">
                         <p>Funcionalidad de edición pendiente de implementar</p>
                         <p className="text-sm text-gray-600 mt-2">
-                            <strong>ID:</strong> {costoId}<br />
-                            <strong>Partida:</strong> {costo.partida}<br />
-                            <strong>Familia:</strong> {costo.familia}<br />
-                            <strong>Sub-partida:</strong> {costo.sub_partida}
+                            <strong>ID:</strong> {partida._id}<br />
+                            <strong>Partida:</strong> {partida.nombre}<br />
+                            <strong>Familia:</strong> {partida.familia}<br />
+                            <strong>Sub-partida:</strong> {partida.sub_partida}
                         </p>
                     </div>
                 )}

@@ -15,14 +15,14 @@ import { Progress } from "@/components/ui/progress";
 import PaymentCard from "../Cards/PaymentCard";
 import { Button } from "../ui/button";
 import { Plus } from "lucide-react";
-import { useManageCostModal } from "@/hooks/manage-cost-modal";
+import { useManagePartidaModal } from "@/hooks/manage-partida-modal";
 
 
 export default function SeePaymentDetailsModal() {
     const paymentContext = useSeePaymentDetailsModal((state) => state.paymentContext);
     const isOpen = useSeePaymentDetailsModal((state) => state.isOpen);
     const onClose = useSeePaymentDetailsModal((state) => state.onClose);
-    const openManageCostModal = useManageCostModal();
+    const openManagePartidaModal = useManagePartidaModal();
 
     const formatCurrency = (amount: string | number) => {
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -66,9 +66,9 @@ export default function SeePaymentDetailsModal() {
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <div className="flex justify-end mt-4">
-                    <Button variant="default" onClick={() => {openManageCostModal.onOpen({cost: paymentContext.relatedPartida, mode: "create"})}}>
+                    <Button variant="default" onClick={() => { openManagePartidaModal.onOpen({ partida: paymentContext.relatedPartida, mode: "create" }) }}>
                         <span>Nuevo Pago</span>
-                        <Plus className="h-4 w-4" />    
+                        <Plus className="h-4 w-4" />
                     </Button>
                 </div>
                 <SheetHeader>

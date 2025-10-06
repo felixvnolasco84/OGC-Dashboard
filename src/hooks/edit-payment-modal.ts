@@ -8,7 +8,7 @@ type PaymentWithBilling = Omit<Doc<"pagos">, "informacion_facturacion_pago"> & {
 
 type EditPaymentContext = {
     payment: PaymentWithBilling;
-    relatedCost: Doc<"costos">;
+    relatedCost: Doc<"partidas">;
     totalAmount: number;
 };
 

@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 export const create = mutation({
     args: {
+        partida_id: v.id("partidas"),
         monto: v.string(),
         fecha: v.string(),
         tipo_pago: v.string(),
@@ -14,22 +15,23 @@ export const create = mutation({
         factura: v.string(),
         moneda: v.string(),
         tipo_cambio: v.string(),
-        costo_id: v.id("costos"),
+        proyecto: v.id("desarrollos"),
         informacion_facturacion_pago: v.optional(v.id("informacion_facturacion_pago")),
     },
     handler: async (ctx, args) => {
-        const existingCost = await ctx.db.get(args.costo_id);
+        const existingPartida = await ctx.db.get(args.partida_id);
 
-        if (!existingCost) {
+        if (!existingPartida) {
             throw new Error("Not found");
         }
 
         const createdPayment = await ctx.db.insert("pagos", {
             ...args,
-            administracion: existingCost.administracion,
-            partida: existingCost.partida,
-            sub_partida: existingCost.sub_partida,
-            familia: existingCost.familia,
+            partida_id: args.partida_id,
+            administracion: existingPartida.nombre,
+            partida: existingPartida.nombre,
+            sub_partida: existingPartida.sub_partida,
+            familia: existingPartida.familia,
             logo_banco: "",
         });
         return createdPayment;
@@ -50,6 +52,7 @@ export const update = mutation({
         factura: v.string(),
         moneda: v.string(),
         tipo_cambio: v.string(),
+        proyecto: v.optional(v.id("desarrollos")),
         informacion_facturacion_pago: v.optional(v.id("informacion_facturacion_pago")),
     },
     handler: async (ctx, args) => {

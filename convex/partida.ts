@@ -1,3 +1,4 @@
+import { Id } from "./_generated/dataModel";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -252,5 +253,138 @@ export const update = mutation({
       ...rest,
     });
     return updatedPartida;
+  },
+});
+
+
+export const getByAdministracion = query({
+  args: {
+    proyecto: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    const tasks = await ctx.db
+      .query("partidas")
+      .filter((q) => q.eq(q.field("proyecto"), args.proyecto))
+      .order("desc")
+      .take(100);
+    return tasks;
+  },
+});
+
+
+export const getByDiferentFilters = query({
+  args: {
+    proyecto: v.id("desarrollos"),
+    partida: v.optional(v.string()),
+    sub_partida: v.optional(v.string()),
+    family: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let queryBuilder = ctx.db
+      .query("partidas")
+      .filter((q) => q.eq(q.field("proyecto"), args.proyecto));
+
+    if (args.partida) {
+      queryBuilder = queryBuilder.filter((q) => q.eq(q.field("nombre"), args.partida));
+    }
+
+    if (args.family) {
+      queryBuilder = queryBuilder.filter((q) => q.eq(q.field("familia"), args.family));
+    }
+
+    if (args.sub_partida) {
+      queryBuilder = queryBuilder.filter((q) => q.eq(q.field("sub_partida"), args.sub_partida));
+    }
+
+    const tasks = await queryBuilder
+      .order("desc")
+      .take(100);
+
+    // Group data by partida -> familia -> sub_partida
+    const groupedData: {
+      [partida: string]: {
+        [familia: string]: Array<{
+          _id: Id<"partidas">;
+          description: string;
+          specification: string;
+        }>
+      }
+    } = {};
+
+    tasks.forEach(task => {
+      if (!groupedData[task.nombre]) {
+        groupedData[task.nombre] = {};
+      }
+      if (!groupedData[task.nombre][task.familia]) {
+        groupedData[task.nombre][task.familia] = [];
+      }
+      groupedData[task.nombre][task.familia].push({
+        _id: task._id, // Keep the original string ID
+        description: task.sub_partida,
+        specification: `${task.Cantidad} - ${task.PrecioUnitario}`
+      });
+    });
+
+    // Transform to expected output format
+    const result = Object.entries(groupedData).map(([partidaName, familias], partidaIndex) => ({
+      id: partidaIndex + 1,
+      name: partidaName,
+      familias: Object.entries(familias).map(([familiaName, subpartidas], familiaIndex) => ({
+        id: familiaIndex + 1,
+        name: familiaName,
+        subpartidas: subpartidas
+      }))
+    }));
+
+    return result;
+  },
+});
+
+export const getBySubPartida = query({
+  args: {
+    sub_partida: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const tasks = await ctx.db
+      .query("partidas")
+      .filter((q) => q.eq(q.field("sub_partida"), args.sub_partida))
+      .order("desc")
+      .take(100);
+    return tasks;
+  },
+});
+
+
+export const getById = query({
+  args: {
+    id: v.id("partidas"),
+  },
+  handler: async (ctx, args) => {
+
+    const partida = await ctx.db.get(args.id);
+
+    if (!partida) {
+      return null;
+    }
+
+    const pagos = await ctx.db
+      .query("pagos")
+      .filter((q) => q.eq(q.field("partida_id"), args.id))
+      .collect();
+    // Get informacion_facturacion_pago for each payment
+    const pagosWithFacturacion = await Promise.all(
+      pagos.map(async (pago) => {
+        if (pago.informacion_facturacion_pago) {
+          const facturacion = await ctx.db.get(pago.informacion_facturacion_pago);
+          return { ...pago, informacion_facturacion_pago: facturacion };
+        }
+        return pago;
+      })
+    );
+
+    return {
+      ...partida,
+      pagos: pagosWithFacturacion
+    };
   },
 });

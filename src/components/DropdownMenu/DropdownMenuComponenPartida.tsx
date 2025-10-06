@@ -89,6 +89,7 @@ export default function DropdownMenuComponentPartida({
 
     const mockPayments: Doc<"pagos">[] = [
       {
+        partida_id: partida._id,
         _id: "payment_1" as Id<"pagos">,
         _creationTime: Date.now(),
         administracion: partida.nombre,
@@ -110,6 +111,7 @@ export default function DropdownMenuComponentPartida({
         informacion_facturacion_pago: "payment_1" as Id<"informacion_facturacion_pago">,
       },
       {
+        partida_id: partida._id,
         _id: "payment_2" as Id<"pagos">,
         _creationTime: Date.now(),
         administracion: partida.nombre,
@@ -131,6 +133,7 @@ export default function DropdownMenuComponentPartida({
         informacion_facturacion_pago: "payment_2" as Id<"informacion_facturacion_pago">,
       },
       {
+        partida_id: partida._id,
         _id: "payment_3" as Id<"pagos">,
         _creationTime: Date.now(),
         administracion: partida.nombre,

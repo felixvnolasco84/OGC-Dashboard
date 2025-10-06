@@ -29,17 +29,14 @@ export default function CostoDetails() {
 
     const params = useParams();
     const id = params.id;
-    const costo = useQuery(api.costos.getById, { id: id as Id<"costos"> });
-
+    const partida = useQuery(api.partida.getById, { id: id as Id<"partidas"> });
 
     const deletePayment = useMutation(api.pagos.deletePayment);
-
-    console.log(costo);
 
     const addPaymentModal = useAddPaymentModal();
     const editPaymentModal = useEditPaymentModal();
 
-    if (!costo) {
+    if (!partida) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
@@ -69,11 +66,11 @@ export default function CostoDetails() {
         });
     };
 
-    const totalPagado = costo.pagos?.reduce((sum, pago) => {
+    const totalPagado = partida.pagos?.reduce((sum, pago) => {
         return sum + parseFloat(pago.monto || '0');
     }, 0) || 0;
 
-    const montoTotal = parseFloat(costo.monto_decimal?.toString() || '0');
+    const montoTotal = parseFloat(partida.total?.toString() || '0');
     const saldoPendiente = montoTotal - totalPagado;
     const porcentajePagado = montoTotal > 0 ? (totalPagado / montoTotal) * 100 : 0;
 
@@ -81,7 +78,7 @@ export default function CostoDetails() {
 
         editPaymentModal.onOpen({
             payment: pago,
-            relatedCost: costo,
+            relatedCost: partida,
             totalAmount: montoTotal
         });
     };
@@ -101,7 +98,7 @@ export default function CostoDetails() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="text-center">
                             <p className="text-sm font-medium text-gray-500">Monto Total</p>
-                            <p className="text-2xl font-bold text-gray-900">{formatCurrency(costo.monto_decimal?.toString() || '0')}</p>
+                            <p className="text-2xl font-bold text-gray-900">{formatCurrency(partida.total?.toString() || '0')}</p>
                         </div>
                         <div className="text-center">
                             <p className="text-sm font-medium text-gray-500">Total Pagado</p>
@@ -140,44 +137,44 @@ export default function CostoDetails() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Administración</label>
-                                    <p className="mt-1 text-sm text-gray-900">{costo.administracion}</p>
+                                    <p className="mt-1 text-sm text-gray-900">{partida._id}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Partida</label>
-                                    <p className="mt-1 text-sm text-gray-900">{costo.partida}</p>
+                                    <p className="mt-1 text-sm text-gray-900">{partida.nombre}</p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Familia</label>
-                                    <p className="mt-1 text-sm text-gray-900">{costo.familia}</p>
+                                    <p className="mt-1 text-sm text-gray-900">{partida.familia}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Sub Partida</label>
-                                    <p className="mt-1 text-sm text-gray-900">{costo.sub_partida}</p>
+                                    <p className="mt-1 text-sm text-gray-900">{partida.sub_partida}</p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Fecha</label>
-                                    <p className="mt-1 text-sm text-gray-900">{formatDate(costo.fecha)}</p>
+                                    <p className="mt-1 text-sm text-gray-900">{formatDate(partida.fecha_carga)}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Monto</label>
-                                    <p className="mt-1 text-sm font-bold text-gray-900">{formatCurrency(costo.monto_decimal?.toString() || '0')}</p>
+                                    <p className="mt-1 text-sm font-bold text-gray-900">{formatCurrency(partida.total?.toString() || '0')}</p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Código de Referencia</label>
-                                    <p className="mt-1 text-sm text-gray-900">{costo.codigo_referencia}</p>
+                                    <p className="mt-1 text-sm text-gray-900">{partida._id}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Factura</label>
-                                    <p className="mt-1 text-sm text-gray-900">{costo.factura}</p>
+                                    {/* <p className="mt-1 text-sm text-gray-900">{partida.archivo_origen}</p> */}
                                 </div>
                             </div>
                         </div>
@@ -188,20 +185,20 @@ export default function CostoDetails() {
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-semibold text-gray-900">Pagos Asociados</h2>
                             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                                {costo.pagos?.length || 0} pago(s)
+                                {partida.pagos?.length || 0} pago(s)
                             </span>
                         </div>
 
                         <Button
-                            onClick={() => addPaymentModal.onOpen({ relatedCost: costo, totalAmount: costo.monto_decimal || 0, remainingAmount: (costo.monto_decimal || 0) - totalPagado })}
+                            onClick={() => addPaymentModal.onOpen({ relatedCost: partida, totalAmount: parseFloat(partida.total || '0'), remainingAmount: (parseFloat(partida.total || '0') - totalPagado) })}
                             className="m-4"
                         >
                             Agregar Pago
                         </Button>
 
-                        {costo.pagos && costo.pagos.length > 0 ? (
+                        {partida.pagos && partida.pagos.length > 0 ? (
                             <div className="space-y-4 max-h-96 overflow-y-auto">
-                                {costo.pagos.map((pago, index) => {
+                                {partida.pagos.map((pago, index) => {
                                     const porcentajePago = montoTotal > 0 ? (parseFloat(pago.monto) / montoTotal) * 100 : 0;
 
                                     return (

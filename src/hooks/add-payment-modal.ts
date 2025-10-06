@@ -2,7 +2,7 @@ import { Doc, Id } from "../../convex/_generated/dataModel";
 import { create } from "zustand";
 
 type AddPaymentContext = {
-    relatedCost: Doc<"costos">;
+    relatedCost: Doc<"partidas">;
     totalAmount: number;
     remainingAmount?: number;
 };

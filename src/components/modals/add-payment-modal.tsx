@@ -45,11 +45,15 @@ export default function AddPaymentModal() {
 
         setIsSubmitting(true);
         try {
+            if (!paymentContext.relatedCost.proyecto) {
+                throw new Error("Proyecto no encontrado");
+            }
             await createPayment({
                 ...formData,
                 monto: formData.monto,
                 tipo_cambio: formData.tipo_cambio,
-                costo_id: paymentContext.relatedCost._id,
+                partida_id: paymentContext.relatedCost._id,
+                proyecto: paymentContext.relatedCost.proyecto,
             });
             onClose();
         } catch (error) {
@@ -83,8 +87,8 @@ export default function AddPaymentModal() {
                 {/* Cost Summary */}
                 <Card className="mt-4">
                     <CardHeader>
-                        <CardTitle className="text-lg">Información del Costo</CardTitle>
-                        <CardDescription>Detalles del costo al que se aplicará el pago</CardDescription>
+                        <CardTitle className="text-lg">Información de la Partida</CardTitle>
+                        <CardDescription>Detalles de la partida al que se aplicará el pago</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -103,11 +107,11 @@ export default function AddPaymentModal() {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <span className="font-medium">Administración:</span>
-                                <p className="text-muted-foreground">{relatedCost.administracion}</p>
+                                <p className="text-muted-foreground">{relatedCost.proyecto}</p>
                             </div>
                             <div>
                                 <span className="font-medium">Partida:</span>
-                                <p className="text-muted-foreground">{relatedCost.partida}</p>
+                                <p className="text-muted-foreground">{relatedCost.nombre}</p>
                             </div>
                             <div>
                                 <span className="font-medium">Familia:</span>

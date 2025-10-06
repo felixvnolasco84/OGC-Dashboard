@@ -11,18 +11,18 @@ interface GanttData {
   amount: number;
   category: string;
   color: string;
-  items: Doc<"costos">[];
+  items: Doc<"partidas">[];
 }
 
 interface GanttChartProps {
-  data: Doc<"costos">[];
+  data: Doc<"partidas">[];
 }
 
 interface GroupedData {
   partida: string;
   sub_partida: string;
   familia: string;
-  items: (Doc<"costos"> & { parsedDate: Date; numericAmount: number })[];
+  items: (Doc<"partidas"> & { parsedDate: Date; numericAmount: number })[];
   totalAmount: number;
 }
 
@@ -51,16 +51,16 @@ export default function GanttChart({ data }: GanttChartProps) {
     // Parse dates and convert amounts
     const processedData = data.map(item => ({
       ...item,
-      parsedDate: new Date(item.fecha.split('/').reverse().join('-')),
-      numericAmount: parseFloat(item.monto.replace(/[^0-9.-]/g, ''))
+      parsedDate: new Date(item.fecha_carga.split('/').reverse().join('-')),
+      numericAmount: parseFloat(item.PrecioUnitario.replace(/[^0-9.-]/g, ''))
     })).filter(item => !isNaN(item.parsedDate.getTime()) && !isNaN(item.numericAmount));
 
     // Group by partida and sub_partida
     const grouped = processedData.reduce((acc, item) => {
-      const key = `${item.partida}-${item.sub_partida}`;
+      const key = `${item.nombre}-${item.sub_partida}`;
       if (!acc[key]) {
         acc[key] = {
-          partida: item.partida,
+          partida: item.nombre,
           sub_partida: item.sub_partida,
           familia: item.familia,
           items: [],
@@ -77,7 +77,7 @@ export default function GanttChart({ data }: GanttChartProps) {
       const dates = group.items.map(item => item.parsedDate.getTime());
       const startDate = new Date(Math.min(...dates));
       const endDate = new Date(Math.max(...dates));
-      
+
       return {
         id: key,
         name: group.sub_partida,
@@ -97,7 +97,7 @@ export default function GanttChart({ data }: GanttChartProps) {
     const allDates = processedData.map(item => item.parsedDate.getTime());
     const minDate = new Date(Math.min(...allDates));
     const maxDate = new Date(Math.max(...allDates));
-    
+
     // Add padding to the range
     const startPadding = new Date(minDate);
     startPadding.setDate(startPadding.getDate() - 7);
@@ -121,8 +121,8 @@ export default function GanttChart({ data }: GanttChartProps) {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-MX', { 
-      day: '2-digit', 
+    return date.toLocaleDateString('es-MX', {
+      day: '2-digit',
       month: 'short',
       year: 'numeric'
     });
@@ -153,7 +153,7 @@ export default function GanttChart({ data }: GanttChartProps) {
     const markers = [];
     const current = new Date(timeRange.start);
     current.setDate(1); // Start from first day of month
-    
+
     while (current <= timeRange.end) {
       const position = getBarLeft(current);
       markers.push({
@@ -181,7 +181,7 @@ export default function GanttChart({ data }: GanttChartProps) {
           Visualización temporal de costos por categoría y subcategoría
         </p>
       </div>
-      
+
       <div className="p-4">
         {/* Legend */}
         <div className="mb-6">
@@ -189,7 +189,7 @@ export default function GanttChart({ data }: GanttChartProps) {
           <div className="flex flex-wrap gap-3">
             {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
               <div key={category} className="flex items-center gap-2">
-                <div 
+                <div
                   className="w-3 h-3 rounded"
                   style={{ backgroundColor: color }}
                 />
@@ -229,7 +229,7 @@ export default function GanttChart({ data }: GanttChartProps) {
                     {formatCurrency(item.amount)}
                   </div>
                 </div>
-                
+
                 {/* Timeline container */}
                 <div className="relative h-10 bg-gray-50 rounded">
                   {/* Gantt bar */}

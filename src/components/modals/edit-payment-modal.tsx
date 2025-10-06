@@ -100,11 +100,11 @@ export default function EditPaymentModal() {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <span className="font-medium">Administración:</span>
-                                <p className="text-muted-foreground">{relatedCost.administracion}</p>
+                                {/* <p className="text-muted-foreground">{relatedCost.administracion}</p> */}
                             </div>
                             <div>
                                 <span className="font-medium">Partida:</span>
-                                <p className="text-muted-foreground">{relatedCost.partida}</p>
+                                <p className="text-muted-foreground">{relatedCost.nombre}</p>
                             </div>
                             <div>
                                 <span className="font-medium">Familia:</span>

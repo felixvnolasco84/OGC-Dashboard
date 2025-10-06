@@ -74,6 +74,18 @@ export default function HomePage() {
     const [selectedAnalisis, setSelectedAnalisis] = useState("Por partida");
     const [selectedPeriodo, setSelectedPeriodo] = useState("Mensual");
 
+
+
+    async function fetchPayments() {
+        const payments = await fetch("http://localhost:3000/payments").then(res => res.json());
+
+        if (payments.success) {
+            console.log("payments", payments)
+        }
+    }
+
+    fetchPayments() 
+
     // Fetch projects
     const projects = useQuery(api.desarrollos.getAll);
 
