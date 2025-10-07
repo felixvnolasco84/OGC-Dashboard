@@ -135,7 +135,6 @@ export default function AddProjectModal() {
 
         const data = await response.json();
 
-        console.log(data);
         return data;
     };
 
@@ -151,8 +150,6 @@ export default function AddProjectModal() {
 
             const response = await handleExcelUpload(formData.excel);
 
-            console.log('Server response:', response);
-
             if (!response.success || !response.data || response.data.length === 0) {
                 console.error('No data received from server');
                 return;
@@ -165,7 +162,6 @@ export default function AddProjectModal() {
                 image: "",
             });
 
-            console.log('Project created:', project);
 
             // Upload all partidas from the Excel data
             const uploadPromises = response.data.map((record: Record<string, string>) =>

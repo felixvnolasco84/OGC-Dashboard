@@ -4,6 +4,9 @@ import { v } from "convex/values";
 export const create = mutation({
     args: {
         partida_id: v.id("partidas"),
+        partida: v.string(),
+        familia: v.string(),
+        sub_partida: v.string(),
         monto: v.string(),
         fecha: v.string(),
         tipo_pago: v.string(),

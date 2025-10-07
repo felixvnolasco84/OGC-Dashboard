@@ -5,6 +5,7 @@ import SeePaymentDetailsModal from "../modals/see-payment-details-modal";
 import AddPaymentModal from "../modals/add-payment-modal";
 import EditPaymentModal from "../modals/edit-payment-modal";
 import AddProjectModal from "../modals/add-project-modal";
+import AggregatedDetailsModal from "../modals/aggregated-details-modal";
 
 // import { EditCostModal } from "@/components/modals/edit-costos-modal";
 
@@ -24,6 +25,7 @@ export const ModalProvider = () => {
     <SeePaymentDetailsModal />
     <AddPaymentModal />
     <EditPaymentModal />
-    <AddProjectModal />         
+    <AddProjectModal />
+    <AggregatedDetailsModal />
   </>;
 };

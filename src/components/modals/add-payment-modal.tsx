@@ -7,15 +7,15 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet"
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 
 export default function AddPaymentModal() {
     const paymentContext = useAddPaymentModal((state) => state.paymentContext);
@@ -23,9 +23,66 @@ export default function AddPaymentModal() {
     const onClose = useAddPaymentModal((state) => state.onClose);
     const formData = useAddPaymentModal((state) => state.formData);
     const updateFormData = useAddPaymentModal((state) => state.updateFormData);
-    
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const createPayment = useMutation(api.pagos.create);
+
+    // Fetch available familias if needed
+    const availableFamilias = useQuery(
+        api.partida.getDistinctFamiliasByPartida,
+        paymentContext?.relatedCost && 
+        !paymentContext.relatedCost.familia && 
+        paymentContext.relatedCost.proyecto
+            ? {
+                partidaNombre: paymentContext.relatedCost.nombre,
+                projectId: paymentContext.relatedCost.proyecto
+            }
+            : "skip"
+    );
+
+    // Fetch available sub_partidas if needed
+    const availableSubPartidas = useQuery(
+        api.partida.getDistinctSubPartidasByFamilia,
+        paymentContext?.relatedCost && 
+        !paymentContext.relatedCost.sub_partida && 
+        (paymentContext.relatedCost.familia || formData.familia) &&
+        paymentContext.relatedCost.proyecto
+            ? {
+                partidaNombre: paymentContext.relatedCost.nombre,
+                familia: formData.familia || paymentContext.relatedCost.familia || "",
+                projectId: paymentContext.relatedCost.proyecto
+            }
+            : "skip"
+    );
+
+    // Debug logging
+    useEffect(() => {
+        if (paymentContext?.relatedCost) {
+            console.log("Payment Context:", {
+                nombre: paymentContext.relatedCost.nombre,
+                familia: paymentContext.relatedCost.familia,
+                sub_partida: paymentContext.relatedCost.sub_partida,
+                proyecto: paymentContext.relatedCost.proyecto,
+                needsFamilia: !paymentContext.relatedCost.familia,
+                needsSubPartida: !paymentContext.relatedCost.sub_partida
+            });
+            console.log("Query should run for familias:", !paymentContext.relatedCost.familia && !!paymentContext.relatedCost.proyecto);
+            console.log("Query should run for subpartidas:", !paymentContext.relatedCost.sub_partida && !!(paymentContext.relatedCost.familia || formData.familia) && !!paymentContext.relatedCost.proyecto);
+        }
+        console.log("Available Familias:", availableFamilias);
+        console.log("Available SubPartidas:", availableSubPartidas);
+        console.log("Form Data familia:", formData.familia);
+    }, [paymentContext, availableFamilias, availableSubPartidas, formData.familia]);
+
+    // Pre-populate familia and sub_partida from relatedCost when modal opens
+    useEffect(() => {
+        if (paymentContext?.relatedCost) {
+            updateFormData({
+                familia: paymentContext.relatedCost.familia || "",
+                sub_partida: paymentContext.relatedCost.sub_partida || ""
+            });
+        }
+    }, [paymentContext, updateFormData]);
 
     const formatCurrency = (amount: string | number) => {
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -53,6 +110,9 @@ export default function AddPaymentModal() {
                 monto: formData.monto,
                 tipo_cambio: formData.tipo_cambio,
                 partida_id: paymentContext.relatedCost._id,
+                partida: paymentContext.relatedCost.nombre,
+                sub_partida: formData.sub_partida || paymentContext.relatedCost.sub_partida,
+                familia: formData.familia || paymentContext.relatedCost.familia,
                 proyecto: paymentContext.relatedCost.proyecto,
             });
             onClose();
@@ -63,11 +123,21 @@ export default function AddPaymentModal() {
         }
     };
 
+    // Determine what fields need to be filled based on context
+    const needsFamilia = !paymentContext?.relatedCost?.familia;
+    const needsSubPartida = !paymentContext?.relatedCost?.sub_partida;
+
     const isFormValid = () => {
-        return formData.monto && 
-               parseFloat(formData.monto) > 0 && 
-               formData.fecha && 
-               formData.tipo_pago;
+        const basicValid = formData.monto &&
+            parseFloat(formData.monto) > 0 &&
+            formData.fecha &&
+            formData.tipo_pago;
+        
+        // Check if required contextual fields are filled
+        const familiaValid = !needsFamilia || (formData.familia && formData.familia.trim() !== "");
+        const subPartidaValid = !needsSubPartida || (formData.sub_partida && formData.sub_partida.trim() !== "");
+        
+        return basicValid && familiaValid && subPartidaValid;
     };
 
     if (!paymentContext) return null;
@@ -80,7 +150,7 @@ export default function AddPaymentModal() {
                 <SheetHeader>
                     <SheetTitle>Agregar Nuevo Pago</SheetTitle>
                     <SheetDescription>
-                        Registra un nuevo pago para este costo
+                        Registra un nuevo pago para esta partida
                     </SheetDescription>
                 </SheetHeader>
 
@@ -207,6 +277,82 @@ export default function AddPaymentModal() {
                         </CardContent>
                     </Card>
 
+                    {/* Contextual Classification Fields */}
+                    {(needsFamilia || needsSubPartida) && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Clasificación</CardTitle>
+                                <CardDescription>
+                                    Completa la información de clasificación requerida
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    {needsFamilia && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="familia">Familia *</Label>
+                                            <Select 
+                                                value={formData.familia} 
+                                                onValueChange={(value) => handleInputChange('familia', value)}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecciona una familia" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {availableFamilias && availableFamilias.length > 0 ? (
+                                                        availableFamilias.map((familia) => (
+                                                            <SelectItem key={familia} value={familia}>
+                                                                {familia}
+                                                            </SelectItem>
+                                                        ))
+                                                    ) : (
+                                                        <div className="px-2 py-6 text-sm text-muted-foreground text-center">
+                                                            No hay familias disponibles
+                                                        </div>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">
+                                                Selecciona la familia para esta partida
+                                            </p>
+                                        </div>
+                                    )}
+                                    {needsSubPartida && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="sub_partida">Sub-partida *</Label>
+                                            <Select 
+                                                value={formData.sub_partida} 
+                                                onValueChange={(value) => handleInputChange('sub_partida', value)}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecciona una sub-partida" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {availableSubPartidas && availableSubPartidas.length > 0 ? (
+                                                        availableSubPartidas.map((subPartida) => (
+                                                            <SelectItem key={subPartida} value={subPartida}>
+                                                                {subPartida}
+                                                            </SelectItem>
+                                                        ))
+                                                    ) : (
+                                                        <div className="px-2 py-6 text-sm text-muted-foreground text-center">
+                                                            {needsFamilia && !formData.familia 
+                                                                ? "Primero selecciona una familia"
+                                                                : "No hay sub-partidas disponibles"}
+                                                        </div>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">
+                                                Selecciona la sub-partida {needsFamilia ? "para esta familia" : "para esta partida"}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {/* Bank and Payment Details */}
                     {formData.tipo_pago !== 'efectivo' && (
                         <Card>
@@ -297,8 +443,8 @@ export default function AddPaymentModal() {
                         <Button type="button" variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>
-                        <Button 
-                            type="submit" 
+                        <Button
+                            type="submit"
                             disabled={!isFormValid() || isSubmitting}
                         >
                             {isSubmitting ? 'Guardando...' : 'Guardar Pago'}

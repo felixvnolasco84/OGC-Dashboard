@@ -31,7 +31,6 @@ type RequestFormProps = {
 
 export default function EditPartidaForm({ partida, onClose }: RequestFormProps) {
 
-  console.log(partida);
   
   const update = useMutation(api.partida.update);
 

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { useSeePaymentDetailsModal } from "@/hooks/see-payment-details";
+import { useAggregatedDetailsModal } from "@/hooks/aggregated-details-modal";
 import { useNavigate } from "react-router-dom";
 import EditPartidaForm from "../Forms/EditPartidaForm";
 
@@ -27,6 +28,7 @@ export default function DropdownMenuComponentPartida({
   rowData,
 }: DropdownMenuComponentPartidaProps) {
   const seePaymentDetailsModal = useSeePaymentDetailsModal();
+  const aggregatedDetailsModal = useAggregatedDetailsModal();
 
   const navigate = useNavigate();
 
@@ -68,16 +70,16 @@ export default function DropdownMenuComponentPartida({
       // Only navigate to detail page for actual partidas (level 2) with real IDs
       navigate(`/dashboard/partidas/${partida._id}`);
     } else {
-      // For aggregated rows, show summary in console (could be a modal in future)
-      console.log(`Viewing ${labels.title} summary:`, {
+      // For aggregated rows, show summary modal
+      aggregatedDetailsModal.onOpen({
         name: rowData.displayName,
         level: level,
+        levelLabel: labels.title,
         presupuestoOriginal: rowData.presupuestoOriginal,
         presupuestoAprobado: rowData.presupuestoAprobado,
         pagado: rowData.pagado,
         avance: rowData.avance,
       });
-      // TODO: Could open a summary modal here for aggregated data
     }
   };
 
@@ -216,7 +218,7 @@ export default function DropdownMenuComponentPartida({
                   onClick={handleViewPayments}
                 >
                   <CreditCard className="h-4 w-4" />
-                  Ver pagos del {labels.title.toLowerCase()}
+                  Ver pagos de {labels.title.toLowerCase()}
                 </Button>
                 <Button
                   variant="ghost"

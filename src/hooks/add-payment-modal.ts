@@ -19,6 +19,8 @@ type PaymentFormData = {
     factura: string;
     moneda: string;
     tipo_cambio: string;
+    familia: string;
+    sub_partida: string;
     informacion_facturacion_pago?: Id<"informacion_facturacion_pago">;
 };
 
@@ -45,6 +47,8 @@ const initialFormData: PaymentFormData = {
     tarjeta: "",
     numero_cuenta: "",
     numero_transferencia: "",
+    familia: "",
+    sub_partida: "",
 };
 
 export const useAddPaymentModal = create<AddPaymentModalStore>((set) => ({

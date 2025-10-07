@@ -388,3 +388,47 @@ export const getById = query({
     };
   },
 });
+
+// Get distinct familias for a given partida name and project
+export const getDistinctFamiliasByPartida = query({
+  args: {
+    partidaNombre: v.string(),
+    projectId: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    const partidas = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+      .filter((q) => q.eq(q.field("nombre"), args.partidaNombre))
+      .collect();
+    
+    // Get unique familias
+    const familias = [...new Set(partidas.map(p => p.familia).filter(f => f && f.trim() !== ""))];
+    return familias.sort();
+  },
+});
+
+// Get distinct sub_partidas for a given partida and familia
+export const getDistinctSubPartidasByFamilia = query({
+  args: {
+    partidaNombre: v.string(),
+    familia: v.string(),
+    projectId: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    const partidas = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("nombre"), args.partidaNombre),
+          q.eq(q.field("familia"), args.familia)
+        )
+      )
+      .collect();
+    
+    // Get unique sub_partidas
+    const subPartidas = [...new Set(partidas.map(p => p.sub_partida).filter(sp => sp && sp.trim() !== ""))];
+    return subPartidas.sort();
+  },
+});

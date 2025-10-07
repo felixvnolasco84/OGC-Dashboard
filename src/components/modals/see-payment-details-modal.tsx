@@ -15,14 +15,14 @@ import { Progress } from "@/components/ui/progress";
 import PaymentCard from "../Cards/PaymentCard";
 import { Button } from "../ui/button";
 import { Plus } from "lucide-react";
-import { useManagePartidaModal } from "@/hooks/manage-partida-modal";
+import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 
 
 export default function SeePaymentDetailsModal() {
     const paymentContext = useSeePaymentDetailsModal((state) => state.paymentContext);
     const isOpen = useSeePaymentDetailsModal((state) => state.isOpen);
     const onClose = useSeePaymentDetailsModal((state) => state.onClose);
-    const openManagePartidaModal = useManagePartidaModal();
+    const addPaymentModal = useAddPaymentModal();
 
     const formatCurrency = (amount: string | number) => {
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -62,11 +62,21 @@ export default function SeePaymentDetailsModal() {
     const totalPaidPercentage = getTotalPaidPercentage();
     const remainingAmount = getRemainingAmount();
 
+    const handleOpenAddPayment = () => {
+        if (paymentContext?.relatedPartida) {
+            addPaymentModal.onOpen({
+                relatedCost: paymentContext.relatedPartida,
+                totalAmount: totalAmount,
+                remainingAmount: remainingAmount
+            });
+        }
+    };
+
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <div className="flex justify-end mt-4">
-                    <Button variant="default" onClick={() => { openManagePartidaModal.onOpen({ partida: paymentContext.relatedPartida, mode: "create" }) }}>
+                    <Button variant="default" onClick={handleOpenAddPayment}>
                         <span>Nuevo Pago</span>
                         <Plus className="h-4 w-4" />
                     </Button>

@@ -64,10 +64,10 @@ export default function PresupuestoPage() {
 
   // Fetch projects
   const projects = useQuery(api.desarrollos.getAll);
-  
+
   // State for selected project (default to first project when available)
   const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
-  
+
   // Set default project when projects load
   useEffect(() => {
     if (projects && projects.length > 0 && !selectedProjectId) {
@@ -102,7 +102,7 @@ export default function PresupuestoPage() {
   }) || [];
 
   // Calculate percentage differences
-  const presupuestoReduction = metrics.presupuestoOriginal > 0 
+  const presupuestoReduction = metrics.presupuestoOriginal > 0
     ? Math.round(((metrics.presupuestoAprobado - metrics.presupuestoOriginal) / metrics.presupuestoOriginal) * 100)
     : 0;
   const avancePercentage = metrics.presupuestoAprobado > 0
@@ -133,8 +133,8 @@ export default function PresupuestoPage() {
             </div>
             <div className="flex flex-col space-y-1 text-left min-w-[250px]">
               <span className="text-xs text-gray-500">Proyecto</span>
-              <Select 
-                value={selectedProjectId} 
+              <Select
+                value={selectedProjectId}
                 onValueChange={(value) => setSelectedProjectId(value as Id<"desarrollos">)}
               >
                 <SelectTrigger className="border border-gray-200 shadow-sm h-9 font-normal text-gray-900">

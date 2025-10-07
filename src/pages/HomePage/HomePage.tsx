@@ -2,6 +2,7 @@ import { useState } from "react";
 import React from "react";
 import { api } from "../../../convex/_generated/api";
 import {
+    // useMutation,    
     useQuery
 } from "convex/react";
 import { Doc } from "convex/_generated/dataModel";
@@ -69,6 +70,7 @@ const formatNumber = (amount: number) => {
     return new Intl.NumberFormat('es-MX').format(amount);
 };
 
+
 export default function HomePage() {
     const [selectedProject, setSelectedProject] = useState<Doc<"desarrollos"> | undefined>(undefined)
     const [selectedAnalisis, setSelectedAnalisis] = useState("Por partida");
@@ -76,27 +78,16 @@ export default function HomePage() {
 
 
 
-    async function fetchPayments() {
-        const payments = await fetch("http://localhost:3000/payments").then(res => res.json());
-
-        if (payments.success) {
-            console.log("payments", payments)
-        }
-    }
-
-    fetchPayments() 
+    // const createPayment = useMutation(api.pagos.create);
 
     // Fetch projects
     const projects = useQuery(api.desarrollos.getAll);
 
 
-    console.log(projects)
 
 
     // Fetch metrics
     const metrics = useQuery(api.partida.getProjectMetrics, projects ? { projectId: projects[0]._id } : "skip");
-
-    console.log(metrics)
 
     // Fetch all partidas for the table (table shows individual records)
     const allPartidas = useQuery(
@@ -183,9 +174,9 @@ export default function HomePage() {
         </div>;
     }
 
-    console.log('Metrics:', metrics);
-    console.log('All Partidas:', allPartidas);
-    console.log('Chart Data:', chartData);
+    // console.log('Metrics:', metrics);
+    // console.log('All Partidas:', allPartidas);
+    // console.log('Chart Data:', chartData);
 
     return (
         <div className="bg-white px-12 py-6">

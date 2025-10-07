@@ -143,8 +143,8 @@ export function CustomPartidaDropdown({ partidaId }: { partidaId: Id<"partidas">
             </Popover>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Editar Costo</DialogTitle>
-                    <DialogDescription>Actualiza la información del costo</DialogDescription>
+                    <DialogTitle>Editar Partida</DialogTitle>
+                    <DialogDescription>Actualiza la información de la partida</DialogDescription>
                 </DialogHeader>
                 {partida && (
                     <div className="p-4">
