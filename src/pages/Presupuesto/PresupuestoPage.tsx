@@ -5,6 +5,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,8 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
+import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 
 // Mock data for the presupuesto page
 const mockData = {
@@ -61,6 +63,9 @@ export default function PresupuestoPage() {
   const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>("all");
   const [selectedFecha, setSelectedFecha] = useState("Semana");
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Add partida modal
+  const addPartidaModal = useAddPartidaModal();
 
   // Fetch projects
   const projects = useQuery(api.desarrollos.getAll);
@@ -131,23 +136,36 @@ export default function PresupuestoPage() {
               <p className="text-sm text-gray-500 mb-1">Presupuesto</p>
               <h1 className="text-2xl text-gray-900">{currentProject?.nombre || 'Proyecto'}</h1>
             </div>
-            <div className="flex flex-col space-y-1 text-left min-w-[250px]">
-              <span className="text-xs text-gray-500">Proyecto</span>
-              <Select
-                value={selectedProjectId}
-                onValueChange={(value) => setSelectedProjectId(value as Id<"desarrollos">)}
+            <div className="flex items-end gap-3">              
+              <div className="flex flex-col space-y-1 text-left min-w-[250px]">
+                <span className="text-xs text-gray-500">Proyecto</span>
+                <Select
+                  value={selectedProjectId}
+                  onValueChange={(value) => setSelectedProjectId(value as Id<"desarrollos">)}
+                >
+                  <SelectTrigger className="border border-gray-200 shadow-sm h-9 font-normal text-gray-900">
+                    <SelectValue placeholder="Seleccionar proyecto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project._id} value={project._id}>
+                        {project.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={() => selectedProjectId && addPartidaModal.onOpen({
+                  proyecto: selectedProjectId,
+                  projectName: currentProject?.nombre
+                })}
+                variant={"outline"}
+                disabled={!selectedProjectId}
               >
-                <SelectTrigger className="border border-gray-200 shadow-sm h-9 font-normal text-gray-900">
-                  <SelectValue placeholder="Seleccionar proyecto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project._id} value={project._id}>
-                      {project.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar Partida
+              </Button>
             </div>
           </div>
         </div>

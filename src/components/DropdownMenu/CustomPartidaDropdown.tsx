@@ -27,6 +27,7 @@ export function CustomPartidaDropdown({ partidaId }: { partidaId: Id<"partidas">
         const mockPayments: Doc<"pagos">[] = [
             {
                 partida_id: partidaId,
+                proyecto: partida.proyecto!,
                 _id: "payment_1" as Id<"pagos">,
                 _creationTime: Date.now(),
                 administracion: "",
@@ -46,9 +47,11 @@ export function CustomPartidaDropdown({ partidaId }: { partidaId: Id<"partidas">
                 codigo_referencia: partida._id,
                 factura: "",
                 informacion_facturacion_pago: "payment_1" as Id<"informacion_facturacion_pago">,
+                status: "Pagado",
             },
             {
                 partida_id: partidaId,
+                proyecto: partida.proyecto!,
                 _id: "payment_2" as Id<"pagos">,
                 _creationTime: Date.now(),
                 administracion: "",
@@ -68,9 +71,11 @@ export function CustomPartidaDropdown({ partidaId }: { partidaId: Id<"partidas">
                 codigo_referencia: "CC" + partida._id,
                 factura: "",
                 informacion_facturacion_pago: "payment_2" as Id<"informacion_facturacion_pago">,
+                status: "Pagado",
             },
             {
                 partida_id: partidaId,
+                proyecto: partida.proyecto!,
                 _id: "payment_3" as Id<"pagos">,
                 _creationTime: Date.now(),
                 administracion: "",
@@ -90,6 +95,7 @@ export function CustomPartidaDropdown({ partidaId }: { partidaId: Id<"partidas">
                 codigo_referencia: "EF" + partida._id,
                 factura: "",
                 informacion_facturacion_pago: "payment_3" as Id<"informacion_facturacion_pago">,
+                status: "Pagado",
             }
         ];
 

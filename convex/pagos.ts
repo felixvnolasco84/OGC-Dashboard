@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const create = mutation({
@@ -18,6 +18,7 @@ export const create = mutation({
         factura: v.string(),
         moneda: v.string(),
         tipo_cambio: v.string(),
+        status: v.string(),
         proyecto: v.id("desarrollos"),
         informacion_facturacion_pago: v.optional(v.id("informacion_facturacion_pago")),
     },
@@ -34,6 +35,7 @@ export const create = mutation({
             administracion: existingPartida.nombre,
             partida: existingPartida.nombre,
             sub_partida: existingPartida.sub_partida,
+            status: args.status,
             familia: existingPartida.familia,
             logo_banco: "",
         });
@@ -55,7 +57,8 @@ export const update = mutation({
         factura: v.string(),
         moneda: v.string(),
         tipo_cambio: v.string(),
-        proyecto: v.optional(v.id("desarrollos")),
+        status: v.string(),
+        proyecto: v.id("desarrollos"),
         informacion_facturacion_pago: v.optional(v.id("informacion_facturacion_pago")),
     },
     handler: async (ctx, args) => {
@@ -85,4 +88,17 @@ export const deletePayment = mutation({
     },
 });
 
-
+// Query to get all payments for a specific partida
+export const getByPartidaId = query({
+    args: {
+        partida_id: v.id("partidas"),
+    },
+    handler: async (ctx, args) => {
+        const payments = await ctx.db
+            .query("pagos")
+            .filter((q) => q.eq(q.field("partida_id"), args.partida_id))
+            .collect();
+        
+        return payments;
+    },
+});

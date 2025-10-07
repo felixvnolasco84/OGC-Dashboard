@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
 import { api } from "../../../convex/_generated/api";
 import {
@@ -15,9 +15,11 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import AreaChart from "@/components/Charts/AreaChart";
 import { DashboardTable } from "../Dashboard/Table";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
+import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 
 // Mockup data
 const mockData = {
@@ -75,6 +77,9 @@ export default function HomePage() {
     const [selectedProject, setSelectedProject] = useState<Doc<"desarrollos"> | undefined>(undefined)
     const [selectedAnalisis, setSelectedAnalisis] = useState("Por partida");
     const [selectedPeriodo, setSelectedPeriodo] = useState("Mensual");
+    
+    // Add partida modal
+    const addPartidaModal = useAddPartidaModal();
 
 
 
@@ -83,16 +88,20 @@ export default function HomePage() {
     // Fetch projects
     const projects = useQuery(api.desarrollos.getAll);
 
-
-
+    // Set default project when projects load
+    useEffect(() => {
+        if (projects && projects.length > 0 && !selectedProject) {
+            setSelectedProject(projects[0]);
+        }
+    }, [projects, selectedProject]);
 
     // Fetch metrics
-    const metrics = useQuery(api.partida.getProjectMetrics, projects ? { projectId: projects[0]._id } : "skip");
+    const metrics = useQuery(api.partida.getProjectMetrics, selectedProject ? { projectId: selectedProject._id } : "skip");
 
     // Fetch all partidas for the table (table shows individual records)
     const allPartidas = useQuery(
         api.partida.getByProject,
-        projects ? { projectId: projects[0]._id } : "skip"
+        selectedProject ? { projectId: selectedProject._id } : "skip"
     );
 
     // Calculate secondary metrics from allPartidas
@@ -189,6 +198,18 @@ export default function HomePage() {
                                 <p className="text-sm text-gray-500 mb-1">Proyecto</p>
                                 <h1 className="text-2xl text-gray-900">{selectedProject.nombre}</h1>
                             </div>
+                        )}
+                        {selectedProject && (
+                            <Button
+                                onClick={() => addPartidaModal.onOpen({
+                                    proyecto: selectedProject._id,
+                                    projectName: selectedProject.nombre
+                                })}
+                                variant="outline"
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Agregar Partida
+                            </Button>
                         )}
                     </div>
                 </div>

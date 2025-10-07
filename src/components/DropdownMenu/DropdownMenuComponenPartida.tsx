@@ -1,6 +1,6 @@
 "use client";
 
-import { Doc, Id } from "convex/_generated/dataModel";
+import { Doc } from "convex/_generated/dataModel";
 import { MoreHorizontal, Pencil, CreditCard, MoreHorizontalIcon, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../ui/dialog";
@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { useSeePaymentDetailsModal } from "@/hooks/see-payment-details";
 import { useAggregatedDetailsModal } from "@/hooks/aggregated-details-modal";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import EditPartidaForm from "../Forms/EditPartidaForm";
 
 interface DropdownMenuComponentPartidaProps {
@@ -31,6 +33,14 @@ export default function DropdownMenuComponentPartida({
   const aggregatedDetailsModal = useAggregatedDetailsModal();
 
   const navigate = useNavigate();
+
+  // Query real payments for this partida (only for level 2 with real IDs)
+  // Level 0 and 1 are aggregated rows with temporary IDs
+  const isRealPartida = level === 2 && partida._id && !partida._id.toString().startsWith("temp-");
+  const payments = useQuery(
+    api.pagos.getByPartidaId,
+    isRealPartida ? { partida_id: partida._id } : "skip"
+  );
 
   // Get context-aware labels based on level
   const getContextualLabels = () => {
@@ -85,82 +95,17 @@ export default function DropdownMenuComponentPartida({
 
   const handleViewPayments = () => {
     // Calculate amounts based on level
-    const baseAmount = level === 2 
-      ? Number(partida.Cantidad || 0)
+    const baseAmount = level === 2
+      ? Number(partida.aprobado || 0)
       : rowData.presupuestoAprobado;
 
-    const mockPayments: Doc<"pagos">[] = [
-      {
-        partida_id: partida._id,
-        _id: "payment_1" as Id<"pagos">,
-        _creationTime: Date.now(),
-        administracion: partida.nombre,
-        partida: partida.nombre,
-        familia: partida.familia,
-        sub_partida: partida.sub_partida,
-        monto: (baseAmount * 0.6).toString(), // 60% of total
-        fecha: "15/01/2024",
-        tipo_pago: "Transferencia Bancaria",
-        tarjeta: "",
-        banco: "BBVA Bancomer",
-        tipo_cambio: "1.0",
-        moneda: "MXN",
-        logo_banco: "https://www.bbva.com/wp-content/uploads/2019/04/Logo-BBVA.jpg",
-        numero_cuenta: "1234567890123456",
-        numero_transferencia: "TRF20240115001",
-        codigo_referencia: partida._id || `ref-${rowData.displayName}`,
-        factura: "",
-        informacion_facturacion_pago: "payment_1" as Id<"informacion_facturacion_pago">,
-      },
-      {
-        partida_id: partida._id,
-        _id: "payment_2" as Id<"pagos">,
-        _creationTime: Date.now(),
-        administracion: partida.nombre,
-        partida: partida.nombre,
-        familia: partida.familia,
-        sub_partida: partida.sub_partida,
-        monto: (baseAmount * 0.25).toString(), // 25% of total
-        fecha: "22/01/2024",
-        tipo_pago: "Tarjeta de Crédito",
-        tarjeta: "**** **** **** 4532",
-        banco: "Santander",
-        tipo_cambio: "1.0",
-        moneda: "MXN",
-        logo_banco: "https://upload.wikimedia.org/wikipedia/commons/c/c4/Banco_Santander_Logotipo_%282007-2018%29.svg",
-        numero_cuenta: "",
-        numero_transferencia: "",
-        codigo_referencia: "CC" + (partida._id || rowData.displayName),
-        factura: "",
-        informacion_facturacion_pago: "payment_2" as Id<"informacion_facturacion_pago">,
-      },
-      {
-        partida_id: partida._id,
-        _id: "payment_3" as Id<"pagos">,
-        _creationTime: Date.now(),
-        administracion: partida.nombre,
-        partida: partida.nombre,
-        familia: partida.familia,
-        sub_partida: partida.sub_partida,
-        monto: (baseAmount * 0.10).toString(), // 10% of total
-        fecha: "28/01/2024",
-        tipo_pago: "Efectivo",
-        tarjeta: "",
-        banco: "",
-        tipo_cambio: "1.0",
-        moneda: "MXN",
-        logo_banco: "",
-        numero_cuenta: "",
-        numero_transferencia: "",
-        codigo_referencia: "EF" + (partida._id || rowData.displayName),
-        factura: "",
-        informacion_facturacion_pago: "payment_3" as Id<"informacion_facturacion_pago">,
-      }
-    ];
+    // For aggregated rows (level 0, 1), show message or empty state
+    // For real partidas (level 2), use queried payments
+    const realPayments = isRealPartida ? (payments || []) : [];
 
-    // Create payment context with contextual data
+    // Create payment context with real data
     const paymentContext = {
-      payments: mockPayments,
+      payments: realPayments,
       relatedPartida: partida,
       totalAmount: baseAmount,
     };

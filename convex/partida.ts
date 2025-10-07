@@ -367,6 +367,12 @@ export const getById = query({
       return null;
     }
 
+    // Get related proyecto information
+    let proyectoData = null;
+    if (partida.proyecto) {
+      proyectoData = await ctx.db.get(partida.proyecto);
+    }
+
     const pagos = await ctx.db
       .query("pagos")
       .filter((q) => q.eq(q.field("partida_id"), args.id))
@@ -384,6 +390,7 @@ export const getById = query({
 
     return {
       ...partida,
+      proyectoData: proyectoData,
       pagos: pagosWithFacturacion
     };
   },

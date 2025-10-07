@@ -40,8 +40,12 @@ export default defineSchema({
     logo_banco: v.string(),
     numero_cuenta: v.string(),
     numero_transferencia: v.string(),
+    proyecto: v.id("desarrollos"),
+    status: v.optional(v.string()),
     codigo_referencia: v.string(),
-    factura: v.string(),
+    factura: v.optional(v.string()),
+    comprobante: v.optional(v.string()),
+    presupuesto_archivo: v.optional(v.string()),
     informacion_facturacion_pago: v.optional(v.id("informacion_facturacion_pago")),
   }).index("by_administracion", { fields: ["administracion"] }).index("by_partida", { fields: ["partida"] }).index("by_familia", { fields: ["familia"] }).index("by_sub_partida", { fields: ["sub_partida"] }),
   informacion_facturacion_pago: defineTable({

@@ -11,9 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ProgramaObraGanttItem from "./ProgramaObraGanttItem";                                 
+import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
+import { useAddPartidaModal } from "@/hooks/add-partida-modal";                                 
 // import ProgramaGanttChart from "@/components/Charts/ProgramaGanttChart";
 
 const months = [
@@ -51,11 +52,12 @@ export default function ProgramaObra() {
   const [selectedPartida, setSelectedPartida] = useState<string | undefined>(undefined);
   const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>(undefined);
   const [selectedFecha, setSelectedFecha] = useState("Semana");
+  
+  // Add partida modal
+  const addPartidaModal = useAddPartidaModal();
 
   // Fetch projects
   const projects = useQuery(api.desarrollos.getAll);
-
-  console.log(projects);
 
   // State for selected project
   const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
@@ -261,23 +263,37 @@ export default function ProgramaObra() {
               <p className="text-sm text-gray-500 mb-1">Programa de Obra</p>
               <h1 className="text-2xl text-gray-900">{currentProject?.nombre || 'Proyecto'}</h1>
             </div>
-            <div className="flex flex-col space-y-1 text-left min-w-[250px]">
-              <span className="text-xs text-gray-500">Proyecto</span>
-              <Select
-                value={selectedProjectId}
-                onValueChange={(value) => setSelectedProjectId(value as Id<"desarrollos">)}
+            <div className="flex items-end gap-3">
+              
+              <div className="flex flex-col space-y-1 text-left min-w-[250px]">
+                <span className="text-xs text-gray-500">Proyecto</span>
+                <Select
+                  value={selectedProjectId}
+                  onValueChange={(value) => setSelectedProjectId(value as Id<"desarrollos">)}
+                >
+                  <SelectTrigger className="border border-gray-200 shadow-sm h-9 font-normal text-gray-900">
+                    <SelectValue placeholder="Seleccionar proyecto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project._id} value={project._id}>
+                        {project.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={() => selectedProjectId && addPartidaModal.onOpen({
+                  proyecto: selectedProjectId,
+                  projectName: currentProject?.nombre
+                })}
+                disabled={!selectedProjectId}
+                variant={"outline"}
               >
-                <SelectTrigger className="border border-gray-200 shadow-sm h-9 font-normal text-gray-900">
-                  <SelectValue placeholder="Seleccionar proyecto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project._id} value={project._id}>
-                      {project.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar Partida
+              </Button>
             </div>
           </div>
         </div>

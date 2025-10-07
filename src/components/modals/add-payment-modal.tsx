@@ -11,11 +11,10 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check, Circle, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 export default function AddPaymentModal() {
     const paymentContext = useAddPaymentModal((state) => state.paymentContext);
@@ -30,9 +29,9 @@ export default function AddPaymentModal() {
     // Fetch available familias if needed
     const availableFamilias = useQuery(
         api.partida.getDistinctFamiliasByPartida,
-        paymentContext?.relatedCost && 
-        !paymentContext.relatedCost.familia && 
-        paymentContext.relatedCost.proyecto
+        paymentContext?.relatedCost &&
+            !paymentContext.relatedCost.familia &&
+            paymentContext.relatedCost.proyecto
             ? {
                 partidaNombre: paymentContext.relatedCost.nombre,
                 projectId: paymentContext.relatedCost.proyecto
@@ -43,10 +42,10 @@ export default function AddPaymentModal() {
     // Fetch available sub_partidas if needed
     const availableSubPartidas = useQuery(
         api.partida.getDistinctSubPartidasByFamilia,
-        paymentContext?.relatedCost && 
-        !paymentContext.relatedCost.sub_partida && 
-        (paymentContext.relatedCost.familia || formData.familia) &&
-        paymentContext.relatedCost.proyecto
+        paymentContext?.relatedCost &&
+            !paymentContext.relatedCost.sub_partida &&
+            (paymentContext.relatedCost.familia || formData.familia) &&
+            paymentContext.relatedCost.proyecto
             ? {
                 partidaNombre: paymentContext.relatedCost.nombre,
                 familia: formData.familia || paymentContext.relatedCost.familia || "",
@@ -84,13 +83,6 @@ export default function AddPaymentModal() {
         }
     }, [paymentContext, updateFormData]);
 
-    const formatCurrency = (amount: string | number) => {
-        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-        return new Intl.NumberFormat('es-MX', {
-            style: 'currency',
-            currency: 'MXN'
-        }).format(numAmount);
-    };
 
     const handleInputChange = (field: string, value: string) => {
         updateFormData({ [field]: value });
@@ -114,6 +106,7 @@ export default function AddPaymentModal() {
                 sub_partida: formData.sub_partida || paymentContext.relatedCost.sub_partida,
                 familia: formData.familia || paymentContext.relatedCost.familia,
                 proyecto: paymentContext.relatedCost.proyecto,
+
             });
             onClose();
         } catch (error) {
@@ -131,312 +124,308 @@ export default function AddPaymentModal() {
         const basicValid = formData.monto &&
             parseFloat(formData.monto) > 0 &&
             formData.fecha &&
-            formData.tipo_pago;
-        
+            formData.tipo_pago &&
+            formData.status;
+
         // Check if required contextual fields are filled
         const familiaValid = !needsFamilia || (formData.familia && formData.familia.trim() !== "");
         const subPartidaValid = !needsSubPartida || (formData.sub_partida && formData.sub_partida.trim() !== "");
-        
+
         return basicValid && familiaValid && subPartidaValid;
     };
 
     if (!paymentContext) return null;
 
-    const { relatedCost, totalAmount, remainingAmount } = paymentContext;
+    const { relatedCost } = paymentContext;
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <SheetHeader>
-                    <SheetTitle>Agregar Nuevo Pago</SheetTitle>
-                    <SheetDescription>
+                    <SheetTitle>Nuevo pago</SheetTitle>
+                    <SheetDescription className="sr-only">
                         Registra un nuevo pago para esta partida
                     </SheetDescription>
                 </SheetHeader>
 
-                {/* Cost Summary */}
-                <Card className="mt-4">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Información de la Partida</CardTitle>
-                        <CardDescription>Detalles de la partida al que se aplicará el pago</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Monto Total</p>
-                                <p className="text-2xl font-bold">{formatCurrency(totalAmount)}</p>
-                            </div>
-                            {remainingAmount !== undefined && (
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Monto Pendiente</p>
-                                    <p className="text-2xl font-bold text-orange-600">{formatCurrency(remainingAmount)}</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <span className="font-medium">Administración:</span>
-                                <p className="text-muted-foreground">{relatedCost.proyecto}</p>
-                            </div>
-                            <div>
-                                <span className="font-medium">Partida:</span>
-                                <p className="text-muted-foreground">{relatedCost.nombre}</p>
-                            </div>
-                            <div>
-                                <span className="font-medium">Familia:</span>
-                                <p className="text-muted-foreground">{relatedCost.familia}</p>
-                            </div>
-                            <div>
-                                <span className="font-medium">Sub Partida:</span>
-                                <p className="text-muted-foreground">{relatedCost.sub_partida}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Separator className="my-4" />
-
                 {/* Payment Form */}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Información del Pago</CardTitle>
-                            <CardDescription>Completa los datos del nuevo pago</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Basic Payment Info */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="monto">Monto *</Label>
-                                    <Input
-                                        id="monto"
-                                        type="number"
-                                        step="0.01"
-                                        placeholder="0.00"
-                                        value={formData.monto}
-                                        onChange={(e) => handleInputChange('monto', e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="fecha">Fecha *</Label>
-                                    <Input
-                                        id="fecha"
-                                        type="date"
-                                        value={formData.fecha}
-                                        onChange={(e) => handleInputChange('fecha', e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            </div>
+                <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+                    {/* Status Selection */}
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold text-gray-900">Tipo de pago</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => handleInputChange('status', 'Pagado')}
+                                className={cn(
+                                    "flex items-center gap-2 p-4 rounded-lg border-2 transition-all",
+                                    formData.status === 'Pagado'
+                                        ? "border-green-500 bg-green-50"
+                                        : "border-gray-200 bg-white hover:border-gray-300"
+                                )}
+                            >
+                                <Check className={cn(
+                                    "h-5 w-5",
+                                    formData.status === 'Pagado' ? "text-green-600" : "text-gray-400"
+                                )} />
+                                <span className={cn(
+                                    "font-medium",
+                                    formData.status === 'Pagado' ? "text-green-700" : "text-gray-600"
+                                )}>Pagado</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleInputChange('status', 'Por pagar')}
+                                className={cn(
+                                    "flex items-center gap-2 p-4 rounded-lg border-2 transition-all",
+                                    formData.status === 'Por pagar'
+                                        ? "border-gray-500 bg-gray-50"
+                                        : "border-gray-200 bg-white hover:border-gray-300"
+                                )}
+                            >
+                                <Circle className={cn(
+                                    "h-5 w-5",
+                                    formData.status === 'Por pagar' ? "text-gray-600" : "text-gray-400"
+                                )} />
+                                <span className={cn(
+                                    "font-medium",
+                                    formData.status === 'Por pagar' ? "text-gray-700" : "text-gray-600"
+                                )}>Por pagar</span>
+                            </button>
+                        </div>
+                    </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="tipo_pago">Tipo de Pago *</Label>
-                                    <Select value={formData.tipo_pago} onValueChange={(value) => handleInputChange('tipo_pago', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona tipo de pago" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="efectivo">Efectivo</SelectItem>
-                                            <SelectItem value="transferencia">Transferencia</SelectItem>
-                                            <SelectItem value="tarjeta">Tarjeta</SelectItem>
-                                            <SelectItem value="cheque">Cheque</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="moneda">Moneda</Label>
-                                    <Select value={formData.moneda} onValueChange={(value) => handleInputChange('moneda', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona moneda" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="MXN">MXN - Peso Mexicano</SelectItem>
-                                            <SelectItem value="USD">USD - Dólar Americano</SelectItem>
-                                            <SelectItem value="EUR">EUR - Euro</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
+                    {/* Partida Selection */}
+                    <div className="space-y-2">
+                        <Select value={relatedCost.nombre} disabled>
+                            <SelectTrigger className="bg-gray-50">
+                                <SelectValue placeholder="Partida" />
+                            </SelectTrigger>
+                        </Select>
+                    </div>
 
-                            {formData.moneda !== 'MXN' && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="tipo_cambio">Tipo de Cambio</Label>
-                                    <Input
-                                        id="tipo_cambio"
-                                        type="number"
-                                        step="0.0001"
-                                        placeholder="1.0000"
-                                        value={formData.tipo_cambio}
-                                        onChange={(e) => handleInputChange('tipo_cambio', e.target.value)}
-                                    />
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Contextual Classification Fields */}
-                    {(needsFamilia || needsSubPartida) && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Clasificación</CardTitle>
-                                <CardDescription>
-                                    Completa la información de clasificación requerida
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    {needsFamilia && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="familia">Familia *</Label>
-                                            <Select 
-                                                value={formData.familia} 
-                                                onValueChange={(value) => handleInputChange('familia', value)}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecciona una familia" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {availableFamilias && availableFamilias.length > 0 ? (
-                                                        availableFamilias.map((familia) => (
-                                                            <SelectItem key={familia} value={familia}>
-                                                                {familia}
-                                                            </SelectItem>
-                                                        ))
-                                                    ) : (
-                                                        <div className="px-2 py-6 text-sm text-muted-foreground text-center">
-                                                            No hay familias disponibles
-                                                        </div>
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-xs text-muted-foreground">
-                                                Selecciona la familia para esta partida
-                                            </p>
+                    {/* Familia */}
+                    {needsFamilia ? (
+                        <div className="space-y-2">
+                            <Select
+                                value={formData.familia}
+                                onValueChange={(value) => handleInputChange('familia', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Familia" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableFamilias && availableFamilias.length > 0 ? (
+                                        availableFamilias.map((familia) => (
+                                            <SelectItem key={familia} value={familia}>
+                                                {familia}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <div className="px-2 py-6 text-sm text-muted-foreground text-center">
+                                            No hay familias disponibles
                                         </div>
                                     )}
-                                    {needsSubPartida && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="sub_partida">Sub-partida *</Label>
-                                            <Select 
-                                                value={formData.sub_partida} 
-                                                onValueChange={(value) => handleInputChange('sub_partida', value)}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecciona una sub-partida" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {availableSubPartidas && availableSubPartidas.length > 0 ? (
-                                                        availableSubPartidas.map((subPartida) => (
-                                                            <SelectItem key={subPartida} value={subPartida}>
-                                                                {subPartida}
-                                                            </SelectItem>
-                                                        ))
-                                                    ) : (
-                                                        <div className="px-2 py-6 text-sm text-muted-foreground text-center">
-                                                            {needsFamilia && !formData.familia 
-                                                                ? "Primero selecciona una familia"
-                                                                : "No hay sub-partidas disponibles"}
-                                                        </div>
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-xs text-muted-foreground">
-                                                Selecciona la sub-partida {needsFamilia ? "para esta familia" : "para esta partida"}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <Select value={relatedCost.familia} disabled>
+                                <SelectTrigger className="bg-gray-50">
+                                    <SelectValue placeholder="Familia" />
+                                </SelectTrigger>
+                            </Select>
+                        </div>
                     )}
 
-                    {/* Bank and Payment Details */}
-                    {formData.tipo_pago !== 'efectivo' && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Detalles Bancarios</CardTitle>
-                                <CardDescription>Información adicional del pago</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="banco">Banco</Label>
-                                        <Input
-                                            id="banco"
-                                            placeholder="Nombre del banco"
-                                            value={formData.banco || ''}
-                                            onChange={(e) => handleInputChange('banco', e.target.value)}
-                                        />
-                                    </div>
-                                    {formData.tipo_pago === 'tarjeta' && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="tarjeta">Tarjeta</Label>
-                                            <Input
-                                                id="tarjeta"
-                                                placeholder="Últimos 4 dígitos"
-                                                value={formData.tarjeta || ''}
-                                                onChange={(e) => handleInputChange('tarjeta', e.target.value)}
-                                            />
+                    {/* Sub-partida */}
+                    {needsSubPartida ? (
+                        <div className="space-y-2">
+                            <Select
+                                value={formData.sub_partida}
+                                onValueChange={(value) => handleInputChange('sub_partida', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Subpartida" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableSubPartidas && availableSubPartidas.length > 0 ? (
+                                        availableSubPartidas.map((subPartida) => (
+                                            <SelectItem key={subPartida} value={subPartida}>
+                                                {subPartida}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <div className="px-2 py-6 text-sm text-muted-foreground text-center">
+                                            {needsFamilia && !formData.familia
+                                                ? "Primero selecciona una familia"
+                                                : "No hay sub-partidas disponibles"}
                                         </div>
                                     )}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="numero_cuenta">Número de Cuenta</Label>
-                                        <Input
-                                            id="numero_cuenta"
-                                            placeholder="Número de cuenta"
-                                            value={formData.numero_cuenta || ''}
-                                            onChange={(e) => handleInputChange('numero_cuenta', e.target.value)}
-                                        />
-                                    </div>
-                                    {formData.tipo_pago === 'transferencia' && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="numero_transferencia">Número de Transferencia</Label>
-                                            <Input
-                                                id="numero_transferencia"
-                                                placeholder="Número de transferencia"
-                                                value={formData.numero_transferencia || ''}
-                                                onChange={(e) => handleInputChange('numero_transferencia', e.target.value)}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="codigo_referencia">Código de Referencia</Label>
-                                    <Input
-                                        id="codigo_referencia"
-                                        placeholder="Código de referencia"
-                                        value={formData.codigo_referencia || ''}
-                                        onChange={(e) => handleInputChange('codigo_referencia', e.target.value)}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <Select value={relatedCost.sub_partida} disabled>
+                                <SelectTrigger className="bg-gray-50">
+                                    <SelectValue placeholder="Subpartida" />
+                                </SelectTrigger>
+                            </Select>
+                        </div>
                     )}
 
-                    {/* Additional Information */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Información Adicional</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+                    {/* Category/Description */}
+                    <div className="space-y-2">
+                        <Input
+                            placeholder="Categoría (anticipo, material, estimación)"
+                            value={formData.codigo_referencia || ''}
+                            onChange={(e) => handleInputChange('codigo_referencia', e.target.value)}
+                        />
+                    </div>
+
+                    {/* Payment Details - Two Columns */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <Select value={formData.tipo_pago} onValueChange={(value) => handleInputChange('tipo_pago', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Tipo de pago" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="efectivo">Efectivo</SelectItem>
+                                    <SelectItem value="transferencia">Transferencia</SelectItem>
+                                    <SelectItem value="tarjeta">Tarjeta</SelectItem>
+                                    <SelectItem value="cheque">Cheque</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Select value={formData.moneda} onValueChange={(value) => handleInputChange('moneda', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Moneda" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="MXN">MXN</SelectItem>
+                                    <SelectItem value="USD">USD</SelectItem>
+                                    <SelectItem value="EUR">EUR</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="Monto"
+                                value={formData.monto}
+                                onChange={(e) => handleInputChange('monto', e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Input
+                                type="date"
+                                placeholder="Fecha de pago"
+                                value={formData.fecha}
+                                onChange={(e) => handleInputChange('fecha', e.target.value)}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {/* Conditional Bank Details based on tipo_pago */}
+                    {formData.tipo_pago && formData.tipo_pago !== 'efectivo' && (
+                        <div className="space-y-3">
+                            <h3 className="text-base font-semibold text-gray-900">Detalles del pago</h3>
+                            
+                            {/* Banco field - shown for all non-cash payments */}
                             <div className="space-y-2">
-                                <Label htmlFor="factura">Factura</Label>
                                 <Input
-                                    id="factura"
-                                    placeholder="Número de factura"
-                                    value={formData.factura || ''}
-                                    onChange={(e) => handleInputChange('factura', e.target.value)}
+                                    placeholder="Banco"
+                                    value={formData.banco || ''}
+                                    onChange={(e) => handleInputChange('banco', e.target.value)}
                                 />
                             </div>
-                        </CardContent>
-                    </Card>
+
+                            {/* Card number - only for tarjeta */}
+                            {formData.tipo_pago === 'tarjeta' && (
+                                <div className="space-y-2">
+                                    <Input
+                                        placeholder="Últimos 4 dígitos de tarjeta"
+                                        value={formData.tarjeta || ''}
+                                        onChange={(e) => handleInputChange('tarjeta', e.target.value)}
+                                        maxLength={19}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Account details - for transferencia, tarjeta, and cheque */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <Input
+                                        placeholder="Número de cuenta"
+                                        value={formData.numero_cuenta || ''}
+                                        onChange={(e) => handleInputChange('numero_cuenta', e.target.value)}
+                                    />
+                                </div>
+                                
+                                {/* Transfer number - only for transferencia */}
+                                {formData.tipo_pago === 'transferencia' && (
+                                    <div className="space-y-2">
+                                        <Input
+                                            placeholder="Número de transferencia"
+                                            value={formData.numero_transferencia || ''}
+                                            onChange={(e) => handleInputChange('numero_transferencia', e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Soporte Section */}
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold text-gray-900">Soporte</h3>
+                        
+                        <div className="space-y-3">
+                            {/* Agregar factura */}
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <Upload className="h-5 w-5" />
+                                    <span className="text-sm">Agregar factura</span>
+                                </div>
+                            </div>
+
+                            {/* Agregar comprobante */}
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <Upload className="h-5 w-5" />
+                                    <span className="text-sm">Agregar comprobante</span>
+                                </div>
+                            </div>
+
+                            {/* Agregar presupuesto */}
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <Upload className="h-5 w-5" />
+                                    <span className="text-sm">Agregar presupuesto</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Descripción Section */}
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold text-gray-900">Descripción</h3>
+                        <Input
+                            placeholder="Notas adicionales"
+                            value={formData.codigo_referencia || ''}
+                            onChange={(e) => handleInputChange('codigo_referencia', e.target.value)}
+                        />
+                    </div>
 
                     {/* Form Actions */}
                     <div className="flex justify-end space-x-2 pt-4">
@@ -446,8 +435,9 @@ export default function AddPaymentModal() {
                         <Button
                             type="submit"
                             disabled={!isFormValid() || isSubmitting}
+                            className="bg-black hover:bg-gray-800 text-white"
                         >
-                            {isSubmitting ? 'Guardando...' : 'Guardar Pago'}
+                            {isSubmitting ? 'Guardando...' : 'Guardar'}
                         </Button>
                     </div>
                 </form>

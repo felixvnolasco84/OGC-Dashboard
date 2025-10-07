@@ -17,6 +17,7 @@ import DocumentosPage from "./pages/Documentos/DocumentosPage.tsx";
 import PresupuestoPage from "./pages/Presupuesto/PresupuestoPage.tsx";
 import ProgramaObra from "./pages/Programa Obra/ProgramaObra.tsx";
 import ProjectsPage from "./pages/Projects/ProjectsPage.tsx";
+import PartidaDetails from "./pages/PartidaDetails/PartidaDetails.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -35,7 +36,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/proyectos" element={<ProjectsPage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/documentos" element={<DocumentosPage />} />
-                <Route path="/dashboard/partidas/:id" element={<DocumentosPage />} />
+                <Route path="/dashboard/partidas/:id" element={<PartidaDetails />} />
                 <Route path="/dashboard/control" element={<HomePage />} />
                 <Route path="/dashboard/presupuesto" element={<PresupuestoPage />} />
                 <Route path="/dashboard/programa-obra" element={<ProgramaObra />} />

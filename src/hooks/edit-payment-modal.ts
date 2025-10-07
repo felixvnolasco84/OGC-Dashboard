@@ -24,6 +24,8 @@ type PaymentFormData = {
     factura: string;
     moneda: string;
     tipo_cambio: string;
+    status: string;
+    proyecto: Id<"desarrollos">;
     informacion_facturacion_pago?: Id<"informacion_facturacion_pago">;
 };
 
@@ -43,6 +45,8 @@ const initialFormData: PaymentFormData = {
     tipo_pago: "efectivo",
     moneda: "MXN",
     tipo_cambio: "1",
+    status: "",
+    proyecto: "" as Id<"desarrollos">,
     informacion_facturacion_pago: undefined,
     codigo_referencia: "",
     factura: "",
@@ -70,6 +74,8 @@ export const useEditPaymentModal = create<EditPaymentModalStore>((set) => ({
             factura: payment.factura || "",
             moneda: payment.moneda || "MXN",
             tipo_cambio: payment.tipo_cambio || "1",
+            status: payment.status || "",
+            proyecto: payment.proyecto,
             // Handle the populated billing information - extract the ID if it's an object
             informacion_facturacion_pago: typeof payment.informacion_facturacion_pago === 'object' && payment.informacion_facturacion_pago !== null 
                 ? payment.informacion_facturacion_pago._id 

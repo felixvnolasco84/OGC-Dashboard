@@ -7,16 +7,14 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet"
 import { useEditPaymentModal } from "@/hooks/edit-payment-modal";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileUpload } from "@/components/ui/file-upload";
+import { Check, Circle, Upload } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { cn } from "@/lib/utils";
 
 export default function EditPaymentModal() {
     const paymentContext = useEditPaymentModal((state) => state.paymentContext);
@@ -27,14 +25,6 @@ export default function EditPaymentModal() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const updatePayment = useMutation(api.pagos.update);
-
-    const formatCurrency = (amount: string | number) => {
-        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-        return new Intl.NumberFormat('es-MX', {
-            style: 'currency',
-            currency: 'MXN'
-        }).format(numAmount);
-    };
 
     const handleInputChange = (field: string, value: string) => {
         updateFormData({ [field]: value });
@@ -62,226 +52,239 @@ export default function EditPaymentModal() {
         return formData.monto &&
             parseFloat(formData.monto) > 0 &&
             formData.fecha &&
-            formData.tipo_pago;
+            formData.tipo_pago &&
+            formData.status;
     };
 
     if (!paymentContext) return null;
 
-    const { payment, relatedCost, totalAmount } = paymentContext;
+    const { relatedCost } = paymentContext;
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <SheetHeader>
-                    <SheetTitle>Editar Pago</SheetTitle>
-                    <SheetDescription>
+                    <SheetTitle>Editar pago</SheetTitle>
+                    <SheetDescription className="sr-only">
                         Modifica la información del pago seleccionado
                     </SheetDescription>
                 </SheetHeader>
 
-                {/* Cost Summary */}
-                <Card className="mt-4">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Información del Costo</CardTitle>
-                        <CardDescription>Detalles del costo asociado al pago</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Monto Total del Costo</p>
-                                <p className="text-2xl font-bold">{formatCurrency(totalAmount)}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Monto Actual del Pago</p>
-                                <p className="text-2xl font-bold text-blue-600">{formatCurrency(payment.monto)}</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <span className="font-medium">Administración:</span>
-                                {/* <p className="text-muted-foreground">{relatedCost.administracion}</p> */}
-                            </div>
-                            <div>
-                                <span className="font-medium">Partida:</span>
-                                <p className="text-muted-foreground">{relatedCost.nombre}</p>
-                            </div>
-                            <div>
-                                <span className="font-medium">Familia:</span>
-                                <p className="text-muted-foreground">{relatedCost.familia}</p>
-                            </div>
-                            <div>
-                                <span className="font-medium">Sub Partida:</span>
-                                <p className="text-muted-foreground">{relatedCost.sub_partida}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Separator className="my-4" />
-
                 {/* Payment Form */}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Información del Pago</CardTitle>
-                            <CardDescription>Modifica los datos del pago</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Basic Payment Info */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="monto">Monto *</Label>
-                                    <Input
-                                        id="monto"
-                                        type="number"
-                                        step="0.01"
-                                        placeholder="0.00"
-                                        value={formData.monto}
-                                        onChange={(e) => handleInputChange('monto', e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="fecha">Fecha *</Label>
-                                    <Input
-                                        id="fecha"
-                                        type="date"
-                                        value={formData.fecha}
-                                        onChange={(e) => handleInputChange('fecha', e.target.value)}
-                                        required
-                                    />
-                                </div>
+                <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+                    {/* Status Selection */}
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold text-gray-900">Tipo de pago</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => handleInputChange('status', 'Pagado')}
+                                className={cn(
+                                    "flex items-center gap-2 p-4 rounded-lg border-2 transition-all",
+                                    formData.status === 'Pagado'
+                                        ? "border-green-500 bg-green-50"
+                                        : "border-gray-200 bg-white hover:border-gray-300"
+                                )}
+                            >
+                                <Check className={cn(
+                                    "h-5 w-5",
+                                    formData.status === 'Pagado' ? "text-green-600" : "text-gray-400"
+                                )} />
+                                <span className={cn(
+                                    "font-medium",
+                                    formData.status === 'Pagado' ? "text-green-700" : "text-gray-600"
+                                )}>Pagado</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleInputChange('status', 'Por pagar')}
+                                className={cn(
+                                    "flex items-center gap-2 p-4 rounded-lg border-2 transition-all",
+                                    formData.status === 'Por pagar'
+                                        ? "border-gray-500 bg-gray-50"
+                                        : "border-gray-200 bg-white hover:border-gray-300"
+                                )}
+                            >
+                                <Circle className={cn(
+                                    "h-5 w-5",
+                                    formData.status === 'Por pagar' ? "text-gray-600" : "text-gray-400"
+                                )} />
+                                <span className={cn(
+                                    "font-medium",
+                                    formData.status === 'Por pagar' ? "text-gray-700" : "text-gray-600"
+                                )}>Por pagar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Partida Selection */}
+                    <div className="space-y-2">
+                        <Select value={relatedCost.nombre} disabled>
+                            <SelectTrigger className="bg-gray-50">
+                                <SelectValue placeholder="Partida" />
+                            </SelectTrigger>
+                        </Select>
+                    </div>
+
+                    {/* Familia */}
+                    <div className="space-y-2">
+                        <Select value={relatedCost.familia} disabled>
+                            <SelectTrigger className="bg-gray-50">
+                                <SelectValue placeholder="Familia" />
+                            </SelectTrigger>
+                        </Select>
+                    </div>
+
+                    {/* Sub-partida */}
+                    <div className="space-y-2">
+                        <Select value={relatedCost.sub_partida} disabled>
+                            <SelectTrigger className="bg-gray-50">
+                                <SelectValue placeholder="Subpartida" />
+                            </SelectTrigger>
+                        </Select>
+                    </div>
+
+                    {/* Payment Details - Two Columns */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <Select value={formData.tipo_pago} onValueChange={(value) => handleInputChange('tipo_pago', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Tipo de pago" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="efectivo">Efectivo</SelectItem>
+                                    <SelectItem value="transferencia">Transferencia</SelectItem>
+                                    <SelectItem value="tarjeta">Tarjeta</SelectItem>
+                                    <SelectItem value="cheque">Cheque</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Select value={formData.moneda} onValueChange={(value) => handleInputChange('moneda', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Moneda" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="MXN">MXN</SelectItem>
+                                    <SelectItem value="USD">USD</SelectItem>
+                                    <SelectItem value="EUR">EUR</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="Monto"
+                                value={formData.monto}
+                                onChange={(e) => handleInputChange('monto', e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Input
+                                type="date"
+                                placeholder="Fecha de pago"
+                                value={formData.fecha}
+                                onChange={(e) => handleInputChange('fecha', e.target.value)}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {/* Conditional Bank Details based on tipo_pago */}
+                    {formData.tipo_pago && formData.tipo_pago !== 'efectivo' && (
+                        <div className="space-y-3">
+                            <h3 className="text-base font-semibold text-gray-900">Detalles del pago</h3>
+                            
+                            {/* Banco field - shown for all non-cash payments */}
+                            <div className="space-y-2">
+                                <Input
+                                    placeholder="Banco"
+                                    value={formData.banco || ''}
+                                    onChange={(e) => handleInputChange('banco', e.target.value)}
+                                />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Card number - only for tarjeta */}
+                            {formData.tipo_pago === 'tarjeta' && (
                                 <div className="space-y-2">
-                                    <Label htmlFor="tipo_pago">Tipo de Pago *</Label>
-                                    <Select value={formData.tipo_pago} onValueChange={(value) => handleInputChange('tipo_pago', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona tipo de pago" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="efectivo">Efectivo</SelectItem>
-                                            <SelectItem value="transferencia">Transferencia</SelectItem>
-                                            <SelectItem value="tarjeta">Tarjeta</SelectItem>
-                                            <SelectItem value="cheque">Cheque</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="moneda">Moneda</Label>
-                                    <Select value={formData.moneda} onValueChange={(value) => handleInputChange('moneda', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona moneda" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="MXN">MXN - Peso Mexicano</SelectItem>
-                                            <SelectItem value="USD">USD - Dólar Americano</SelectItem>
-                                            <SelectItem value="EUR">EUR - Euro</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            {formData.moneda !== 'MXN' && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="tipo_cambio">Tipo de Cambio</Label>
                                     <Input
-                                        id="tipo_cambio"
-                                        type="number"
-                                        step="0.0001"
-                                        placeholder="1.0000"
-                                        value={formData.tipo_cambio}
-                                        onChange={(e) => handleInputChange('tipo_cambio', e.target.value)}
+                                        placeholder="Últimos 4 dígitos de tarjeta"
+                                        value={formData.tarjeta || ''}
+                                        onChange={(e) => handleInputChange('tarjeta', e.target.value)}
+                                        maxLength={19}
                                     />
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
 
-                    {/* Bank and Payment Details */}
-                    {formData.tipo_pago !== 'efectivo' && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Detalles Bancarios</CardTitle>
-                                <CardDescription>Información adicional del pago</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="banco">Banco</Label>
-                                        <Input
-                                            id="banco"
-                                            placeholder="Nombre del banco"
-                                            value={formData.banco || ''}
-                                            onChange={(e) => handleInputChange('banco', e.target.value)}
-                                        />
-                                    </div>
-                                    {formData.tipo_pago === 'tarjeta' && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="tarjeta">Tarjeta</Label>
-                                            <Input
-                                                id="tarjeta"
-                                                placeholder="Últimos 4 dígitos"
-                                                value={formData.tarjeta || ''}
-                                                onChange={(e) => handleInputChange('tarjeta', e.target.value)}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="numero_cuenta">Número de Cuenta</Label>
-                                        <Input
-                                            id="numero_cuenta"
-                                            placeholder="Número de cuenta"
-                                            value={formData.numero_cuenta || ''}
-                                            onChange={(e) => handleInputChange('numero_cuenta', e.target.value)}
-                                        />
-                                    </div>
-                                    {formData.tipo_pago === 'transferencia' && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="numero_transferencia">Número de Transferencia</Label>
-                                            <Input
-                                                id="numero_transferencia"
-                                                placeholder="Número de transferencia"
-                                                value={formData.numero_transferencia || ''}
-                                                onChange={(e) => handleInputChange('numero_transferencia', e.target.value)}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
+                            {/* Account details - for transferencia, tarjeta, and cheque */}
+                            <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-2">
-                                    <Label htmlFor="codigo_referencia">Código de Referencia</Label>
                                     <Input
-                                        id="codigo_referencia"
-                                        placeholder="Código de referencia"
-                                        value={formData.codigo_referencia || ''}
-                                        onChange={(e) => handleInputChange('codigo_referencia', e.target.value)}
+                                        placeholder="Número de cuenta"
+                                        value={formData.numero_cuenta || ''}
+                                        onChange={(e) => handleInputChange('numero_cuenta', e.target.value)}
                                     />
                                 </div>
-                            </CardContent>
-                        </Card>
+                                
+                                {/* Transfer number - only for transferencia */}
+                                {formData.tipo_pago === 'transferencia' && (
+                                    <div className="space-y-2">
+                                        <Input
+                                            placeholder="Número de transferencia"
+                                            value={formData.numero_transferencia || ''}
+                                            onChange={(e) => handleInputChange('numero_transferencia', e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     )}
 
-                    {/* Additional Information */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Información Adicional</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <FileUpload
-                                label="Factura"
-                                value={formData.factura || ''}
-                                onChange={(url) => handleInputChange('factura', url)}
-                                accept="image/*,application/pdf,.txt,.doc,.docx"
-                                placeholder="Subir archivo de factura..."
-                            />
-                        </CardContent>
-                    </Card>
+                    {/* Soporte Section */}
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold text-gray-900">Soporte</h3>
+                        
+                        <div className="space-y-3">
+                            {/* Agregar factura */}
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <Upload className="h-5 w-5" />
+                                    <span className="text-sm">Agregar factura</span>
+                                </div>
+                            </div>
+
+                            {/* Agregar comprobante */}
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <Upload className="h-5 w-5" />
+                                    <span className="text-sm">Agregar comprobante</span>
+                                </div>
+                            </div>
+
+                            {/* Agregar presupuesto */}
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <Upload className="h-5 w-5" />
+                                    <span className="text-sm">Agregar presupuesto</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Descripción Section */}
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold text-gray-900">Descripción</h3>
+                        <Input
+                            placeholder="Notas adicionales"
+                            value={formData.codigo_referencia || ''}
+                            onChange={(e) => handleInputChange('codigo_referencia', e.target.value)}
+                        />
+                    </div>
 
                     {/* Form Actions */}
                     <div className="flex justify-end space-x-2 pt-4">
@@ -291,8 +294,9 @@ export default function EditPaymentModal() {
                         <Button
                             type="submit"
                             disabled={!isFormValid() || isSubmitting}
+                            className="bg-black hover:bg-gray-800 text-white"
                         >
-                            {isSubmitting ? 'Actualizando...' : 'Actualizar Pago'}
+                            {isSubmitting ? 'Actualizando...' : 'Actualizar'}
                         </Button>
                     </div>
                 </form>
