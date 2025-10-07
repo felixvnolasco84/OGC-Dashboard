@@ -33,21 +33,16 @@ const sidebarItems: SidebarItem[] = [
     label: "Presupuesto",
     path: "/dashboard/presupuesto"
   },
-  // {
-  //   id: "control",
-  //   label: "Control",
-  //   path: "/dashboard/costos"
-  // },
   {
     id: "control",
     label: "Control",
     path: "/dashboard/control"
   },
-  // {
-  //   id: "programa-obra",
-  //   label: "Programa de obra",
-  //   path: "/dashboard/programa-obra"
-  // }
+  {
+    id: "programa-obra",
+    label: "Programa de obra",
+    path: "/dashboard/programa-obra"
+  }
 ];
 
 export default function Sidebar() {

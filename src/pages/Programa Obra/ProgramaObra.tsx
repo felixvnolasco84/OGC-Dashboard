@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
+import ProgramaObraGanttItem from "./ProgramaObraGanttItem";                                 
 // import ProgramaGanttChart from "@/components/Charts/ProgramaGanttChart";
 
 const months = [
@@ -55,6 +55,8 @@ export default function ProgramaObra() {
   // Fetch projects
   const projects = useQuery(api.desarrollos.getAll);
 
+  console.log(projects);
+
   // State for selected project
   const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
 
@@ -70,6 +72,8 @@ export default function ProgramaObra() {
     api.partida.getByProject,
     selectedProjectId ? { projectId: selectedProjectId } : "skip"
   );
+
+  console.log(allPartidas);
 
   // Transform partidas data into hierarchical structure for Gantt chart
   const programaData = useMemo(() => {
@@ -109,7 +113,7 @@ export default function ProgramaObra() {
           expanded: false,
           level: 1,
           timeline: {
-            start: Math.floor(Math.random() * 8), // Mock timeline for now
+            start: Math.floor(Math.random() * 8) + 1, // Mock timeline for now (1-8 for months)
             duration: Math.floor(Math.random() * 4) + 1,
             color: "bg-green-500",
             progress: parseFloat(item.aprobado || "0") > 0
@@ -144,9 +148,9 @@ export default function ProgramaObra() {
     setProgramaDataState(programaData);
   }, [programaData]);
 
-  // Get unique partidas and familias for filters
-  const uniquePartidas = Array.from(new Set(allPartidas?.map(p => p.nombre) || []));
-  const uniqueFamilias = Array.from(new Set(allPartidas?.map(p => p.familia) || []));
+  // Get unique partidas and familias for filters (filter out empty strings)
+  const uniquePartidas = Array.from(new Set(allPartidas?.map(p => p.nombre).filter(Boolean) || []));
+  const uniqueFamilias = Array.from(new Set(allPartidas?.map(p => p.familia).filter(Boolean) || []));
 
   // Function to toggle expanded state
   const toggleExpanded = (id: string) => {
@@ -176,6 +180,20 @@ export default function ProgramaObra() {
   };
 
   const flattenedData = flattenData(programaDataState);
+
+  // Calculate required number of months based on timeline data
+  const requiredMonths = useMemo(() => {
+    let maxMonth = 8; // Default minimum
+    flattenedData.forEach(item => {
+      if (item.timeline) {
+        const endMonth = item.timeline.start + item.timeline.duration - 1;
+        if (endMonth > maxMonth) {
+          maxMonth = endMonth;
+        }
+      }
+    });
+    return Math.min(maxMonth, 12); // Cap at 12 months
+  }, [flattenedData]);
 
   // Filter data based on selections
   const filteredData = flattenedData.filter(item => {
@@ -298,68 +316,24 @@ export default function ProgramaObra() {
       </div>  
       {/* Gantt Chart Container */}
       <div className="border border-gray-200 overflow-hidden bg-white">
-        <div className="flex">
-          {/* Left Sidebar - Partidas */}
-          <div className="w-80 border-r border-gray-200 bg-white">
-            {/* Sidebar Header */}
-            <div className="px-4 py-3 border-b border-gray-200 bg-white text-left">
-              <div className="text-sm font-medium text-gray-600">Partida - Familia</div>
-            </div>
-
-            {/* Partidas List */}
-            <div className="max-h-none overflow-y-auto">
-              {filteredData.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between px-4 py-4 border-b border-gray-100 hover:bg-gray-100 h-[81px] text-left"
-                >
-                  <div
-                    className="flex items-center space-x-2 flex-1"
-                    style={{ paddingLeft: `${item.level * 16}px` }}
-                  >
-                    {item.children && item.children.length > 0 ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleExpanded(item.id)}
-                        className="p-0 h-auto hover:bg-transparent"
-                      >
-                        {item.expanded ? (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    ) : (
-                      <div className="w-4" />
-                    )}
-                    <span className={cn(
-                      "text-sm",
-                      item.level === 0 ? "font-medium text-gray-900" : "text-gray-600"
-                    )}>
-                      {item.partida}
-                    </span>
-                  </div>
-                  {/* <div className="text-sm text-gray-600 ml-2">
-                    {formatCurrency(item.presupuesto)}
-                  </div> */}
-                </div>
-              ))}
-            </div>
+        {/* Header Row */}
+        <div className="flex border-b border-gray-200 bg-white sticky top-0 z-10">
+          {/* Left Header */}
+          <div className="w-80 border-r border-gray-200 px-4 py-3 text-left">
+            <div className="text-sm font-medium text-gray-600">Partida - Familia</div>
           </div>
-
-          {/* Right Side - Timeline */}
+          
+          {/* Right Header - Timeline */}
           <div className="flex-1 overflow-x-auto">
-            {/* Timeline Header */}
-            <div className="flex border-b border-gray-200 bg-white sticky top-0 z-10">
-              <div className="px-4 py-3 text-sm font-medium text-gray-600 border-r border-gray-200 w-32 text-left">
+            <div className="flex">
+              <div className="px-4 py-3 text-sm font-medium text-gray-600 border-r border-gray-200 w-32 text-left shrink-0">
                 Presupuesto
               </div>
               <div className="flex">
-                {months.slice(0, 8).map((month, index) => (
+                {months.slice(0, requiredMonths).map((month, index) => (
                   <div
                     key={index}
-                    className="px-6 py-3 text-sm font-medium text-gray-600 border-r border-gray-200 w-32 text-left"
+                    className="px-6 py-3 text-sm font-medium text-gray-600 border-r border-gray-200 w-32 text-left shrink-0"
                   >
                     {month}
                   </div>
@@ -369,29 +343,74 @@ export default function ProgramaObra() {
                 2025
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Timeline Rows */}
-            <div className="relative">
-              {filteredData.map((item) => (
-                <div key={item.id} className="flex border-b border-gray-100 hover:bg-gray-50 relative">
-                  <div className="px-4 py-4 text-sm text-gray-600 border-r border-gray-200 w-32 h-[81px] text-left">
+        {/* Data Rows */}
+        <div>
+          {filteredData.map((item) => (
+            <div 
+              key={item.id} 
+              className="flex border-b border-gray-100 hover:bg-gray-50"
+            >
+              {/* Left Column - Partida Name */}
+              <div className="w-80 border-r border-gray-200 px-4 py-4 flex items-center text-left min-h-[81px]">
+                <div
+                  className="flex items-center space-x-2 flex-1"
+                  style={{ paddingLeft: `${item.level * 16}px` }}
+                >
+                  {item.children && item.children.length > 0 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleExpanded(item.id)}
+                      className="p-0 h-auto hover:bg-transparent shrink-0"
+                    >
+                      {item.expanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  ) : (
+                    <div className="w-4 shrink-0" />
+                  )}
+                  <span className={cn(
+                    "text-sm",
+                    item.level === 0 ? "font-medium text-gray-900" : "text-gray-600"
+                  )}>
+                    {item.partida}
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Column - Timeline */}
+              <div className="flex-1 overflow-x-auto">
+                <div className="flex">
+                  {/* Presupuesto Column */}
+                  <div className="px-4 py-4 text-sm text-gray-600 border-r border-gray-200 w-32 text-left shrink-0 min-h-[81px] flex items-center">
                     {formatCurrency(item.presupuesto)}
                   </div>
 
                   {/* Timeline Grid */}
-                  <div className="flex relative flex-1">
-                    {months.slice(0, 8).map((month, monthIndex) => (
-                      <ProgramaObraGanttItem
-                        key={`${month}-${monthIndex}`}
-                        item={item}
-                        monthIndex={monthIndex}
-                      />
-                    ))}
+                  <div className="relative flex-1 min-h-[81px]">
+                    {/* Grid cells (for background structure) */}
+                    <div className="flex absolute inset-0">
+                      {months.slice(0, requiredMonths).map((month, monthIndex) => (
+                        <div
+                          key={`${item.id}-${month}-${monthIndex}`}
+                          className="w-32 border-r border-gray-200 shrink-0"
+                        />
+                      ))}
+                    </div>
+                    
+                    {/* Single spanning timeline bar */}
+                    <ProgramaObraGanttItem item={item} />
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
