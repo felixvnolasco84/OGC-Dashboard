@@ -88,6 +88,11 @@ export default function ProgramaObra() {
       const partidaKey = item.nombre;
       const familiaKey = item.familia;
 
+      // Skip items with empty familia
+      if (!familiaKey || familiaKey.trim() === "") {
+        return acc;
+      }
+
       if (!acc[partidaKey]) {
         acc[partidaKey] = {
           id: `partida-${partidaKey}`,
@@ -116,10 +121,8 @@ export default function ProgramaObra() {
             start: Math.floor(Math.random() * 8) + 1, // Mock timeline for now (1-8 for months)
             duration: Math.floor(Math.random() * 4) + 1,
             color: "bg-green-500",
-            progress: parseFloat(item.aprobado || "0") > 0
-              ? Math.round((parseFloat(item.pagado || "0") / parseFloat(item.aprobado || "0")) * 100)
-              : 0,
-            actualAmount: parseFloat(item.pagado || "0")
+            progress: 0, // Will be updated when accumulating
+            actualAmount: 0 // Will be updated when accumulating
           },
           children: []
         };
@@ -128,6 +131,41 @@ export default function ProgramaObra() {
 
       const familiaGroup = partidaGroup.familias[familiaKey];
       familiaGroup.presupuesto += parseFloat(item.aprobado || "0");
+      
+      // Update familia timeline progress based on accumulated data
+      if (familiaGroup.timeline) {
+        const totalPagado = (familiaGroup.timeline.actualAmount || 0) + parseFloat(item.pagado || "0");
+        familiaGroup.timeline.actualAmount = totalPagado;
+        familiaGroup.timeline.progress = familiaGroup.presupuesto > 0
+          ? Math.round((totalPagado / familiaGroup.presupuesto) * 100)
+          : 0;
+      }
+
+      // Add sub_partida as a child of familia if it exists and is valid
+      const subPartidaKey = item.sub_partida;
+      const hasValidSubPartida = subPartidaKey &&
+        subPartidaKey.trim() !== '' &&
+        subPartidaKey !== familiaKey;
+
+      if (hasValidSubPartida) {
+        familiaGroup.children.push({
+          id: `subpartida-${partidaKey}-${familiaKey}-${subPartidaKey}-${item._id}`,
+          partida: subPartidaKey,
+          presupuesto: parseFloat(item.aprobado || "0"),
+          expanded: false,
+          level: 2,
+          timeline: {
+            start: Math.floor(Math.random() * 8) + 1, // Mock timeline for now (1-8 for months)
+            duration: Math.floor(Math.random() * 4) + 1,
+            color: "bg-green-500",
+            progress: parseFloat(item.aprobado || "0") > 0
+              ? Math.round((parseFloat(item.pagado || "0") / parseFloat(item.aprobado || "0")) * 100)
+              : 0,
+            actualAmount: parseFloat(item.pagado || "0")
+          },
+          children: []
+        });
+      }
 
       return acc;
     }, {});
@@ -351,7 +389,12 @@ export default function ProgramaObra() {
           {filteredData.map((item) => (
             <div 
               key={item.id} 
-              className="flex border-b border-gray-100 hover:bg-gray-50"
+              className={cn(
+                "flex border-b border-gray-100",
+                item.expanded && item.level === 0 && "bg-gray-100 hover:bg-gray-200",
+                item.expanded && item.level === 1 && "bg-gray-50 hover:bg-gray-100",
+                !item.expanded && "hover:bg-gray-50"
+              )}
             >
               {/* Left Column - Partida Name */}
               <div className="w-80 border-r border-gray-200 px-4 py-4 flex items-center text-left min-h-[81px]">
@@ -377,7 +420,11 @@ export default function ProgramaObra() {
                   )}
                   <span className={cn(
                     "text-sm",
-                    item.level === 0 ? "font-medium text-gray-900" : "text-gray-600"
+                    item.level === 0 
+                      ? "font-medium text-gray-900" 
+                      : item.level === 1 
+                        ? "text-gray-600" 
+                        : "text-gray-600 text-wrap max-w-48"
                   )}>
                     {item.partida}
                   </span>

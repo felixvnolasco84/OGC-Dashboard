@@ -65,6 +65,11 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
       const familiaKey = item.familia;
       const subPartidaKey = item.sub_partida;
 
+      // Skip items with empty familia
+      if (!familiaKey || familiaKey.trim() === "") {
+        return acc;
+      }
+
       if (!acc[partidaKey]) {
         acc[partidaKey] = {
           displayName: partidaKey,
@@ -268,7 +273,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
                     ) : (
                       <div className="w-4" />
                     )}
-                    <span className={`${item.level > 0 ? 'text-gray-600' : 'text-gray-900 font-medium'}`}>
+                    <span className={`${item.level > 0 ? 'text-gray-600 text-wrap max-w-48' : 'text-gray-900 font-medium'}`}>
                       {item.displayName}
                     </span>
                   </div>
