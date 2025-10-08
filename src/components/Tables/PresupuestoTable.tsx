@@ -57,6 +57,9 @@ interface PresupuestoTableProps {
 }
 
 export default function PresupuestoTable({ data }: PresupuestoTableProps) {
+
+
+  console.log(data)
   // Transform flat partidas data into hierarchical structure
   const hierarchicalData = useMemo(() => {
     // Group by partida (nombre) -> familia -> sub_partida
@@ -65,11 +68,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
       const familiaKey = item.familia;
       const subPartidaKey = item.sub_partida;
 
-      // Skip items with empty familia
-      if (!familiaKey || familiaKey.trim() === "") {
-        return acc;
-      }
-
+      // Initialize partida group if it doesn't exist
       if (!acc[partidaKey]) {
         acc[partidaKey] = {
           displayName: partidaKey,
@@ -93,6 +92,11 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
       partidaGroup.presupuestoOriginal += parseFloat(item.total || "0");
       partidaGroup.presupuestoAprobado += parseFloat(item.aprobado || "0");
       partidaGroup.pagado += parseFloat(item.pagado || "0");
+
+      // If item has no familia, it's a partida-level item only (no children to add)
+      if (!familiaKey || familiaKey.trim() === "") {
+        return acc;
+      }
 
       // Create or update familia group
       if (!partidaGroup.familias[familiaKey]) {
@@ -319,7 +323,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
                 </TableCell>
                 <TableCell className="px-6 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
                   <Button variant="outline" size="sm">
-                    <DropdownMenuComponentPartida 
+                    <DropdownMenuComponentPartida
                       partida={item.originalDoc || ({
                         _id: item._id || `temp-${item.displayName}`,
                         _creationTime: Date.now(),

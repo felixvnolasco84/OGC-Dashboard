@@ -124,71 +124,50 @@ export default function DropdownMenuComponentPartida({
         </PopoverTrigger>
         <PopoverContent className="w-56 p-1">
           <div className="space-y-1">
-            {/* Show different options based on level */}
-            {level === 2 ? (
-              // Full options for actual partida rows (level 2)
-              <>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start flex items-center gap-2"
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Editar sub-partida
-                  </Button>
-                </DialogTrigger>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start flex items-center gap-2"
-                  onClick={handleViewPayments}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Ver pagos
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start flex items-center gap-2"
-                  onClick={handleViewDetails}
-                >
-                  <FileText className="h-4 w-4" />
-                  Ver detalles
-                </Button>
-              </>
-            ) : (
-              // Limited options for aggregated rows (level 0, 1)
-              <>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start flex items-center gap-2"
-                  onClick={handleViewPayments}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Ver pagos de {labels.title.toLowerCase()}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start flex items-center gap-2"
-                  onClick={handleViewDetails}
-                >
-                  <MoreHorizontalIcon className="h-4 w-4" />
-                  {labels.viewDetailsText}
-                </Button>
-              </>
-            )}
+            {/* Show edit option for all levels */}
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-start flex items-center gap-2"
+              >
+                <Pencil className="h-4 w-4" />
+                Editar {labels.title.toLowerCase()}
+              </Button>
+            </DialogTrigger>
+            
+            {/* View payments option */}
+            <Button
+              variant="ghost"
+              className="w-full justify-start flex items-center gap-2"
+              onClick={handleViewPayments}
+            >
+              <CreditCard className="h-4 w-4" />
+              {level === 2 ? 'Ver pagos' : `Ver pagos de ${labels.title.toLowerCase()}`}
+            </Button>
+            
+            {/* View details option */}
+            <Button
+              variant="ghost"
+              className="w-full justify-start flex items-center gap-2"
+              onClick={handleViewDetails}
+            >
+              {level === 2 ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}
+              {labels.viewDetailsText}
+            </Button>
           </div>
         </PopoverContent>
       </Popover>
-      {/* Only show edit dialog for level 2 items */}
-      {level === 2 && (
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{labels.editTitle}</DialogTitle>
-            <DialogDescription>Actualiza la información de la sub-partida</DialogDescription>
-          </DialogHeader>
-          {partida &&
-            <EditPartidaForm partida={partida} onClose={() => { }} />}
-        </DialogContent>
-      )}
+      {/* Edit dialog for all levels */}
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{labels.editTitle}</DialogTitle>
+          <DialogDescription>
+            Actualiza la información de {level === 0 ? 'la partida' : level === 1 ? 'la familia' : 'la sub-partida'}
+          </DialogDescription>
+        </DialogHeader>
+        {partida &&
+          <EditPartidaForm partida={partida} level={level} onClose={() => { }} />}
+      </DialogContent>
     </Dialog>
   );
 }

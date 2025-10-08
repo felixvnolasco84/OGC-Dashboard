@@ -117,23 +117,37 @@ export default function AddProjectModal() {
 
 
     const createProject = useMutation(api.desarrollos.create);
-
     const uploadProjectData = useMutation(api.partida.createPartida);
+    const createPayment = useMutation(api.pagos.create);
 
     const handleInputChange = (field: string, value: string) => {
         updateFormData({ [field]: value });
     };
+    // Helper function to convert Excel serial date to JavaScript Date
+    const excelSerialToDate = (serial: number): string => {
+        // Excel stores dates as days since 1/1/1900
+        // Subtract 25569 to convert to Unix epoch, then multiply by milliseconds in a day
+        const date = new Date((serial - 25569) * 86400 * 1000);
+        // Format as DD/MM/YYYY
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
     const handleExcelUpload = async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
-
-        // const response = await fetch("http://localhost:3000/upload", {
-        const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
+        
+        // const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
+        const response = await fetch("http://localhost:3000/upload", {
             method: "POST",
             body: formData,
         });
 
         const data = await response.json();
+
+        console.log(data);
 
         return data;
     };
@@ -162,10 +176,32 @@ export default function AddProjectModal() {
                 image: "",
             });
 
+            // Type for the record from the API
+            type PartidaRecord = {
+                partida: string;
+                familia: string;
+                sub_partida: string;
+                Cantidad: string;
+                PrecioUnitario: string;
+                Subtotal: string;
+                Iva: string;
+                total: string;
+                aprobado: string;
+                pagado: string;
+                por_liquidar: string;
+                actual: string;
+                weeklyPayments?: Array<{
+                    week: number;
+                    columnLetter: string;
+                    amount: number;
+                    position: number;
+                }>;
+            };
 
-            // Upload all partidas from the Excel data
-            const uploadPromises = response.data.map((record: Record<string, string>) =>
-                uploadProjectData({
+            // Upload all partidas from the Excel data and create associated payments
+            const partidaPromises = response.data.map(async (record: PartidaRecord) => {
+                // Create the partida
+                const partidaId = await uploadProjectData({
                     nombre: record.partida || '',
                     familia: record.familia || '',
                     sub_partida: record.sub_partida || '',
@@ -181,11 +217,45 @@ export default function AddProjectModal() {
                     fecha_carga: new Date().toISOString(),
                     archivo_origen: response.fileName || formData.excel?.name || 'unknown',
                     proyecto: project,
-                })
-            );
+                });
 
-            const partidas = await Promise.all(uploadPromises);
-            console.log(`Successfully uploaded ${partidas.length} partida records`);
+                // Create payments for this partida if weeklyPayments exist
+                if (record.weeklyPayments && record.weeklyPayments.length > 0) {
+                    const paymentPromises = record.weeklyPayments.map((payment) => {
+                        // Only create payment if amount is greater than 0
+                        if (payment.amount <= 0) {
+                            return Promise.resolve(null);
+                        }
+
+                        return createPayment({
+                            partida_id: partidaId,
+                            partida: record.partida || '',
+                            familia: record.familia || '',
+                            sub_partida: record.sub_partida || '',
+                            monto: payment.amount.toString(),
+                            fecha: excelSerialToDate(payment.week),
+                            tipo_pago: 'transferencia', // Default payment type
+                            banco: '',
+                            tarjeta: '',
+                            numero_cuenta: '',
+                            numero_transferencia: '',
+                            codigo_referencia: `Week-${payment.position}`,
+                            factura: '',
+                            moneda: 'MXN',
+                            tipo_cambio: '1',
+                            status: 'Pendiente',
+                            proyecto: project,
+                        });
+                    });
+
+                    await Promise.all(paymentPromises);
+                }
+
+                return partidaId;
+            });
+
+            const partidas = await Promise.all(partidaPromises);
+            console.log(`Successfully uploaded ${partidas.length} partida records with their payments`);
 
             setShowExcelUploader(true);
         } catch (error) {
