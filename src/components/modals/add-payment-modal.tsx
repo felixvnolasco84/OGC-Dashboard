@@ -122,7 +122,7 @@ export default function AddPaymentModal() {
 
     const isFormValid = () => {
         const basicValid = formData.monto &&
-            parseFloat(formData.monto) > 0 &&
+            formData.monto > 0 &&
             formData.fecha &&
             formData.tipo_pago &&
             formData.status;

@@ -32,28 +32,28 @@ export default function AddPartidaModal() {
 
     // Auto-calculate fields when relevant values change
     useEffect(() => {
-        const cantidad = parseFloat(formData.Cantidad) || 0;
-        const precioUnitario = parseFloat(formData.PrecioUnitario) || 0;
+        const cantidad = formData.Cantidad || 0;
+        const precioUnitario = formData.PrecioUnitario || 0;
         const subtotal = cantidad * precioUnitario;
         const iva = subtotal * 0.16; // 16% IVA
         const total = subtotal + iva;
 
         updateFormData({
-            Subtotal: subtotal.toFixed(2),
-            Iva: iva.toFixed(2),
-            total: total.toFixed(2),
+            Subtotal: subtotal,
+            Iva: iva,
+            total: total,
         });
     }, [formData.Cantidad, formData.PrecioUnitario, updateFormData]);
 
     // Auto-calculate por_liquidar and actual
     useEffect(() => {
-        const aprobado = parseFloat(formData.aprobado) || 0;
-        const pagado = parseFloat(formData.pagado) || 0;
+        const aprobado = formData.aprobado || 0;
+        const pagado = formData.pagado || 0;
         const porLiquidar = aprobado - pagado;
 
         updateFormData({
-            por_liquidar: porLiquidar.toFixed(2),
-            actual: aprobado.toFixed(2), // actual is same as aprobado initially
+            por_liquidar: porLiquidar,
+            actual: aprobado, // actual is same as aprobado initially
         });
     }, [formData.aprobado, formData.pagado, updateFormData]);
 
@@ -89,11 +89,11 @@ export default function AddPartidaModal() {
             formData.familia &&
             formData.sub_partida &&
             formData.Cantidad &&
-            parseFloat(formData.Cantidad) > 0 &&
+            formData.Cantidad > 0 &&
             formData.PrecioUnitario &&
-            parseFloat(formData.PrecioUnitario) > 0 &&
+            formData.PrecioUnitario > 0 &&
             formData.aprobado &&
-            parseFloat(formData.aprobado) > 0;
+            formData.aprobado > 0;
     };
 
     if (!partidaContext) return null;

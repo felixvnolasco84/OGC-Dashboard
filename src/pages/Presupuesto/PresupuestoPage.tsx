@@ -88,10 +88,10 @@ export default function PresupuestoPage() {
 
   // Calculate metrics from real data
   const metrics = {
-    presupuestoOriginal: allPartidas?.reduce((sum, p) => sum + parseFloat(p.total || "0"), 0) || 0,
-    presupuestoAprobado: allPartidas?.reduce((sum, p) => sum + parseFloat(p.aprobado || "0"), 0) || 0,
-    gastoTotal: allPartidas?.reduce((sum, p) => sum + parseFloat(p.pagado || "0"), 0) || 0,
-    porGastar: allPartidas?.reduce((sum, p) => sum + parseFloat(p.por_liquidar || "0"), 0) || 0,
+    presupuestoOriginal: allPartidas?.reduce((sum, p) => sum + p.total || 0, 0) || 0,
+    presupuestoAprobado: allPartidas?.reduce((sum, p) => sum + p.aprobado || 0, 0) || 0,
+    gastoTotal: allPartidas?.reduce((sum, p) => sum + p.pagado || 0, 0) || 0,
+    porGastar: allPartidas?.reduce((sum, p) => sum + p.por_liquidar || 0, 0) || 0,
   };
 
   // Get unique partidas and familias for filters (filter out empty strings)

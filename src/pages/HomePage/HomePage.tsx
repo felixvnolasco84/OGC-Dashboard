@@ -77,7 +77,7 @@ export default function HomePage() {
     const [selectedProject, setSelectedProject] = useState<Doc<"desarrollos"> | undefined>(undefined)
     const [selectedAnalisis, setSelectedAnalisis] = useState("Por partida");
     const [selectedPeriodo, setSelectedPeriodo] = useState("Mensual");
-    
+
     // Add partida modal
     const addPartidaModal = useAddPartidaModal();
 
@@ -106,9 +106,9 @@ export default function HomePage() {
 
     // Calculate secondary metrics from allPartidas
     const secondaryMetrics = {
-        gasto: allPartidas?.reduce((sum, p) => sum + parseFloat(p.pagado || "0"), 0) || 0,
-        porVencer: allPartidas?.reduce((sum, p) => sum + parseFloat(p.por_liquidar || "0"), 0) || 0,
-        honorarios: allPartidas?.filter(p => p.familia === "HONORARIOS").reduce((sum, p) => sum + parseFloat(p.pagado || "0"), 0) || 0
+        gasto: allPartidas?.reduce((sum, p) => sum + p.pagado || 0, 0) || 0,
+        porVencer: allPartidas?.reduce((sum, p) => sum + p.por_liquidar || 0, 0) || 0,
+        honorarios: allPartidas?.filter(p => p.familia === "HONORARIOS").reduce((sum, p) => sum + p.pagado || 0, 0) || 0
     };
 
     // Get unique familias for the legend and chart
@@ -141,9 +141,9 @@ export default function HomePage() {
         // Create time periods (distribute across dates for visualization)
         const numPoints = Math.min(sortedPartidas.length, 10); // Show max 10 data points
         const partidasPerPoint = Math.ceil(sortedPartidas.length / numPoints);
-        
+
         const baseDate = new Date('2024-09-01'); // Start date for visualization
-        const dataPoints: { date: string; [key: string]: string | number }[] = [];
+        const dataPoints: { date: string;[key: string]: string | number }[] = [];
 
         for (let i = 0; i < numPoints; i++) {
             const startIdx = i * partidasPerPoint;
@@ -158,7 +158,7 @@ export default function HomePage() {
                 if (!familiasTotals[familia]) {
                     familiasTotals[familia] = 0;
                 }
-                familiasTotals[familia] += parseFloat(partida.pagado || "0");
+                familiasTotals[familia] += partida.pagado || 0;
             });
 
             // Create date label (spread across the month)
@@ -167,7 +167,7 @@ export default function HomePage() {
             pointDate.setDate(baseDate.getDate() + dayOffset);
             const dateLabel = pointDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 
-            const dataPoint: { date: string; [key: string]: string | number } = { date: dateLabel };
+            const dataPoint: { date: string;[key: string]: string | number } = { date: dateLabel };
             uniqueFamilias.forEach(familia => {
                 dataPoint[familia] = familiasTotals[familia] || 0;
             });

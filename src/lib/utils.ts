@@ -41,15 +41,15 @@ export type partida = {
   nombre: string;
   familia: string;
   sub_partida: string;
-  Cantidad: string;
-  PrecioUnitario: string;
-  Subtotal: string;
-  Iva: string;
-  total: string;
-  aprobado: string;
-  pagado: string;
-  por_liquidar: string;
-  actual: string;
+  Cantidad: number;
+  PrecioUnitario: number;
+  Subtotal: number;
+  Iva: number;
+  total: number;
+  aprobado: number;
+  pagado: number;
+  por_liquidar: number;
+  actual: number;
   fecha_carga: string;
   archivo_origen: string;
 }

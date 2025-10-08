@@ -42,7 +42,7 @@ export default function SeePaymentDetailsModal() {
         // Only count payments with status "Pagado" or legacy payments without status
         return paymentContext.payments.reduce((total, payment) => {
             const isPagado = payment.status === 'Pagado' || !payment.status;
-            return isPagado ? total + parseFloat(payment.monto) : total;
+            return isPagado ? total + payment.monto : total;
         }, 0);
     };
 

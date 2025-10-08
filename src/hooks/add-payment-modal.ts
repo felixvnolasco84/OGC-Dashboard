@@ -8,7 +8,7 @@ type AddPaymentContext = {
 };
 
 type PaymentFormData = {
-    monto: string;
+    monto: number;
     fecha: string;
     tipo_pago: string;
     banco: string;
@@ -36,7 +36,7 @@ type AddPaymentModalStore = {
 };
 
 const initialFormData: PaymentFormData = {
-    monto: "",
+    monto: 0,
     fecha: new Date().toISOString().split('T')[0],
     tipo_pago: "efectivo",
     moneda: "MXN",

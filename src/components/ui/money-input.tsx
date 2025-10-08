@@ -4,35 +4,33 @@ import { cn } from "@/lib/utils";
 
 export interface MoneyInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> {
-  value?: string;
-  onChange?: (value: string) => void;
+  value?: number;
+  onChange?: (value: number) => void;
   currency?: string;
   locale?: string;
 }
 
 const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
-  ({ className, value = "", onChange, currency = "MXN", locale = "es-MX", disabled, ...props }, ref) => {
+  ({ className, value = 0, onChange, currency = "MXN", locale = "es-MX", disabled, ...props }, ref) => {
     const [displayValue, setDisplayValue] = React.useState("");
     const [isFocused, setIsFocused] = React.useState(false);
 
     // Format number to currency display
-    const formatToCurrency = React.useCallback((val: string): string => {
-      if (!val || val === "0") return "";
-      
-      const number = parseFloat(val);
-      if (isNaN(number)) return "";
+    const formatToCurrency = React.useCallback((val: number): string => {
+      if (!val || val === 0) return "";
       
       return new Intl.NumberFormat(locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      }).format(number);
+      }).format(val);
     }, [locale]);
 
-    // Parse display value back to raw number string
-    const parseFromDisplay = (val: string): string => {
+    // Parse display value back to number
+    const parseFromDisplay = (val: string): number => {
       // Remove all non-numeric characters except decimal point
       const cleaned = val.replace(/[^0-9.]/g, "");
-      return cleaned;
+      const number = parseFloat(cleaned);
+      return isNaN(number) ? 0 : number;
     };
 
     // Update display value when prop value changes (when not focused)
@@ -45,7 +43,7 @@ const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true);
       // Show raw number when focused
-      setDisplayValue(value === "0" ? "" : value);
+      setDisplayValue(value === 0 ? "" : String(value));
       props.onFocus?.(e);
     };
 
@@ -58,12 +56,12 @@ const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value;
-      const parsed = parseFromDisplay(inputValue);
+      const cleaned = inputValue.replace(/[^0-9.]/g, "");
       
       // Validate it's a valid number format
-      if (parsed === "" || /^\d*\.?\d*$/.test(parsed)) {
+      if (cleaned === "" || /^\d*\.?\d*$/.test(cleaned)) {
         setDisplayValue(inputValue);
-        onChange?.(parsed || "0");
+        onChange?.(parseFromDisplay(inputValue));
       }
     };
 

@@ -50,7 +50,7 @@ export default function EditPaymentModal() {
 
     const isFormValid = () => {
         return formData.monto &&
-            parseFloat(formData.monto) > 0 &&
+            formData.monto > 0 &&
             formData.fecha &&
             formData.tipo_pago &&
             formData.status;

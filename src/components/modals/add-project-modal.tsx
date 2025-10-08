@@ -181,15 +181,15 @@ export default function AddProjectModal() {
                 partida: string;
                 familia: string;
                 sub_partida: string;
-                Cantidad: string;
-                PrecioUnitario: string;
-                Subtotal: string;
-                Iva: string;
-                total: string;
-                aprobado: string;
-                pagado: string;
-                por_liquidar: string;
-                actual: string;
+                Cantidad: number;
+                PrecioUnitario: number;
+                Subtotal: number;
+                Iva: number;
+                total: number;
+                aprobado: number;
+                pagado: number;
+                por_liquidar: number;
+                actual: number;
                 weeklyPayments?: Array<{
                     week: number;
                     columnLetter: string;
@@ -205,15 +205,15 @@ export default function AddProjectModal() {
                     nombre: record.partida || '',
                     familia: record.familia || '',
                     sub_partida: record.sub_partida || '',
-                    Cantidad: record.Cantidad || '0',
-                    PrecioUnitario: record.PrecioUnitario || '0',
-                    Subtotal: record.Subtotal || '0',
-                    Iva: record.Iva || '0',
-                    total: record.total || '0',
-                    aprobado: record.aprobado || '0',
-                    pagado: record.pagado || '0',
-                    por_liquidar: record.por_liquidar || '0',
-                    actual: record.actual || '0',
+                    Cantidad: record.Cantidad || 0,
+                    PrecioUnitario: record.PrecioUnitario || 0,
+                    Subtotal: record.Subtotal || 0,
+                    Iva: record.Iva || 0,
+                    total: record.total || 0,
+                    aprobado: record.aprobado || 0,
+                    pagado: record.pagado || 0,
+                    por_liquidar: record.por_liquidar || 0,
+                    actual: record.actual || 0,
                     fecha_carga: new Date().toISOString(),
                     archivo_origen: response.fileName || formData.excel?.name || 'unknown',
                     proyecto: project,
@@ -232,7 +232,7 @@ export default function AddProjectModal() {
                             partida: record.partida || '',
                             familia: record.familia || '',
                             sub_partida: record.sub_partida || '',
-                            monto: payment.amount.toString(),
+                            monto: payment.amount,
                             fecha: excelSerialToDate(payment.week),
                             tipo_pago: 'transferencia', // Default payment type
                             banco: '',

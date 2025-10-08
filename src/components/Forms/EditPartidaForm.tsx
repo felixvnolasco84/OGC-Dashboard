@@ -39,31 +39,31 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
     nombre: z.string().min(1, "El nombre es requerido"),
     familia: z.string(),
     sub_partida: z.string(),
-    Cantidad: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    Cantidad: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    PrecioUnitario: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    PrecioUnitario: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    Subtotal: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    Subtotal: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    Iva: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    Iva: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    total: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    total: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    aprobado: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    aprobado: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    pagado: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    pagado: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    por_liquidar: z.string().refine((val) => !isNaN(Number(val)) && Number(val) != 0, {
+    por_liquidar: z.number().refine((val) => !isNaN(Number(val)) && Number(val) != 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    actual: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    actual: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
   });
@@ -262,7 +262,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                           className={level < 2 ? "bg-gray-100" : "bg-white"}
                           disabled={level < 2 || isLoading}
                           value={field.value}
-                          onChange={field.onChange}
+                          onChange={(value) => field.onChange(value)}
                         />
                       </FormControl>
                       <FormMessage />

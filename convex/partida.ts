@@ -53,19 +53,19 @@ export const getProjectMetrics = query({
 
     // Calculate metrics
     const presupuestoAprobado = partidas.reduce(
-      (sum, p) => sum + parseFloat(p.aprobado || "0"),
+      (sum, p) => sum + p.aprobado || 0,
       0
     );
     const pagado = partidas.reduce(
-      (sum, p) => sum + parseFloat(p.pagado || "0"),
+      (sum, p) => sum + p.pagado || 0,
       0
     );
     const porLiquidar = partidas.reduce(
-      (sum, p) => sum + parseFloat(p.por_liquidar || "0"),
+      (sum, p) => sum + p.por_liquidar || 0,
       0
     );
     const actual = partidas.reduce(
-      (sum, p) => sum + parseFloat(p.actual || "0"),
+      (sum, p) => sum + p.actual || 0,
       0
     );
 
@@ -117,10 +117,10 @@ export const getGroupedByPartida = query({
           items: [],
         };
       }
-      acc[key].presupuestoAprobado += parseFloat(p.aprobado || "0");
-      acc[key].pagado += parseFloat(p.pagado || "0");
-      acc[key].porLiquidar += parseFloat(p.por_liquidar || "0");
-      acc[key].actual += parseFloat(p.actual || "0");
+      acc[key].presupuestoAprobado += p.aprobado || 0;
+      acc[key].pagado += p.pagado || 0;
+      acc[key].porLiquidar += p.por_liquidar || 0;
+      acc[key].actual += p.actual || 0;
       acc[key].items.push(p);
       return acc;
     }, {} as Record<string, GroupedPartida>);
@@ -167,10 +167,10 @@ export const getGroupedByFamilia = query({
           items: [],
         };
       }
-      acc[key].presupuestoAprobado += parseFloat(p.aprobado || "0");
-      acc[key].pagado += parseFloat(p.pagado || "0");
-      acc[key].porLiquidar += parseFloat(p.por_liquidar || "0");
-      acc[key].actual += parseFloat(p.actual || "0");
+      acc[key].presupuestoAprobado += p.aprobado || 0;
+      acc[key].pagado += p.pagado || 0;
+      acc[key].porLiquidar += p.por_liquidar || 0;
+      acc[key].actual += p.actual || 0;
       acc[key].items.push(p);
       return acc;
     }, {} as Record<string, GroupedFamilia>);
@@ -186,15 +186,15 @@ export const createPartida = mutation({
     nombre: v.string(),
     familia: v.string(),
     sub_partida: v.string(),
-    Cantidad: v.string(),
-    PrecioUnitario: v.string(),
-    Subtotal: v.string(),
-    Iva: v.string(),
-    total: v.string(),
-    aprobado: v.string(),
-    pagado: v.string(),
-    por_liquidar: v.string(),
-    actual: v.string(),
+    Cantidad: v.number(),
+    PrecioUnitario: v.number(),
+    Subtotal: v.number(),
+    Iva: v.number(),
+    total: v.number(),
+    aprobado: v.number(),
+    pagado: v.number(),
+    por_liquidar: v.number(),
+    actual: v.number(),
     fecha_carga: v.string(),
     archivo_origen: v.string(),
     proyecto: v.optional(v.id("desarrollos")),
@@ -227,15 +227,15 @@ export const update = mutation({
     nombre: v.string(),
     familia: v.string(),
     sub_partida: v.string(),
-    Cantidad: v.string(),
-    PrecioUnitario: v.string(),
-    Subtotal: v.string(),
-    Iva: v.string(),
-    total: v.string(),
-    aprobado: v.string(),
-    pagado: v.string(),
-    por_liquidar: v.string(),
-    actual: v.string(),
+    Cantidad: v.number(),
+    PrecioUnitario: v.number(),
+    Subtotal: v.number(),
+    Iva: v.number(),
+    total: v.number(),
+    aprobado: v.number(),
+    pagado: v.number(),
+    por_liquidar: v.number(),
+    actual: v.number(),
     fecha_carga: v.string(),
     archivo_origen: v.string(),
     proyecto: v.optional(v.id("desarrollos")),

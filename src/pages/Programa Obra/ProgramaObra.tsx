@@ -109,7 +109,7 @@ export default function ProgramaObra() {
       }
 
       const partidaGroup = acc[partidaKey];
-      partidaGroup.presupuesto += parseFloat(item.aprobado || "0");
+      partidaGroup.presupuesto += item.aprobado || 0;
 
       // Create or update familia group
       if (!partidaGroup.familias[familiaKey]) {
@@ -132,11 +132,11 @@ export default function ProgramaObra() {
       }
 
       const familiaGroup = partidaGroup.familias[familiaKey];
-      familiaGroup.presupuesto += parseFloat(item.aprobado || "0");
+      familiaGroup.presupuesto += item.aprobado || 0;
       
       // Update familia timeline progress based on accumulated data
       if (familiaGroup.timeline) {
-        const totalPagado = (familiaGroup.timeline.actualAmount || 0) + parseFloat(item.pagado || "0");
+        const totalPagado = (familiaGroup.timeline.actualAmount || 0) + item.pagado || 0;
         familiaGroup.timeline.actualAmount = totalPagado;
         familiaGroup.timeline.progress = familiaGroup.presupuesto > 0
           ? Math.round((totalPagado / familiaGroup.presupuesto) * 100)
@@ -153,17 +153,17 @@ export default function ProgramaObra() {
         familiaGroup.children.push({
           id: `subpartida-${partidaKey}-${familiaKey}-${subPartidaKey}-${item._id}`,
           partida: subPartidaKey,
-          presupuesto: parseFloat(item.aprobado || "0"),
+          presupuesto: item.aprobado || 0,
           expanded: false,
           level: 2,
           timeline: {
             start: Math.floor(Math.random() * 8) + 1, // Mock timeline for now (1-8 for months)
             duration: Math.floor(Math.random() * 4) + 1,
             color: "bg-green-500",
-            progress: parseFloat(item.aprobado || "0") > 0
-              ? Math.round((parseFloat(item.pagado || "0") / parseFloat(item.aprobado || "0")) * 100)
+            progress: item.aprobado > 0
+              ? Math.round((item.pagado / item.aprobado) * 100)
               : 0,
-            actualAmount: parseFloat(item.pagado || "0")
+            actualAmount: item.pagado
           },
           children: []
         });

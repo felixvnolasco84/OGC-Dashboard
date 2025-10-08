@@ -52,7 +52,7 @@ export default function GanttChart({ data }: GanttChartProps) {
     const processedData = data.map(item => ({
       ...item,
       parsedDate: new Date(item.fecha_carga.split('/').reverse().join('-')),
-      numericAmount: parseFloat(item.PrecioUnitario.replace(/[^0-9.-]/g, ''))
+      numericAmount: item.PrecioUnitario
     })).filter(item => !isNaN(item.parsedDate.getTime()) && !isNaN(item.numericAmount));
 
     // Group by partida and sub_partida

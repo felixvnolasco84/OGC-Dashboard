@@ -58,10 +58,10 @@ export default function PartidaDetails() {
     // Only count payments with status "Pagado" or legacy payments without status
     const totalPagado = partida.pagos?.reduce((sum, pago) => {
         const isPagado = pago.status === 'Pagado' || !pago.status;
-        return isPagado ? sum + parseFloat(pago.monto || '0') : sum;
+        return isPagado ? sum + pago.monto || 0 : sum;
     }, 0) || 0;
 
-    const montoTotal = parseFloat(partida.total?.toString() || '0');
+    const montoTotal = partida.total || 0;
     const porcentajePagado = montoTotal > 0 ? (totalPagado / montoTotal) * 100 : 0;
 
     const handleEditPayment = (pago: PaymentWithBilling) => {
@@ -74,7 +74,7 @@ export default function PartidaDetails() {
     };
 
 
-    const presupuestoAprobado = parseFloat(partida.aprobado || '0');
+    const presupuestoAprobado = partida.aprobado || 0;
     const porEjercer = presupuestoAprobado - totalPagado;
 
     return (
@@ -90,7 +90,7 @@ export default function PartidaDetails() {
                     >
                         <X className="h-5 w-5" />
                     </Button>
-                    
+
                     <div className="pr-12">
                         <h1 className="text-xl font-bold text-gray-900 mb-1">{partida.nombre}</h1>
                         <p className="text-sm text-gray-500 mb-3">
@@ -102,10 +102,10 @@ export default function PartidaDetails() {
                     </div>
 
                     <Button
-                        onClick={() => addPaymentModal.onOpen({ 
-                            relatedCost: partida, 
-                            totalAmount: presupuestoAprobado, 
-                            remainingAmount: porEjercer 
+                        onClick={() => addPaymentModal.onOpen({
+                            relatedCost: partida,
+                            totalAmount: presupuestoAprobado,
+                            remainingAmount: porEjercer
                         })}
                         className="bg-black hover:bg-gray-800 text-white text-sm px-4 py-2"
                     >
@@ -149,11 +149,10 @@ export default function PartidaDetails() {
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-3">
                                         {(() => {
-                                            const isPagado = pago.status === 'Pagado' || (!pago.status && parseFloat(pago.monto) > 0);
+                                            const isPagado = pago.status === 'Pagado' || (!pago.status && pago.monto > 0);
                                             return (
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                                    isPagado ? 'bg-green-100' : 'bg-orange-100'
-                                                }`}>
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isPagado ? 'bg-green-100' : 'bg-orange-100'
+                                                    }`}>
                                                     {isPagado ? (
                                                         <Check className="h-5 w-5 text-green-600" />
                                                     ) : (
@@ -164,14 +163,14 @@ export default function PartidaDetails() {
                                         })()}
                                         <div>
                                             <p className="text-sm font-semibold text-gray-900">
-                                                {pago.status || (parseFloat(pago.monto) > 0 ? 'Aprobado' : 'Pendiente')}
+                                                {pago.status || (pago.monto > 0 ? 'Aprobado' : 'Pendiente')}
                                             </p>
                                             <p className="text-xs text-gray-500">Pago #{String(index + 1).padStart(3, '0')}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <p className="text-xl font-bold text-gray-900">
-                                            {formatCurrency(pago.monto)} {pago.moneda || 'MXN'}
+                                            {formatCurrency(pago.monto.toString())} {pago.moneda || 'MXN'}
                                         </p>
                                         <Popover>
                                             <PopoverTrigger asChild>
@@ -181,9 +180,9 @@ export default function PartidaDetails() {
                                             </PopoverTrigger>
                                             <PopoverContent className="w-40" align="end">
                                                 <div className="space-y-1">
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        className="w-full justify-start text-sm" 
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="w-full justify-start text-sm"
                                                         onClick={() => handleEditPayment(pago as PaymentWithBilling)}
                                                     >
                                                         <Edit className="h-4 w-4 mr-2" />
@@ -262,9 +261,9 @@ export default function PartidaDetails() {
                                     )}
                                     {pago.tipo_pago && (
                                         <Badge variant="outline" className="text-xs px-3 py-1 capitalize">
-                                            {pago.tipo_pago === 'transferencia' ? 'Transferencia' : 
-                                             pago.tipo_pago === 'tarjeta' ? 'Tarjeta' : 
-                                             pago.tipo_pago}
+                                            {pago.tipo_pago === 'transferencia' ? 'Transferencia' :
+                                                pago.tipo_pago === 'tarjeta' ? 'Tarjeta' :
+                                                    pago.tipo_pago}
                                         </Badge>
                                     )}
                                     {pago.moneda && pago.moneda !== 'MXN' && (

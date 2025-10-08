@@ -19,7 +19,7 @@ type PartidaFormData = {
     // Payment details
     tipo_pago: string;
     moneda: string;
-    monto: string;
+    monto: number;
     fecha_pago: string;
 
     // File uploads (URLs from EdgeStore)
@@ -53,7 +53,7 @@ const initialFormData: PartidaFormData = {
     categoria: "",
     tipo_pago: "efectivo",
     moneda: "MXN",
-    monto: "",
+    monto: 0,
     fecha_pago: new Date().toISOString().split('T')[0],
     factura: "",
     comprobante: "",

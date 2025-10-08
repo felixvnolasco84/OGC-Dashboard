@@ -7,7 +7,7 @@ export const create = mutation({
         partida: v.string(),
         familia: v.string(),
         sub_partida: v.string(),
-        monto: v.string(),
+        monto: v.number(),
         fecha: v.string(),
         tipo_pago: v.string(),
         banco: v.string(),
@@ -46,7 +46,7 @@ export const create = mutation({
 export const update = mutation({
     args: {
         id: v.id("pagos"),
-        monto: v.string(),
+        monto: v.number(),
         fecha: v.string(),
         tipo_pago: v.string(),
         banco: v.string(),

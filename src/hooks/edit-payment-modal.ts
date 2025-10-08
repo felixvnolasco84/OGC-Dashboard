@@ -13,7 +13,7 @@ type EditPaymentContext = {
 };
 
 type PaymentFormData = {
-    monto: string;
+    monto: number;
     fecha: string;
     tipo_pago: string;
     banco: string;
@@ -40,7 +40,7 @@ type EditPaymentModalStore = {
 };
 
 const initialFormData: PaymentFormData = {
-    monto: "",
+    monto: 0,
     fecha: "",
     tipo_pago: "efectivo",
     moneda: "MXN",
@@ -63,7 +63,7 @@ export const useEditPaymentModal = create<EditPaymentModalStore>((set) => ({
         // Pre-fill form with existing payment data
         const payment = paymentContext.payment;
         const prefilledData: PaymentFormData = {
-            monto: payment.monto || "",
+            monto: payment.monto || 0,
             fecha: payment.fecha || "",
             tipo_pago: payment.tipo_pago || "efectivo",
             banco: payment.banco || "",

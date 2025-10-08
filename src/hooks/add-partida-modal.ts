@@ -10,15 +10,15 @@ type PartidaFormData = {
     nombre: string;
     familia: string;
     sub_partida: string;
-    Cantidad: string;
-    PrecioUnitario: string;
-    Subtotal: string;
-    Iva: string;
-    total: string;
-    aprobado: string;
-    pagado: string;
-    por_liquidar: string;
-    actual: string;
+    Cantidad: number;
+    PrecioUnitario: number;
+    Subtotal: number;
+    Iva: number;
+    total: number;
+    aprobado: number;
+    pagado: number;
+    por_liquidar: number;
+    actual: number;
     fecha_carga: string;
     archivo_origen: string;
 };
@@ -37,15 +37,15 @@ const initialFormData: PartidaFormData = {
     nombre: "",
     familia: "",
     sub_partida: "",
-    Cantidad: "",
-    PrecioUnitario: "",
-    Subtotal: "",
-    Iva: "",
-    total: "",
-    aprobado: "",
-    pagado: "0",
-    por_liquidar: "",
-    actual: "",
+    Cantidad: 0,
+    PrecioUnitario: 0,
+    Subtotal: 0,
+    Iva: 0,
+    total: 0,
+    aprobado: 0,
+    pagado: 0,
+    por_liquidar: 0,
+    actual: 0,
     fecha_carga: new Date().toISOString().split('T')[0],
     archivo_origen: "",
 };

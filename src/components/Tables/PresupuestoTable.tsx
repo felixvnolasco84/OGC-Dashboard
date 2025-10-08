@@ -89,9 +89,9 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
       const partidaGroup = acc[partidaKey];
 
       // Add to partida totals
-      partidaGroup.presupuestoOriginal += parseFloat(item.total || "0");
-      partidaGroup.presupuestoAprobado += parseFloat(item.aprobado || "0");
-      partidaGroup.pagado += parseFloat(item.pagado || "0");
+      partidaGroup.presupuestoOriginal += item.total || 0;
+      partidaGroup.presupuestoAprobado += item.aprobado || 0;
+      partidaGroup.pagado += item.pagado || 0;
 
       // If item has no familia, it's a partida-level item only (no children to add)
       if (!familiaKey || familiaKey.trim() === "") {
@@ -120,9 +120,9 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
       const familiaGroup = partidaGroup.familias[familiaKey];
 
       // Add to familia totals
-      familiaGroup.presupuestoOriginal += parseFloat(item.total || "0");
-      familiaGroup.presupuestoAprobado += parseFloat(item.aprobado || "0");
-      familiaGroup.pagado += parseFloat(item.pagado || "0");
+      familiaGroup.presupuestoOriginal += item.total || 0;
+      familiaGroup.presupuestoAprobado += item.aprobado || 0;
+      familiaGroup.pagado += item.pagado || 0;
 
       // Add sub_partida as a child of familia only if it's meaningful
       // (not empty, not the same as familia name)
@@ -134,11 +134,11 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
         familiaGroup.children.push({
           ...item, // Include all original partida properties
           displayName: subPartidaKey,
-          presupuestoOriginal: parseFloat(item.total || "0"),
-          presupuestoAprobado: parseFloat(item.aprobado || "0"),
-          pagado: parseFloat(item.pagado || "0"),
-          avance: parseFloat(item.aprobado || "0") > 0
-            ? Math.round((parseFloat(item.pagado || "0") / parseFloat(item.aprobado || "0")) * 100)
+          presupuestoOriginal: item.total || 0,
+          presupuestoAprobado: item.aprobado || 0,
+          pagado: item.pagado || 0,
+          avance: item.aprobado || 0 > 0
+            ? Math.round((item.pagado || 0 / item.aprobado || 0) * 100)
             : 0,
           fechaInicio: "-",
           fechaFin: "-",
@@ -330,15 +330,15 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
                         nombre: item.nombre || item.displayName,
                         familia: item.familia || '',
                         sub_partida: item.sub_partida || '',
-                        Cantidad: item.presupuestoOriginal.toString(),
-                        PrecioUnitario: '0',
-                        Subtotal: item.presupuestoOriginal.toString(),
-                        Iva: '0',
-                        total: item.presupuestoOriginal.toString(),
-                        aprobado: item.presupuestoAprobado.toString(),
-                        pagado: item.pagado.toString(),
-                        por_liquidar: (item.presupuestoAprobado - item.pagado).toString(),
-                        actual: item.pagado.toString(),
+                        Cantidad: item.presupuestoOriginal || 0,
+                        PrecioUnitario: item.PrecioUnitario || 0,
+                        Subtotal: item.presupuestoOriginal || 0,
+                        Iva: item.Iva || 0,
+                        total: item.presupuestoOriginal || 0,
+                        aprobado: item.presupuestoAprobado || 0,
+                        pagado: item.pagado || 0,
+                        por_liquidar: (item.presupuestoAprobado - item.pagado),
+                        actual: item.pagado,
                         fecha_carga: new Date().toLocaleDateString('es-MX'),
                         archivo_origen: 'aggregated',
                       } as Doc<"partidas">)}

@@ -7,7 +7,7 @@ export default function PaymentCard({ payment, index, formatCurrency }: {
     formatCurrency: (amount: string | number) => string;
 }) {
     // Use the status property, fallback to checking amount if not available
-    const isPagado = payment.status === 'Pagado' || (!payment.status && parseFloat(payment.monto) > 0);
+    const isPagado = payment.status === 'Pagado' || (!payment.status && payment.monto > 0);
 
     return (
         <div className="bg-white overflow-hidden">
