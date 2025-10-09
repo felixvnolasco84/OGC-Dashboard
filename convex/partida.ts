@@ -380,10 +380,6 @@ export const getById = query({
     // Get informacion_facturacion_pago for each payment
     const pagosWithFacturacion = await Promise.all(
       pagos.map(async (pago) => {
-        if (pago.informacion_facturacion_pago) {
-          const facturacion = await ctx.db.get(pago.informacion_facturacion_pago);
-          return { ...pago, informacion_facturacion_pago: facturacion };
-        }
         return pago;
       })
     );
@@ -408,7 +404,7 @@ export const getDistinctFamiliasByPartida = query({
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
       .filter((q) => q.eq(q.field("nombre"), args.partidaNombre))
       .collect();
-    
+
     // Get unique familias
     const familias = [...new Set(partidas.map(p => p.familia).filter(f => f && f.trim() !== ""))];
     return familias.sort();
@@ -426,14 +422,14 @@ export const getDistinctSubPartidasByFamilia = query({
     const partidas = await ctx.db
       .query("partidas")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.eq(q.field("nombre"), args.partidaNombre),
           q.eq(q.field("familia"), args.familia)
         )
       )
       .collect();
-    
+
     // Get unique sub_partidas
     const subPartidas = [...new Set(partidas.map(p => p.sub_partida).filter(sp => sp && sp.trim() !== ""))];
     return subPartidas.sort();

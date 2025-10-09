@@ -34,13 +34,42 @@ export default function DropdownMenuComponentPartida({
 
   const navigate = useNavigate();
 
-  // Query real payments for this partida (only for level 2 with real IDs)
-  // Level 0 and 1 are aggregated rows with temporary IDs
+  // Query payments based on level with proper proyecto filtering
   const isRealPartida = level === 2 && partida._id && !partida._id.toString().startsWith("temp-");
-  const payments = useQuery(
+  
+  // Level 2: Get payments by partida_id (specific sub-partida)
+  const level2Payments = useQuery(
     api.pagos.getByPartidaId,
     isRealPartida ? { partida_id: partida._id } : "skip"
   );
+
+  // Level 0: Get all payments for this partida name
+  // proyecto_id is optional - will filter by it if available
+  const level0Payments = useQuery(
+    api.pagos.getByPartidaName,
+    level === 0 && partida.nombre
+      ? { 
+          partida_name: partida.nombre, 
+          proyecto_id: partida.proyecto 
+        }
+      : "skip"
+  );
+
+  // Level 1: Get all payments for this familia within the partida
+  // proyecto_id is optional - will filter by it if available
+  const level1Payments = useQuery(
+    api.pagos.getByFamilia,
+    level === 1 && partida.nombre && partida.familia
+      ? { 
+          partida_name: partida.nombre,
+          familia_name: partida.familia,
+          proyecto_id: partida.proyecto
+        }
+      : "skip"
+  );
+
+  // Select the appropriate payments based on level
+  const payments = level === 0 ? level0Payments : level === 1 ? level1Payments : level2Payments;
 
   // Get context-aware labels based on level
   const getContextualLabels = () => {
@@ -99,13 +128,13 @@ export default function DropdownMenuComponentPartida({
       ? Number(partida.aprobado || 0)
       : rowData.presupuestoAprobado;
 
-    // For aggregated rows (level 0, 1), show message or empty state
-    // For real partidas (level 2), use queried payments
-    const realPayments = isRealPartida ? (payments || []) : [];
+    // Get the appropriate payments based on level
+    // Now all levels have properly filtered payments from their respective queries
+    const relevantPayments = payments || [];
 
-    // Create payment context with real data
+    // Create payment context with all related payments
     const paymentContext = {
-      payments: realPayments,
+      payments: relevantPayments,
       relatedPartida: partida,
       totalAmount: baseAmount,
     };

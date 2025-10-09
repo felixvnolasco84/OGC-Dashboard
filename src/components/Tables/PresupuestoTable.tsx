@@ -73,6 +73,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
         acc[partidaKey] = {
           displayName: partidaKey,
           nombre: partidaKey,
+          proyecto: item.proyecto, // Add proyecto for querying
           presupuestoOriginal: 0,
           presupuestoAprobado: 0,
           pagado: 0,
@@ -108,6 +109,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
           displayName: familiaKey,
           nombre: partidaKey,
           familia: familiaKey,
+          proyecto: item.proyecto, // Add proyecto for querying
           presupuestoOriginal: 0,
           presupuestoAprobado: 0,
           pagado: 0,
@@ -338,6 +340,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
                         nombre: item.nombre || item.displayName,
                         familia: item.familia || '',
                         sub_partida: item.sub_partida || '',
+                        proyecto: item.proyecto, // Include proyecto for querying payments
                         Cantidad: item.presupuestoOriginal || 0,
                         PrecioUnitario: item.PrecioUnitario || 0,
                         Subtotal: item.presupuestoOriginal || 0,

@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { useEditPaymentModal } from "@/hooks/edit-payment-modal";
-import { EllipsisVerticalIcon, Edit, Trash2, X, Check, Lock } from "lucide-react";
+import { EllipsisVerticalIcon, Edit, Trash2, X, Check, Lock, FileText, Download } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,15 +21,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useMutation } from "convex/react";
 // Type for payment with populated billing information from getById query
-type PaymentWithBilling = Omit<Doc<"pagos">, "informacion_facturacion_pago"> & {
-    informacion_facturacion_pago?: Doc<"informacion_facturacion_pago"> | null;
-};
 
 export default function PartidaDetails() {
     const navigate = useNavigate();
     const params = useParams();
     const id = params.id;
     const partida = useQuery(api.partida.getById, { id: id as Id<"partidas"> });
+
+    // Query all documents to filter by pago_id
+    const allDocuments = useQuery(api.documentos.getAll);
 
     const deletePayment = useMutation(api.pagos.deletePayment);
 
@@ -64,7 +64,7 @@ export default function PartidaDetails() {
     const montoTotal = partida.total || 0;
     const porcentajePagado = montoTotal > 0 ? (totalPagado / montoTotal) * 100 : 0;
 
-    const handleEditPayment = (pago: PaymentWithBilling) => {
+    const handleEditPayment = (pago: Doc<"pagos">) => {
 
         editPaymentModal.onOpen({
             payment: pago,
@@ -77,11 +77,26 @@ export default function PartidaDetails() {
     const presupuestoAprobado = partida.aprobado || 0;
     const porEjercer = presupuestoAprobado - totalPagado;
 
+    // Helper function to get documents for a specific pago
+    const getDocumentsForPago = (pagoId: Id<"pagos">) => {
+        return allDocuments?.filter(doc => doc.pago_id === pagoId) || [];
+    };
+
+    // Helper function to get file view URL
+    const getFileUrl = (fileId: string) => {
+        return `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${import.meta.env.VITE_APPWRITE_BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+    };
+
+    // Helper function to get file download URL
+    const getFileDownloadUrl = (fileId: string) => {
+        return `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${import.meta.env.VITE_APPWRITE_BUCKET_ID}/files/${fileId}/download?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen  p-6">
             <div className="max-w-2xl mx-auto">
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-4 relative">
+                <div className="bg-white  shadow-sm -6 mb-4 relative">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -92,7 +107,7 @@ export default function PartidaDetails() {
                     </Button>
 
                     <div className="pr-12">
-                        <h1 className="text-xl font-bold text-gray-900 mb-1">{partida.nombre}</h1>
+                        <h1 className="text-xl text-gray-900 mb-1">{partida.nombre}</h1>
                         <p className="text-sm text-gray-500 mb-3">
                             {partida.sub_partida}
                         </p>
@@ -114,7 +129,7 @@ export default function PartidaDetails() {
                 </div>
 
                 {/* Progress Bar and Summary */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
+                <div className="bg-white  shadow-smp-6 mb-4">
                     {/* Progress Bar */}
                     <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
                         <div
@@ -127,49 +142,49 @@ export default function PartidaDetails() {
                     <div className="grid grid-cols-3 gap-4">
                         <div>
                             <p className="text-xs text-gray-500 mb-1">Presupuesto Aprobado</p>
-                            <p className="text-base font-semibold text-gray-900">{formatCurrency(presupuestoAprobado.toString())}</p>
+                            <p className="text-base  text-gray-900">{formatCurrency(presupuestoAprobado.toString())}</p>
                         </div>
                         <div>
                             <p className="text-xs text-gray-500 mb-1">Total Pagado</p>
-                            <p className="text-base font-semibold text-green-600">{formatCurrency(totalPagado.toString())}</p>
+                            <p className="text-base  text-green-600">{formatCurrency(totalPagado.toString())}</p>
                         </div>
                         <div>
                             <p className="text-xs text-gray-500 mb-1">Por Ejercer</p>
-                            <p className="text-base font-semibold text-orange-600">{formatCurrency(porEjercer.toString())}</p>
+                            <p className="text-base  text-orange-600">{formatCurrency(porEjercer.toString())}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Payment Cards */}
                 {partida.pagos && partida.pagos.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-8">
                         {partida.pagos.map((pago, index) => (
-                            <div key={index} className="bg-white rounded-lg shadow-sm p-5">
+                            <div key={index} className="bg-white">
                                 {/* Header */}
-                                <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-start justify-between mb-4 border-b border-gray-400 pb-4">
                                     <div className="flex items-center gap-3">
                                         {(() => {
                                             const isPagado = pago.status === 'Pagado' || (!pago.status && pago.monto > 0);
                                             return (
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isPagado ? 'bg-green-100' : 'bg-orange-100'
+                                                <div className={`w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0 ${isPagado ? 'bg-green-100' : 'bg-orange-100'
                                                     }`}>
                                                     {isPagado ? (
-                                                        <Check className="h-5 w-5 text-green-600" />
+                                                        <Check className="h-6 w-6 text-green-600" />
                                                     ) : (
-                                                        <Lock className="h-5 w-5 text-orange-600" />
+                                                        <Lock className="h-6 w-6 text-orange-600" />
                                                     )}
                                                 </div>
                                             );
                                         })()}
                                         <div>
-                                            <p className="text-sm font-semibold text-gray-900">
+                                            <p className="text-base  text-gray-900">
                                                 {pago.status || (pago.monto > 0 ? 'Aprobado' : 'Pendiente')}
                                             </p>
-                                            <p className="text-xs text-gray-500">Pago #{String(index + 1).padStart(3, '0')}</p>
+                                            <p className="text-left text-sm text-gray-500">Pago #{String(index + 1).padStart(3, '0')}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <p className="text-xl font-bold text-gray-900">
+                                        <p className="text-xl text-gray-900">
                                             {formatCurrency(pago.monto.toString())} {pago.moneda || 'MXN'}
                                         </p>
                                         <Popover>
@@ -183,7 +198,7 @@ export default function PartidaDetails() {
                                                     <Button
                                                         variant="ghost"
                                                         className="w-full justify-start text-sm"
-                                                        onClick={() => handleEditPayment(pago as PaymentWithBilling)}
+                                                        onClick={() => handleEditPayment(pago as Doc<"pagos">)}
                                                     >
                                                         <Edit className="h-4 w-4 mr-2" />
                                                         Editar
@@ -217,35 +232,35 @@ export default function PartidaDetails() {
                                 </div>
 
                                 {/* Details */}
-                                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm mb-4">
-                                    <div>
+                                <div className="flex flex-col space-y-2 text-sm mb-4 p-4">
+                                    <div className="flex justify-between">
                                         <span className="text-gray-500">Fecha</span>
                                         <p className="text-gray-900 text-right">{pago.fecha}</p>
                                     </div>
-                                    <div>
+                                    <div className="flex justify-between">
                                         <span className="text-gray-500">Método de pago</span>
                                         <p className="text-gray-900 text-right">{pago.tipo_pago || 'N/A'}</p>
                                     </div>
                                     {pago.banco && (
-                                        <div>
+                                        <div className="flex justify-between">
                                             <span className="text-gray-500">Banco</span>
                                             <p className="text-gray-900 text-right">{pago.banco}</p>
                                         </div>
                                     )}
                                     {pago.numero_cuenta && (
-                                        <div>
+                                        <div className="flex justify-between">
                                             <span className="text-gray-500">Cuenta cargo</span>
                                             <p className="text-gray-900 text-right">{pago.numero_cuenta}</p>
                                         </div>
                                     )}
                                     {pago.numero_transferencia && (
-                                        <div>
+                                        <div className="flex justify-between">
                                             <span className="text-gray-500">Cuenta abono</span>
                                             <p className="text-gray-900 text-right">{pago.numero_transferencia}</p>
                                         </div>
                                     )}
                                     {pago.codigo_referencia && (
-                                        <div className="col-span-2">
+                                        <div className="flex justify-between">
                                             <span className="text-gray-500">Referencia</span>
                                             <p className="text-gray-900 text-right font-mono text-xs">{pago.codigo_referencia}</p>
                                         </div>
@@ -253,7 +268,7 @@ export default function PartidaDetails() {
                                 </div>
 
                                 {/* Badges */}
-                                <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex items-center gap-2 flex-wrap mb-4">
                                     {pago.banco && (
                                         <Badge variant="outline" className="text-xs px-3 py-1">
                                             {pago.banco}
@@ -283,11 +298,62 @@ export default function PartidaDetails() {
                                         </Badge>
                                     )}
                                 </div>
+
+                                {/* Documents Section */}
+                                {(() => {
+                                    const pagoDocuments = getDocumentsForPago(pago._id);
+                                    if (pagoDocuments.length > 0) {
+                                        return (
+                                            <div className="mt-4 pt-4 border-t border-gray-200">
+                                                <p className="text-xs font-medium text-gray-700 mb-3">Documentos adjuntos ({pagoDocuments.length})</p>
+                                                <div className="space-y-2">
+                                                    {pagoDocuments.map((doc) => (
+                                                        <div key={doc._id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
+                                                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                                <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="text-sm font-medium text-gray-900 truncate">{doc.nombre}</p>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <Badge variant="outline" className="text-xs px-2 py-0.5">
+                                                                            {doc.type}
+                                                                        </Badge>
+                                                                        {doc.descripcion && (
+                                                                            <p className="text-xs text-gray-500 truncate">{doc.descripcion}</p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 ml-2">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 w-8 p-0"
+                                                                    onClick={() => window.open(getFileUrl(doc.image), '_blank')}
+                                                                >
+                                                                    <FileText className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 w-8 p-0"
+                                                                    onClick={() => window.open(getFileDownloadUrl(doc.image), '_blank')}
+                                                                >
+                                                                    <Download className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                    <div className="bg-white  shadow-smp-8 text-center">
                         <p className="text-gray-500">No hay pagos registrados</p>
                     </div>
                 )}

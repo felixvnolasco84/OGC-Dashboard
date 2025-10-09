@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as desarrollos from "../desarrollos.js";
+import type * as documentos from "../documentos.js";
 import type * as pagos from "../pagos.js";
 import type * as partida from "../partida.js";
 
@@ -27,6 +28,7 @@ import type * as partida from "../partida.js";
  */
 declare const fullApi: ApiFromModules<{
   desarrollos: typeof desarrollos;
+  documentos: typeof documentos;
   pagos: typeof pagos;
   partida: typeof partida;
 }>;

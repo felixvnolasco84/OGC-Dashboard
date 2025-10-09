@@ -1,4 +1,4 @@
-import { Doc, Id } from "../../convex/_generated/dataModel";
+import { Doc } from "../../convex/_generated/dataModel";
 import { create } from "zustand";
 
 type AddPaymentContext = {
@@ -22,7 +22,6 @@ type PaymentFormData = {
     familia: string;
     sub_partida: string;
     status: string;
-    informacion_facturacion_pago?: Id<"informacion_facturacion_pago">;
 };
 
 type AddPaymentModalStore = {
@@ -41,7 +40,7 @@ const initialFormData: PaymentFormData = {
     tipo_pago: "efectivo",
     moneda: "MXN",
     tipo_cambio: "1",
-    informacion_facturacion_pago: undefined,
+
     codigo_referencia: "",
     factura: "",
     banco: "",

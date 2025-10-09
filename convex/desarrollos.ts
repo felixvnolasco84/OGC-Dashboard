@@ -47,12 +47,55 @@ export const update = mutation({
     },
 });
 
-// Delete project
+// Delete project and all related data (cascade delete)
 export const deleteProject = mutation({
     args: {
         id: v.id("desarrollos"),
     },
     handler: async (ctx, args) => {
-        return await ctx.db.delete(args.id);
+        // Verify the project exists
+        const project = await ctx.db.get(args.id);
+        if (!project) {
+            throw new Error("Project not found");
+        }
+
+        // 1. Get all partidas for this proyecto
+        const partidas = await ctx.db
+            .query("partidas")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .collect();
+
+        // 2. Delete all pagos associated with this proyecto
+        // This is more efficient than deleting by partida_id since pagos also has a proyecto field
+        const pagos = await ctx.db
+            .query("pagos")
+            .filter((q) => q.eq(q.field("proyecto"), args.id))
+            .collect();
+
+        // Delete all pagos
+        await Promise.all(pagos.map((pago) => ctx.db.delete(pago._id)));
+
+        // 3. Delete all documentos for this proyecto
+        const documentos = await ctx.db
+            .query("documentos")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .collect();
+
+        // Delete all documentos (Note: Appwrite files should be deleted separately)
+        await Promise.all(documentos.map((doc) => ctx.db.delete(doc._id)));
+
+        // 4. Delete all partidas for this proyecto
+        await Promise.all(partidas.map((partida) => ctx.db.delete(partida._id)));
+
+        // 5. Finally, delete the proyecto itself
+        await ctx.db.delete(args.id);
+
+        return {
+            success: true,
+            deletedPartidas: partidas.length,
+            deletedPagos: pagos.length,
+            deletedDocumentos: documentos.length,
+            appwriteFileIds: documentos.map(doc => doc.image), // Return file IDs for manual cleanup
+        };
     },
 });

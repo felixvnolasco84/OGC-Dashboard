@@ -1,24 +1,33 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, FolderOpen, Calendar, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { useAddProjectModal } from "@/hooks/add-project-modal";
 import { Badge } from "@/components/ui/badge";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Link } from "react-router";
+import { Popover } from "@radix-ui/react-popover";
+import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function ProjectsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const projects = useQuery(api.desarrollos.getAll);
     const addProjectModal = useAddProjectModal();
+
+    const deleteProject = useMutation(api.desarrollos.deleteProject);
 
     const filteredProjects = projects?.filter(project =>
         project.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,8 +171,8 @@ export default function ProjectsPage() {
                                                 {project.descripcion}
                                             </CardDescription>
                                         </div>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -171,18 +180,40 @@ export default function ProjectsPage() {
                                                 >
                                                     <MoreVertical className="h-4 w-4" />
                                                 </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="flex flex-col space-y-1 w-fit" align="end">
+                                                <Button size={"sm"} className="w-fit">
                                                     <Pencil className="h-4 w-4 mr-2" />
                                                     Editar
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-600">
-                                                    <Trash2 className="h-4 w-4 mr-2" />
-                                                    Eliminar
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                                </Button>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button size={"sm"} className="w-fit">
+                                                            <Trash2 className="h-4 w-4 mr-2" />
+                                                            Eliminar
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Esta acción no puede ser deshecha. Esto eliminará permanentemente tu
+                                                                proyecto.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction>
+                                                                <Button onClick={() => deleteProject({ id: project._id })} className="">
+                                                                    Continuar
+                                                                </Button>
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="rounded-none">

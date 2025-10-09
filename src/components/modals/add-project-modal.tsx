@@ -15,8 +15,8 @@ import { useState, useCallback } from 'react';
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Upload, FolderPlus, FileSpreadsheet } from "lucide-react";
-import ExcelUploaderSection from "../Sections/ExcelUploaderSection";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 export default function AddProjectModal() {
     const isOpen = useAddProjectModal((state) => state.isOpen);
@@ -103,6 +103,18 @@ export default function AddProjectModal() {
             updateFormData({ excel: selectedFile });
             setResult(null);
         }
+        // Reset input value to allow selecting the same file again
+        e.target.value = '';
+    };
+
+    const handleRemoveFile = () => {
+        setFile(null);
+        updateFormData({ excel: null });
+        setResult(null);
+    };
+
+    const handleBrowseClick = () => {
+        document.getElementById('file-upload')?.click();
     };
 
 
@@ -138,9 +150,9 @@ export default function AddProjectModal() {
     const handleExcelUpload = async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
-        
+
         // const response = await fetch("http://localhost:3000/upload", {
-            const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
+        const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
             method: "POST",
             body: formData,
         });
@@ -257,16 +269,36 @@ export default function AddProjectModal() {
             const partidas = await Promise.all(partidaPromises);
             console.log(`Successfully uploaded ${partidas.length} partida records with their payments`);
 
-            setShowExcelUploader(true);
+            // Show success toast
+            toast.success('Proyecto creado exitosamente', {
+                description: `Se creó el proyecto "${formData.nombre}" con ${partidas.length} partidas y sus pagos asociados.`,
+                duration: 5000,
+            });
+
+            // Reset form and close modal
+            updateFormData({ nombre: '', descripcion: '', excel: null });
+            setFile(null);
+            setShowExcelUploader(false);
+            onClose();
         } catch (error) {
             console.error("Error creating project:", error);
+
+            // Show error toast
+            toast.error('Error al crear el proyecto', {
+                description: error instanceof Error ? error.message : 'Ocurrió un error inesperado. Por favor intenta nuevamente.',
+                duration: 5000,
+            });
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleClose = () => {
+        // Reset form state
+        updateFormData({ nombre: '', descripcion: '', excel: null });
+        setFile(null);
         setShowExcelUploader(false);
+        setResult(null);
         onClose();
     };
 
@@ -342,23 +374,30 @@ export default function AddProjectModal() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2 justify-center">
-                                        {/* <Button disabled={isSubmitting}>
-                                            {isSubmitting ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Procesando...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Upload className="mr-2 h-4 w-4" />
-                                                    Subir Archivo
-                                                </>
-                                            )}
-                                        </Button> */}
-                                        {/* <Button variant="outline" onClick={resetUpload} disabled={isSubmitting}>
-                    Cancelar
-                  </Button> */}
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleBrowseClick}
+                                            disabled={isSubmitting}
+                                        >
+                                            Cambiar Archivo
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleRemoveFile}
+                                            disabled={isSubmitting}
+                                        >
+                                            Eliminar
+                                        </Button>
                                     </div>
+                                    <input
+                                        id="file-upload"
+                                        type="file"
+                                        accept=".xlsx,.xls"
+                                        onChange={handleFileInput}
+                                        className="hidden"
+                                    />
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -367,16 +406,19 @@ export default function AddProjectModal() {
                                     </div>
                                     <div>
                                         <p className="text-lg font-medium text-gray-900">
-                                            Selecciona un archivo Excel
+                                            Arrastra y suelta un archivo Excel aquí
                                         </p>
-                                        <p className="text-gray-500">Archivos soportados: .xlsx, .xls (máx. 10MB)</p>
+                                        <p className="text-sm text-gray-500 mt-1">o</p>
                                     </div>
                                     <div>
-                                        <label htmlFor="file-upload">
-                                            <Button variant="outline" className="cursor-pointer">
-                                                Explorar Archivos
-                                            </Button>
-                                        </label>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleBrowseClick}
+                                            disabled={isSubmitting}
+                                        >
+                                            Explorar Archivos
+                                        </Button>
                                         <input
                                             id="file-upload"
                                             type="file"
@@ -385,6 +427,7 @@ export default function AddProjectModal() {
                                             className="hidden"
                                         />
                                     </div>
+                                    <p className="text-xs text-gray-400">Archivos soportados: .xlsx, .xls (máx. 10MB)</p>
                                 </div>
                             )}
                         </div>
@@ -448,7 +491,7 @@ export default function AddProjectModal() {
                     </form>
                 ) : (
                     <div className="mt-6">
-                        <ExcelUploaderSection />
+
                         <div className="flex justify-end space-x-2 pt-4 border-t mt-6">
                             <Button variant="outline" onClick={handleClose}>
                                 Finalizar

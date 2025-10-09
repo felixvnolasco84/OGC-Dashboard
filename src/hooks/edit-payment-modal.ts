@@ -2,12 +2,10 @@ import { Doc, Id } from "../../convex/_generated/dataModel";
 import { create } from "zustand";
 
 // Type for payment with populated billing information from getById query
-type PaymentWithBilling = Omit<Doc<"pagos">, "informacion_facturacion_pago"> & {
-    informacion_facturacion_pago?: Doc<"informacion_facturacion_pago"> | null;
-};
+
 
 type EditPaymentContext = {
-    payment: PaymentWithBilling;
+    payment: Doc<"pagos">;
     relatedCost: Doc<"partidas">;
     totalAmount: number;
 };
@@ -26,7 +24,6 @@ type PaymentFormData = {
     tipo_cambio: string;
     status: string;
     proyecto: Id<"desarrollos">;
-    informacion_facturacion_pago?: Id<"informacion_facturacion_pago">;
 };
 
 type EditPaymentModalStore = {
@@ -47,7 +44,6 @@ const initialFormData: PaymentFormData = {
     tipo_cambio: "1",
     status: "",
     proyecto: "" as Id<"desarrollos">,
-    informacion_facturacion_pago: undefined,
     codigo_referencia: "",
     factura: "",
     banco: "",
@@ -76,12 +72,9 @@ export const useEditPaymentModal = create<EditPaymentModalStore>((set) => ({
             tipo_cambio: payment.tipo_cambio || "1",
             status: payment.status || "",
             proyecto: payment.proyecto,
-            // Handle the populated billing information - extract the ID if it's an object
-            informacion_facturacion_pago: typeof payment.informacion_facturacion_pago === 'object' && payment.informacion_facturacion_pago !== null 
-                ? payment.informacion_facturacion_pago._id 
-                : undefined,            
+
         };
-        
+
         set({
             isOpen: true,
             paymentContext,

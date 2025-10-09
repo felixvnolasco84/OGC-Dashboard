@@ -20,7 +20,7 @@ export const create = mutation({
         tipo_cambio: v.string(),
         status: v.string(),
         proyecto: v.id("desarrollos"),
-        informacion_facturacion_pago: v.optional(v.id("informacion_facturacion_pago")),
+
     },
     handler: async (ctx, args) => {
         const existingPartida = await ctx.db.get(args.partida_id);
@@ -59,7 +59,7 @@ export const update = mutation({
         tipo_cambio: v.string(),
         status: v.string(),
         proyecto: v.id("desarrollos"),
-        informacion_facturacion_pago: v.optional(v.id("informacion_facturacion_pago")),
+
     },
     handler: async (ctx, args) => {
         const { id, ...updateData } = args;
@@ -98,7 +98,76 @@ export const getByPartidaId = query({
             .query("pagos")
             .filter((q) => q.eq(q.field("partida_id"), args.partida_id))
             .collect();
-        
+
+        return payments;
+    },
+});
+
+// Query to get all payments by partida name (for level 0 aggregation)
+// Filters by proyecto to prevent cross-project collisions
+export const getByPartidaName = query({
+    args: {
+        partida_name: v.string(),
+        proyecto_id: v.optional(v.id("desarrollos")),
+    },
+    handler: async (ctx, args) => {
+        const payments = await ctx.db
+            .query("pagos")
+            .filter((q) => {
+                if (args.proyecto_id) {
+                    return q.and(
+                        q.eq(q.field("partida"), args.partida_name),
+                        q.eq(q.field("proyecto"), args.proyecto_id)
+                    );
+                }
+                return q.eq(q.field("partida"), args.partida_name);
+            })
+            .collect();
+
+        return payments;
+    },
+});
+
+// Query to get all payments by familia (for level 1 aggregation)
+// Filters by both partida and proyecto to prevent collisions
+export const getByFamilia = query({
+    args: {
+        partida_name: v.string(),
+        familia_name: v.string(),
+        proyecto_id: v.optional(v.id("desarrollos")),
+    },
+    handler: async (ctx, args) => {
+        const payments = await ctx.db
+            .query("pagos")
+            .filter((q) => {
+                if (args.proyecto_id) {
+                    return q.and(
+                        q.eq(q.field("partida"), args.partida_name),
+                        q.eq(q.field("familia"), args.familia_name),
+                        q.eq(q.field("proyecto"), args.proyecto_id)
+                    );
+                }
+                return q.and(
+                    q.eq(q.field("partida"), args.partida_name),
+                    q.eq(q.field("familia"), args.familia_name)
+                );
+            })
+            .collect();
+
+        return payments;
+    },
+});
+
+export const getByProyecto = query({
+    args: {
+        proyecto_id: v.id("desarrollos"),
+    },
+    handler: async (ctx, args) => {
+        const payments = await ctx.db
+            .query("pagos")
+            .filter((q) => q.eq(q.field("proyecto"), args.proyecto_id))
+            .collect();
+
         return payments;
     },
 });
