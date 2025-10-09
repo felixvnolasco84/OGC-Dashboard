@@ -5,7 +5,7 @@ import "./index.css";
 import WebsiteLayout from "./components/WebsiteLayout.tsx";
 import ScrollToTop from "./components/ui/ScrollToTop.tsx";
 import { HelmetProvider } from "react-helmet-async";
-import DynamicMeta from "./components/DynamicMeta.tsx";
+
 import { BrowserRouter, Routes, Route } from "react-router";
 import Legales from "./pages/Legales.tsx";
 import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
@@ -28,7 +28,6 @@ createRoot(document.getElementById("root")!).render(
         <HelmetProvider>
           <BrowserRouter>
             <ScrollToTop />
-            <DynamicMeta />
             <Routes>
               <Route element={<WebsiteLayout />}>
                 <Route index element={<HomePage />} />
