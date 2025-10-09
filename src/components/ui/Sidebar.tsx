@@ -45,6 +45,8 @@ const sidebarItems: SidebarItem[] = [
   }
 ];
 
+
+
 export default function Sidebar() {
   const location = useLocation();
 
