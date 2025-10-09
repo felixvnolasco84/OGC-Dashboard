@@ -88,12 +88,16 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
 
       const partidaGroup = acc[partidaKey];
 
-      // Add to partida totals
-      partidaGroup.presupuestoOriginal += item.total || 0;
-      partidaGroup.presupuestoAprobado += item.aprobado || 0;
-      partidaGroup.pagado += item.pagado || 0;
+      // If item has no familia and no sub_partida, it's the partida-level aggregate record
+      // Use its values directly for the partida totals
+      if ((!familiaKey || familiaKey.trim() === "") && (!subPartidaKey || subPartidaKey.trim() === "")) {
+        partidaGroup.presupuestoOriginal = item.Subtotal || 0;
+        partidaGroup.presupuestoAprobado = item.aprobado || 0;
+        partidaGroup.pagado = item.pagado || 0;
+        return acc;
+      }
 
-      // If item has no familia, it's a partida-level item only (no children to add)
+      // If item has no familia, skip it (shouldn't happen in well-formed data)
       if (!familiaKey || familiaKey.trim() === "") {
         return acc;
       }
@@ -119,10 +123,14 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
 
       const familiaGroup = partidaGroup.familias[familiaKey];
 
-      // Add to familia totals
-      familiaGroup.presupuestoOriginal += item.total || 0;
-      familiaGroup.presupuestoAprobado += item.aprobado || 0;
-      familiaGroup.pagado += item.pagado || 0;
+      // If item has no sub_partida, it's the familia-level aggregate record
+      // Use its values directly for the familia totals
+      if (!subPartidaKey || subPartidaKey.trim() === "") {
+        familiaGroup.presupuestoOriginal = item.Subtotal || 0;
+        familiaGroup.presupuestoAprobado = item.aprobado || 0;
+        familiaGroup.pagado = item.pagado || 0;
+        return acc;
+      }
 
       // Add sub_partida as a child of familia only if it's meaningful
       // (not empty, not the same as familia name)
@@ -134,7 +142,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
         familiaGroup.children.push({
           ...item, // Include all original partida properties
           displayName: subPartidaKey,
-          presupuestoOriginal: item.total || 0,
+          presupuestoOriginal: item.Subtotal || 0,
           presupuestoAprobado: item.aprobado || 0,
           pagado: item.pagado || 0,
           avance: item.aprobado || 0 > 0
@@ -250,7 +258,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
         </TableHeader>
         <TableBody>
           {flattenedData.map((item) => {
-            const { difference, isPositive, isNegative, isZero, formattedDifference } = getBudgetDifference(item.presupuestoOriginal, item.presupuestoAprobado);
+            const { difference, isPositive, isNegative, isZero, formattedDifference } = getBudgetDifference(item.presupuestoOriginal, item.pagado);
             return (
               <TableRow
                 key={`${item.displayName}-${item.level}`}
@@ -288,7 +296,7 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
                 <TableCell className="px-6 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                   <div className="flex flex-col  gap-2 text-left">
                     <span >{formatCurrency(item.presupuestoAprobado)} MXN</span>
-                    {!isZero && (
+                    {!isZero && item.level === 0 && (
                       <Badge
                         variant={isPositive ? 'success' : 'danger'}
                         className={cn("text-xs text-left w-fit font-normal py-1.5 leading-none", isPositive ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-500' : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-500')}
@@ -304,9 +312,9 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
                     {!isNegative && (
                       <Badge
                         variant="success"
-                        className={cn("text-xs text-left w-fit font-normal py-1.5 leading-none", isPositive ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-500' : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-500')}
+                        className={cn("text-xs text-left w-fit font-normal py-1.5 leading-none", isPositive ? 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-500' : 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-500')}
                       >
-                        {difference} MXN
+                       {isPositive ? '+' : '-'} {formatCurrency(difference)} MXN
                       </Badge>
                     )}
                   </div>
