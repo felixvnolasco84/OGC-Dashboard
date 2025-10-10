@@ -378,7 +378,7 @@ export default function HomePage() {
                         </Card>
                     </div>
                     <div className="col-span-4 py-12">
-                        <DashboardTable data={allPartidas || []} />
+                        <DashboardTable />
                     </div>
                 </div>
             </div>

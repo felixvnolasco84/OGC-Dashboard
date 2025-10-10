@@ -1,6 +1,18 @@
+import { paginationOptsValidator } from "convex/server";
 import { Id } from "./_generated/dataModel";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+
+
+//TODO: IMPLEMENT PAGINATION IN THE REST OF THE APP WHERE IT MAKES SENSE
+export const list = query({
+  args: {
+    paginationOpts : paginationOptsValidator
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.query("partidas").order("asc").paginate(args.paginationOpts);
+  },
+});
 
 export const getPartidas = query({
   args: {},
@@ -19,7 +31,8 @@ export const getByFamily = query({
       .query("partidas")
       .filter((q) => q.eq(q.field("familia"), args.family))
       .order("desc")
-      .take(100);
+      .take(100)
+      
     return tasks;
   },
 });

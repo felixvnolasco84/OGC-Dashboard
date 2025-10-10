@@ -36,7 +36,7 @@ export default function DropdownMenuComponentPartida({
 
   // Query payments based on level with proper proyecto filtering
   const isRealPartida = level === 2 && partida._id && !partida._id.toString().startsWith("temp-");
-  
+
   // Level 2: Get payments by partida_id (specific sub-partida)
   const level2Payments = useQuery(
     api.pagos.getByPartidaId,
@@ -48,10 +48,10 @@ export default function DropdownMenuComponentPartida({
   const level0Payments = useQuery(
     api.pagos.getByPartidaName,
     level === 0 && partida.nombre
-      ? { 
-          partida_name: partida.nombre, 
-          proyecto_id: partida.proyecto 
-        }
+      ? {
+        partida_name: partida.nombre,
+        proyecto_id: partida.proyecto
+      }
       : "skip"
   );
 
@@ -60,11 +60,11 @@ export default function DropdownMenuComponentPartida({
   const level1Payments = useQuery(
     api.pagos.getByFamilia,
     level === 1 && partida.nombre && partida.familia
-      ? { 
-          partida_name: partida.nombre,
-          familia_name: partida.familia,
-          proyecto_id: partida.proyecto
-        }
+      ? {
+        partida_name: partida.nombre,
+        familia_name: partida.familia,
+        proyecto_id: partida.proyecto
+      }
       : "skip"
   );
 
@@ -163,7 +163,7 @@ export default function DropdownMenuComponentPartida({
                 Editar {labels.title.toLowerCase()}
               </Button>
             </DialogTrigger>
-            
+
             {/* View payments option */}
             <Button
               variant="ghost"
@@ -173,7 +173,7 @@ export default function DropdownMenuComponentPartida({
               <CreditCard className="h-4 w-4" />
               {level === 2 ? 'Ver pagos' : `Ver pagos de ${labels.title.toLowerCase()}`}
             </Button>
-            
+
             {/* View details option */}
             <Button
               variant="ghost"

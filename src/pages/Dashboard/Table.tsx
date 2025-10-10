@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+
 import { Checkbox } from "@/components/ui/checkbox"
 import {
     DropdownMenu,
@@ -42,6 +43,8 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { partida } from "@/lib/utils"
+import { usePaginatedQuery } from "convex/react"
+import { api } from "../../../convex/_generated/api"
 // import { Badge } from "@/components/ui/badge"
 
 
@@ -265,7 +268,13 @@ export const columns: ColumnDef<partida>[] = [
     },
 ]
 
-export function DashboardTable({ data }: { data: partida[] }) {
+export function DashboardTable() {
+
+    const { results, status, loadMore } = usePaginatedQuery(
+        api.partida.list,
+        {},
+        { initialNumItems: 50 },
+    );
     
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -277,7 +286,7 @@ export function DashboardTable({ data }: { data: partida[] }) {
     const [activeTab, setActiveTab] = React.useState("ultimos-movimientos")
 
     const table = useReactTable({
-        data,
+        data: results ?? [],
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -300,12 +309,24 @@ export function DashboardTable({ data }: { data: partida[] }) {
         // For now, return the same data for all tabs
         // In a real implementation, you would filter or fetch different data based on the tab
         console.log(tabValue)
-        return data;
+        return results ?? [];
     }
 
     const renderTabContent = (tabValue: string) => {
         // const tabData = getTabData(tabValue);
         getTabData(tabValue);
+        
+        // Show loading state on initial load
+        if (status === "LoadingFirstPage") {
+            return (
+                <div className="flex justify-center items-center py-12">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                        <p className="text-sm text-muted-foreground">Cargando partidas...</p>
+                    </div>
+                </div>
+            );
+        }
         
         return (
             <div>
@@ -398,6 +419,26 @@ export function DashboardTable({ data }: { data: partida[] }) {
                         </TableBody>
                     </Table>
                 </div>
+                
+                {/* Load More Section */}
+                {status === "CanLoadMore" && (
+                    <div className="flex justify-center py-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => loadMore(50)}
+                            disabled={status !== "CanLoadMore"}
+                        >
+                            Cargar más
+                        </Button>
+                    </div>
+                )}
+                
+                {status === "LoadingMore" && (
+                    <div className="flex justify-center py-4">
+                        <p className="text-sm text-muted-foreground">Cargando más...</p>
+                    </div>
+                )}
+                
                 <div className="flex items-center justify-end space-x-2 py-4">
                     <div className="text-muted-foreground flex-1 text-sm">
                         {table.getFilteredSelectedRowModel().rows.length} of{" "}

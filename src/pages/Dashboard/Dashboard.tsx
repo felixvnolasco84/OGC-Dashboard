@@ -86,7 +86,7 @@ export default function Dashboard() {
       </div>
 
       <div className="flex flex-col gap-4">
-        <DashboardTable data={data} />
+        <DashboardTable />
         <BarHorizontalChart constructionData={data} />
       </div>
     </div>
