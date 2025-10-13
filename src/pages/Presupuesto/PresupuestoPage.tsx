@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
-import { useQuery } from "convex/react";
-import { Id } from "../../../convex/_generated/dataModel";
+import { useQuery, usePaginatedQuery } from "convex/react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 import { Search, Plus } from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
+import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
 
 // Mock data for the presupuesto page
 const mockData = {
@@ -59,11 +60,14 @@ const formatNumber = (amount: number) => {
 };
 
 export default function PresupuestoPage() {
+
+
+
   const [selectedPartida, setSelectedPartida] = useState<string | undefined>("all");
   const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>("all");
   const [selectedFecha, setSelectedFecha] = useState("Semana");
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Add partida modal
   const addPartidaModal = useAddPartidaModal();
 
@@ -71,40 +75,56 @@ export default function PresupuestoPage() {
   const projects = useQuery(api.desarrollos.getAll);
 
   // State for selected project (default to first project when available)
-  const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
+  const { selectedDesarrollo } = useDesarrolloStore();
+  // const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
 
-  // Set default project when projects load
-  useEffect(() => {
-    if (projects && projects.length > 0 && !selectedProjectId) {
-      setSelectedProjectId(projects[0]._id);
-    }
-  }, [projects, selectedProjectId]);
 
-  // Fetch all partidas for selected project
-  const allPartidas = useQuery(
-    api.partida.getByProject,
-    selectedProjectId ? { projectId: selectedProjectId } : "skip"
+  // Fetch all partidas for selected project with pagination
+  const { results: allPartidas, status: partidasStatus, loadMore } = usePaginatedQuery(
+    api.partida.getByProjectPaginated,
+    selectedDesarrollo ? { projectId: selectedDesarrollo._id } : "skip",
+    { initialNumItems: 100 }
   );
 
   // Calculate metrics from real data
-  const metrics = {
-    presupuestoOriginal: allPartidas?.reduce((sum, p) => sum + p.total || 0, 0) || 0,
-    presupuestoAprobado: allPartidas?.reduce((sum, p) => sum + p.aprobado || 0, 0) || 0,
-    gastoTotal: allPartidas?.reduce((sum, p) => sum + p.pagado || 0, 0) || 0,
-    porGastar: allPartidas?.reduce((sum, p) => sum + p.por_liquidar || 0, 0) || 0,
-  };
+  const metrics = useMemo(() => {
+    if (!allPartidas) return {
+      presupuestoOriginal: 0,
+      presupuestoAprobado: 0,
+      gastoTotal: 0,
+      porGastar: 0,
+    };
+    
+    return {
+      presupuestoOriginal: allPartidas.reduce((sum, p) => sum + (p.total || 0), 0),
+      presupuestoAprobado: allPartidas.reduce((sum, p) => sum + (p.aprobado || 0), 0),
+      gastoTotal: allPartidas.reduce((sum, p) => sum + (p.pagado || 0), 0),
+      porGastar: allPartidas.reduce((sum, p) => sum + (p.por_liquidar || 0), 0),
+    };
+  }, [allPartidas]);
 
   // Get unique partidas and familias for filters (filter out empty strings)
-  const uniquePartidas = Array.from(new Set(allPartidas?.map(p => p.nombre).filter(n => n && n.trim() !== '') || []));
-  const uniqueFamilias = Array.from(new Set(allPartidas?.map(p => p.familia).filter(f => f && f.trim() !== '') || []));
+  const uniquePartidas = useMemo(() => 
+    Array.from(new Set(allPartidas?.map(p => p.nombre).filter(n => n && n.trim() !== '') || [])),
+    [allPartidas]
+  );
+  
+  const uniqueFamilias = useMemo(() => 
+    Array.from(new Set(allPartidas?.map(p => p.familia).filter(f => f && f.trim() !== '') || [])),
+    [allPartidas]
+  );
 
   // Filter data based on selections
-  const filteredPartidas = allPartidas?.filter(p => {
-    if (selectedPartida && selectedPartida !== "all" && p.nombre !== selectedPartida) return false;
-    if (selectedFamilia && selectedFamilia !== "all" && p.familia !== selectedFamilia) return false;
-    if (searchTerm && !p.sub_partida.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    return true;
-  }) || [];
+  const filteredPartidas = useMemo(() => {
+    if (!allPartidas) return [];
+    
+    return allPartidas.filter(p => {
+      if (selectedPartida && selectedPartida !== "all" && p.nombre !== selectedPartida) return false;
+      if (selectedFamilia && selectedFamilia !== "all" && p.familia !== selectedFamilia) return false;
+      if (searchTerm && !p.sub_partida.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      return true;
+    });
+  }, [allPartidas, selectedPartida, selectedFamilia, searchTerm]);
 
   // Calculate percentage differences
   const presupuestoReduction = metrics.presupuestoOriginal > 0
@@ -117,14 +137,20 @@ export default function PresupuestoPage() {
     ? Math.round((metrics.porGastar / metrics.presupuestoAprobado) * 100)
     : 0;
 
-  if (!projects || !allPartidas) {
+  // Loading state
+  if (!projects || partidasStatus === "LoadingFirstPage") {
     return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
-      <p className="text-gray-500">Cargando datos...</p>
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+        <p className="text-gray-500">Cargando datos...</p>
+      </div>
     </div>;
   }
 
-  // Get current selected project
-  const currentProject = projects.find(p => p._id === selectedProjectId) || projects[0];
+  
+
+
+
 
   return (
     <div className="bg-white px-12 py-6">
@@ -134,34 +160,16 @@ export default function PresupuestoPage() {
           <div className="flex items-start justify-between">
             <div className="flex flex-col text-left">
               <p className="text-sm text-gray-500 mb-1">Presupuesto</p>
-              <h1 className="text-2xl text-gray-900">{currentProject?.nombre || 'Proyecto'}</h1>
+              {/* <h1 className="text-2xl text-gray-900">{currentProject?.nombre || 'Proyecto'}</h1> */}
             </div>
-            <div className="flex items-end gap-3">              
-              <div className="flex flex-col space-y-1 text-left min-w-[250px]">
-                <span className="text-xs text-gray-500">Proyecto</span>
-                <Select
-                  value={selectedProjectId}
-                  onValueChange={(value) => setSelectedProjectId(value as Id<"desarrollos">)}
-                >
-                  <SelectTrigger className="border border-gray-200 shadow-sm h-9 font-normal text-gray-900">
-                    <SelectValue placeholder="Seleccionar proyecto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project._id} value={project._id}>
-                        {project.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="flex items-end gap-3">
               <Button
-                onClick={() => selectedProjectId && addPartidaModal.onOpen({
-                  proyecto: selectedProjectId,
-                  projectName: currentProject?.nombre
+                onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
+                  proyecto: selectedDesarrollo._id,
+                  projectName: selectedDesarrollo.nombre
                 })}
                 variant={"outline"}
-                disabled={!selectedProjectId}
+                disabled={!selectedDesarrollo}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar Partida
@@ -310,7 +318,11 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Budget Table Component */}
-        <PresupuestoTable data={filteredPartidas} />
+        <PresupuestoTable 
+          data={filteredPartidas} 
+          status={partidasStatus}
+          loadMore={loadMore}
+        />
       </div>
     </div>
   );

@@ -55,22 +55,21 @@ export default function SeePaymentDetailsModal() {
 
     const getRemainingAmount = () => {
         const totalPaid = getTotalPaidAmount();
+        console.log(totalPaid)
         return (paymentContext?.totalAmount || 0) - totalPaid;
     };
 
     const handleOpenAddPayment = () => {
-        if (paymentContext?.relatedPartida) {
-            const totalAmount = paymentContext.totalAmount || 0;
-            const remainingAmount = getRemainingAmount();
+        if (paymentContext?.relatedPartida && paymentContext.relatedPartida.proyecto) {
             addPaymentModal.onOpen({
-                relatedCost: paymentContext.relatedPartida,
-                totalAmount: totalAmount,
-                remainingAmount: remainingAmount
+                projectId: paymentContext.relatedPartida.proyecto
             });
         }
     };
 
     // Don't return null before rendering Sheet - this breaks exit animation
+
+    // TODO: IMPLEMENT THIS SOLUTION FOR THE REST OF THE MODALS
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
@@ -110,7 +109,8 @@ export default function SeePaymentDetailsModal() {
 
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
-                                        <p className="text-sm font-medium text-muted-foreground">Presupuesto Aprobado</p>
+                                        {/* <p className="text-sm font-medium text-muted-foreground">Presupuesto Aprobado</p> */}
+                                        <p className="text-sm font-medium text-muted-foreground">Presupuesto Original</p>
                                         <p className="text-lg">{formatCurrency(paymentContext.totalAmount)} MXN</p>
                                     </div>
                                     <div>

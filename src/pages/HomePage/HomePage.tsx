@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import React from "react";
 import { api } from "../../../convex/_generated/api";
 import {
-    // useMutation,    
-    useQuery
+    useQuery,
+    usePaginatedQuery
 } from "convex/react";
-import { Doc } from "convex/_generated/dataModel";
 import {
     Select,
     SelectContent,
@@ -18,8 +17,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import AreaChart from "@/components/Charts/AreaChart";
 import { DashboardTable } from "../Dashboard/Table";
-import { Search, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
+import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
 
 // Mockup data
 const mockData = {
@@ -74,7 +74,12 @@ const formatNumber = (amount: number) => {
 
 
 export default function HomePage() {
-    const [selectedProject, setSelectedProject] = useState<Doc<"desarrollos"> | undefined>(undefined)
+
+
+
+    const { selectedDesarrollo } = useDesarrolloStore();
+
+    // const [selectedProject, setSelectedProject] = useState<Doc<"desarrollos"> | undefined>(undefined)
     const [selectedAnalisis, setSelectedAnalisis] = useState("Por partida");
     const [selectedPeriodo, setSelectedPeriodo] = useState("Mensual");
 
@@ -88,20 +93,15 @@ export default function HomePage() {
     // Fetch projects
     const projects = useQuery(api.desarrollos.getAll);
 
-    // Set default project when projects load
-    useEffect(() => {
-        if (projects && projects.length > 0 && !selectedProject) {
-            setSelectedProject(projects[0]);
-        }
-    }, [projects, selectedProject]);
 
     // Fetch metrics
-    const metrics = useQuery(api.partida.getProjectMetrics, selectedProject ? { projectId: selectedProject._id } : "skip");
+    const metrics = useQuery(api.partida.getProjectMetrics, selectedDesarrollo ? { projectId: selectedDesarrollo._id } : "skip");
 
-    // Fetch all partidas for the table (table shows individual records)
-    const allPartidas = useQuery(
-        api.partida.getByProject,
-        selectedProject ? { projectId: selectedProject._id } : "skip"
+    // Fetch all partidas for the table with pagination
+    const { results: allPartidas } = usePaginatedQuery(
+        api.partida.getByProjectPaginated,
+        selectedDesarrollo ? { projectId: selectedDesarrollo._id } : "skip",
+        { initialNumItems: 100 }
     );
 
     // Calculate secondary metrics from allPartidas
@@ -193,17 +193,17 @@ export default function HomePage() {
                 {/* Header */}
                 <div className="rounded-lg py-6">
                     <div className="flex items-start justify-between">
-                        {selectedProject && (
+                        {selectedDesarrollo && (
                             <div className="flex flex-col text-left">
                                 <p className="text-sm text-gray-500 mb-1">Proyecto</p>
-                                <h1 className="text-2xl text-gray-900">{selectedProject.nombre}</h1>
+                                <h1 className="text-2xl text-gray-900">{selectedDesarrollo.nombre}</h1>
                             </div>
                         )}
-                        {selectedProject && (
+                        {selectedDesarrollo && (
                             <Button
                                 onClick={() => addPartidaModal.onOpen({
-                                    proyecto: selectedProject._id,
-                                    projectName: selectedProject.nombre
+                                    proyecto: selectedDesarrollo._id,
+                                    projectName: selectedDesarrollo.nombre
                                 })}
                                 variant="outline"
                             >
@@ -272,8 +272,8 @@ export default function HomePage() {
                 {/* Filters */}
                 <div className="bg-white">
 
-                    <div className="grid grid-cols-4 items-center space-x-12">
-                        <div className="flex items-center space-x-3 text-left border-b border-gray-600 py-4 h-full">
+                    <div className="grid grid-cols-3 items-center space-x-12">
+                        {/* <div className="flex items-center space-x-3 text-left border-b border-gray-600 py-4 h-full">
                             <Search className="w-4 h-4 text-gray-400" />
                             <Select defaultValue={selectedProject?._id} value={selectedProject?._id}
                                 onValueChange={(value) => {
@@ -291,7 +291,7 @@ export default function HomePage() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </div> */}
 
                         <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
                             <span className="text-xs text-gray-500">Análisis</span>

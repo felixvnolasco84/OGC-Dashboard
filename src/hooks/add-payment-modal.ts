@@ -1,13 +1,15 @@
-import { Doc } from "../../convex/_generated/dataModel";
+import { Id } from "../../convex/_generated/dataModel";
 import { create } from "zustand";
 
 type AddPaymentContext = {
-    relatedCost: Doc<"partidas">;
-    totalAmount: number;
-    remainingAmount?: number;
+    projectId: Id<"desarrollos">;
 };
 
 type PaymentFormData = {
+    partida_id: Id<"partidas"> | "";
+    partida: string;
+    familia: string;
+    sub_partida: string;
     monto: number;
     fecha: string;
     tipo_pago: string;
@@ -19,54 +21,61 @@ type PaymentFormData = {
     factura: string;
     moneda: string;
     tipo_cambio: string;
-    familia: string;
-    sub_partida: string;
     status: string;
 };
 
 type AddPaymentModalStore = {
     paymentContext?: AddPaymentContext;
-    formData: PaymentFormData;
+    payments: PaymentFormData[];
     isOpen: boolean;
     onOpen: (context: AddPaymentContext) => void;
     onClose: () => void;
-    updateFormData: (data: Partial<PaymentFormData>) => void;
+    addPayment: () => void;
+    removePayment: (index: number) => void;
+    updatePayment: (index: number, data: Partial<PaymentFormData>) => void;
     resetForm: () => void;
 };
 
-const initialFormData: PaymentFormData = {
+const createEmptyPayment = (): PaymentFormData => ({
+    partida_id: "",
+    partida: "",
+    familia: "",
+    sub_partida: "",
     monto: 0,
     fecha: new Date().toISOString().split('T')[0],
     tipo_pago: "efectivo",
     moneda: "MXN",
     tipo_cambio: "1",
-
     codigo_referencia: "",
     factura: "",
     banco: "",
     tarjeta: "",
     numero_cuenta: "",
     numero_transferencia: "",
-    familia: "",
-    sub_partida: "",
     status: "",
-};
+});
 
 export const useAddPaymentModal = create<AddPaymentModalStore>((set) => ({
     isOpen: false,
-    formData: initialFormData,
+    payments: [createEmptyPayment()],
     onOpen: (paymentContext: AddPaymentContext) => set({
         isOpen: true,
         paymentContext,
-        formData: { ...initialFormData }
+        payments: [createEmptyPayment()]
     }),
     onClose: () => set({
         isOpen: false,
         paymentContext: undefined,
-        formData: initialFormData
+        payments: [createEmptyPayment()]
     }),
-    updateFormData: (data: Partial<PaymentFormData>) => set((state) => ({
-        formData: { ...state.formData, ...data }
+    addPayment: () => set((state) => ({
+        payments: [...state.payments, createEmptyPayment()]
     })),
-    resetForm: () => set({ formData: initialFormData }),
+    removePayment: (index: number) => set((state) => ({
+        payments: state.payments.filter((_, i) => i !== index)
+    })),
+    updatePayment: (index: number, data: Partial<PaymentFormData>) => set((state) => ({
+        payments: state.payments.map((p, i) => i === index ? { ...p, ...data } : p)
+    })),
+    resetForm: () => set({ payments: [createEmptyPayment()] }),
 }));

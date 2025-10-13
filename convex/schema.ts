@@ -52,7 +52,7 @@ export default defineSchema({
     descripcion: v.string(),
     image: v.string(),
     type: v.string(),
-    pago_id: v.id("pagos"),
+    pago_ids: v.array(v.id("pagos")),
     proyecto: v.id("desarrollos"),
-  }).index("by_pago", { fields: ["pago_id"] }).index("by_proyecto", { fields: ["proyecto"] }),
+  }).index("by_proyecto", { fields: ["proyecto"] }),
 });

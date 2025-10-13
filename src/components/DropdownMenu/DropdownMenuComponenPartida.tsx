@@ -126,7 +126,7 @@ export default function DropdownMenuComponentPartida({
     // Calculate amounts based on level
     const baseAmount = level === 2
       ? Number(partida.aprobado || 0)
-      : rowData.presupuestoAprobado;
+      : rowData.presupuestoOriginal;
 
     // Get the appropriate payments based on level
     // Now all levels have properly filtered payments from their respective queries

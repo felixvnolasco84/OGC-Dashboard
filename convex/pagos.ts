@@ -1,5 +1,21 @@
 import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+
+// Paginated list of pagos by proyecto
+export const listByProyecto = query({
+    args: {
+        proyecto_id: v.id("desarrollos"),
+        paginationOpts: paginationOptsValidator,
+    },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("pagos")
+            .filter((q) => q.eq(q.field("proyecto"), args.proyecto_id))
+            .order("desc")
+            .paginate(args.paginationOpts);
+    },
+});
 
 export const create = mutation({
     args: {

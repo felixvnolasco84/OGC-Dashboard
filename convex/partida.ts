@@ -49,6 +49,20 @@ export const getByProject = query({
   },
 });
 
+export const getByProjectPaginated = query({
+  args: {
+    projectId: v.id("desarrollos"),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+      .order("asc")
+      .paginate(args.paginationOpts);
+  },
+});
+
 export const getProjectMetrics = query({
   args: {
     projectId: v.optional(v.id("desarrollos")),

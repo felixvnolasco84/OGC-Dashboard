@@ -13,10 +13,8 @@ export const getByPago = query({
         pago_id: v.id("pagos"),
     },
     handler: async (ctx, args) => {
-        return await ctx.db
-            .query("documentos")
-            .withIndex("by_pago", (q) => q.eq("pago_id", args.pago_id))
-            .collect();
+        const allDocuments = await ctx.db.query("documentos").collect();
+        return allDocuments.filter(doc => doc.pago_ids.includes(args.pago_id));
     },
 });
 
@@ -38,7 +36,7 @@ export const create = mutation({
         image: v.string(), // Appwrite file ID
         type: v.string(),
         proyecto: v.id("desarrollos"),
-        pago_id: v.id("pagos"),
+        pago_ids: v.array(v.id("pagos")),
     },
     handler: async (ctx, args) => {
         const documento = await ctx.db.insert("documentos", {
@@ -47,7 +45,7 @@ export const create = mutation({
             image: args.image,
             type: args.type,
             proyecto: args.proyecto,
-            pago_id: args.pago_id,
+            pago_ids: args.pago_ids,
         });
         return documento;
     },
@@ -62,7 +60,7 @@ export const update = mutation({
         image: v.string(),
         type: v.string(),
         proyecto: v.id("desarrollos"),
-        pago_id: v.id("pagos"),
+        pago_ids: v.array(v.id("pagos")),
     },
     handler: async (ctx, args) => {
         const { id, ...rest } = args;

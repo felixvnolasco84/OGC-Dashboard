@@ -54,9 +54,11 @@ const getBudgetDifference = (original: number, approved: number) => {
 
 interface PresupuestoTableProps {
   data: Doc<"partidas">[];
+  status: "CanLoadMore" | "LoadingFirstPage" | "LoadingMore" | "Exhausted";
+  loadMore: (numItems: number) => void;
 }
 
-export default function PresupuestoTable({ data }: PresupuestoTableProps) {
+export default function PresupuestoTable({ data, status, loadMore }: PresupuestoTableProps) {
 
 
   console.log(data)
@@ -229,8 +231,9 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
 
 
   return (
-    <div className="bg-white border border-gray-200 overflow-hidden">
-      <Table>
+    <div className="space-y-4">
+      <div className="bg-white border border-gray-200 overflow-hidden">
+        <Table>
         <TableHeader className="bg-white">
           <TableRow className="border-b border-gray-200">
             <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
@@ -364,5 +367,34 @@ export default function PresupuestoTable({ data }: PresupuestoTableProps) {
         </TableBody>
       </Table>
     </div>
+    
+    {/* Pagination Controls */}
+    {status === "CanLoadMore" && (
+      <div className="flex justify-center py-4">
+        <Button
+          variant="outline"
+          onClick={() => loadMore(100)}
+          disabled={status !== "CanLoadMore"}
+        >
+          Cargar más partidas
+        </Button>
+      </div>
+    )}
+    
+    {status === "LoadingMore" && (
+      <div className="flex justify-center py-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+          <p className="text-sm text-gray-500">Cargando más partidas...</p>
+        </div>
+      </div>
+    )}
+    
+    {status === "Exhausted" && data.length > 100 && (
+      <div className="flex justify-center py-4">
+        <p className="text-sm text-gray-500">Todas las partidas han sido cargadas</p>
+      </div>
+    )}
+  </div>
   );
 }

@@ -8,8 +8,6 @@ import { HelmetProvider } from "react-helmet-async";
 
 import { BrowserRouter, Routes, Route } from "react-router";
 import Legales from "./pages/Legales.tsx";
-import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
-import Dashboard from "./pages/Dashboard/Dashboard.tsx";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { EdgeStoreProvider } from "./lib/edgestore";
 import HomePage from "./pages/HomePage/HomePage.tsx";
@@ -18,6 +16,8 @@ import PresupuestoPage from "./pages/Presupuesto/PresupuestoPage.tsx";
 import ProgramaObra from "./pages/Programa Obra/ProgramaObra.tsx";
 import ProjectsPage from "./pages/Projects/ProjectsPage.tsx";
 import PartidaDetails from "./pages/PartidaDetails/PartidaDetails.tsx";
+import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
+import Dashboard from "./pages/Dashboard/Dashboard.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 

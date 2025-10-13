@@ -79,7 +79,7 @@ export default function PartidaDetails() {
 
     // Helper function to get documents for a specific pago
     const getDocumentsForPago = (pagoId: Id<"pagos">) => {
-        return allDocuments?.filter(doc => doc.pago_id === pagoId) || [];
+        return allDocuments?.filter(doc => doc.pago_ids.includes(pagoId)) || [];
     };
 
     // Helper function to get file view URL
@@ -117,11 +117,13 @@ export default function PartidaDetails() {
                     </div>
 
                     <Button
-                        onClick={() => addPaymentModal.onOpen({
-                            relatedCost: partida,
-                            totalAmount: presupuestoAprobado,
-                            remainingAmount: porEjercer
-                        })}
+                        onClick={() => {
+                            if (partida.proyecto) {
+                                addPaymentModal.onOpen({
+                                    projectId: partida.proyecto
+                                });
+                            }
+                        }}
                         className="bg-black hover:bg-gray-800 text-white text-sm px-4 py-2"
                     >
                         Nuevo Pago +

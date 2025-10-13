@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useState, useMemo } from "react";
+import { useMutation, useQuery, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,16 +9,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Upload, Download, Trash2, Search, Plus, File, Pencil, RefreshCw } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileText, Upload, Download, Trash2, Search, Plus, File, Pencil, RefreshCw, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { uploadDocument, getFileUrl, getFileDownloadUrl, deleteDocument } from "@/lib/appwrite";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 
 export default function DocumentosPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
-  const [selectedPago, setSelectedPago] = useState<Id<"pagos"> | "">("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [pagoSearchTerm, setPagoSearchTerm] = useState("");
+  const [showOnlySelected, setShowOnlySelected] = useState(false);
+  const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("")
+  const [selectedPagos, setSelectedPagos] = useState<Id<"pagos">[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);  
   const [isUploading, setIsUploading] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<Doc<"documentos"> | null>(null);
@@ -35,17 +38,40 @@ export default function DocumentosPage() {
   // Queries
   const proyectos = useQuery(api.desarrollos.getAll);
 
-  // Get pagos for selected proyecto
-  const allPagos = useQuery(
-    api.pagos.getByProyecto,
-    selectedProyecto ? { proyecto_id: selectedProyecto } : "skip"
+  // Get pagos for selected proyecto with pagination
+  const { results: paginatedPagos, status: pagosStatus, loadMore } = usePaginatedQuery(
+    api.pagos.listByProyecto,
+    selectedProyecto ? { proyecto_id: selectedProyecto } : "skip",
+    { initialNumItems: 50 }
   );
 
   // Get all pagos for document lookup
   const allPagosForLookup = useQuery(api.pagos.getByPartidaName, { partida_name: "", proyecto_id: undefined });
 
-  // Filter pagos by selected proyecto
-  const pagos = allPagos?.filter((pago: Doc<"pagos">) => pago.proyecto === selectedProyecto) || [];
+  // Filter and search pagos
+  const pagos = useMemo(() => {
+    if (!paginatedPagos) return [];
+    
+    let filtered = paginatedPagos;
+    
+    // Apply search filter
+    if (pagoSearchTerm.trim() !== "") {
+      const searchLower = pagoSearchTerm.toLowerCase();
+      filtered = filtered.filter((pago: Doc<"pagos">) => 
+        pago.sub_partida.toLowerCase().includes(searchLower) ||
+        pago.familia.toLowerCase().includes(searchLower) ||
+        pago.partida.toLowerCase().includes(searchLower) ||
+        pago.monto.toString().includes(searchLower)
+      );
+    }
+    
+    // Apply "show only selected" filter
+    if (showOnlySelected) {
+      filtered = filtered.filter((pago: Doc<"pagos">) => selectedPagos.includes(pago._id));
+    }
+    
+    return filtered;
+  }, [paginatedPagos, pagoSearchTerm, showOnlySelected, selectedPagos]);
 
   const documentos = useQuery(
     api.documentos.getAll
@@ -62,9 +88,10 @@ export default function DocumentosPage() {
     doc.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Helper function to get related pago for a document
-  const getRelatedPago = (pagoId: Id<"pagos">) => {
-    return allPagosForLookup?.find(pago => pago._id === pagoId);
+  // Helper function to get related pagos for a document
+  const getRelatedPagos = (pagoIds: Id<"pagos">[]) => {
+    if (!allPagosForLookup) return [];
+    return allPagosForLookup.filter(pago => pagoIds.includes(pago._id));
   };
 
   // Helper function to format currency
@@ -85,9 +112,9 @@ export default function DocumentosPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.file || !selectedProyecto || !selectedPago || !formData.type) {
+    if (!formData.file || !selectedProyecto || selectedPagos.length === 0 || !formData.type) {
       toast.error("Faltan campos requeridos", {
-        description: "Por favor completa todos los campos, selecciona un archivo y tipo de documento.",
+        description: "Por favor completa todos los campos, selecciona al menos un pago y un archivo.",
       });
       return;
     }
@@ -109,11 +136,11 @@ export default function DocumentosPage() {
         image: uploadResult.fileId!, // Store Appwrite file ID
         type: formData.type,
         proyecto: selectedProyecto,
-        pago_id: selectedPago,
+        pago_ids: selectedPagos,
       });
 
       toast.success("Documento subido exitosamente", {
-        description: `El documento "${formData.nombre}" se ha vinculado correctamente.`,
+        description: `El documento "${formData.nombre}" se ha vinculado a ${selectedPagos.length} pago(s).`,
       });
 
       // Reset form
@@ -123,6 +150,7 @@ export default function DocumentosPage() {
         type: "",
         file: null,
       });
+      setSelectedPagos([]);
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Error uploading document:", error);
@@ -142,9 +170,9 @@ export default function DocumentosPage() {
       type: doc.type,
       file: null,
     });
-    // Set the proyecto and pago for the edit form
+    // Set the proyecto and pagos for the edit form
     setSelectedProyecto(doc.proyecto);
-    setSelectedPago(doc.pago_id);
+    setSelectedPagos(doc.pago_ids);
     setIsReplacingFile(false);
     setIsEditDialogOpen(true);
   };
@@ -152,9 +180,9 @@ export default function DocumentosPage() {
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!editingDocument || !selectedProyecto || !selectedPago || !formData.type) {
+    if (!editingDocument || !selectedProyecto || selectedPagos.length === 0 || !formData.type) {
       toast.error("Faltan campos requeridos", {
-        description: "Por favor completa todos los campos y selecciona el tipo de documento.",
+        description: "Por favor completa todos los campos y selecciona al menos un pago.",
       });
       return;
     }
@@ -187,7 +215,7 @@ export default function DocumentosPage() {
         image: fileId,
         type: formData.type,
         proyecto: selectedProyecto,
-        pago_id: selectedPago,
+        pago_ids: selectedPagos,
       });
 
       toast.success("Documento actualizado exitosamente", {
@@ -201,6 +229,7 @@ export default function DocumentosPage() {
         type: "",
         file: null,
       });
+      setSelectedPagos([]);
       setEditingDocument(null);
       setIsReplacingFile(false);
       setIsEditDialogOpen(false);
@@ -254,7 +283,7 @@ export default function DocumentosPage() {
 
         {/* Filters and Actions */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -271,10 +300,10 @@ export default function DocumentosPage() {
             <Select value={selectedProyecto || undefined} onValueChange={(value) => {
               if (value === "clear") {
                 setSelectedProyecto("");
-                setSelectedPago("");
+                setSelectedPagos([]);
               } else {
                 setSelectedProyecto(value as Id<"desarrollos">);
-                setSelectedPago("");
+                setSelectedPagos([]);
               }
             }}>
               <SelectTrigger>
@@ -294,35 +323,6 @@ export default function DocumentosPage() {
               </SelectContent>
             </Select>
 
-            {/* Pago Filter */}
-            <Select
-              value={selectedPago || undefined}
-              onValueChange={(value) => {
-                if (value === "clear") {
-                  setSelectedPago("");
-                } else {
-                  setSelectedPago(value as Id<"pagos">);
-                }
-              }}
-              disabled={!selectedProyecto}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Todos los pagos" />
-              </SelectTrigger>
-              <SelectContent>
-                {selectedPago && (
-                  <SelectItem value="clear">
-                    <span className="text-gray-500">Limpiar filtro</span>
-                  </SelectItem>
-                )}
-                {pagos?.map((pago: Doc<"pagos">) => (
-                  <SelectItem key={pago._id} value={pago._id}>
-                    {pago.sub_partida} - ${pago.monto.toLocaleString()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             {/* Add Document Button */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
@@ -331,7 +331,7 @@ export default function DocumentosPage() {
                   Agregar Documento
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl overflow-y-scroll">
                 <DialogHeader>
                   <DialogTitle>Subir Nuevo Documento</DialogTitle>
                   <DialogDescription>
@@ -346,7 +346,7 @@ export default function DocumentosPage() {
                       value={selectedProyecto || undefined}
                       onValueChange={(value) => {
                         setSelectedProyecto(value as Id<"desarrollos">);
-                        setSelectedPago("");
+                        setSelectedPagos([]);
                       }}
                       required
                     >
@@ -363,26 +363,109 @@ export default function DocumentosPage() {
                     </Select>
                   </div>
 
-                  {/* Pago */}
+                  {/* Pagos (multi-select) */}
                   <div className="space-y-2">
-                    <Label htmlFor="pago">Pago *</Label>
-                    <Select
-                      value={selectedPago || undefined}
-                      onValueChange={(value) => setSelectedPago(value as Id<"pagos">)}
-                      disabled={!selectedProyecto}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar pago" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pagos?.map((pago: Doc<"pagos">) => (
-                          <SelectItem key={pago._id} value={pago._id}>
-                            {pago.sub_partida} - {pago.familia} (${pago.monto.toLocaleString()})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Pagos * (selecciona uno o varios)</Label>
+                    {!selectedProyecto ? (
+                      <p className="text-sm text-gray-500">Primero selecciona un proyecto</p>
+                    ) : (
+                      <>
+                        {/* Search and Filter Controls */}
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <Input
+                              placeholder="Buscar pagos..."
+                              value={pagoSearchTerm}
+                              onChange={(e) => setPagoSearchTerm(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant={showOnlySelected ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setShowOnlySelected(!showOnlySelected)}
+                            className="whitespace-nowrap"
+                          >
+                            <Filter className="h-4 w-4 mr-2" />
+                            {showOnlySelected ? "Mostrando seleccionados" : "Ver seleccionados"}
+                          </Button>
+                        </div>
+
+                        {/* Loading State */}
+                        {pagosStatus === "LoadingFirstPage" && (
+                          <div className="flex justify-center py-8">
+                            <div className="text-center">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+                              <p className="text-sm text-gray-500">Cargando pagos...</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Pagos List */}
+                        {pagosStatus !== "LoadingFirstPage" && (
+                          <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">
+                            {pagos && pagos.length > 0 ? (
+                              <>
+                                {pagos.map((pago: Doc<"pagos">) => (
+                                  <div key={pago._id} className="flex items-start space-x-3">
+                                    <Checkbox
+                                      id={`pago-${pago._id}`}
+                                      checked={selectedPagos.includes(pago._id)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setSelectedPagos([...selectedPagos, pago._id]);
+                                        } else {
+                                          setSelectedPagos(selectedPagos.filter(id => id !== pago._id));
+                                        }
+                                      }}
+                                    />
+                                    <label
+                                      htmlFor={`pago-${pago._id}`}
+                                      className="text-sm cursor-pointer flex-1"
+                                    >
+                                      <div className="font-medium">{pago.sub_partida}</div>
+                                      <div className="text-gray-500">{pago.familia} - ${pago.monto.toLocaleString()}</div>
+                                    </label>
+                                  </div>
+                                ))}
+                                
+                                {/* Load More Button */}
+                                {pagosStatus === "CanLoadMore" && (
+                                  <div className="pt-2">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => loadMore(50)}
+                                      className="w-full"
+                                    >
+                                      Cargar más pagos
+                                    </Button>
+                                  </div>
+                                )}
+                                
+                                {pagosStatus === "LoadingMore" && (
+                                  <p className="text-sm text-gray-500 text-center">Cargando más...</p>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-sm text-gray-500">
+                                {pagoSearchTerm || showOnlySelected 
+                                  ? "No se encontraron pagos con los filtros aplicados"
+                                  : "No hay pagos disponibles"}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {selectedPagos.length > 0 && (
+                      <p className="text-sm text-gray-600">
+                        {selectedPagos.length} pago(s) seleccionado(s)
+                      </p>
+                    )}
                   </div>
 
                   {/* Nombre */}
@@ -496,7 +579,7 @@ export default function DocumentosPage() {
                   value={selectedProyecto || undefined}
                   onValueChange={(value) => {
                     setSelectedProyecto(value as Id<"desarrollos">);
-                    setSelectedPago("");
+                    setSelectedPagos([]);
                   }}
                   required
                 >
@@ -513,26 +596,109 @@ export default function DocumentosPage() {
                 </Select>
               </div>
 
-              {/* Pago */}
+              {/* Pagos (multi-select) */}
               <div className="space-y-2">
-                <Label htmlFor="edit-pago">Pago *</Label>
-                <Select
-                  value={selectedPago || undefined}
-                  onValueChange={(value) => setSelectedPago(value as Id<"pagos">)}
-                  disabled={!selectedProyecto}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar pago" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pagos?.map((pago: Doc<"pagos">) => (
-                      <SelectItem key={pago._id} value={pago._id}>
-                        {pago.sub_partida} - {pago.familia} (${pago.monto.toLocaleString()})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Pagos * (selecciona uno o varios)</Label>
+                {!selectedProyecto ? (
+                  <p className="text-sm text-gray-500">Primero selecciona un proyecto</p>
+                ) : (
+                  <>
+                    {/* Search and Filter Controls */}
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          placeholder="Buscar pagos..."
+                          value={pagoSearchTerm}
+                          onChange={(e) => setPagoSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant={showOnlySelected ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowOnlySelected(!showOnlySelected)}
+                        className="whitespace-nowrap"
+                      >
+                        <Filter className="h-4 w-4 mr-2" />
+                        {showOnlySelected ? "Mostrando seleccionados" : "Ver seleccionados"}
+                      </Button>
+                    </div>
+
+                    {/* Loading State */}
+                    {pagosStatus === "LoadingFirstPage" && (
+                      <div className="flex justify-center py-8">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+                          <p className="text-sm text-gray-500">Cargando pagos...</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pagos List */}
+                    {pagosStatus !== "LoadingFirstPage" && (
+                      <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">
+                        {pagos && pagos.length > 0 ? (
+                          <>
+                            {pagos.map((pago: Doc<"pagos">) => (
+                              <div key={pago._id} className="flex items-start space-x-3">
+                                <Checkbox
+                                  id={`edit-pago-${pago._id}`}
+                                  checked={selectedPagos.includes(pago._id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedPagos([...selectedPagos, pago._id]);
+                                    } else {
+                                      setSelectedPagos(selectedPagos.filter(id => id !== pago._id));
+                                    }
+                                  }}
+                                />
+                                <label
+                                  htmlFor={`edit-pago-${pago._id}`}
+                                  className="text-sm cursor-pointer flex-1"
+                                >
+                                  <div className="font-medium">{pago.sub_partida}</div>
+                                  <div className="text-gray-500">{pago.familia} - ${pago.monto.toLocaleString()}</div>
+                                </label>
+                              </div>
+                            ))}
+                            
+                            {/* Load More Button */}
+                            {pagosStatus === "CanLoadMore" && (
+                              <div className="pt-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => loadMore(50)}
+                                  className="w-full"
+                                >
+                                  Cargar más pagos
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {pagosStatus === "LoadingMore" && (
+                              <p className="text-sm text-gray-500 text-center">Cargando más...</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500">
+                            {pagoSearchTerm || showOnlySelected 
+                              ? "No se encontraron pagos con los filtros aplicados"
+                              : "No hay pagos disponibles"}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+                {selectedPagos.length > 0 && (
+                  <p className="text-sm text-gray-600">
+                    {selectedPagos.length} pago(s) seleccionado(s)
+                  </p>
+                )}
               </div>
 
               {/* Nombre */}
@@ -699,35 +865,41 @@ export default function DocumentosPage() {
                     
                     {/* Payment Information */}
                     {(() => {
-                      const relatedPago = getRelatedPago(doc.pago_id);
-                      if (relatedPago) {
+                      const relatedPagos = getRelatedPagos(doc.pago_ids);
+                      if (relatedPagos.length > 0) {
                         return (
-                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                            <p className="text-xs font-medium text-blue-900 mb-2">Información del pago</p>
-                            <div className="space-y-1 text-xs">
-                              <div className="flex justify-between">
-                                <span className="text-blue-700">Sub-partida:</span>
-                                <span className="font-medium text-blue-900">{relatedPago.sub_partida}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-blue-700">Familia:</span>
-                                <span className="font-medium text-blue-900">{relatedPago.familia}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-blue-700">Monto:</span>
-                                <span className="font-medium text-blue-900">{formatCurrency(relatedPago.monto)}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-blue-700">Fecha:</span>
-                                <span className="font-medium text-blue-900">{relatedPago.fecha}</span>
-                              </div>
-                              {relatedPago.tipo_pago && (
-                                <div className="flex justify-between">
-                                  <span className="text-blue-700">Tipo:</span>
-                                  <span className="font-medium text-blue-900 capitalize">{relatedPago.tipo_pago}</span>
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-gray-700">
+                              Pagos asociados ({relatedPagos.length})
+                            </p>
+                            {relatedPagos.map((pago) => (
+                              <div key={pago._id} className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between">
+                                    <span className="text-blue-700">Sub-partida:</span>
+                                    <span className="font-medium text-blue-900">{pago.sub_partida}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-blue-700">Familia:</span>
+                                    <span className="font-medium text-blue-900">{pago.familia}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-blue-700">Monto:</span>
+                                    <span className="font-medium text-blue-900">{formatCurrency(pago.monto)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-blue-700">Fecha:</span>
+                                    <span className="font-medium text-blue-900">{pago.fecha}</span>
+                                  </div>
+                                  {pago.tipo_pago && (
+                                    <div className="flex justify-between">
+                                      <span className="text-blue-700">Tipo:</span>
+                                      <span className="font-medium text-blue-900 capitalize">{pago.tipo_pago}</span>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
+                              </div>
+                            ))}
                           </div>
                         );
                       }

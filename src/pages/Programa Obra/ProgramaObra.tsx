@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
-import { useQuery } from "convex/react";
-import { Id } from "../../../convex/_generated/dataModel";
+import { useQuery, usePaginatedQuery } from "convex/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +13,8 @@ import {
 import { ChevronDown, ChevronRight, Search, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
-import { useAddPartidaModal } from "@/hooks/add-partida-modal";                                 
+import { useAddPartidaModal } from "@/hooks/add-partida-modal";
+import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
 // import ProgramaGanttChart from "@/components/Charts/ProgramaGanttChart";
 
 const months = [
@@ -48,31 +48,26 @@ type ProgramaItem = {
 };
 
 export default function ProgramaObra() {
+
+  const { selectedDesarrollo } = useDesarrolloStore();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPartida, setSelectedPartida] = useState<string | undefined>(undefined);
   const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>(undefined);
   const [selectedFecha, setSelectedFecha] = useState("Semana");
-  
+
   // Add partida modal
   const addPartidaModal = useAddPartidaModal();
 
   // Fetch projects
   const projects = useQuery(api.desarrollos.getAll);
 
-  // State for selected project
-  const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
 
-  // Set default project when projects load
-  useEffect(() => {
-    if (projects && projects.length > 0 && !selectedProjectId) {
-      setSelectedProjectId(projects[0]._id);
-    }
-  }, [projects, selectedProjectId]);
-
-  // Fetch all partidas for selected project
-  const allPartidas = useQuery(
-    api.partida.getByProject,
-    selectedProjectId ? { projectId: selectedProjectId } : "skip"
+  // Fetch all partidas for selected project with pagination
+  const { results: allPartidas } = usePaginatedQuery(
+    api.partida.getByProjectPaginated,
+    selectedDesarrollo?._id ? { projectId: selectedDesarrollo._id } : "skip",
+    { initialNumItems: 100 }
   );
 
   console.log(allPartidas);
@@ -133,7 +128,7 @@ export default function ProgramaObra() {
 
       const familiaGroup = partidaGroup.familias[familiaKey];
       familiaGroup.presupuesto += item.aprobado || 0;
-      
+
       // Update familia timeline progress based on accumulated data
       if (familiaGroup.timeline) {
         const totalPagado = (familiaGroup.timeline.actualAmount || 0) + item.pagado || 0;
@@ -249,8 +244,7 @@ export default function ProgramaObra() {
     </div>;
   }
 
-  // Get current selected project
-  const currentProject = projects.find(p => p._id === selectedProjectId) || projects[0];
+
 
   return (
     <div className="bg-white px-12 py-6">
@@ -261,34 +255,16 @@ export default function ProgramaObra() {
           <div className="flex items-start justify-between">
             <div className="flex flex-col text-left">
               <p className="text-sm text-gray-500 mb-1">Programa de Obra</p>
-              <h1 className="text-2xl text-gray-900">{currentProject?.nombre || 'Proyecto'}</h1>
+              <h1 className="text-2xl text-gray-900">{selectedDesarrollo?.nombre || 'Proyecto'}</h1>
             </div>
             <div className="flex items-end gap-3">
-              
-              <div className="flex flex-col space-y-1 text-left min-w-[250px]">
-                <span className="text-xs text-gray-500">Proyecto</span>
-                <Select
-                  value={selectedProjectId}
-                  onValueChange={(value) => setSelectedProjectId(value as Id<"desarrollos">)}
-                >
-                  <SelectTrigger className="border border-gray-200 shadow-sm h-9 font-normal text-gray-900">
-                    <SelectValue placeholder="Seleccionar proyecto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project._id} value={project._id}>
-                        {project.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
               <Button
-                onClick={() => selectedProjectId && addPartidaModal.onOpen({
-                  proyecto: selectedProjectId,
-                  projectName: currentProject?.nombre
+                onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
+                  proyecto: selectedDesarrollo._id,
+                  projectName: selectedDesarrollo.nombre
                 })}
-                disabled={!selectedProjectId}
+                disabled={!selectedDesarrollo}
                 variant={"outline"}
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -367,7 +343,7 @@ export default function ProgramaObra() {
         </div>
 
 
-      </div>  
+      </div>
       {/* Gantt Chart Container */}
       <div className="border border-gray-200 overflow-hidden bg-white">
         {/* Header Row */}
@@ -376,7 +352,7 @@ export default function ProgramaObra() {
           <div className="w-80 border-r border-gray-200 px-4 py-3 text-left">
             <div className="text-sm font-medium text-gray-600">Partida - Familia</div>
           </div>
-          
+
           {/* Right Header - Timeline */}
           <div className="flex-1 overflow-x-auto">
             <div className="flex">
@@ -403,8 +379,8 @@ export default function ProgramaObra() {
         {/* Data Rows */}
         <div>
           {filteredData.map((item) => (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               className={cn(
                 "flex border-b border-gray-100",
                 item.expanded && item.level === 0 && "bg-gray-100 hover:bg-gray-200",
@@ -436,10 +412,10 @@ export default function ProgramaObra() {
                   )}
                   <span className={cn(
                     "text-sm",
-                    item.level === 0 
-                      ? "font-medium text-gray-900" 
-                      : item.level === 1 
-                        ? "text-gray-600" 
+                    item.level === 0
+                      ? "font-medium text-gray-900"
+                      : item.level === 1
+                        ? "text-gray-600"
                         : "text-gray-600 text-wrap max-w-48"
                   )}>
                     {item.partida}
@@ -466,7 +442,7 @@ export default function ProgramaObra() {
                         />
                       ))}
                     </div>
-                    
+
                     {/* Single spanning timeline bar */}
                     <ProgramaObraGanttItem item={item} />
                   </div>
