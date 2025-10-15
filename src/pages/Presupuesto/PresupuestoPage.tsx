@@ -13,7 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, X, ChevronDown } from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
@@ -63,10 +65,13 @@ export default function PresupuestoPage() {
 
 
 
-  const [selectedPartida, setSelectedPartida] = useState<string | undefined>("all");
-  const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>("all");
+  const [selectedPartidas, setSelectedPartidas] = useState<string[]>([]);
+  const [selectedFamilias, setSelectedFamilias] = useState<string[]>([]);
   const [selectedFecha, setSelectedFecha] = useState("Semana");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [partidaSearchTerm, setPartidaSearchTerm] = useState("");
+  const [familiaSearchTerm, setFamiliaSearchTerm] = useState("");
+  const [isPartidaOpen, setIsPartidaOpen] = useState(false);
+  const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
 
   // Add partida modal
   const addPartidaModal = useAddPartidaModal();
@@ -83,7 +88,7 @@ export default function PresupuestoPage() {
   const { results: allPartidas, status: partidasStatus, loadMore } = usePaginatedQuery(
     api.partida.getByProjectPaginated,
     selectedDesarrollo ? { projectId: selectedDesarrollo._id } : "skip",
-    { initialNumItems: 100 }
+    { initialNumItems: 1000 }
   );
 
   // Calculate metrics from real data
@@ -114,17 +119,32 @@ export default function PresupuestoPage() {
     [allPartidas]
   );
 
+  // Filter partidas list for search
+  const filteredPartidasForSelect = useMemo(() => {
+    if (!partidaSearchTerm) return uniquePartidas;
+    return uniquePartidas.filter(p => 
+      p.toLowerCase().includes(partidaSearchTerm.toLowerCase())
+    );
+  }, [uniquePartidas, partidaSearchTerm]);
+
+  // Filter familias list for search
+  const filteredFamiliasForSelect = useMemo(() => {
+    if (!familiaSearchTerm) return uniqueFamilias;
+    return uniqueFamilias.filter(f => 
+      f.toLowerCase().includes(familiaSearchTerm.toLowerCase())
+    );
+  }, [uniqueFamilias, familiaSearchTerm]);
+
   // Filter data based on selections
   const filteredPartidas = useMemo(() => {
     if (!allPartidas) return [];
     
     return allPartidas.filter(p => {
-      if (selectedPartida && selectedPartida !== "all" && p.nombre !== selectedPartida) return false;
-      if (selectedFamilia && selectedFamilia !== "all" && p.familia !== selectedFamilia) return false;
-      if (searchTerm && !p.sub_partida.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (selectedPartidas.length > 0 && !selectedPartidas.includes(p.nombre)) return false;
+      if (selectedFamilias.length > 0 && !selectedFamilias.includes(p.familia)) return false;
       return true;
     });
-  }, [allPartidas, selectedPartida, selectedFamilia, searchTerm]);
+  }, [allPartidas, selectedPartidas, selectedFamilias]);
 
   // Calculate percentage differences
   const presupuestoReduction = metrics.presupuestoOriginal > 0
@@ -250,52 +270,197 @@ export default function PresupuestoPage() {
 
         {/* Filters */}
         <div className="bg-white border-b border-gray-200 pb-4">
-          <div className="grid grid-cols-4 items-center gap-6">
-            {/* Search */}
-            <div className="flex items-center space-x-3 text-left">
-              <Search className="w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </div>
-
-            {/* Partida Filter */}
+          <div className="grid grid-cols-3 items-center gap-6">
+            {/* Partida Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left">
               <span className="text-xs text-gray-500">Partida</span>
-              <Select value={selectedPartida} onValueChange={setSelectedPartida}>
-                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {uniquePartidas.map((partida) => (
-                    <SelectItem key={partida} value={partida}>
-                      {partida}
-                    </SelectItem>
+              <Popover open={isPartidaOpen} onOpenChange={setIsPartidaOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="border-none shadow-none p-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
+                  >
+                    <span className="flex items-center gap-2">
+                      {selectedPartidas.length === 0 ? (
+                        "Todas"
+                      ) : selectedPartidas.length === 1 ? (
+                        selectedPartidas[0]
+                      ) : (
+                        `${selectedPartidas.length} seleccionadas`
+                      )}
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <div className="p-3 border-b">
+                    <Input
+                      placeholder="Buscar partidas..."
+                      value={partidaSearchTerm}
+                      onChange={(e) => setPartidaSearchTerm(e.target.value)}
+                      className="h-8 rounded-none focus-visible:border-gray-300 focus-visible:ring-0"
+                    />
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-3 space-y-2">
+                    {filteredPartidasForSelect.length > 0 ? (
+                      filteredPartidasForSelect.map((partida) => (
+                        <div key={partida} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`partida-${partida}`}
+                            checked={selectedPartidas.includes(partida)}
+                            className="border-gray-300"
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedPartidas([...selectedPartidas, partida]);
+                              } else {
+                                setSelectedPartidas(selectedPartidas.filter(p => p !== partida));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`partida-${partida}`}
+                            className="text-sm cursor-pointer flex-1"
+                          >
+                            {partida}
+                          </label>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500 text-center py-2">
+                        No se encontraron partidas
+                      </p>
+                    )}
+                  </div>
+                  {selectedPartidas.length > 0 && (
+                    <div className="p-3 border-t flex justify-between items-center">
+                      <span className="text-xs text-gray-500">
+                        {selectedPartidas.length} seleccionada(s)
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedPartidas([])}
+                        className="h-7 text-xs"
+                      >
+                        Limpiar
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              {selectedPartidas.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {selectedPartidas.map((partida) => (
+                    <Badge
+                      key={partida}
+                      variant="secondary"
+                      className="text-xs py-0.5 px-2 gap-1"
+                    >
+                      {partida.length > 15 ? `${partida.slice(0, 15)}...` : partida}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => setSelectedPartidas(selectedPartidas.filter(p => p !== partida))}
+                      />
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
             </div>
 
-            {/* Familia Filter */}
+            {/* Familia Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left">
               <span className="text-xs text-gray-500">Familia</span>
-              <Select value={selectedFamilia} onValueChange={setSelectedFamilia}>
-                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {uniqueFamilias.map((familia) => (
-                    <SelectItem key={familia} value={familia}>
-                      {familia}
-                    </SelectItem>
+              <Popover open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="border-none shadow-none p-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
+                  >
+                    <span className="flex items-center gap-2">
+                      {selectedFamilias.length === 0 ? (
+                        "Todas"
+                      ) : selectedFamilias.length === 1 ? (
+                        selectedFamilias[0]
+                      ) : (
+                        `${selectedFamilias.length} seleccionadas`
+                      )}
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <div className="p-3 border-b">
+                    <Input
+                      placeholder="Buscar familias..."
+                      value={familiaSearchTerm}
+                      onChange={(e) => setFamiliaSearchTerm(e.target.value)}
+                      className="h-8 rounded-none focus-visible:border-gray-300 focus-visible:ring-0"
+                    />
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-3 space-y-2">
+                    {filteredFamiliasForSelect.length > 0 ? (
+                      filteredFamiliasForSelect.map((familia) => (
+                        <div key={familia} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`familia-${familia}`}
+                            checked={selectedFamilias.includes(familia)}
+                            className="border-gray-300"
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedFamilias([...selectedFamilias, familia]);
+                              } else {
+                                setSelectedFamilias(selectedFamilias.filter(f => f !== familia));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`familia-${familia}`}
+                            className="text-sm cursor-pointer flex-1"
+                          >
+                            {familia}
+                          </label>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500 text-center py-2">
+                        No se encontraron familias
+                      </p>
+                    )}
+                  </div>
+                  {selectedFamilias.length > 0 && (
+                    <div className="p-3 border-t flex justify-between items-center">
+                      <span className="text-xs text-gray-500">
+                        {selectedFamilias.length} seleccionada(s)
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedFamilias([])}
+                        className="h-7 text-xs"
+                      >
+                        Limpiar
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              {selectedFamilias.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {selectedFamilias.map((familia) => (
+                    <Badge
+                      key={familia}
+                      variant="secondary"
+                      className="text-xs py-0.5 px-2 gap-1"
+                    >
+                      {familia.length > 15 ? `${familia.slice(0, 15)}...` : familia}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => setSelectedFamilias(selectedFamilias.filter(f => f !== familia))}
+                      />
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
             </div>
 
             {/* Fecha Filter */}

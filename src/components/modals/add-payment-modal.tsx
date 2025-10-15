@@ -11,23 +11,49 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Circle, Plus, Trash2 } from "lucide-react";
+import { Check, Circle, Plus, X, Upload, File } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
+import { uploadDocument } from "@/lib/appwrite";
+import { toast } from "sonner";
+
+type SubPartidaItem = {
+    id: string;
+    partida_id: Id<"partidas"> | "";
+    partida: string;
+    familia: string;
+    sub_partida: string;
+    monto: number;
+};
 
 export default function AddPaymentModal() {
     const paymentContext = useAddPaymentModal((state) => state.paymentContext);
     const isOpen = useAddPaymentModal((state) => state.isOpen);
     const onClose = useAddPaymentModal((state) => state.onClose);
-    const payments = useAddPaymentModal((state) => state.payments);
-    const addPayment = useAddPaymentModal((state) => state.addPayment);
-    const removePayment = useAddPaymentModal((state) => state.removePayment);
-    const updatePayment = useAddPaymentModal((state) => state.updatePayment);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [status, setStatus] = useState<"Pagado" | "Por pagar">("Pagado");
+    const [selectedPartida, setSelectedPartida] = useState("");
+    const [selectedFamilia, setSelectedFamilia] = useState("");
+    const [subPartidas, setSubPartidas] = useState<SubPartidaItem[]>([]);
+    const [categoria, setCategoria] = useState("");
+    const [tipoPago, setTipoPago] = useState("");
+    const [moneda, setMoneda] = useState("MXN");
+    const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+    const [banco, setBanco] = useState("");
+    const [numeroCuenta, setNumeroCuenta] = useState("");
+    const [codigoReferencia, setCodigoReferencia] = useState("");
+    const [documentFile, setDocumentFile] = useState<File | null>(null);
+    const [documentType, setDocumentType] = useState("");
+    const [documentName, setDocumentName] = useState("");
+    const [documentDescription, setDocumentDescription] = useState("");
+    const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+    
     const createPayment = useMutation(api.pagos.create);
+    const createDocument = useMutation(api.documentos.create);
 
     // Fetch all partidas for this project
     const allPartidas = useQuery(
@@ -35,8 +61,31 @@ export default function AddPaymentModal() {
         paymentContext ? { projectId: paymentContext.projectId } : "skip"
     );
 
-    const handleInputChange = (index: number, field: string, value: string | number) => {
-        updatePayment(index, { [field]: value });
+    // Calculate total amount from all sub-partidas
+    const totalAmount = subPartidas.reduce((sum, item) => sum + (item.monto || 0), 0);
+
+    // Add a new sub-partida item
+    const addSubPartida = () => {
+        setSubPartidas([...subPartidas, {
+            id: Date.now().toString(),
+            partida_id: "",
+            partida: selectedPartida,
+            familia: selectedFamilia,
+            sub_partida: "",
+            monto: 0
+        }]);
+    };
+
+    // Remove a sub-partida item
+    const removeSubPartida = (id: string) => {
+        setSubPartidas(subPartidas.filter(item => item.id !== id));
+    };
+
+    // Update a sub-partida item
+    const updateSubPartida = (id: string, updates: Partial<SubPartidaItem>) => {
+        setSubPartidas(subPartidas.map(item => 
+            item.id === id ? { ...item, ...updates } : item
+        ));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -45,52 +94,105 @@ export default function AddPaymentModal() {
 
         setIsSubmitting(true);
         try {
-            // Create all payments in parallel
-            await Promise.all(
-                payments.map(async (payment) => {
-                    if (payment.partida_id && payment.partida_id !== "") {
-                        await createPayment({
-                            partida_id: payment.partida_id as Id<"partidas">,
-                            partida: payment.partida,
-                            familia: payment.familia,
-                            sub_partida: payment.sub_partida,
-                            monto: payment.monto,
-                            fecha: payment.fecha,
-                            tipo_pago: payment.tipo_pago,
-                            banco: payment.banco,
-                            tarjeta: payment.tarjeta,
-                            numero_cuenta: payment.numero_cuenta,
-                            numero_transferencia: payment.numero_transferencia,
-                            codigo_referencia: payment.codigo_referencia,
-                            factura: payment.factura,
-                            moneda: payment.moneda,
-                            tipo_cambio: payment.tipo_cambio,
-                            status: payment.status,
+            // Create a payment for each sub-partida
+            const pagoIds: Id<"pagos">[] = [];
+            
+            for (const item of subPartidas) {
+                if (item.partida_id && item.partida_id !== "") {
+                    const pagoId = await createPayment({
+                        partida_id: item.partida_id as Id<"partidas">,
+                        partida: item.partida,
+                        familia: item.familia,
+                        sub_partida: item.sub_partida,
+                        monto: item.monto,
+                        fecha,
+                        tipo_pago: tipoPago,
+                        banco,
+                        tarjeta: "",
+                        numero_cuenta: numeroCuenta,
+                        numero_transferencia: "",
+                        codigo_referencia: codigoReferencia,
+                        factura: "",
+                        moneda,
+                        tipo_cambio: "1",
+                        status,
+                        proyecto: paymentContext.projectId,
+                    });
+                    if (pagoId) pagoIds.push(pagoId);
+                }
+            }
+
+            // Upload document if provided
+            if (documentFile && pagoIds.length > 0) {
+                setIsUploadingDocument(true);
+                try {
+                    const uploadResult = await uploadDocument(documentFile);
+                    
+                    if (uploadResult.success && documentType) {
+                        await createDocument({
+                            nombre: documentName || documentFile.name,
+                            descripcion: documentDescription || `Documento adjunto al pago - ${new Date().toLocaleDateString()}`,
+                            image: uploadResult.fileId!,
+                            type: documentType,
                             proyecto: paymentContext.projectId,
+                            pago_ids: pagoIds,
+                        });
+                        toast.success("Documento adjuntado", {
+                            description: `El documento se vinculó a ${pagoIds.length} pago(s).`,
+                        });
+                    } else {
+                        toast.error("Error al subir el documento", {
+                            description: uploadResult.error,
                         });
                     }
-                })
-            );
+                } catch (error) {
+                    console.error("Error uploading document:", error);
+                    toast.error("Error al subir el documento");
+                } finally {
+                    setIsUploadingDocument(false);
+                }
+            }
+
+            // Reset form
+            setStatus("Pagado");
+            setSelectedPartida("");
+            setSelectedFamilia("");
+            setSubPartidas([]);
+            setCategoria("");
+            setTipoPago("");
+            setMoneda("MXN");
+            setFecha(new Date().toISOString().split('T')[0]);
+            setBanco("");
+            setNumeroCuenta("");
+            setCodigoReferencia("");
+            setDocumentFile(null);
+            setDocumentType("");
+            setDocumentName("");
+            setDocumentDescription("");
+            toast.success("Pago registrado", {
+                description: `Se crearon ${pagoIds.length} pago(s) exitosamente.`,
+            });
             onClose();
         } catch (error) {
             console.error("Error creating payments:", error);
+            toast.error("Error al crear el pago");
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const isFormValid = () => {
-        return payments.every(payment =>
-            payment.partida_id &&
-            payment.partida_id !== "" &&
-            payment.familia &&
-            payment.familia.trim() !== "" &&
-            payment.sub_partida &&
-            payment.sub_partida.trim() !== "" &&
-            payment.monto > 0 &&
-            payment.fecha &&
-            payment.tipo_pago &&
-            payment.status
+        return (
+            subPartidas.length > 0 &&
+            subPartidas.every(item => 
+                item.partida_id && 
+                item.partida_id !== "" && 
+                item.sub_partida &&
+                item.monto > 0
+            ) &&
+            tipoPago &&
+            fecha &&
+            status
         );
     };
 
@@ -101,63 +203,57 @@ export default function AddPaymentModal() {
         return uniqueNames.sort();
     };
 
-    // Get available familias for a selected partida
-    const getAvailableFamilias = (index: number) => {
-        const payment = payments[index];
-        if (!payment.partida || !allPartidas) return [];
-        
-        const partidasWithName = allPartidas.filter(p => p.nombre === payment.partida);
-        const uniqueFamilias = [...new Set(partidasWithName.map(p => p.familia).filter(f => f && f.trim() !== ""))];
-        return uniqueFamilias.sort();
-    };
 
-    // Get available sub_partidas for a selected familia
-    const getAvailableSubPartidas = (index: number) => {
-        const payment = payments[index];
-        if (!payment.partida || !payment.familia || !allPartidas) return [];
+    // Get available sub_partidas for selected partida and familia
+    const getAvailableSubPartidas = () => {
+        if (!selectedPartida || !selectedFamilia || !allPartidas) return [];
         
         const partidasWithFamilia = allPartidas.filter(p => 
-            p.nombre === payment.partida && p.familia === payment.familia
+            p.nombre === selectedPartida && p.familia === selectedFamilia
         );
         const uniqueSubPartidas = [...new Set(partidasWithFamilia.map(p => p.sub_partida).filter(sp => sp && sp.trim() !== ""))];
         return uniqueSubPartidas.sort();
     };
 
-    // When familia is selected, find the matching partida_id
-    const handleFamiliaSelect = (index: number, familia: string) => {
-        const payment = payments[index];
-        if (!allPartidas) return;
-        
-        const matchingPartida = allPartidas.find(p => 
-            p.nombre === payment.partida && p.familia === familia
-        );
-        
-        if (matchingPartida) {
-            updatePayment(index, {
-                familia,
-                partida_id: matchingPartida._id,
-                sub_partida: ""
-            });
-        }
+    // When familia is selected
+    const handleFamiliaSelect = (familia: string) => {
+        setSelectedFamilia(familia);
+        // Add first sub-partida item automatically when familia is selected
+        setSubPartidas([{
+            id: Date.now().toString(),
+            partida_id: "",
+            partida: selectedPartida,
+            familia: familia,
+            sub_partida: "",
+            monto: 0
+        }]);
     };
 
-    // When sub_partida is selected, find the exact matching partida_id
-    const handleSubPartidaSelect = (index: number, subPartida: string) => {
-        const payment = payments[index];
+    // When sub_partida is selected for an item
+    const handleSubPartidaSelect = (id: string, subPartida: string) => {
         if (!allPartidas) return;
         
         const exactPartida = allPartidas.find(p => 
-            p.nombre === payment.partida && 
-            p.familia === payment.familia && 
+            p.nombre === selectedPartida && 
+            p.familia === selectedFamilia && 
             p.sub_partida === subPartida
         );
         
         if (exactPartida) {
-            updatePayment(index, {
+            updateSubPartida(id, {
                 sub_partida: subPartida,
                 partida_id: exactPartida._id
             });
         }
+    };
+
+    // Get available familias for selected partida
+    const getAvailableFamilias = () => {
+        if (!selectedPartida || !allPartidas) return [];
+        
+        const partidasWithName = allPartidas.filter(p => p.nombre === selectedPartida);
+        const uniqueFamilias = [...new Set(partidasWithName.map(p => p.familia).filter(f => f && f.trim() !== ""))];
+        return uniqueFamilias.sort();
     };
 
     if (!paymentContext) return null;
@@ -166,244 +262,352 @@ export default function AddPaymentModal() {
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[700px] sm:max-w-[700px] overflow-y-auto">
                 <SheetHeader>
-                    <SheetTitle>Registrar pagos</SheetTitle>
+                    <SheetTitle className="text-xl font-medium text-gray-900">Tipo de pago</SheetTitle>
                     <SheetDescription className="sr-only">
                         Registra uno o varios pagos para diferentes partidas
                     </SheetDescription>
                 </SheetHeader>
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-                    {/* Payment Entries */}
-                    <div className="space-y-6">
-                        {payments.map((payment, index) => (
-                            <div key={index} className="border rounded-lg p-4 bg-gray-50 space-y-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-900">
-                                        Pago {index + 1}
-                                    </h3>
-                                    {payments.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removePayment(index)}
-                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
+                    {/* Tipo de pago header */}
+                    <div className="space-y-4">                        
+                        {/* Status Selection */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setStatus('Pagado')}
+                                className={cn(
+                                    "flex items-center gap-3 p-4 rounded-none border transition-all",
+                                    status === 'Pagado'
+                                        ? "border-green-600 bg-white"
+                                        : "border-gray-300 bg-white hover:border-gray-400"
+                                )}
+                            >
+                                <Check className={cn(
+                                    "h-5 w-5",
+                                    status === 'Pagado' ? "text-green-600" : "text-gray-400"
+                                )} />
+                                <span className={cn(
+                                    "text-base",
+                                    status === 'Pagado' ? "text-gray-900 font-medium" : "text-gray-600"
+                                )}>Pagado</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setStatus('Por pagar')}
+                                className={cn(
+                                    "flex items-center gap-3 p-4 rounded-none border transition-all",
+                                    status === 'Por pagar'
+                                        ? "border-gray-600 bg-white"
+                                        : "border-gray-300 bg-white hover:border-gray-400"
+                                )}
+                            >
+                                <Circle className={cn(
+                                    "h-5 w-5",
+                                    status === 'Por pagar' ? "text-gray-600" : "text-gray-400"
+                                )} />
+                                <span className={cn(
+                                    "text-base",
+                                    status === 'Por pagar' ? "text-gray-900 font-medium" : "text-gray-600"
+                                )}>Por pagar</span>
+                            </button>
+                        </div>
+                    </div>
 
-                                {/* Status Selection */}
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleInputChange(index, 'status', 'Pagado')}
-                                        className={cn(
-                                            "flex items-center gap-2 p-3 rounded-lg border-2 transition-all",
-                                            payment.status === 'Pagado'
-                                                ? "border-green-500 bg-green-50"
-                                                : "border-gray-300 bg-white hover:border-gray-400"
+                    {/* Partida Selection */}
+                    <div className="space-y-3">
+                        <Select
+                            value={selectedPartida}
+                            onValueChange={(value) => {
+                                setSelectedPartida(value);
+                                setSelectedFamilia("");
+                                setSubPartidas([]);
+                            }}
+                        >
+                            <SelectTrigger className="h-12">
+                                <SelectValue placeholder="Seleccionar partida" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {getUniquePartidaNames().map((nombre) => (
+                                    <SelectItem key={nombre} value={nombre}>
+                                        {nombre}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {/* Familia */}
+                        <Select
+                            value={selectedFamilia}
+                            onValueChange={handleFamiliaSelect}
+                            disabled={!selectedPartida}
+                        >
+                            <SelectTrigger className="h-12">
+                                <SelectValue placeholder="Seleccionar familia" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {getAvailableFamilias().map((familia) => (
+                                    <SelectItem key={familia} value={familia}>
+                                        {familia}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {/* Sub-partidas List */}
+                        {selectedFamilia && (
+                            <div className="border p-2 space-y-3">
+                                {subPartidas.map((item) => (
+                                    <div key={item.id} className="flex items-center gap-3">
+                                        <div className="flex-1">
+                                            <Select
+                                                value={item.sub_partida}
+                                                onValueChange={(value) => handleSubPartidaSelect(item.id, value)}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Seleccionar sub-partida" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {getAvailableSubPartidas().map((subPartida) => (
+                                                        <SelectItem key={subPartida} value={subPartida}>
+                                                            {subPartida}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="w-40">
+                                            <MoneyInput
+                                                placeholder="Monto"
+                                                value={item.monto || 0}
+                                                onChange={(value) => updateSubPartida(item.id, { monto: value })}
+                                                currency={moneda}
+                                                className="text-left"
+                                            />
+                                        </div>
+                                        {subPartidas.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => removeSubPartida(item.id)}
+                                                className="h-9 w-9 p-0 text-gray-400 hover:text-red-600"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
                                         )}
-                                    >
-                                        <Check className={cn(
-                                            "h-4 w-4",
-                                            payment.status === 'Pagado' ? "text-green-600" : "text-gray-400"
-                                        )} />
-                                        <span className={cn(
-                                            "text-sm font-medium",
-                                            payment.status === 'Pagado' ? "text-green-700" : "text-gray-600"
-                                        )}>Pagado</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleInputChange(index, 'status', 'Por pagar')}
-                                        className={cn(
-                                            "flex items-center gap-2 p-3 rounded-lg border-2 transition-all",
-                                            payment.status === 'Por pagar'
-                                                ? "border-gray-500 bg-gray-100"
-                                                : "border-gray-300 bg-white hover:border-gray-400"
-                                        )}
-                                    >
-                                        <Circle className={cn(
-                                            "h-4 w-4",
-                                            payment.status === 'Por pagar' ? "text-gray-600" : "text-gray-400"
-                                        )} />
-                                        <span className={cn(
-                                            "text-sm font-medium",
-                                            payment.status === 'Por pagar' ? "text-gray-700" : "text-gray-600"
-                                        )}>Por pagar</span>
-                                    </button>
-                                </div>
+                                    </div>
+                                ))}
 
-                                {/* Partida Selection */}
-                                <Select
-                                    value={payment.partida}
-                                    onValueChange={(value) => handleInputChange(index, 'partida', value)}
+                                {/* Add Sub-partida Button */}
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={addSubPartida}
+                                    className="w-full justify-between text-gray-600 hover:text-gray-900 hover:bg-transparent flex p-0"
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona partida" />
+                                    <div className="flex items-center gap-2 p-2 border w-full">
+                                        <Plus className="h-4 w-4" />
+                                        Agregar Partida
+                                    </div>                                    
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Payment Details */}
+                    <div className="space-y-3 pt-2">
+                        {/* Categoría */}
+                        <Select
+                            value={categoria}
+                            onValueChange={setCategoria}
+                        >
+                            <SelectTrigger className="h-12">
+                                <SelectValue placeholder="Categoría (anticipo, material, estimación)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="anticipo">Anticipo</SelectItem>
+                                <SelectItem value="material">Material</SelectItem>
+                                <SelectItem value="estimacion">Estimación</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <Select
+                                value={tipoPago}
+                                onValueChange={setTipoPago}
+                            >
+                                <SelectTrigger className="h-12">
+                                    <SelectValue placeholder="Tipo de pago" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="efectivo">Efectivo</SelectItem>
+                                    <SelectItem value="transferencia">Transferencia</SelectItem>
+                                    <SelectItem value="tarjeta">Tarjeta</SelectItem>
+                                    <SelectItem value="cheque">Cheque</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                value={moneda}
+                                onValueChange={setMoneda}
+                            >
+                                <SelectTrigger className="h-12">
+                                    <SelectValue placeholder="Moneda" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="MXN">MXN</SelectItem>
+                                    <SelectItem value="USD">USD</SelectItem>
+                                    <SelectItem value="EUR">EUR</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="relative">
+                                <MoneyInput
+                                    placeholder="Monto total"
+                                    value={totalAmount}
+                                    onChange={() => {}}
+                                    currency={moneda}
+                                    disabled
+                                    className="h-12 bg-gray-100"
+                                />                                
+                            </div>
+                            <Input
+                                type="date"
+                                value={fecha}
+                                onChange={(e) => setFecha(e.target.value)}
+                                className="h-12"
+                                required
+                            />
+                        </div>
+
+                        {/* Bank Details (conditional) */}
+                        {tipoPago && tipoPago !== 'efectivo' && (
+                            <div className="space-y-3 pt-2">
+                                <Input
+                                    placeholder="Banco"
+                                    value={banco}
+                                    onChange={(e) => setBanco(e.target.value)}
+                                    className="h-12"
+                                />
+                                <Input
+                                    placeholder="Número de cuenta"
+                                    value={numeroCuenta}
+                                    onChange={(e) => setNumeroCuenta(e.target.value)}
+                                    className="h-12"
+                                />
+                            </div>
+                        )}
+
+                        {/* Description */}
+                        <Input
+                            placeholder="Código de referencia / Notas"
+                            value={codigoReferencia}
+                            onChange={(e) => setCodigoReferencia(e.target.value)}
+                            className="h-12"
+                        />
+
+                        {/* Document Attachment */}
+                        <div className="space-y-3 pt-4 border-t">
+                            <h3 className="text-sm font-medium text-gray-900">Adjuntar documento (opcional)</h3>
+                            
+                            {/* Document Type */}
+                            <div className="space-y-2">
+                                <label className="text-sm text-gray-700">Tipo de documento</label>
+                                <Select
+                                    value={documentType}
+                                    onValueChange={setDocumentType}
+                                >
+                                    <SelectTrigger className="h-12">
+                                        <SelectValue placeholder="Seleccionar tipo de documento" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {getUniquePartidaNames().map((nombre) => (
-                                            <SelectItem key={nombre} value={nombre}>
-                                                {nombre}
-                                            </SelectItem>
-                                        ))}
+                                        <SelectItem value="factura">Factura</SelectItem>
+                                        <SelectItem value="comprobante">Comprobante</SelectItem>
+                                        <SelectItem value="presupuesto">Presupuesto</SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </div>
 
-                                {/* Familia */}
-                                <Select
-                                    value={payment.familia}
-                                    onValueChange={(value) => handleFamiliaSelect(index, value)}
-                                    disabled={!payment.partida}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona familia" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {getAvailableFamilias(index).map((familia) => (
-                                            <SelectItem key={familia} value={familia}>
-                                                {familia}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-
-                                {/* Sub-partida */}
-                                <Select
-                                    value={payment.sub_partida}
-                                    onValueChange={(value) => handleSubPartidaSelect(index, value)}
-                                    disabled={!payment.familia}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona subpartida" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {getAvailableSubPartidas(index).map((subPartida) => (
-                                            <SelectItem key={subPartida} value={subPartida}>
-                                                {subPartida}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-
-                                {/* Payment Details */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <Select
-                                        value={payment.tipo_pago}
-                                        onValueChange={(value) => handleInputChange(index, 'tipo_pago', value)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Tipo de pago" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="efectivo">Efectivo</SelectItem>
-                                            <SelectItem value="transferencia">Transferencia</SelectItem>
-                                            <SelectItem value="tarjeta">Tarjeta</SelectItem>
-                                            <SelectItem value="cheque">Cheque</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Select
-                                        value={payment.moneda}
-                                        onValueChange={(value) => handleInputChange(index, 'moneda', value)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Moneda" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="MXN">MXN</SelectItem>
-                                            <SelectItem value="USD">USD</SelectItem>
-                                            <SelectItem value="EUR">EUR</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        placeholder="Monto"
-                                        value={payment.monto || ''}
-                                        onChange={(e) => handleInputChange(index, 'monto', parseFloat(e.target.value))}
-                                        required
-                                    />
-                                    <Input
-                                        type="date"
-                                        value={payment.fecha}
-                                        onChange={(e) => handleInputChange(index, 'fecha', e.target.value)}
-                                        required
-                                    />
-                                </div>
-
-                                {/* Conditional Bank Details */}
-                                {payment.tipo_pago && payment.tipo_pago !== 'efectivo' && (
-                                    <div className="space-y-3 pt-2">
+                            {/* Show document fields only if type is selected */}
+                            {documentType && (
+                                <>
+                                    {/* Document Name */}
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-gray-700">Nombre del documento</label>
                                         <Input
-                                            placeholder="Banco"
-                                            value={payment.banco}
-                                            onChange={(e) => handleInputChange(index, 'banco', e.target.value)}
+                                            placeholder="Ej: Factura #12345"
+                                            value={documentName}
+                                            onChange={(e) => setDocumentName(e.target.value)}
+                                            className="h-12"
                                         />
+                                    </div>
 
-                                        {payment.tipo_pago === 'tarjeta' && (
-                                            <Input
-                                                placeholder="Últimos 4 dígitos de tarjeta"
-                                                value={payment.tarjeta}
-                                                onChange={(e) => handleInputChange(index, 'tarjeta', e.target.value)}
-                                                maxLength={4}
-                                            />
-                                        )}
+                                    {/* Document Description */}
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-gray-700">Descripción (opcional)</label>
+                                        <Input
+                                            placeholder="Descripción del documento"
+                                            value={documentDescription}
+                                            onChange={(e) => setDocumentDescription(e.target.value)}
+                                            className="h-12"
+                                        />
+                                    </div>
 
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <Input
-                                                placeholder="Número de cuenta"
-                                                value={payment.numero_cuenta}
-                                                onChange={(e) => handleInputChange(index, 'numero_cuenta', e.target.value)}
-                                            />
-                                            {payment.tipo_pago === 'transferencia' && (
-                                                <Input
-                                                    placeholder="Número de transferencia"
-                                                    value={payment.numero_transferencia}
-                                                    onChange={(e) => handleInputChange(index, 'numero_transferencia', e.target.value)}
-                                                />
+                                    {/* File Upload */}
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-gray-700">Archivo</label>
+                                        <div className="border-2 border-dashed rounded-none p-4 text-center">
+                                            {documentFile ? (
+                                                <div className="space-y-2">
+                                                    <File className="h-8 w-8 mx-auto text-green-600" />
+                                                    <p className="text-sm font-medium">{documentFile.name}</p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {(documentFile.size / 1024).toFixed(2)} KB
+                                                    </p>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setDocumentFile(null)}
+                                                    >
+                                                        Cambiar archivo
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                                                    <p className="text-sm text-gray-600">Arrastra un archivo o haz clic para seleccionar</p>
+                                                    <Input
+                                                        type="file"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) setDocumentFile(file);
+                                                        }}
+                                                        className="max-w-xs mx-auto"
+                                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     </div>
-                                )}
-
-                                {/* Description */}
-                                <Input
-                                    placeholder="Descripción / Notas"
-                                    value={payment.codigo_referencia}
-                                    onChange={(e) => handleInputChange(index, 'codigo_referencia', e.target.value)}
-                                />
-                            </div>
-                        ))}
+                                </>
+                            )}
+                        </div>
                     </div>
-
-                    {/* Add Payment Button */}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={addPayment}
-                        className="w-full border-dashed"
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Agregar otro pago
-                    </Button>
 
                     {/* Form Actions */}
                     <div className="flex justify-end space-x-2 pt-4 border-t">
-                        <Button type="button" variant="outline" onClick={onClose}>
+                        <Button type="button" variant="outline" onClick={onClose} className="h-11">
                             Cancelar
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!isFormValid() || isSubmitting}
-                            className="bg-black hover:bg-gray-800 text-white"
+                            disabled={!isFormValid() || isSubmitting || isUploadingDocument}
+                            className="bg-black hover:bg-gray-800 text-white h-11"
                         >
-                            {isSubmitting ? 'Guardando...' : `Guardar ${payments.length} pago${payments.length > 1 ? 's' : ''}`}
+                            {isSubmitting || isUploadingDocument ? 'Guardando...' : `Guardar pago`}
                         </Button>
                     </div>
                 </form>

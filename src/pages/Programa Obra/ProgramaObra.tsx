@@ -50,7 +50,6 @@ type ProgramaItem = {
 export default function ProgramaObra() {
 
   const { selectedDesarrollo } = useDesarrolloStore();
-
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPartida, setSelectedPartida] = useState<string | undefined>(undefined);
   const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>(undefined);
@@ -64,7 +63,7 @@ export default function ProgramaObra() {
 
 
   // Fetch all partidas for selected project with pagination
-  const { results: allPartidas } = usePaginatedQuery(
+  const { results: allPartidas, loadMore } = usePaginatedQuery(
     api.partida.getByProjectPaginated,
     selectedDesarrollo?._id ? { projectId: selectedDesarrollo._id } : "skip",
     { initialNumItems: 100 }
@@ -247,7 +246,7 @@ export default function ProgramaObra() {
 
 
   return (
-    <div className="bg-white px-12 py-6">
+    <div className="bg-white px-12 py-6 space-y-12 ">
       {/* Header Section */}
       <div className="max-w-full mx-auto space-y-6">
         {/* Header */}
@@ -451,6 +450,9 @@ export default function ProgramaObra() {
             </div>
           ))}
         </div>
+      </div>
+      <div className="flex justify-start">
+        <Button className="rounded-none" variant={"outline"} onClick={() => loadMore(100)}>Cargar más</Button>
       </div>
     </div>
   );
