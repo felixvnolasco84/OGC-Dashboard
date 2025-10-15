@@ -91,7 +91,7 @@ export default function PresupuestoPage() {
     { initialNumItems: 1000 }
   );
 
-  // Calculate metrics from real data
+  // Calculate metrics from real data - only sum partida-level rows (level 0)
   const metrics = useMemo(() => {
     if (!allPartidas) return {
       presupuestoOriginal: 0,
@@ -100,11 +100,17 @@ export default function PresupuestoPage() {
       porGastar: 0,
     };
     
+    // Filter to only include partida-level rows (where familia and sub_partida are empty)
+    const partidaLevelRows = allPartidas.filter(p => 
+      (!p.familia || p.familia.trim() === '') && 
+      (!p.sub_partida || p.sub_partida.trim() === '')
+    );
+    
     return {
-      presupuestoOriginal: allPartidas.reduce((sum, p) => sum + (p.total || 0), 0),
-      presupuestoAprobado: allPartidas.reduce((sum, p) => sum + (p.aprobado || 0), 0),
-      gastoTotal: allPartidas.reduce((sum, p) => sum + (p.pagado || 0), 0),
-      porGastar: allPartidas.reduce((sum, p) => sum + (p.por_liquidar || 0), 0),
+      presupuestoOriginal: partidaLevelRows.reduce((sum, p) => sum + (p.total || 0), 0),
+      presupuestoAprobado: partidaLevelRows.reduce((sum, p) => sum + (p.aprobado || 0), 0),
+      gastoTotal: partidaLevelRows.reduce((sum, p) => sum + (p.pagado || 0), 0),
+      porGastar: partidaLevelRows.reduce((sum, p) => sum + (p.por_liquidar || 0), 0),
     };
   }, [allPartidas]);
 
