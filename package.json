@@ -9,9 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
-  "dependencies": {
-    "@edgestore/react": "^0.5.4",
-    "@edgestore/server": "^0.5.4",
+  "dependencies": {    
     "@hookform/resolvers": "^5.0.1",
     "@mux/mux-player": "^3.3.4",
     "@mux/mux-player-react": "^3.3.4",

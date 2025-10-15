@@ -9,7 +9,6 @@ import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Routes, Route } from "react-router";
 import Legales from "./pages/Legales.tsx";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { EdgeStoreProvider } from "./lib/edgestore";
 import HomePage from "./pages/HomePage/HomePage.tsx";
 import DocumentosPage from "./pages/Documentos/DocumentosPage.tsx";
 import PresupuestoPage from "./pages/Presupuesto/PresupuestoPage.tsx";
@@ -24,28 +23,28 @@ const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ConvexProvider client={convex}>
-      <EdgeStoreProvider basePath="https://ogc-resend-api.vercel.app/api/edgestore">
-        <HelmetProvider>
-          <BrowserRouter>
-            <ScrollToTop />
-            <Routes>
-              <Route element={<WebsiteLayout />}>
-                <Route index element={<HomePage />} />
-                <Route path="/upload" element={<App />} />
-                <Route path="/proyectos" element={<ProjectsPage />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/documentos" element={<DocumentosPage />} />
-                <Route path="/dashboard/partidas/:id" element={<PartidaDetails />} />
-                <Route path="/dashboard/control" element={<HomePage />} />
-                <Route path="/dashboard/presupuesto" element={<PresupuestoPage />} />
-                <Route path="/dashboard/programa-obra" element={<ProgramaObra />} />
-                <Route path="/legal" element={<Legales />} />
-                <Route path="/aviso-de-privacidad" element={<AvisoPrivacidad />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </HelmetProvider>
-      </EdgeStoreProvider>
+
+      <HelmetProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Routes>
+            <Route element={<WebsiteLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="/upload" element={<App />} />
+              <Route path="/proyectos" element={<ProjectsPage />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/documentos" element={<DocumentosPage />} />
+              <Route path="/dashboard/partidas/:id" element={<PartidaDetails />} />
+              <Route path="/dashboard/control" element={<HomePage />} />
+              <Route path="/dashboard/presupuesto" element={<PresupuestoPage />} />
+              <Route path="/dashboard/programa-obra" element={<ProgramaObra />} />
+              <Route path="/legal" element={<Legales />} />
+              <Route path="/aviso-de-privacidad" element={<AvisoPrivacidad />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </HelmetProvider>
+
     </ConvexProvider>
   </StrictMode>
 );
