@@ -151,8 +151,8 @@ export default function AddProjectModal() {
         const formData = new FormData();
         formData.append('file', file);
 
-        // const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
-        const response = await fetch("http://localhost:3000/upload", {
+        // const response = await fetch("http://localhost:3000/upload", {
+        const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
             method: "POST",
             body: formData,
         });
