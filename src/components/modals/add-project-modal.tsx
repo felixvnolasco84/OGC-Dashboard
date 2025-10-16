@@ -245,7 +245,7 @@ export default function AddProjectModal() {
 
                         return createPayment({
                             partida_id: partidaId,
-                            partida: record.nombre || '',
+                            partida: record.nivel === 1 ? record.nombre : currentPartidaNombre,
                             familia: record.familia || '',
                             sub_partida: record.sub_partida || '',
                             monto: payment.amount,

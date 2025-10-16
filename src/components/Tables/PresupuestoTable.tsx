@@ -2,8 +2,6 @@ import { useState, useMemo } from "react";
 import { Doc } from "convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
 import {
   Table,
   TableBody,
@@ -61,47 +59,9 @@ interface PresupuestoTableProps {
 }
 
 export default function PresupuestoTable({ data, status, loadMore }: PresupuestoTableProps) {
-
-  console.log(data)
-  
-  // Get the proyecto_id from the first item (all should have the same project)
-  const proyectoId = data[0]?.proyecto;
-  
-  // Fetch all payments for this project
-  const allPayments = useQuery(
-    api.pagos.getByProyecto,
-    proyectoId ? { proyecto_id: proyectoId } : "skip"
-  );
   
   // Transform flat partidas data into hierarchical structure based on nivel
   const hierarchicalData = useMemo(() => {
-    // Helper function to calculate pagado amount based on level
-    const calculatePagado = (item: { nombre?: string; familia?: string; sub_partida?: string; _id?: string; level: number }) => {
-      if (!allPayments) return 0;
-      
-      let relevantPayments = allPayments;
-      
-      // Filter payments based on hierarchy level
-      if (item.level === 0) {
-        // Partida level (nivel 1): sum all payments for this partida
-        relevantPayments = allPayments.filter(p => p.partida === item.nombre);
-      } else if (item.level === 1) {
-        // Familia level (nivel 2): sum all payments for this partida + familia
-        relevantPayments = allPayments.filter(p => 
-          p.partida === item.nombre && p.familia === item.familia
-        );
-      } else if (item.level === 2) {
-        // Sub-partida level (nivel 3): sum all payments for this specific sub_partida
-        relevantPayments = allPayments.filter(p => 
-          p.partida === item.nombre && 
-          p.familia === item.familia && 
-          p.sub_partida === item.sub_partida
-        );
-      }
-      
-      // Sum all relevant payment amounts
-      return relevantPayments.reduce((sum, p) => sum + p.monto, 0);
-    };
     
     // Build hierarchy using partida_nombre field for robust grouping
     const grouped: Record<string, HierarchicalGroup> = {};
@@ -116,7 +76,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
         nivel: 1, // Partida level = nivel 1
         presupuestoOriginal: item.presupuesto_original || 0,
         presupuestoAprobado: item.presupuesto_aprobado || 0,
-        pagado: 0, // Will be calculated from payments
+        pagado: item.pagado || 0, // Use pagado from database
         avance: 0,
         fechaInicio: "-",
         fechaFin: "-",
@@ -143,7 +103,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
           nivel: 2, // Familia level = nivel 2
           presupuestoOriginal: item.presupuesto_original || 0,
           presupuestoAprobado: item.presupuesto_aprobado || 0,
-          pagado: 0, // Will be calculated from payments
+          pagado: item.pagado || 0, // Use pagado from database
           avance: 0,
           fechaInicio: "-",
           fechaFin: "-",
@@ -165,11 +125,11 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
         const familiaGroup = grouped[partidaKey].familias[familiaKey];
         familiaGroup.children.push({
           ...item,
-          displayName: item.nombre, // Use nombre as display name for nivel 3
+          displayName: item.sub_partida || item.nombre, // Use sub_partida as display name for nivel 3
           sub_partida: item.sub_partida || item.nombre, // Ensure sub_partida is set
           presupuestoOriginal: item.presupuesto_original || 0,
           presupuestoAprobado: item.presupuesto_aprobado || 0,
-          pagado: 0, // Will be calculated from payments
+          pagado: item.pagado || 0, // Use pagado from database
           avance: 0,
           fechaInicio: "-",
           fechaFin: "-",
@@ -181,35 +141,28 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
       }
     });
 
-    // Calculate pagado from payments and then calculate avance
-    // Also filter out familias with no meaningful children
+    // Calculate avance for all levels
     const result = Object.values(grouped).map((partidaGroup) => {
-      // Calculate pagado for partida level
-      partidaGroup.pagado = calculatePagado(partidaGroup);
-      
+      // Calculate avance for partida level (pagado already set from database)
       partidaGroup.avance = partidaGroup.presupuestoAprobado > 0
         ? Math.round((partidaGroup.pagado / partidaGroup.presupuestoAprobado) * 100)
         : 0;
 
       partidaGroup.children.forEach((familia: PartidaRow) => {
-        // Calculate pagado for familia level
-        familia.pagado = calculatePagado(familia);
-        
+        // Calculate avance for familia level (pagado already set from database)
         familia.avance = familia.presupuestoAprobado > 0
           ? Math.round((familia.pagado / familia.presupuestoAprobado) * 100)
           : 0;
         
-        // Calculate pagado for sub-partida level
+        // Calculate avance for sub-partida level (pagado already set from database)
         familia.children.forEach((subPartida: PartidaRow) => {
-          subPartida.pagado = calculatePagado(subPartida);
           subPartida.avance = subPartida.presupuestoAprobado > 0
             ? Math.round((subPartida.pagado / subPartida.presupuestoAprobado) * 100)
             : 0;
         });
 
-        // If familia has no children or only one child with same name, clear children array
-        if (familia.children.length === 0 ||
-          (familia.children.length === 1 && familia.children[0].displayName === familia.displayName)) {
+        // If familia has no children, clear children array
+        if (familia.children.length === 0) {
           familia.children = [];
         }
       });
@@ -221,7 +174,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
     });
 
     return result;
-  }, [data, allPayments]);
+  }, [data]);
 
   const [budgetData, setBudgetData] = useState<PartidaRow[]>([]);
 

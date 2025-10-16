@@ -90,12 +90,37 @@ export default function AddPaymentModal() {
         }
         // nivel 3: Prefill everything including sub_partida
         else if (nivel === 3) {
-            setSelectedPartida(partida.partida_nombre || partida.nombre);
+            // For nivel 3, partida_nombre MUST exist in the database
+            let actualPartidaName = partida.partida_nombre;
+            
+            // If partida_nombre is missing, this is a data integrity issue
+            // Log detailed info to help debug
+            if (!actualPartidaName) {
+                console.error("❌ CRITICAL: nivel 3 item missing partida_nombre field:", {
+                    _id: partida._id,
+                    nombre: partida.nombre,
+                    familia: partida.familia,
+                    sub_partida: partida.sub_partida,
+                    partida_nombre: partida.partida_nombre,
+                    nivel: partida.nivel
+                });
+                console.error("⚠️ This will cause payment tracking to fail. Please re-upload the Excel file to fix the data.");
+                // Use nombre as emergency fallback (will cause issues but at least won't crash)
+                actualPartidaName = "ERROR_MISSING_PARTIDA";
+            }
+            
+            console.log("Prefilling nivel 3 payment:", {
+                partida: actualPartidaName,
+                familia: partida.familia,
+                sub_partida: partida.sub_partida || partida.nombre
+            });
+            
+            setSelectedPartida(actualPartidaName);
             setSelectedFamilia(partida.familia);
             setSubPartidas([{
                 id: Date.now().toString(),
                 partida_id: partida._id,
-                partida: partida.partida_nombre || partida.nombre,
+                partida: actualPartidaName,
                 familia: partida.familia,
                 sub_partida: partida.sub_partida || partida.nombre,
                 monto: 0
