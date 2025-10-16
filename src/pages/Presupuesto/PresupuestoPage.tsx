@@ -107,7 +107,7 @@ export default function PresupuestoPage() {
     );
     
     return {
-      presupuestoOriginal: partidaLevelRows.reduce((sum, p) => sum + (p.total || 0), 0),
+      presupuestoOriginal: partidaLevelRows.reduce((sum, p) => sum + (p.Subtotal || 0), 0),
       presupuestoAprobado: partidaLevelRows.reduce((sum, p) => sum + (p.aprobado || 0), 0),
       gastoTotal: partidaLevelRows.reduce((sum, p) => sum + (p.pagado || 0), 0),
       porGastar: partidaLevelRows.reduce((sum, p) => sum + (p.por_liquidar || 0), 0),

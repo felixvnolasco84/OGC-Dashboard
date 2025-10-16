@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { Doc } from "convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import {
   Table,
   TableBody,
@@ -60,10 +62,47 @@ interface PresupuestoTableProps {
 
 export default function PresupuestoTable({ data, status, loadMore }: PresupuestoTableProps) {
 
-
   console.log(data)
+  
+  // Get the proyecto_id from the first item (all should have the same project)
+  const proyectoId = data[0]?.proyecto;
+  
+  // Fetch all payments for this project
+  const allPayments = useQuery(
+    api.pagos.getByProyecto,
+    proyectoId ? { proyecto_id: proyectoId } : "skip"
+  );
+  
   // Transform flat partidas data into hierarchical structure
   const hierarchicalData = useMemo(() => {
+    // Helper function to calculate pagado amount based on level
+    const calculatePagado = (item: { nombre?: string; familia?: string; sub_partida?: string; _id?: string; level: number }) => {
+      if (!allPayments) return 0;
+      
+      let relevantPayments = allPayments;
+      
+      // Filter payments based on hierarchy level
+      if (item.level === 0) {
+        // Partida level: sum all payments for this partida
+        relevantPayments = allPayments.filter(p => p.partida === item.nombre);
+      } else if (item.level === 1) {
+        // Familia level: sum all payments for this partida + familia
+        relevantPayments = allPayments.filter(p => 
+          p.partida === item.nombre && p.familia === item.familia
+        );
+      } else if (item.level === 2) {
+        // Sub-partida level: sum all payments for this specific sub_partida
+        relevantPayments = allPayments.filter(p => 
+          p.partida === item.nombre && 
+          p.familia === item.familia && 
+          p.sub_partida === item.sub_partida
+        );
+      }
+      
+      // Sum all relevant payment amounts
+      return relevantPayments.reduce((sum, p) => sum + p.monto, 0);
+    };
+    
     // Group by partida (nombre) -> familia -> sub_partida
     const grouped = data.reduce<Record<string, HierarchicalGroup>>((acc, item) => {
       const partidaKey = item.nombre;
@@ -92,11 +131,11 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
       const partidaGroup = acc[partidaKey];
 
       // If item has no familia and no sub_partida, it's the partida-level aggregate record
-      // Use its values directly for the partida totals
+      // Use its values directly for the partida totals (except pagado, which will be calculated)
       if ((!familiaKey || familiaKey.trim() === "") && (!subPartidaKey || subPartidaKey.trim() === "")) {
         partidaGroup.presupuestoOriginal = item.Subtotal || 0;
         partidaGroup.presupuestoAprobado = item.aprobado || 0;
-        partidaGroup.pagado = item.pagado || 0;
+        // Don't set pagado here - will be calculated from payments
         return acc;
       }
 
@@ -128,11 +167,11 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
       const familiaGroup = partidaGroup.familias[familiaKey];
 
       // If item has no sub_partida, it's the familia-level aggregate record
-      // Use its values directly for the familia totals
+      // Use its values directly for the familia totals (except pagado)
       if (!subPartidaKey || subPartidaKey.trim() === "") {
         familiaGroup.presupuestoOriginal = item.Subtotal || 0;
         familiaGroup.presupuestoAprobado = item.aprobado || 0;
-        familiaGroup.pagado = item.pagado || 0;
+        // Don't set pagado here - will be calculated from payments
         return acc;
       }
 
@@ -148,10 +187,8 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
           displayName: subPartidaKey,
           presupuestoOriginal: item.Subtotal || 0,
           presupuestoAprobado: item.aprobado || 0,
-          pagado: item.pagado || 0,
-          avance: item.aprobado || 0 > 0
-            ? Math.round((item.pagado || 0 / item.aprobado || 0) * 100)
-            : 0,
+          pagado: 0, // Will be calculated from payments
+          avance: 0, // Will be calculated after pagado is set,
           fechaInicio: "-",
           fechaFin: "-",
           expanded: false,
@@ -164,17 +201,31 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
       return acc;
     }, {});
 
-    // Calculate avance for partidas and familias
+    // Calculate pagado from payments and then calculate avance
     // Also filter out familias with no meaningful children
     const result = Object.values(grouped).map((partidaGroup) => {
+      // Calculate pagado for partida level
+      partidaGroup.pagado = calculatePagado(partidaGroup);
+      
       partidaGroup.avance = partidaGroup.presupuestoAprobado > 0
         ? Math.round((partidaGroup.pagado / partidaGroup.presupuestoAprobado) * 100)
         : 0;
 
       partidaGroup.children.forEach((familia: PartidaRow) => {
+        // Calculate pagado for familia level
+        familia.pagado = calculatePagado(familia);
+        
         familia.avance = familia.presupuestoAprobado > 0
           ? Math.round((familia.pagado / familia.presupuestoAprobado) * 100)
           : 0;
+        
+        // Calculate pagado for sub-partida level
+        familia.children.forEach((subPartida: PartidaRow) => {
+          subPartida.pagado = calculatePagado(subPartida);
+          subPartida.avance = subPartida.presupuestoAprobado > 0
+            ? Math.round((subPartida.pagado / subPartida.presupuestoAprobado) * 100)
+            : 0;
+        });
 
         // If familia has no children or only one child with same name, clear children array
         if (familia.children.length === 0 ||
@@ -190,7 +241,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
     });
 
     return result;
-  }, [data]);
+  }, [data, allPayments]);
 
   const [budgetData, setBudgetData] = useState<PartidaRow[]>([]);
 
