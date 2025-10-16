@@ -39,31 +39,20 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
     nombre: z.string().min(1, "El nombre es requerido"),
     familia: z.string(),
     sub_partida: z.string(),
-    Cantidad: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    unidad: z.string(),
+    cantidad: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    PrecioUnitario: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    precio_unitario: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    Subtotal: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    presupuesto_original: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
-    Iva: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
-      message: "Debe ser un número válido mayor o igual a 0",
-    }),
-    total: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
-      message: "Debe ser un número válido mayor o igual a 0",
-    }),
-    aprobado: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    presupuesto_aprobado: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
     pagado: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
-      message: "Debe ser un número válido mayor o igual a 0",
-    }),
-    por_liquidar: z.number().refine((val) => !isNaN(Number(val)) && Number(val) != 0, {
-      message: "Debe ser un número válido mayor o igual a 0",
-    }),
-    actual: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
     }),
   });
@@ -77,35 +66,31 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
       nombre: partida.nombre,
       familia: partida.familia,
       sub_partida: partida.sub_partida,
-      Cantidad: partida.Cantidad,
-      PrecioUnitario: partida.PrecioUnitario,
-      Subtotal: partida.Subtotal,
-      Iva: partida.Iva,
-      total: partida.total,
-      aprobado: partida.aprobado,
+      unidad: partida.unidad,
+      cantidad: partida.cantidad,
+      precio_unitario: partida.precio_unitario,
+      presupuesto_original: partida.presupuesto_original,
+      presupuesto_aprobado: partida.presupuesto_aprobado,
       pagado: partida.pagado,
-      por_liquidar: partida.por_liquidar,
-      actual: partida.actual,
     },
   });
 
   const handleUpdate = (data: z.infer<typeof FormSchema>) => {
     const promise = update({
       id: partida._id,
+      nivel: partida.nivel,
       nombre: data.nombre,
       familia: data.familia,
       sub_partida: data.sub_partida,
-      Cantidad: data.Cantidad,
-      PrecioUnitario: data.PrecioUnitario,
-      Subtotal: data.Subtotal,
-      Iva: data.Iva,
-      total: data.total,
-      aprobado: data.aprobado,
+      partida_nombre: partida.partida_nombre,
+      unidad: data.unidad,
+      cantidad: data.cantidad,
+      precio_unitario: data.precio_unitario,
+      presupuesto_original: data.presupuesto_original,
+      presupuesto_aprobado: data.presupuesto_aprobado,
       pagado: data.pagado,
-      por_liquidar: data.por_liquidar,
-      actual: data.actual,
-      fecha_carga: partida.fecha_carga,
       archivo_origen: partida.archivo_origen,
+      proyecto: partida.proyecto,
     });
 
     toast.promise(promise, {
@@ -207,18 +192,37 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
             {/* Quantity and Pricing */}
             <div className="border-t pt-4 mt-2">
               <h3 className="text-sm font-medium mb-3">Información de costos</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
-                  name="Cantidad"
+                  name="unidad"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Unidad</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="m², kg, etc."
+                          className={level < 2 ? "bg-gray-100" : "bg-white"}
+                          disabled={level < 2 || isLoading}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cantidad"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
                       <FormLabel>Cantidad</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="0"
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
                           className={level < 2 ? "bg-gray-100" : "bg-white"}
                           disabled={level < 2 || isLoading}
                           {...field}
@@ -231,79 +235,18 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
 
                 <FormField
                   control={form.control}
-                  name="PrecioUnitario"
+                  name="precio_unitario"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
                       <FormLabel>Precio Unitario</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="0.00"
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
                           className={level < 2 ? "bg-gray-100" : "bg-white"}
                           disabled={level < 2 || isLoading}
                           {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="Subtotal"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>Subtotal</FormLabel>
-                      <FormControl>
-                        <MoneyInput
-                          placeholder="0.00"
-                          className={level < 2 ? "bg-gray-100" : "bg-white"}
-                          disabled={level < 2 || isLoading}
-                          value={field.value}
-                          onChange={(value) => field.onChange(value)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="Iva"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>IVA</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="0.00"
-                          type="text"
-                          inputMode="decimal"
-                          className={level < 2 ? "bg-gray-100" : "bg-white"}
-                          disabled={level < 2 || isLoading}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="total"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>Total</FormLabel>
-                      <FormControl>
-                        <MoneyInput
-                          placeholder="0.00"
-                          className="bg-white"
-                          disabled={isLoading}
-                          value={field.value}
-                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -319,7 +262,27 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="aprobado"
+                  name="presupuesto_original"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Presupuesto Original</FormLabel>
+                      <FormControl>
+                        <MoneyInput
+                          placeholder="0.00"
+                          className="bg-gray-100"
+                          disabled={true}
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="presupuesto_aprobado"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
                       <FormLabel>Presupuesto Aprobado</FormLabel>
@@ -348,47 +311,6 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                           placeholder="0.00"
                           className="bg-gray-100"
                           disabled={true}
-                          value={field.value}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="por_liquidar"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>Por Liquidar</FormLabel>
-                      <FormControl>
-                        <MoneyInput
-                          placeholder="0.00"
-                          className="bg-gray-100"
-                          disabled={true}
-                          value={field.value}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="actual"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>Actual</FormLabel>
-                      <FormControl>
-                        <MoneyInput
-                          placeholder="0.00"
-                          className="bg-gray-100"
-                          disabled={true}
-
                           value={field.value}
                           onChange={field.onChange}
                         />

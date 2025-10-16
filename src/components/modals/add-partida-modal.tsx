@@ -27,35 +27,29 @@ export default function AddPartidaModal() {
     const createPartida = useMutation(api.partida.createPartida);
 
     const handleInputChange = (field: string, value: string) => {
-        updateFormData({ [field]: value });
+        // Convert to number for numeric fields
+        const numericFields = ['nivel', 'cantidad', 'precio_unitario', 'presupuesto_original', 'presupuesto_aprobado', 'pagado'];
+        if (numericFields.includes(field)) {
+            const numValue = value === '' ? 0 : parseFloat(value);
+            updateFormData({ [field]: numValue });
+        } else {
+            updateFormData({ [field]: value });
+        }
     };
 
-    // Auto-calculate fields when relevant values change
+    // Auto-calculate presupuesto fields when cantidad or precio_unitario changes
     useEffect(() => {
-        const cantidad = formData.Cantidad || 0;
-        const precioUnitario = formData.PrecioUnitario || 0;
-        const subtotal = cantidad * precioUnitario;
-        const iva = subtotal * 0.16; // 16% IVA
-        const total = subtotal + iva;
+        const cantidad = formData.cantidad || 0;
+        const precioUnitario = formData.precio_unitario || 0;        
+        const total = cantidad * precioUnitario;
 
-        updateFormData({
-            Subtotal: subtotal,
-            Iva: iva,
-            total: total,
-        });
-    }, [formData.Cantidad, formData.PrecioUnitario, updateFormData]);
-
-    // Auto-calculate por_liquidar and actual
-    useEffect(() => {
-        const aprobado = formData.aprobado || 0;
-        const pagado = formData.pagado || 0;
-        const porLiquidar = aprobado - pagado;
-
-        updateFormData({
-            por_liquidar: porLiquidar,
-            actual: aprobado, // actual is same as aprobado initially
-        });
-    }, [formData.aprobado, formData.pagado, updateFormData]);
+        if (cantidad > 0 && precioUnitario > 0) {
+            updateFormData({
+                presupuesto_original: total,
+                presupuesto_aprobado: total,
+            });
+        }
+    }, [formData.cantidad, formData.precio_unitario, updateFormData]);
 
     const formatCurrency = (amount: string | number) => {
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -75,6 +69,7 @@ export default function AddPartidaModal() {
             await createPartida({
                 ...formData,
                 proyecto: partidaContext.proyecto,
+                
             });
             onClose();
         } catch (error) {
@@ -88,12 +83,13 @@ export default function AddPartidaModal() {
         return formData.nombre &&
             formData.familia &&
             formData.sub_partida &&
-            formData.Cantidad &&
-            formData.Cantidad > 0 &&
-            formData.PrecioUnitario &&
-            formData.PrecioUnitario > 0 &&
-            formData.aprobado &&
-            formData.aprobado > 0;
+            formData.unidad &&
+            formData.cantidad &&
+            formData.cantidad > 0 &&
+            formData.precio_unitario &&
+            formData.precio_unitario > 0 &&
+            formData.presupuesto_aprobado &&
+            formData.presupuesto_aprobado > 0;
     };
 
     if (!partidaContext) return null;
@@ -176,47 +172,47 @@ export default function AddPartidaModal() {
                             <CardDescription>Información de cantidad y costos</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="Cantidad">Cantidad *</Label>
+                                    <Label htmlFor="unidad">Unidad *</Label>
                                     <Input
-                                        id="Cantidad"
-                                        type="number"
-                                        step="0.01"
-                                        placeholder="0.00"
-                                        value={formData.Cantidad}
-                                        onChange={(e) => handleInputChange('Cantidad', e.target.value)}
+                                        id="unidad"
+                                        placeholder="Ej: m², m³, kg"
+                                        value={formData.unidad}
+                                        onChange={(e) => handleInputChange('unidad', e.target.value)}
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="PrecioUnitario">Precio Unitario *</Label>
+                                    <Label htmlFor="cantidad">Cantidad *</Label>
                                     <Input
-                                        id="PrecioUnitario"
+                                        id="cantidad"
                                         type="number"
                                         step="0.01"
                                         placeholder="0.00"
-                                        value={formData.PrecioUnitario}
-                                        onChange={(e) => handleInputChange('PrecioUnitario', e.target.value)}
+                                        value={formData.cantidad || ''}
+                                        onChange={(e) => handleInputChange('cantidad', e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="precio_unitario">Precio Unitario *</Label>
+                                    <Input
+                                        id="precio_unitario"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.precio_unitario || ''}
+                                        onChange={(e) => handleInputChange('precio_unitario', e.target.value)}
                                         required
                                     />
                                 </div>
                             </div>
 
-                            {/* Calculated Fields - Display Only */}
-                            <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
-                                <div>
-                                    <p className="text-xs font-medium text-muted-foreground">Subtotal</p>
-                                    <p className="text-lg font-semibold">{formatCurrency(formData.Subtotal)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-medium text-muted-foreground">IVA (16%)</p>
-                                    <p className="text-lg font-semibold">{formatCurrency(formData.Iva)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-medium text-muted-foreground">Total</p>
-                                    <p className="text-lg font-semibold text-blue-600">{formatCurrency(formData.total)}</p>
-                                </div>
+                            {/* Calculated Total - Display Only */}
+                            <div className="p-4 bg-muted rounded-lg">
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Total Calculado</p>
+                                <p className="text-2xl font-semibold text-blue-600">{formatCurrency(formData.presupuesto_aprobado || 0)}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -225,47 +221,60 @@ export default function AddPartidaModal() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">Información Presupuestal</CardTitle>
-                            <CardDescription>Presupuesto y pagos</CardDescription>
+                            <CardDescription>Presupuesto y estado inicial</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="aprobado">Presupuesto Aprobado *</Label>
+                                    <Label htmlFor="presupuesto_original">Presupuesto Original</Label>
                                     <Input
-                                        id="aprobado"
+                                        id="presupuesto_original"
                                         type="number"
                                         step="0.01"
-                                        placeholder="0.00"
-                                        value={formData.aprobado}
-                                        onChange={(e) => handleInputChange('aprobado', e.target.value)}
-                                        required
+                                        placeholder="Auto-calculado"
+                                        value={formData.presupuesto_original || ''}
+                                        onChange={(e) => handleInputChange('presupuesto_original', e.target.value)}
+                                        disabled
                                     />
+                                    <p className="text-xs text-muted-foreground">Calculado automáticamente</p>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="pagado">Monto Pagado</Label>
+                                    <Label htmlFor="presupuesto_aprobado">Presupuesto Aprobado *</Label>
                                     <Input
-                                        id="pagado"
+                                        id="presupuesto_aprobado"
                                         type="number"
                                         step="0.01"
                                         placeholder="0.00"
-                                        value={formData.pagado}
-                                        onChange={(e) => handleInputChange('pagado', e.target.value)}
+                                        value={formData.presupuesto_aprobado || ''}
+                                        onChange={(e) => handleInputChange('presupuesto_aprobado', e.target.value)}
+                                        required
                                     />
-                                    <p className="text-xs text-muted-foreground">Dejar en 0 si no hay pagos iniciales</p>
+                                    <p className="text-xs text-muted-foreground">Puedes ajustar el monto si es necesario</p>
                                 </div>
                             </div>
 
-                            {/* Calculated Budget Fields */}
-                            <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-                                <div>
-                                    <p className="text-xs font-medium text-muted-foreground">Por Liquidar</p>
-                                    <p className="text-lg font-semibold text-orange-600">{formatCurrency(formData.por_liquidar)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-medium text-muted-foreground">Actual</p>
-                                    <p className="text-lg font-semibold">{formatCurrency(formData.actual)}</p>
-                                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="pagado">Monto Pagado Inicial</Label>
+                                <Input
+                                    id="pagado"
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value={formData.pagado || ''}
+                                    onChange={(e) => handleInputChange('pagado', e.target.value)}
+                                />
+                                <p className="text-xs text-muted-foreground">Dejar en 0 si no hay pagos iniciales</p>
                             </div>
+
+                            {/* Display remaining amount */}
+                            {formData.presupuesto_aprobado > 0 && (
+                                <div className="p-4 bg-muted rounded-lg">
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Por Ejercer</p>
+                                    <p className="text-lg font-semibold text-orange-600">
+                                        {formatCurrency((formData.presupuesto_aprobado || 0) - (formData.pagado || 0))}
+                                    </p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -273,28 +282,41 @@ export default function AddPartidaModal() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">Información Adicional</CardTitle>
-                            <CardDescription>Datos de registro</CardDescription>
+                            <CardDescription>Datos de registro y jerarquía</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="fecha_carga">Fecha de Carga</Label>
+                                    <Label htmlFor="nivel">Nivel</Label>
                                     <Input
-                                        id="fecha_carga"
-                                        type="date"
-                                        value={formData.fecha_carga}
-                                        onChange={(e) => handleInputChange('fecha_carga', e.target.value)}
+                                        id="nivel"
+                                        type="number"
+                                        min="1"
+                                        max="3"
+                                        value={formData.nivel}
+                                        onChange={(e) => handleInputChange('nivel', e.target.value)}
                                     />
+                                    <p className="text-xs text-muted-foreground">1=Partida, 2=Familia, 3=Sub-partida</p>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="archivo_origen">Archivo de Origen</Label>
+                                    <Label htmlFor="partida_nombre">Partida Padre</Label>
                                     <Input
-                                        id="archivo_origen"
-                                        placeholder="Nombre del archivo"
-                                        value={formData.archivo_origen}
-                                        onChange={(e) => handleInputChange('archivo_origen', e.target.value)}
+                                        id="partida_nombre"
+                                        placeholder="Ej: PRELIMINARY"
+                                        value={formData.partida_nombre}
+                                        onChange={(e) => handleInputChange('partida_nombre', e.target.value)}
                                     />
+                                    <p className="text-xs text-muted-foreground">Solo para nivel 2 y 3</p>
                                 </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="archivo_origen">Archivo de Origen</Label>
+                                <Input
+                                    id="archivo_origen"
+                                    placeholder="Nombre del archivo"
+                                    value={formData.archivo_origen}
+                                    onChange={(e) => handleInputChange('archivo_origen', e.target.value)}
+                                />
                             </div>
                         </CardContent>
                     </Card>

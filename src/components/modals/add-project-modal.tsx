@@ -151,8 +151,8 @@ export default function AddProjectModal() {
         const formData = new FormData();
         formData.append('file', file);
 
-        // const response = await fetch("http://localhost:3000/upload", {
-        const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
+        // const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
+        const response = await fetch("http://localhost:3000/upload", {
             method: "POST",
             body: formData,
         });
@@ -190,18 +190,16 @@ export default function AddProjectModal() {
 
             // Type for the record from the API
             type PartidaRecord = {
-                partida: string;
+                nivel: number;
+                nombre: string;
                 familia: string;
                 sub_partida: string;
-                Cantidad: number;
-                PrecioUnitario: number;
-                Subtotal: number;
-                Iva: number;
-                total: number;
-                aprobado: number;
+                unidad: string;
+                cantidad: number;
+                precio_unitario: number;
+                presupuesto_original: number;
+                presupuesto_aprobado: number;
                 pagado: number;
-                por_liquidar: number;
-                actual: number;
                 weeklyPayments?: Array<{
                     week: number;
                     columnLetter: string;
@@ -211,22 +209,28 @@ export default function AddProjectModal() {
             };
 
             // Upload all partidas from the Excel data and create associated payments
+            // Track current partida name for nested items
+            let currentPartidaNombre = '';
+            
             const partidaPromises = response.data.map(async (record: PartidaRecord) => {
+                // Update current partida name when we encounter a nivel 1 item
+                if (record.nivel === 1) {
+                    currentPartidaNombre = record.nombre;
+                }
+                
                 // Create the partida
                 const partidaId = await uploadProjectData({
-                    nombre: record.partida || '',
+                    nivel: record.nivel || 0,
+                    nombre: record.nombre || '',
                     familia: record.familia || '',
                     sub_partida: record.sub_partida || '',
-                    Cantidad: record.Cantidad || 0,
-                    PrecioUnitario: record.PrecioUnitario || 0,
-                    Subtotal: record.Subtotal || 0,
-                    Iva: record.Iva || 0,
-                    total: record.total || 0,
-                    aprobado: record.aprobado || 0,
+                    partida_nombre: record.nivel > 1 ? currentPartidaNombre : undefined,
+                    unidad: record.unidad || '',
+                    cantidad: record.cantidad || 0,
+                    precio_unitario: record.precio_unitario || 0,
+                    presupuesto_original: record.presupuesto_original || 0,
+                    presupuesto_aprobado: record.presupuesto_aprobado || 0,
                     pagado: record.pagado || 0,
-                    por_liquidar: record.por_liquidar || 0,
-                    actual: record.actual || 0,
-                    fecha_carga: new Date().toISOString(),
                     archivo_origen: response.fileName || formData.excel?.name || 'unknown',
                     proyecto: project,
                 });
@@ -241,7 +245,7 @@ export default function AddProjectModal() {
 
                         return createPayment({
                             partida_id: partidaId,
-                            partida: record.partida || '',
+                            partida: record.nombre || '',
                             familia: record.familia || '',
                             sub_partida: record.sub_partida || '',
                             monto: payment.amount,

@@ -35,16 +35,17 @@ export default function DropdownMenuComponentPartida({
   const navigate = useNavigate();
 
   // Query payments based on level with proper proyecto filtering
+  // Note: level 0 = nivel 1 (partida), level 1 = nivel 2 (familia), level 2 = nivel 3 (sub-partida)
   const isRealPartida = level === 2 && partida._id && !partida._id.toString().startsWith("temp-");
 
-  // Level 2: Get payments by partida_id (specific sub-partida)
+  // Level 2 (nivel 3): Get payments by partida_id (specific sub-partida)
   const level2Payments = useQuery(
     api.pagos.getByPartidaId,
     isRealPartida ? { partida_id: partida._id } : "skip"
   );
 
-  // Level 0: Get all payments for this partida name
-  // proyecto_id is optional - will filter by it if available
+  // Level 0 (nivel 1): Get all payments for this partida name
+  // For nivel 1 items, partida.nombre is the partida name
   const level0Payments = useQuery(
     api.pagos.getByPartidaName,
     level === 0 && partida.nombre
@@ -55,13 +56,14 @@ export default function DropdownMenuComponentPartida({
       : "skip"
   );
 
-  // Level 1: Get all payments for this familia within the partida
-  // proyecto_id is optional - will filter by it if available
+  // Level 1 (nivel 2): Get all payments for this familia within the partida
+  // For aggregated rows: partida.nombre is the partida name
+  // For actual DB records: use partida_nombre to find the parent partida
   const level1Payments = useQuery(
     api.pagos.getByFamilia,
-    level === 1 && partida.nombre && partida.familia
+    level === 1 && partida.familia && partida.nombre
       ? {
-        partida_name: partida.nombre,
+        partida_name: partida.nombre, // For aggregated rows, nombre IS the partida name
         familia_name: partida.familia,
         proyecto_id: partida.proyecto
       }
@@ -124,9 +126,11 @@ export default function DropdownMenuComponentPartida({
 
   const handleViewPayments = () => {
     // Calculate amounts based on level
+    // Use presupuesto_aprobado from the actual partida record for level 2 (nivel 3)
+    // For aggregated levels (0 and 1), use the calculated totals from rowData
     const baseAmount = level === 2
-      ? Number(partida.aprobado || 0)
-      : rowData.presupuestoOriginal;
+      ? Number(partida.presupuesto_aprobado || 0)
+      : rowData.presupuestoAprobado;
 
     // Get the appropriate payments based on level
     // Now all levels have properly filtered payments from their respective queries

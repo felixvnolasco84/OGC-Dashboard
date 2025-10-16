@@ -61,7 +61,7 @@ export default function PartidaDetails() {
         return isPagado ? sum + pago.monto || 0 : sum;
     }, 0) || 0;
 
-    const montoTotal = partida.total || 0;
+    const montoTotal = partida.presupuesto_aprobado || 0;
     const porcentajePagado = montoTotal > 0 ? (totalPagado / montoTotal) * 100 : 0;
 
     const handleEditPayment = (pago: Doc<"pagos">) => {
@@ -74,7 +74,7 @@ export default function PartidaDetails() {
     };
 
 
-    const presupuestoAprobado = partida.aprobado || 0;
+    const presupuestoAprobado = partida.presupuesto_aprobado || 0;
     const porEjercer = presupuestoAprobado - totalPagado;
 
     // Helper function to get documents for a specific pago

@@ -73,7 +73,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
     proyectoId ? { proyecto_id: proyectoId } : "skip"
   );
   
-  // Transform flat partidas data into hierarchical structure
+  // Transform flat partidas data into hierarchical structure based on nivel
   const hierarchicalData = useMemo(() => {
     // Helper function to calculate pagado amount based on level
     const calculatePagado = (item: { nombre?: string; familia?: string; sub_partida?: string; _id?: string; level: number }) => {
@@ -83,15 +83,15 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
       
       // Filter payments based on hierarchy level
       if (item.level === 0) {
-        // Partida level: sum all payments for this partida
+        // Partida level (nivel 1): sum all payments for this partida
         relevantPayments = allPayments.filter(p => p.partida === item.nombre);
       } else if (item.level === 1) {
-        // Familia level: sum all payments for this partida + familia
+        // Familia level (nivel 2): sum all payments for this partida + familia
         relevantPayments = allPayments.filter(p => 
           p.partida === item.nombre && p.familia === item.familia
         );
       } else if (item.level === 2) {
-        // Sub-partida level: sum all payments for this specific sub_partida
+        // Sub-partida level (nivel 3): sum all payments for this specific sub_partida
         relevantPayments = allPayments.filter(p => 
           p.partida === item.nombre && 
           p.familia === item.familia && 
@@ -103,57 +103,47 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
       return relevantPayments.reduce((sum, p) => sum + p.monto, 0);
     };
     
-    // Group by partida (nombre) -> familia -> sub_partida
-    const grouped = data.reduce<Record<string, HierarchicalGroup>>((acc, item) => {
+    // Build hierarchy using partida_nombre field for robust grouping
+    const grouped: Record<string, HierarchicalGroup> = {};
+    
+    // First pass: Create all nivel 1 (partida) groups
+    data.filter(item => item.nivel === 1).forEach(item => {
       const partidaKey = item.nombre;
-      const familiaKey = item.familia;
-      const subPartidaKey = item.sub_partida;
-
-      // Initialize partida group if it doesn't exist
-      if (!acc[partidaKey]) {
-        acc[partidaKey] = {
-          displayName: partidaKey,
-          nombre: partidaKey,
-          proyecto: item.proyecto, // Add proyecto for querying
-          presupuestoOriginal: 0,
-          presupuestoAprobado: 0,
-          pagado: 0,
-          avance: 0,
-          fechaInicio: "-",
-          fechaFin: "-",
-          expanded: false,
-          level: 0,
-          children: [] as PartidaRow[],
-          familias: {} as Record<string, PartidaRow>
-        };
-      }
-
-      const partidaGroup = acc[partidaKey];
-
-      // If item has no familia and no sub_partida, it's the partida-level aggregate record
-      // Use its values directly for the partida totals (except pagado, which will be calculated)
-      if ((!familiaKey || familiaKey.trim() === "") && (!subPartidaKey || subPartidaKey.trim() === "")) {
-        partidaGroup.presupuestoOriginal = item.Subtotal || 0;
-        partidaGroup.presupuestoAprobado = item.aprobado || 0;
-        // Don't set pagado here - will be calculated from payments
-        return acc;
-      }
-
-      // If item has no familia, skip it (shouldn't happen in well-formed data)
-      if (!familiaKey || familiaKey.trim() === "") {
-        return acc;
-      }
-
-      // Create or update familia group
-      if (!partidaGroup.familias[familiaKey]) {
-        partidaGroup.familias[familiaKey] = {
+      grouped[partidaKey] = {
+        displayName: partidaKey,
+        nombre: partidaKey,
+        proyecto: item.proyecto,
+        nivel: 1, // Partida level = nivel 1
+        presupuestoOriginal: item.presupuesto_original || 0,
+        presupuestoAprobado: item.presupuesto_aprobado || 0,
+        pagado: 0, // Will be calculated from payments
+        avance: 0,
+        fechaInicio: "-",
+        fechaFin: "-",
+        expanded: false,
+        level: 0,
+        children: [] as PartidaRow[],
+        familias: {} as Record<string, PartidaRow>
+      };
+    });
+    
+    // Second pass: Add nivel 2 (familia) items to their parent partida
+    data.filter(item => item.nivel === 2).forEach(item => {
+      const partidaKey = item.partida_nombre || item.nombre;
+      const partida = grouped[partidaKey];
+      
+      if (partida) {
+        const familiaKey = item.familia;
+        const familiaGroup: PartidaRow = {
           displayName: familiaKey,
           nombre: partidaKey,
           familia: familiaKey,
-          proyecto: item.proyecto, // Add proyecto for querying
-          presupuestoOriginal: 0,
-          presupuestoAprobado: 0,
-          pagado: 0,
+          partida_nombre: partidaKey, // Add parent reference for nivel 2
+          proyecto: item.proyecto,
+          nivel: 2, // Familia level = nivel 2
+          presupuestoOriginal: item.presupuesto_original || 0,
+          presupuestoAprobado: item.presupuesto_aprobado || 0,
+          pagado: 0, // Will be calculated from payments
           avance: 0,
           fechaInicio: "-",
           fechaFin: "-",
@@ -161,45 +151,35 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
           level: 1,
           children: [] as PartidaRow[]
         };
-        partidaGroup.children.push(partidaGroup.familias[familiaKey]);
+        partida.familias[familiaKey] = familiaGroup;
+        partida.children.push(familiaGroup);
       }
-
-      const familiaGroup = partidaGroup.familias[familiaKey];
-
-      // If item has no sub_partida, it's the familia-level aggregate record
-      // Use its values directly for the familia totals (except pagado)
-      if (!subPartidaKey || subPartidaKey.trim() === "") {
-        familiaGroup.presupuestoOriginal = item.Subtotal || 0;
-        familiaGroup.presupuestoAprobado = item.aprobado || 0;
-        // Don't set pagado here - will be calculated from payments
-        return acc;
-      }
-
-      // Add sub_partida as a child of familia only if it's meaningful
-      // (not empty, not the same as familia name)
-      const hasValidSubPartida = subPartidaKey &&
-        subPartidaKey.trim() !== '' &&
-        subPartidaKey !== familiaKey;
-
-      if (hasValidSubPartida) {
+    });
+    
+    // Third pass: Add nivel 3 (sub-partida) items to their parent familia
+    data.filter(item => item.nivel === 3).forEach(item => {
+      const partidaKey = item.partida_nombre;
+      const familiaKey = item.familia;
+      
+      if (partidaKey && grouped[partidaKey] && grouped[partidaKey].familias[familiaKey]) {
+        const familiaGroup = grouped[partidaKey].familias[familiaKey];
         familiaGroup.children.push({
-          ...item, // Include all original partida properties
-          displayName: subPartidaKey,
-          presupuestoOriginal: item.Subtotal || 0,
-          presupuestoAprobado: item.aprobado || 0,
+          ...item,
+          displayName: item.nombre, // Use nombre as display name for nivel 3
+          sub_partida: item.sub_partida || item.nombre, // Ensure sub_partida is set
+          presupuestoOriginal: item.presupuesto_original || 0,
+          presupuestoAprobado: item.presupuesto_aprobado || 0,
           pagado: 0, // Will be calculated from payments
-          avance: 0, // Will be calculated after pagado is set,
+          avance: 0,
           fechaInicio: "-",
           fechaFin: "-",
           expanded: false,
           level: 2,
           children: [],
-          originalDoc: item // Store the original doc
+          originalDoc: item
         });
       }
-
-      return acc;
-    }, {});
+    });
 
     // Calculate pagado from payments and then calculate avance
     // Also filter out familias with no meaningful children
@@ -395,16 +375,13 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                         familia: item.familia || '',
                         sub_partida: item.sub_partida || '',
                         proyecto: item.proyecto, // Include proyecto for querying payments
-                        Cantidad: item.presupuestoOriginal || 0,
-                        PrecioUnitario: item.PrecioUnitario || 0,
-                        Subtotal: item.presupuestoOriginal || 0,
-                        Iva: item.Iva || 0,
-                        total: item.presupuestoOriginal || 0,
-                        aprobado: item.presupuestoAprobado || 0,
+                        nivel: item.nivel || 0,
+                        unidad: item.unidad || '',
+                        cantidad: item.cantidad || 0,
+                        precio_unitario: item.precio_unitario || 0,
+                        presupuesto_original: item.presupuestoOriginal || 0,
+                        presupuesto_aprobado: item.presupuestoAprobado || 0,
                         pagado: item.pagado || 0,
-                        por_liquidar: (item.presupuestoAprobado - item.pagado),
-                        actual: item.pagado,
-                        fecha_carga: new Date().toLocaleDateString('es-MX'),
                         archivo_origen: 'aggregated',
                       } as Doc<"partidas">)}
                       level={item.level}

@@ -51,8 +51,8 @@ export default function GanttChart({ data }: GanttChartProps) {
     // Parse dates and convert amounts
     const processedData = data.map(item => ({
       ...item,
-      parsedDate: new Date(item.fecha_carga.split('/').reverse().join('-')),
-      numericAmount: item.PrecioUnitario
+      parsedDate: new Date(item._creationTime),
+      numericAmount: item.precio_unitario
     })).filter(item => !isNaN(item.parsedDate.getTime()) && !isNaN(item.numericAmount));
 
     // Group by partida and sub_partida

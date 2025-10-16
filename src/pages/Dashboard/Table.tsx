@@ -216,11 +216,11 @@ export const columns: ColumnDef<Doc<"partidas">>[] = [
             // Construct rowData to match DropdownMenuComponentPartida requirements
             const rowData = {
                 displayName: partida.sub_partida || partida.familia || partida.nombre,
-                presupuestoOriginal: partida.total || 0,
-                presupuestoAprobado: partida.aprobado || 0,
+                presupuestoOriginal: partida.presupuesto_aprobado || 0,
+                presupuestoAprobado: partida.presupuesto_aprobado || 0,
                 pagado: partida.pagado || 0,
-                avance: partida.aprobado > 0
-                    ? Math.round((partida.pagado / partida.aprobado) * 100)
+                avance: partida.presupuesto_aprobado > 0
+                    ? Math.round((partida.pagado / partida.presupuesto_aprobado) * 100)
                     : 0,
             };
 

@@ -7,19 +7,17 @@ type AddPartidaContext = {
 };
 
 type PartidaFormData = {
+    nivel: number;
     nombre: string;
     familia: string;
     sub_partida: string;
-    Cantidad: number;
-    PrecioUnitario: number;
-    Subtotal: number;
-    Iva: number;
-    total: number;
-    aprobado: number;
-    pagado: number;
-    por_liquidar: number;
-    actual: number;
-    fecha_carga: string;
+    unidad: string;
+    partida_nombre: string;
+    cantidad: number;
+    precio_unitario: number;        
+    presupuesto_original: number; 
+    presupuesto_aprobado: number; 
+    pagado: number; 
     archivo_origen: string;
 };
 
@@ -34,19 +32,17 @@ type AddPartidaModalStore = {
 };
 
 const initialFormData: PartidaFormData = {
+    nivel: 1,
     nombre: "",
     familia: "",
     sub_partida: "",
-    Cantidad: 0,
-    PrecioUnitario: 0,
-    Subtotal: 0,
-    Iva: 0,
-    total: 0,
-    aprobado: 0,
-    pagado: 0,
-    por_liquidar: 0,
-    actual: 0,
-    fecha_carga: new Date().toISOString().split('T')[0],
+    unidad: "",
+    partida_nombre: "",
+    cantidad: 0,
+    precio_unitario: 0,        
+    presupuesto_original: 0, 
+    presupuesto_aprobado: 0, 
+    pagado: 0, 
     archivo_origen: "",
 };
 

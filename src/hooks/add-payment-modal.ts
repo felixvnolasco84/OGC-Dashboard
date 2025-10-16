@@ -1,8 +1,9 @@
-import { Id } from "../../convex/_generated/dataModel";
+import { Id, Doc } from "../../convex/_generated/dataModel";
 import { create } from "zustand";
 
 type AddPaymentContext = {
     projectId: Id<"desarrollos">;
+    relatedPartida?: Doc<"partidas">; // Optional: auto-prefill based on nivel
 };
 
 type PaymentFormData = {

@@ -1,4 +1,4 @@
-import { partida } from '@/lib/utils'
+import { Doc } from 'convex/_generated/dataModel'
 import { useMemo } from 'react'
 import { Chart } from 'react-charts'
 
@@ -16,12 +16,12 @@ interface GroupedData {
   [key: string]: number
 }
 
-export default function BarHorizontalChart({ constructionData }: { constructionData: partida[] }) {
+export default function BarHorizontalChart({ constructionData }: { constructionData: Doc<"partidas">[] }) {
   // Group and sum data by subPartida
   const groupedData = useMemo(() => {
     return constructionData.reduce<GroupedData>((acc, item) => {
       const key = item.sub_partida
-      acc[key] = (acc[key] || 0) + Number(item.total)
+      acc[key] = (acc[key] || 0) + Number(item.presupuesto_aprobado)
       return acc
     }, {})
   }, [constructionData])
@@ -58,7 +58,7 @@ export default function BarHorizontalChart({ constructionData }: { constructionD
     )
     
     const pending = constructionData.reduce(
-      (sum, item) => sum + Number(item.por_liquidar),
+      (sum, item) => sum + Number(item.presupuesto_aprobado),
       0
     )
     

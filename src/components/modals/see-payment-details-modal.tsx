@@ -62,7 +62,8 @@ export default function SeePaymentDetailsModal() {
     const handleOpenAddPayment = () => {
         if (paymentContext?.relatedPartida && paymentContext.relatedPartida.proyecto) {
             addPaymentModal.onOpen({
-                projectId: paymentContext.relatedPartida.proyecto
+                projectId: paymentContext.relatedPartida.proyecto,
+                relatedPartida: paymentContext.relatedPartida
             });
         }
     };
@@ -91,10 +92,20 @@ export default function SeePaymentDetailsModal() {
                         {/* Payment Summary */}
                         <Card className="mt-4 rounded-none border-none shadow-none">
                             <CardHeader>
-                                <CardTitle className="text-lg font-normal">{paymentContext.relatedPartida?.nombre}</CardTitle>
+                                <CardTitle className="text-lg font-normal">
+                                    {paymentContext.relatedPartida?.nivel === 1 && paymentContext.relatedPartida.nombre}
+                                    {paymentContext.relatedPartida?.nivel === 2 && `${paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre} → ${paymentContext.relatedPartida.familia}`}
+                                    {paymentContext.relatedPartida?.nivel === 3 && `${paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre} → ${paymentContext.relatedPartida.familia} → ${paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}`}
+                                </CardTitle>
                                 <div className="grid grid-cols-2">
-                                    <CardDescription className="text-muted-foreground">{paymentContext.relatedPartida?.sub_partida}</CardDescription>
-                                    <span className="text-muted-foreground text-right">Sub Partida</span>
+                                    <CardDescription className="text-muted-foreground">
+                                        {paymentContext.relatedPartida?.nivel === 1 && 'Partida'}
+                                        {paymentContext.relatedPartida?.nivel === 2 && 'Familia'}
+                                        {paymentContext.relatedPartida?.nivel === 3 && 'Sub-partida'}
+                                    </CardDescription>
+                                    <span className="text-muted-foreground text-right">
+                                        Nivel {paymentContext.relatedPartida?.nivel}
+                                    </span>
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-8">
@@ -109,21 +120,23 @@ export default function SeePaymentDetailsModal() {
 
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
-                                        {/* <p className="text-sm font-medium text-muted-foreground">Presupuesto Aprobado</p> */}
-                                        <p className="text-sm font-medium text-muted-foreground">Presupuesto Original</p>
-                                        <p className="text-lg">{formatCurrency(paymentContext.totalAmount)} MXN</p>
+                                        <p className="text-sm font-medium text-muted-foreground">Presupuesto Aprobado</p>
+                                        <p className="text-lg">{formatCurrency(paymentContext.totalAmount)}</p>
                                     </div>
                                     <div>
                                         <p className="text-sm font-medium text-muted-foreground text-center">Total Pagado</p>
-                                        <p className="text-lg text-green-800 text-center">{formatCurrency(getTotalPaidAmount())} MXN</p>
+                                        <p className="text-lg text-green-800 text-center">{formatCurrency(getTotalPaidAmount())}</p>
                                     </div>
                                     <div>
                                         <p className="text-sm font-medium text-muted-foreground text-right">Por Ejercer</p>
                                         {getRemainingAmount() > 0 && (
-                                            <p className="text-lg text-orange-800 text-right">{formatCurrency(paymentContext.totalAmount - getTotalPaidAmount())} MXN</p>
+                                            <p className="text-lg text-orange-800 text-right">{formatCurrency(getRemainingAmount())}</p>
                                         )}
-                                        {getRemainingAmount() < 0 && (
-                                            <p className="text-lg text-red-800 text-right">{formatCurrency(paymentContext.totalAmount - getTotalPaidAmount())} MXN</p>
+                                        {getRemainingAmount() <= 0 && getRemainingAmount() > -0.01 && (
+                                            <p className="text-lg text-green-800 text-right">{formatCurrency(0)}</p>
+                                        )}
+                                        {getRemainingAmount() < -0.01 && (
+                                            <p className="text-lg text-red-800 text-right">{formatCurrency(getRemainingAmount())}</p>
                                         )}
                                     </div>
                                 </div>

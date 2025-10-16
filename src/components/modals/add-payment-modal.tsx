@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Circle, Plus, X, Upload, File } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
 import { uploadDocument } from "@/lib/appwrite";
@@ -39,6 +39,7 @@ export default function AddPaymentModal() {
     const [selectedPartida, setSelectedPartida] = useState("");
     const [selectedFamilia, setSelectedFamilia] = useState("");
     const [subPartidas, setSubPartidas] = useState<SubPartidaItem[]>([]);
+    const [isInitialized, setIsInitialized] = useState(false);
     const [categoria, setCategoria] = useState("");
     const [tipoPago, setTipoPago] = useState("");
     const [moneda, setMoneda] = useState("MXN");
@@ -60,6 +61,56 @@ export default function AddPaymentModal() {
         api.partida.getByProject,
         paymentContext ? { projectId: paymentContext.projectId } : "skip"
     );
+
+    // Auto-prefill form based on relatedPartida.nivel
+    useEffect(() => {
+        if (!paymentContext?.relatedPartida || !allPartidas || isInitialized) return;
+        
+        const partida = paymentContext.relatedPartida;
+        const nivel = partida.nivel;
+        
+        // nivel 1: Prefill partida name only
+        if (nivel === 1) {
+            setSelectedPartida(partida.nombre);
+            setSelectedFamilia("");
+            setSubPartidas([]);
+        }
+        // nivel 2: Prefill partida name + familia
+        else if (nivel === 2) {
+            setSelectedPartida(partida.partida_nombre || partida.nombre);
+            setSelectedFamilia(partida.familia);
+            setSubPartidas([{
+                id: Date.now().toString(),
+                partida_id: "",
+                partida: partida.partida_nombre || partida.nombre,
+                familia: partida.familia,
+                sub_partida: "",
+                monto: 0
+            }]);
+        }
+        // nivel 3: Prefill everything including sub_partida
+        else if (nivel === 3) {
+            setSelectedPartida(partida.partida_nombre || partida.nombre);
+            setSelectedFamilia(partida.familia);
+            setSubPartidas([{
+                id: Date.now().toString(),
+                partida_id: partida._id,
+                partida: partida.partida_nombre || partida.nombre,
+                familia: partida.familia,
+                sub_partida: partida.sub_partida || partida.nombre,
+                monto: 0
+            }]);
+        }
+        
+        setIsInitialized(true);
+    }, [paymentContext, allPartidas, isInitialized]);
+
+    // Reset initialization when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setIsInitialized(false);
+        }
+    }, [isOpen]);
 
     // Calculate total amount from all sub-partidas
     const totalAmount = subPartidas.reduce((sum, item) => sum + (item.monto || 0), 0);
@@ -169,6 +220,7 @@ export default function AddPaymentModal() {
             setDocumentType("");
             setDocumentName("");
             setDocumentDescription("");
+            setIsInitialized(false);
             toast.success("Pago registrado", {
                 description: `Se crearon ${pagoIds.length} pago(s) exitosamente.`,
             });
@@ -199,7 +251,9 @@ export default function AddPaymentModal() {
     // Get unique partida names for dropdown
     const getUniquePartidaNames = () => {
         if (!allPartidas) return [];
-        const uniqueNames = [...new Set(allPartidas.map(p => p.nombre).filter(n => n && n.trim() !== ""))];
+        // Only get nivel 1 items (partidas)
+        const partidasNivel1 = allPartidas.filter(p => p.nivel === 1);
+        const uniqueNames = [...new Set(partidasNivel1.map(p => p.nombre).filter(n => n && n.trim() !== ""))];
         return uniqueNames.sort();
     };
 
@@ -208,10 +262,13 @@ export default function AddPaymentModal() {
     const getAvailableSubPartidas = () => {
         if (!selectedPartida || !selectedFamilia || !allPartidas) return [];
         
+        // Filter nivel 3 items where partida_nombre matches selectedPartida and familia matches
         const partidasWithFamilia = allPartidas.filter(p => 
-            p.nombre === selectedPartida && p.familia === selectedFamilia
+            p.nivel === 3 &&
+            p.partida_nombre === selectedPartida && 
+            p.familia === selectedFamilia
         );
-        const uniqueSubPartidas = [...new Set(partidasWithFamilia.map(p => p.sub_partida).filter(sp => sp && sp.trim() !== ""))];
+        const uniqueSubPartidas = [...new Set(partidasWithFamilia.map(p => p.sub_partida || p.nombre).filter(sp => sp && sp.trim() !== ""))];
         return uniqueSubPartidas.sort();
     };
 
@@ -233,10 +290,12 @@ export default function AddPaymentModal() {
     const handleSubPartidaSelect = (id: string, subPartida: string) => {
         if (!allPartidas) return;
         
+        // Find the nivel 3 item with matching partida_nombre, familia, and sub_partida
         const exactPartida = allPartidas.find(p => 
-            p.nombre === selectedPartida && 
+            p.nivel === 3 &&
+            p.partida_nombre === selectedPartida && 
             p.familia === selectedFamilia && 
-            p.sub_partida === subPartida
+            (p.sub_partida === subPartida || p.nombre === subPartida)
         );
         
         if (exactPartida) {
@@ -251,12 +310,23 @@ export default function AddPaymentModal() {
     const getAvailableFamilias = () => {
         if (!selectedPartida || !allPartidas) return [];
         
-        const partidasWithName = allPartidas.filter(p => p.nombre === selectedPartida);
+        // Filter nivel 2 items where partida_nombre matches selectedPartida
+        const partidasWithName = allPartidas.filter(p => 
+            p.nivel === 2 && 
+            p.partida_nombre === selectedPartida
+        );
         const uniqueFamilias = [...new Set(partidasWithName.map(p => p.familia).filter(f => f && f.trim() !== ""))];
         return uniqueFamilias.sort();
     };
 
     if (!paymentContext) return null;
+
+    // Determine which fields should be disabled based on nivel
+    const relatedPartida = paymentContext.relatedPartida;
+    const nivel = relatedPartida?.nivel;
+    const isPartidaLocked = Boolean(nivel && nivel >= 1);
+    const isFamiliaLocked = Boolean(nivel && nivel >= 2);
+    const isSubPartidaLocked = Boolean(nivel && nivel === 3);
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
@@ -269,6 +339,19 @@ export default function AddPaymentModal() {
                 </SheetHeader>
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+                    {/* Context Info Banner */}
+                    {relatedPartida && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <p className="text-sm font-medium text-blue-900 mb-1">
+                                {nivel === 1 && `Agregando pago para la partida: ${relatedPartida.nombre}`}
+                                {nivel === 2 && `Agregando pago para: ${relatedPartida.partida_nombre || relatedPartida.nombre} → ${relatedPartida.familia}`}
+                                {nivel === 3 && `Agregando pago para: ${relatedPartida.partida_nombre || relatedPartida.nombre} → ${relatedPartida.familia} → ${relatedPartida.sub_partida || relatedPartida.nombre}`}
+                            </p>
+                            <p className="text-xs text-blue-700">
+                                Los campos prellenados están bloqueados. Solo necesitas seleccionar {nivel === 1 ? 'familia y sub-partida' : nivel === 2 ? 'sub-partida' : 'el monto'}.
+                            </p>
+                        </div>
+                    )}
                     {/* Tipo de pago header */}
                     <div className="space-y-4">                        
                         {/* Status Selection */}
@@ -323,8 +406,9 @@ export default function AddPaymentModal() {
                                 setSelectedFamilia("");
                                 setSubPartidas([]);
                             }}
+                            disabled={isPartidaLocked}
                         >
-                            <SelectTrigger className="h-12">
+                            <SelectTrigger className={cn("h-12", isPartidaLocked && "bg-gray-100")}>
                                 <SelectValue placeholder="Seleccionar partida" />
                             </SelectTrigger>
                             <SelectContent>
@@ -340,9 +424,9 @@ export default function AddPaymentModal() {
                         <Select
                             value={selectedFamilia}
                             onValueChange={handleFamiliaSelect}
-                            disabled={!selectedPartida}
+                            disabled={!selectedPartida || isFamiliaLocked}
                         >
-                            <SelectTrigger className="h-12">
+                            <SelectTrigger className={cn("h-12", isFamiliaLocked && "bg-gray-100")}>
                                 <SelectValue placeholder="Seleccionar familia" />
                             </SelectTrigger>
                             <SelectContent>
@@ -363,8 +447,9 @@ export default function AddPaymentModal() {
                                             <Select
                                                 value={item.sub_partida}
                                                 onValueChange={(value) => handleSubPartidaSelect(item.id, value)}
+                                                disabled={isSubPartidaLocked}
                                             >
-                                                <SelectTrigger>
+                                                <SelectTrigger className={cn(isSubPartidaLocked && "bg-gray-100")}>
                                                     <SelectValue placeholder="Seleccionar sub-partida" />
                                                 </SelectTrigger>
                                                 <SelectContent>

@@ -77,8 +77,8 @@ export const useManagePartidaModal = create<ManagePartidaModalStore>((set) => ({
                     partida: context.partida.nombre,
                     familia: context.partida.familia,
                     sub_partida: context.partida.sub_partida,
-                    monto: context.partida.Cantidad,
-                    fecha_pago: context.partida.fecha_carga,
+                    monto: context.partida.cantidad,
+                    fecha_pago: new Date(context.partida._creationTime).toISOString().split('T')[0],
                     factura: context.partida.archivo_origen,
                 }
             });

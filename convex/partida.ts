@@ -80,27 +80,19 @@ export const getProjectMetrics = query({
 
     // Calculate metrics
     const presupuestoAprobado = partidas.reduce(
-      (sum, p) => sum + p.aprobado || 0,
+      (sum, p) => sum + (p.presupuesto_aprobado || 0),
       0
     );
     const pagado = partidas.reduce(
-      (sum, p) => sum + p.pagado || 0,
+      (sum, p) => sum + (p.pagado || 0),
       0
     );
-    const porLiquidar = partidas.reduce(
-      (sum, p) => sum + p.por_liquidar || 0,
-      0
-    );
-    const actual = partidas.reduce(
-      (sum, p) => sum + p.actual || 0,
-      0
-    );
+    const porLiquidar = presupuestoAprobado - pagado;
 
     return {
       presupuestoAprobado,
       gastoTotal: pagado,
       porGastar: porLiquidar,
-      actual,
       totalPartidas: partidas.length,
     };
   },
@@ -127,7 +119,6 @@ export const getGroupedByPartida = query({
       presupuestoAprobado: number;
       pagado: number;
       porLiquidar: number;
-      actual: number;
       items: PartidaType[];
     };
 
@@ -140,14 +131,12 @@ export const getGroupedByPartida = query({
           presupuestoAprobado: 0,
           pagado: 0,
           porLiquidar: 0,
-          actual: 0,
           items: [],
         };
       }
-      acc[key].presupuestoAprobado += p.aprobado || 0;
+      acc[key].presupuestoAprobado += p.presupuesto_aprobado || 0;
       acc[key].pagado += p.pagado || 0;
-      acc[key].porLiquidar += p.por_liquidar || 0;
-      acc[key].actual += p.actual || 0;
+      acc[key].porLiquidar = acc[key].presupuestoAprobado - acc[key].pagado;
       acc[key].items.push(p);
       return acc;
     }, {} as Record<string, GroupedPartida>);
@@ -177,7 +166,6 @@ export const getGroupedByFamilia = query({
       presupuestoAprobado: number;
       pagado: number;
       porLiquidar: number;
-      actual: number;
       items: PartidaType[];
     };
 
@@ -190,14 +178,12 @@ export const getGroupedByFamilia = query({
           presupuestoAprobado: 0,
           pagado: 0,
           porLiquidar: 0,
-          actual: 0,
           items: [],
         };
       }
-      acc[key].presupuestoAprobado += p.aprobado || 0;
+      acc[key].presupuestoAprobado += p.presupuesto_aprobado || 0;
       acc[key].pagado += p.pagado || 0;
-      acc[key].porLiquidar += p.por_liquidar || 0;
-      acc[key].actual += p.actual || 0;
+      acc[key].porLiquidar = acc[key].presupuestoAprobado - acc[key].pagado;
       acc[key].items.push(p);
       return acc;
     }, {} as Record<string, GroupedFamilia>);
@@ -210,37 +196,33 @@ export const getGroupedByFamilia = query({
 
 export const createPartida = mutation({
   args: {
+    nivel: v.number(),
     nombre: v.string(),
     familia: v.string(),
     sub_partida: v.string(),
-    Cantidad: v.number(),
-    PrecioUnitario: v.number(),
-    Subtotal: v.number(),
-    Iva: v.number(),
-    total: v.number(),
-    aprobado: v.number(),
+    partida_nombre: v.optional(v.string()),
+    unidad: v.string(),
+    cantidad: v.number(),
+    precio_unitario: v.number(),
+    presupuesto_original: v.number(),
+    presupuesto_aprobado: v.number(),
     pagado: v.number(),
-    por_liquidar: v.number(),
-    actual: v.number(),
-    fecha_carga: v.string(),
     archivo_origen: v.string(),
     proyecto: v.optional(v.id("desarrollos")),
   },
   handler: async (ctx, args) => {
     const partida = await ctx.db.insert("partidas", {
+      nivel: args.nivel,
       nombre: args.nombre,
       familia: args.familia,
       sub_partida: args.sub_partida,
-      Cantidad: args.Cantidad,
-      PrecioUnitario: args.PrecioUnitario,
-      Subtotal: args.Subtotal,
-      Iva: args.Iva,
-      total: args.total,
-      aprobado: args.aprobado,
+      partida_nombre: args.partida_nombre,
+      unidad: args.unidad,
+      cantidad: args.cantidad,
+      precio_unitario: args.precio_unitario,
+      presupuesto_original: args.presupuesto_original,
+      presupuesto_aprobado: args.presupuesto_aprobado,
       pagado: args.pagado,
-      por_liquidar: args.por_liquidar,
-      actual: args.actual,
-      fecha_carga: args.fecha_carga,
       archivo_origen: args.archivo_origen,
       proyecto: args.proyecto,
     });
@@ -251,19 +233,17 @@ export const createPartida = mutation({
 export const update = mutation({
   args: {
     id: v.id("partidas"),
+    nivel: v.number(),
     nombre: v.string(),
     familia: v.string(),
     sub_partida: v.string(),
-    Cantidad: v.number(),
-    PrecioUnitario: v.number(),
-    Subtotal: v.number(),
-    Iva: v.number(),
-    total: v.number(),
-    aprobado: v.number(),
+    partida_nombre: v.optional(v.string()),
+    unidad: v.string(),
+    cantidad: v.number(),
+    precio_unitario: v.number(),
+    presupuesto_original: v.number(),
+    presupuesto_aprobado: v.number(),
     pagado: v.number(),
-    por_liquidar: v.number(),
-    actual: v.number(),
-    fecha_carga: v.string(),
     archivo_origen: v.string(),
     proyecto: v.optional(v.id("desarrollos")),
   },
@@ -348,7 +328,7 @@ export const getByDiferentFilters = query({
       groupedData[task.nombre][task.familia].push({
         _id: task._id, // Keep the original string ID
         description: task.sub_partida,
-        specification: `${task.Cantidad} - ${task.PrecioUnitario}`
+        specification: `${task.cantidad} - ${task.precio_unitario}`
       });
     });
 

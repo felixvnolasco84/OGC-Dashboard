@@ -3,19 +3,17 @@ import { v } from "convex/values";
 
 export default defineSchema({
   partidas: defineTable({
+    nivel: v.number(),
     nombre: v.string(),
     familia: v.string(),
     sub_partida: v.string(),
-    Cantidad: v.number(),
-    PrecioUnitario: v.number(),
-    Subtotal: v.number(),
-    Iva: v.number(),
-    total: v.number(),
-    aprobado: v.number(),
-    pagado: v.number(),
-    por_liquidar: v.number(),
-    actual: v.number(),
-    fecha_carga: v.string(),
+    partida_nombre: v.optional(v.string()), // Reference to parent partida for nivel 2 & 3
+    unidad: v.string(),
+    cantidad: v.number(),
+    precio_unitario: v.number(),        
+    presupuesto_original: v.number(),
+    presupuesto_aprobado: v.number(),
+    pagado: v.number(),    
     archivo_origen: v.string(),
     proyecto: v.optional(v.id("desarrollos")),
   }).index("by_proyecto", { fields: ["proyecto"] }),

@@ -104,10 +104,12 @@ export default function HomePage() {
         { initialNumItems: 100 }
     );
 
+
+    const por_liquidar = allPartidas?.reduce((sum, p) => sum + p.presupuesto_aprobado || 0, 0) || 0;
     // Calculate secondary metrics from allPartidas
     const secondaryMetrics = {
         gasto: allPartidas?.reduce((sum, p) => sum + p.pagado || 0, 0) || 0,
-        porVencer: allPartidas?.reduce((sum, p) => sum + p.por_liquidar || 0, 0) || 0,
+        porVencer: por_liquidar,
         honorarios: allPartidas?.filter(p => p.familia === "HONORARIOS").reduce((sum, p) => sum + p.pagado || 0, 0) || 0
     };
 

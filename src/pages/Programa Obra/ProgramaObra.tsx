@@ -103,7 +103,7 @@ export default function ProgramaObra() {
       }
 
       const partidaGroup = acc[partidaKey];
-      partidaGroup.presupuesto += item.aprobado || 0;
+      partidaGroup.presupuesto += item.presupuesto_aprobado || 0;
 
       // Create or update familia group
       if (!partidaGroup.familias[familiaKey]) {
@@ -126,7 +126,7 @@ export default function ProgramaObra() {
       }
 
       const familiaGroup = partidaGroup.familias[familiaKey];
-      familiaGroup.presupuesto += item.aprobado || 0;
+      familiaGroup.presupuesto += item.presupuesto_aprobado || 0;
 
       // Update familia timeline progress based on accumulated data
       if (familiaGroup.timeline) {
@@ -147,15 +147,15 @@ export default function ProgramaObra() {
         familiaGroup.children.push({
           id: `subpartida-${partidaKey}-${familiaKey}-${subPartidaKey}-${item._id}`,
           partida: subPartidaKey,
-          presupuesto: item.aprobado || 0,
+          presupuesto: item.presupuesto_aprobado || 0,
           expanded: false,
           level: 2,
           timeline: {
             start: Math.floor(Math.random() * 8) + 1, // Mock timeline for now (1-8 for months)
             duration: Math.floor(Math.random() * 4) + 1,
             color: "bg-green-500",
-            progress: item.aprobado > 0
-              ? Math.round((item.pagado / item.aprobado) * 100)
+            progress: item.presupuesto_aprobado > 0
+              ? Math.round((item.pagado / item.presupuesto_aprobado) * 100)
               : 0,
             actualAmount: item.pagado
           },
