@@ -7,14 +7,13 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet"
 import { useSeePaymentDetailsModal } from "@/hooks/see-payment-details";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-// import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 // import { informacion_facturacion_pago } from "@/lib/utils";
 import PaymentCard from "../Cards/PaymentCard";
 import { Button } from "../ui/button";
-import { Plus } from "lucide-react";
+import {  Plus } from "lucide-react";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 
 
@@ -24,7 +23,7 @@ export default function SeePaymentDetailsModal() {
     const onClose = useSeePaymentDetailsModal((state) => state.onClose);
     const addPaymentModal = useAddPaymentModal();
 
-    
+
 
     const formatCurrency = (amount: string | number) => {
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -76,10 +75,10 @@ export default function SeePaymentDetailsModal() {
             <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 {paymentContext && (
                     <>
-                        <div className="flex justify-end mt-4">
-                            <Button variant="default" onClick={handleOpenAddPayment}>
-                                <span>Nuevo Pago</span>
-                                <Plus className="h-4 w-4" />
+                        <div className="flex justify-end mt-4 items-end">
+                            <Button size={"md"} variant="secondary" onClick={handleOpenAddPayment}>
+                                Nuevo Pago
+                                <Plus className="h-3 w-3 bg-gray-600 text-white p-0.5 rounded-full" />
                             </Button>
                         </div>
                         <SheetHeader>
@@ -92,20 +91,32 @@ export default function SeePaymentDetailsModal() {
                         {/* Payment Summary */}
                         <Card className="mt-4 rounded-none border-none shadow-none">
                             <CardHeader>
-                                <CardTitle className="text-lg font-normal">
-                                    {paymentContext.relatedPartida?.nivel === 1 && paymentContext.relatedPartida.nombre}
-                                    {paymentContext.relatedPartida?.nivel === 2 && `${paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre} → ${paymentContext.relatedPartida.familia}`}
-                                    {paymentContext.relatedPartida?.nivel === 3 && `${paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre} → ${paymentContext.relatedPartida.familia} → ${paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}`}
-                                </CardTitle>
-                                <div className="grid grid-cols-2">
-                                    <CardDescription className="text-muted-foreground">
+                                <div className="flex justify-between items-end">
+                                    <div>
+                                        {paymentContext.relatedPartida?.nivel === 1 && 
+                                        <>
+                                        <h3>{paymentContext.relatedPartida.nombre}</h3>
+                                        </>}
+                                        {paymentContext.relatedPartida?.nivel === 2 && 
+                                        <>
+                                        <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
+                                        <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
+                                        </>}
+                                        {paymentContext.relatedPartida?.nivel === 3 && 
+                                        <>
+                                        <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
+                                        <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
+                                        <h5 className="text-gray-500">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
+                                        </>}
+                                    </div>
+                                    <CardDescription className="text-gray-400 text-right text-base">
                                         {paymentContext.relatedPartida?.nivel === 1 && 'Partida'}
                                         {paymentContext.relatedPartida?.nivel === 2 && 'Familia'}
                                         {paymentContext.relatedPartida?.nivel === 3 && 'Sub-partida'}
                                     </CardDescription>
-                                    <span className="text-muted-foreground text-right">
+                                    {/* <span className="text-muted-foreground text-right">
                                         Nivel {paymentContext.relatedPartida?.nivel}
-                                    </span>
+                                    </span> */}
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-8">
@@ -115,29 +126,39 @@ export default function SeePaymentDetailsModal() {
                                             {getTotalPaidPercentage().toFixed(1)}%
                                         </Badge> */}
                                     </div>
-                                    <Progress className="bg-green-600 h-1" value={Math.min(getTotalPaidPercentage(), 100)} />
+                                                   {/* Progress Bar */}
+                                    <div className="w-full bg-green-200  h-2 mb-6">
+                                        <div
+                                            className="h-2  transition-all duration-300 bg-green-500"
+                                            style={{ width: `${Math.min(getTotalPaidPercentage(), 100)}%` }}
+                                        ></div>
+                                    </div>
+                                    {/* <Progress className="bg-green-600 h-1" value={Math.min(getTotalPaidPercentage(), 100)} /> */}
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-3 gap-24">
                                     <div>
-                                        <p className="text-sm font-medium text-muted-foreground">Presupuesto Aprobado</p>
+                                        <p className="text-sm font-medium text-gray-500">Presupuesto probado</p>
                                         <p className="text-lg">{formatCurrency(paymentContext.totalAmount)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-muted-foreground text-center">Total Pagado</p>
-                                        <p className="text-lg text-green-800 text-center">{formatCurrency(getTotalPaidAmount())}</p>
+                                        <p className="text-sm font-medium text-gray-500 text-left">Pagado</p>
+                                        <p className="text-lg text-green-800 text-left">{formatCurrency(getTotalPaidAmount())}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-muted-foreground text-right">Por Ejercer</p>
+                                        <p className="text-sm font-medium text-gray-500 text-right">Por ejercer</p>
                                         {getRemainingAmount() > 0 && (
-                                            <p className="text-lg text-orange-800 text-right">{formatCurrency(getRemainingAmount())}</p>
+                                            <p className="text-lg text-orange-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
                                         )}
                                         {getRemainingAmount() <= 0 && getRemainingAmount() > -0.01 && (
-                                            <p className="text-lg text-green-800 text-right">{formatCurrency(0)}</p>
+                                            <p className="text-lg text-green-800 text-right mb-1">{formatCurrency(0)}</p>
                                         )}
                                         {getRemainingAmount() < -0.01 && (
-                                            <p className="text-lg text-red-800 text-right">{formatCurrency(getRemainingAmount())}</p>
+                                            <p className="text-lg text-red-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
                                         )}
+                                        <Badge variant={"outline"} className="">
+                                            {getRemainingAmount() >= 0 ? `Pendiente ${ (getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%` : `${ (getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%`}
+                                        </Badge>
                                     </div>
                                 </div>
 
