@@ -14,6 +14,7 @@ export default defineSchema({
     presupuesto_original: v.number(),
     presupuesto_aprobado: v.number(),
     pagado: v.number(),    
+    por_gastar: v.optional(v.number()),
     archivo_origen: v.string(),
     proyecto: v.optional(v.id("desarrollos")),
   }).index("by_proyecto", { fields: ["proyecto"] }),
@@ -52,5 +53,12 @@ export default defineSchema({
     type: v.string(),
     pago_ids: v.array(v.id("pagos")),
     proyecto: v.id("desarrollos"),
+  }).index("by_proyecto", { fields: ["proyecto"] }),
+  meticas_presupuesto: defineTable({
+    proyecto: v.id("desarrollos"),
+    presupuesto_original: v.number(),
+    presupuesto_aprobado: v.number(),
+    gasto_total: v.number(),
+    por_gastar: v.number(),    
   }).index("by_proyecto", { fields: ["proyecto"] }),
 });

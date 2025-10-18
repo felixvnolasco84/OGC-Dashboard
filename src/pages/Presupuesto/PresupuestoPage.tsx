@@ -83,7 +83,6 @@ export default function PresupuestoPage() {
   const { selectedDesarrollo } = useDesarrolloStore();
   // const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
 
-
   // Fetch all partidas for selected project with pagination
   const { results: allPartidas, status: partidasStatus, loadMore } = usePaginatedQuery(
     api.partida.getByProjectPaginated,
@@ -91,28 +90,12 @@ export default function PresupuestoPage() {
     { initialNumItems: 1000 }
   );
 
-  // Calculate metrics from real data - only sum partida-level rows (level 0)
-  const metrics = useMemo(() => {
-    if (!allPartidas) return {
-      presupuestoOriginal: 0,
-      presupuestoAprobado: 0,
-      gastoTotal: 0,
-      porGastar: 0,
-    };
-    
-    // Filter to only include partida-level rows (where familia and sub_partida are empty)
-    const partidaLevelRows = allPartidas.filter(p => 
-      (!p.familia || p.familia.trim() === '') && 
-      (!p.sub_partida || p.sub_partida.trim() === '')
-    );
-    
-    return {
-      presupuestoOriginal: partidaLevelRows.reduce((sum, p) => sum + (p.presupuesto_original || 0), 0),
-      presupuestoAprobado: partidaLevelRows.reduce((sum, p) => sum + (p.presupuesto_aprobado || 0), 0),
-      gastoTotal: partidaLevelRows.reduce((sum, p) => sum + (p.pagado || 0), 0),
-      porGastar: partidaLevelRows.reduce((sum, p) => sum + ((p.presupuesto_aprobado || 0) - (p.pagado || 0)), 0),
-    };
-  }, [allPartidas]);
+
+  // Get metrics for a proyecto
+  const metrics = useQuery(
+    api.meticas_presupuesto.getByProyecto,
+    selectedDesarrollo ? { proyecto_id: selectedDesarrollo._id } : "skip"
+  );
 
   // Get unique partidas and familias for filters (filter out empty strings)
   const uniquePartidas = useMemo(() => 
@@ -153,15 +136,16 @@ export default function PresupuestoPage() {
   }, [allPartidas, selectedPartidas, selectedFamilias]);
 
   // Calculate percentage differences
-  const presupuestoReduction = metrics.presupuestoOriginal > 0
-    ? Math.round(((metrics.presupuestoAprobado - metrics.presupuestoOriginal) / metrics.presupuestoOriginal) * 100)
+  const presupuestoReduction = metrics && metrics.presupuesto_original > 0
+    ? Math.round(((metrics.presupuesto_aprobado - metrics.presupuesto_original) / metrics.presupuesto_original) * 100)
     : 0;
-  const avancePercentage = metrics.presupuestoAprobado > 0
-    ? Math.round((metrics.gastoTotal / metrics.presupuestoAprobado) * 100)
+  const avancePercentage = metrics && metrics.presupuesto_aprobado > 0
+    ? Math.round((metrics.gasto_total / metrics.presupuesto_aprobado) * 100)
     : 0;
-  const pendientePercentage = metrics.presupuestoAprobado > 0
-    ? Math.round((metrics.porGastar / metrics.presupuestoAprobado) * 100)
+  const pendientePercentage = metrics && metrics.presupuesto_aprobado > 0
+    ? Math.round((metrics.por_gastar / metrics.presupuesto_aprobado) * 100)
     : 0;
+
 
   // Loading state
   if (!projects || partidasStatus === "LoadingFirstPage") {
@@ -172,11 +156,6 @@ export default function PresupuestoPage() {
       </div>
     </div>;
   }
-
-  
-
-
-
 
   return (
     <div className="bg-white px-12 py-6">
@@ -213,7 +192,7 @@ export default function PresupuestoPage() {
                 <p className="text-xs text-gray-500">Presupuesto Original</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics.presupuestoOriginal))}
+                    ${formatNumber(Math.round(metrics?.presupuesto_original || 0))}
                   </p>
                 </div>
               </div>
@@ -227,7 +206,7 @@ export default function PresupuestoPage() {
                 <p className="text-xs text-gray-500">Presupuesto aprobado</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics.presupuestoAprobado))}
+                    ${formatNumber(Math.round(metrics?.presupuesto_aprobado || 0))}
                   </p>
                 </div>
                 <div className="text-lg text-gray-500">
@@ -246,7 +225,7 @@ export default function PresupuestoPage() {
                 <p className="text-xs text-gray-500">Gasto total</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics.gastoTotal))}
+                    ${formatNumber(Math.round(metrics?.gasto_total || 0))}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
@@ -263,7 +242,7 @@ export default function PresupuestoPage() {
                 <p className="text-xs text-gray-500">Por gastar</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics.porGastar))}
+                    ${formatNumber(Math.round(metrics?.por_gastar || 0))}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">

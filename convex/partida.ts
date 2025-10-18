@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { Id } from "./_generated/dataModel";
-import { query, mutation } from "./_generated/server";
+import { query} from "./_generated/server";
+import { mutation } from "./functions";
 import { v } from "convex/values";
 
 
@@ -440,5 +441,73 @@ export const getDistinctSubPartidasByFamilia = query({
     // Get unique sub_partidas
     const subPartidas = [...new Set(partidas.map(p => p.sub_partida).filter(sp => sp && sp.trim() !== ""))];
     return subPartidas.sort();
+  },
+});
+
+/**
+ * Mutation to sync/backfill the `por_gastar` calculated column for all existing partidas.
+ * This should be run once after adding the por_gastar field to the schema.
+ * 
+ * Formula: por_gastar = presupuesto_aprobado - pagado
+ * 
+ * Usage: Call this mutation from the Convex dashboard or via API to update all existing records.
+ */
+export const syncPorGastarForAllPartidas = mutation({
+  args: {
+    projectId: v.optional(v.id("desarrollos")), // Optional: sync only for specific project
+  },
+  handler: async (ctx, args) => {
+    console.log("🔄 Starting por_gastar sync for all partidas...");
+    
+    try {
+      // Get all partidas (filtered by project if provided)
+      let partidas;
+      if (args.projectId) {
+        partidas = await ctx.db
+          .query("partidas")
+          .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+          .collect();
+        console.log(`Found ${partidas.length} partidas for project ${args.projectId}`);
+      } else {
+        partidas = await ctx.db.query("partidas").collect();
+        console.log(`Found ${partidas.length} total partidas`);
+      }
+
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      // Update each partida with calculated por_gastar
+      for (const partida of partidas) {
+        const presupuestoAprobado = partida.presupuesto_aprobado || 0;
+        const pagado = partida.pagado || 0;
+        const porGastar = presupuestoAprobado - pagado;
+
+        // Only update if por_gastar is different or doesn't exist
+        if (partida.por_gastar !== porGastar) {
+          await ctx.db.patch(partida._id, { por_gastar: porGastar });
+          updatedCount++;
+          
+          // Log every 50 updates to track progress
+          if (updatedCount % 50 === 0) {
+            console.log(`✅ Updated ${updatedCount} partidas...`);
+          }
+        } else {
+          skippedCount++;
+        }
+      }
+
+      const summary = {
+        total: partidas.length,
+        updated: updatedCount,
+        skipped: skippedCount,
+        projectId: args.projectId || "all projects"
+      };
+
+      console.log("✅ Sync completed:", summary);
+      return summary;
+    } catch (error) {
+      console.error("❌ Error syncing por_gastar:", error);
+      throw error;
+    }
   },
 });

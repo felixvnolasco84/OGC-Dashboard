@@ -53,8 +53,7 @@ export default function SeePaymentDetailsModal() {
     };
 
     const getRemainingAmount = () => {
-        const totalPaid = getTotalPaidAmount();
-        console.log(totalPaid)
+        const totalPaid = getTotalPaidAmount();        
         return (paymentContext?.totalAmount || 0) - totalPaid;
     };
 

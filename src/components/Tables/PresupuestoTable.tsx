@@ -21,6 +21,7 @@ type PartidaRow = Omit<Partial<Doc<"partidas">>, 'pagado' | 'total' | 'aprobado'
   presupuestoOriginal: number;
   presupuestoAprobado: number;
   pagado: number;
+  porGastar: number; // Read from database: presupuesto_aprobado - pagado
   avance: number;
   fechaInicio?: string;
   fechaFin?: string;
@@ -28,6 +29,7 @@ type PartidaRow = Omit<Partial<Doc<"partidas">>, 'pagado' | 'total' | 'aprobado'
   level: number; // 0 = partida, 1 = familia, 2 = sub_partida
   children: PartidaRow[];
   originalDoc?: Doc<"partidas">; // Store original doc for level 2 items
+  uniqueId: string; // Unique identifier for React keys
 };
 
 type HierarchicalGroup = PartidaRow & {
@@ -43,13 +45,25 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-const getBudgetDifference = (original: number, approved: number) => {
+// Compare approved vs original for "Presupuesto aprobado" column
+const getApprovedVsOriginal = (original: number, approved: number) => {
   const difference = approved - original;
-  const isPositive = difference > 0;
-  const isNegative = difference < 0;
-  const isZero = difference === 0;
-  const formattedDifference = formatCurrency(Math.abs(difference));
-  return { difference, isPositive, isNegative, isZero, formattedDifference };
+  const isSavings = difference < 0; // Approved < Original (savings)
+  const isIncrement = difference > 0; // Approved > Original (increment)
+  const isEqual = difference === 0;
+  const absoluteDiff = Math.abs(difference);
+  const formattedAmount = new Intl.NumberFormat('es-MX').format(absoluteDiff);
+  return { isSavings, isIncrement, isEqual, formattedAmount };
+};
+
+// Helper to format por_gastar badge for "Pagado" column
+const getPorGastarBadge = (porGastar: number) => {
+  const isRemaining = porGastar > 0; // Positive = remaining to spend
+  const isOverpayment = porGastar < 0; // Negative = overpayment
+  const isEqual = porGastar === 0;
+  const absoluteAmount = Math.abs(porGastar);
+  const formattedAmount = new Intl.NumberFormat('es-MX').format(absoluteAmount);
+  return { isRemaining, isOverpayment, isEqual, formattedAmount };
 };
 
 interface PresupuestoTableProps {
@@ -69,21 +83,29 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
     // First pass: Create all nivel 1 (partida) groups
     data.filter(item => item.nivel === 1).forEach(item => {
       const partidaKey = item.nombre;
+      const presupuestoAprobado = item.presupuesto_aprobado || 0;
+      const pagado = item.pagado || 0;
+      // Use por_gastar from DB if available, otherwise calculate it
+      const porGastar = item.por_gastar !== undefined ? item.por_gastar : (presupuestoAprobado - pagado);
+      
       grouped[partidaKey] = {
         displayName: partidaKey,
         nombre: partidaKey,
         proyecto: item.proyecto,
         nivel: 1, // Partida level = nivel 1
         presupuestoOriginal: item.presupuesto_original || 0,
-        presupuestoAprobado: item.presupuesto_aprobado || 0,
-        pagado: item.pagado || 0, // Use pagado from database
+        presupuestoAprobado,
+        pagado,
+        porGastar, // Use por_gastar from database or calculated
         avance: 0,
         fechaInicio: "-",
         fechaFin: "-",
         expanded: false,
         level: 0,
         children: [] as PartidaRow[],
-        familias: {} as Record<string, PartidaRow>
+        familias: {} as Record<string, PartidaRow>,
+        originalDoc: item, // Store original database doc for editing
+        uniqueId: `partida-${partidaKey}` // Stable unique ID for partida level
       };
     });
     
@@ -94,6 +116,11 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
       
       if (partida) {
         const familiaKey = item.familia;
+        const presupuestoAprobado = item.presupuesto_aprobado || 0;
+        const pagado = item.pagado || 0;
+        // Use por_gastar from DB if available, otherwise calculate it
+        const porGastar = item.por_gastar !== undefined ? item.por_gastar : (presupuestoAprobado - pagado);
+        
         const familiaGroup: PartidaRow = {
           displayName: familiaKey,
           nombre: partidaKey,
@@ -102,14 +129,17 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
           proyecto: item.proyecto,
           nivel: 2, // Familia level = nivel 2
           presupuestoOriginal: item.presupuesto_original || 0,
-          presupuestoAprobado: item.presupuesto_aprobado || 0,
-          pagado: item.pagado || 0, // Use pagado from database
+          presupuestoAprobado,
+          pagado,
+          porGastar, // Use por_gastar from database or calculated
           avance: 0,
           fechaInicio: "-",
           fechaFin: "-",
           expanded: false,
           level: 1,
-          children: [] as PartidaRow[]
+          children: [] as PartidaRow[],
+          originalDoc: item, // Store original database doc for editing
+          uniqueId: `familia-${partidaKey}-${familiaKey}` // Stable unique ID for familia level
         };
         partida.familias[familiaKey] = familiaGroup;
         partida.children.push(familiaGroup);
@@ -123,20 +153,27 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
       
       if (partidaKey && grouped[partidaKey] && grouped[partidaKey].familias[familiaKey]) {
         const familiaGroup = grouped[partidaKey].familias[familiaKey];
+        const presupuestoAprobado = item.presupuesto_aprobado || 0;
+        const pagado = item.pagado || 0;
+        // Use por_gastar from DB if available, otherwise calculate it
+        const porGastar = item.por_gastar !== undefined ? item.por_gastar : (presupuestoAprobado - pagado);
+        
         familiaGroup.children.push({
           ...item,
           displayName: item.sub_partida || item.nombre, // Use sub_partida as display name for nivel 3
           sub_partida: item.sub_partida || item.nombre, // Ensure sub_partida is set
           presupuestoOriginal: item.presupuesto_original || 0,
-          presupuestoAprobado: item.presupuesto_aprobado || 0,
-          pagado: item.pagado || 0, // Use pagado from database
+          presupuestoAprobado,
+          pagado,
+          porGastar, // Use por_gastar from database or calculated
           avance: 0,
           fechaInicio: "-",
           fechaFin: "-",
           expanded: false,
           level: 2,
           children: [],
-          originalDoc: item
+          originalDoc: item,
+          uniqueId: item._id // Use database _id for nivel 3 items
         });
       }
     });
@@ -183,11 +220,11 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
     setBudgetData(hierarchicalData);
   }, [hierarchicalData]);
 
-  // Function to toggle expanded state of an item
-  const toggleExpanded = (displayName: string, level: number) => {
+  // Function to toggle expanded state of an item using uniqueId
+  const toggleExpanded = (uniqueId: string) => {
     const updateExpanded = (items: PartidaRow[]): PartidaRow[] => {
       return items.map(item => {
-        if (item.displayName === displayName && item.level === level) {
+        if (item.uniqueId === uniqueId) {
           return { ...item, expanded: !item.expanded };
         }
         if (item.children && item.children.length > 0) {
@@ -247,13 +284,16 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
         </TableHeader>
         <TableBody>
           {flattenedData.map((item) => {
-            const { difference, isPositive, isNegative, isZero, formattedDifference } = getBudgetDifference(item.presupuestoOriginal, item.pagado);
+            // Calculate differences for each column
+            const approvedDiff = getApprovedVsOriginal(item.presupuestoOriginal, item.presupuestoAprobado);
+            const porGastarBadge = getPorGastarBadge(item.porGastar);
+            
             return (
               <TableRow
-                key={`${item.displayName}-${item.level}`}
+                key={item.uniqueId}
                 className="border-b border-gray-100 hover:bg-gray-50"
               >
-                <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                <TableCell className="px-4 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
                   <div
                     className="flex items-center space-x-2"
                     style={{ paddingLeft: `${item.level * 20}px` }}
@@ -262,7 +302,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toggleExpanded(item.displayName, item.level)}
+                        onClick={() => toggleExpanded(item.uniqueId)}
                         className="p-0 h-auto hover:bg-transparent"
                       >
                         {item.expanded ? (
@@ -279,64 +319,56 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                <TableCell className="px-4 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                   {formatCurrency(item.presupuestoOriginal)} MXN
                 </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                  <div className="flex flex-col  gap-2 text-left">
-                    <span >{formatCurrency(item.presupuestoAprobado)} MXN</span>
-                    {!isZero && item.level === 0 && (
+                <TableCell className="px-4 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                  <div className="flex flex-col gap-2 text-left">
+                    <span>{formatCurrency(item.presupuestoAprobado)} MXN</span>
+                    {!approvedDiff.isEqual && (
                       <Badge
-                        variant={isPositive ? 'success' : 'danger'}
-                        className={cn("text-xs text-left w-fit font-normal py-1.5 leading-none", isPositive ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-500' : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-500')}
+                        className={cn(
+                          "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
+                          approvedDiff.isSavings
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-400'
+                            : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
+                        )}
                       >
-                        {isPositive ? '+' : '-'} {formattedDifference} MXN
+                        {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +${approvedDiff.formattedAmount} MXN
                       </Badge>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                  <div className="flex flex-col  gap-2 text-left">
-                    <span >{formatCurrency(item.pagado)} MXN</span>
-                    {!isNegative && (
+                <TableCell className="px-4 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                  <div className="flex flex-col gap-2 text-left">
+                    <span>{formatCurrency(item.pagado)} MXN</span>
+                    {!porGastarBadge.isEqual && (
                       <Badge
-                        variant="success"
-                        className={cn("text-xs text-left w-fit font-normal py-1.5 leading-none", isPositive ? 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-500' : 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-500')}
+                        className={cn(
+                          "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
+                          porGastarBadge.isRemaining
+                            ? 'bg-[#f5f5f5] text-gray-500 hover:bg-[#f5f5f5] border border-[#b8b7ac]'
+                            : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
+                        )}
                       >
-                       {isPositive ? '+' : '-'} {formatCurrency(difference)} MXN
+                        {porGastarBadge.isRemaining ? 'Por ejercer' : 'Incremento'}: +${porGastarBadge.formattedAmount} MXN
                       </Badge>
                     )}
                   </div>
-
                 </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                <TableCell className="px-4 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                   {item.avance}%
                 </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                <TableCell className="px-4 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
                   {item.fechaInicio || '-'}
                 </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                <TableCell className="px-4 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
                   {item.fechaFin || '-'}
                 </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                <TableCell className="px-4 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
                   <Button variant="outline" size="sm">
                     <DropdownMenuComponentPartida
-                      partida={item.originalDoc || ({
-                        _id: item._id || `temp-${item.displayName}`,
-                        _creationTime: Date.now(),
-                        nombre: item.nombre || item.displayName,
-                        familia: item.familia || '',
-                        sub_partida: item.sub_partida || '',
-                        proyecto: item.proyecto, // Include proyecto for querying payments
-                        nivel: item.nivel || 0,
-                        unidad: item.unidad || '',
-                        cantidad: item.cantidad || 0,
-                        precio_unitario: item.precio_unitario || 0,
-                        presupuesto_original: item.presupuestoOriginal || 0,
-                        presupuesto_aprobado: item.presupuestoAprobado || 0,
-                        pagado: item.pagado || 0,
-                        archivo_origen: 'aggregated',
-                      } as Doc<"partidas">)}
+                      partida={item.originalDoc!}
                       level={item.level}
                       rowData={item}
                     />

@@ -157,7 +157,7 @@ export default function DropdownMenuComponentPartida({
         </PopoverTrigger>
         <PopoverContent className="w-56 p-1">
           <div className="space-y-1">
-            {/* Show edit option for all levels */}
+            {/* Show edit option for all levels - each level now has its own database record */}
             <DialogTrigger asChild>
               <Button
                 variant="ghost"
