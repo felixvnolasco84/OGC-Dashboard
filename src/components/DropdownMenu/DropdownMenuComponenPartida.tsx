@@ -150,18 +150,18 @@ export default function DropdownMenuComponentPartida({
     <Dialog>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
+          <Button className="border-none border-transparent" variant="ghost" size={"icon"}>
             <span className="sr-only">Open menu</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-56 p-1">
+        <PopoverContent className="w-56 p-1 text-wrap">
           <div className="space-y-1">
             {/* Show edit option for all levels - each level now has its own database record */}
             <DialogTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full justify-start flex items-center gap-2"
+                className="w-full justify-start flex items-center gap-2 text-wrap"
               >
                 <Pencil className="h-4 w-4" />
                 Editar {labels.title.toLowerCase()}
@@ -171,7 +171,7 @@ export default function DropdownMenuComponentPartida({
             {/* View payments option */}
             <Button
               variant="ghost"
-              className="w-full justify-start flex items-center gap-2"
+              className="w-full justify-start flex items-center gap-2 text-wrap "
               onClick={handleViewPayments}
             >
               <CreditCard className="h-4 w-4" />
@@ -181,7 +181,7 @@ export default function DropdownMenuComponentPartida({
             {/* View details option */}
             <Button
               variant="ghost"
-              className="w-full justify-start flex items-center gap-2"
+              className="w-full justify-start flex items-center gap-2 text-wrap"
               onClick={handleViewDetails}
             >
               {level === 2 ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}

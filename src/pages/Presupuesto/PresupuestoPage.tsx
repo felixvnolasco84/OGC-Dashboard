@@ -98,12 +98,12 @@ export default function PresupuestoPage() {
   );
 
   // Get unique partidas and familias for filters (filter out empty strings)
-  const uniquePartidas = useMemo(() => 
+  const uniquePartidas = useMemo(() =>
     Array.from(new Set(allPartidas?.map(p => p.nombre).filter(n => n && n.trim() !== '') || [])),
     [allPartidas]
   );
-  
-  const uniqueFamilias = useMemo(() => 
+
+  const uniqueFamilias = useMemo(() =>
     Array.from(new Set(allPartidas?.map(p => p.familia).filter(f => f && f.trim() !== '') || [])),
     [allPartidas]
   );
@@ -111,7 +111,7 @@ export default function PresupuestoPage() {
   // Filter partidas list for search
   const filteredPartidasForSelect = useMemo(() => {
     if (!partidaSearchTerm) return uniquePartidas;
-    return uniquePartidas.filter(p => 
+    return uniquePartidas.filter(p =>
       p.toLowerCase().includes(partidaSearchTerm.toLowerCase())
     );
   }, [uniquePartidas, partidaSearchTerm]);
@@ -119,7 +119,7 @@ export default function PresupuestoPage() {
   // Filter familias list for search
   const filteredFamiliasForSelect = useMemo(() => {
     if (!familiaSearchTerm) return uniqueFamilias;
-    return uniqueFamilias.filter(f => 
+    return uniqueFamilias.filter(f =>
       f.toLowerCase().includes(familiaSearchTerm.toLowerCase())
     );
   }, [uniqueFamilias, familiaSearchTerm]);
@@ -127,7 +127,7 @@ export default function PresupuestoPage() {
   // Filter data based on selections
   const filteredPartidas = useMemo(() => {
     if (!allPartidas) return [];
-    
+
     return allPartidas.filter(p => {
       if (selectedPartidas.length > 0 && !selectedPartidas.includes(p.nombre)) return false;
       if (selectedFamilias.length > 0 && !selectedFamilias.includes(p.familia)) return false;
@@ -158,8 +158,8 @@ export default function PresupuestoPage() {
   }
 
   return (
-    <div className="bg-white px-12 py-6">
-      <div className="max-w-full mx-auto space-y-6">
+    <div className="bg-white py-6 space-y-12">
+      <div className="max-w-full mx-auto space-y-6 px-12">
         {/* Header */}
         <div className="rounded-lg py-6">
           <div className="flex items-start justify-between">
@@ -173,11 +173,14 @@ export default function PresupuestoPage() {
                   proyecto: selectedDesarrollo._id,
                   projectName: selectedDesarrollo.nombre
                 })}
-                variant={"outline"}
+                variant={"ghost"}
+                size={"md"}
                 disabled={!selectedDesarrollo}
+                className="flex justify-center items-center gap-2"
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Agregar Partida
+                <span className="leading-none">Agregar Partida</span>
+                
+                <Plus className="mr-2 h-6 w-6 bg-[#fcfcfc] border-gray-200 rounded-full shadow-md" />
               </Button>
             </div>
           </div>
@@ -467,13 +470,14 @@ export default function PresupuestoPage() {
           </div>
         </div>
 
-        {/* Budget Table Component */}
-        <PresupuestoTable 
-          data={filteredPartidas} 
-          status={partidasStatus}
-          loadMore={loadMore}
-        />
+
       </div>
+      {/* Budget Table Component */}
+      <PresupuestoTable
+        data={filteredPartidas}
+        status={partidasStatus}
+        loadMore={loadMore}
+      />
     </div>
   );
 }

@@ -10,10 +10,9 @@ import { useSeePaymentDetailsModal } from "@/hooks/see-payment-details";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-// import { informacion_facturacion_pago } from "@/lib/utils";
 import PaymentCard from "../Cards/PaymentCard";
 import { Button } from "../ui/button";
-import {  Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 
 
@@ -23,8 +22,6 @@ export default function SeePaymentDetailsModal() {
     const onClose = useSeePaymentDetailsModal((state) => state.onClose);
     const addPaymentModal = useAddPaymentModal();
 
-
-
     const formatCurrency = (amount: string | number) => {
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
         return new Intl.NumberFormat('es-MX', {
@@ -32,11 +29,6 @@ export default function SeePaymentDetailsModal() {
             currency: 'MXN'
         }).format(numAmount);
     };
-
-    // const calculatePaymentPercentage = (paymentAmount: string, totalAmount: number) => {
-    //     const amount = parseFloat(paymentAmount);
-    //     return totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
-    // };
 
     const getTotalPaidAmount = () => {
         if (!paymentContext?.payments) return 0;
@@ -53,7 +45,7 @@ export default function SeePaymentDetailsModal() {
     };
 
     const getRemainingAmount = () => {
-        const totalPaid = getTotalPaidAmount();        
+        const totalPaid = getTotalPaidAmount();
         return (paymentContext?.totalAmount || 0) - totalPaid;
     };
 
@@ -92,21 +84,21 @@ export default function SeePaymentDetailsModal() {
                             <CardHeader>
                                 <div className="flex justify-between items-end">
                                     <div>
-                                        {paymentContext.relatedPartida?.nivel === 1 && 
-                                        <>
-                                        <h3>{paymentContext.relatedPartida.nombre}</h3>
-                                        </>}
-                                        {paymentContext.relatedPartida?.nivel === 2 && 
-                                        <>
-                                        <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
-                                        <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
-                                        </>}
-                                        {paymentContext.relatedPartida?.nivel === 3 && 
-                                        <>
-                                        <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
-                                        <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
-                                        <h5 className="text-gray-500">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
-                                        </>}
+                                        {paymentContext.relatedPartida?.nivel === 1 &&
+                                            <>
+                                                <h3>{paymentContext.relatedPartida.nombre}</h3>
+                                            </>}
+                                        {paymentContext.relatedPartida?.nivel === 2 &&
+                                            <>
+                                                <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
+                                                <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
+                                            </>}
+                                        {paymentContext.relatedPartida?.nivel === 3 &&
+                                            <>
+                                                <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
+                                                <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
+                                                <h5 className="text-gray-500">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
+                                            </>}
                                     </div>
                                     <CardDescription className="text-gray-400 text-right text-base">
                                         {paymentContext.relatedPartida?.nivel === 1 && 'Partida'}
@@ -125,7 +117,7 @@ export default function SeePaymentDetailsModal() {
                                             {getTotalPaidPercentage().toFixed(1)}%
                                         </Badge> */}
                                     </div>
-                                                   {/* Progress Bar */}
+                                    {/* Progress Bar */}
                                     <div className="w-full bg-green-200  h-2 mb-6">
                                         <div
                                             className="h-2  transition-all duration-300 bg-green-500"
@@ -156,55 +148,13 @@ export default function SeePaymentDetailsModal() {
                                             <p className="text-lg text-red-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
                                         )}
                                         <Badge variant={"outline"} className="">
-                                            {getRemainingAmount() >= 0 ? `Pendiente ${ (getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%` : `${ (getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%`}
+                                            {getRemainingAmount() >= 0 ? `Pendiente ${(getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%` : `${(getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%`}
                                         </Badge>
                                     </div>
                                 </div>
-
-                                {/* {remainingAmount > 0 && (
-                                    <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                                        <p className="text-sm font-medium text-orange-800">Monto Pendiente</p>
-                                        <p className="text-lg text-orange-900">{formatCurrency(remainingAmount)} MXN</p>
-                                    </div>
-                                )} */}
-
-                                {/* {remainingAmount < 0 && (
-                                    <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                                        <p className="text-sm font-medium text-red-800">Sobrepago</p>
-                                        <p className="text-lg text-red-900">{formatCurrency(Math.abs(remainingAmount))} MXN</p>
-                                    </div>
-                                )} */}
                             </CardContent>
                         </Card>
 
-                        {/* Related Cost Information */}
-                        {/* {relatedCost && (
-                            <Card className="mt-4">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">Información del Costo</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <span className="font-medium">Administración:</span>
-                                            <p className="text-muted-foreground">{relatedCost.administracion}</p>
-                                        </div>
-                                        <div>
-                                            <span className="font-medium">Partida:</span>
-                                            <p className="text-muted-foreground">{relatedCost.partida}</p>
-                                        </div>
-                                        <div>
-                                            <span className="font-medium">Familia:</span>
-                                            <p className="text-muted-foreground">{relatedCost.familia}</p>
-                                        </div>
-                                        <div>
-                                            <span className="font-medium">Sub Partida:</span>
-                                            <p className="text-muted-foreground">{relatedCost.sub_partida}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )} */}
 
                         <Separator className="my-4" />
 

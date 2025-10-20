@@ -32,7 +32,7 @@ createRoot(document.getElementById("root")!).render(
               <Route index element={<HomePage />} />
               <Route path="/upload" element={<App />} />
               <Route path="/proyectos" element={<ProjectsPage />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} /> 
               <Route path="/dashboard/documentos" element={<DocumentosPage />} />
               <Route path="/dashboard/partidas/:id" element={<PartidaDetails />} />
               <Route path="/dashboard/control" element={<HomePage />} />
