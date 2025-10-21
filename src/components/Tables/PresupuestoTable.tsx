@@ -258,28 +258,28 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
           <TableHeader className="bg-white">
             <TableRow className="border-b border-gray-200">
 
-              <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Partida - Familia - Subpartida
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Presupuesto original
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Presupuesto aprobado
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Pagado
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Avance
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Fecha inicio
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Fecha fin
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -295,7 +295,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                   key={item.uniqueId}
                   className="border-b border-gray-100 hover:bg-gray-50"
                 >
-                  <TableCell className="px-4 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                  <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
                     <div
                       className="flex items-center space-x-2"
                       style={{ paddingLeft: `${item.level * 20}px` }}
@@ -321,10 +321,10 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                     {formatCurrency(item.presupuestoOriginal)} MXN
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                     <div className="flex flex-col gap-2 text-left">
                       <span>{formatCurrency(item.presupuestoAprobado)} MXN</span>
                       {!approvedDiff.isEqual && (
@@ -341,7 +341,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                     <div className="flex flex-col gap-2 text-left">
                       <span>{formatCurrency(item.pagado)} MXN</span>
                       {!porGastarBadge.isEqual && (
@@ -358,16 +358,16 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-sm text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                     {item.avance}%
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                  <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
                     {item.fechaInicio || '-'}
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                  <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
                     {item.fechaFin || '-'}
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-sm text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                  <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
 
                     <DropdownMenuComponentPartida
                       partida={item.originalDoc!}
@@ -400,14 +400,14 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
         <div className="flex justify-center py-4">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
-            <p className="text-sm text-gray-500">Cargando más partidas...</p>
+            <p className="text-base text-gray-500">Cargando más partidas...</p>
           </div>
         </div>
       )}
 
       {status === "Exhausted" && data.length > 100 && (
         <div className="flex justify-center py-4">
-          <p className="text-sm text-gray-500">Todas las partidas han sido cargadas</p>
+          <p className="text-base text-gray-500">Todas las partidas han sido cargadas</p>
         </div>
       )}
     </div>

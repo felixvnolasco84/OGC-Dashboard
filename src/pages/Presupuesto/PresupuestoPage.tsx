@@ -164,7 +164,7 @@ export default function PresupuestoPage() {
         <div className="rounded-lg py-6">
           <div className="flex items-start justify-between">
             <div className="flex flex-col text-left">
-              <p className="text-sm text-gray-500 mb-1">Presupuesto</p>
+              <p className="text-base text-gray-500 mb-1">Presupuesto</p>
               {/* <h1 className="text-2xl text-gray-900">{currentProject?.nombre || 'Proyecto'}</h1> */}
             </div>
             <div className="flex items-end gap-3">
@@ -192,7 +192,7 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">Presupuesto Original</p>
+                <p className="text-base text-gray-500">Presupuesto Original</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.presupuesto_original || 0))}
@@ -206,7 +206,7 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">Presupuesto aprobado</p>
+                <p className="text-base text-gray-500">Presupuesto aprobado</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.presupuesto_aprobado || 0))}
@@ -225,7 +225,7 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">Gasto total</p>
+                <p className="text-base text-gray-500">Gasto total</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.gasto_total || 0))}
@@ -242,7 +242,7 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">Por gastar</p>
+                <p className="text-base text-gray-500">Por gastar</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-2xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.por_gastar || 0))}
@@ -261,7 +261,7 @@ export default function PresupuestoPage() {
           <div className="grid grid-cols-3 items-center gap-6">
             {/* Partida Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left">
-              <span className="text-xs text-gray-500">Partida</span>
+              <span className="text-base text-gray-500">Partida</span>
               <Popover open={isPartidaOpen} onOpenChange={setIsPartidaOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -307,28 +307,28 @@ export default function PresupuestoPage() {
                           />
                           <label
                             htmlFor={`partida-${partida}`}
-                            className="text-sm cursor-pointer flex-1"
+                            className="text-base cursor-pointer flex-1"
                           >
                             {partida}
                           </label>
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-gray-500 text-center py-2">
+                      <p className="text-base text-gray-500 text-center py-2">
                         No se encontraron partidas
                       </p>
                     )}
                   </div>
                   {selectedPartidas.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-base text-gray-500">
                         {selectedPartidas.length} seleccionada(s)
                       </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setSelectedPartidas([])}
-                        className="h-7 text-xs"
+                        className="h-7 text-base"
                       >
                         Limpiar
                       </Button>
@@ -342,7 +342,7 @@ export default function PresupuestoPage() {
                     <Badge
                       key={partida}
                       variant="secondary"
-                      className="text-xs py-0.5 px-2 gap-1"
+                      className="text-base py-0.5 px-2 gap-1"
                     >
                       {partida.length > 15 ? `${partida.slice(0, 15)}...` : partida}
                       <X
@@ -357,7 +357,7 @@ export default function PresupuestoPage() {
 
             {/* Familia Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left">
-              <span className="text-xs text-gray-500">Familia</span>
+              <span className="text-base text-gray-500">Familia</span>
               <Popover open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -403,28 +403,28 @@ export default function PresupuestoPage() {
                           />
                           <label
                             htmlFor={`familia-${familia}`}
-                            className="text-sm cursor-pointer flex-1"
+                            className="text-base cursor-pointer flex-1"
                           >
                             {familia}
                           </label>
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-gray-500 text-center py-2">
+                      <p className="text-base text-gray-500 text-center py-2">
                         No se encontraron familias
                       </p>
                     )}
                   </div>
                   {selectedFamilias.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-base text-gray-500">
                         {selectedFamilias.length} seleccionada(s)
                       </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setSelectedFamilias([])}
-                        className="h-7 text-xs"
+                        className="h-7 text-base"
                       >
                         Limpiar
                       </Button>
@@ -438,7 +438,7 @@ export default function PresupuestoPage() {
                     <Badge
                       key={familia}
                       variant="secondary"
-                      className="text-xs py-0.5 px-2 gap-1"
+                      className="text-base py-0.5 px-2 gap-1"
                     >
                       {familia.length > 15 ? `${familia.slice(0, 15)}...` : familia}
                       <X
@@ -453,7 +453,7 @@ export default function PresupuestoPage() {
 
             {/* Fecha Filter */}
             <div className="flex flex-col space-y-1 text-left">
-              <span className="text-xs text-gray-500">Fecha</span>
+              <span className="text-base text-gray-500">Fecha</span>
               <Select value={selectedFecha} onValueChange={setSelectedFecha}>
                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
                   <SelectValue />
