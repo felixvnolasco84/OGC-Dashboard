@@ -6,77 +6,240 @@ type AddPaymentContext = {
     relatedPartida?: Doc<"partidas">; // Optional: auto-prefill based on nivel
 };
 
-type PaymentFormData = {
+// Hierarchical structure: Partida -> Familia -> SubPartida
+export type SubPartidaItem = {
+    id: string;
     partida_id: Id<"partidas"> | "";
-    partida: string;
-    familia: string;
     sub_partida: string;
     monto: number;
-    fecha: string;
-    tipo_pago: string;
-    banco: string;
-    tarjeta: string;
-    numero_cuenta: string;
-    numero_transferencia: string;
-    codigo_referencia: string;
-    factura: string;
-    moneda: string;
-    tipo_cambio: string;
-    status: string;
+};
+
+export type FamiliaItem = {
+    id: string;
+    familia: string;
+    subPartidas: SubPartidaItem[];
+    isExpanded: boolean;
+    isDirect: boolean; // True if familia has no sub-partidas and is a direct payment
+    monto?: number; // For direct payments
+    partida_id?: Id<"partidas"> | ""; // For direct payments
+};
+
+export type PartidaItem = {
+    id: string;
+    partida: string;
+    familias: FamiliaItem[];
+    isExpanded: boolean;
 };
 
 type AddPaymentModalStore = {
     paymentContext?: AddPaymentContext;
-    payments: PaymentFormData[];
+    partidas: PartidaItem[];
     isOpen: boolean;
     onOpen: (context: AddPaymentContext) => void;
     onClose: () => void;
-    addPayment: () => void;
-    removePayment: (index: number) => void;
-    updatePayment: (index: number, data: Partial<PaymentFormData>) => void;
+    
+    // Partida operations
+    addPartida: () => void;
+    removePartida: (partidaId: string) => void;
+    updatePartida: (partidaId: string, partida: string) => void;
+    togglePartidaExpanded: (partidaId: string) => void;
+    
+    // Familia operations
+    addFamilia: (partidaId: string) => void;
+    removeFamilia: (partidaId: string, familiaId: string) => void;
+    updateFamilia: (partidaId: string, familiaId: string, familia: string) => void;
+    toggleFamiliaExpanded: (partidaId: string, familiaId: string) => void;
+    toggleFamiliaDirect: (partidaId: string, familiaId: string) => void;
+    updateFamiliaDirectPayment: (partidaId: string, familiaId: string, data: { monto?: number; partida_id?: Id<"partidas"> | "" }) => void;
+    
+    // SubPartida operations
+    addSubPartida: (partidaId: string, familiaId: string) => void;
+    removeSubPartida: (partidaId: string, familiaId: string, subPartidaId: string) => void;
+    updateSubPartida: (partidaId: string, familiaId: string, subPartidaId: string, data: Partial<SubPartidaItem>) => void;
+    
     resetForm: () => void;
 };
 
-const createEmptyPayment = (): PaymentFormData => ({
+const createEmptySubPartida = (): SubPartidaItem => ({
+    id: Date.now().toString() + Math.random(),
     partida_id: "",
-    partida: "",
-    familia: "",
     sub_partida: "",
     monto: 0,
-    fecha: new Date().toISOString().split('T')[0],
-    tipo_pago: "efectivo",
-    moneda: "MXN",
-    tipo_cambio: "1",
-    codigo_referencia: "",
-    factura: "",
-    banco: "",
-    tarjeta: "",
-    numero_cuenta: "",
-    numero_transferencia: "",
-    status: "",
+});
+
+const createEmptyFamilia = (): FamiliaItem => ({
+    id: Date.now().toString() + Math.random(),
+    familia: "",
+    subPartidas: [createEmptySubPartida()],
+    isExpanded: true,
+    isDirect: false,
+    monto: 0,
+    partida_id: "",
+});
+
+const createEmptyPartida = (): PartidaItem => ({
+    id: Date.now().toString() + Math.random(),
+    partida: "",
+    familias: [createEmptyFamilia()],
+    isExpanded: true,
 });
 
 export const useAddPaymentModal = create<AddPaymentModalStore>((set) => ({
     isOpen: false,
-    payments: [createEmptyPayment()],
+    partidas: [createEmptyPartida()],
+    
     onOpen: (paymentContext: AddPaymentContext) => set({
         isOpen: true,
         paymentContext,
-        payments: [createEmptyPayment()]
+        partidas: [createEmptyPartida()]
     }),
+    
     onClose: () => set({
         isOpen: false,
         paymentContext: undefined,
-        payments: [createEmptyPayment()]
+        partidas: [createEmptyPartida()]
     }),
-    addPayment: () => set((state) => ({
-        payments: [...state.payments, createEmptyPayment()]
+    
+    // Partida operations
+    addPartida: () => set((state) => ({
+        partidas: [...state.partidas, createEmptyPartida()]
     })),
-    removePayment: (index: number) => set((state) => ({
-        payments: state.payments.filter((_, i) => i !== index)
+    
+    removePartida: (partidaId: string) => set((state) => ({
+        partidas: state.partidas.filter(p => p.id !== partidaId)
     })),
-    updatePayment: (index: number, data: Partial<PaymentFormData>) => set((state) => ({
-        payments: state.payments.map((p, i) => i === index ? { ...p, ...data } : p)
+    
+    updatePartida: (partidaId: string, partida: string) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId ? { ...p, partida } : p
+        )
     })),
-    resetForm: () => set({ payments: [createEmptyPayment()] }),
+    
+    togglePartidaExpanded: (partidaId: string) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId ? { ...p, isExpanded: !p.isExpanded } : p
+        )
+    })),
+    
+    // Familia operations
+    addFamilia: (partidaId: string) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId 
+                ? { ...p, familias: [...p.familias, createEmptyFamilia()] }
+                : p
+        )
+    })),
+    
+    removeFamilia: (partidaId: string, familiaId: string) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId 
+                ? { ...p, familias: p.familias.filter(f => f.id !== familiaId) }
+                : p
+        )
+    })),
+    
+    updateFamilia: (partidaId: string, familiaId: string, familia: string) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId 
+                ? {
+                    ...p,
+                    familias: p.familias.map(f => 
+                        f.id === familiaId ? { ...f, familia } : f
+                    )
+                }
+                : p
+        )
+    })),
+    
+    toggleFamiliaExpanded: (partidaId: string, familiaId: string) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId 
+                ? {
+                    ...p,
+                    familias: p.familias.map(f => 
+                        f.id === familiaId ? { ...f, isExpanded: !f.isExpanded } : f
+                    )
+                }
+                : p
+        )
+    })),
+    
+    toggleFamiliaDirect: (partidaId: string, familiaId: string) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId 
+                ? {
+                    ...p,
+                    familias: p.familias.map(f => 
+                        f.id === familiaId ? { ...f, isDirect: !f.isDirect } : f
+                    )
+                }
+                : p
+        )
+    })),
+    
+    updateFamiliaDirectPayment: (partidaId: string, familiaId: string, data: { monto?: number; partida_id?: Id<"partidas"> | "" }) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId 
+                ? {
+                    ...p,
+                    familias: p.familias.map(f => 
+                        f.id === familiaId ? { ...f, ...data } : f
+                    )
+                }
+                : p
+        )
+    })),
+    
+    // SubPartida operations
+    addSubPartida: (partidaId: string, familiaId: string) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId 
+                ? {
+                    ...p,
+                    familias: p.familias.map(f => 
+                        f.id === familiaId 
+                            ? { ...f, subPartidas: [...f.subPartidas, createEmptySubPartida()] }
+                            : f
+                    )
+                }
+                : p
+        )
+    })),
+    
+    removeSubPartida: (partidaId: string, familiaId: string, subPartidaId: string) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId 
+                ? {
+                    ...p,
+                    familias: p.familias.map(f => 
+                        f.id === familiaId 
+                            ? { ...f, subPartidas: f.subPartidas.filter(sp => sp.id !== subPartidaId) }
+                            : f
+                    )
+                }
+                : p
+        )
+    })),
+    
+    updateSubPartida: (partidaId: string, familiaId: string, subPartidaId: string, data: Partial<SubPartidaItem>) => set((state) => ({
+        partidas: state.partidas.map(p => 
+            p.id === partidaId 
+                ? {
+                    ...p,
+                    familias: p.familias.map(f => 
+                        f.id === familiaId 
+                            ? {
+                                ...f,
+                                subPartidas: f.subPartidas.map(sp => 
+                                    sp.id === subPartidaId ? { ...sp, ...data } : sp
+                                )
+                            }
+                            : f
+                    )
+                }
+                : p
+        )
+    })),
+    
+    resetForm: () => set({ partidas: [createEmptyPartida()] }),
 }));
