@@ -65,17 +65,25 @@ export const deleteProject = mutation({
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
             .collect();
 
-        // 2. Delete all pagos associated with this proyecto
-        // This is more efficient than deleting by partida_id since pagos also has a proyecto field
+        // 2. Delete all pagos associated with this proyecto's partidas
+        const partidaIds = partidas.map(p => p._id);
         const pagos = await ctx.db
             .query("pagos")
-            .filter((q) => q.eq(q.field("proyecto"), args.id))
+            .filter((q) => partidaIds.some(pid => q.eq(q.field("partida_id"), pid)))
             .collect();
 
         // Delete all pagos
         await Promise.all(pagos.map((pago) => ctx.db.delete(pago._id)));
 
-        // 3. Delete all documentos for this proyecto
+        // 3. Delete all transacciones for this proyecto
+        const transacciones = await ctx.db
+            .query("transacciones")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .collect();
+        
+        await Promise.all(transacciones.map((transaccion) => ctx.db.delete(transaccion._id)));
+
+        // 4. Delete all documentos for this proyecto
         const documentos = await ctx.db
             .query("documentos")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
@@ -84,16 +92,17 @@ export const deleteProject = mutation({
         // Delete all documentos (Note: Appwrite files should be deleted separately)
         await Promise.all(documentos.map((doc) => ctx.db.delete(doc._id)));
 
-        // 4. Delete all partidas for this proyecto
+        // 5. Delete all partidas for this proyecto
         await Promise.all(partidas.map((partida) => ctx.db.delete(partida._id)));
 
-        // 5. Finally, delete the proyecto itself
+        // 6. Finally, delete the proyecto itself
         await ctx.db.delete(args.id);
 
         return {
             success: true,
             deletedPartidas: partidas.length,
             deletedPagos: pagos.length,
+            deletedTransacciones: transacciones.length,
             deletedDocumentos: documentos.length,
             appwriteFileIds: documentos.map(doc => doc.image), // Return file IDs for manual cleanup
         };

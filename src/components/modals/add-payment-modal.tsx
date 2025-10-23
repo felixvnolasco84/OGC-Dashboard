@@ -56,7 +56,7 @@ export default function AddPaymentModal() {
     const [documentDescription, setDocumentDescription] = useState("");
     const [isUploadingDocument, setIsUploadingDocument] = useState(false);
     
-    const createPayment = useMutation(api.pagos.create);
+    const createTransaction = useMutation(api.transacciones.createTransaction);
     const createDocument = useMutation(api.documentos.create);
 
     // Fetch all partidas for this project
@@ -165,9 +165,16 @@ export default function AddPaymentModal() {
 
         setIsSubmitting(true);
         try {
-            const pagoIds: Id<"pagos">[] = [];
+            // Build line items array from the hierarchical structure
+            const lineItems: Array<{
+                partida_id: Id<"partidas">;
+                partida: string;
+                familia: string;
+                sub_partida: string;
+                monto: number;
+            }> = [];
             
-            // Iterate through all partidas, familias, and subPartidas to create payments
+            // Iterate through all partidas, familias, and subPartidas to build line items
             for (const partida of partidas) {
                 for (const familia of partida.familias) {
                     // Check if this familia is a direct payment AND has no sub-partidas available
@@ -175,59 +182,54 @@ export default function AddPaymentModal() {
                     
                     if (familia.isDirect && !hasSubPartidas) {
                         if (familia.partida_id && familia.partida_id !== "" && familia.monto && familia.monto > 0) {
-                            const pagoId = await createPayment({
+                            lineItems.push({
                                 partida_id: familia.partida_id as Id<"partidas">,
                                 partida: partida.partida,
                                 familia: familia.familia,
                                 sub_partida: "", // Direct familia payment has no sub-partida
                                 monto: familia.monto,
-                                fecha,
-                                tipo_pago: tipoPago,
-                                banco,
-                                tarjeta: "",
-                                numero_cuenta: numeroCuenta,
-                                numero_transferencia: "",
-                                codigo_referencia: codigoReferencia,
-                                factura: "",
-                                moneda,
-                                tipo_cambio: "1",
-                                status,
-                                proyecto: paymentContext.projectId,
                             });
-                            if (pagoId) pagoIds.push(pagoId);
                         }
                     } else {
                         // Regular payment with sub-partidas
                         for (const subPartida of familia.subPartidas) {
                             if (subPartida.partida_id && subPartida.partida_id !== "" && subPartida.monto > 0) {
-                                const pagoId = await createPayment({
+                                lineItems.push({
                                     partida_id: subPartida.partida_id as Id<"partidas">,
                                     partida: partida.partida,
                                     familia: familia.familia,
                                     sub_partida: subPartida.sub_partida,
                                     monto: subPartida.monto,
-                                    fecha,
-                                    tipo_pago: tipoPago,
-                                    banco,
-                                    tarjeta: "",
-                                    numero_cuenta: numeroCuenta,
-                                    numero_transferencia: "",
-                                    codigo_referencia: codigoReferencia,
-                                    factura: "",
-                                    moneda,
-                                    tipo_cambio: "1",
-                                    status,
-                                    proyecto: paymentContext.projectId,
                                 });
-                                if (pagoId) pagoIds.push(pagoId);
                             }
                         }
                     }
                 }
             }
 
+            // Create a single transaction with all line items
+            const result = await createTransaction({
+                proyecto: paymentContext.projectId,
+                monto_total: calculateTotalAmount(),
+                fecha,
+                tipo_pago: tipoPago,
+                moneda,
+                tipo_cambio: "1",
+                status,
+                categoria,
+                banco: tipoPago !== 'efectivo' ? banco : undefined,
+                tarjeta: undefined,
+                numero_cuenta: tipoPago !== 'efectivo' ? numeroCuenta : undefined,
+                numero_transferencia: undefined,
+                codigo_referencia: codigoReferencia || undefined,
+                factura: undefined,
+                comprobante: undefined,
+                presupuesto_archivo: undefined,
+                lineItems,
+            });
+
             // Upload document if provided
-            if (documentFile && pagoIds.length > 0) {
+            if (documentFile && result.transaccionId) {
                 setIsUploadingDocument(true);
                 try {
                     const uploadResult = await uploadDocument(documentFile);
@@ -239,10 +241,10 @@ export default function AddPaymentModal() {
                             image: uploadResult.fileId!,
                             type: documentType,
                             proyecto: paymentContext.projectId,
-                            pago_ids: pagoIds,
+                            transaccion_id: result.transaccionId,
                         });
                         toast.success("Documento adjuntado", {
-                            description: `El documento se vinculó a ${pagoIds.length} pago(s).`,
+                            description: `El documento se vinculó a la transacción con ${result.pagoIds.length} concepto(s).`,
                         });
                     } else {
                         toast.error("Error al subir el documento", {
@@ -271,8 +273,8 @@ export default function AddPaymentModal() {
             setDocumentName("");
             setDocumentDescription("");
             
-            toast.success("Pago registrado", {
-                description: `Se crearon ${pagoIds.length} pago(s) exitosamente.`,
+            toast.success("Transacción registrada", {
+                description: `Se creó la transacción con ${result.pagoIds.length} concepto(s) exitosamente.`,
             });
             onClose();
         } catch (error) {

@@ -7,14 +7,29 @@ export const getAll = query(async (ctx) => {
 });
 
 
-// Get documents by pago
-export const getByPago = query({
+// Get documents by transaction
+export const getByTransaccion = query({
     args: {
-        pago_id: v.id("pagos"),
+        transaccion_id: v.id("transacciones"),
     },
     handler: async (ctx, args) => {
-        const allDocuments = await ctx.db.query("documentos").collect();
-        return allDocuments.filter(doc => doc.pago_ids.includes(args.pago_id));
+        return await ctx.db
+            .query("documentos")
+            .withIndex("by_transaccion", (q) => q.eq("transaccion_id", args.transaccion_id))
+            .collect();
+    },
+});
+
+// Get documents by proyecto
+export const getByProyecto = query({
+    args: {
+        proyecto_id: v.id("desarrollos"),
+    },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("documentos")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+            .collect();
     },
 });
 
@@ -36,7 +51,7 @@ export const create = mutation({
         image: v.string(), // Appwrite file ID
         type: v.string(),
         proyecto: v.id("desarrollos"),
-        pago_ids: v.array(v.id("pagos")),
+        transaccion_id: v.id("transacciones"),
     },
     handler: async (ctx, args) => {
         const documento = await ctx.db.insert("documentos", {
@@ -45,7 +60,7 @@ export const create = mutation({
             image: args.image,
             type: args.type,
             proyecto: args.proyecto,
-            pago_ids: args.pago_ids,
+            transaccion_id: args.transaccion_id,
         });
         return documento;
     },
@@ -55,16 +70,22 @@ export const create = mutation({
 export const update = mutation({
     args: {
         id: v.id("documentos"),
-        nombre: v.string(),
-        descripcion: v.string(),
-        image: v.string(),
-        type: v.string(),
-        proyecto: v.id("desarrollos"),
-        pago_ids: v.array(v.id("pagos")),
+        nombre: v.optional(v.string()),
+        descripcion: v.optional(v.string()),
+        image: v.optional(v.string()),
+        type: v.optional(v.string()),
+        proyecto: v.optional(v.id("desarrollos")),
+        transaccion_id: v.optional(v.id("transacciones")),
     },
     handler: async (ctx, args) => {
-        const { id, ...rest } = args;
-        return await ctx.db.patch(id, rest);
+        const { id, ...updateData } = args;
+        
+        // Filter out undefined values
+        const cleanUpdateData = Object.fromEntries(
+            Object.entries(updateData).filter(([, value]) => value !== undefined)
+        );
+        
+        return await ctx.db.patch(id, cleanUpdateData);
     },
 });
 

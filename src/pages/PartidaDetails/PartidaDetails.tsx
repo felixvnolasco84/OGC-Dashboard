@@ -20,7 +20,24 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useMutation } from "convex/react";
-// Type for payment with populated billing information from getById query
+
+// Type for enriched payment with transaction data
+type EnrichedPayment = Doc<"pagos"> & {
+    fecha?: string;
+    tipo_pago?: string;
+    moneda?: string;
+    tipo_cambio?: string;
+    status?: string;
+    banco?: string;
+    tarjeta?: string;
+    numero_cuenta?: string;
+    numero_transferencia?: string;
+    codigo_referencia?: string;
+    factura?: string;
+    comprobante?: string;
+    categoria?: string;
+    transaction?: Doc<"transacciones"> | null;
+};
 
 export default function PartidaDetails() {
     const navigate = useNavigate();
@@ -28,10 +45,13 @@ export default function PartidaDetails() {
     const id = params.id;
     const partida = useQuery(api.partida.getById, { id: id as Id<"partidas"> });
 
-    // Query all documents to filter by pago_id
-    const allDocuments = useQuery(api.documentos.getAll);
+    // Query documents by proyecto to filter by transaccion_id
+    const allDocuments = useQuery(
+        api.documentos.getByProyecto,
+        partida?.proyecto ? { proyecto_id: partida.proyecto } : "skip"
+    );
 
-    const deletePayment = useMutation(api.pagos.deletePayment);
+    const deleteTransaction = useMutation(api.transacciones.deleteTransaction);
 
     const addPaymentModal = useAddPaymentModal();
     const editPaymentModal = useEditPaymentModal();
@@ -77,9 +97,10 @@ export default function PartidaDetails() {
     const presupuestoAprobado = partida.presupuesto_aprobado || 0;
     const porEjercer = presupuestoAprobado - totalPagado;
 
-    // Helper function to get documents for a specific pago
-    const getDocumentsForPago = (pagoId: Id<"pagos">) => {
-        return allDocuments?.filter(doc => doc.pago_ids.includes(pagoId)) || [];
+    // Helper function to get documents for a specific pago's transaction
+    const getDocumentsForPago = (pago: EnrichedPayment) => {
+        if (!pago.transaction?._id) return [];
+        return allDocuments?.filter(doc => doc.transaccion_id === pago.transaction!._id) || [];
     };
 
     // Helper function to get file view URL
@@ -221,7 +242,11 @@ export default function PartidaDetails() {
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
                                                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => deletePayment({ id: pago._id })}>
+                                                                <AlertDialogAction onClick={() => {
+                                                                    if (pago.transaction?._id) {
+                                                                        deleteTransaction({ id: pago.transaction._id });
+                                                                    }
+                                                                }}>
                                                                     Eliminar
                                                                 </AlertDialogAction>
                                                             </AlertDialogFooter>
@@ -303,7 +328,7 @@ export default function PartidaDetails() {
 
                                 {/* Documents Section */}
                                 {(() => {
-                                    const pagoDocuments = getDocumentsForPago(pago._id);
+                                    const pagoDocuments = getDocumentsForPago(pago as EnrichedPayment);
                                     if (pagoDocuments.length > 0) {
                                         return (
                                             <div className="mt-4 pt-4 border-t border-gray-200">

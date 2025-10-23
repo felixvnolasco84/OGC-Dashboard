@@ -1,11 +1,13 @@
 import { Doc, Id } from "../../convex/_generated/dataModel";
 import { create } from "zustand";
 
-// Type for payment with populated billing information from getById query
-
+// Type for enriched payment with transaction data
+type EnrichedPayment = Doc<"pagos"> & {
+    transaction?: Doc<"transacciones"> | null;
+};
 
 type EditPaymentContext = {
-    payment: Doc<"pagos">;
+    payment: EnrichedPayment;
     relatedCost: Doc<"partidas">;
     totalAmount: number;
 };
@@ -56,23 +58,26 @@ export const useEditPaymentModal = create<EditPaymentModalStore>((set) => ({
     isOpen: false,
     formData: initialFormData,
     onOpen: (paymentContext: EditPaymentContext) => {
-        // Pre-fill form with existing payment data
+        // Pre-fill form with transaction data (payment details) and pago data (line item amount)
         const payment = paymentContext.payment;
+        const transaction = payment.transaction;
+        
         const prefilledData: PaymentFormData = {
+            // Line item amount from pagos table
             monto: payment.monto || 0,
-            fecha: payment.fecha || "",
-            tipo_pago: payment.tipo_pago || "efectivo",
-            banco: payment.banco || "",
-            tarjeta: payment.tarjeta || "",
-            numero_cuenta: payment.numero_cuenta || "",
-            numero_transferencia: payment.numero_transferencia || "",
-            codigo_referencia: payment.codigo_referencia || "",
-            factura: payment.factura || "",
-            moneda: payment.moneda || "MXN",
-            tipo_cambio: payment.tipo_cambio || "1",
-            status: payment.status || "",
-            proyecto: payment.proyecto,
-
+            // All other fields from transacciones table
+            fecha: transaction?.fecha || "",
+            tipo_pago: transaction?.tipo_pago || "efectivo",
+            banco: transaction?.banco || "",
+            tarjeta: transaction?.tarjeta || "",
+            numero_cuenta: transaction?.numero_cuenta || "",
+            numero_transferencia: transaction?.numero_transferencia || "",
+            codigo_referencia: transaction?.codigo_referencia || "",
+            factura: transaction?.factura || "",
+            moneda: transaction?.moneda || "MXN",
+            tipo_cambio: transaction?.tipo_cambio || "1",
+            status: transaction?.status || "",
+            proyecto: transaction?.proyecto || ("" as Id<"desarrollos">),
         };
 
         set({

@@ -1,13 +1,31 @@
 import { Check, Lock } from "lucide-react";
 import { Doc } from "convex/_generated/dataModel";
 
+// Type for enriched payment with transaction data
+type EnrichedPayment = Doc<"pagos"> & {
+    transaction?: Doc<"transacciones"> | null;
+    // For backward compatibility
+    status?: string;
+    fecha?: string;
+    tipo_pago?: string;
+    moneda?: string;
+    tipo_cambio?: string;
+    banco?: string;
+    tarjeta?: string;
+    numero_cuenta?: string;
+    numero_transferencia?: string;
+    codigo_referencia?: string;
+    factura?: string;
+};
+
 export default function PaymentCard({ payment, index, formatCurrency }: {
-    payment: Doc<"pagos">;
+    payment: EnrichedPayment;
     index: number;
     formatCurrency: (amount: string | number) => string;
 }) {
-    // Use the status property, fallback to checking amount if not available
-    const isPagado = payment.status === 'Pagado' || (!payment.status && payment.monto > 0);
+    // Get status from transaction or enriched payment
+    const status = payment.transaction?.status || payment.status;
+    const isPagado = status === 'Pagado' || (!status && payment.monto > 0);
 
     return (
         <div className="bg-white overflow-hidden">
@@ -29,7 +47,7 @@ export default function PaymentCard({ payment, index, formatCurrency }: {
                         </div>
                         <div>
                             <p className="font-medium text-gray-900">
-                                {payment.status || (isPagado ? 'Aprobado' : 'Pendiente')}
+                                {status || (isPagado ? 'Aprobado' : 'Pendiente')}
                             </p>
                             <p className="text-sm text-gray-600">
                                 Pago #{String(index + 1).padStart(3, '0')}
@@ -38,7 +56,7 @@ export default function PaymentCard({ payment, index, formatCurrency }: {
                     </div>
                     <div className="text-right">
                         <p className="text-xl text-gray-900">
-                            {formatCurrency(payment.monto)} {payment.moneda || 'MXN'}
+                            {formatCurrency(payment.monto)} {payment.transaction?.moneda || payment.moneda || 'MXN'}
                         </p>
                     </div>
                 </div>
@@ -49,28 +67,28 @@ export default function PaymentCard({ payment, index, formatCurrency }: {
                 <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm">
                     <div className="flex justify-between">
                         <span className="text-[#777770]">Fecha</span>
-                        <span className="text-muted-foreground">{payment.fecha}</span>
+                        <span className="text-muted-foreground">{payment.transaction?.fecha || payment.fecha}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-[#777770]">Método de pago</span>
-                        <span className="text-muted-foreground">{payment.tipo_pago}</span>
+                        <span className="text-muted-foreground">{payment.transaction?.tipo_pago || payment.tipo_pago}</span>
                     </div>
-                    {payment.numero_cuenta && (
+                    {(payment.transaction?.numero_cuenta || payment.numero_cuenta) && (
                         <div className="flex justify-between">
                             <span className="text-[#777770]">Cuenta cargo</span>
-                            <span className="text-muted-foreground">{payment.numero_cuenta}</span>
+                            <span className="text-muted-foreground">{payment.transaction?.numero_cuenta || payment.numero_cuenta}</span>
                         </div>
                     )}
-                    {payment.numero_transferencia && (
+                    {(payment.transaction?.numero_transferencia || payment.numero_transferencia) && (
                         <div className="flex justify-between">
                             <span className="text-[#777770]">Cuenta abono</span>
-                            <span className="text-muted-foreground">{payment.numero_transferencia}</span>
+                            <span className="text-muted-foreground">{payment.transaction?.numero_transferencia || payment.numero_transferencia}</span>
                         </div>
                     )}
-                    {payment.codigo_referencia && (
+                    {(payment.transaction?.codigo_referencia || payment.codigo_referencia) && (
                         <div className="flex justify-between">
                             <span className="text-[#777770]">Referencia</span>
-                            <span className="text-muted-foreground">{payment.codigo_referencia}</span>
+                            <span className="text-muted-foreground">{payment.transaction?.codigo_referencia || payment.codigo_referencia}</span>
                         </div>
                     )}
                 </div>
@@ -78,29 +96,29 @@ export default function PaymentCard({ payment, index, formatCurrency }: {
                 <div className="grid grid-cols-2">
                     {/* Additional Tags */}
                     <div className="space-y-2 pt-2 flex flex-wrap gap-2">
-                        {payment.banco && (
+                        {(payment.transaction?.banco || payment.banco) && (
                             <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
-                                {payment.banco}
+                                {payment.transaction?.banco || payment.banco}
                             </span>
                         )}
-                        {payment.moneda && payment.moneda !== 'MXN' && (
+                        {(payment.transaction?.moneda || payment.moneda) && (payment.transaction?.moneda || payment.moneda) !== 'MXN' && (
                             <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
-                                {payment.moneda} {payment.tipo_cambio && `(TC: ${payment.tipo_cambio})`}
+                                {payment.transaction?.moneda || payment.moneda} {(payment.transaction?.tipo_cambio || payment.tipo_cambio) && `(TC: ${payment.transaction?.tipo_cambio || payment.tipo_cambio})`}
                             </span>
                         )}
-                        {payment.tarjeta && (
+                        {(payment.transaction?.tarjeta || payment.tarjeta) && (
                             <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700">
-                                {payment.tarjeta}
+                                {payment.transaction?.tarjeta || payment.tarjeta}
                             </span>
                         )}
                     </div>
                     
                     {/* File Attachments */}
                     <div className="flex flex-col gap-2 pt-2 justify-end">
-                        {payment.factura && (
+                        {(payment.transaction?.factura || payment.factura) && (
                             <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md justify-end">
                                 <span className="text-sm text-gray-700">
-                                    {payment.factura.includes('http') ? 'Factura' : payment.factura}
+                                    {(payment.transaction?.factura || payment.factura)?.includes('http') ? 'Factura' : (payment.transaction?.factura || payment.factura)}
                                 </span>
                                 <div className="w-fit bg-green-800 rounded-full p-0.5">
                                     <Check className="w-4 h-4 text-white" />

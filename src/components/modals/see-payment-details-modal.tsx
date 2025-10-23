@@ -11,10 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import PaymentCard from "../Cards/PaymentCard";
+import TransactionCard from "../Cards/TransactionCard";
 import { Button } from "../ui/button";
 import { Plus } from "lucide-react";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
-
+import { Doc } from "convex/_generated/dataModel";
 
 export default function SeePaymentDetailsModal() {
     const paymentContext = useSeePaymentDetailsModal((state) => state.paymentContext);
@@ -57,6 +58,38 @@ export default function SeePaymentDetailsModal() {
             });
         }
     };
+
+    // Group payments by transaction for nivel 1 and 2
+    const getGroupedTransactions = () => {
+        if (!paymentContext?.payments) return [];
+        
+        type PaymentType = typeof paymentContext.payments[number];
+        
+        const transactionMap = new Map<string, {
+            transaction: Doc<"transacciones">;
+            lineItems: PaymentType[];
+        }>();
+        
+        paymentContext.payments.forEach(payment => {
+            if (payment.transaction && payment.transaction._id) {
+                const txId = payment.transaction._id;
+                if (!transactionMap.has(txId)) {
+                    transactionMap.set(txId, {
+                        transaction: payment.transaction,
+                        lineItems: []
+                    });
+                }
+                transactionMap.get(txId)!.lineItems.push(payment);
+            }
+        });
+        
+        return Array.from(transactionMap.values());
+    };
+    
+    // Determine if we should show transactions or individual payments
+    const shouldShowTransactions = paymentContext?.relatedPartida?.nivel === 1 || 
+                                    paymentContext?.relatedPartida?.nivel === 2;
+    const groupedTransactions = shouldShowTransactions ? getGroupedTransactions() : [];
 
     // Don't return null before rendering Sheet - this breaks exit animation
 
@@ -158,17 +191,29 @@ export default function SeePaymentDetailsModal() {
 
                         <Separator className="my-4" />
 
-                        {/* Individual Payments */}
-                        {paymentContext.payments.map((payment, index) => {
-                            return (
+                        {/* Show Transactions for nivel 1 and 2, Individual Payments for nivel 3 */}
+                        {shouldShowTransactions ? (
+                            // Show grouped transactions
+                            groupedTransactions.map((group, index) => (
+                                <TransactionCard
+                                    key={group.transaction._id}
+                                    transaction={group.transaction}
+                                    lineItems={group.lineItems}
+                                    index={index}
+                                    formatCurrency={formatCurrency}
+                                />
+                            ))
+                        ) : (
+                            // Show individual payments for nivel 3
+                            paymentContext.payments.map((payment, index) => (
                                 <PaymentCard
                                     key={payment._id || index}
                                     payment={payment}
                                     index={index}
                                     formatCurrency={formatCurrency}
                                 />
-                            );
-                        })}
+                            ))
+                        )}
                     </>
                 )}
             </SheetContent>

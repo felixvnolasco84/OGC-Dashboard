@@ -19,6 +19,7 @@ import type * as functions from "../functions.js";
 import type * as meticas_presupuesto from "../meticas_presupuesto.js";
 import type * as pagos from "../pagos.js";
 import type * as partida from "../partida.js";
+import type * as transacciones from "../transacciones.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   meticas_presupuesto: typeof meticas_presupuesto;
   pagos: typeof pagos;
   partida: typeof partida;
+  transacciones: typeof transacciones;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

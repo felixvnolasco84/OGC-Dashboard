@@ -25,21 +25,68 @@ triggers.register("pagos", async (ctx, change) => {
       return;
     }
     
-    const { partida, familia, sub_partida, proyecto } = payment;
-    console.log("Payment details:", { partida, familia, sub_partida, proyecto });
+    // Fetch related data from partidas and transacciones tables
+    // (pagos table is now simplified and doesn't store these fields)
+    const partidaDoc = await ctx.db.get(payment.partida_id);
+    if (!partidaDoc || partidaDoc === null) {
+      console.log("Partida not found, skipping trigger");
+      return;
+    }
+    
+    const transactionDoc = await ctx.db.get(payment.transaccion_id);
+    if (!transactionDoc || transactionDoc === null) {
+      console.log("Transaction not found, skipping trigger");
+      return;
+    }
+    
+    // Type assertion to access fields
+    const partida = partidaDoc as any;
+    const transaction = transactionDoc as any;
+    
+    const context = {
+      partida: partida.nombre || "",
+      familia: partida.familia || "",
+      sub_partida: partida.sub_partida || "",
+      proyecto: transaction.proyecto
+    };
+    
+    console.log("Payment details:", context);
     
     // Recalculate pagado for all affected partidas in the hierarchy
-    await updatePagadoForHierarchy(ctx, { partida, familia, sub_partida, proyecto });
+    await updatePagadoForHierarchy(ctx, context);
     console.log("✅ Successfully updated pagado for all hierarchy levels");
     
     // Update meticas_presupuesto after payment changes
-    await updateMeticasPresupuesto(ctx, proyecto);
+    await updateMeticasPresupuesto(ctx, transaction.proyecto);
     console.log("✅ Successfully updated meticas_presupuesto");
   } catch (error) {
     console.error("❌ Error in payment trigger:", error);
     throw error; // Re-throw to see the error in Convex logs
   }
 });
+
+// Helper to calculate pagado for a specific set of partida IDs
+async function calculatePagadoForPartidas(ctx: { db: any }, partidaIds: any[]): Promise<Map<string, number>> {
+  const pagadoMap = new Map<string, number>();
+  
+  // Query pagos for all these partidas in parallel
+  const pagosArrays = await Promise.all(
+    partidaIds.map(id => 
+      ctx.db
+        .query("pagos")
+        .withIndex("by_partida_id", (q: any) => q.eq("partida_id", id))
+        .collect()
+    )
+  );
+  
+  // Sum up pagos for each partida
+  partidaIds.forEach((id, index) => {
+    const total = pagosArrays[index].reduce((sum: number, p: any) => sum + (p.monto || 0), 0);
+    pagadoMap.set(id, total);
+  });
+  
+  return pagadoMap;
+}
 
 // Helper function to recalculate and update pagado for all levels of the hierarchy
 async function updatePagadoForHierarchy(
@@ -48,105 +95,103 @@ async function updatePagadoForHierarchy(
 ) {
   const { partida, familia, sub_partida, proyecto } = context;
   
-  // Get all payments for this project
-  const allPayments = await ctx.db
-    .query("pagos")
-    .filter((q: any) => q.eq(q.field("proyecto"), proyecto))
-    .collect();
-  
-  console.log(`Updating pagado for proyecto: ${proyecto}, found ${allPayments.length} payments`);
+  console.log(`Updating pagado for: ${partida} > ${familia} > ${sub_partida}`);
   
   try {
     // 1. Update nivel 3 (sub-partida) - specific sub_partida
     console.log(`[1/3] Querying nivel 3 items for: ${partida} > ${familia} > ${sub_partida}`);
     const nivel3Items = await ctx.db
       .query("partidas")
-      .filter((q: any) => 
-        q.and(
-          q.eq(q.field("nivel"), 3),
-          q.eq(q.field("proyecto"), proyecto),
-          q.eq(q.field("partida_nombre"), partida),
-          q.eq(q.field("familia"), familia),
-          q.eq(q.field("sub_partida"), sub_partida)
-        )
+      .withIndex("by_proyecto_nivel_partida_familia", (q: any) =>
+        q.eq("proyecto", proyecto).eq("nivel", 3).eq("partida_nombre", partida).eq("familia", familia)
       )
+      .filter((q: any) => q.eq(q.field("sub_partida"), sub_partida))
       .collect();
     
     console.log(`[1/3] Found ${nivel3Items.length} nivel 3 items`);
-  
-  for (const item of nivel3Items) {
-    const itemPayments = allPayments.filter((p: any) => 
-      p.partida === partida && 
-      p.familia === familia && 
-      p.sub_partida === sub_partida
-    );
-    const totalPagado = itemPayments.reduce((sum: number, p: any) => sum + p.monto, 0);
-    const porGastar = item.presupuesto_aprobado - totalPagado;
     
-    await ctx.db.patch(item._id, { 
-      pagado: totalPagado,
-      por_gastar: porGastar 
-    });
-    console.log(`Updated nivel 3 (${partida} > ${familia} > ${sub_partida}): pagado=${totalPagado}, por_gastar=${porGastar}`);
-  }
+    if (nivel3Items.length > 0) {
+      const pagadoMap = await calculatePagadoForPartidas(ctx, nivel3Items.map((i: any) => i._id));
+      
+      for (const item of nivel3Items) {
+        const totalPagado = pagadoMap.get(item._id) || 0;
+        const porGastar = item.presupuesto_aprobado - totalPagado;
+        
+        await ctx.db.patch(item._id, { 
+          pagado: totalPagado,
+          por_gastar: porGastar 
+        });
+        console.log(`Updated nivel 3: pagado=${totalPagado}, por_gastar=${porGastar}`);
+      }
+    }
   
-  // 2. Update nivel 2 (familia) - sum all sub-partidas in this familia
-  console.log(`[2/3] Querying nivel 2 items for: ${partida} > ${familia}`);
-  const nivel2Items = await ctx.db
-    .query("partidas")
-    .filter((q: any) => 
-      q.and(
-        q.eq(q.field("nivel"), 2),
-        q.eq(q.field("proyecto"), proyecto),
-        q.eq(q.field("partida_nombre"), partida),
-        q.eq(q.field("familia"), familia)
+    // 2. Update nivel 2 (familia) - sum all sub-partidas in this familia
+    console.log(`[2/3] Querying nivel 2 items for: ${partida} > ${familia}`);
+    const nivel2Items = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto_nivel_partida_familia", (q: any) =>
+        q.eq("proyecto", proyecto).eq("nivel", 2).eq("partida_nombre", partida).eq("familia", familia)
       )
-    )
-    .collect();
-  
-  console.log(`[2/3] Found ${nivel2Items.length} nivel 2 items`);
-  
-  for (const item of nivel2Items) {
-    const itemPayments = allPayments.filter((p: any) => 
-      p.partida === partida && 
-      p.familia === familia
-    );
-    const totalPagado = itemPayments.reduce((sum: number, p: any) => sum + p.monto, 0);
-    const porGastar = item.presupuesto_aprobado - totalPagado;
+      .collect();
     
-    await ctx.db.patch(item._id, { 
-      pagado: totalPagado,
-      por_gastar: porGastar 
-    });
-    console.log(`Updated nivel 2 (${partida} > ${familia}): pagado=${totalPagado}, por_gastar=${porGastar}`);
-  }
-  
-  // 3. Update nivel 1 (partida) - sum all familias in this partida
-  console.log(`[3/3] Querying nivel 1 items for: ${partida}`);
-  const nivel1Items = await ctx.db
-    .query("partidas")
-    .filter((q: any) => 
-      q.and(
-        q.eq(q.field("nivel"), 1),
-        q.eq(q.field("proyecto"), proyecto),
-        q.eq(q.field("nombre"), partida)
+    console.log(`[2/3] Found ${nivel2Items.length} nivel 2 items`);
+    
+    // Get all nivel 3 items in this familia to sum their pagos
+    const allNivel3InFamilia = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto_nivel_partida_familia", (q: any) =>
+        q.eq("proyecto", proyecto).eq("nivel", 3).eq("partida_nombre", partida).eq("familia", familia)
       )
-    )
-    .collect();
-  
-  console.log(`[3/3] Found ${nivel1Items.length} nivel 1 items`);
-  
-  for (const item of nivel1Items) {
-    const itemPayments = allPayments.filter((p: any) => p.partida === partida);
-    const totalPagado = itemPayments.reduce((sum: number, p: any) => sum + p.monto, 0);
-    const porGastar = item.presupuesto_aprobado - totalPagado;
+      .collect();
     
-    await ctx.db.patch(item._id, { 
-      pagado: totalPagado,
-      por_gastar: porGastar 
-    });
-    console.log(`Updated nivel 1 (${partida}): pagado=${totalPagado}, por_gastar=${porGastar}`);
-  }
+    if (nivel2Items.length > 0 && allNivel3InFamilia.length > 0) {
+      const pagadoMap = await calculatePagadoForPartidas(ctx, allNivel3InFamilia.map((i: any) => i._id));
+      const totalPagadoNivel2 = Array.from(pagadoMap.values()).reduce((sum, val) => sum + val, 0);
+      
+      for (const item of nivel2Items) {
+        const porGastar = item.presupuesto_aprobado - totalPagadoNivel2;
+        
+        await ctx.db.patch(item._id, { 
+          pagado: totalPagadoNivel2,
+          por_gastar: porGastar 
+        });
+        console.log(`Updated nivel 2: pagado=${totalPagadoNivel2}, por_gastar=${porGastar}`);
+      }
+    }
+  
+    // 3. Update nivel 1 (partida) - sum all familias in this partida
+    console.log(`[3/3] Querying nivel 1 items for: ${partida}`);
+    const nivel1Items = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto_nivel_nombre", (q: any) => 
+        q.eq("proyecto", proyecto).eq("nivel", 1).eq("nombre", partida)
+      )
+      .collect();
+    
+    console.log(`[3/3] Found ${nivel1Items.length} nivel 1 items`);
+    
+    // Get all nivel 3 items in this partida to sum their pagos
+    const allNivel3InPartida = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto_nivel_partida", (q: any) =>
+        q.eq("proyecto", proyecto).eq("nivel", 3).eq("partida_nombre", partida)
+      )
+      .collect();
+    
+    if (nivel1Items.length > 0 && allNivel3InPartida.length > 0) {
+      const pagadoMap = await calculatePagadoForPartidas(ctx, allNivel3InPartida.map((i: any) => i._id));
+      const totalPagadoNivel1 = Array.from(pagadoMap.values()).reduce((sum, val) => sum + val, 0);
+      
+      for (const item of nivel1Items) {
+        const porGastar = item.presupuesto_aprobado - totalPagadoNivel1;
+        
+        await ctx.db.patch(item._id, { 
+          pagado: totalPagadoNivel1,
+          por_gastar: porGastar 
+        });
+        console.log(`Updated nivel 1: pagado=${totalPagadoNivel1}, por_gastar=${porGastar}`);
+      }
+    }
   } catch (error) {
     console.error("❌ Error updating partidas hierarchy:", error);
     throw error;
@@ -167,16 +212,11 @@ async function cascadePresupuestoAprobadoUpdate(
     if (nivel === 3 && partida_nombre && familia) {
       console.log(`[1/2] Updating nivel 2 (familia) for: ${partida_nombre} > ${familia}`);
       
-      // Get all nivel 3 items in this familia
+      // Get all nivel 3 items in this familia using indexed query where possible
       const nivel3Items = await ctx.db
         .query("partidas")
-        .filter((q: any) => 
-          q.and(
-            q.eq(q.field("nivel"), 3),
-            q.eq(q.field("proyecto"), proyecto),
-            q.eq(q.field("partida_nombre"), partida_nombre),
-            q.eq(q.field("familia"), familia)
-          )
+        .withIndex("by_proyecto_nivel_partida_familia", (q: any) =>
+          q.eq("proyecto", proyecto).eq("nivel", 3).eq("partida_nombre", partida_nombre).eq("familia", familia)
         )
         .collect();
       
@@ -189,13 +229,8 @@ async function cascadePresupuestoAprobadoUpdate(
       // Update the nivel 2 (familia) record
       const nivel2Items = await ctx.db
         .query("partidas")
-        .filter((q: any) => 
-          q.and(
-            q.eq(q.field("nivel"), 2),
-            q.eq(q.field("proyecto"), proyecto),
-            q.eq(q.field("partida_nombre"), partida_nombre),
-            q.eq(q.field("familia"), familia)
-          )
+        .withIndex("by_proyecto_nivel_partida_familia", (q: any) =>
+          q.eq("proyecto", proyecto).eq("nivel", 2).eq("partida_nombre", partida_nombre).eq("familia", familia)
         )
         .collect();
       
@@ -217,13 +252,10 @@ async function cascadePresupuestoAprobadoUpdate(
       // Get all nivel 2 items in this partida
       const nivel2Items = await ctx.db
         .query("partidas")
-        .filter((q: any) => 
-          q.and(
-            q.eq(q.field("nivel"), 2),
-            q.eq(q.field("proyecto"), proyecto),
-            q.eq(q.field("partida_nombre"), partida_nombre)
-          )
+        .withIndex("by_nivel_proyecto", (q: any) => 
+          q.eq("nivel", 2).eq("proyecto", proyecto)
         )
+        .filter((q: any) => q.eq(q.field("partida_nombre"), partida_nombre))
         .collect();
       
       // Sum presupuesto_aprobado from all nivel 2 items
@@ -235,12 +267,8 @@ async function cascadePresupuestoAprobadoUpdate(
       // Update the nivel 1 (partida) record
       const nivel1Items = await ctx.db
         .query("partidas")
-        .filter((q: any) => 
-          q.and(
-            q.eq(q.field("nivel"), 1),
-            q.eq(q.field("proyecto"), proyecto),
-            q.eq(q.field("nombre"), partida_nombre)
-          )
+        .withIndex("by_proyecto_nivel_nombre", (q: any) => 
+          q.eq("proyecto", proyecto).eq("nivel", 1).eq("nombre", partida_nombre)
         )
         .collect();
       
@@ -325,11 +353,8 @@ async function updateMeticasPresupuesto(
     // Get all partidas for this proyecto (nivel 1 only for aggregated totals)
     const nivel1Partidas = await ctx.db
       .query("partidas")
-      .filter((q: any) => 
-        q.and(
-          q.eq(q.field("nivel"), 1),
-          q.eq(q.field("proyecto"), proyectoId)
-        )
+      .withIndex("by_nivel_proyecto", (q: any) => 
+        q.eq("nivel", 1).eq("proyecto", proyectoId)
       )
       .collect();
     

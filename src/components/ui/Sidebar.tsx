@@ -35,6 +35,13 @@ const sidebarItems: SidebarItem[] = [
     icon: <Paperclip className="w-4 h-4" />
   },
   {
+    id: "documentos",
+    label: "Documentos",
+    path: "/dashboard/documentos",
+    icon: <File className="w-4 h-4" />,
+    isDisabled: false
+  },
+  {
     id: "control",
     label: "Control",
     path: "/dashboard/control",
@@ -46,13 +53,6 @@ const sidebarItems: SidebarItem[] = [
     label: "Programa",
     path: "/dashboard/programa-obra",
     icon: <ChartBar className="w-4 h-4" />,
-    isDisabled: true
-  },
-  {
-    id: "documentos",
-    label: "Documentos",
-    path: "/dashboard/documentos",
-    icon: <File className="w-4 h-4" />,
     isDisabled: true
   },
 ];
@@ -123,7 +123,7 @@ export default function Sidebar() {
               placeholder="Buscar"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 border-none text-base h-10 shadow-none focus-visible:ring-gray-100"
+              className="pl-10 border-none text-sm h-10 shadow-none focus-visible:ring-gray-100"
             />
           </div>
         </div>
@@ -143,7 +143,7 @@ export default function Sidebar() {
                     setIsProjectExpanded(true);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-2 px-3 py-3 rounded-sm text-left text-base transition-colors",
+                    "w-full flex items-center gap-2 px-3 py-3 rounded-sm text-left text-sm transition-colors",
                     selectedDesarrollo?._id === proyecto._id
                       ? "bg-gray-100 text-gray-900 font-medium"
                       : "text-gray-600 hover:bg-gray-50"
@@ -166,7 +166,7 @@ export default function Sidebar() {
             >
               <div className="flex items-center gap-2">
                 <Folder className="w-4 h-4 text-gray-600" />
-                <span className="text-base font-medium text-gray-900 truncate text-wrap">
+                <span className="text-xs font-medium text-gray-900 truncate text-wrap">
                   {selectedDesarrollo?.nombre.slice(0, 20) + "..." || "Seleccionar proyecto"}
                 </span>
               </div>
@@ -187,7 +187,7 @@ export default function Sidebar() {
                     item.isDisabled ? (
                       <div
                         key={item.id}
-                        className="flex items-center space-x-2 px-3 py-2 text-base font-normal transition-colors rounded text-gray-400"
+                        className="flex items-center space-x-2 px-3 py-2 text-sm font-normal transition-colors rounded text-gray-400"
                       >
                         <span>{item.label}</span>
                       </div>
@@ -196,7 +196,7 @@ export default function Sidebar() {
                       key={item.id}
                       to={item.path}
                       className={cn(
-                        "flex items-center space-x-2 px-3 py-2 text-base font-normal transition-colors rounded",
+                        "flex items-center space-x-2 px-3 py-2 text-sm font-normal transition-colors rounded",
                         isActive(item.path)
                           ? "text-gray-900 font-medium"
                           : "text-gray-400 hover:text-gray-600"
@@ -207,7 +207,7 @@ export default function Sidebar() {
                     )
                   ))
                 ) : searchQuery.trim() !== "" ? (
-                  <div className="px-3 py-2 text-base text-gray-400 text-center">
+                  <div className="px-3 py-2 text-sm text-gray-400 text-center">
                     Sin resultados
                   </div>
                 ) : null}

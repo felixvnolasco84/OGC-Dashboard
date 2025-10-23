@@ -1,190 +1,202 @@
-import {  query } from "./_generated/server";
-import { mutation } from "./functions";
-import { paginationOptsValidator } from "convex/server";
+/**
+ * DEPRECATED: This file maintains backward compatibility with old payment queries.
+ * New code should use convex/transacciones.ts which implements the transaction-based model.
+ * 
+ * OLD MODEL: Individual payments (pagos) with all payment details
+ * NEW MODEL: Transactions (parent) with line items (pagos as children)
+ */
+
+import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { Doc, Id } from "./_generated/dataModel";
 
-// Paginated list of pagos by proyecto
-export const listByProyecto = query({
-    args: {
-        proyecto_id: v.id("desarrollos"),
-        paginationOpts: paginationOptsValidator,
-    },
-    handler: async (ctx, args) => {
-        return await ctx.db
-            .query("pagos")
-            .filter((q) => q.eq(q.field("proyecto"), args.proyecto_id))
-            .order("desc")
-            .paginate(args.paginationOpts);
-    },
-});
+// Type for enriched payment with transaction and partida data
+type EnrichedPayment = Doc<"pagos"> & {
+  proyecto?: Id<"desarrollos">;
+  fecha?: string;
+  tipo_pago?: string;
+  moneda?: string;
+  status?: string;
+  banco?: string;
+  codigo_referencia?: string;
+  partida?: string;
+  familia?: string;
+  sub_partida?: string;
+  administracion?: string;
+  transaction?: Doc<"transacciones"> | null;
+};
 
-export const create = mutation({
-    args: {
-        partida_id: v.id("partidas"),
-        partida: v.string(),
-        familia: v.string(),
-        sub_partida: v.string(),
-        monto: v.number(),
-        fecha: v.string(),
-        tipo_pago: v.string(),
-        banco: v.string(),
-        tarjeta: v.string(),
-        numero_cuenta: v.string(),
-        numero_transferencia: v.string(),
-        codigo_referencia: v.string(),
-        factura: v.string(),
-        moneda: v.string(),
-        tipo_cambio: v.string(),
-        status: v.string(),
-        proyecto: v.id("desarrollos"),
-
-    },
-    handler: async (ctx, args) => {
-        const existingPartida = await ctx.db.get(args.partida_id);
-
-        if (!existingPartida) {
-            throw new Error("Not found");
-        }
-
-        const createdPayment = await ctx.db.insert("pagos", {
-            ...args,
-            partida_id: args.partida_id,
-            administracion: existingPartida.nombre,
-            partida: existingPartida.nombre,
-            sub_partida: existingPartida.sub_partida,
-            status: args.status,
-            familia: existingPartida.familia,
-            logo_banco: "",
-        });
-        return createdPayment;
-    },
-});
-
-export const update = mutation({
-    args: {
-        id: v.id("pagos"),
-        monto: v.number(),
-        fecha: v.string(),
-        tipo_pago: v.string(),
-        banco: v.string(),
-        tarjeta: v.string(),
-        numero_cuenta: v.string(),
-        numero_transferencia: v.string(),
-        codigo_referencia: v.string(),
-        factura: v.string(),
-        moneda: v.string(),
-        tipo_cambio: v.string(),
-        status: v.string(),
-        proyecto: v.id("desarrollos"),
-
-    },
-    handler: async (ctx, args) => {
-        const { id, ...updateData } = args;
-
-        const existingPayment = await ctx.db.get(id);
-        if (!existingPayment) {
-            throw new Error("Payment not found");
-        }
-
-        const updatedPayment = await ctx.db.patch(id, updateData);
-        return updatedPayment;
-    },
-});
-
-export const deletePayment = mutation({
-    args: {
-        id: v.id("pagos"),
-    },
-    handler: async (ctx, args) => {
-        const { id } = args;
-        const existingPayment = await ctx.db.get(id);
-        if (!existingPayment) {
-            throw new Error("Payment not found");
-        }
-        await ctx.db.delete(id);
-    },
-});
-
-// Query to get all payments for a specific partida
-export const getByPartidaId = query({
-    args: {
-        partida_id: v.id("partidas"),
-    },
-    handler: async (ctx, args) => {
-        const payments = await ctx.db
-            .query("pagos")
-            .filter((q) => q.eq(q.field("partida_id"), args.partida_id))
-            .collect();
-
-        return payments;
-    },
-});
-
-// Query to get all payments by partida name (for level 0 aggregation)
-// Filters by proyecto to prevent cross-project collisions
-export const getByPartidaName = query({
-    args: {
-        partida_name: v.string(),
-        proyecto_id: v.optional(v.id("desarrollos")),
-    },
-    handler: async (ctx, args) => {
-        const payments = await ctx.db
-            .query("pagos")
-            .filter((q) => {
-                if (args.proyecto_id) {
-                    return q.and(
-                        q.eq(q.field("partida"), args.partida_name),
-                        q.eq(q.field("proyecto"), args.proyecto_id)
-                    );
-                }
-                return q.eq(q.field("partida"), args.partida_name);
-            })
-            .collect();
-
-        return payments;
-    },
-});
-
-// Query to get all payments by familia (for level 1 aggregation)
-// Filters by both partida and proyecto to prevent collisions
-export const getByFamilia = query({
-    args: {
-        partida_name: v.string(),
-        familia_name: v.string(),
-        proyecto_id: v.optional(v.id("desarrollos")),
-    },
-    handler: async (ctx, args) => {
-        const payments = await ctx.db
-            .query("pagos")
-            .filter((q) => {
-                if (args.proyecto_id) {
-                    return q.and(
-                        q.eq(q.field("partida"), args.partida_name),
-                        q.eq(q.field("familia"), args.familia_name),
-                        q.eq(q.field("proyecto"), args.proyecto_id)
-                    );
-                }
-                return q.and(
-                    q.eq(q.field("partida"), args.partida_name),
-                    q.eq(q.field("familia"), args.familia_name)
-                );
-            })
-            .collect();
-
-        return payments;
-    },
-});
-
+// Backward-compatible query: Get all line items for a project
+// Returns pagos enriched with transaction and partida data
 export const getByProyecto = query({
-    args: {
-        proyecto_id: v.id("desarrollos"),
-    },
-    handler: async (ctx, args) => {
-        const payments = await ctx.db
-            .query("pagos")
-            .filter((q) => q.eq(q.field("proyecto"), args.proyecto_id))
-            .collect();
+  args: {
+    proyecto_id: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    // Get all transactions for this project
+    const transactions = await ctx.db
+      .query("transacciones")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
 
-        return payments;
-    },
+    // Get all pagos for these transactions
+    const allPayments: EnrichedPayment[] = [];
+    for (const transaction of transactions) {
+      const pagos = await ctx.db
+        .query("pagos")
+        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
+        .collect();
+
+      // Enrich each pago with transaction and partida data
+      for (const pago of pagos) {
+        const partida = await ctx.db.get(pago.partida_id);
+        allPayments.push({
+          ...pago,
+          // Transaction data
+          proyecto: transaction.proyecto,
+          fecha: transaction.fecha,
+          tipo_pago: transaction.tipo_pago,
+          moneda: transaction.moneda,
+          status: transaction.status,
+          banco: transaction.banco,
+          codigo_referencia: transaction.codigo_referencia,
+          // Partida data
+          partida: partida?.nombre || "",
+          familia: partida?.familia || "",
+          sub_partida: partida?.sub_partida || "",
+          administracion: partida?.nombre || "",
+          transaction,
+        });
+      }
+    }
+
+    return allPayments;
+  },
+});
+
+// Backward-compatible query: Get line items by partida_id
+export const getByPartidaId = query({
+  args: {
+    partida_id: v.id("partidas"),
+  },
+  handler: async (ctx, args) => {
+    const payments = await ctx.db
+      .query("pagos")
+      .withIndex("by_partida_id", (q) => q.eq("partida_id", args.partida_id))
+      .collect();
+
+    // Enrich with transaction and partida data
+    const paymentsWithTransactions = await Promise.all(
+      payments.map(async (pago) => {
+        const transaction = await ctx.db.get(pago.transaccion_id);
+        const partida = await ctx.db.get(pago.partida_id);
+        return {
+          ...pago,
+          // Transaction data
+          fecha: transaction?.fecha,
+          tipo_pago: transaction?.tipo_pago,
+          moneda: transaction?.moneda,
+          status: transaction?.status,
+          proyecto: transaction?.proyecto,
+          // Partida data
+          partida: partida?.nombre || "",
+          familia: partida?.familia || "",
+          sub_partida: partida?.sub_partida || "",
+          transaction,
+        };
+      })
+    );
+
+    return paymentsWithTransactions;
+  },
+});
+
+// Backward-compatible query: Get line items by partida name
+export const getByPartidaName = query({
+  args: {
+    partida_name: v.string(),
+    proyecto_id: v.optional(v.id("desarrollos")),
+  },
+  handler: async (ctx, args) => {
+    // Find all partidas with this name
+    const allPartidas = await ctx.db.query("partidas").collect();
+    const matchingPartidas = allPartidas.filter(p => 
+      p.nombre === args.partida_name && 
+      (!args.proyecto_id || p.proyecto === args.proyecto_id)
+    );
+
+    // Get pagos for these partidas
+    const allPayments: EnrichedPayment[] = [];
+    for (const partida of matchingPartidas) {
+      const pagos = await ctx.db
+        .query("pagos")
+        .withIndex("by_partida_id", (q) => q.eq("partida_id", partida._id))
+        .collect();
+
+      for (const pago of pagos) {
+        const transaction = await ctx.db.get(pago.transaccion_id);
+        if (!args.proyecto_id || transaction?.proyecto === args.proyecto_id) {
+          allPayments.push({
+            ...pago,
+            fecha: transaction?.fecha,
+            tipo_pago: transaction?.tipo_pago,
+            status: transaction?.status,
+            proyecto: transaction?.proyecto,
+            partida: partida.nombre,
+            familia: partida.familia,
+            sub_partida: partida.sub_partida,
+            transaction,
+          });
+        }
+      }
+    }
+
+    return allPayments;
+  },
+});
+
+// Backward-compatible query: Get line items by familia
+export const getByFamilia = query({
+  args: {
+    partida_name: v.string(),
+    familia_name: v.string(),
+    proyecto_id: v.optional(v.id("desarrollos")),
+  },
+  handler: async (ctx, args) => {
+    // Find all partidas with matching partida name and familia
+    const allPartidas = await ctx.db.query("partidas").collect();
+    const matchingPartidas = allPartidas.filter(p => 
+      p.nombre === args.partida_name &&
+      p.familia === args.familia_name &&
+      (!args.proyecto_id || p.proyecto === args.proyecto_id)
+    );
+
+    // Get pagos for these partidas
+    const allPayments: EnrichedPayment[] = [];
+    for (const partida of matchingPartidas) {
+      const pagos = await ctx.db
+        .query("pagos")
+        .withIndex("by_partida_id", (q) => q.eq("partida_id", partida._id))
+        .collect();
+
+      for (const pago of pagos) {
+        const transaction = await ctx.db.get(pago.transaccion_id);
+        if (!args.proyecto_id || transaction?.proyecto === args.proyecto_id) {
+          allPayments.push({
+            ...pago,
+            fecha: transaction?.fecha,
+            tipo_pago: transaction?.tipo_pago,
+            status: transaction?.status,
+            proyecto: transaction?.proyecto,
+            partida: partida.nombre,
+            familia: partida.familia,
+            sub_partida: partida.sub_partida,
+            transaction,
+          });
+        }
+      }
+    }
+
+    return allPayments;
+  },
 });

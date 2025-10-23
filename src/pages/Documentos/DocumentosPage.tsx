@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useMutation, useQuery, usePaginatedQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,18 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Upload, Download, Trash2, Search, Plus, File, Pencil, RefreshCw, Filter } from "lucide-react";
+import { FileText, Upload, Download, Trash2, Search, Plus, File, Pencil, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { uploadDocument, getFileUrl, getFileDownloadUrl, deleteDocument } from "@/lib/appwrite";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 
 export default function DocumentosPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [pagoSearchTerm, setPagoSearchTerm] = useState("");
-  const [showOnlySelected, setShowOnlySelected] = useState(false);
+  const [transaccionSearchTerm, setTransaccionSearchTerm] = useState("");
   const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("")
-  const [selectedPagos, setSelectedPagos] = useState<Id<"pagos">[]>([]);
+  const [selectedTransaccion, setSelectedTransaccion] = useState<Id<"transacciones"> | "">("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);  
   const [isUploading, setIsUploading] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -38,40 +36,26 @@ export default function DocumentosPage() {
   // Queries
   const proyectos = useQuery(api.desarrollos.getAll);
 
-  // Get pagos for selected proyecto with pagination
-  const { results: paginatedPagos, status: pagosStatus, loadMore } = usePaginatedQuery(
-    api.pagos.listByProyecto,
-    selectedProyecto ? { proyecto_id: selectedProyecto } : "skip",
-    { initialNumItems: 50 }
+  // Get transactions for selected proyecto
+  const transacciones = useQuery(
+    api.transacciones.getByProyecto,
+    selectedProyecto ? { proyecto_id: selectedProyecto } : "skip"
   );
 
-  // Get all pagos for document lookup
-  const allPagosForLookup = useQuery(api.pagos.getByPartidaName, { partida_name: "", proyecto_id: undefined });
-
-  // Filter and search pagos
-  const pagos = useMemo(() => {
-    if (!paginatedPagos) return [];
+  // Filter and search transactions
+  const filteredTransacciones = useMemo(() => {
+    if (!transacciones) return [];
     
-    let filtered = paginatedPagos;
+    if (transaccionSearchTerm.trim() === "") return transacciones;
     
-    // Apply search filter
-    if (pagoSearchTerm.trim() !== "") {
-      const searchLower = pagoSearchTerm.toLowerCase();
-      filtered = filtered.filter((pago: Doc<"pagos">) => 
-        pago.sub_partida.toLowerCase().includes(searchLower) ||
-        pago.familia.toLowerCase().includes(searchLower) ||
-        pago.partida.toLowerCase().includes(searchLower) ||
-        pago.monto.toString().includes(searchLower)
-      );
-    }
-    
-    // Apply "show only selected" filter
-    if (showOnlySelected) {
-      filtered = filtered.filter((pago: Doc<"pagos">) => selectedPagos.includes(pago._id));
-    }
-    
-    return filtered;
-  }, [paginatedPagos, pagoSearchTerm, showOnlySelected, selectedPagos]);
+    const searchLower = transaccionSearchTerm.toLowerCase();
+    return transacciones.filter((tx) => 
+      tx.fecha.toLowerCase().includes(searchLower) ||
+      tx.tipo_pago.toLowerCase().includes(searchLower) ||
+      tx.status.toLowerCase().includes(searchLower) ||
+      tx.monto_total.toString().includes(searchLower)
+    );
+  }, [transacciones, transaccionSearchTerm]);
 
   const documentos = useQuery(
     api.documentos.getAll
@@ -88,10 +72,9 @@ export default function DocumentosPage() {
     doc.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Helper function to get related pagos for a document
-  const getRelatedPagos = (pagoIds: Id<"pagos">[]) => {
-    if (!allPagosForLookup) return [];
-    return allPagosForLookup.filter(pago => pagoIds.includes(pago._id));
+  // Query for transaction details to display in document cards
+  const getTransactionForDoc = (transaccionId: Id<"transacciones">) => {
+    return transacciones?.find(tx => tx._id === transaccionId);
   };
 
   // Helper function to format currency
@@ -112,9 +95,9 @@ export default function DocumentosPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.file || !selectedProyecto || selectedPagos.length === 0 || !formData.type) {
+    if (!formData.file || !selectedProyecto || !selectedTransaccion || !formData.type) {
       toast.error("Faltan campos requeridos", {
-        description: "Por favor completa todos los campos, selecciona al menos un pago y un archivo.",
+        description: "Por favor completa todos los campos, selecciona una transacción y un archivo.",
       });
       return;
     }
@@ -136,11 +119,11 @@ export default function DocumentosPage() {
         image: uploadResult.fileId!, // Store Appwrite file ID
         type: formData.type,
         proyecto: selectedProyecto,
-        pago_ids: selectedPagos,
+        transaccion_id: selectedTransaccion,
       });
 
       toast.success("Documento subido exitosamente", {
-        description: `El documento "${formData.nombre}" se ha vinculado a ${selectedPagos.length} pago(s).`,
+        description: `El documento "${formData.nombre}" se ha vinculado a la transacción.`,
       });
 
       // Reset form
@@ -150,7 +133,7 @@ export default function DocumentosPage() {
         type: "",
         file: null,
       });
-      setSelectedPagos([]);
+      setSelectedTransaccion("");
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Error uploading document:", error);
@@ -170,9 +153,9 @@ export default function DocumentosPage() {
       type: doc.type,
       file: null,
     });
-    // Set the proyecto and pagos for the edit form
+    // Set the proyecto and transaccion for the edit form
     setSelectedProyecto(doc.proyecto);
-    setSelectedPagos(doc.pago_ids);
+    setSelectedTransaccion(doc.transaccion_id);
     setIsReplacingFile(false);
     setIsEditDialogOpen(true);
   };
@@ -180,9 +163,9 @@ export default function DocumentosPage() {
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!editingDocument || !selectedProyecto || selectedPagos.length === 0 || !formData.type) {
+    if (!editingDocument || !selectedProyecto || !selectedTransaccion || !formData.type) {
       toast.error("Faltan campos requeridos", {
-        description: "Por favor completa todos los campos y selecciona al menos un pago.",
+        description: "Por favor completa todos los campos y selecciona una transacción.",
       });
       return;
     }
@@ -215,7 +198,7 @@ export default function DocumentosPage() {
         image: fileId,
         type: formData.type,
         proyecto: selectedProyecto,
-        pago_ids: selectedPagos,
+        transaccion_id: selectedTransaccion,
       });
 
       toast.success("Documento actualizado exitosamente", {
@@ -229,7 +212,7 @@ export default function DocumentosPage() {
         type: "",
         file: null,
       });
-      setSelectedPagos([]);
+      setSelectedTransaccion("");
       setEditingDocument(null);
       setIsReplacingFile(false);
       setIsEditDialogOpen(false);
@@ -300,10 +283,10 @@ export default function DocumentosPage() {
             <Select value={selectedProyecto || undefined} onValueChange={(value) => {
               if (value === "clear") {
                 setSelectedProyecto("");
-                setSelectedPagos([]);
+                setSelectedTransaccion("");
               } else {
                 setSelectedProyecto(value as Id<"desarrollos">);
-                setSelectedPagos([]);
+                setSelectedTransaccion("");
               }
             }}>
               <SelectTrigger>
@@ -346,7 +329,7 @@ export default function DocumentosPage() {
                       value={selectedProyecto || undefined}
                       onValueChange={(value) => {
                         setSelectedProyecto(value as Id<"desarrollos">);
-                        setSelectedPagos([]);
+                        setSelectedTransaccion("");
                       }}
                       required
                     >
@@ -363,108 +346,55 @@ export default function DocumentosPage() {
                     </Select>
                   </div>
 
-                  {/* Pagos (multi-select) */}
+                  {/* Transacción */}
                   <div className="space-y-2">
-                    <Label>Pagos * (selecciona uno o varios)</Label>
+                    <Label htmlFor="transaccion">Transacción *</Label>
                     {!selectedProyecto ? (
                       <p className="text-sm text-gray-500">Primero selecciona un proyecto</p>
                     ) : (
                       <>
-                        {/* Search and Filter Controls */}
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                            <Input
-                              placeholder="Buscar pagos..."
-                              value={pagoSearchTerm}
-                              onChange={(e) => setPagoSearchTerm(e.target.value)}
-                              className="pl-10"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant={showOnlySelected ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setShowOnlySelected(!showOnlySelected)}
-                            className="whitespace-nowrap"
-                          >
-                            <Filter className="h-4 w-4 mr-2" />
-                            {showOnlySelected ? "Mostrando seleccionados" : "Ver seleccionados"}
-                          </Button>
+                        {/* Search */}
+                        <div className="relative mb-2">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                          <Input
+                            placeholder="Buscar transacciones..."
+                            value={transaccionSearchTerm}
+                            onChange={(e) => setTransaccionSearchTerm(e.target.value)}
+                            className="pl-10"
+                          />
                         </div>
 
-                        {/* Loading State */}
-                        {pagosStatus === "LoadingFirstPage" && (
-                          <div className="flex justify-center py-8">
-                            <div className="text-center">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
-                              <p className="text-sm text-gray-500">Cargando pagos...</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Pagos List */}
-                        {pagosStatus !== "LoadingFirstPage" && (
-                          <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">
-                            {pagos && pagos.length > 0 ? (
-                              <>
-                                {pagos.map((pago: Doc<"pagos">) => (
-                                  <div key={pago._id} className="flex items-start space-x-3">
-                                    <Checkbox
-                                      id={`pago-${pago._id}`}
-                                      checked={selectedPagos.includes(pago._id)}
-                                      onCheckedChange={(checked) => {
-                                        if (checked) {
-                                          setSelectedPagos([...selectedPagos, pago._id]);
-                                        } else {
-                                          setSelectedPagos(selectedPagos.filter(id => id !== pago._id));
-                                        }
-                                      }}
-                                    />
-                                    <label
-                                      htmlFor={`pago-${pago._id}`}
-                                      className="text-sm cursor-pointer flex-1"
-                                    >
-                                      <div className="font-medium">{pago.sub_partida}</div>
-                                      <div className="text-gray-500">{pago.familia} - ${pago.monto.toLocaleString()}</div>
-                                    </label>
+                        {/* Transactions List */}
+                        <Select
+                          value={selectedTransaccion || undefined}
+                          onValueChange={(value) => setSelectedTransaccion(value as Id<"transacciones">)}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar transacción" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-80">
+                            {filteredTransacciones && filteredTransacciones.length > 0 ? (
+                              filteredTransacciones.map((tx) => (
+                                <SelectItem key={tx._id} value={tx._id}>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">
+                                      {formatCurrency(tx.monto_total)} - {tx.fecha}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {tx.tipo_pago} • {tx.status}
+                                    </span>
                                   </div>
-                                ))}
-                                
-                                {/* Load More Button */}
-                                {pagosStatus === "CanLoadMore" && (
-                                  <div className="pt-2">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => loadMore(50)}
-                                      className="w-full"
-                                    >
-                                      Cargar más pagos
-                                    </Button>
-                                  </div>
-                                )}
-                                
-                                {pagosStatus === "LoadingMore" && (
-                                  <p className="text-sm text-gray-500 text-center">Cargando más...</p>
-                                )}
-                              </>
+                                </SelectItem>
+                              ))
                             ) : (
-                              <p className="text-sm text-gray-500">
-                                {pagoSearchTerm || showOnlySelected 
-                                  ? "No se encontraron pagos con los filtros aplicados"
-                                  : "No hay pagos disponibles"}
-                              </p>
+                              <SelectItem value="no-results" disabled>
+                                No hay transacciones disponibles
+                              </SelectItem>
                             )}
-                          </div>
-                        )}
+                          </SelectContent>
+                        </Select>
                       </>
-                    )}
-                    {selectedPagos.length > 0 && (
-                      <p className="text-sm text-gray-600">
-                        {selectedPagos.length} pago(s) seleccionado(s)
-                      </p>
                     )}
                   </div>
 
@@ -579,7 +509,7 @@ export default function DocumentosPage() {
                   value={selectedProyecto || undefined}
                   onValueChange={(value) => {
                     setSelectedProyecto(value as Id<"desarrollos">);
-                    setSelectedPagos([]);
+                    setSelectedTransaccion("");
                   }}
                   required
                 >
@@ -596,108 +526,55 @@ export default function DocumentosPage() {
                 </Select>
               </div>
 
-              {/* Pagos (multi-select) */}
+              {/* Transacción */}
               <div className="space-y-2">
-                <Label>Pagos * (selecciona uno o varios)</Label>
+                <Label htmlFor="edit-transaccion">Transacción *</Label>
                 {!selectedProyecto ? (
                   <p className="text-sm text-gray-500">Primero selecciona un proyecto</p>
                 ) : (
                   <>
-                    {/* Search and Filter Controls */}
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          placeholder="Buscar pagos..."
-                          value={pagoSearchTerm}
-                          onChange={(e) => setPagoSearchTerm(e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant={showOnlySelected ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setShowOnlySelected(!showOnlySelected)}
-                        className="whitespace-nowrap"
-                      >
-                        <Filter className="h-4 w-4 mr-2" />
-                        {showOnlySelected ? "Mostrando seleccionados" : "Ver seleccionados"}
-                      </Button>
+                    {/* Search */}
+                    <div className="relative mb-2">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Buscar transacciones..."
+                        value={transaccionSearchTerm}
+                        onChange={(e) => setTransaccionSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
                     </div>
 
-                    {/* Loading State */}
-                    {pagosStatus === "LoadingFirstPage" && (
-                      <div className="flex justify-center py-8">
-                        <div className="text-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
-                          <p className="text-sm text-gray-500">Cargando pagos...</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Pagos List */}
-                    {pagosStatus !== "LoadingFirstPage" && (
-                      <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">
-                        {pagos && pagos.length > 0 ? (
-                          <>
-                            {pagos.map((pago: Doc<"pagos">) => (
-                              <div key={pago._id} className="flex items-start space-x-3">
-                                <Checkbox
-                                  id={`edit-pago-${pago._id}`}
-                                  checked={selectedPagos.includes(pago._id)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedPagos([...selectedPagos, pago._id]);
-                                    } else {
-                                      setSelectedPagos(selectedPagos.filter(id => id !== pago._id));
-                                    }
-                                  }}
-                                />
-                                <label
-                                  htmlFor={`edit-pago-${pago._id}`}
-                                  className="text-sm cursor-pointer flex-1"
-                                >
-                                  <div className="font-medium">{pago.sub_partida}</div>
-                                  <div className="text-gray-500">{pago.familia} - ${pago.monto.toLocaleString()}</div>
-                                </label>
+                    {/* Transactions List */}
+                    <Select
+                      value={selectedTransaccion || undefined}
+                      onValueChange={(value) => setSelectedTransaccion(value as Id<"transacciones">)}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar transacción" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-80">
+                        {filteredTransacciones && filteredTransacciones.length > 0 ? (
+                          filteredTransacciones.map((tx) => (
+                            <SelectItem key={tx._id} value={tx._id}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {formatCurrency(tx.monto_total)} - {tx.fecha}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {tx.tipo_pago} • {tx.status}
+                                </span>
                               </div>
-                            ))}
-                            
-                            {/* Load More Button */}
-                            {pagosStatus === "CanLoadMore" && (
-                              <div className="pt-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => loadMore(50)}
-                                  className="w-full"
-                                >
-                                  Cargar más pagos
-                                </Button>
-                              </div>
-                            )}
-                            
-                            {pagosStatus === "LoadingMore" && (
-                              <p className="text-sm text-gray-500 text-center">Cargando más...</p>
-                            )}
-                          </>
+                            </SelectItem>
+                          ))
                         ) : (
-                          <p className="text-sm text-gray-500">
-                            {pagoSearchTerm || showOnlySelected 
-                              ? "No se encontraron pagos con los filtros aplicados"
-                              : "No hay pagos disponibles"}
-                          </p>
+                          <SelectItem value="no-results" disabled>
+                            No hay transacciones disponibles
+                          </SelectItem>
                         )}
-                      </div>
-                    )}
+                      </SelectContent>
+                    </Select>
                   </>
-                )}
-                {selectedPagos.length > 0 && (
-                  <p className="text-sm text-gray-600">
-                    {selectedPagos.length} pago(s) seleccionado(s)
-                  </p>
                 )}
               </div>
 
@@ -863,43 +740,41 @@ export default function DocumentosPage() {
                       <Badge variant="outline">{doc.type}</Badge>
                     )}
                     
-                    {/* Payment Information */}
+                    {/* Transaction Information */}
                     {(() => {
-                      const relatedPagos = getRelatedPagos(doc.pago_ids);
-                      if (relatedPagos.length > 0) {
+                      const transaction = getTransactionForDoc(doc.transaccion_id);
+                      if (transaction) {
                         return (
                           <div className="space-y-2">
                             <p className="text-xs font-medium text-gray-700">
-                              Pagos asociados ({relatedPagos.length})
+                              Transacción asociada
                             </p>
-                            {relatedPagos.map((pago) => (
-                              <div key={pago._id} className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                                <div className="space-y-1 text-xs">
-                                  <div className="flex justify-between">
-                                    <span className="text-blue-700">Sub-partida:</span>
-                                    <span className="font-medium text-blue-900">{pago.sub_partida}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-blue-700">Familia:</span>
-                                    <span className="font-medium text-blue-900">{pago.familia}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-blue-700">Monto:</span>
-                                    <span className="font-medium text-blue-900">{formatCurrency(pago.monto)}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-blue-700">Fecha:</span>
-                                    <span className="font-medium text-blue-900">{pago.fecha}</span>
-                                  </div>
-                                  {pago.tipo_pago && (
-                                    <div className="flex justify-between">
-                                      <span className="text-blue-700">Tipo:</span>
-                                      <span className="font-medium text-blue-900 capitalize">{pago.tipo_pago}</span>
-                                    </div>
-                                  )}
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                              <div className="space-y-1 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-blue-700">Monto Total:</span>
+                                  <span className="font-medium text-blue-900">{formatCurrency(transaction.monto_total)}</span>
                                 </div>
+                                <div className="flex justify-between">
+                                  <span className="text-blue-700">Fecha:</span>
+                                  <span className="font-medium text-blue-900">{transaction.fecha}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-blue-700">Tipo de pago:</span>
+                                  <span className="font-medium text-blue-900 capitalize">{transaction.tipo_pago}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-blue-700">Estado:</span>
+                                  <span className="font-medium text-blue-900">{transaction.status}</span>
+                                </div>
+                                {transaction.banco && (
+                                  <div className="flex justify-between">
+                                    <span className="text-blue-700">Banco:</span>
+                                    <span className="font-medium text-blue-900">{transaction.banco}</span>
+                                  </div>
+                                )}
                               </div>
-                            ))}
+                            </div>
                           </div>
                         );
                       }

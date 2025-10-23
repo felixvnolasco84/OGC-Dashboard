@@ -29,7 +29,7 @@ createRoot(document.getElementById("root")!).render(
           <ScrollToTop />
           <Routes>
             <Route element={<WebsiteLayout />}>
-              <Route index element={<HomePage />} />
+              <Route index element={<PresupuestoPage />} />
               <Route path="/upload" element={<App />} />
               <Route path="/proyectos" element={<ProjectsPage />} />
               <Route path="/dashboard" element={<Dashboard />} /> 

@@ -24,7 +24,7 @@ export default function EditPaymentModal() {
     const updateFormData = useEditPaymentModal((state) => state.updateFormData);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const updatePayment = useMutation(api.pagos.update);
+    const updateTransaction = useMutation(api.transacciones.updateTransaction);
 
     const handleInputChange = (field: string, value: string) => {
         updateFormData({ [field]: value });
@@ -32,17 +32,32 @@ export default function EditPaymentModal() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!paymentContext) return;
+        if (!paymentContext?.payment.transaction?._id) return;
 
         setIsSubmitting(true);
         try {
-            await updatePayment({
-                id: paymentContext.payment._id,
-                ...formData,
+            // Update the transaction (payment details)
+            await updateTransaction({
+                id: paymentContext.payment.transaction._id,
+                fecha: formData.fecha,
+                tipo_pago: formData.tipo_pago,
+                moneda: formData.moneda,
+                tipo_cambio: formData.tipo_cambio,
+                status: formData.status,
+                banco: formData.banco,
+                tarjeta: formData.tarjeta,
+                numero_cuenta: formData.numero_cuenta,
+                numero_transferencia: formData.numero_transferencia,
+                codigo_referencia: formData.codigo_referencia,
+                factura: formData.factura,
             });
+            
+            // Note: Line item amount (monto) updates would require a separate mutation
+            // For now, we only update transaction-level details
+            
             onClose();
         } catch (error) {
-            console.error("Error updating payment:", error);
+            console.error("Error updating transaction:", error);
         } finally {
             setIsSubmitting(false);
         }

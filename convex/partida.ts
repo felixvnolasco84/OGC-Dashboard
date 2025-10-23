@@ -1,5 +1,5 @@
 import { paginationOptsValidator } from "convex/server";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { query} from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
@@ -376,26 +376,46 @@ export const getById = query({
     }
 
     // Get related proyecto information
-    let proyectoData = null;
+    let proyectoData: Doc<"desarrollos"> | null = null;
     if (partida.proyecto) {
       proyectoData = await ctx.db.get(partida.proyecto);
     }
 
     const pagos = await ctx.db
       .query("pagos")
-      .filter((q) => q.eq(q.field("partida_id"), args.id))
+      .withIndex("by_partida_id", (q) => q.eq("partida_id", args.id))
       .collect();
-    // Get informacion_facturacion_pago for each payment
-    const pagosWithFacturacion = await Promise.all(
+    
+    // Enrich pagos with transaction data
+    const pagosWithTransactionData = await Promise.all(
       pagos.map(async (pago) => {
-        return pago;
+        const transaction = await ctx.db.get(pago.transaccion_id);
+        return {
+          ...pago,
+          // Transaction fields
+          fecha: transaction?.fecha,
+          tipo_pago: transaction?.tipo_pago,
+          moneda: transaction?.moneda,
+          tipo_cambio: transaction?.tipo_cambio,
+          status: transaction?.status,
+          banco: transaction?.banco,
+          tarjeta: transaction?.tarjeta,
+          numero_cuenta: transaction?.numero_cuenta,
+          numero_transferencia: transaction?.numero_transferencia,
+          codigo_referencia: transaction?.codigo_referencia,
+          factura: transaction?.factura,
+          comprobante: transaction?.comprobante,
+          categoria: transaction?.categoria,
+          // Keep transaction reference
+          transaction,
+        };
       })
     );
 
     return {
       ...partida,
       proyectoData: proyectoData,
-      pagos: pagosWithFacturacion
+      pagos: pagosWithTransactionData
     };
   },
 });
@@ -507,6 +527,79 @@ export const syncPorGastarForAllPartidas = mutation({
       return summary;
     } catch (error) {
       console.error("❌ Error syncing por_gastar:", error);
+      throw error;
+    }
+  },
+});
+
+/**
+ * Mutation to sync/backfill the `gastado` (pagado) calculated column for all existing partidas.
+ * This should be run once after adding the gastado field or to recalculate existing values.
+ * 
+ * Formula: gastado = SUM(pagos.monto) for all pagos associated with the partida
+ * 
+ * Usage: Call this mutation from the Convex dashboard or via API to update all existing records.
+ */
+export const syncGastadoForAllPartidas = mutation({
+  args: {
+    projectId: v.optional(v.id("desarrollos")), // Optional: sync only for specific project
+  },
+  handler: async (ctx, args) => {
+    console.log("🔄 Starting gastado sync for all partidas...");
+    
+    try {
+      // Get all partidas (filtered by project if provided)
+      let partidas;
+      if (args.projectId) {
+        partidas = await ctx.db
+          .query("partidas")
+          .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+          .collect();
+        console.log(`Found ${partidas.length} partidas for project ${args.projectId}`);
+      } else {
+        partidas = await ctx.db.query("partidas").collect();
+        console.log(`Found ${partidas.length} total partidas`);
+      }
+
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      // Update each partida with calculated gastado
+      for (const partida of partidas) {
+        // Get all pagos for this partida
+        const pagos = await ctx.db
+          .query("pagos")
+          .filter((q) => q.eq(q.field("partida_id"), partida._id))
+          .collect();
+
+        // Calculate total gastado by summing all pago amounts
+        const gastado = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
+
+        // Only update if gastado is different or doesn't exist
+        if (partida.pagado !== gastado) {
+          await ctx.db.patch(partida._id, { pagado: gastado });
+          updatedCount++;
+          
+          // Log every 50 updates to track progress
+          if (updatedCount % 50 === 0) {
+            console.log(`✅ Updated ${updatedCount} partidas...`);
+          }
+        } else {
+          skippedCount++;
+        }
+      }
+
+      const summary = {
+        total: partidas.length,
+        updated: updatedCount,
+        skipped: skippedCount,
+        projectId: args.projectId || "all projects"
+      };
+
+      console.log("✅ Sync completed:", summary);
+      return summary;
+    } catch (error) {
+      console.error("❌ Error syncing gastado:", error);
       throw error;
     }
   },

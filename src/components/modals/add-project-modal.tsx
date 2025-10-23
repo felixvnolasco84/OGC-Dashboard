@@ -130,7 +130,7 @@ export default function AddProjectModal() {
 
     const createProject = useMutation(api.desarrollos.create);
     const uploadProjectData = useMutation(api.partida.createPartida);
-    const createPayment = useMutation(api.pagos.create);
+    const createTransaction = useMutation(api.transacciones.createTransaction);
 
     const handleInputChange = (field: string, value: string) => {
         updateFormData({ [field]: value });
@@ -235,47 +235,55 @@ export default function AddProjectModal() {
                     proyecto: project,
                 });
 
-                // Create payments for this partida if weeklyPayments exist
+                // Create transactions for this partida if weeklyPayments exist
                 if (record.weeklyPayments && record.weeklyPayments.length > 0) {
-                    const paymentPromises = record.weeklyPayments.map((payment) => {
-                        // Only create payment if amount is greater than 0
+                    const transactionPromises = record.weeklyPayments.map((payment) => {
+                        // Only create transaction if amount is greater than 0
                         if (payment.amount <= 0) {
                             return Promise.resolve(null);
                         }
 
-                        return createPayment({
-                            partida_id: partidaId,
-                            partida: record.nivel === 1 ? record.nombre : currentPartidaNombre,
-                            familia: record.familia || '',
-                            sub_partida: record.sub_partida || '',
-                            monto: payment.amount,
+                        // Create a transaction with a single line item for this weekly payment
+                        return createTransaction({
+                            proyecto: project,
+                            monto_total: payment.amount,
                             fecha: excelSerialToDate(payment.week),
                             tipo_pago: 'transferencia', // Default payment type
+                            moneda: 'MXN',
+                            tipo_cambio: '1',
+                            status: 'Pendiente',
+                            codigo_referencia: `Week-${payment.position}`,
                             banco: '',
                             tarjeta: '',
                             numero_cuenta: '',
                             numero_transferencia: '',
-                            codigo_referencia: `Week-${payment.position}`,
                             factura: '',
-                            moneda: 'MXN',
-                            tipo_cambio: '1',
-                            status: 'Pendiente',
-                            proyecto: project,
+                            comprobante: '',
+                            presupuesto_archivo: '',
+                            lineItems: [
+                                {
+                                    partida_id: partidaId,
+                                    partida: record.nivel === 1 ? record.nombre : currentPartidaNombre,
+                                    familia: record.familia || '',
+                                    sub_partida: record.sub_partida || '',
+                                    monto: payment.amount,
+                                }
+                            ]
                         });
                     });
 
-                    await Promise.all(paymentPromises);
+                    await Promise.all(transactionPromises);
                 }
 
                 return partidaId;
             });
 
             const partidas = await Promise.all(partidaPromises);
-            console.log(`Successfully uploaded ${partidas.length} partida records with their payments`);
+            console.log(`Successfully uploaded ${partidas.length} partida records with their transactions`);
 
             // Show success toast
             toast.success('Proyecto creado exitosamente', {
-                description: `Se creó el proyecto "${formData.nombre}" con ${partidas.length} partidas y sus pagos asociados.`,
+                description: `Se creó el proyecto "${formData.nombre}" con ${partidas.length} partidas y sus transacciones asociadas.`,
                 duration: 5000,
             });
 
