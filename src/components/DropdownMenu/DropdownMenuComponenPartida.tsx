@@ -73,6 +73,23 @@ export default function DropdownMenuComponentPartida({
   // Select the appropriate payments based on level
   const payments = level === 0 ? level0Payments : level === 1 ? level1Payments : level2Payments;
 
+  // For level 1 (familia), check if it has any sub-partidas (nivel 3 items)
+  // Query all partidas in this project with the same partida name and familia
+  const allPartidas = useQuery(
+    api.partida.getByProject,
+    level === 1 && partida.proyecto ? { projectId: partida.proyecto } : "skip"
+  );
+
+  // Check if this familia has any sub-partidas
+  const hasSubPartidas = level === 1 && allPartidas
+    ? allPartidas.some(
+        (p: Doc<"partidas">) =>
+          p.nivel === 3 && // nivel 3 = sub-partida
+          p.nombre === partida.nombre && // same partida
+          p.familia === partida.familia // same familia
+      )
+    : false;
+
   // Get context-aware labels based on level
   const getContextualLabels = () => {
     switch (level) {
@@ -83,10 +100,11 @@ export default function DropdownMenuComponentPartida({
           viewDetailsText: "Ver resumen de partida",
         };
       case 1:
+        // If familia has no sub-partidas, treat it like a leaf node (show detailed view)
         return {
           title: "Familia",
           editTitle: `Editar Familia: ${rowData.displayName}`,
-          viewDetailsText: "Ver resumen de familia",
+          viewDetailsText: hasSubPartidas ? "Ver resumen de familia" : "Ver detalles completos",
         };
       case 2:
         return {
@@ -107,11 +125,17 @@ export default function DropdownMenuComponentPartida({
 
   //Navigate to cost details with react router
   const handleViewDetails = () => {
-    if (level === 2 && partida._id) {
-      // Only navigate to detail page for actual partidas (level 2) with real IDs
+    // Navigate to detail page for:
+    // 1. Level 2 (sub-partidas) with real IDs
+    // 2. Level 1 (familias) with no sub-partidas and real IDs
+    const shouldNavigateToDetails = 
+      (level === 2 && partida._id) || 
+      (level === 1 && !hasSubPartidas && partida._id);
+
+    if (shouldNavigateToDetails) {
       navigate(`/dashboard/partidas/${partida._id}`);
     } else {
-      // For aggregated rows, show summary modal
+      // For aggregated rows or familias with sub-partidas, show summary modal
       aggregatedDetailsModal.onOpen({
         name: rowData.displayName,
         level: level,
@@ -184,7 +208,8 @@ export default function DropdownMenuComponentPartida({
               className="w-full justify-start flex items-center gap-2 text-wrap"
               onClick={handleViewDetails}
             >
-              {level === 2 ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}
+              {/* Show FileText icon for leaf nodes (level 2 or level 1 without sub-partidas) */}
+              {(level === 2 || (level === 1 && !hasSubPartidas)) ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}
               {labels.viewDetailsText}
             </Button>
           </div>

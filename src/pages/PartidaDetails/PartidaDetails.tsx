@@ -61,7 +61,7 @@ export default function PartidaDetails() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Cargando detalles de la partida...</p>
+                    <p className="mt-4 text-gray-600">Cargando detalles...</p>
                 </div>
             </div>
         );
@@ -77,7 +77,8 @@ export default function PartidaDetails() {
 
     // Only count payments with status "Pagado" or legacy payments without status
     const totalPagado = partida.pagos?.reduce((sum, pago) => {
-        const isPagado = pago.status === 'Pagado' || !pago.status;
+        const status = pago.status || pago.transaction?.status;
+        const isPagado = status === 'Pagado' || !status;
         return isPagado ? sum + pago.monto || 0 : sum;
     }, 0) || 0;
 
@@ -128,13 +129,41 @@ export default function PartidaDetails() {
                     </Button>
 
                     <div className="pr-12">
-                        <h1 className="text-xl text-gray-900 mb-1">{partida.nombre}</h1>
-                        <p className="text-sm text-gray-500 mb-3">
-                            {partida.sub_partida}
-                        </p>
-                        <div className="flex justify-end">
-                            <span className="text-sm text-gray-500">Sub Partida</span>
-                        </div>
+                        {/* Dynamic header based on nivel */}
+                        {partida.nivel === 3 ? (
+                            // Sub-partida (nivel 3)
+                            <>
+                                <h1 className="text-xl text-gray-900 mb-1">{partida.nombre}</h1>
+                                <p className="text-sm text-gray-500 mb-3">
+                                    {partida.sub_partida}
+                                </p>
+                                <div className="flex justify-end">
+                                    <span className="text-sm text-gray-500">Sub Partida</span>
+                                </div>
+                            </>
+                        ) : partida.nivel === 2 ? (
+                            // Familia without sub-partidas (nivel 2)
+                            <>
+                                <h1 className="text-xl text-gray-900 mb-1">{partida.nombre}</h1>
+                                <p className="text-sm text-gray-500 mb-3">
+                                    {partida.familia}
+                                </p>
+                                <div className="flex justify-end">
+                                    <span className="text-sm text-gray-500">Familia</span>
+                                </div>
+                            </>
+                        ) : (
+                            // Fallback for other niveles
+                            <>
+                                <h1 className="text-xl text-gray-900 mb-1">{partida.nombre}</h1>
+                                <p className="text-sm text-gray-500 mb-3">
+                                    {partida.familia || partida.sub_partida}
+                                </p>
+                                <div className="flex justify-end">
+                                    <span className="text-sm text-gray-500">Partida</span>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <Button
@@ -187,7 +216,8 @@ export default function PartidaDetails() {
                                 <div className="flex items-start justify-between mb-4 border-b border-gray-400 pb-4">
                                     <div className="flex items-center gap-3">
                                         {(() => {
-                                            const isPagado = pago.status === 'Pagado' || (!pago.status && pago.monto > 0);
+                                            const status = pago.status || pago.transaction?.status;
+                                            const isPagado = status === 'Pagado' || (!status && pago.monto > 0);
                                             return (
                                                 <div className={`w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0 ${isPagado ? 'bg-green-100' : 'bg-orange-100'
                                                     }`}>
@@ -201,14 +231,14 @@ export default function PartidaDetails() {
                                         })()}
                                         <div>
                                             <p className="text-base  text-gray-900">
-                                                {pago.status || (pago.monto > 0 ? 'Aprobado' : 'Pendiente')}
+                                                {pago.status || pago.transaction?.status || (pago.monto > 0 ? 'Aprobado' : 'Pendiente')}
                                             </p>
                                             <p className="text-left text-sm text-gray-500">Pago #{String(index + 1).padStart(3, '0')}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <p className="text-xl text-gray-900">
-                                            {formatCurrency(pago.monto.toString())} {pago.moneda || 'MXN'}
+                                            {formatCurrency(pago.monto.toString())} {pago.moneda || pago.transaction?.moneda || 'MXN'}
                                         </p>
                                         <Popover>
                                             <PopoverTrigger asChild>
@@ -260,68 +290,90 @@ export default function PartidaDetails() {
 
                                 {/* Details */}
                                 <div className="flex flex-col space-y-2 text-sm mb-4 p-4">
+                                    {/* Show transaction ID if available */}
+                                    {pago.transaction?._id && (
+                                        <div className="flex justify-between pb-2 mb-2 border-b border-gray-100">
+                                            <span className="text-gray-500 text-xs">Transacción</span>
+                                            <p className="text-gray-900 text-right text-xs font-mono">
+                                                #{pago.transaction._id.slice(-8)}
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between">
                                         <span className="text-gray-500">Fecha</span>
-                                        <p className="text-gray-900 text-right">{pago.fecha}</p>
+                                        <p className="text-gray-900 text-right">{pago.fecha || pago.transaction?.fecha || 'N/A'}</p>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-500">Método de pago</span>
-                                        <p className="text-gray-900 text-right">{pago.tipo_pago || 'N/A'}</p>
+                                        <p className="text-gray-900 text-right">{pago.tipo_pago || pago.transaction?.tipo_pago || 'N/A'}</p>
                                     </div>
-                                    {pago.banco && (
+                                    {(pago.banco || pago.transaction?.banco) && (
                                         <div className="flex justify-between">
                                             <span className="text-gray-500">Banco</span>
-                                            <p className="text-gray-900 text-right">{pago.banco}</p>
+                                            <p className="text-gray-900 text-right">{pago.banco || pago.transaction?.banco}</p>
                                         </div>
                                     )}
-                                    {pago.numero_cuenta && (
+                                    {(pago.numero_cuenta || pago.transaction?.numero_cuenta) && (
                                         <div className="flex justify-between">
                                             <span className="text-gray-500">Cuenta cargo</span>
-                                            <p className="text-gray-900 text-right">{pago.numero_cuenta}</p>
+                                            <p className="text-gray-900 text-right">{pago.numero_cuenta || pago.transaction?.numero_cuenta}</p>
                                         </div>
                                     )}
-                                    {pago.numero_transferencia && (
+                                    {(pago.numero_transferencia || pago.transaction?.numero_transferencia) && (
                                         <div className="flex justify-between">
                                             <span className="text-gray-500">Cuenta abono</span>
-                                            <p className="text-gray-900 text-right">{pago.numero_transferencia}</p>
+                                            <p className="text-gray-900 text-right">{pago.numero_transferencia || pago.transaction?.numero_transferencia}</p>
                                         </div>
                                     )}
-                                    {pago.codigo_referencia && (
+                                    {(pago.codigo_referencia || pago.transaction?.codigo_referencia) && (
                                         <div className="flex justify-between">
                                             <span className="text-gray-500">Referencia</span>
-                                            <p className="text-gray-900 text-right font-mono text-xs">{pago.codigo_referencia}</p>
+                                            <p className="text-gray-900 text-right font-mono text-xs">{pago.codigo_referencia || pago.transaction?.codigo_referencia}</p>
+                                        </div>
+                                    )}
+                                    {/* Show warning if no transaction data */}
+                                    {!pago.transaction && (
+                                        <div className="flex justify-center pt-2">
+                                            <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                                                ⚠️ Sin datos de transacción
+                                            </Badge>
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Badges */}
                                 <div className="flex items-center gap-2 flex-wrap mb-4">
-                                    {pago.banco && (
+                                    {(pago.banco || pago.transaction?.banco) && (
                                         <Badge variant="outline" className="text-xs px-3 py-1">
-                                            {pago.banco}
+                                            {pago.banco || pago.transaction?.banco}
                                         </Badge>
                                     )}
-                                    {pago.tipo_pago && (
+                                    {(pago.tipo_pago || pago.transaction?.tipo_pago) && (
                                         <Badge variant="outline" className="text-xs px-3 py-1 capitalize">
-                                            {pago.tipo_pago === 'transferencia' ? 'Transferencia' :
-                                                pago.tipo_pago === 'tarjeta' ? 'Tarjeta' :
-                                                    pago.tipo_pago}
+                                            {(pago.tipo_pago || pago.transaction?.tipo_pago) === 'transferencia' ? 'Transferencia' :
+                                                (pago.tipo_pago || pago.transaction?.tipo_pago) === 'tarjeta' ? 'Tarjeta' :
+                                                    (pago.tipo_pago || pago.transaction?.tipo_pago)}
                                         </Badge>
                                     )}
-                                    {pago.moneda && pago.moneda !== 'MXN' && (
+                                    {(pago.moneda || pago.transaction?.moneda) && (pago.moneda || pago.transaction?.moneda) !== 'MXN' && (
                                         <Badge variant="outline" className="text-xs px-3 py-1 bg-blue-50">
-                                            {pago.moneda} {pago.tipo_cambio && `(TC: ${pago.tipo_cambio})`}
+                                            {pago.moneda || pago.transaction?.moneda} {(pago.tipo_cambio || pago.transaction?.tipo_cambio) && `(TC: ${pago.tipo_cambio || pago.transaction?.tipo_cambio})`}
                                         </Badge>
                                     )}
-                                    {pago.tarjeta && (
+                                    {(pago.tarjeta || pago.transaction?.tarjeta) && (
                                         <Badge variant="outline" className="text-xs px-3 py-1 bg-purple-50">
-                                            {pago.tarjeta}
+                                            {pago.tarjeta || pago.transaction?.tarjeta}
                                         </Badge>
                                     )}
-                                    {pago.factura && (
+                                    {(pago.factura || pago.transaction?.factura) && (
                                         <Badge variant="outline" className="text-xs px-3 py-1 flex items-center gap-1">
-                                            {pago.factura.includes('http') ? 'Factura' : pago.factura}
+                                            {(pago.factura || pago.transaction?.factura)?.includes('http') ? 'Factura' : (pago.factura || pago.transaction?.factura)}
                                             <Check className="h-3 w-3 text-green-600" />
+                                        </Badge>
+                                    )}
+                                    {(pago.transaction?.categoria) && (
+                                        <Badge variant="outline" className="text-xs px-3 py-1 bg-indigo-50">
+                                            {pago.transaction.categoria}
                                         </Badge>
                                     )}
                                 </div>
@@ -380,8 +432,20 @@ export default function PartidaDetails() {
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white  shadow-smp-8 text-center">
-                        <p className="text-gray-500">No hay pagos registrados</p>
+                    <div className="bg-white shadow-sm p-8 text-center rounded-lg border border-gray-200">
+                        <p className="text-gray-500 mb-4">
+                            No hay pagos registrados para esta {partida.nivel === 3 ? 'sub-partida' : partida.nivel === 2 ? 'familia' : 'partida'}
+                        </p>
+                        {partida.pagado > 0 && (
+                            <div className="bg-orange-50 border border-orange-200 rounded p-4 mt-4">
+                                <p className="text-sm text-orange-800">
+                                    ⚠️ Nota: El campo "pagado" muestra {formatCurrency(partida.pagado.toString())}, pero no hay transacciones registradas.
+                                </p>
+                                <p className="text-xs text-orange-600 mt-2">
+                                    Esto puede ser datos heredados del Excel. Usa "Nuevo Pago +" para crear transacciones.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
