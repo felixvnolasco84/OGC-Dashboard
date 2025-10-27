@@ -83,7 +83,7 @@ export const update = mutation({
     },
     handler: async (ctx, args) => {
         const { id, ...rest } = args;
-        // Filter out undefined values
+        // Filter out undefined valuese
         const updateData = Object.fromEntries(
             Object.entries(rest).filter(([, value]) => value !== undefined)
         );

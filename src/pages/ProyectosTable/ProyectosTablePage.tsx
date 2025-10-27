@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical } from "lucide-react";
+import { Search, MoreVertical, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,10 +11,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useAddProyectoModal } from "@/hooks/add-proyecto-modal";
+import AddProyectoModal from "@/components/modals/add-proyecto-modal";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function ProyectosTablePage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Id<"desarrollos"> | null>(null);
+  
   const projects = useQuery(api.desarrollos.getAllWithMetrics);
+  const deleteProject = useMutation(api.desarrollos.deleteProject);
+  const proyectoModal = useAddProyectoModal();
 
   const filteredProjects = projects?.filter((project) =>
     project.nombre.toLowerCase().includes(searchTerm.toLowerCase())
@@ -42,16 +60,43 @@ export default function ProyectosTablePage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!projectToDelete) return;
+    try {
+      await deleteProject({ id: projectToDelete });
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    } catch (error) {
+      console.error("Error deleting project:", error);
+    }
+  };
+
+  const openDeleteDialog = (projectId: Id<"desarrollos">) => {
+    setProjectToDelete(projectId);
+    setDeleteDialogOpen(true);
+  };
+
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-full mx-auto  py-8 text-left">
 
         <div className="flex flex-col gap-4 px-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-normal text-gray-900 mb-2">Proyectos</h1>
-          <p className="text-sm text-gray-500">
-            Gestiona y consulta todos tus proyectos de construcción
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-normal text-gray-900 mb-2">Proyectos</h1>
+            <p className="text-sm text-gray-500">
+              Gestiona y consulta todos tus proyectos de construcción
+            </p>
+          </div>
+          <Button
+            onClick={() => proyectoModal.onOpen()}
+            variant="outline"
+            size="lg"
+            className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+          >
+            Agregar Proyecto
+            <Plus className="h-6 w-6 rounded-full shadow-none" />
+          </Button>
         </div>
 
         {/* Search Bar */}
@@ -160,9 +205,15 @@ export default function ProyectosTablePage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem
+                            onClick={() => proyectoModal.onOpen(project._id)}
+                          >
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => openDeleteDialog(project._id)}
+                          >
                             Eliminar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -175,6 +226,33 @@ export default function ProyectosTablePage() {
           </table>
         </div>
       </div>
+
+      {/* Add/Edit Modal */}
+      <AddProyectoModal />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no puede ser deshecha. Esto eliminará permanentemente el
+              proyecto y todos sus datos relacionados (partidas, pagos, transacciones, documentos).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProjectToDelete(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
