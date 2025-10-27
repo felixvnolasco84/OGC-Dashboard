@@ -5,7 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import Logo from "../../../public/OGC-LOGO.svg";
 
-import {  
+import {
   Search,
   Folder,
   ChevronDown,
@@ -13,11 +13,15 @@ import {
   Paperclip,
   ChartArea,
   ChartBar,
-  File
+  File,
+  Building,
+  IdCard,
+  Car
 } from "lucide-react";
 import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
 
 interface SidebarItem {
   id: string;
@@ -26,6 +30,30 @@ interface SidebarItem {
   icon?: React.ReactNode;
   isDisabled?: boolean;
 }
+
+const aloneItems: SidebarItem[] = [
+  {
+    id: "dashboard",
+    label: "Proyectos",
+    path: "/proyectos-tabla",
+    icon: <Building className="w-4 h-4" />,
+    isDisabled: false
+  },
+  {
+    id: "pagos",
+    label: "Pagos",
+    path: "/pagos",
+    icon: <IdCard className="w-4 h-4" />,
+    isDisabled: false
+  },
+  {
+    id: "proveedores",
+    label: "Proveedores",
+    path: "/proveedores",
+    icon: <Car className="w-4 h-4" />,
+    isDisabled: false
+  }
+];
 
 const sidebarItems: SidebarItem[] = [
   {
@@ -41,6 +69,7 @@ const sidebarItems: SidebarItem[] = [
     icon: <File className="w-4 h-4" />,
     isDisabled: false
   },
+
   {
     id: "control",
     label: "Control",
@@ -109,7 +138,7 @@ export default function Sidebar() {
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-10 h-10 p-0"
         >
-          <img src={Logo} alt="Logo" className="w-10 h-10" /> 
+          <img src={Logo} alt="Logo" className="w-10 h-10" />
         </Button>
       </div>
 
@@ -159,23 +188,23 @@ export default function Sidebar() {
           {/* Collapsible Project Section */}
           <div className="bg-gray-100 rounded-sm">
             <div className="px-2 pt-1.5 pb-2">
-            <Button
-              onClick={() => setIsProjectExpanded(!isProjectExpanded)}
-              size={"sm"}
-              className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-200  transition-colors bg-white  shadow-none rounded-sm m-0"
-            >
-              <div className="flex items-center gap-2">
-                <Folder className="w-4 h-4 text-gray-600" />
-                <span className="text-xs font-medium text-gray-900 truncate text-wrap">
-                  {selectedDesarrollo?.nombre.slice(0, 20) + "..." || "Seleccionar proyecto"}
-                </span>
-              </div>
-              {isProjectExpanded ? (
-                <ChevronDown className="w-4 h-4 text-gray-600 flex-shrink-0" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
-              )}
-            </Button>
+              <Button
+                onClick={() => setIsProjectExpanded(!isProjectExpanded)}
+                size={"sm"}
+                className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-200  transition-colors bg-white  shadow-none rounded-sm m-0"
+              >
+                <div className="flex items-center gap-2">
+                  <Folder className="w-4 h-4 text-gray-600" />
+                  <span className="text-xs font-medium text-gray-900 truncate text-wrap">
+                    {selectedDesarrollo?.nombre.slice(0, 20) + "..." || "Seleccionar proyecto"}
+                  </span>
+                </div>
+                {isProjectExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                )}
+              </Button>
             </div>
 
 
@@ -192,18 +221,18 @@ export default function Sidebar() {
                         <span>{item.label}</span>
                       </div>
                     ) : (
-                    <Link
-                      key={item.id}
-                      to={item.path}
-                      className={cn(
-                        "flex items-center space-x-2 px-3 py-2 text-sm font-normal transition-colors rounded",
-                        isActive(item.path)
-                          ? "text-gray-900 font-medium"
-                          : "text-gray-400 hover:text-gray-600"
-                      )}
-                    >
-                      <span>{item.label}</span>
-                    </Link>
+                      <Link
+                        key={item.id}
+                        to={item.path}
+                        className={cn(
+                          "flex items-center space-x-2 px-3 py-2 text-sm font-normal transition-colors rounded",
+                          isActive(item.path)
+                            ? "text-gray-900 font-medium"
+                            : "text-gray-400 hover:text-gray-600"
+                        )}
+                      >
+                        <span>{item.label}</span>
+                      </Link>
                     )
                   ))
                 ) : searchQuery.trim() !== "" ? (
@@ -213,7 +242,24 @@ export default function Sidebar() {
                 ) : null}
               </nav>
             )}
+
           </div>
+          {
+            aloneItems.map((item) => (
+              <Link
+                key={item.id}
+                to={item.path}
+                className={cn(
+                  "flex items-center space-x-2 px-3 py-2 text-sm font-normal transition-colors rounded",
+                  isActive(item.path)
+                    ? "text-gray-900 font-medium"
+                    : "text-gray-400 hover:text-gray-600"
+                )}
+              >
+                <span>{item.label}</span>
+              </Link>
+            ))
+          }
         </div>
       </div>
     </div>

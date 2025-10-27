@@ -200,3 +200,47 @@ export const getByFamilia = query({
     return allPayments;
   },
 });
+
+// Get all pagos (line items) with enriched transaction and partida data
+export const getAll = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all pagos
+    const allPagos = await ctx.db.query("pagos").collect();
+    
+    // Enrich each pago with transaction and partida data
+    const enrichedPagos = await Promise.all(
+      allPagos.map(async (pago) => {
+        const transaction = await ctx.db.get(pago.transaccion_id);
+        const partida = await ctx.db.get(pago.partida_id);
+        
+        // Get proyecto name
+        let proyectoNombre = "";
+        if (transaction?.proyecto) {
+          const proyecto = await ctx.db.get(transaction.proyecto);
+          proyectoNombre = proyecto?.nombre || "";
+        }
+        
+        return {
+          ...pago,
+          // Transaction data
+          fecha: transaction?.fecha || "",
+          tipo_pago: transaction?.tipo_pago || "",
+          moneda: transaction?.moneda || "MXN",
+          status: transaction?.status || "",
+          banco: transaction?.banco,
+          codigo_referencia: transaction?.codigo_referencia,
+          proyecto: transaction?.proyecto,
+          proyectoNombre,
+          // Partida data
+          partida: partida?.partida_nombre || partida?.nombre || "",
+          familia: partida?.familia || "",
+          sub_partida: partida?.sub_partida || "",
+          transaction,
+        };
+      })
+    );
+    
+    return enrichedPagos;
+  },
+});

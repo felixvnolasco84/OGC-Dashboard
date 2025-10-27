@@ -160,7 +160,7 @@ export default function SeePaymentDetailsModal() {
                                     {/* <Progress className="bg-green-600 h-1" value={Math.min(getTotalPaidPercentage(), 100)} /> */}
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-24">
+                                <div className="grid grid-cols-3 gap-20 justify-between">
                                     <div>
                                         <p className="text-sm font-medium text-gray-500">Presupuesto probado</p>
                                         <p className="text-lg">{formatCurrency(paymentContext.totalAmount)}</p>
@@ -169,7 +169,7 @@ export default function SeePaymentDetailsModal() {
                                         <p className="text-sm font-medium text-gray-500 text-left">Pagado</p>
                                         <p className="text-lg text-green-800 text-left">{formatCurrency(getTotalPaidAmount())}</p>
                                     </div>
-                                    <div>
+                                    <div className="flex flex-col items-end">
                                         <p className="text-sm font-medium text-gray-500 text-right">Por ejercer</p>
                                         {getRemainingAmount() > 0 && (
                                             <p className="text-lg text-orange-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
@@ -180,7 +180,7 @@ export default function SeePaymentDetailsModal() {
                                         {getRemainingAmount() < -0.01 && (
                                             <p className="text-lg text-red-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
                                         )}
-                                        <Badge variant={"outline"} className="">
+                                        <Badge variant={"outline"} className="w-fit">
                                             {getRemainingAmount() >= 0 ? `Pendiente ${(getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%` : `${(getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%`}
                                         </Badge>
                                     </div>

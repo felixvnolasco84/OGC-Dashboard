@@ -15,7 +15,10 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, X, ChevronDown } from "lucide-react";
+import {
+  X, Plus,
+  // Download
+} from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
@@ -159,42 +162,54 @@ export default function PresupuestoPage() {
 
   return (
     <div className="bg-white py-6 space-y-12">
-      <div className="max-w-full mx-auto space-y-6 px-12">
+      <div className="max-w-full mx-auto space-y-12">
         {/* Header */}
-        <div className="rounded-lg py-6">
-          <div className="flex items-start justify-between">
+        <div className="py-6 border-b border-gray-200 px-12 pb-12">
+          <div className="flex items-end justify-between">
             <div className="flex flex-col text-left">
               <p className="text-base text-gray-500 mb-1">Presupuesto</p>
-              {/* <h1 className="text-2xl text-gray-900">{currentProject?.nombre || 'Proyecto'}</h1> */}
+              <h1 className="text-2xl text-gray-900">{selectedDesarrollo?.nombre || 'Proyecto'}</h1>
             </div>
             <div className="flex items-end gap-3">
+              {/* <Button
+                onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
+                  proyecto: selectedDesarrollo._id,
+                  projectName: selectedDesarrollo.nombre
+                })}
+                variant={"outline"}
+                size={"lg"}
+                disabled={!selectedDesarrollo}
+                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6 "
+              >
+                Reporte
+                <Download className="h-6 w-6 rounded-full shadow-none" />
+              </Button> */}
               <Button
                 onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
                   proyecto: selectedDesarrollo._id,
                   projectName: selectedDesarrollo.nombre
                 })}
-                variant={"ghost"}
-                size={"md"}
+                variant={"outline"}
+                size={"lg"}
                 disabled={!selectedDesarrollo}
-                className="flex justify-center items-center gap-2"
+                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
               >
-                <span className="leading-none">Agregar Partida</span>
-                
-                <Plus className="mr-2 h-6 w-6 bg-[#fcfcfc] border-gray-200 rounded-full shadow-md" />
+                Agregar Partida
+                <Plus className="h-6 w-6 rounded-full shadow-none" />
               </Button>
             </div>
           </div>
         </div>
 
         {/* Main Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="flex lg:flex-row gap-6 mb-8 px-12">
           {/* Presupuesto Original */}
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-base text-gray-500">Presupuesto Original</p>
+                <p className="text-sm text-gray-500">Presupuesto Original</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-2xl font-normal text-gray-900">
+                  <p className="text-4xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.presupuesto_original || 0))}
                   </p>
                 </div>
@@ -203,12 +218,12 @@ export default function PresupuestoPage() {
           </Card>
 
           {/* Presupuesto Aprobado */}
-          <Card className="bg-transparent shadow-none border-none">
+          <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-base text-gray-500">Presupuesto aprobado</p>
+                <p className="text-sm text-gray-500">Presupuesto aprobado</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-2xl font-normal text-gray-900">
+                  <p className="text-4xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.presupuesto_aprobado || 0))}
                   </p>
                 </div>
@@ -222,12 +237,12 @@ export default function PresupuestoPage() {
           </Card>
 
           {/* Gasto Total */}
-          <Card className="bg-transparent shadow-none border-none">
+          <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-base text-gray-500">Gasto total</p>
+                <p className="text-sm text-gray-500">Gasto total</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-2xl font-normal text-gray-900">
+                  <p className="text-4xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.gasto_total || 0))}
                   </p>
                 </div>
@@ -239,12 +254,12 @@ export default function PresupuestoPage() {
           </Card>
 
           {/* Por Gastar */}
-          <Card className="bg-transparent shadow-none border-none">
+          <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-base text-gray-500">Por gastar</p>
+                <p className="text-sm text-gray-500">Por gastar</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-2xl font-normal text-gray-900">
+                  <p className="text-4xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.por_gastar || 0))}
                   </p>
                 </div>
@@ -257,16 +272,16 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white border-b border-gray-200 pb-4">
+        <div className="bg-white  pb-4 px-12">
           <div className="grid grid-cols-3 items-center gap-6">
             {/* Partida Filter - Multi-select */}
-            <div className="flex flex-col space-y-1 text-left">
-              <span className="text-base text-gray-500">Partida</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
+              <span className="text-sm text-gray-500">Partida</span>
               <Popover open={isPartidaOpen} onOpenChange={setIsPartidaOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="border-none shadow-none p-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
+                    className="border-none shadow-none px-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
                   >
                     <span className="flex items-center gap-2">
                       {selectedPartidas.length === 0 ? (
@@ -276,7 +291,7 @@ export default function PresupuestoPage() {
                       ) : (
                         `${selectedPartidas.length} seleccionadas`
                       )}
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                      {/* <ChevronDown className="h-4 w-4 text-gray-400" /> */}
                     </span>
                   </Button>
                 </PopoverTrigger>
@@ -356,13 +371,13 @@ export default function PresupuestoPage() {
             </div>
 
             {/* Familia Filter - Multi-select */}
-            <div className="flex flex-col space-y-1 text-left">
-              <span className="text-base text-gray-500">Familia</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
+              <span className="text-sm text-gray-500">Familia</span>
               <Popover open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="border-none shadow-none p-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
+                    className="border-none shadow-none px-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
                   >
                     <span className="flex items-center gap-2">
                       {selectedFamilias.length === 0 ? (
@@ -372,7 +387,7 @@ export default function PresupuestoPage() {
                       ) : (
                         `${selectedFamilias.length} seleccionadas`
                       )}
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                      {/* <ChevronDown className="h-4 w-4 text-gray-400" /> */}
                     </span>
                   </Button>
                 </PopoverTrigger>
@@ -452,10 +467,10 @@ export default function PresupuestoPage() {
             </div>
 
             {/* Fecha Filter */}
-            <div className="flex flex-col space-y-1 text-left">
-              <span className="text-base text-gray-500">Fecha</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
+              <span className="text-sm text-gray-500">Fecha</span>
               <Select value={selectedFecha} onValueChange={setSelectedFecha}>
-                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
+                <SelectTrigger className="border-none shadow-none px-0 h-auto font-normal text-gray-900 focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

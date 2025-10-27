@@ -6,6 +6,36 @@ export const getAll = query(async (ctx) => {
     return await ctx.db.query("desarrollos").collect();
 });
 
+// Get all projects with their metrics
+export const getAllWithMetrics = query(async (ctx) => {
+    const proyectos = await ctx.db.query("desarrollos").collect();
+    
+    const proyectosWithMetrics = await Promise.all(
+        proyectos.map(async (proyecto) => {
+            // Get metrics for this project
+            const metrics = await ctx.db
+                .query("meticas_presupuesto")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
+                .first();
+            
+            const presupuestoAprobado = metrics?.presupuesto_aprobado || 0;
+            const gastoTotal = metrics?.gasto_total || 0;
+            
+            return {
+                ...proyecto,
+                presupuesto_original: metrics?.presupuesto_original || 0,
+                presupuesto_aprobado: presupuestoAprobado,
+                pagado: gastoTotal,
+                avance: presupuestoAprobado > 0 
+                    ? Math.round((gastoTotal / presupuestoAprobado) * 100)
+                    : 0,
+            };
+        })
+    );
+    
+    return proyectosWithMetrics;
+});
+
 // Get project by ID
 export const getById = query({
     args: {
@@ -22,12 +52,20 @@ export const create = mutation({
         nombre: v.string(),
         descripcion: v.string(),
         image: v.string(),
+        status: v.optional(v.string()),
+        fecha_creacion: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const project = await ctx.db.insert("desarrollos", {
             nombre: args.nombre,
             descripcion: args.descripcion,
             image: args.image,
+            status: args.status || "Activo",
+            fecha_creacion: args.fecha_creacion || new Date().toLocaleDateString("es-MX", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            }),
         });
         return project;
     },
@@ -37,13 +75,19 @@ export const create = mutation({
 export const update = mutation({
     args: {
         id: v.id("desarrollos"),
-        nombre: v.string(),
-        descripcion: v.string(),
-        image: v.string(),
+        nombre: v.optional(v.string()),
+        descripcion: v.optional(v.string()),
+        image: v.optional(v.string()),
+        status: v.optional(v.string()),
+        fecha_creacion: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const { id, ...rest } = args;
-        return await ctx.db.patch(id, rest);
+        // Filter out undefined values
+        const updateData = Object.fromEntries(
+            Object.entries(rest).filter(([, value]) => value !== undefined)
+        );
+        return await ctx.db.patch(id, updateData);
     },
 });
 

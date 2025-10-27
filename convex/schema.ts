@@ -30,6 +30,8 @@ export default defineSchema({
     nombre: v.string(),
     descripcion: v.string(),
     image: v.string(),
+    status: v.optional(v.string()), // Activo, Cancelado, Entregado
+    fecha_creacion: v.optional(v.string()),
   }),
   // Parent transaction that holds all payment details and documents
   transacciones: defineTable({
@@ -78,4 +80,15 @@ export default defineSchema({
     gasto_total: v.number(),
     por_gastar: v.number(),    
   }).index("by_proyecto", { fields: ["proyecto"] }),
+  proveedores: defineTable({
+    razon_social: v.string(),
+    rfc: v.string(),
+    direccion: v.string(),
+    nombre_contacto: v.string(),
+    telefono_contacto: v.string(),
+    cuenta: v.string(),
+    clabe: v.string(),
+    banco: v.string(),
+  }).index("by_rfc", { fields: ["rfc"] })
+    .index("by_razon_social", { fields: ["razon_social"] }),
 });
