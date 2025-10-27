@@ -21,18 +21,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAddProyectoModal } from "@/hooks/add-proyecto-modal";
-import AddProyectoModal from "@/components/modals/add-proyecto-modal";
+import { useAddProjectModal } from "@/hooks/add-project-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 
 export default function ProyectosTablePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Id<"desarrollos"> | null>(null);
-  
+
   const projects = useQuery(api.desarrollos.getAllWithMetrics);
   const deleteProject = useMutation(api.desarrollos.deleteProject);
-  const proyectoModal = useAddProyectoModal();
+  const addProjectModal = useAddProjectModal();
 
   const filteredProjects = projects?.filter((project) =>
     project.nombre.toLowerCase().includes(searchTerm.toLowerCase())
@@ -81,35 +80,35 @@ export default function ProyectosTablePage() {
       <div className="max-w-full mx-auto  py-8 text-left">
 
         <div className="flex flex-col gap-4 px-12">
-        <div className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-normal text-gray-900 mb-2">Proyectos</h1>
-            <p className="text-sm text-gray-500">
-              Gestiona y consulta todos tus proyectos de construcción
-            </p>
+          <div className="mb-8 flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-normal text-gray-900 mb-2">Proyectos</h1>
+              <p className="text-sm text-gray-500">
+                Gestiona y consulta todos tus proyectos de construcción
+              </p>
+            </div>
+            <Button
+              onClick={() => addProjectModal.onOpen()}
+              variant="outline"
+              size="lg"
+              className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+            >
+              Agregar Proyecto
+              <Plus className="h-6 w-6 rounded-full shadow-none" />
+            </Button>
           </div>
-          <Button
-            onClick={() => proyectoModal.onOpen()}
-            variant="outline"
-            size="lg"
-            className="flex items-center gap-2 rounded-none text-gray-500 py-6"
-          >
-            Agregar Proyecto
-            <Plus className="h-6 w-6 rounded-full shadow-none" />
-          </Button>
-        </div>
 
-        {/* Search Bar */}
-        <div className="mb-8 relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input
-            type="text"
-            placeholder="Buscar..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 rounded-none border-gray-300 h-12"
-          />
-        </div>
+          {/* Search Bar */}
+          <div className="mb-8 relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <Input
+              type="text"
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 rounded-none border-gray-300 h-12"
+            />
+          </div>
         </div>
         {/* Header */}
 
@@ -180,7 +179,7 @@ export default function ProyectosTablePage() {
                       {project.avance}%
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">
-                      {project.fecha_creacion || 
+                      {project.fecha_creacion ||
                         new Date(project._creationTime).toLocaleDateString("es-MX", {
                           day: "2-digit",
                           month: "short",
@@ -206,7 +205,7 @@ export default function ProyectosTablePage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => proyectoModal.onOpen(project._id)}
+                            onClick={() => addProjectModal.onOpen()}
                           >
                             Editar
                           </DropdownMenuItem>
@@ -227,8 +226,7 @@ export default function ProyectosTablePage() {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
-      <AddProyectoModal />
+
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

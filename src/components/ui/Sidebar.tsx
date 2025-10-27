@@ -35,7 +35,7 @@ const aloneItems: SidebarItem[] = [
   {
     id: "dashboard",
     label: "Proyectos",
-    path: "/proyectos-tabla",
+    path: "/proyectos",
     icon: <Building className="w-4 h-4" />,
     isDisabled: false
   },
