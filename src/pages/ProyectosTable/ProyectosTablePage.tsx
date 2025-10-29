@@ -6,12 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Search, MoreVertical, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -26,6 +20,7 @@ import { useEditProyectoModal } from "@/hooks/edit-proyecto-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import AddProyectoModal from "@/components/modals/add-proyecto-modal";
 import EditProyectoModal from "@/components/modals/edit-proyecto-modal";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function ProyectosTablePage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,10 +69,10 @@ export default function ProyectosTablePage() {
     }
   };
 
-  const openDeleteDialog = (projectId: Id<"desarrollos">) => {
-    setProjectToDelete(projectId);
-    setDeleteDialogOpen(true);
-  };
+  // const openDeleteDialog = (projectId: Id<"desarrollos">) => {
+  //   setProjectToDelete(projectId);
+  //   setDeleteDialogOpen(true);
+  // };
 
   return (
     <div className="bg-white min-h-screen">
@@ -135,7 +130,10 @@ export default function ProyectosTablePage() {
                   Pagado
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Avance
+                  Avance obra
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                  Honorarios
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
                   Fecha creación
@@ -182,7 +180,10 @@ export default function ProyectosTablePage() {
                     <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
                       {project.avance}%
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">
+                    <td className="px-6 py-4 text-sm border-r border-gray-200">
+                      {formatCurrency(project.honorarios_monto || 0)}
+                    </td>
+                    <td className="px-6 py-4 text-sm border-r border-gray-200">
                       {project.fecha_creacion ||
                         new Date(project._creationTime).toLocaleDateString("es-MX", {
                           day: "2-digit",
@@ -201,26 +202,21 @@ export default function ProyectosTablePage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 border-r border-gray-200">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                      <Popover>
+                        <PopoverTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <MoreVertical className="h-4 w-4 text-gray-400" />
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => editProyectoModal.onOpen(project._id)}
-                          >
+                        </PopoverTrigger>
+                        <PopoverContent className="w-36 space-y-2">                          
+                          <Button onClick={() => editProyectoModal.onOpen(project._id)} variant="outline" className="w-full text-xs">
                             Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => openDeleteDialog(project._id)}
-                          >
+                          </Button>                          
+                          {/* <Button onClick={() => openDeleteDialog(project._id)} variant="outline" className="w-full text-xs">
                             Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                          </Button> */}
+                        </PopoverContent>
+                      </Popover>
                     </td>
                   </tr>
                 ))

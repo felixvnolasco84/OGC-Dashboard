@@ -477,6 +477,7 @@ async function updateHonorariosMonto(
     }
     
     const honorariosPorcentaje = proyecto.honorarios_porcentaje || 0;
+    const excludedPartidasIds = proyecto.excluded_partidas_honorarios || [];
     
     // Get all transactions for this proyecto
     const allTransactions = await ctx.db
@@ -490,14 +491,76 @@ async function updateHonorariosMonto(
       0
     );
     
-    // Calculate honorarios amount: total * percentage / 100
-    const honorariosMonto = totalAmount * (honorariosPorcentaje / 100);
+    // If there are excluded partidas, subtract their amounts from the total
+    let excludedAmount = 0;
+    if (excludedPartidasIds.length > 0) {
+      // Get the excluded nivel 1 partidas to find their names
+      const excludedNivel1Partidas = await ctx.db
+        .query("partidas")
+        .filter((q: any) => {
+          let condition = q.eq(q.field("_id"), excludedPartidasIds[0]);
+          for (let i = 1; i < excludedPartidasIds.length; i++) {
+            condition = q.or(condition, q.eq(q.field("_id"), excludedPartidasIds[i]));
+          }
+          return condition;
+        })
+        .collect();
+      
+      // Get the names of excluded nivel 1 partidas
+      const excludedPartidasNames = excludedNivel1Partidas.map((p: any) => p.nombre);
+      
+      // Find all child partidas (nivel 2 and 3) that belong to excluded nivel 1 partidas
+      const allProjectPartidas = await ctx.db
+        .query("partidas")
+        .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId))
+        .collect();
+      
+      // Filter to get all partidas (nivel 1, 2, and 3) that should be excluded
+      const allExcludedPartidas = allProjectPartidas.filter((p: any) =>
+        excludedPartidasIds.includes(p._id) || // nivel 1 explicitly excluded
+        (p.partida_nombre && excludedPartidasNames.includes(p.partida_nombre)) // nivel 2 & 3 children
+      );
+      
+      const allExcludedPartidasIds = allExcludedPartidas.map((p: any) => p._id);
+      
+      console.log(`Excluding ${excludedNivel1Partidas.length} nivel 1 partidas and ${allExcludedPartidas.length - excludedNivel1Partidas.length} child partidas (total: ${allExcludedPartidas.length})`);
+      
+      // Get transaction IDs for this project
+      const transactionIds = allTransactions.map((t: any) => t._id);
+      
+      // Get all pagos (line items) from this project's transactions
+      const allPagos = await ctx.db.query("pagos").collect();
+      
+      // Filter pagos that:
+      // 1. Belong to this project's transactions
+      // 2. Reference the excluded partidas (including children)
+      const excludedPagos = allPagos.filter((pago: any) => 
+        transactionIds.includes(pago.transaccion_id) &&
+        allExcludedPartidasIds.includes(pago.partida_id)
+      );
+      
+      // Sum up the amounts from excluded pagos
+      excludedAmount = excludedPagos.reduce(
+        (sum: number, pago: any) => sum + (pago.monto || 0),
+        0
+      );
+      
+      console.log(`Total excluded amount: ${excludedAmount} from ${excludedPagos.length} line items`);
+    }
+    
+    // Calculate base amount for honorarios (total - excluded amounts)
+    const baseAmount = totalAmount - excludedAmount;
+    
+    // Calculate honorarios amount: base amount * percentage / 100
+    const honorariosMonto = baseAmount * (honorariosPorcentaje / 100);
     
     // Round to 2 decimal places
     const roundedHonorariosMonto = Math.round(honorariosMonto * 100) / 100;
     
     console.log("Honorarios calculation:", {
       totalAmount,
+      excludedAmount,
+      baseAmount,
       honorariosPorcentaje,
       honorariosMonto: roundedHonorariosMonto
     });
@@ -596,17 +659,27 @@ triggers.register("desarrollos", async (ctx, change) => {
   console.log("Desarrollo changed:", change.operation, change.id);
   
   try {
-    // Only handle updates where honorarios_porcentaje changed
+    // Only handle updates where honorarios_porcentaje or excluded_partidas_honorarios changed
     if (change.operation === "update" && change.oldDoc) {
       const oldPercentage = change.oldDoc.honorarios_porcentaje;
       const newPercentage = change.newDoc.honorarios_porcentaje;
+      const oldExcludedPartidas = JSON.stringify(change.oldDoc.excluded_partidas_honorarios || []);
+      const newExcludedPartidas = JSON.stringify(change.newDoc.excluded_partidas_honorarios || []);
       
-      if (oldPercentage !== newPercentage) {
-        console.log(`Honorarios percentage changed from ${oldPercentage} to ${newPercentage}`);
+      const percentageChanged = oldPercentage !== newPercentage;
+      const excludedPartidasChanged = oldExcludedPartidas !== newExcludedPartidas;
+      
+      if (percentageChanged || excludedPartidasChanged) {
+        if (percentageChanged) {
+          console.log(`Honorarios percentage changed from ${oldPercentage} to ${newPercentage}`);
+        }
+        if (excludedPartidasChanged) {
+          console.log(`Excluded partidas changed`);
+        }
         
-        // Recalculate honorarios_monto with the new percentage
+        // Recalculate honorarios_monto with the new percentage or exclusions
         await updateHonorariosMonto(ctx, change.id);
-        console.log("✅ Successfully updated honorarios_monto after percentage change");
+        console.log("✅ Successfully updated honorarios_monto after changes");
       }
     }
   } catch (error) {

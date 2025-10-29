@@ -20,8 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function EditProyectoModal() {
   const { isOpen, onClose, proyectoId } = useEditProyectoModal();
@@ -34,11 +36,16 @@ export default function EditProyectoModal() {
   const [status, setStatus] = useState("Activo");
   const [fechaCreacion, setFechaCreacion] = useState("");
   const [honorariosPorcentaje, setHonorariosPorcentaje] = useState<number>(0);
+  const [excludedPartidas, setExcludedPartidas] = useState<Id<"partidas">[]>([]);
 
   // Queries and mutations
   const proyecto = useQuery(
     api.desarrollos.getById,
     proyectoId ? { id: proyectoId } : "skip"
+  );
+  const partidas = useQuery(
+    api.partida.getByProject,
+    proyectoId ? { projectId: proyectoId } : "skip"
   );
   const updateProyecto = useMutation(api.desarrollos.update);
 
@@ -51,6 +58,7 @@ export default function EditProyectoModal() {
       setStatus(proyecto.status || "Activo");
       setFechaCreacion(proyecto.fecha_creacion || "");
       setHonorariosPorcentaje(proyecto.honorarios_porcentaje || 0);
+      setExcludedPartidas(proyecto.excluded_partidas_honorarios || []);
     }
   }, [proyecto]);
 
@@ -61,6 +69,7 @@ export default function EditProyectoModal() {
     setStatus("Activo");
     setFechaCreacion("");
     setHonorariosPorcentaje(0);
+    setExcludedPartidas([]);
     setIsSubmitting(false);
     onClose();
   };
@@ -80,6 +89,7 @@ export default function EditProyectoModal() {
         status,
         fecha_creacion: fechaCreacion || undefined,
         honorarios_porcentaje: honorariosPorcentaje,
+        excluded_partidas_honorarios: excludedPartidas,
       });
 
       toast.success("Proyecto actualizado", {
@@ -97,6 +107,20 @@ export default function EditProyectoModal() {
   };
 
   const isFormValid = nombre.trim() !== "" && descripcion.trim() !== "";
+
+  // Handle partida exclusion toggle
+  const handlePartidaToggle = (partidaId: Id<"partidas">) => {
+    setExcludedPartidas((prev) => {
+      if (prev.includes(partidaId)) {
+        return prev.filter((id) => id !== partidaId);
+      } else {
+        return [...prev, partidaId];
+      }
+    });
+  };
+
+  // Filter to only show nivel 1 partidas
+  const nivel1Partidas = partidas?.filter((partida) => partida.nivel === 1);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -161,6 +185,57 @@ export default function EditProyectoModal() {
               Porcentaje que se aplicará sobre el total de transacciones para calcular honorarios
             </p>
           </div>
+
+          {/* Partidas Exclusion Section */}
+          {nivel1Partidas && nivel1Partidas.length > 0 && (
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-blue-500 mt-0.5" />
+                <div>
+                  <Label className="text-sm font-medium">
+                    Excluir Partidas del Cálculo de Honorarios (Nivel 1)
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Selecciona las partidas de nivel 1 que NO deben incluirse en el cálculo de honorarios
+                  </p>
+                </div>
+              </div>
+
+              <div className="max-h-[300px] overflow-y-auto border rounded-md p-4 space-y-2">
+                {nivel1Partidas.map((partida) => (
+                  <div
+                    key={partida._id}
+                    className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded"
+                  >
+                    <Checkbox
+                      id={`partida-${partida._id}`}
+                      checked={excludedPartidas.includes(partida._id)}
+                      onCheckedChange={() => handlePartidaToggle(partida._id)}
+                      className="mt-1"
+                    />
+                    <label
+                      htmlFor={`partida-${partida._id}`}
+                      className="flex-1 cursor-pointer"
+                    >
+                      <div className="text-sm font-medium">{partida.nombre}</div>
+                      <div className="text-xs text-gray-500">
+                        {partida.familia} - {partida.sub_partida}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Presupuesto: ${partida.presupuesto_aprobado.toLocaleString()}
+                      </div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-gray-500 italic">
+                {excludedPartidas.length > 0
+                  ? `${excludedPartidas.length} partida${excludedPartidas.length > 1 ? 's' : ''} excluida${excludedPartidas.length > 1 ? 's' : ''} del cálculo`
+                  : 'Ninguna partida excluida'}
+              </p>
+            </div>
+          )}
 
           {/* Status */}
           <div className="space-y-2">

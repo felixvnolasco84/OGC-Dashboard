@@ -34,6 +34,7 @@ export default defineSchema({
     fecha_creacion: v.optional(v.string()),
     honorarios_porcentaje: v.optional(v.number()), // User-set percentage (e.g., 15 for 15%)
     honorarios_monto: v.optional(v.number()), // Auto-calculated amount based on percentage
+    excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
   }),
   // Parent transaction that holds all payment details and documents
   transacciones: defineTable({

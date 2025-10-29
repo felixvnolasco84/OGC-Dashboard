@@ -85,6 +85,7 @@ export const update = mutation({
         status: v.optional(v.string()),
         fecha_creacion: v.optional(v.string()),
         honorarios_porcentaje: v.optional(v.number()),
+        excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
     },
     handler: async (ctx, args) => {
         const { id, ...rest } = args;
