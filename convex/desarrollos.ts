@@ -55,6 +55,7 @@ export const create = mutation({
         image: v.string(),
         status: v.optional(v.string()),
         fecha_creacion: v.optional(v.string()),
+        honorarios_porcentaje: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const project = await ctx.db.insert("desarrollos", {
@@ -67,6 +68,8 @@ export const create = mutation({
                 month: "short",
                 year: "numeric",
             }),
+            honorarios_porcentaje: args.honorarios_porcentaje || 0,
+            honorarios_monto: 0, // Initial value, will be calculated by triggers
         });
         return project;
     },
@@ -81,6 +84,7 @@ export const update = mutation({
         image: v.optional(v.string()),
         status: v.optional(v.string()),
         fecha_creacion: v.optional(v.string()),
+        honorarios_porcentaje: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const { id, ...rest } = args;

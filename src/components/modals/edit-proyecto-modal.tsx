@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useAddProyectoModal } from "@/hooks/add-proyecto-modal";
+import { useEditProyectoModal } from "@/hooks/edit-proyecto-modal";
 import {
   Dialog,
   DialogContent,
@@ -23,8 +23,8 @@ import {
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function AddProyectoModal() {
-  const { isOpen, onClose } = useAddProyectoModal();
+export default function EditProyectoModal() {
+  const { isOpen, onClose, proyectoId } = useEditProyectoModal();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state
@@ -35,8 +35,24 @@ export default function AddProyectoModal() {
   const [fechaCreacion, setFechaCreacion] = useState("");
   const [honorariosPorcentaje, setHonorariosPorcentaje] = useState<number>(0);
 
-  // Mutation
-  const createProyecto = useMutation(api.desarrollos.create);
+  // Queries and mutations
+  const proyecto = useQuery(
+    api.desarrollos.getById,
+    proyectoId ? { id: proyectoId } : "skip"
+  );
+  const updateProyecto = useMutation(api.desarrollos.update);
+
+  // Load proyecto data when modal opens
+  useEffect(() => {
+    if (proyecto) {
+      setNombre(proyecto.nombre || "");
+      setDescripcion(proyecto.descripcion || "");
+      setImage(proyecto.image || "");
+      setStatus(proyecto.status || "Activo");
+      setFechaCreacion(proyecto.fecha_creacion || "");
+      setHonorariosPorcentaje(proyecto.honorarios_porcentaje || 0);
+    }
+  }, [proyecto]);
 
   const handleClose = () => {
     setNombre("");
@@ -51,26 +67,29 @@ export default function AddProyectoModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!proyectoId) return;
+
     setIsSubmitting(true);
 
     try {
-      await createProyecto({
+      await updateProyecto({
+        id: proyectoId,
         nombre,
         descripcion,
-        image: image || "https://placehold.co/600x400",
+        image: image || undefined,
         status,
         fecha_creacion: fechaCreacion || undefined,
         honorarios_porcentaje: honorariosPorcentaje,
       });
 
-      toast.success("Proyecto creado", {
-        description: `El proyecto "${nombre}" ha sido creado exitosamente.`,
+      toast.success("Proyecto actualizado", {
+        description: `El proyecto "${nombre}" ha sido actualizado correctamente.`,
       });
 
       handleClose();
     } catch (error) {
-      console.error("Error creating proyecto:", error);
-      toast.error("Error al crear el proyecto", {
+      console.error("Error updating proyecto:", error);
+      toast.error("Error al actualizar el proyecto", {
         description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
       });
       setIsSubmitting(false);
@@ -84,10 +103,10 @@ export default function AddProyectoModal() {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">
-            Crear Nuevo Proyecto
+            Editar Proyecto
           </DialogTitle>
           <DialogDescription>
-            Ingresa la información del nuevo proyecto
+            Actualiza la información del proyecto
           </DialogDescription>
         </DialogHeader>
 
@@ -213,10 +232,10 @@ export default function AddProyectoModal() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creando...
+                  Guardando...
                 </>
               ) : (
-                "Crear Proyecto"
+                "Guardar Cambios"
               )}
             </Button>
           </div>

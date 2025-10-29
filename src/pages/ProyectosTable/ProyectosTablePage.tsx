@@ -21,8 +21,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAddProjectModal } from "@/hooks/add-project-modal";
+import { useAddProyectoModal } from "@/hooks/add-proyecto-modal";
+import { useEditProyectoModal } from "@/hooks/edit-proyecto-modal";
 import { Id } from "../../../convex/_generated/dataModel";
+import AddProyectoModal from "@/components/modals/add-proyecto-modal";
+import EditProyectoModal from "@/components/modals/edit-proyecto-modal";
 
 export default function ProyectosTablePage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,7 +34,8 @@ export default function ProyectosTablePage() {
 
   const projects = useQuery(api.desarrollos.getAllWithMetrics);
   const deleteProject = useMutation(api.desarrollos.deleteProject);
-  const addProjectModal = useAddProjectModal();
+  const addProyectoModal = useAddProyectoModal();
+  const editProyectoModal = useEditProyectoModal();
 
   const filteredProjects = projects?.filter((project) =>
     project.nombre.toLowerCase().includes(searchTerm.toLowerCase())
@@ -88,7 +92,7 @@ export default function ProyectosTablePage() {
               </p>
             </div>
             <Button
-              onClick={() => addProjectModal.onOpen()}
+              onClick={() => addProyectoModal.onOpen()}
               variant="outline"
               size="lg"
               className="flex items-center gap-2 rounded-none text-gray-500 py-6"
@@ -205,7 +209,7 @@ export default function ProyectosTablePage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => addProjectModal.onOpen()}
+                            onClick={() => editProyectoModal.onOpen(project._id)}
                           >
                             Editar
                           </DropdownMenuItem>
@@ -226,7 +230,9 @@ export default function ProyectosTablePage() {
         </div>
       </div>
 
-
+      {/* Modals */}
+      <AddProyectoModal />
+      <EditProyectoModal />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

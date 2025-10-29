@@ -133,7 +133,13 @@ export default function AddProjectModal() {
     const createTransaction = useMutation(api.transacciones.createTransaction);
 
     const handleInputChange = (field: string, value: string) => {
-        updateFormData({ [field]: value });
+        // Convert to number for honorarios_porcentaje field
+        if (field === 'honorarios_porcentaje') {
+            const numValue = parseFloat(value) || 0;
+            updateFormData({ [field]: numValue });
+        } else {
+            updateFormData({ [field]: value });
+        }
     };
     // Helper function to convert Excel serial date to JavaScript Date
     const excelSerialToDate = (serial: number): string => {
@@ -186,6 +192,7 @@ export default function AddProjectModal() {
                 nombre: formData.nombre,
                 descripcion: formData.descripcion,
                 image: "",
+                honorarios_porcentaje: formData.honorarios_porcentaje,
             });
 
             // Type for the record from the API
@@ -288,7 +295,7 @@ export default function AddProjectModal() {
             });
 
             // Reset form and close modal
-            updateFormData({ nombre: '', descripcion: '', excel: null });
+            updateFormData({ nombre: '', descripcion: '', excel: null, honorarios_porcentaje: 0 });
             setFile(null);
             setShowExcelUploader(false);
             onClose();
@@ -307,7 +314,7 @@ export default function AddProjectModal() {
 
     const handleClose = () => {
         // Reset form state
-        updateFormData({ nombre: '', descripcion: '', excel: null });
+        updateFormData({ nombre: '', descripcion: '', excel: null, honorarios_porcentaje: 0 });
         setFile(null);
         setShowExcelUploader(false);
         setResult(null);
@@ -360,6 +367,23 @@ export default function AddProjectModal() {
                                 rows={4}
                                 required
                             />
+                        </div>
+
+                        {/* Honorarios Percentage */}
+                        <div className="space-y-2">
+                            <Label htmlFor="honorarios_porcentaje">Porcentaje de Honorarios (%)</Label>
+                            <Input
+                                id="honorarios_porcentaje"
+                                type="number"
+                                placeholder="Ej: 15"
+                                value={formData.honorarios_porcentaje || ''}
+                                onChange={(e) => handleInputChange('honorarios_porcentaje', e.target.value)}
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                className="rounded-none"
+                            />
+                            <p className="text-xs text-gray-500">Porcentaje que se aplicará sobre el total de transacciones para calcular honorarios</p>
                         </div>
 
                         <Separator />

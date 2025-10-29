@@ -508,8 +508,48 @@ async function updateHonorariosMonto(
     });
     
     console.log(`✅ Updated honorarios_monto to ${roundedHonorariosMonto}`);
+    
+    // Update the HONORARIOS partida with the new amount
+    await updateHonorariosPartida(ctx, proyectoId, roundedHonorariosMonto);
   } catch (error) {
     console.error("❌ Error updating honorarios_monto:", error);
+    throw error;
+  }
+}
+
+// Helper function to update the HONORARIOS partida with honorarios_monto
+async function updateHonorariosPartida(
+  ctx: { db: any },
+  proyectoId: string,
+  honorariosMonto: number
+) {
+  console.log(`Updating HONORARIOS partida for proyecto: ${proyectoId}`);
+  
+  try {
+    // Find the HONORARIOS partida (nivel 1) for this proyecto
+    const honorariosPartida = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto_nivel_nombre", (q: any) => 
+        q.eq("proyecto", proyectoId).eq("nivel", 1).eq("nombre", "HONORARIOS")
+      )
+      .first();
+    
+    if (honorariosPartida) {
+      // Update pagado and por_gastar for existing HONORARIOS partida
+      const presupuestoAprobado = honorariosPartida.presupuesto_aprobado || 0;
+      const porGastar = presupuestoAprobado - honorariosMonto;
+      
+      await ctx.db.patch(honorariosPartida._id, {
+        pagado: honorariosMonto,
+        por_gastar: porGastar
+      });
+      
+      console.log(`✅ Updated HONORARIOS partida: pagado=${honorariosMonto}, por_gastar=${porGastar}`);
+    } else {
+      console.log("⚠️ HONORARIOS partida not found for this proyecto");
+    }
+  } catch (error) {
+    console.error("❌ Error updating HONORARIOS partida:", error);
     throw error;
   }
 }

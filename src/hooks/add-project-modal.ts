@@ -4,6 +4,7 @@ type ProjectFormData = {
     nombre: string;
     descripcion: string;
     excel: File | null;
+    honorarios_porcentaje: number;
 };
 
 type AddProjectModalStore = {
@@ -19,6 +20,7 @@ const initialFormData: ProjectFormData = {
     nombre: "",
     descripcion: "",
     excel: null,
+    honorarios_porcentaje: 0,
 };
 
 export const useAddProjectModal = create<AddProjectModalStore>((set) => ({
