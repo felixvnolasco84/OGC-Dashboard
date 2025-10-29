@@ -1,4 +1,5 @@
-import { mutation, query } from "./_generated/server";
+import { query } from "./_generated/server";
+import { mutation } from "./functions";
 import { v } from "convex/values";
 
 // Get all projects
@@ -149,6 +150,102 @@ export const deleteProject = mutation({
             deletedTransacciones: transacciones.length,
             deletedDocumentos: documentos.length,
             appwriteFileIds: documentos.map(doc => doc.image), // Return file IDs for manual cleanup
+        };
+    },
+});
+
+// Manually recalculate honorarios monto for a proyecto
+export const recalculateHonorariosMonto = mutation({
+    args: {
+        id: v.id("desarrollos"),
+    },
+    handler: async (ctx, args) => {
+        // Verify the project exists
+        const project = await ctx.db.get(args.id);
+        if (!project) {
+            throw new Error("Project not found");
+        }
+
+        const honorariosPorcentaje = project.honorarios_porcentaje || 0;
+
+        // Get all transactions for this proyecto
+        const allTransactions = await ctx.db
+            .query("transacciones")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .collect();
+
+        // Calculate total amount from all transactions
+        const totalAmount = allTransactions.reduce(
+            (sum, t) => sum + (t.monto_total || 0),
+            0
+        );
+
+        // Calculate honorarios amount: total * percentage / 100
+        const honorariosMonto = totalAmount * (honorariosPorcentaje / 100);
+
+        // Round to 2 decimal places
+        const roundedHonorariosMonto = Math.round(honorariosMonto * 100) / 100;
+
+        // Update the desarrollo's honorarios_monto field
+        await ctx.db.patch(args.id, { 
+            honorarios_monto: roundedHonorariosMonto 
+        });
+
+        return {
+            honorarios_porcentaje: honorariosPorcentaje,
+            honorarios_monto: roundedHonorariosMonto,
+            totalAmount,
+        };
+    },
+});
+
+// Recalculate honorarios monto for all projects (useful for bulk updates)
+export const recalculateAllHonorariosMonto = mutation({
+    args: {},
+    handler: async (ctx) => {
+        // Get all projects
+        const allProjects = await ctx.db.query("desarrollos").collect();
+        
+        const results = [];
+        
+        for (const project of allProjects) {
+            const honorariosPorcentaje = project.honorarios_porcentaje || 0;
+
+            // Get all transactions for this proyecto
+            const allTransactions = await ctx.db
+                .query("transacciones")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", project._id))
+                .collect();
+
+            // Calculate total amount from all transactions
+            const totalAmount = allTransactions.reduce(
+                (sum, t) => sum + (t.monto_total || 0),
+                0
+            );
+
+            // Calculate honorarios amount: total * percentage / 100
+            const honorariosMonto = totalAmount * (honorariosPorcentaje / 100);
+
+            // Round to 2 decimal places
+            const roundedHonorariosMonto = Math.round(honorariosMonto * 100) / 100;
+
+            // Update the desarrollo's honorarios_monto field
+            await ctx.db.patch(project._id, { 
+                honorarios_monto: roundedHonorariosMonto 
+            });
+
+            results.push({
+                projectId: project._id,
+                projectName: project.nombre,
+                honorarios_porcentaje: honorariosPorcentaje,
+                honorarios_monto: roundedHonorariosMonto,
+            });
+        }
+
+        return {
+            success: true,
+            projectsUpdated: results.length,
+            results,
         };
     },
 });

@@ -14,7 +14,7 @@ export default defineSchema({
     presupuesto_original: v.number(),
     presupuesto_aprobado: v.number(),
     pagado: v.number(),    
-    por_gastar: v.optional(v.number()),
+    por_gastar: v.optional(v.number()),    
     archivo_origen: v.string(),
     proyecto: v.optional(v.id("desarrollos")),
   }).index("by_proyecto", { fields: ["proyecto"] })
@@ -32,6 +32,8 @@ export default defineSchema({
     image: v.string(),
     status: v.optional(v.string()), // Activo, Cancelado, Entregado
     fecha_creacion: v.optional(v.string()),
+    honorarios_porcentaje: v.optional(v.number()), // User-set percentage (e.g., 15 for 15%)
+    honorarios_monto: v.optional(v.number()), // Auto-calculated amount based on percentage
   }),
   // Parent transaction that holds all payment details and documents
   transacciones: defineTable({

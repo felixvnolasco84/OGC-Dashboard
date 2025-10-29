@@ -461,6 +461,120 @@ async function updateMeticasPresupuesto(
   }
 }
 
+// Helper function to calculate and update honorarios monto for a proyecto
+async function updateHonorariosMonto(
+  ctx: { db: any },
+  proyectoId: string
+) {
+  console.log(`Calculating honorarios monto for proyecto: ${proyectoId}`);
+  
+  try {
+    // Get the proyecto to access honorarios_porcentaje
+    const proyecto = await ctx.db.get(proyectoId);
+    if (!proyecto) {
+      console.log("Proyecto not found, skipping honorarios calculation");
+      return;
+    }
+    
+    const honorariosPorcentaje = proyecto.honorarios_porcentaje || 0;
+    
+    // Get all transactions for this proyecto
+    const allTransactions = await ctx.db
+      .query("transacciones")
+      .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId))
+      .collect();
+    
+    // Calculate total amount from all transactions
+    const totalAmount = allTransactions.reduce(
+      (sum: number, t: any) => sum + (t.monto_total || 0),
+      0
+    );
+    
+    // Calculate honorarios amount: total * percentage / 100
+    const honorariosMonto = totalAmount * (honorariosPorcentaje / 100);
+    
+    // Round to 2 decimal places
+    const roundedHonorariosMonto = Math.round(honorariosMonto * 100) / 100;
+    
+    console.log("Honorarios calculation:", {
+      totalAmount,
+      honorariosPorcentaje,
+      honorariosMonto: roundedHonorariosMonto
+    });
+    
+    // Update the desarrollo's honorarios_monto field
+    await ctx.db.patch(proyectoId, { 
+      honorarios_monto: roundedHonorariosMonto 
+    });
+    
+    console.log(`✅ Updated honorarios_monto to ${roundedHonorariosMonto}`);
+  } catch (error) {
+    console.error("❌ Error updating honorarios_monto:", error);
+    throw error;
+  }
+}
+
+// Register trigger for transacciones table to update honorarios monto
+triggers.register("transacciones", async (ctx, change) => {
+  console.log("Transaction changed:", change.operation, change.id);
+  
+  try {
+    // Get the transaction record to extract proyecto information
+    let transaction;
+    if (change.operation === "insert" || change.operation === "update") {
+      transaction = change.newDoc;
+    } else if (change.operation === "delete") {
+      transaction = change.oldDoc;
+    }
+    
+    if (!transaction || !transaction.proyecto) {
+      console.log("No transaction or proyecto found, skipping trigger");
+      return;
+    }
+    
+    // For updates, only recalculate if monto_total changed (percentage is set separately)
+    if (change.operation === "update" && change.oldDoc) {
+      const montoChanged = change.oldDoc.monto_total !== change.newDoc.monto_total;
+      
+      if (!montoChanged) {
+        console.log("monto_total not changed, skipping honorarios update");
+        return;
+      }
+    }
+    
+    // Update honorarios monto for the proyecto
+    await updateHonorariosMonto(ctx, transaction.proyecto);
+    console.log("✅ Successfully updated honorarios_monto after transaction change");
+  } catch (error) {
+    console.error("❌ Error in transaction trigger:", error);
+    throw error;
+  }
+});
+
+// Register trigger for desarrollos table to recalculate honorarios_monto when percentage changes
+triggers.register("desarrollos", async (ctx, change) => {
+  console.log("Desarrollo changed:", change.operation, change.id);
+  
+  try {
+    // Only handle updates where honorarios_porcentaje changed
+    if (change.operation === "update" && change.oldDoc) {
+      const oldPercentage = change.oldDoc.honorarios_porcentaje;
+      const newPercentage = change.newDoc.honorarios_porcentaje;
+      
+      if (oldPercentage !== newPercentage) {
+        console.log(`Honorarios percentage changed from ${oldPercentage} to ${newPercentage}`);
+        
+        // Recalculate honorarios_monto with the new percentage
+        await updateHonorariosMonto(ctx, change.id);
+        console.log("✅ Successfully updated honorarios_monto after percentage change");
+      }
+    }
+  } catch (error) {
+    console.error("❌ Error in desarrollo trigger:", error);
+    throw error;
+  }
+});
+
 // Create wrappers that replace the built-in `mutation` and `internalMutation`
 // The wrappers override `ctx` so that `ctx.db.insert`, `ctx.db.patch`, etc. run registered trigger functions
 export const mutation = customMutation(rawMutation, customCtx(triggers.wrapDB));
