@@ -7,9 +7,7 @@ import EditPaymentModal from "../modals/edit-payment-modal";
 import AddProjectModal from "../modals/add-project-modal";
 import AggregatedDetailsModal from "../modals/aggregated-details-modal";
 import AddPartidaModal from "../modals/add-partida-modal";
-
-// import { EditCostModal } from "@/components/modals/edit-costos-modal";
-
+import UploadTransactionsModal from "../modals/upload-transactions-modal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -29,5 +27,6 @@ export const ModalProvider = () => {
     <AddProjectModal />
     <AggregatedDetailsModal />
     <AddPartidaModal />
+    <UploadTransactionsModal />
   </>;
 };

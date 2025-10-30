@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus } from "lucide-react";
+import { Search, MoreVertical, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -20,6 +20,7 @@ import { useEditProyectoModal } from "@/hooks/edit-proyecto-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import AddProyectoModal from "@/components/modals/add-proyecto-modal";
 import EditProyectoModal from "@/components/modals/edit-proyecto-modal";
+import { useUploadTransactionsModal } from "@/hooks/upload-transactions-modal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function ProyectosTablePage() {
@@ -31,7 +32,8 @@ export default function ProyectosTablePage() {
   const deleteProject = useMutation(api.desarrollos.deleteProject);
   const addProyectoModal = useAddProyectoModal();
   const editProyectoModal = useEditProyectoModal();
-
+  const uploadTransactionsModal = useUploadTransactionsModal();
+  
   const filteredProjects = projects?.filter((project) =>
     project.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -94,6 +96,15 @@ export default function ProyectosTablePage() {
             >
               Agregar Proyecto
               <Plus className="h-6 w-6 rounded-full shadow-none" />
+            </Button>
+            <Button
+              onClick={() => uploadTransactionsModal.onOpen()}
+              variant="outline"
+              size="lg"
+              className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+            >
+              Subir Transacciones
+              <Upload className="h-6 w-6 rounded-full shadow-none" />
             </Button>
           </div>
 
