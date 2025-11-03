@@ -1,5 +1,10 @@
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, FileText, ExternalLink, Edit } from "lucide-react";
 import { Doc } from "convex/_generated/dataModel";
+import { getFileUrl } from "@/lib/appwrite";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+
+import { useEditTransactionModal } from "@/hooks/edit-transaction-modal";
 
 type EnrichedPayment = Doc<"pagos"> & {
   proyecto?: string;
@@ -25,30 +30,45 @@ interface TransactionCardProps {
   lineItems: EnrichedPayment[];
   index: number;
   formatCurrency: (amount: string | number) => string;
+  documents?: Doc<"documentos">[];
 }
 
-export default function TransactionCard({ 
-  transaction, 
-  lineItems, 
-  index, 
-  formatCurrency 
+export default function TransactionCard({
+  transaction,
+  lineItems,
+  index,
+  formatCurrency,
+  documents = []
 }: TransactionCardProps) {
+  const editTransactionModal = useEditTransactionModal();
+
   // Use the status property from transaction
   const isPagado = transaction.status === 'Pagado';
-  
+
   // Calculate total from line items
   const totalAmount = lineItems.reduce((sum, item) => sum + item.monto, 0);
   const lineItemsCount = lineItems.length;
+
+  const handleEdit = () => {
+    editTransactionModal.onOpen({
+      transaction,
+      lineItems: lineItems.map(item => ({
+        ...item,
+        partida: item.partida,
+        familia: item.familia,
+        sub_partida: item.sub_partida,
+      })),
+    });
+  };
 
   return (
     <div className="bg-white overflow-hidden">
       {/* Transaction Header */}
       <div className="p-4 border-b border-gray-400">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-md flex items-center justify-center ${
-              isPagado ? 'bg-[#E0F0E2]' : 'bg-orange-100'
-            }`}>
+          <div className="flex items-center gap-3 flex-1">
+            <div className={`w-12 h-12 rounded-md flex items-center justify-center ${isPagado ? 'bg-[#E0F0E2]' : 'bg-orange-100'
+              }`}>
               {isPagado ? (
                 <div className="w-fit bg-green-800 rounded-full p-0.5">
                   <Check className="w-4 h-4 text-white" />
@@ -68,10 +88,11 @@ export default function TransactionCard({
               </p>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-right flex items-center gap-3">
             <p className="text-xl text-gray-900">
               {formatCurrency(totalAmount)} {transaction.moneda || 'MXN'}
             </p>
+
           </div>
         </div>
       </div>
@@ -118,8 +139,8 @@ export default function TransactionCard({
                     {item.partida && item.familia && item.sub_partida
                       ? `${item.partida} › ${item.familia} › ${item.sub_partida}`
                       : item.partida && item.familia
-                      ? `${item.partida} › ${item.familia}`
-                      : item.partida || 'Concepto'}
+                        ? `${item.partida} › ${item.familia}`
+                        : item.partida || 'Concepto'}
                   </span>
                   <span className="text-gray-900 ml-2 whitespace-nowrap">
                     {formatCurrency(item.monto)}
@@ -149,35 +170,68 @@ export default function TransactionCard({
               </span>
             )}
             {transaction.categoria && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-700">
+              <Badge className="rounded-sm" variant={"outline"}>
                 {transaction.categoria}
-              </span>
+              </Badge>
+
             )}
           </div>
-          
+
           {/* File Attachments */}
           <div className="flex flex-col gap-2 pt-2 justify-end">
-            {transaction.factura && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md justify-end">
-                <span className="text-sm text-gray-700">
-                  {transaction.factura.includes('http') ? 'Factura' : transaction.factura}
-                </span>
-                <div className="w-fit bg-green-800 rounded-full p-0.5">
-                  <Check className="w-4 h-4 text-white" />
-                </div>
-              </div>
-            )}
-            {transaction.comprobante && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md justify-end">
-                <span className="text-sm text-gray-700">
-                  {transaction.comprobante.includes('http') ? 'Comprobante' : transaction.comprobante}
-                </span>
-                <div className="w-fit bg-green-800 rounded-full p-0.5">
-                  <Check className="w-4 h-4 text-white" />
-                </div>
-              </div>
+            {documents && documents.length > 0 ? (
+              // Show documents from database with preview links
+              documents.map((doc) => (
+                <Button
+                  key={doc._id}
+                  onClick={() => window.open(getFileUrl(doc.image), '_blank')}
+                  size={"md"}
+                  className="flex items-center gap-2 px-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md justify-end transition-colors cursor-pointer"
+                  title={`Ver ${doc.nombre}`}
+                >
+                  <FileText className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm text-gray-700 font-medium">
+                    {doc.nombre}
+                  </span>
+                  <ExternalLink className="w-3 h-3 text-gray-600" />
+                </Button>
+              ))
+            ) : (
+              // Fallback to legacy fields if no documents
+              <>
+                {transaction.factura && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md justify-end">
+                    <span className="text-sm text-gray-700">
+                      {transaction.factura.includes('http') ? 'Factura' : transaction.factura}
+                    </span>
+                    <div className="w-fit bg-green-800 rounded-full p-0.5">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                )}
+                {transaction.comprobante && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md justify-end">
+                    <span className="text-sm text-gray-700">
+                      {transaction.comprobante.includes('http') ? 'Comprobante' : transaction.comprobante}
+                    </span>
+                    <div className="w-fit bg-green-800 rounded-full p-0.5">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
+        </div>
+        <div className="flex justify-end">
+          <Button
+            onClick={handleEdit}
+            variant="ghost"
+            className="w-fit justify-end gap-2 font-normal mt-2"
+          >
+            <Edit className="h-4 w-4" />
+          Editar transacción
+        </Button>
         </div>
       </div>
     </div>

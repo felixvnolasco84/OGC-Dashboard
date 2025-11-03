@@ -79,6 +79,7 @@ export const createTransaction = mutation({
 export const updateTransaction = mutation({
   args: {
     id: v.id("transacciones"),
+    monto_total: v.optional(v.number()),
     fecha: v.optional(v.string()),
     tipo_pago: v.optional(v.string()),
     moneda: v.optional(v.string()),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import SeePaymentDetailsModal from "../modals/see-payment-details-modal";
+import SeeTransactionsDetailsModal from "../modals/see-transactions-details-modal";
 import AddPaymentModal from "../modals/add-payment-modal";
 import EditPaymentModal from "../modals/edit-payment-modal";
 import AggregatedDetailsModal from "../modals/aggregated-details-modal";
@@ -23,10 +23,9 @@ export const ModalProvider = () => {
   }
 
   return <>
-    <SeePaymentDetailsModal />
+    <SeeTransactionsDetailsModal />
     <AddPaymentModal />
     <EditPaymentModal />
-
     <AggregatedDetailsModal />
     <AddPartidaModal />
     <UploadTransactionsModal />
