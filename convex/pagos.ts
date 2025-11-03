@@ -7,6 +7,7 @@
  */
 
 import { query } from "./_generated/server";
+import { mutation } from "./functions";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 
@@ -242,5 +243,22 @@ export const getAll = query({
     );
     
     return enrichedPagos;
+  },
+});
+
+// Update a pago (line item) amount
+export const updatePago = mutation({
+  args: {
+    id: v.id("pagos"),
+    monto: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existingPago = await ctx.db.get(args.id);
+    if (!existingPago) {
+      throw new Error("Pago not found");
+    }
+
+    await ctx.db.patch(args.id, { monto: args.monto });
+    return args.id;
   },
 });

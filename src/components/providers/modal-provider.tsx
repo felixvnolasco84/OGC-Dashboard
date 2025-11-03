@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import SeePaymentDetailsModal from "../modals/see-payment-details-modal";
+import SeeTransactionsDetailsModal from "../modals/see-transactions-details-modal";
 import AddPaymentModal from "../modals/add-payment-modal";
 import EditPaymentModal from "../modals/edit-payment-modal";
+import EditTransactionModal from "../modals/edit-transaction-modal";
 import AddProjectModal from "../modals/add-project-modal";
 import AggregatedDetailsModal from "../modals/aggregated-details-modal";
 import AddPartidaModal from "../modals/add-partida-modal";
@@ -21,9 +22,10 @@ export const ModalProvider = () => {
   }
 
   return <>
-    <SeePaymentDetailsModal />
+    <SeeTransactionsDetailsModal />
     <AddPaymentModal />
     <EditPaymentModal />
+    <EditTransactionModal />
     <AddProjectModal />
     <AggregatedDetailsModal />
     <AddPartidaModal />

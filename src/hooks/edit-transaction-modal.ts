@@ -1,0 +1,92 @@
+import { Doc } from "../../convex/_generated/dataModel";
+import { create } from "zustand";
+
+type EditTransactionContext = {
+    transaction: Doc<"transacciones">;
+    lineItems: Array<Doc<"pagos"> & {
+        partida?: string;
+        familia?: string;
+        sub_partida?: string;
+    }>;
+};
+
+type TransactionFormData = {
+    fecha: string;
+    tipo_pago: string;
+    banco: string;
+    tarjeta: string;
+    numero_cuenta: string;
+    numero_transferencia: string;
+    codigo_referencia: string;
+    factura: string;
+    comprobante: string;
+    moneda: string;
+    tipo_cambio: string;
+    status: string;
+    categoria: string;
+};
+
+type EditTransactionModalStore = {
+    transactionContext?: EditTransactionContext;
+    formData: TransactionFormData;
+    isOpen: boolean;
+    onOpen: (context: EditTransactionContext) => void;
+    onClose: () => void;
+    updateFormData: (data: Partial<TransactionFormData>) => void;
+    resetForm: () => void;
+};
+
+const initialFormData: TransactionFormData = {
+    fecha: "",
+    tipo_pago: "efectivo",
+    moneda: "MXN",
+    tipo_cambio: "1",
+    status: "",
+    categoria: "",
+    codigo_referencia: "",
+    factura: "",
+    comprobante: "",
+    banco: "",
+    tarjeta: "",
+    numero_cuenta: "",
+    numero_transferencia: "",
+};
+
+export const useEditTransactionModal = create<EditTransactionModalStore>((set) => ({
+    isOpen: false,
+    formData: initialFormData,
+    onOpen: (transactionContext: EditTransactionContext) => {
+        const transaction = transactionContext.transaction;
+        
+        const prefilledData: TransactionFormData = {
+            fecha: transaction.fecha || "",
+            tipo_pago: transaction.tipo_pago || "efectivo",
+            banco: transaction.banco || "",
+            tarjeta: transaction.tarjeta || "",
+            numero_cuenta: transaction.numero_cuenta || "",
+            numero_transferencia: transaction.numero_transferencia || "",
+            codigo_referencia: transaction.codigo_referencia || "",
+            factura: transaction.factura || "",
+            comprobante: transaction.comprobante || "",
+            moneda: transaction.moneda || "MXN",
+            tipo_cambio: transaction.tipo_cambio || "1",
+            status: transaction.status || "",
+            categoria: transaction.categoria || "",
+        };
+
+        set({
+            isOpen: true,
+            transactionContext,
+            formData: prefilledData
+        });
+    },
+    onClose: () => set({
+        isOpen: false,
+        transactionContext: undefined,
+        formData: initialFormData
+    }),
+    updateFormData: (data: Partial<TransactionFormData>) => set((state) => ({
+        formData: { ...state.formData, ...data }
+    })),
+    resetForm: () => set({ formData: initialFormData }),
+}));

@@ -6,18 +6,18 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet"
-import { useSeePaymentDetailsModal } from "@/hooks/see-payment-details";
+import { useSeePaymentDetailsModal } from "@/hooks/see-transactions-details";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import PaymentCard from "../Cards/PaymentCard";
-import TransactionCard from "../Cards/TransactionCard";
+import TransactionCardWithDocuments from "../Cards/TransactionCardWithDocuments";
 import { Button } from "../ui/button";
 import { Plus } from "lucide-react";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { Doc } from "convex/_generated/dataModel";
 
-export default function SeePaymentDetailsModal() {
+export default function SeeTransactionsDetailsModal() {
     const paymentContext = useSeePaymentDetailsModal((state) => state.paymentContext);
     const isOpen = useSeePaymentDetailsModal((state) => state.isOpen);
     const onClose = useSeePaymentDetailsModal((state) => state.onClose);
@@ -146,18 +146,19 @@ export default function SeePaymentDetailsModal() {
                             <CardContent className="space-y-8">
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
-                                        {/* <Badge variant={getTotalPaidPercentage() >= 100 ? "default" : "secondary"}>
-                                            {getTotalPaidPercentage().toFixed(1)}%
-                                        </Badge> */}
+                                        {getTotalPaidPercentage() > 100 && (
+                                            <Badge variant="destructive" className="text-xs">
+                                                Sobrepasado {getTotalPaidPercentage().toFixed(1)}%
+                                            </Badge>
+                                        )}
                                     </div>
-                                    {/* Progress Bar */}
-                                    <div className="w-full bg-green-200  h-2 mb-6">
+                                    {/* Progress Bar with Over 100% handling */}
+                                    <div className={`w-full h-2 mb-6 ${getTotalPaidPercentage() > 100 ? 'bg-red-200' : 'bg-green-200'}`}>
                                         <div
-                                            className="h-2  transition-all duration-300 bg-green-500"
+                                            className={`h-2 transition-all duration-300 ${getTotalPaidPercentage() > 100 ? 'bg-red-500' : 'bg-green-500'}`}
                                             style={{ width: `${Math.min(getTotalPaidPercentage(), 100)}%` }}
                                         ></div>
                                     </div>
-                                    {/* <Progress className="bg-green-600 h-1" value={Math.min(getTotalPaidPercentage(), 100)} /> */}
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-20 justify-between">
@@ -195,7 +196,7 @@ export default function SeePaymentDetailsModal() {
                         {shouldShowTransactions ? (
                             // Show grouped transactions
                             groupedTransactions.map((group, index) => (
-                                <TransactionCard
+                                <TransactionCardWithDocuments
                                     key={group.transaction._id}
                                     transaction={group.transaction}
                                     lineItems={group.lineItems}
@@ -211,6 +212,7 @@ export default function SeePaymentDetailsModal() {
                                     payment={payment}
                                     index={index}
                                     formatCurrency={formatCurrency}
+                                    relatedPartida={paymentContext.relatedPartida}
                                 />
                             ))
                         )}

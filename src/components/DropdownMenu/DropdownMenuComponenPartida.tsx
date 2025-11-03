@@ -5,7 +5,7 @@ import { MoreHorizontal, Pencil, CreditCard, MoreHorizontalIcon, FileText } from
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { useSeePaymentDetailsModal } from "@/hooks/see-payment-details";
+import { useSeePaymentDetailsModal } from "@/hooks/see-transactions-details";
 import { useAggregatedDetailsModal } from "@/hooks/aggregated-details-modal";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
@@ -148,7 +148,7 @@ export default function DropdownMenuComponentPartida({
     }
   };
 
-  const handleViewPayments = () => {
+  const handleViewTransactions = () => {
     // Calculate amounts based on level
     // Use presupuesto_aprobado from the actual partida record for level 2 (nivel 3)
     // For aggregated levels (0 and 1), use the calculated totals from rowData
@@ -196,10 +196,11 @@ export default function DropdownMenuComponentPartida({
             <Button
               variant="ghost"
               className="w-full justify-start flex items-center gap-2 text-wrap "
-              onClick={handleViewPayments}
+              onClick={handleViewTransactions}
             >
               <CreditCard className="h-4 w-4" />
-              {level === 2 ? 'Ver pagos' : `Ver pagos de ${labels.title.toLowerCase()}`}
+              {level === 2 ? 'Ver pagos de subpartida' : `Ver transacciones de ${labels.title.toLowerCase()}`}
+              {/* Ver transacciones */}
             </Button>
 
             {/* View details option */}

@@ -1,5 +1,7 @@
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Edit } from "lucide-react";
 import { Doc } from "convex/_generated/dataModel";
+import { Button } from "../ui/button";
+import { useEditPaymentModal } from "@/hooks/edit-payment-modal";
 
 // Type for enriched payment with transaction data
 type EnrichedPayment = Doc<"pagos"> & {
@@ -16,23 +18,41 @@ type EnrichedPayment = Doc<"pagos"> & {
     numero_transferencia?: string;
     codigo_referencia?: string;
     factura?: string;
+    partida?: string;
+    familia?: string;
+    sub_partida?: string;
 };
 
-export default function PaymentCard({ payment, index, formatCurrency }: {
+interface PaymentCardProps {
     payment: EnrichedPayment;
     index: number;
     formatCurrency: (amount: string | number) => string;
-}) {
+    relatedPartida?: Doc<"partidas">;
+}
+
+export default function PaymentCard({ payment, index, formatCurrency, relatedPartida }: PaymentCardProps) {
+    const editPaymentModal = useEditPaymentModal();
+
     // Get status from transaction or enriched payment
     const status = payment.transaction?.status || payment.status;
     const isPagado = status === 'Pagado' || (!status && payment.monto > 0);
+
+    const handleEdit = () => {
+        if (!relatedPartida) return;
+
+        editPaymentModal.onOpen({
+            payment,
+            relatedCost: relatedPartida,
+            totalAmount: payment.monto,
+        });
+    };
 
     return (
         <div className="bg-white overflow-hidden">
             {/* Payment Header */}
             <div className="p-4 border-b border-gray-400">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1">
                         <div className={`w-12 h-12 rounded-md flex items-center justify-center ${isPagado ? 'bg-[#E0F0E2]' : 'bg-orange-100'
                             }`}>
                             {isPagado ? (
@@ -54,10 +74,13 @@ export default function PaymentCard({ payment, index, formatCurrency }: {
                             </p>
                         </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex items-center gap-3">
                         <p className="text-xl text-gray-900">
                             {formatCurrency(payment.monto)} {payment.transaction?.moneda || payment.moneda || 'MXN'}
                         </p>
+
+
+
                     </div>
                 </div>
             </div>
@@ -112,7 +135,7 @@ export default function PaymentCard({ payment, index, formatCurrency }: {
                             </span>
                         )}
                     </div>
-                    
+
                     {/* File Attachments */}
                     <div className="flex flex-col gap-2 pt-2 justify-end">
                         {(payment.transaction?.factura || payment.factura) && (
@@ -126,6 +149,16 @@ export default function PaymentCard({ payment, index, formatCurrency }: {
                             </div>
                         )}
                     </div>
+                </div>
+                <div className="flex justify-end">
+                    <Button
+                        onClick={handleEdit}
+                        variant="ghost"
+                        className="w-fit justify-end gap-2 font-normal mt-2"
+                    >
+                        <Edit className="h-4 w-4" />
+                        Editar pago
+                    </Button>
                 </div>
             </div>
         </div>
