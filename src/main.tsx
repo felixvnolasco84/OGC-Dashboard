@@ -13,9 +13,8 @@ import HomePage from "./pages/HomePage/HomePage.tsx";
 import DocumentosPage from "./pages/Documentos/DocumentosPage.tsx";
 import PresupuestoPage from "./pages/Presupuesto/PresupuestoPage.tsx";
 import ProgramaObra from "./pages/Programa Obra/ProgramaObra.tsx";
-// import ProjectsPage from "./pages/Projects/ProjectsPage.tsx";
 import ProyectosTablePage from "./pages/ProyectosTable/ProyectosTablePage.tsx";
-import PagosTablePage from "./pages/PagosTable/PagosTablePage.tsx";
+import TransaccionesTablePage from "./pages/TransaccionesTable/TransaccionesTablePage.tsx";
 import ProveedoresTablePage from "./pages/ProveedoresTable/ProveedoresTablePage.tsx";
 import PartidaDetails from "./pages/PartidaDetails/PartidaDetails.tsx";
 import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
@@ -34,10 +33,9 @@ createRoot(document.getElementById("root")!).render(
             <Route element={<WebsiteLayout />}>
               <Route index element={<ProyectosTablePage />} />
               <Route path="/upload" element={<App />} />
-              {/* <Route path="/proyectos" element={<ProjectsPage />} /> */}
               <Route path="/proyectos" element={<ProyectosTablePage />} />
               <Route path="/proyectos-tabla" element={<ProyectosTablePage />} />
-              <Route path="/pagos" element={<PagosTablePage />} />
+              <Route path="/transacciones" element={<TransaccionesTablePage />} />
               <Route path="/proveedores" element={<ProveedoresTablePage />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/documentos" element={<DocumentosPage />} />

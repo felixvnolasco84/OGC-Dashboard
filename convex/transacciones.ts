@@ -160,10 +160,26 @@ export const getTransactionById = query({
     }
 
     // Get all line items for this transaction
-    const lineItems = await ctx.db
+    const pagos = await ctx.db
       .query("pagos")
       .withIndex("by_transaccion", (q) => q.eq("transaccion_id", args.id))
       .collect();
+
+    // Enrich each pago with its partida data
+    const lineItems = await Promise.all(
+      pagos.map(async (pago) => {
+        const partida = await ctx.db.get(pago.partida_id);
+        return {
+          ...pago,
+          partida: partida ? {
+            _id: partida._id,
+            nombre: partida.nombre,
+            familia: partida.familia,
+            sub_partida: partida.sub_partida,
+          } : undefined,
+        };
+      })
+    );
 
     // Get associated documents
     const documents = await ctx.db
@@ -352,5 +368,49 @@ export const getByPartidaId = query({
     );
 
     return paymentsWithTransactions;
+  },
+});
+
+// Get all transactions with project name, line items count, and documents count
+export const getAllWithDetails = query({
+  args: {},
+  handler: async (ctx) => {
+    const transactions = await ctx.db
+      .query("transacciones")
+      .order("desc")
+      .collect();
+
+    // For each transaction, get related data
+    const transactionsWithDetails = await Promise.all(
+      transactions.map(async (transaction) => {
+        // Get project name
+        const proyecto = await ctx.db.get(transaction.proyecto);
+        
+        // Count line items
+        const lineItems = await ctx.db
+          .query("pagos")
+          .withIndex("by_transaccion", (q) =>
+            q.eq("transaccion_id", transaction._id)
+          )
+          .collect();
+
+        // Count documents
+        const documents = await ctx.db
+          .query("documentos")
+          .withIndex("by_transaccion", (q) =>
+            q.eq("transaccion_id", transaction._id)
+          )
+          .collect();
+
+        return {
+          ...transaction,
+          proyectoNombre: proyecto?.nombre,
+          lineItemsCount: lineItems.length,
+          documentsCount: documents.length,
+        };
+      })
+    );
+
+    return transactionsWithDetails;
   },
 });

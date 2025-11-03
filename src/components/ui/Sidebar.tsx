@@ -40,9 +40,9 @@ const aloneItems: SidebarItem[] = [
     isDisabled: false
   },
   {
-    id: "pagos",
-    label: "Pagos",
-    path: "/pagos",
+    id: "transacciones",
+    label: "Transacciones",
+    path: "/transacciones",
     icon: <IdCard className="w-4 h-4" />,
     isDisabled: false
   },
