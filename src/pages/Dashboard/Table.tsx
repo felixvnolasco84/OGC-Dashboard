@@ -126,18 +126,18 @@ export const columns: ColumnDef<Doc<"partidas">>[] = [
     //     },
     // },
     {
-        accessorKey: "Subtotal",
+        accessorKey: "presupuesto_original",
         header: "Monto",
         cell: ({ row }) => {
-            const value = row.getValue("Subtotal") as number;
+            const value = row.getValue("presupuesto_original") as number;
             return <div className="uppercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)} MXN</div>
         },
     },
     {
-        accessorKey: "total",
+        accessorKey: "presupuesto_aprobado",
         header: "Presupuesto",
         cell: ({ row }) => {
-            const value = row.getValue("total") as number;
+            const value = row.getValue("presupuesto_aprobado") as number;
             return <div className="uppercase">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)} MXN</div>
         },
     },
@@ -146,7 +146,7 @@ export const columns: ColumnDef<Doc<"partidas">>[] = [
         header: "Avance",
         cell: ({ row }) => {
             const value = row.getValue("pagado") as number;
-            const total = row.getValue("total") as number;
+            const total = row.getValue("presupuesto_aprobado") as number;
             const percentage = (value / total) * 100;
             return <div>{percentage.toFixed(2)}%</div>
         },
@@ -419,7 +419,7 @@ export function DashboardTable() {
                     >
                         Últimos movimientos
                     </TabsTrigger>
-                    <TabsTrigger
+                    {/* <TabsTrigger
                         value="cuentas-por-pagar"
                         className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
                     >
@@ -436,7 +436,7 @@ export function DashboardTable() {
                         className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
                     >
                         Pago de Anticipos
-                    </TabsTrigger>
+                    </TabsTrigger> */}
                 </TabsList>
 
                 <TabsContent value="ultimos-movimientos" className="space-y-4">

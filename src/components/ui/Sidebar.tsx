@@ -75,7 +75,7 @@ const sidebarItems: SidebarItem[] = [
     label: "Control",
     path: "/dashboard/control",
     icon: <ChartArea className="w-4 h-4" />,
-    isDisabled: true
+    isDisabled: false
   },
   {
     id: "programa-obra",

@@ -9,7 +9,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Routes, Route } from "react-router";
 import Legales from "./pages/Legales.tsx";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import HomePage from "./pages/HomePage/HomePage.tsx";
+import ControlPage from "./pages/Control/ControlPage.tsx";
 import DocumentosPage from "./pages/Documentos/DocumentosPage.tsx";
 import PresupuestoPage from "./pages/Presupuesto/PresupuestoPage.tsx";
 import ProgramaObra from "./pages/Programa Obra/ProgramaObra.tsx";
@@ -19,6 +19,7 @@ import ProveedoresTablePage from "./pages/ProveedoresTable/ProveedoresTablePage.
 import PartidaDetails from "./pages/PartidaDetails/PartidaDetails.tsx";
 import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
 import Dashboard from "./pages/Dashboard/Dashboard.tsx";
+import AdminPage from "./pages/Admin/AdminPage.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -40,9 +41,10 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/documentos" element={<DocumentosPage />} />
               <Route path="/dashboard/partidas/:id" element={<PartidaDetails />} />
-              <Route path="/dashboard/control" element={<HomePage />} />
+              <Route path="/dashboard/control" element={<ControlPage />} />
               <Route path="/dashboard/presupuesto" element={<PresupuestoPage />} />
               <Route path="/dashboard/programa-obra" element={<ProgramaObra />} />
+              <Route path="/admin" element={<AdminPage />} />
               <Route path="/legal" element={<Legales />} />
               <Route path="/aviso-de-privacidad" element={<AvisoPrivacidad />} />
             </Route>

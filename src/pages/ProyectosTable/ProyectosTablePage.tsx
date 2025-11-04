@@ -21,6 +21,8 @@ import { Id } from "../../../convex/_generated/dataModel";
 import AddProyectoModal from "@/components/modals/add-proyecto-modal";
 import EditProyectoModal from "@/components/modals/edit-proyecto-modal";
 import { useUploadTransactionsModal } from "@/hooks/upload-transactions-modal";
+import { useUploadProjectionsModal } from "@/hooks/upload-projections-modal";
+import UploadProjectionsModal from "@/components/modals/upload-projections-modal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function ProyectosTablePage() {
@@ -33,6 +35,7 @@ export default function ProyectosTablePage() {
   const addProyectoModal = useAddProyectoModal();
   const editProyectoModal = useEditProyectoModal();
   const uploadTransactionsModal = useUploadTransactionsModal();
+  const uploadProjectionsModal = useUploadProjectionsModal();
   
   const filteredProjects = projects?.filter((project) =>
     project.nombre.toLowerCase().includes(searchTerm.toLowerCase())
@@ -219,9 +222,17 @@ export default function ProyectosTablePage() {
                             <MoreVertical className="h-4 w-4 text-gray-400" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-36 space-y-2">                          
+                        <PopoverContent className="w-48 space-y-2">                          
                           <Button onClick={() => editProyectoModal.onOpen(project._id)} variant="outline" className="w-full text-xs">
                             Editar
+                          </Button>
+                          <Button 
+                            onClick={() => uploadProjectionsModal.onOpen(project._id)} 
+                            variant="outline" 
+                            className="w-full text-xs flex items-center gap-2"
+                          >
+                            <Upload className="h-3 w-3" />
+                            Subir Proyecciones
                           </Button>                          
                           {/* <Button onClick={() => openDeleteDialog(project._id)} variant="outline" className="w-full text-xs">
                             Eliminar
@@ -240,6 +251,7 @@ export default function ProyectosTablePage() {
       {/* Modals */}
       <AddProyectoModal />
       <EditProyectoModal />
+      <UploadProjectionsModal />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

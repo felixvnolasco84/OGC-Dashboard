@@ -415,3 +415,167 @@ export const getAllWithDetails = query({
     return transactionsWithDetails;
   },
 });
+
+// Get progress chart data for a project (cumulative spending over time)
+export const getProgressChartData = query({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    // Get all partidas for the project to calculate total budget
+    const partidas = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+
+    const totalPresupuestoAprobado = partidas.reduce(
+      (sum, p) => sum + (p.presupuesto_aprobado || 0),
+      0
+    );
+
+    // Get all transactions for the project sorted by date (ascending)
+    const transactions = await ctx.db
+      .query("transacciones")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+
+    // Sort transactions by date (parse DD/MM/YYYY format)
+    const sortedTransactions = transactions.sort((a, b) => {
+      const parseDate = (dateStr: string) => {
+        const [day, month, year] = dateStr.split('/').map(Number);
+        return new Date(year, month - 1, day).getTime();
+      };
+      return parseDate(a.fecha) - parseDate(b.fecha);
+    });
+
+    // Create cumulative data points
+    const dataPoints: Array<{
+      date: string;
+      gastoProgramado: number;
+      gastoTotal: number;
+      avanceReal: number;
+    }> = [];
+
+    let cumulativeGasto = 0;
+
+    for (let i = 0; i < sortedTransactions.length; i++) {
+      const transaction = sortedTransactions[i];
+      
+      // Only count "Pagado" transactions
+      if (transaction.status === "Pagado") {
+        cumulativeGasto += transaction.monto_total;
+      }
+
+      // Calculate programmed spending (linear projection from 0 to total budget)
+      const progress = (i + 1) / sortedTransactions.length;
+      const gastoProgramado = totalPresupuestoAprobado * progress;
+
+      // Calculate real progress percentage
+      const avanceReal = totalPresupuestoAprobado > 0 
+        ? (cumulativeGasto / totalPresupuestoAprobado) * 100 
+        : 0;
+
+      // Format date as "DD Mon"
+      const [day, month] = transaction.fecha.split('/');
+      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const monthName = monthNames[parseInt(month, 10) - 1] || 'Ene';
+      const dateLabel = `${day} ${monthName}`;
+
+      dataPoints.push({
+        date: dateLabel,
+        gastoProgramado,
+        gastoTotal: cumulativeGasto,
+        avanceReal,
+      });
+    }
+
+    return dataPoints;
+  },
+});
+
+// Get chart data for a specific familia (e.g., MANO DE OBRA, HONORARIOS)
+export const getFamiliaChartData = query({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+    familia: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get all partidas for this familia in the project
+    const partidas = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+
+    // Filter by familia
+    const familiaPartidas = partidas.filter(p => p.familia === args.familia);
+    const partidaIds = familiaPartidas.map(p => p._id);
+
+    if (partidaIds.length === 0) {
+      return { dataPoints: [], total: 0 };
+    }
+
+    // Get all pagos for these partidas
+    const allPagos: Array<{
+      monto: number;
+      transaction: {
+        fecha: string;
+        status: string;
+      };
+    }> = [];
+
+    for (const partidaId of partidaIds) {
+      const pagos = await ctx.db
+        .query("pagos")
+        .withIndex("by_partida_id", (q) => q.eq("partida_id", partidaId))
+        .collect();
+
+      for (const pago of pagos) {
+        const transaction = await ctx.db.get(pago.transaccion_id);
+        if (transaction && transaction.status === "Pagado") {
+          allPagos.push({
+            monto: pago.monto,
+            transaction,
+          });
+        }
+      }
+    }
+
+    // Sort by transaction date
+    const sortedPagos = allPagos.sort((a, b) => {
+      const parseDate = (dateStr: string) => {
+        const [day, month, year] = dateStr.split('/').map(Number);
+        return new Date(year, month - 1, day).getTime();
+      };
+      return parseDate(a.transaction.fecha) - parseDate(b.transaction.fecha);
+    });
+
+    // Create cumulative data points
+    const dataPoints: Array<{
+      date: string;
+      monto: number;
+    }> = [];
+
+    let cumulativeMonto = 0;
+
+    for (let i = 0; i < sortedPagos.length; i++) {
+      const pago = sortedPagos[i];
+      cumulativeMonto += pago.monto;
+
+      // Format date as "DD Mon"
+      const [day, month] = pago.transaction.fecha.split('/');
+      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const monthName = monthNames[parseInt(month, 10) - 1] || 'Ene';
+      const dateLabel = `${day} ${monthName}`;
+
+      dataPoints.push({
+        date: dateLabel,
+        monto: cumulativeMonto,
+      });
+    }
+
+    return {
+      dataPoints,
+      total: cumulativeMonto,
+    };
+  },
+});

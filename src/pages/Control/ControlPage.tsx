@@ -1,5 +1,4 @@
 import { useState } from "react";
-import React from "react";
 import { api } from "../../../convex/_generated/api";
 import {
     useQuery,
@@ -14,12 +13,14 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import AreaChart from "@/components/Charts/AreaChart";
+// import { Button } from "@/components/ui/button";
+import ProgressChart from "@/components/Charts/ProgressChart";
+import FamiliaChart from "@/components/Charts/FamiliaChart";
 import { DashboardTable } from "../Dashboard/Table";
-import { Plus } from "lucide-react";
-import { useAddPartidaModal } from "@/hooks/add-partida-modal";
+// import { Plus } from "lucide-react";
+// import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
+import { Doc } from "convex/_generated/dataModel";
 
 // Mockup data
 const mockData = {
@@ -48,24 +49,10 @@ const mockData = {
         }
     },
     filters: {
-        torres: ["Torre G", "Torre H", "Torre I"],
-        analisis: ["Por partida", "Por familia", "Por fecha"],
+        rango_fechas: ["Ultimos 7 dias", "Ultimos 30 dias", "Ultimos 60 dias", "Ultimos 90 dias", "Ultimos 180 dias", "Ultimos 365 dias", "Todo el tiempo"],
         periodos: ["Mensual", "Semanal", "Diario"]
     },
-    secondaryMetrics: {
-        gasto: 1225001,
-        porVencer: 634042,
-        honorarios: 134042
-    },
-    chartData: [
-        { month: "01 Sep", manoDeObra: 200000, materiales: 150000, contratistas: 100000, equipos: 80000, date: "01 Sep" },
-        { month: "05 Sep", manoDeObra: 250000, materiales: 180000, contratistas: 120000, equipos: 90000, date: "05 Sep" },
-        { month: "10 Sep", manoDeObra: 300000, materiales: 220000, contratistas: 150000, equipos: 110000, date: "10 Sep" },
-        { month: "15 Sep", manoDeObra: 350000, materiales: 280000, contratistas: 180000, equipos: 130000, date: "15 Sep" },
-        { month: "20 Sep", manoDeObra: 400000, materiales: 320000, contratistas: 200000, equipos: 150000, date: "20 Sep" },
-        { month: "25 Sep", manoDeObra: 450000, materiales: 350000, contratistas: 220000, equipos: 170000, date: "25 Sep" },
-        { month: "30 Sep", manoDeObra: 500000, materiales: 380000, contratistas: 240000, equipos: 190000, date: "30 Sep" }
-    ]
+
 };
 
 const formatNumber = (amount: number) => {
@@ -73,27 +60,20 @@ const formatNumber = (amount: number) => {
 };
 
 
-export default function HomePage() {
-
-
-
+export default function ControlPage() {
     const { selectedDesarrollo } = useDesarrolloStore();
 
-    // const [selectedProject, setSelectedProject] = useState<Doc<"desarrollos"> | undefined>(undefined)
-    const [selectedAnalisis, setSelectedAnalisis] = useState("Por partida");
-    const [selectedPeriodo, setSelectedPeriodo] = useState("Mensual");
+    // Progress chart filters
+    const [selectedProject, setSelectedProject] = useState<Doc<"desarrollos"> | undefined>(selectedDesarrollo || undefined)
+    const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");
+    const [selectedRangoFecha, setSelectedRangoFecha] = useState("Ultimos 30 dias");
 
     // Add partida modal
-    const addPartidaModal = useAddPartidaModal();
-
-
+    // const addPartidaModal = useAddPartidaModal();
 
     // const createPayment = useMutation(api.pagos.create);
-
     // Fetch projects
     const projects = useQuery(api.desarrollos.getAll);
-
-
     // Fetch metrics
     const metrics = useQuery(api.partida.getProjectMetrics, selectedDesarrollo ? { projectId: selectedDesarrollo._id } : "skip");
 
@@ -102,6 +82,23 @@ export default function HomePage() {
         api.partida.getByProjectPaginated,
         selectedDesarrollo ? { projectId: selectedDesarrollo._id } : "skip",
         { initialNumItems: 100 }
+    );
+
+    // Fetch progress chart data
+    const progressChartData = useQuery(
+        api.transacciones.getProgressChartData,
+        selectedDesarrollo ? { proyecto_id: selectedDesarrollo._id } : "skip"
+    );
+
+    // Fetch familia chart data
+    const manoDeObraData = useQuery(
+        api.transacciones.getFamiliaChartData,
+        selectedDesarrollo ? { proyecto_id: selectedDesarrollo._id, familia: "ALBAÑILERÍAS" } : "skip"
+    );
+
+    const indirectosData = useQuery(
+        api.transacciones.getFamiliaChartData,
+        selectedDesarrollo ? { proyecto_id: selectedDesarrollo._id, familia: "HONORARIOS" } : "skip"
     );
 
 
@@ -113,81 +110,13 @@ export default function HomePage() {
         honorarios: allPartidas?.filter(p => p.familia === "HONORARIOS").reduce((sum, p) => sum + p.pagado || 0, 0) || 0
     };
 
-    // Get unique familias for the legend and chart
-    const uniqueFamilias = Array.from(new Set(allPartidas?.map(p => p.familia) || []));
 
-    // Define colors for each familia
-    const familiaColors: Record<string, string> = {
-        "ACERO": "#60A5FA",
-        "CONCRETO": "#34D399",
-        "MATERIALES": "#FB923C",
-        "MANO DE OBRA": "#F87171",
-        "EQUIPOS": "#A78BFA",
-        "HONORARIOS": "#FBBF24"
-    };
-
-    // Get color for familia (with fallback)
-    const getColorForFamilia = (familia: string, index: number) => {
-        return familiaColors[familia] || `hsl(${index * 137.5}, 70%, 60%)`;
-    };
-
-    // Transform data for chart - create cumulative view across time
-    const chartData = React.useMemo(() => {
-        if (!allPartidas || allPartidas.length === 0) return [];
-
-        // Sort partidas by creation time or by index to create a progression
-        const sortedPartidas = [...allPartidas].sort((a, b) => {
-            return a._creationTime - b._creationTime;
-        });
-
-        // Create time periods (distribute across dates for visualization)
-        const numPoints = Math.min(sortedPartidas.length, 10); // Show max 10 data points
-        const partidasPerPoint = Math.ceil(sortedPartidas.length / numPoints);
-
-        const baseDate = new Date('2024-09-01'); // Start date for visualization
-        const dataPoints: { date: string;[key: string]: string | number }[] = [];
-
-        for (let i = 0; i < numPoints; i++) {
-            const startIdx = i * partidasPerPoint;
-            const endIdx = Math.min(startIdx + partidasPerPoint, sortedPartidas.length);
-
-            // Calculate cumulative totals up to this point
-            const cumulativePartidas = sortedPartidas.slice(0, endIdx);
-            const familiasTotals: Record<string, number> = {};
-
-            cumulativePartidas.forEach(partida => {
-                const familia = partida.familia || 'Otros';
-                if (!familiasTotals[familia]) {
-                    familiasTotals[familia] = 0;
-                }
-                familiasTotals[familia] += partida.pagado || 0;
-            });
-
-            // Create date label (spread across the month)
-            const dayOffset = Math.floor((i / numPoints) * 30);
-            const pointDate = new Date(baseDate);
-            pointDate.setDate(baseDate.getDate() + dayOffset);
-            const dateLabel = pointDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-
-            const dataPoint: { date: string;[key: string]: string | number } = { date: dateLabel };
-            uniqueFamilias.forEach(familia => {
-                dataPoint[familia] = familiasTotals[familia] || 0;
-            });
-            dataPoints.push(dataPoint);
-        }
-
-        return dataPoints;
-    }, [allPartidas, uniqueFamilias]);
 
     if (!projects || !metrics) {
         return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
             <p className="text-gray-500">Cargando datos...</p>
         </div>;
     }
-
-    // console.log('Metrics:', metrics);
-    // console.log('All Partidas:', allPartidas);
-    // console.log('Chart Data:', chartData);
 
     return (
         <div className="bg-white px-12 py-6">
@@ -201,7 +130,7 @@ export default function HomePage() {
                                 <h1 className="text-2xl text-gray-900">{selectedDesarrollo.nombre}</h1>
                             </div>
                         )}
-                        {selectedDesarrollo && (
+                        {/* {selectedDesarrollo && (
                             <Button
                                 onClick={() => addPartidaModal.onOpen({
                                     proyecto: selectedDesarrollo._id,
@@ -212,7 +141,7 @@ export default function HomePage() {
                                 <Plus className="mr-2 h-4 w-4" />
                                 Agregar Partida
                             </Button>
-                        )}
+                        )} */}
                     </div>
                 </div>
 
@@ -275,8 +204,7 @@ export default function HomePage() {
                 <div className="bg-white">
 
                     <div className="grid grid-cols-3 items-center space-x-12">
-                        {/* <div className="flex items-center space-x-3 text-left border-b border-gray-600 py-4 h-full">
-                            <Search className="w-4 h-4 text-gray-400" />
+                        <div className="flex items-center space-x-3 text-left border-b border-gray-600 py-4 h-full">
                             <Select defaultValue={selectedProject?._id} value={selectedProject?._id}
                                 onValueChange={(value) => {
                                     const project = projects?.find(p => p._id === value);
@@ -293,8 +221,8 @@ export default function HomePage() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div> */}
-
+                        </div>
+                        {/* 
                         <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
                             <span className="text-xs text-gray-500">Análisis</span>
                             <Select value={selectedAnalisis} onValueChange={setSelectedAnalisis}>
@@ -309,10 +237,26 @@ export default function HomePage() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </div> */}
 
                         <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
                             <span className="text-xs text-gray-500">Rango de fecha</span>
+                            <Select value={selectedRangoFecha} onValueChange={setSelectedRangoFecha}>
+                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {mockData.filters.rango_fechas.map((periodo) => (
+                                        <SelectItem key={periodo} value={periodo}>
+                                            {periodo}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
+                            <span className="text-xs text-gray-500">Periodo</span>
                             <Select value={selectedPeriodo} onValueChange={setSelectedPeriodo}>
                                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
                                     <SelectValue />
@@ -327,10 +271,7 @@ export default function HomePage() {
                             </Select>
                         </div>
 
-                        <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
-                            <span className="text-xs text-gray-500">Fecha</span>
-                            <span className="text-sm font-normal text-gray-900">Septiembre</span>
-                        </div>
+
                     </div>
 
                 </div>
@@ -338,47 +279,80 @@ export default function HomePage() {
                 {/* Secondary Metrics and Chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Chart Area with integrated metrics */}
-                    <div className="lg:col-span-4">
-                        <Card className="bg-white border-none shadow-none">
-                            <CardContent className="px-0 pt-12 pb-0">
+                    <div className="lg:col-span-4 p-4 border rounded-md bg-[#F7F7F7]">
+
+                        {/* New Progress Chart Section */}
+
+                        <Card className="bg-transparent border-none shadow-none">
+                            <CardContent className="px-0 pt-4 pb-0">
                                 {/* Metrics Row */}
                                 <div className="flex items-start justify-between mb-8 gap-4">
                                     <div className="flex items-center space-x-12">
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-gray-500">Gasto</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.gasto))}</p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.gasto))}<span className="text-sm text-gray-400">.10</span></p>
                                         </div>
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-500">Por vencer</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}</p>
+                                            <p className="text-xs text-gray-500">Por ejercer</p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}<span className="text-sm text-gray-400">.10</span></p>
                                         </div>
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-gray-500">Honorarios</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.honorarios))}</p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.honorarios))}<span className="text-sm text-gray-400">.10</span></p>
                                         </div>
                                     </div>
 
-                                    {/* Legend - Dynamic based on familias */}
+                                    {/* Legend for Progress Chart */}
                                     <div className="flex items-center space-x-6 flex-wrap">
-                                        {uniqueFamilias.map((familia, index) => (
-                                            <div key={familia} className="flex items-center space-x-2">
-                                                <div
-                                                    className="w-3 h-3 rounded-full"
-                                                    style={{ backgroundColor: getColorForFamilia(familia, index) }}
-                                                ></div>
-                                                <span className="text-sm text-gray-600">{familia}</span>
-                                            </div>
-                                        ))}
+                                        <div className="flex items-center space-x-2">
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#BFCFDC' }}></div>
+                                            <span className="text-sm text-gray-600">Gasto Proyectado</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#79AAAF' }}></div>
+                                            <span className="text-sm text-gray-600">Gasto Real</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <div className="w-8 h-0.5 border-t-2 border-dashed border-gray-500"></div>
+                                            <span className="text-sm text-gray-600">Avance %</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Chart */}
+                                {/* Progress Chart */}
                                 <div className="w-full h-80">
-                                    <AreaChart data={chartData.length > 0 ? chartData : mockData.chartData} />
+                                    <ProgressChart
+                                        data={progressChartData || []}
+                                        proyectoId={selectedDesarrollo?._id}
+                                        selectedPeriodo={selectedPeriodo}
+                                        selectedRangoFecha={selectedRangoFecha}
+                                    />
                                 </div>
                             </CardContent>
                         </Card>
+
+
                     </div>
+
+                    {/* Familia Charts - Mano de Obra and Indirectos */}
+                    <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                        {/* Gasto Mano de Obra */}
+                        <FamiliaChart
+                            data={manoDeObraData?.dataPoints || []}
+                            title="Gasto Mano de Obra"
+                            total={manoDeObraData?.total || 0}
+                            color="#88ab8c"
+                        />
+
+                        {/* Indirectos (Honorarios) */}
+                        <FamiliaChart
+                            data={indirectosData?.dataPoints || []}
+                            title="Indirectos"
+                            total={indirectosData?.total || 0}
+                            color="#c39999"
+                        />
+                    </div>
+
                     <div className="col-span-4 py-12">
                         <DashboardTable />
                     </div>

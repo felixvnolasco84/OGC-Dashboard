@@ -94,4 +94,35 @@ export default defineSchema({
     banco: v.string(),
   }).index("by_rfc", { fields: ["rfc"] })
     .index("by_razon_social", { fields: ["razon_social"] }),
+  
+  // Projected transactions from Excel upload (weekly cash flow projections)
+  projected_transactions: defineTable({
+    proyecto: v.id("desarrollos"),
+    partida: v.string(), // Partida name from Excel (e.g., "CIMENTACIÓN", "MUROS_PB")
+    week_date: v.number(), // Excel serial date (days since 1/1/1900)
+    amount: v.number(), // Projected amount for this week
+    position: v.number(), // Week position index (0-based)
+    // Upload metadata
+    upload_id: v.string(), // Unique ID for each upload batch
+    file_name: v.string(),
+    sheet_name: v.string(),
+    uploaded_at: v.number(), // Timestamp
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_upload_id", { fields: ["upload_id"] })
+    .index("by_proyecto_partida", { fields: ["proyecto", "partida"] })
+    .index("by_proyecto_week", { fields: ["proyecto", "week_date"] }),
+  
+  // Weekly projected totals (aggregated summary of projected_transactions by week)
+  weekly_projected_totals: defineTable({
+    proyecto: v.id("desarrollos"),
+    week_date: v.number(), // Excel serial date (days since 1/1/1900)
+    week_date_formatted: v.string(), // Formatted date string (D/M/YYYY)
+    weekly_total: v.number(), // Total projected amount for this week across all partidas
+    position: v.number(), // Week position index (0-based)
+    // Upload metadata
+    upload_id: v.string(), // Unique ID linking to source upload
+    uploaded_at: v.number(), // Timestamp
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proyecto_week", { fields: ["proyecto", "week_date"] })
+    .index("by_upload_id", { fields: ["upload_id"] }),
 });
