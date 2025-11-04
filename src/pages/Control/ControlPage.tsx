@@ -321,7 +321,7 @@ export default function ControlPage() {
 
                                 {/* Progress Chart */}
                                 <div className="w-full h-80">
-                                    {selectedDesarrollo && (
+                                    {selectedDesarrollo?._id !== "jh7exrc7v8fxpfncyabxcjnca57tq5m1" && (
                                         <ProgressChart
                                             data={progressChartData || []}
                                             proyectoId={selectedDesarrollo?._id}
