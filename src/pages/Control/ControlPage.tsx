@@ -321,12 +321,14 @@ export default function ControlPage() {
 
                                 {/* Progress Chart */}
                                 <div className="w-full h-80">
-                                    <ProgressChart
-                                        data={progressChartData || []}
-                                        proyectoId={selectedDesarrollo?._id}
-                                        selectedPeriodo={selectedPeriodo}
-                                        selectedRangoFecha={selectedRangoFecha}
-                                    />
+                                    {selectedDesarrollo && (
+                                        <ProgressChart
+                                            data={progressChartData || []}
+                                            proyectoId={selectedDesarrollo?._id}
+                                            selectedPeriodo={selectedPeriodo}
+                                            selectedRangoFecha={selectedRangoFecha}
+                                        />
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
