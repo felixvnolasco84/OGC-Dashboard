@@ -37,6 +37,7 @@ export default function ProgressChart({
     selectedPeriodo = "Diario",
     selectedRangoFecha = "Ultimos 30 dias"
 }: ProgressChartProps) {
+    
     // Query weekly projected totals if proyectoId is provided
     const projectedData = useQuery(
         api.weekly_projected_totals.getCumulativeTotals,

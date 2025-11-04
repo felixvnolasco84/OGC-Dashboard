@@ -20,7 +20,7 @@ import { DashboardTable } from "../Dashboard/Table";
 // import { Plus } from "lucide-react";
 // import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
-import { Doc } from "convex/_generated/dataModel";
+import { Doc, Id } from "convex/_generated/dataModel";
 
 // Mockup data
 const mockData = {
@@ -61,10 +61,9 @@ const formatNumber = (amount: number) => {
 
 
 export default function ControlPage() {
-    const { selectedDesarrollo } = useDesarrolloStore();
+    const { selectedDesarrollo, setSelectedDesarrollo } = useDesarrolloStore();
 
-    // Progress chart filters
-    const [selectedProject, setSelectedProject] = useState<Doc<"desarrollos"> | undefined>(selectedDesarrollo || undefined)
+    // Progress chart filters    
     const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");
     const [selectedRangoFecha, setSelectedRangoFecha] = useState("Ultimos 30 dias");
 
@@ -202,13 +201,12 @@ export default function ControlPage() {
 
                 {/* Filters */}
                 <div className="bg-white">
-
                     <div className="grid grid-cols-3 items-center space-x-12">
                         <div className="flex items-center space-x-3 text-left border-b border-gray-600 py-4 h-full">
-                            <Select defaultValue={selectedProject?._id} value={selectedProject?._id}
+                            <Select defaultValue={selectedDesarrollo?._id} value={selectedDesarrollo?._id}
                                 onValueChange={(value) => {
                                     const project = projects?.find(p => p._id === value);
-                                    setSelectedProject(project);
+                                    setSelectedDesarrollo(project as Doc<"desarrollos">);
                                 }}>
                                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
                                     <SelectValue placeholder="Selecciona un proyecto" />
@@ -222,22 +220,6 @@ export default function ControlPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        {/* 
-                        <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
-                            <span className="text-xs text-gray-500">Análisis</span>
-                            <Select value={selectedAnalisis} onValueChange={setSelectedAnalisis}>
-                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {mockData.filters.analisis.map((analisis) => (
-                                        <SelectItem key={analisis} value={analisis}>
-                                            {analisis}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div> */}
 
                         <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
                             <span className="text-xs text-gray-500">Rango de fecha</span>
@@ -321,7 +303,7 @@ export default function ControlPage() {
 
                                 {/* Progress Chart */}
                                 <div className="w-full h-80">
-                                    {selectedDesarrollo?._id !== "jh7exrc7v8fxpfncyabxcjnca57tq5m1" && (
+                                    {selectedDesarrollo && selectedDesarrollo._id === "jh7exrc7v8fxpfncyabxcjnca57tq5m1" as Id<"desarrollos"> && (
                                         <ProgressChart
                                             data={progressChartData || []}
                                             proyectoId={selectedDesarrollo?._id}
