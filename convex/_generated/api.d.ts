@@ -19,9 +19,11 @@ import type * as functions from "../functions.js";
 import type * as meticas_presupuesto from "../meticas_presupuesto.js";
 import type * as pagos from "../pagos.js";
 import type * as partida from "../partida.js";
+import type * as permissions from "../permissions.js";
 import type * as projected_transactions from "../projected_transactions.js";
 import type * as proveedores from "../proveedores.js";
 import type * as transacciones from "../transacciones.js";
+import type * as users from "../users.js";
 import type * as weekly_projected_totals from "../weekly_projected_totals.js";
 
 /**
@@ -39,9 +41,11 @@ declare const fullApi: ApiFromModules<{
   meticas_presupuesto: typeof meticas_presupuesto;
   pagos: typeof pagos;
   partida: typeof partida;
+  permissions: typeof permissions;
   projected_transactions: typeof projected_transactions;
   proveedores: typeof proveedores;
   transacciones: typeof transacciones;
+  users: typeof users;
   weekly_projected_totals: typeof weekly_projected_totals;
 }>;
 export declare const api: FilterApi<

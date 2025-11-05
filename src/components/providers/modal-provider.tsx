@@ -10,6 +10,7 @@ import UploadTransactionsModal from "../modals/upload-transactions-modal";
 import TransactionDetailsModal from "../modals/transaction-details-modal";
 import TransactionConceptosModal from "../modals/transaction-conceptos-modal";
 import TransactionDocumentosModal from "../modals/transaction-documentos-modal";
+import UploadDocumentsModal from "../modals/upload-documents-modal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -32,5 +33,6 @@ export const ModalProvider = () => {
     <TransactionDetailsModal />
     <TransactionConceptosModal />
     <TransactionDocumentosModal />
+    <UploadDocumentsModal />
   </>;
 };

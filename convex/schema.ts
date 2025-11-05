@@ -2,6 +2,16 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  users: defineTable({
+    clerkId: v.string(), // Clerk user ID
+    email: v.string(),
+    name: v.string(),
+    role: v.string(), // "admin", "user", "viewer"
+    allowed_desarrollos: v.array(v.id("desarrollos")), // Projects user can access
+    created_at: v.number(),
+    last_login: v.optional(v.number()),
+  }).index("by_clerk_id", { fields: ["clerkId"] })
+    .index("by_email", { fields: ["email"] }),
   partidas: defineTable({
     nivel: v.number(),
     nombre: v.string(),
@@ -70,10 +80,13 @@ export default defineSchema({
   documentos: defineTable({
     nombre: v.string(),
     descripcion: v.string(),
-    image: v.string(),
+    image: v.optional(v.string()), // Legacy: Appwrite file ID (kept for backward compatibility)
+    storage_id: v.optional(v.id("_storage")), // New: Convex storage ID
     type: v.string(),
+    size: v.optional(v.number()), // File size in bytes
     transaccion_id: v.id("transacciones"), // Now references transaction instead of individual pagos
     proyecto: v.id("desarrollos"),
+    uploaded_at: v.optional(v.number()), // Timestamp
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_transaccion", { fields: ["transaccion_id"] }),
   meticas_presupuesto: defineTable({

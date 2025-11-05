@@ -23,9 +23,12 @@ type Document = {
     transaccion_id: Id<"transacciones">;
     nombre: string;
     descripcion: string;
-    image: string;
+    image?: string; // Optional: Legacy Appwrite file ID
+    storage_id?: Id<"_storage">; // Optional: New Convex storage ID
     type: string;
     proyecto: Id<"desarrollos">;
+    size?: number;
+    uploaded_at?: number;
 };
 
 export default function TransactionDocumentosModal() {
@@ -139,7 +142,7 @@ export default function TransactionDocumentosModal() {
                                                                     variant="outline"
                                                                     size="sm"
                                                                     className="rounded-none"
-                                                                    onClick={() => window.open(getDocumentUrl(doc.image), '_blank')}
+                                                                    onClick={() => window.open(getDocumentUrl(doc.image!), '_blank')}
                                                                 >
                                                                     <ExternalLink className="h-4 w-4 mr-2" />
                                                                     Ver documento
@@ -150,7 +153,7 @@ export default function TransactionDocumentosModal() {
                                                                     className="rounded-none"
                                                                     onClick={() => {
                                                                         (async () => {
-                                                                            const downloadUrl = await getDocumentDownloadUrl(doc.image);
+                                                                            const downloadUrl = await getDocumentDownloadUrl(doc.image!);
                                                                             if (downloadUrl) {
                                                                                 window.open(downloadUrl, '_blank');
                                                                             }

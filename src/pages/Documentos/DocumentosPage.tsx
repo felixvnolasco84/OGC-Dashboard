@@ -4,9 +4,16 @@ import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Trash2, Download, Plus } from "lucide-react";
+import {
+  FileText, Search,
+  //  Trash2, Download,
+  Plus, Upload
+} from "lucide-react";
 import { toast } from "sonner";
-import { getFileUrl, deleteDocument } from "@/lib/appwrite";
+import {
+  // getFileUrl,
+  deleteDocument
+} from "@/lib/appwrite";
 import { Id } from "../../../convex/_generated/dataModel";
 import {
   Select,
@@ -25,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useUploadDocumentsModal } from "@/hooks/upload-documents-modal";
 
 export default function DocumentosPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,7 +44,7 @@ export default function DocumentosPage() {
   const proyectos = useQuery(api.desarrollos.getAll);
   const documentos = useQuery(api.documentos.getAll);
   const transacciones = useQuery(api.transacciones.getAllWithDetails);
-  
+
   // Mutations
   const deleteDocumentMutation = useMutation(api.documentos.deleteDocument);
 
@@ -44,9 +52,9 @@ export default function DocumentosPage() {
   const filteredDocumentos = documentos?.filter(doc => {
     const matchesSearch = doc.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.type.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesProyecto = !selectedProyecto || doc.proyecto === selectedProyecto;
-    
+
     return matchesSearch && matchesProyecto;
   });
 
@@ -107,10 +115,18 @@ export default function DocumentosPage() {
     }
   };
 
-  const openDeleteDialog = (documentId: Id<"documentos">) => {
-    setDocumentToDelete(documentId);
-    setDeleteDialogOpen(true);
+  // const openDeleteDialog = (documentId: Id<"documentos">) => {
+  //   setDocumentToDelete(documentId);
+  //   setDeleteDialogOpen(true);
+  // };
+
+  const uploadModal = useUploadDocumentsModal();
+
+  const handleUploadClick = () => {
+    // Open modal and let user select project and transaction
+    uploadModal.onOpen();
   };
+
 
   return (
     <div className="bg-white min-h-screen">
@@ -123,6 +139,10 @@ export default function DocumentosPage() {
                 Gestiona los documentos asociados a los pagos del proyecto
               </p>
             </div>
+            <Button onClick={handleUploadClick}>
+              <Upload className="mr-2 h-4 w-4" />
+              Subir Documentos
+            </Button>
             <Button
               onClick={() => toast.info("Funcionalidad de agregar documento próximamente")}
               variant="outline"
@@ -146,10 +166,10 @@ export default function DocumentosPage() {
                 className="pl-12 rounded-none border-gray-300 h-12"
               />
             </div>
-            
+
             {/* Project Filter */}
-            <Select 
-              value={selectedProyecto || undefined} 
+            <Select
+              value={selectedProyecto || undefined}
               onValueChange={(value) => {
                 if (value === "clear") {
                   setSelectedProyecto("");
@@ -248,24 +268,29 @@ export default function DocumentosPage() {
                         {transaction?.factura || transaction?.codigo_referencia || "-"}
                       </td>
                       <td className="px-6 py-4 border-r border-gray-200">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
+                        {/* <div className="flex items-center gap-2">
+                          {
+                            doc.image ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
                             onClick={() => window.open(getFileUrl(doc.image), "_blank")}
                           >
                             <Download className="h-4 w-4 text-gray-400" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => openDeleteDialog(doc._id)}
-                          >
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => openDeleteDialog(doc._id)}
+                              >
                             <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-600" />
                           </Button>
-                        </div>
+                            )
+                          }
+                        </div> */}
                       </td>
                     </tr>
                   );

@@ -1,10 +1,18 @@
 import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
+import { getUserDesarrollos } from "./permissions";
 
-// Get all projects
+// Get all projects (filtered by user permissions)
 export const getAll = query(async (ctx) => {
-    return await ctx.db.query("desarrollos").collect();
+    // If not authenticated, return all (for backward compatibility during migration)
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+        return await ctx.db.query("desarrollos").collect();
+    }
+
+    // Return only desarrollos the user has access to
+    return await getUserDesarrollos(ctx);
 });
 
 // Get all projects with their metrics

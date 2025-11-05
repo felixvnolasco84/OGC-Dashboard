@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { useQuery } from "convex/react";
+import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import Logo from "../../../public/OGC-LOGO.svg";
@@ -21,6 +21,7 @@ import {
 import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SignInButton, UserButton } from "@clerk/clerk-react";
 
 
 interface SidebarItem {
@@ -130,8 +131,11 @@ export default function Sidebar() {
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 z-10 flex flex-col items-start">
+
+
       {/* Header with collapse toggle */}
-      <div className="pl-4 pt-4">
+      <div className="pl-4 pt-4 flex items-center justify-between gap-4">
+
         <Button
           variant="ghost"
           size="icon"
@@ -140,7 +144,18 @@ export default function Sidebar() {
         >
           <img src={Logo} alt="Logo" className="w-10 h-10" />
         </Button>
+
+                <Authenticated>
+        <UserButton />
+      </Authenticated>
+              
       </div>
+
+      <Unauthenticated>
+        <SignInButton />
+      </Unauthenticated>
+
+
 
       <div className="flex-1 overflow-y-auto w-full">
         {/* Search Bar */}

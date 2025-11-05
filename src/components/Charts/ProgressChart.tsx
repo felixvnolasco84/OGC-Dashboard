@@ -110,25 +110,30 @@ export default function ProgressChart({
 
     // Deduplicate and aggregate data points with the same date
     const chartData = React.useMemo(() => {
-        const dataMap = new Map<string, ChartDataPoint>();
-
-        // First, add all actual transaction data
+        // Process actual transaction data
+        const actualDataMap = new Map<string, ChartDataPoint>();
         rawData.forEach((point) => {
-            const existing = dataMap.get(point.date);
+            const existing = actualDataMap.get(point.date);
             if (existing) {
                 // Keep the highest values for duplicate dates (cumulative should be increasing)
-                dataMap.set(point.date, {
+                actualDataMap.set(point.date, {
                     date: point.date,
-                    gastoProgramado: existing.gastoProgramado,
+                    gastoProgramado: 0,
                     gastoTotal: Math.max(existing.gastoTotal || 0, point.gastoTotal || 0),
                     avanceReal: Math.max(existing.avanceReal || 0, point.avanceReal || 0),
                 });
             } else {
-                dataMap.set(point.date, { ...point });
+                actualDataMap.set(point.date, { 
+                    date: point.date,
+                    gastoProgramado: 0,
+                    gastoTotal: point.gastoTotal || 0,
+                    avanceReal: point.avanceReal || 0,
+                });
             }
         });
 
-        // Then, overlay projected data (this should not override actual data)
+        // Process projected data separately
+        const projectedDataMap = new Map<string, number>();
         if (projectedData && projectedData.length > 0) {
             // Filter projected data by date range (skip filter if dates are null - "Todo el tiempo")
             const filteredProjections = projectedData.filter((projection) => {
@@ -163,24 +168,31 @@ export default function ProgressChart({
             }
             // For "Diario", we use weekly data as-is since it's the finest granularity we have
 
+            // Store projected data in separate map
             dataToUse.forEach((projection) => {
                 const dateLabel = excelDateToString(projection.week_date);
-                const existing = dataMap.get(dateLabel);
-
-                if (existing) {
-                    // Add projected data to existing actual data
-                    existing.gastoProgramado = projection.cumulative_total;
-                } else {
-                    // Create new point with only projected data (no actual transactions on this date)
-                    dataMap.set(dateLabel, {
-                        date: dateLabel,
-                        gastoProgramado: projection.cumulative_total,
-                        gastoTotal: 0,
-                        avanceReal: 0,
-                    });
-                }
+                projectedDataMap.set(dateLabel, projection.cumulative_total || 0);
             });
         }
+
+        // Combine both datasets: create unified date set
+        const allDates = new Set([
+            ...actualDataMap.keys(),
+            ...projectedDataMap.keys()
+        ]);
+
+        const dataMap = new Map<string, ChartDataPoint>();
+        allDates.forEach(date => {
+            const actualData = actualDataMap.get(date);
+            const projectedAmount = projectedDataMap.get(date);
+
+            dataMap.set(date, {
+                date: date,
+                gastoProgramado: projectedAmount || 0,
+                gastoTotal: actualData?.gastoTotal || 0,
+                avanceReal: actualData?.avanceReal || 0,
+            });
+        });
 
         // Filter the final data by date range (skip filter if dates are null - "Todo el tiempo")
         const allData = Array.from(dataMap.values());

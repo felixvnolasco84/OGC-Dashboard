@@ -182,19 +182,32 @@ export default function TransactionCard({
             {documents && documents.length > 0 ? (
               // Show documents from database with preview links
               documents.map((doc) => (
-                <Button
-                  key={doc._id}
-                  onClick={() => window.open(getFileUrl(doc.image), '_blank')}
-                  size={"md"}
-                  className="flex items-center gap-2 px-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md justify-end transition-colors cursor-pointer"
-                  title={`Ver ${doc.nombre}`}
-                >
-                  <FileText className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm text-gray-700 font-medium">
-                    {doc.nombre}
-                  </span>
-                  <ExternalLink className="w-3 h-3 text-gray-600" />
-                </Button>
+                doc.image ? (
+                  <Button
+                    key={doc._id}
+                    onClick={() => window.open(getFileUrl(doc.image!), '_blank')}
+                    size={"md"}
+                    className="flex items-center gap-2 px-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md justify-end transition-colors cursor-pointer"
+                    title={`Ver ${doc.nombre}`}
+                  >
+                    <FileText className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-700 font-medium">
+                      {doc.nombre}
+                    </span>
+                    <ExternalLink className="w-3 h-3 text-gray-600" />
+                  </Button>
+                ) : (
+                  <div
+                    key={doc._id}
+                    className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md justify-end"
+                    title={doc.nombre}
+                  >
+                    <FileText className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-700 font-medium">
+                      {doc.nombre}
+                    </span>
+                  </div>
+                )
               ))
             ) : (
               // Fallback to legacy fields if no documents

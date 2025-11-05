@@ -177,6 +177,8 @@ export default function AddProyectoModal() {
 
       const response = await handleExcelUpload(formData.excel);
 
+      console.log(response)
+
       if (!response.success || !response.data || response.data.length === 0) {
         console.error('No data received from server');
         return;

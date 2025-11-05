@@ -43,7 +43,50 @@ export const getById = query({
     },
 });
 
-// Create new document
+// Get file URL from storage
+export const getUrl = query({
+    args: {
+        storage_id: v.id("_storage"),
+    },
+    handler: async (ctx, args) => {
+        return await ctx.storage.getUrl(args.storage_id);
+    },
+});
+
+// Generate upload URL for file upload
+export const generateUploadUrl = mutation({
+    handler: async (ctx) => {
+        return await ctx.storage.generateUploadUrl();
+    },
+});
+
+// Create new document with Convex storage
+export const createWithStorage = mutation({
+    args: {
+        nombre: v.string(),
+        descripcion: v.string(),
+        storage_id: v.id("_storage"),
+        type: v.string(),
+        size: v.number(),
+        proyecto: v.id("desarrollos"),
+        transaccion_id: v.id("transacciones"),
+    },
+    handler: async (ctx, args) => {
+        const documento = await ctx.db.insert("documentos", {
+            nombre: args.nombre,
+            descripcion: args.descripcion,
+            storage_id: args.storage_id,
+            type: args.type,
+            size: args.size,
+            proyecto: args.proyecto,
+            transaccion_id: args.transaccion_id,
+            uploaded_at: Date.now(),
+        });
+        return documento;
+    },
+});
+
+// Legacy: Create new document (kept for backward compatibility with Appwrite)
 export const create = mutation({
     args: {
         nombre: v.string(),
@@ -61,6 +104,7 @@ export const create = mutation({
             type: args.type,
             proyecto: args.proyecto,
             transaccion_id: args.transaccion_id,
+            uploaded_at: Date.now(),
         });
         return documento;
     },
