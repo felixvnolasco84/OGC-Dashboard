@@ -86,7 +86,10 @@ export default function FamiliaChart({
     onConfigClick 
 }: FamiliaChartProps) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    
     const _chartId = chartId; // Suppress unused warning - used for component identification
+
+    console.log(_chartId);
     // Mock data if no data is provided
     const mockData: ChartDataPoint[] = [
         { date: '01 Sep', monto: 50000 },
