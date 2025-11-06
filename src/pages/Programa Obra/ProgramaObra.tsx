@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import { useQuery, usePaginatedQuery } from "convex/react";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import { ChevronDown, ChevronRight, Search, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
-import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
+import { Id } from "../../../convex/_generated/dataModel";
 // import ProgramaGanttChart from "@/components/Charts/ProgramaGanttChart";
 
 const months = [
@@ -48,8 +49,8 @@ type ProgramaItem = {
 };
 
 export default function ProgramaObra() {
-
-  const { selectedDesarrollo } = useDesarrolloStore();
+  const { proyectoId } = useParams<{ proyectoId: string }>();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPartida, setSelectedPartida] = useState<string | undefined>(undefined);
   const [selectedFamilia, setSelectedFamilia] = useState<string | undefined>(undefined);
@@ -58,14 +59,14 @@ export default function ProgramaObra() {
   // Add partida modal
   const addPartidaModal = useAddPartidaModal();
 
-  // Fetch projects
-  const projects = useQuery(api.desarrollos.getAll);
+  // Fetch current project
+  const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
 
 
   // Fetch all partidas for selected project with pagination
   const { results: allPartidas, loadMore } = usePaginatedQuery(
     api.partida.getByProjectPaginated,
-    selectedDesarrollo?._id ? { projectId: selectedDesarrollo._id } : "skip",
+    proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip",
     { initialNumItems: 100 }
   );
 
@@ -237,7 +238,7 @@ export default function ProgramaObra() {
     return true;
   });
 
-  if (!projects || !allPartidas) {
+  if (!proyecto || !allPartidas) {
     return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
       <p className="text-gray-500">Cargando datos...</p>
     </div>;
@@ -254,16 +255,16 @@ export default function ProgramaObra() {
           <div className="flex items-start justify-between">
             <div className="flex flex-col text-left">
               <p className="text-sm text-gray-500 mb-1">Programa de Obra</p>
-              <h1 className="text-2xl text-gray-900">{selectedDesarrollo?.nombre || 'Proyecto'}</h1>
+              <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
             </div>
             <div className="flex items-end gap-3">
 
               <Button
-                onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
-                  proyecto: selectedDesarrollo._id,
-                  projectName: selectedDesarrollo.nombre
+                onClick={() => proyecto && addPartidaModal.onOpen({
+                  proyecto: proyecto._id,
+                  projectName: proyecto.nombre
                 })}
-                disabled={!selectedDesarrollo}
+                disabled={!proyecto}
                 variant={"outline"}
               >
                 <Plus className="mr-2 h-4 w-4" />

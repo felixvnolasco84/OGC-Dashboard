@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, Upload, Trash2, BarChart3 } from "lucide-react";
-import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
+import { Id } from "../../convex/_generated/dataModel";
 
-export function UploadWeeklyTotals() {
-  const { selectedDesarrollo } = useDesarrolloStore();
+interface UploadWeeklyTotalsProps {
+  proyectoId: Id<"desarrollos"> | null;
+  proyectoNombre: string;
+}
+
+export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyTotalsProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
   
@@ -17,7 +21,7 @@ export function UploadWeeklyTotals() {
   const deleteTotals = useMutation(api.weekly_projected_totals.deleteByProject);
 
   const handleUpload = async () => {
-    if (!selectedDesarrollo) {
+    if (!proyectoId) {
       setUploadResult({ success: false, message: "Por favor selecciona un proyecto primero" });
       return;
     }
@@ -27,7 +31,7 @@ export function UploadWeeklyTotals() {
 
     try {
       const result = await uploadTotals({
-        proyecto: selectedDesarrollo._id,
+        proyecto: proyectoId,
         weeklyData: weeklyTotalsData,
       });
 
@@ -46,7 +50,7 @@ export function UploadWeeklyTotals() {
   };
 
   const handleDelete = async () => {
-    if (!selectedDesarrollo) {
+    if (!proyectoId) {
       setUploadResult({ success: false, message: "Por favor selecciona un proyecto primero" });
       return;
     }
@@ -60,7 +64,7 @@ export function UploadWeeklyTotals() {
 
     try {
       const result = await deleteTotals({
-        proyecto: selectedDesarrollo._id,
+        proyecto: proyectoId,
       });
 
       setUploadResult({
@@ -114,11 +118,11 @@ export function UploadWeeklyTotals() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-900">
             <strong>Proyecto seleccionado:</strong>{' '}
-            {selectedDesarrollo ? selectedDesarrollo.nombre : 'Ninguno'}
+            {proyectoId ? proyectoNombre : 'Ninguno'}
           </p>
-          {!selectedDesarrollo && (
+          {!proyectoId && (
             <p className="text-xs text-blue-700 mt-1">
-              Por favor selecciona un proyecto desde el sidebar antes de cargar los datos.
+              Por favor selecciona un proyecto antes de cargar los datos.
             </p>
           )}
         </div>
@@ -157,7 +161,7 @@ export function UploadWeeklyTotals() {
         <div className="flex gap-3">
           <Button
             onClick={handleUpload}
-            disabled={isUploading || !selectedDesarrollo}
+            disabled={isUploading || !proyectoId}
             className="flex-1"
           >
             <Upload className="mr-2 h-4 w-4" />
@@ -165,7 +169,7 @@ export function UploadWeeklyTotals() {
           </Button>
           <Button
             onClick={handleDelete}
-            disabled={isUploading || !selectedDesarrollo}
+            disabled={isUploading || !proyectoId}
             variant="destructive"
           >
             <Trash2 className="mr-2 h-4 w-4" />

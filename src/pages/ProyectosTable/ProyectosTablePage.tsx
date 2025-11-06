@@ -74,10 +74,10 @@ export default function ProyectosTablePage() {
     }
   };
 
-  // const openDeleteDialog = (projectId: Id<"desarrollos">) => {
-  //   setProjectToDelete(projectId);
-  //   setDeleteDialogOpen(true);
-  // };
+  const openDeleteDialog = (projectId: Id<"desarrollos">) => {
+    setProjectToDelete(projectId);
+    setDeleteDialogOpen(true);
+  };
 
   return (
     <div className="bg-white min-h-screen">
@@ -234,9 +234,9 @@ export default function ProyectosTablePage() {
                             <Upload className="h-3 w-3" />
                             Subir Proyecciones
                           </Button>                          
-                          {/* <Button onClick={() => openDeleteDialog(project._id)} variant="outline" className="w-full text-xs">
+                          <Button onClick={() => openDeleteDialog(project._id)} variant="outline" className="w-full text-xs">
                             Eliminar
-                          </Button> */}
+                          </Button>
                         </PopoverContent>
                       </Popover>
                     </td>

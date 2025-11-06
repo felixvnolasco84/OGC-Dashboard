@@ -1,6 +1,25 @@
+import { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { UploadWeeklyTotals } from "@/components/UploadWeeklyTotals";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function AdminPage() {
+  const [selectedProyectoId, setSelectedProyectoId] = useState<Id<"desarrollos"> | null>(null);
+  
+  // Fetch all projects
+  const proyectos = useQuery(api.desarrollos.getAll);
+  
+  // Get selected project name
+  const selectedProyecto = proyectos?.find(p => p._id === selectedProyectoId);
+
   return (
     <div className="bg-white px-12 py-6 min-h-screen">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -12,9 +31,32 @@ export default function AdminPage() {
           </p>
         </div>
 
+        {/* Project Selector */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Seleccionar Proyecto</label>
+          <Select
+            value={selectedProyectoId || undefined}
+            onValueChange={(value) => setSelectedProyectoId(value as Id<"desarrollos">)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecciona un proyecto" />
+            </SelectTrigger>
+            <SelectContent>
+              {proyectos?.map((proyecto) => (
+                <SelectItem key={proyecto._id} value={proyecto._id}>
+                  {proyecto.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Upload Weekly Totals Section */}
         <div>
-          <UploadWeeklyTotals />
+          <UploadWeeklyTotals 
+            proyectoId={selectedProyectoId}
+            proyectoNombre={selectedProyecto?.nombre || ''}
+          />
         </div>
       </div>
     </div>

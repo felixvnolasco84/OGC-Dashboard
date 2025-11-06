@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import {
     useQuery,
@@ -19,8 +20,7 @@ import FamiliaChart from "@/components/Charts/FamiliaChart";
 import { DashboardTable } from "../Dashboard/Table";
 // import { Plus } from "lucide-react";
 // import { useAddPartidaModal } from "@/hooks/add-partida-modal";
-import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
-import { Doc, Id } from "convex/_generated/dataModel";
+import { Id } from "convex/_generated/dataModel";
 
 // Mockup data
 const mockData = {
@@ -61,7 +61,7 @@ const formatNumber = (amount: number) => {
 
 
 export default function ControlPage() {
-    const { selectedDesarrollo, setSelectedDesarrollo } = useDesarrolloStore();
+    const { proyectoId } = useParams<{ proyectoId: string }>();
 
     // Progress chart filters    
     const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");
@@ -71,33 +71,34 @@ export default function ControlPage() {
     // const addPartidaModal = useAddPartidaModal();
 
     // const createPayment = useMutation(api.pagos.create);
-    // Fetch projects
-    const projects = useQuery(api.desarrollos.getAll);
+    // Fetch current project
+    const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
+    
     // Fetch metrics
-    const metrics = useQuery(api.partida.getProjectMetrics, selectedDesarrollo ? { projectId: selectedDesarrollo._id } : "skip");
+    const metrics = useQuery(api.partida.getProjectMetrics, proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip");
 
     // Fetch all partidas for the table with pagination
     const { results: allPartidas } = usePaginatedQuery(
         api.partida.getByProjectPaginated,
-        selectedDesarrollo ? { projectId: selectedDesarrollo._id } : "skip",
+        proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip",
         { initialNumItems: 100 }
     );
 
     // Fetch progress chart data
     const progressChartData = useQuery(
         api.transacciones.getProgressChartData,
-        selectedDesarrollo ? { proyecto_id: selectedDesarrollo._id } : "skip"
+        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
     );
 
     // Fetch familia chart data
     const manoDeObraData = useQuery(
         api.transacciones.getFamiliaChartData,
-        selectedDesarrollo ? { proyecto_id: selectedDesarrollo._id, familia: "ALBAÑILERÍAS" } : "skip"
+        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos">, familia: "ALBAÑILERÍAS" } : "skip"
     );
 
     const indirectosData = useQuery(
         api.transacciones.getFamiliaChartData,
-        selectedDesarrollo ? { proyecto_id: selectedDesarrollo._id, familia: "HONORARIOS" } : "skip"
+        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos">, familia: "HONORARIOS" } : "skip"
     );
 
 
@@ -111,7 +112,7 @@ export default function ControlPage() {
 
 
 
-    if (!projects || !metrics) {
+    if (!proyecto || !metrics) {
         return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
             <p className="text-gray-500">Cargando datos...</p>
         </div>;
@@ -123,12 +124,10 @@ export default function ControlPage() {
                 {/* Header */}
                 <div className="rounded-lg py-6">
                     <div className="flex items-start justify-between">
-                        {selectedDesarrollo && (
-                            <div className="flex flex-col text-left">
-                                <p className="text-sm text-gray-500 mb-1">Proyecto</p>
-                                <h1 className="text-2xl text-gray-900">{selectedDesarrollo.nombre}</h1>
-                            </div>
-                        )}
+                        <div className="flex flex-col text-left">
+                            <p className="text-sm text-gray-500 mb-1">Proyecto</p>
+                            <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
+                        </div>
                         {/* {selectedDesarrollo && (
                             <Button
                                 onClick={() => addPartidaModal.onOpen({
@@ -203,22 +202,7 @@ export default function ControlPage() {
                 <div className="bg-white">
                     <div className="grid grid-cols-3 items-center space-x-12">
                         <div className="flex items-center space-x-3 text-left border-b border-gray-600 py-4 h-full">
-                            <Select defaultValue={selectedDesarrollo?._id} value={selectedDesarrollo?._id}
-                                onValueChange={(value) => {
-                                    const project = projects?.find(p => p._id === value);
-                                    setSelectedDesarrollo(project as Doc<"desarrollos">);
-                                }}>
-                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
-                                    <SelectValue placeholder="Selecciona un proyecto" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {projects?.map((project) => (
-                                        <SelectItem key={project._id} value={project._id}>
-                                            {project.nombre}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <div className="text-gray-900">{proyecto.nombre}</div>
                         </div>
 
                         <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
@@ -303,10 +287,10 @@ export default function ControlPage() {
 
                                 {/* Progress Chart */}
                                 <div className="w-full h-80">
-                                    {selectedDesarrollo && selectedDesarrollo._id === "jh7exrc7v8fxpfncyabxcjnca57tq5m1" as Id<"desarrollos"> && (
+                                    {proyectoId === "jh7exrc7v8fxpfncyabxcjnca57tq5m1" && (
                                         <ProgressChart
                                             data={progressChartData || []}
-                                            proyectoId={selectedDesarrollo?._id}
+                                            proyectoId={proyectoId as Id<"desarrollos">}
                                             selectedPeriodo={selectedPeriodo}
                                             selectedRangoFecha={selectedRangoFecha}
                                         />

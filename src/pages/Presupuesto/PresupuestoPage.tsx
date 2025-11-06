@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import { useQuery, usePaginatedQuery } from "convex/react";
 
@@ -21,7 +22,7 @@ import {
 } from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
-import { useDesarrolloStore } from "@/hooks/use-desarrollo-store";
+import { Id } from "../../../convex/_generated/dataModel";
 
 // Mock data for the presupuesto page
 const mockData = {
@@ -65,8 +66,7 @@ const formatNumber = (amount: number) => {
 };
 
 export default function PresupuestoPage() {
-
-
+  const { proyectoId } = useParams<{ proyectoId: string }>();
 
   const [selectedPartidas, setSelectedPartidas] = useState<string[]>([]);
   const [selectedFamilias, setSelectedFamilias] = useState<string[]>([]);
@@ -79,17 +79,13 @@ export default function PresupuestoPage() {
   // Add partida modal
   const addPartidaModal = useAddPartidaModal();
 
-  // Fetch projects
-  const projects = useQuery(api.desarrollos.getAll);
-
-  // State for selected project (default to first project when available)
-  const { selectedDesarrollo } = useDesarrolloStore();
-  // const [selectedProjectId, setSelectedProjectId] = useState<Id<"desarrollos"> | undefined>(undefined);
+  // Fetch current project
+  const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
 
   // Fetch all partidas for selected project with pagination
   const { results: allPartidas, status: partidasStatus, loadMore } = usePaginatedQuery(
     api.partida.getByProjectPaginated,
-    selectedDesarrollo ? { projectId: selectedDesarrollo._id } : "skip",
+    proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip",
     { initialNumItems: 1000 }
   );
 
@@ -97,7 +93,7 @@ export default function PresupuestoPage() {
   // Get metrics for a proyecto
   const metrics = useQuery(
     api.meticas_presupuesto.getByProyecto,
-    selectedDesarrollo ? { proyecto_id: selectedDesarrollo._id } : "skip"
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
 
   // Get unique partidas and familias for filters (filter out empty strings)
@@ -151,7 +147,7 @@ export default function PresupuestoPage() {
 
 
   // Loading state
-  if (!projects || partidasStatus === "LoadingFirstPage") {
+  if (!proyecto || partidasStatus === "LoadingFirstPage") {
     return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
@@ -168,7 +164,7 @@ export default function PresupuestoPage() {
           <div className="flex items-end justify-between">
             <div className="flex flex-col text-left">
               <p className="text-base text-gray-500 mb-1">Presupuesto</p>
-              <h1 className="text-2xl text-gray-900">{selectedDesarrollo?.nombre || 'Proyecto'}</h1>
+              <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
             </div>
             <div className="flex items-end gap-3">
               {/* <Button
@@ -185,13 +181,13 @@ export default function PresupuestoPage() {
                 <Download className="h-6 w-6 rounded-full shadow-none" />
               </Button> */}
               <Button
-                onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
-                  proyecto: selectedDesarrollo._id,
-                  projectName: selectedDesarrollo.nombre
+                onClick={() => proyecto && addPartidaModal.onOpen({
+                  proyecto: proyecto._id,
+                  projectName: proyecto.nombre
                 })}
                 variant={"outline"}
                 size={"lg"}
-                disabled={!selectedDesarrollo}
+                disabled={!proyecto}
                 className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
               >
                 Agregar Partida

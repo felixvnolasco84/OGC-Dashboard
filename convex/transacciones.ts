@@ -249,6 +249,49 @@ export const getByProyecto = query({
   },
 });
 
+// Get transactions by project with line items and documents count
+export const getByProyectoWithDetails = query({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    const transactions = await ctx.db
+      .query("transacciones")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .order("desc")
+      .collect();
+
+    // For each transaction, count related data
+    const transactionsWithDetails = await Promise.all(
+      transactions.map(async (transaction) => {
+        // Count line items
+        const lineItems = await ctx.db
+          .query("pagos")
+          .withIndex("by_transaccion", (q) =>
+            q.eq("transaccion_id", transaction._id)
+          )
+          .collect();
+
+        // Count documents
+        const documents = await ctx.db
+          .query("documentos")
+          .withIndex("by_transaccion", (q) =>
+            q.eq("transaccion_id", transaction._id)
+          )
+          .collect();
+
+        return {
+          ...transaction,
+          lineItemsCount: lineItems.length,
+          documentsCount: documents.length,
+        };
+      })
+    );
+
+    return transactionsWithDetails;
+  },
+});
+
 // Get aggregated payment data by partida (for backward compatibility with existing views)
 export const getByPartidaName = query({
   args: {

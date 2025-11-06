@@ -1,15 +1,9 @@
 import { useState } from "react";
+import { useParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Search, MoreVertical, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,31 +24,29 @@ import { toast } from "sonner";
 import { Popover } from "@radix-ui/react-popover";
 import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-export default function TransaccionesTablePage() {
+export default function ProyectoTransaccionesTablePage() {
+    const { proyectoId } = useParams<{ proyectoId: string }>();
     const [searchTerm, setSearchTerm] = useState("");
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Id<"transacciones"> | null>(null);
-    const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
 
-    // Queries
-    const proyectos = useQuery(api.desarrollos.getAll);
-    const transacciones = useQuery(api.transacciones.getAllWithDetails);
+    // Fetch project
+    const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
+    
+    // Fetch transactions for this specific project with details
+    const transacciones = useQuery(api.transacciones.getByProyectoWithDetails, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
+    
     const deleteTransaction = useMutation(api.transacciones.deleteTransaction);
 
     const detailsModal = useTransactionDetailsModal();
     const conceptosModal = useTransactionConceptosModal();
     const documentosModal = useTransactionDocumentosModal();
 
-    const filteredTransacciones = transacciones?.filter((transaccion) => {
-        const matchesSearch = transaccion.proyectoNombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            transaccion.factura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            transaccion.codigo_referencia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            transaccion.tipo_pago?.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const matchesProyecto = !selectedProyecto || transaccion.proyecto === selectedProyecto;
-        
-        return matchesSearch && matchesProyecto;
-    });
+    const filteredTransacciones = transacciones?.filter((transaccion) =>
+        transaccion.factura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        transaccion.codigo_referencia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        transaccion.tipo_pago?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("es-MX", {
@@ -135,16 +127,22 @@ export default function TransaccionesTablePage() {
         setDeleteDialogOpen(true);
     };
 
+    if (!proyecto) {
+        return (
+            <div className="bg-white min-h-screen flex items-center justify-center">
+                <p className="text-gray-500">Cargando...</p>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white min-h-screen">
             <div className="max-w-full mx-auto py-8 text-left">
                 <div className="flex flex-col gap-4 px-12">
                     <div className="mb-8 flex items-start justify-between">
                         <div>
-                            <h1 className="text-3xl font-normal text-gray-900 mb-2">Transacciones</h1>
-                            <p className="text-sm text-gray-500">
-                                Consulta y gestiona todas las transacciones registradas en el sistema
-                            </p>
+                            <p className="text-sm text-gray-500 mb-1">Transacciones</p>
+                            <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
@@ -162,46 +160,16 @@ export default function TransaccionesTablePage() {
                         </div>
                     </div>
 
-                    {/* Search and Filter */}
-                    <div className="mb-8 grid grid-cols-2 gap-4">
-                        <div className="relative">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                            <Input
-                                type="text"
-                                placeholder="Buscar..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-12 rounded-none border-gray-300 h-12"
-                            />
-                        </div>
-
-                        {/* Project Filter */}
-                        <Select
-                            value={selectedProyecto || undefined}
-                            onValueChange={(value) => {
-                                if (value === "clear") {
-                                    setSelectedProyecto("");
-                                } else {
-                                    setSelectedProyecto(value as Id<"desarrollos">);
-                                }
-                            }}
-                        >
-                            <SelectTrigger className="rounded-none h-12">
-                                <SelectValue placeholder="Todos los proyectos" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {selectedProyecto && (
-                                    <SelectItem value="clear">
-                                        <span className="text-gray-500">Limpiar filtro</span>
-                                    </SelectItem>
-                                )}
-                                {proyectos?.map((proyecto) => (
-                                    <SelectItem key={proyecto._id} value={proyecto._id}>
-                                        {proyecto.nombre}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    {/* Search Bar */}
+                    <div className="mb-8 relative">
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <Input
+                            type="text"
+                            placeholder="Buscar por factura, código de referencia o tipo de pago..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-12 rounded-none border-gray-300 h-12"
+                        />
                     </div>
                 </div>
 
@@ -210,9 +178,6 @@ export default function TransaccionesTablePage() {
                     <table className="w-full">
                         <thead className="border-b border-gray-200">
                             <tr>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                                    Proyecto
-                                </th>
                                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
                                     Factura
                                 </th>
@@ -246,13 +211,13 @@ export default function TransaccionesTablePage() {
                         <tbody className="divide-y divide-gray-200">
                             {!transacciones ? (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -262,11 +227,6 @@ export default function TransaccionesTablePage() {
                                         key={transaccion._id}
                                         className="hover:bg-gray-50 transition-colors"
                                     >
-                                        <td className="px-6 py-4 border-r border-gray-200">
-                                            <div className="text-sm font-medium text-gray-900">
-                                                {transaccion.proyectoNombre || "-"}
-                                            </div>
-                                        </td>
                                         <td className="px-6 py-4 border-r border-gray-200">
                                             <div className="flex items-center gap-2">
                                                 {transaccion.factura && (

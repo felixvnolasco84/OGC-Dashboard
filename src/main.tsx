@@ -18,11 +18,15 @@ import ProgramaObra from "./pages/Programa Obra/ProgramaObra.tsx";
 import ProyectosTablePage from "./pages/ProyectosTable/ProyectosTablePage.tsx";
 import TransaccionesTablePage from "./pages/TransaccionesTable/TransaccionesTablePage.tsx";
 import ProveedoresTablePage from "./pages/ProveedoresTable/ProveedoresTablePage.tsx";
+import ProyectoTransaccionesTablePage from "./pages/ProyectoTransaccionesTable/ProyectoTransaccionesTablePage.tsx";
+import ProyectoProveedoresTablePage from "./pages/ProyectoProveedoresTable/ProyectoProveedoresTablePage.tsx";
+import ProyectoDocumentosPage from "./pages/ProyectoDocumentos/ProyectoDocumentosPage.tsx";
 import PartidaDetails from "./pages/PartidaDetails/PartidaDetails.tsx";
 import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
 import Dashboard from "./pages/Dashboard/Dashboard.tsx";
 import AdminPage from "./pages/Admin/AdminPage.tsx";
 import UserManagementPage from "./pages/UserManagement/UserManagementPage.tsx";
+import ProtectedRoute from "./components/Auth/ProtectedRoute.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -42,20 +46,54 @@ createRoot(document.getElementById("root")!).render(
             <ScrollToTop />
             <Routes>
               <Route element={<WebsiteLayout />}>
-                <Route index element={<ProyectosTablePage />} />
+                <Route index element={<ProtectedRoute requiredRole="admin">
+                  <ProyectosTablePage />
+                </ProtectedRoute>} />
+                <Route path="/proyectos" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <ProyectosTablePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/transacciones" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <TransaccionesTablePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proveedores" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <ProveedoresTablePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/documentos" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <DocumentosPage />
+                  </ProtectedRoute>
+                } />
+
+                {/* Project-specific routes */}
+                <Route path="/proyecto/:proyectoId/presupuesto" element={<PresupuestoPage />} />
+                <Route path="/proyecto/:proyectoId/control" element={<ControlPage />} />
+                <Route path="/proyecto/:proyectoId/programa" element={<ProgramaObra />} />
+                <Route path="/proyecto/:proyectoId/documentos" element={<ProyectoDocumentosPage />} />
+                <Route path="/proyecto/:proyectoId/transacciones" element={<ProyectoTransaccionesTablePage />} />
+                <Route path="/proyecto/:proyectoId/proveedores" element={<ProyectoProveedoresTablePage />} />
+                <Route path="/proyecto/:proyectoId/partidas/:id" element={<PartidaDetails />} />
+
+                {/* Admin routes */}
+                <Route path="/admin" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/usuarios" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <UserManagementPage />
+                  </ProtectedRoute>
+                } />
+
+                {/* Legacy routes - kept for backward compatibility */}
                 <Route path="/upload" element={<App />} />
-                <Route path="/proyectos" element={<ProyectosTablePage />} />
-                <Route path="/proyectos-tabla" element={<ProyectosTablePage />} />
-                <Route path="/transacciones" element={<TransaccionesTablePage />} />
-                <Route path="/proveedores" element={<ProveedoresTablePage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/documentos" element={<DocumentosPage />} />
-                <Route path="/dashboard/partidas/:id" element={<PartidaDetails />} />
-                <Route path="/dashboard/control" element={<ControlPage />} />
-                <Route path="/dashboard/presupuesto" element={<PresupuestoPage />} />
-                <Route path="/dashboard/programa-obra" element={<ProgramaObra />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/users" element={<UserManagementPage />} />
                 <Route path="/legal" element={<Legales />} />
                 <Route path="/aviso-de-privacidad" element={<AvisoPrivacidad />} />
               </Route>

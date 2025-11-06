@@ -1,17 +1,9 @@
 import { useState, useMemo } from "react";
+import { useParams } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Search, MoreVertical } from "lucide-react";
-import { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,48 +11,52 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Id } from "../../../convex/_generated/dataModel";
+import { Badge } from "@/components/ui/badge";
 
-export default function ProveedoresTablePage() {
+export default function ProyectoProveedoresTablePage() {
+  const { proyectoId } = useParams<{ proyectoId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
   
-  const proveedores = useQuery(api.proveedores.getAll);
-  const proyectos = useQuery(api.desarrollos.getAll);
-  const allTransacciones = useQuery(api.transacciones.getAllWithDetails);
+  // Fetch project
+  const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
+  
+  // Fetch all transactions for this project
+  const transacciones = useQuery(api.transacciones.getByProyecto, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
+  
+  // Fetch all proveedores
+  const allProveedores = useQuery(api.proveedores.getAll);
 
-  // Filter proveedores by selected project if applicable
-  const proveedoresData = useMemo(() => {
-    if (!proveedores || !allTransacciones) return [];
+  // Get unique proveedores (bancos) from transactions in this project
+  const proyectoProveedoresData = useMemo(() => {
+    if (!transacciones || !allProveedores) return [];
 
-    if (!selectedProyecto) {
-      // Show all proveedores with stats across all projects
-      return proveedores.map(prov => {
-        const provTransacciones = allTransacciones.filter(t => t.banco === prov.banco);
+    // Get unique banco names from transactions
+    const bancosInProject = new Set(
+      transacciones
+        .filter(t => t.banco)
+        .map(t => t.banco!)
+    );
+
+    // Match proveedores by banco name and calculate stats
+    const proveedoresWithStats = allProveedores
+      .filter(prov => bancosInProject.has(prov.banco))
+      .map(proveedor => {
+        // Count transactions and sum amounts for this proveedor
+        const provTransacciones = transacciones.filter(t => t.banco === proveedor.banco);
+        const totalAmount = provTransacciones.reduce((sum, t) => sum + t.monto_total, 0);
+        
         return {
-          ...prov,
+          ...proveedor,
           transaccionesCount: provTransacciones.length,
-          totalAmount: provTransacciones.reduce((sum, t) => sum + t.monto_total, 0),
+          totalAmount,
         };
       });
-    } else {
-      // Filter by project
-      const projectTransacciones = allTransacciones.filter(t => t.proyecto === selectedProyecto);
-      const bancosInProject = new Set(projectTransacciones.filter(t => t.banco).map(t => t.banco!));
-      
-      return proveedores
-        .filter(prov => bancosInProject.has(prov.banco))
-        .map(prov => {
-          const provTransacciones = projectTransacciones.filter(t => t.banco === prov.banco);
-          return {
-            ...prov,
-            transaccionesCount: provTransacciones.length,
-            totalAmount: provTransacciones.reduce((sum, t) => sum + t.monto_total, 0),
-          };
-        });
-    }
-  }, [proveedores, allTransacciones, selectedProyecto]);
 
-  const filteredProveedores = proveedoresData.filter((proveedor) =>
+    return proveedoresWithStats;
+  }, [transacciones, allProveedores]);
+
+  const filteredProveedores = proyectoProveedoresData.filter((proveedor) =>
     proveedor.razon_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     proveedor.rfc?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     proveedor.nombre_contacto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,64 +72,42 @@ export default function ProveedoresTablePage() {
     }).format(amount);
   };
 
+  if (!proyecto) {
+    return (
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Cargando...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-full mx-auto py-8 text-left">
         <div className="flex flex-col gap-4 px-12">
           <div className="mb-8 flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-normal text-gray-900 mb-2">Proveedores</h1>
-              <p className="text-sm text-gray-500">
-                Gestiona y consulta todos los proveedores registrados en el sistema
-              </p>
+              <p className="text-sm text-gray-500 mb-1">Proveedores</p>
+              <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
             </div>
-            <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
-              <span className="text-sm font-normal">
-                Total: {proveedoresData.length}
-              </span>
-            </Badge>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
+                <span className="text-sm font-normal">
+                  Total: {proyectoProveedoresData.length}
+                </span>
+              </Badge>
+            </div>
           </div>
 
-          {/* Search and Filter */}
-          <div className="mb-8 grid grid-cols-2 gap-4">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <Input
-                type="text"
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 rounded-none border-gray-300 h-12"
-              />
-            </div>
-
-            {/* Project Filter */}
-            <Select
-              value={selectedProyecto || undefined}
-              onValueChange={(value) => {
-                if (value === "clear") {
-                  setSelectedProyecto("");
-                } else {
-                  setSelectedProyecto(value as Id<"desarrollos">);
-                }
-              }}
-            >
-              <SelectTrigger className="rounded-none h-12">
-                <SelectValue placeholder="Todos los proyectos" />
-              </SelectTrigger>
-              <SelectContent>
-                {selectedProyecto && (
-                  <SelectItem value="clear">
-                    <span className="text-gray-500">Limpiar filtro</span>
-                  </SelectItem>
-                )}
-                {proyectos?.map((proyecto) => (
-                  <SelectItem key={proyecto._id} value={proyecto._id}>
-                    {proyecto.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Search Bar */}
+          <div className="mb-8 relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <Input
+              type="text"
+              placeholder="Buscar por razón social, RFC, contacto o banco..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 rounded-none border-gray-300 h-12"
+            />
           </div>
         </div>
 
@@ -176,23 +150,23 @@ export default function ProveedoresTablePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {!proveedoresData ? (
+              {!proyectoProveedoresData ? (
                 <tr>
                   <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
                     Cargando proveedores...
                   </td>
                 </tr>
-              ) : filteredProveedores && filteredProveedores.length === 0 ? (
+              ) : filteredProveedores.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
-                    No se encontraron proveedores
+                    No se encontraron proveedores en este proyecto
                   </td>
                 </tr>
               ) : (
-                filteredProveedores?.map((proveedor) => (
+                filteredProveedores.map((proveedor) => (
                   <tr
                     key={proveedor._id}
-                    className="hover: transition-colors"
+                    className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4 border-r border-gray-200">
                       <div className="text-sm font-normal text-gray-900">
@@ -224,11 +198,11 @@ export default function ProveedoresTablePage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-center text-gray-900 border-r border-gray-200">
                       <Badge variant="outline" className="px-2 py-1 text-xs">
-                        {proveedor.transaccionesCount || 0}
+                        {proveedor.transaccionesCount}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900 border-r border-gray-200">
-                      {formatCurrency(proveedor.totalAmount || 0)}
+                      {formatCurrency(proveedor.totalAmount)}
                     </td>
                     <td className="px-6 py-4 border-r border-gray-200">
                       <DropdownMenu>
@@ -239,10 +213,7 @@ export default function ProveedoresTablePage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
-                            Eliminar
-                          </DropdownMenuItem>
+                          <DropdownMenuItem>Ver transacciones</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
