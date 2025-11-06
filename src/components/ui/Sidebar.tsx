@@ -23,7 +23,8 @@ import {
   FileText,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { UserButton } from "@clerk/clerk-react";
+import { UserButton, SignInButton } from "@clerk/clerk-react";
+
 
 
 interface ProjectMenuItem {
@@ -32,6 +33,7 @@ interface ProjectMenuItem {
   path: string;
   disabled: boolean;
 }
+
 
 const projectMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
@@ -50,6 +52,8 @@ const bottomMenuItems = [
   // { id: "admin", label: "Admin", path: "/admin", icon: LockKeyhole },
   { id: "usuarios", label: "Usuarios", path: "/usuarios", icon: User },
 ];
+
+
 
 
 
@@ -97,7 +101,7 @@ export default function Sidebar() {
           <UserButton />
         </Authenticated>
         <Unauthenticated>
-          <div className="text-xs text-gray-500">No autenticado</div>
+          <SignInButton />
         </Unauthenticated>
       </div>
 

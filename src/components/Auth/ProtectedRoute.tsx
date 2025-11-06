@@ -66,14 +66,14 @@ function hasRequiredRole(
   userRole: string,
   requiredRole: "admin" | "user" | "viewer"
 ): boolean {
-  const roleHierarchy = {
+  const roleHierarchy: Record<string, number> = {
     admin: 3,
     user: 2,
     viewer: 1,
   };
 
-  const userLevel = roleHierarchy[userRole as keyof typeof roleHierarchy] || 0;
-  const requiredLevel = roleHierarchy[requiredRole];
+  const userLevel = roleHierarchy[userRole] || 0;
+  const requiredLevel = roleHierarchy[requiredRole] || 0;
 
   return userLevel >= requiredLevel;
 }

@@ -71,13 +71,41 @@ createRoot(document.getElementById("root")!).render(
                 } />
 
                 {/* Project-specific routes */}
-                <Route path="/proyecto/:proyectoId/presupuesto" element={<PresupuestoPage />} />
-                <Route path="/proyecto/:proyectoId/control" element={<ControlPage />} />
-                <Route path="/proyecto/:proyectoId/programa" element={<ProgramaObra />} />
-                <Route path="/proyecto/:proyectoId/documentos" element={<ProyectoDocumentosPage />} />
-                <Route path="/proyecto/:proyectoId/transacciones" element={<ProyectoTransaccionesTablePage />} />
-                <Route path="/proyecto/:proyectoId/proveedores" element={<ProyectoProveedoresTablePage />} />
-                <Route path="/proyecto/:proyectoId/partidas/:id" element={<PartidaDetails />} />
+                <Route path="/proyecto/:proyectoId/presupuesto" element={
+                  <ProtectedRoute requiredRole="user">
+                    <PresupuestoPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/control" element={
+                  <ProtectedRoute requiredRole="user">
+                    <ControlPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/programa" element={
+                  <ProtectedRoute requiredRole="user">
+                    <ProgramaObra />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/documentos" element={
+                  <ProtectedRoute requiredRole="user">
+                    <ProyectoDocumentosPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/transacciones" element={
+                  <ProtectedRoute requiredRole="user">
+                    <ProyectoTransaccionesTablePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/proveedores" element={
+                  <ProtectedRoute requiredRole="user">
+                    <ProyectoProveedoresTablePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/partidas/:id" element={
+                  <ProtectedRoute requiredRole="user">
+                    <PartidaDetails />
+                  </ProtectedRoute>
+                } />
 
                 {/* Admin routes */}
                 <Route path="/admin" element={
