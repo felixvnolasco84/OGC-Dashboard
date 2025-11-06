@@ -1,17 +1,54 @@
 import React from "react";
 import { AxisOptions, Chart } from "react-charts";
+import { Settings } from "lucide-react";
 
 interface ChartDataPoint {
     date: string;
     monto: number;
 }
 
+/**
+ * FamiliaChart - Displays cumulative spending over time for filtered partidas
+ * 
+ * @param data - Chart data points from getFamiliaChartData query
+ * @param title - Chart title displayed in header
+ * @param total - Total cumulative amount displayed in header
+ * @param color - Color for the area chart
+ * @param height - Chart height in pixels (default: 300)
+ * @param partidas - Filter by specific partida names (nivel 1)
+ * @param familias - Filter by specific familia names
+ * @param sub_partidas - Filter by specific sub-partida names
+ * 
+ * @example
+ * // Basic usage with single familia filter (in query):
+ * const data = useQuery(api.transacciones.getFamiliaChartData, {
+ *   proyecto_id: projectId,
+ *   familia: "ALBAÑILERÍAS"
+ * });
+ * <FamiliaChart data={data?.dataPoints || []} title="..." total={data?.total || 0} color="#3B82F6" />
+ * 
+ * @example
+ * // Advanced usage with multiple filters (in query):
+ * const data = useQuery(api.transacciones.getFamiliaChartData, {
+ *   proyecto_id: projectId,
+ *   partidas: ["CIMENTACIÓN", "ESTRUCTURA"],
+ *   familias: ["CONCRETOS", "ACEROS"]
+ * });
+ * <FamiliaChart data={data?.dataPoints || []} title="..." total={data?.total || 0} color="#10B981" />
+ */
 interface FamiliaChartProps {
+    chartId: string; // Unique identifier for this chart instance
     data: ChartDataPoint[];
     title: string;
     total: number;
     color: string;
     height?: number;
+    onConfigClick?: () => void; // Callback to open configuration modal
+    // Optional filters - NOTE: These are informational only. 
+    // Actual filtering happens in the getFamiliaChartData query, not in this component
+    partidas?: string[]; // Filter by specific partida names
+    familias?: string[]; // Filter by specific familia names
+    sub_partidas?: string[]; // Filter by specific sub-partida names
 }
 
 // Data structure that matches react-charts expected format
@@ -39,7 +76,17 @@ const formatNumber = (amount: number) => {
     }).format(amount);
 };
 
-export default function FamiliaChart({ data, title, total, color, height = 300 }: FamiliaChartProps) {
+export default function FamiliaChart({ 
+    chartId, // Used for identification purposes when configuring
+    data, 
+    title, 
+    total, 
+    color, 
+    height = 300,
+    onConfigClick 
+}: FamiliaChartProps) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _chartId = chartId; // Suppress unused warning - used for component identification
     // Mock data if no data is provided
     const mockData: ChartDataPoint[] = [
         { date: '01 Sep', monto: 50000 },
@@ -56,7 +103,7 @@ export default function FamiliaChart({ data, title, total, color, height = 300 }
     // Deduplicate and aggregate data points with the same date
     const chartData = React.useMemo(() => {
         const dataMap = new Map<string, ChartDataPoint>();
-        
+
         rawData.forEach((point) => {
             const existing = dataMap.get(point.date);
             if (existing) {
@@ -170,7 +217,18 @@ export default function FamiliaChart({ data, title, total, color, height = 300 }
         <div className="w-full h-full relative bg-[#F7F7F7] p-6 rounded-lg border border-gray-200">
             {/* Header with title and total */}
             <div className="mb-6 text-left space-y-4">
-                <h3 className="text-lg font-normal text-gray-900 mb-1">{title}</h3>
+                <div className="flex items-start justify-between">
+                    <h3 className="text-lg font-normal text-gray-900 mb-1">{title}</h3>
+                    {onConfigClick && (
+                        <button
+                            onClick={onConfigClick}
+                            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                            title="Configurar gráfica"
+                        >
+                            <Settings className="w-4 h-4 text-gray-600" />
+                        </button>
+                    )}
+                </div>
                 <div className="flex flex-col items-baseline">
                     <span className="text-xs text-gray-500">Total</span>
                     <span className="text-sm  text-gray-900">{formatNumber(total)}</span>

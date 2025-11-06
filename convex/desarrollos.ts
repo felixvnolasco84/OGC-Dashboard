@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, mutation as rawMutation } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import { getUserDesarrollos } from "./permissions";
@@ -106,7 +106,8 @@ export const update = mutation({
 });
 
 // Delete project and all related data (cascade delete)
-export const deleteProject = mutation({
+// Uses rawMutation to bypass triggers and avoid timeout during bulk deletes
+export const deleteProject = rawMutation({
     args: {
         id: v.id("desarrollos"),
     },
@@ -153,7 +154,28 @@ export const deleteProject = mutation({
         // 5. Delete all partidas for this proyecto
         await Promise.all(partidas.map((partida) => ctx.db.delete(partida._id)));
 
-        // 6. Finally, delete the proyecto itself
+        // 6. Delete meticas_presupuesto for this proyecto
+        const meticas = await ctx.db
+            .query("meticas_presupuesto")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .collect();
+        await Promise.all(meticas.map((m) => ctx.db.delete(m._id)));
+
+        // 7. Delete projected_transactions for this proyecto
+        const projectedTransactions = await ctx.db
+            .query("projected_transactions")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .collect();
+        await Promise.all(projectedTransactions.map((pt) => ctx.db.delete(pt._id)));
+
+        // 8. Delete weekly_projected_totals for this proyecto
+        const weeklyTotals = await ctx.db
+            .query("weekly_projected_totals")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .collect();
+        await Promise.all(weeklyTotals.map((wt) => ctx.db.delete(wt._id)));
+
+        // 9. Finally, delete the proyecto itself
         await ctx.db.delete(args.id);
 
         return {
@@ -162,6 +184,9 @@ export const deleteProject = mutation({
             deletedPagos: pagos.length,
             deletedTransacciones: transacciones.length,
             deletedDocumentos: documentos.length,
+            deletedMeticas: meticas.length,
+            deletedProjectedTransactions: projectedTransactions.length,
+            deletedWeeklyTotals: weeklyTotals.length,
             appwriteFileIds: documentos.map(doc => doc.image), // Return file IDs for manual cleanup
         };
     },

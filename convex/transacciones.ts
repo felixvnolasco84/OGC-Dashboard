@@ -537,21 +537,47 @@ export const getProgressChartData = query({
 });
 
 // Get chart data for a specific familia (e.g., MANO DE OBRA, HONORARIOS)
+// Now supports optional filtering by partida names, familia names, and sub-partida names
 export const getFamiliaChartData = query({
   args: {
     proyecto_id: v.id("desarrollos"),
-    familia: v.string(),
+    familia: v.optional(v.string()), // Made optional for flexibility
+    partidas: v.optional(v.array(v.string())), // Filter by specific partida names
+    familias: v.optional(v.array(v.string())), // Filter by specific familia names
+    sub_partidas: v.optional(v.array(v.string())), // Filter by specific sub-partida names
   },
   handler: async (ctx, args) => {
-    // Get all partidas for this familia in the project
+    // Get all partidas for this project
     const partidas = await ctx.db
       .query("partidas")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
       .collect();
 
-    // Filter by familia
-    const familiaPartidas = partidas.filter(p => p.familia === args.familia);
-    const partidaIds = familiaPartidas.map(p => p._id);
+    // Apply filters based on provided criteria
+    let filteredPartidas = partidas;
+
+    // Filter by partida names (nivel 1)
+    if (args.partidas && args.partidas.length > 0) {
+      filteredPartidas = filteredPartidas.filter(p => 
+        args.partidas!.includes(p.nombre) || 
+        args.partidas!.includes(p.partida_nombre || "")
+      );
+    }
+
+    // Filter by familia names
+    if (args.familias && args.familias.length > 0) {
+      filteredPartidas = filteredPartidas.filter(p => args.familias!.includes(p.familia));
+    } else if (args.familia) {
+      // Backward compatibility: use single familia if provided
+      filteredPartidas = filteredPartidas.filter(p => p.familia === args.familia);
+    }
+
+    // Filter by sub-partida names
+    if (args.sub_partidas && args.sub_partidas.length > 0) {
+      filteredPartidas = filteredPartidas.filter(p => args.sub_partidas!.includes(p.sub_partida));
+    }
+
+    const partidaIds = filteredPartidas.map(p => p._id);
 
     if (partidaIds.length === 0) {
       return { dataPoints: [], total: 0 };

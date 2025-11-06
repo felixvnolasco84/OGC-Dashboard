@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import {
@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import ProgressChart from "@/components/Charts/ProgressChart";
 import FamiliaChart from "@/components/Charts/FamiliaChart";
 import { DashboardTable } from "../Dashboard/Table";
+import FamiliaChartConfigModal from "@/components/modals/FamiliaChartConfigModal";
+import { useFamiliaChartConfigModal, FamiliaChartConfig } from "@/hooks/familia-chart-config-modal";
 // import { Plus } from "lucide-react";
 // import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { Id } from "convex/_generated/dataModel";
@@ -66,6 +68,28 @@ export default function ControlPage() {
     // Progress chart filters    
     const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");
     const [selectedRangoFecha, setSelectedRangoFecha] = useState("Ultimos 30 dias");
+    
+    // Chart configurations state
+    const [chartConfigs, setChartConfigs] = useState<Record<string, FamiliaChartConfig>>({
+        chart1: {
+            chartId: "chart1",
+            title: "Gasto Mano de Obra",
+            color: "#3B82F6",
+            partidas: [],
+            familias: ["ALBAÑILERÍAS"],
+            sub_partidas: [],
+        },
+        chart2: {
+            chartId: "chart2",
+            title: "Indirectos",
+            color: "#10B981",
+            partidas: [],
+            familias: ["HONORARIOS"],
+            sub_partidas: [],
+        },
+    });
+    
+    const { open: openConfigModal } = useFamiliaChartConfigModal();
 
     // Add partida modal
     // const addPartidaModal = useAddPartidaModal();
@@ -90,16 +114,80 @@ export default function ControlPage() {
         proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
     );
 
-    // Fetch familia chart data
-    const manoDeObraData = useQuery(
+    // Extract available options from all partidas for the modal
+    const availableOptions = useMemo(() => {
+        if (!allPartidas) return { availablePartidas: [], availableFamilias: [], availableSubPartidas: [] };
+        
+        const partidasSet = new Set<string>();
+        const familiasSet = new Set<string>();
+        const subPartidasSet = new Set<string>();
+        
+        allPartidas.forEach(p => {
+            if (p.nombre) partidasSet.add(p.nombre);
+            if (p.partida_nombre) partidasSet.add(p.partida_nombre);
+            if (p.familia) familiasSet.add(p.familia);
+            if (p.sub_partida) subPartidasSet.add(p.sub_partida);
+        });
+        
+        return {
+            availablePartidas: Array.from(partidasSet).filter(Boolean).sort(),
+            availableFamilias: Array.from(familiasSet).filter(Boolean).sort(),
+            availableSubPartidas: Array.from(subPartidasSet).filter(Boolean).sort(),
+        };
+    }, [allPartidas]);
+
+    // Build query parameters from chart configs
+    const getQueryParams = (config: FamiliaChartConfig) => {
+        if (!proyectoId) return "skip" as const;
+        
+        const params: {
+            proyecto_id: Id<"desarrollos">;
+            partidas?: string[];
+            familias?: string[];
+            sub_partidas?: string[];
+        } = {
+            proyecto_id: proyectoId as Id<"desarrollos">,
+        };
+        
+        if (config.partidas.length > 0) {
+            params.partidas = config.partidas;
+        }
+        if (config.familias.length > 0) {
+            params.familias = config.familias;
+        }
+        if (config.sub_partidas.length > 0) {
+            params.sub_partidas = config.sub_partidas;
+        }
+        
+        return params;
+    };
+
+    // Fetch data for each chart based on its configuration
+    const chart1Data = useQuery(
         api.transacciones.getFamiliaChartData,
-        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos">, familia: "ALBAÑILERÍAS" } : "skip"
+        getQueryParams(chartConfigs.chart1)
     );
 
-    const indirectosData = useQuery(
+    const chart2Data = useQuery(
         api.transacciones.getFamiliaChartData,
-        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos">, familia: "HONORARIOS" } : "skip"
+        getQueryParams(chartConfigs.chart2)
     );
+    
+    // Handle config updates from modal
+    const handleConfigSave = (config: FamiliaChartConfig) => {
+        setChartConfigs(prev => ({
+            ...prev,
+            [config.chartId]: config,
+        }));
+    };
+    
+    // Handle opening config modal for a specific chart
+    const handleOpenConfig = (chartId: string) => {
+        const config = chartConfigs[chartId];
+        if (config) {
+            openConfigModal(config, availableOptions);
+        }
+    };
 
 
     const por_liquidar = allPartidas?.reduce((sum, p) => sum + p.presupuesto_aprobado || 0, 0) || 0;
@@ -302,22 +390,26 @@ export default function ControlPage() {
 
                     </div>
 
-                    {/* Familia Charts - Mano de Obra and Indirectos */}
+                    {/* Familia Charts - Configurable charts */}
                     <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                        {/* Gasto Mano de Obra */}
+                        {/* Chart 1 */}
                         <FamiliaChart
-                            data={manoDeObraData?.dataPoints || []}
-                            title="Gasto Mano de Obra"
-                            total={manoDeObraData?.total || 0}
-                            color="#88ab8c"
+                            chartId={chartConfigs.chart1.chartId}
+                            data={chart1Data?.dataPoints || []}
+                            title={chartConfigs.chart1.title}
+                            total={chart1Data?.total || 0}
+                            color={chartConfigs.chart1.color}
+                            onConfigClick={() => handleOpenConfig("chart1")}
                         />
 
-                        {/* Indirectos (Honorarios) */}
+                        {/* Chart 2 */}
                         <FamiliaChart
-                            data={indirectosData?.dataPoints || []}
-                            title="Indirectos"
-                            total={indirectosData?.total || 0}
-                            color="#c39999"
+                            chartId={chartConfigs.chart2.chartId}
+                            data={chart2Data?.dataPoints || []}
+                            title={chartConfigs.chart2.title}
+                            total={chart2Data?.total || 0}
+                            color={chartConfigs.chart2.color}
+                            onConfigClick={() => handleOpenConfig("chart2")}
                         />
                     </div>
 
@@ -326,6 +418,9 @@ export default function ControlPage() {
                     </div>
                 </div>
             </div>
+            
+            {/* Configuration Modal */}
+            <FamiliaChartConfigModal onSave={handleConfigSave} />
         </div>
     );
 }
