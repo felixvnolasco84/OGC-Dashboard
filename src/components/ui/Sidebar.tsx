@@ -130,6 +130,7 @@ export default function Sidebar() {
             <AccordionItem value={proyecto._id} key={proyecto._id} className="space-y-1 border-b-0">
               {/* Project Header */}
               <AccordionTrigger
+                disabled={!isAuthenticated}
                 onClick={() => toggleProject(proyecto._id)}
                 className={cn(
                   "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
