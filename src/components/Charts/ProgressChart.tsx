@@ -92,7 +92,13 @@ export default function ProgressChart({
     };
 
     // Helper to parse date string to Date object
-    const parseDateFromLabel = (dateLabel: string): Date => {
+    const parseDateFromLabel = (dateLabel: string | undefined): Date => {
+        // Safety check for undefined/null
+        if (!dateLabel) {
+            console.warn('parseDateFromLabel called with undefined/null dateLabel');
+            return new Date();
+        }
+
         const parts = dateLabel.split(' ');
         const monthMap: { [key: string]: number } = {
             'Ene': 0, 'Feb': 1, 'Mar': 2, 'Abr': 3, 'May': 4, 'Jun': 5,
@@ -212,7 +218,13 @@ export default function ProgressChart({
         if (chartData.length === 0) return [];
 
         // Parse dates from string format "DD Mon YYYY"
-        const parseDateString = (dateStr: string): Date => {
+        const parseDateString = (dateStr: string | undefined): Date => {
+            // Safety check for undefined/null
+            if (!dateStr) {
+                console.warn('parseDateString called with undefined/null dateStr');
+                return new Date();
+            }
+
             const parts = dateStr.split(' ');
             const monthMap: { [key: string]: number } = {
                 'Ene': 0, 'Enero': 0, 'Jan': 0, 'January': 0,
@@ -246,8 +258,11 @@ export default function ProgressChart({
             return new Date();
         };
 
+        // Filter out any data points with invalid dates first
+        const validData = chartData.filter(d => d.date && typeof d.date === 'string' && d.date.trim() !== '');
+
         // Sort data by date to prevent vertical spikes
-        const sortedData = [...chartData].sort((a, b) => {
+        const sortedData = [...validData].sort((a, b) => {
             const dateA = parseDateString(a.date);
             const dateB = parseDateString(b.date);
             return dateA.getTime() - dateB.getTime();
@@ -313,6 +328,7 @@ export default function ProgressChart({
     const primaryAxis = React.useMemo<AxisOptions<ReactChartsDataPoint>>(
         () => ({
             getValue: (datum) => datum.primary,
+            scaleType: 'time',
         }),
         []
     );
@@ -321,6 +337,7 @@ export default function ProgressChart({
         () => [
             {
                 getValue: (datum) => datum.secondary,
+                scaleType: 'linear',
                 elementType: "area",
                 formatters: {
                     scale: (value: number) => {
@@ -360,24 +377,33 @@ export default function ProgressChart({
                 </div>
             )}
 
-            <div className="w-full pointer-events-none" style={{ height: `${height}px` }}>
-                <div className="pointer-events-auto w-full h-full">
-                    <Chart
-                        options={{
-                            data: transformedData,
-                            primaryAxis,
-                            secondaryAxes,
-                            // Light blue gradient for Gasto Programado, darker blue for Gasto Total, dashed line for Avance Real
-                            defaultColors: ['#BFCFDC', '#79AAAF', '#6B7280'],
-                            dark: false,
-                            interactionMode: "primary",
-                            tooltip: {
-                                show: true,
-                            },
-                        }}
-                    />
+            {/* Show empty state if no data */}
+            {transformedData.length === 0 ? (
+                <div className="w-full flex items-center justify-center" style={{ height: `${height}px` }}>
+                    <div className="text-center text-gray-400">
+                        <p className="text-sm">No hay datos disponibles para mostrar</p>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="w-full pointer-events-none" style={{ height: `${height}px` }}>
+                    <div className="pointer-events-auto w-full h-full">
+                        <Chart
+                            options={{
+                                data: transformedData,
+                                primaryAxis,
+                                secondaryAxes,
+                                // Light blue gradient for Gasto Programado, darker blue for Gasto Total, dashed line for Avance Real
+                                defaultColors: ['#BFCFDC', '#79AAAF', '#6B7280'],
+                                dark: false,
+                                interactionMode: "primary",
+                                tooltip: {
+                                    show: true,
+                                },
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

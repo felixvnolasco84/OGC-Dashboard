@@ -9,8 +9,7 @@ const triggers = new Triggers<DataModel>();
 
 // Register trigger for pagos table to update pagado field in partidas
 triggers.register("pagos", async (ctx, change) => {
-  console.log("Payment changed:", change.operation, change.id);
-  
+
   try {
     // Get the payment record to extract context information
     let payment;
@@ -95,15 +94,13 @@ async function updatePagadoForHierarchy(
   context: { partida: string; familia: string; sub_partida: string; nivel: number; proyecto: string }
 ) {
   const { partida, familia, sub_partida, nivel, proyecto } = context;
-  
-  console.log(`Updating pagado for nivel ${nivel}: ${partida} > ${familia} > ${sub_partida}`);
+
   
   try {
     // Handle based on the nivel of the payment
     if (nivel === 3 && sub_partida) {
       // Payment is on nivel 3 (sub-partida)
-      // 1. Update nivel 3 (sub-partida) - specific sub_partida
-      console.log(`[1/3] Querying nivel 3 items for: ${partida} > ${familia} > ${sub_partida}`);
+      // 1. Update nivel 3 (sub-partida) - specific sub_partida      
       const nivel3Items = await ctx.db
         .query("partidas")
         .withIndex("by_proyecto_nivel_partida_familia", (q: any) =>
@@ -112,7 +109,6 @@ async function updatePagadoForHierarchy(
         .filter((q: any) => q.eq(q.field("sub_partida"), sub_partida))
         .collect();
       
-      console.log(`[1/3] Found ${nivel3Items.length} nivel 3 items`);
       
       if (nivel3Items.length > 0) {
         const pagadoMap = await calculatePagadoForPartidas(ctx, nivel3Items.map((i: any) => i._id));
@@ -125,13 +121,11 @@ async function updatePagadoForHierarchy(
             pagado: totalPagado,
             por_gastar: porGastar 
           });
-          console.log(`Updated nivel 3: pagado=${totalPagado}, por_gastar=${porGastar}`);
         }
       }
     }
   
-    // 2. Update nivel 2 (familia)
-    console.log(`[2/3] Updating nivel 2 items for: ${partida} > ${familia}`);
+    // 2. Update nivel 2 (familia)    
     const nivel2Items = await ctx.db
       .query("partidas")
       .withIndex("by_proyecto_nivel_partida_familia", (q: any) =>

@@ -484,8 +484,11 @@ export const getProgressChartData = query({
 
     // Sort transactions by date (parse DD/MM/YYYY format)
     const sortedTransactions = transactions.sort((a, b) => {
-      const parseDate = (dateStr: string) => {
-        const [day, month, year] = dateStr.split('/').map(Number);
+      const parseDate = (dateStr: string | undefined) => {
+        if (!dateStr) return 0;
+        const parts = dateStr.split('/').map(Number);
+        if (parts.length !== 3) return 0;
+        const [day, month, year] = parts;
         return new Date(year, month - 1, day).getTime();
       };
       return parseDate(a.fecha) - parseDate(b.fecha);
@@ -504,6 +507,12 @@ export const getProgressChartData = query({
     for (let i = 0; i < sortedTransactions.length; i++) {
       const transaction = sortedTransactions[i];
       
+      // Skip transactions without a valid date
+      if (!transaction.fecha || typeof transaction.fecha !== 'string') {
+        console.warn('Transaction missing fecha:', transaction._id);
+        continue;
+      }
+      
       // Only count "Pagado" transactions
       if (transaction.status === "Pagado") {
         cumulativeGasto += transaction.monto_total;
@@ -518,11 +527,17 @@ export const getProgressChartData = query({
         ? (cumulativeGasto / totalPresupuestoAprobado) * 100 
         : 0;
 
-      // Format date as "DD Mon"
-      const [day, month] = transaction.fecha.split('/');
+      // Format date as "DD Mon YYYY" with full year for better compatibility
+      const parts = transaction.fecha.split('/');
+      if (parts.length !== 3) {
+        console.warn('Invalid fecha format:', transaction.fecha);
+        continue;
+      }
+      
+      const [day, month, year] = parts;
       const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
       const monthName = monthNames[parseInt(month, 10) - 1] || 'Ene';
-      const dateLabel = `${day} ${monthName}`;
+      const dateLabel = `${day} ${monthName} ${year}`;
 
       dataPoints.push({
         date: dateLabel,
