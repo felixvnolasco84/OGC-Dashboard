@@ -31,27 +31,6 @@ import { api } from "../../../convex/_generated/api"
 import { Doc } from "../../../convex/_generated/dataModel"
 import DropdownMenuComponentPartida from "@/components/DropdownMenu/DropdownMenuComponenPartida"
 
-// Helper function to determine partida level based on populated fields
-// Level 0: Only nombre (partida)
-// Level 1: nombre + familia
-// Level 2: nombre + familia + sub_partida
-const calculatePartidaLevel = (partida: Doc<"partidas">): number => {
-    const hasNombre = partida.nombre && partida.nombre.trim() !== '';
-    const hasFamilia = partida.familia && partida.familia.trim() !== '';
-    const hasSubPartida = partida.sub_partida && partida.sub_partida.trim() !== '';
-
-    if (hasNombre && hasFamilia && hasSubPartida) {
-        return 2; // Sub-partida level
-    } else if (hasNombre && hasFamilia) {
-        return 1; // Familia level
-    } else if (hasNombre) {
-        return 0; // Partida level
-    }
-
-    // Default to level 2 for safety
-    return 2;
-};
-
 export const columns: ColumnDef<Doc<"partidas">>[] = [
     // {
     //     id: "select",
@@ -210,9 +189,6 @@ export const columns: ColumnDef<Doc<"partidas">>[] = [
         cell: ({ row }) => {
             const partida = row.original
 
-            // Calculate dynamic level based on populated fields
-            const level = calculatePartidaLevel(partida);
-
             // Construct rowData to match DropdownMenuComponentPartida requirements
             const rowData = {
                 displayName: partida.sub_partida || partida.familia || partida.nombre,
@@ -227,7 +203,7 @@ export const columns: ColumnDef<Doc<"partidas">>[] = [
             return (
                 <DropdownMenuComponentPartida
                     partida={partida}
-                    level={level}
+                    level={partida.nivel}
                     rowData={rowData}
                 />
             )
@@ -419,24 +395,6 @@ export function DashboardTable() {
                     >
                         Últimos movimientos
                     </TabsTrigger>
-                    {/* <TabsTrigger
-                        value="cuentas-por-pagar"
-                        className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
-                    >
-                        Cuentas por pagar
-                    </TabsTrigger>
-                    <TabsTrigger
-                        value="pago-estimaciones"
-                        className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
-                    >
-                        Pago de Estimaciones
-                    </TabsTrigger>
-                    <TabsTrigger
-                        value="pago-anticipos"
-                        className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
-                    >
-                        Pago de Anticipos
-                    </TabsTrigger> */}
                 </TabsList>
 
                 <TabsContent value="ultimos-movimientos" className="space-y-4">

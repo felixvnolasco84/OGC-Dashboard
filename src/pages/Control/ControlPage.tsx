@@ -168,6 +168,24 @@ export default function ControlPage() {
         getQueryParams(chartConfigs.chart1)
     );
 
+
+    console.log("chart1Data", chart1Data);
+
+    // RESPONSE EXAMPLE FROM API CHART1DATA
+//     {
+//     "dataPoints": [
+//         {
+//             "date": "2025-11-06 Ene",
+//             "monto": 12000
+//         },
+//         {
+//             "date": "2025-11-06 Ene",
+//             "monto": 24000
+//         }
+//     ],
+//     "total": 24000
+// }
+
     const chart2Data = useQuery(
         api.transacciones.getFamiliaChartData,
         getQueryParams(chartConfigs.chart2)
@@ -375,7 +393,7 @@ export default function ControlPage() {
 
                                 {/* Progress Chart */}
                                 <div className="w-full h-80">
-                                    {proyectoId === "jh7exrc7v8fxpfncyabxcjnca57tq5m1" && (
+                                    {proyectoId === "jh777ebcj1d1vy5nc61cp4hbp97txj0s" && (
                                         <ProgressChart
                                             data={progressChartData || []}
                                             proyectoId={proyectoId as Id<"desarrollos">}

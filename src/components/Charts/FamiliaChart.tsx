@@ -86,22 +86,11 @@ export default function FamiliaChart({
     onConfigClick 
 }: FamiliaChartProps) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    
     const _chartId = chartId; // Suppress unused warning - used for component identification
-
     console.log(_chartId);
-    // Mock data if no data is provided
-    const mockData: ChartDataPoint[] = [
-        { date: '01 Sep', monto: 50000 },
-        { date: '05 Sep', monto: 100000 },
-        { date: '10 Sep', monto: 180000 },
-        { date: '15 Sep', monto: 250000 },
-        { date: '20 Sep', monto: 320000 },
-        { date: '25 Sep', monto: 380000 },
-        { date: '30 Sep', monto: 450000 },
-    ];
 
-    const rawData = data.length > 0 ? data : mockData;
+    // Use real data from queries (filtered by configuration)
+    const rawData = data;
 
     // Deduplicate and aggregate data points with the same date
     const chartData = React.useMemo(() => {
@@ -127,32 +116,55 @@ export default function FamiliaChart({
     const transformedData: ReactChartsSeries[] = React.useMemo(() => {
         if (chartData.length === 0) return [];
 
-        // Parse dates from string format "DD Mon"
+        // Parse dates from API format "YYYY-MM-DD Mon" or "DD Mon"
         const parseDateString = (dateStr: string): Date => {
-            const parts = dateStr.split(' ');
-            const monthMap: { [key: string]: number } = {
-                'Ene': 0, 'Enero': 0, 'Jan': 0, 'January': 0,
-                'Feb': 1, 'Febrero': 1, 'February': 1,
-                'Mar': 2, 'Marzo': 2, 'March': 2,
-                'Abr': 3, 'Abril': 3, 'Apr': 3, 'April': 3,
-                'May': 4, 'Mayo': 4,
-                'Jun': 5, 'Junio': 5, 'June': 5,
-                'Jul': 6, 'Julio': 6, 'July': 6,
-                'Ago': 7, 'Agosto': 7, 'Aug': 7, 'August': 7,
-                'Sep': 8, 'Septiembre': 8, 'September': 8,
-                'Oct': 9, 'Octubre': 9, 'October': 9,
-                'Nov': 10, 'Noviembre': 10, 'November': 10,
-                'Dic': 11, 'Diciembre': 11, 'Dec': 11, 'December': 11
-            };
-
-            if (parts.length === 2) {
-                const day = parseInt(parts[0], 10);
-                const month = monthMap[parts[1]] ?? 8; // Default to September
-                return new Date(2025, month, day);
+            if (!dateStr || typeof dateStr !== 'string') {
+                console.warn('Invalid date string:', dateStr);
+                return new Date();
             }
 
-            // Fallback: return current date
-            return new Date();
+            const parts = dateStr.trim().split(' ');
+            
+            // Format: "YYYY-MM-DD Mon" (e.g., "2025-11-06 Ene")
+            if (parts.length >= 2 && parts[0].includes('-')) {
+                const datePart = parts[0]; // "2025-11-06"
+                const [year, month, day] = datePart.split('-').map(n => parseInt(n, 10));
+                
+                if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+                    // Month is 1-based in the string, but Date constructor expects 0-based
+                    return new Date(year, month - 1, day);
+                }
+            }
+            
+            // Format: "DD Mon" (e.g., "06 Ene")
+            if (parts.length === 2) {
+                const monthMap: { [key: string]: number } = {
+                    'Ene': 0, 'Enero': 0, 'Jan': 0, 'January': 0,
+                    'Feb': 1, 'Febrero': 1, 'February': 1,
+                    'Mar': 2, 'Marzo': 2, 'March': 2,
+                    'Abr': 3, 'Abril': 3, 'Apr': 3, 'April': 3,
+                    'May': 4, 'Mayo': 4,
+                    'Jun': 5, 'Junio': 5, 'June': 5,
+                    'Jul': 6, 'Julio': 6, 'July': 6,
+                    'Ago': 7, 'Agosto': 7, 'Aug': 7, 'August': 7,
+                    'Sep': 8, 'Septiembre': 8, 'September': 8,
+                    'Oct': 9, 'Octubre': 9, 'October': 9,
+                    'Nov': 10, 'Noviembre': 10, 'November': 10,
+                    'Dic': 11, 'Diciembre': 11, 'Dec': 11, 'December': 11
+                };
+                
+                const day = parseInt(parts[0], 10);
+                const month = monthMap[parts[1]];
+                
+                if (!isNaN(day) && month !== undefined) {
+                    return new Date(new Date().getFullYear(), month, day);
+                }
+            }
+
+            // Fallback: try to parse as ISO date or return current date
+            console.warn('Unable to parse date string, using fallback:', dateStr);
+            const fallbackDate = new Date(dateStr);
+            return isNaN(fallbackDate.getTime()) ? new Date() : fallbackDate;
         };
 
         // Sort data by date to prevent vertical spikes
@@ -238,21 +250,45 @@ export default function FamiliaChart({
                 </div>
             </div>
 
-            {/* Chart */}
+            {/* Chart or Empty State */}
             <div className="w-full" style={{ height: `${height}px` }}>
-                <Chart
-                    options={{
-                        data: transformedData,
-                        primaryAxis,
-                        secondaryAxes,
-                        defaultColors: [color],
-                        dark: false,
-                        interactionMode: 'closest',
-                        tooltip: {
-                            show: true,
-                        },
-                    }}
-                />
+                {transformedData.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                        <div className="text-gray-400 mb-2">
+                            <svg
+                                className="w-16 h-16 mx-auto mb-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                />
+                            </svg>
+                        </div>
+                        <p className="text-sm text-gray-500 font-medium">Sin datos para mostrar</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                            Ajusta los filtros para ver información
+                        </p>
+                    </div>
+                ) : (
+                    <Chart
+                        options={{
+                            data: transformedData,
+                            primaryAxis,
+                            secondaryAxes,
+                            defaultColors: [color],
+                            dark: false,
+                            interactionMode: 'closest',
+                            tooltip: {
+                                show: true,
+                            },
+                        }}
+                    />
+                )}
             </div>
         </div>
     );

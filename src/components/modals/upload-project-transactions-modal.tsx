@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useUploadTransactionsModal } from "@/hooks/upload-transactions-modal";
+import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 import {
   Dialog,
   DialogContent,
@@ -12,13 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Upload, FileSpreadsheet, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -70,9 +63,8 @@ type UploadResult = {
   }>;
 };
 
-export default function UploadTransactionsModal() {
-  const { isOpen, onClose } = useUploadTransactionsModal();
-  const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
+export default function UploadProjectTransactionsModal() {
+  const { isOpen, proyectoId, proyectoNombre, onClose } = useUploadProjectTransactionsModal();
   const [file, setFile] = useState<File | null>(null);
   const [googleDriveFolder, setGoogleDriveFolder] = useState("");
   const [googleAccessToken, setGoogleAccessToken] = useState("");
@@ -82,12 +74,11 @@ export default function UploadTransactionsModal() {
   const [result, setResult] = useState<UploadResult | null>(null);
 
   // Queries and mutations
-  const proyectos = useQuery(api.desarrollos.getAll);
   const createTransaction = useMutation(api.transacciones.createTransaction);
   const createDocumento = useMutation(api.documentos.create);
   const partidasForProject = useQuery(
     api.partida.getByProject,
-    selectedProyecto ? { projectId: selectedProyecto } : "skip"
+    proyectoId ? { projectId: proyectoId } : "skip"
   );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -152,7 +143,7 @@ export default function UploadTransactionsModal() {
   };
 
   const handleBrowseClick = () => {
-    document.getElementById("transaction-file-upload")?.click();
+    document.getElementById("project-transaction-file-upload")?.click();
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -173,9 +164,11 @@ export default function UploadTransactionsModal() {
   };
 
   const handleExcelUpload = async (file: File) => {
+    if (!proyectoId) throw new Error("No project selected");
+
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("proyecto_id", selectedProyecto as string)  ;
+    formData.append("proyecto_id", proyectoId as string);
 
     const response = await fetch("https://ogc-excel-reader.vercel.app/upload/transactions", {
       method: "POST",
@@ -186,13 +179,12 @@ export default function UploadTransactionsModal() {
     return data;
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedProyecto) {
-      toast.error("Selecciona un proyecto", {
-        description: "Debes seleccionar un proyecto antes de continuar.",
+    if (!proyectoId) {
+      toast.error("Error", {
+        description: "No se ha seleccionado un proyecto.",
       });
       return;
     }
@@ -228,7 +220,7 @@ export default function UploadTransactionsModal() {
 
       // Create lookup map for fast partida resolution
       const partidasMap = new Map<string, Id<"partidas">>();
-      
+
       if (partidasForProject) {
         for (const p of partidasForProject) {
           const key = `${p.nombre}_${p.familia}_${p.sub_partida}`;
@@ -251,13 +243,13 @@ export default function UploadTransactionsModal() {
           for (const item of txn.lineitems) {
             const key = `${item.partida_identifier.partida}_${item.partida_identifier.familia}_${item.partida_identifier.subpartida}`;
             const partidaId = partidasMap.get(key);
-            
+
             if (!partidaId) {
               console.warn(`Partida not found: ${key}`);
               errors.push(`Partida no encontrada: ${item.codigo}`);
               continue;
             }
-            
+
             lineItems.push({
               partida_id: partidaId,
               partida: item.partida_identifier.partida,
@@ -276,7 +268,7 @@ export default function UploadTransactionsModal() {
 
           // Create transaction with line items
           const result = await createTransaction({
-            proyecto: selectedProyecto,
+            proyecto: proyectoId,
             monto_total: txn.transaction.monto_total,
             fecha: excelSerialToDate(txn.transaction.fecha),
             tipo_pago: txn.transaction.tipo_pago,
@@ -312,7 +304,7 @@ export default function UploadTransactionsModal() {
       if (googleDriveFolder && isValidDriveFolderUrl(googleDriveFolder)) {
         try {
           console.log("Processing Google Drive documents...");
-          
+
           // Collect all unique document names from all transactions
           const documentNames = new Set<string>();
           const documentsByTransaction = new Map<string, Array<{
@@ -320,10 +312,10 @@ export default function UploadTransactionsModal() {
             tipo: string;
             descripcion: string;
           }>>();
-          
+
           response.transactions.forEach((txn: typeof response.transactions[0], txnIndex: number) => {
             const txnDocs: Array<{ nombre: string; tipo: string; descripcion: string }> = [];
-            
+
             txn.lineitems.forEach((item: typeof txn.lineitems[0]) => {
               if (item.nombre_documento) {
                 documentNames.add(item.nombre_documento);
@@ -334,7 +326,7 @@ export default function UploadTransactionsModal() {
                 });
               }
             });
-            
+
             if (txnDocs.length > 0 && createdTransactionIds[txnIndex]) {
               documentsByTransaction.set(
                 createdTransactionIds[txnIndex].id,
@@ -342,11 +334,11 @@ export default function UploadTransactionsModal() {
               );
             }
           });
-          
+
           // Only proceed if we have an access token
           if (googleAccessToken) {
             const folderId = extractFolderIdFromUrl(googleDriveFolder);
-            
+
             if (folderId) {
               // Search for files in Google Drive
               const driveFiles = await searchFilesInFolder(
@@ -354,7 +346,7 @@ export default function UploadTransactionsModal() {
                 Array.from(documentNames),
                 googleAccessToken
               );
-              
+
               // Create documento records for matched files
               for (const [transactionId, docs] of documentsByTransaction.entries()) {
                 // Group documents by name to avoid duplicates
@@ -364,10 +356,10 @@ export default function UploadTransactionsModal() {
                     uniqueDocs.set(doc.nombre, doc);
                   }
                 });
-                
+
                 for (const doc of uniqueDocs.values()) {
                   const driveFile = driveFiles.get(doc.nombre);
-                  
+
                   if (driveFile) {
                     try {
                       await createDocumento({
@@ -375,10 +367,10 @@ export default function UploadTransactionsModal() {
                         descripcion: doc.descripcion,
                         image: driveFile.id, // Store Google Drive file ID
                         type: doc.tipo,
-                        proyecto: selectedProyecto,
+                        proyecto: proyectoId,
                         transaccion_id: transactionId as Id<"transacciones">,
                       });
-                      
+
                       documentsCreated++;
                     } catch (docError) {
                       console.error(`Error creating document ${doc.nombre}:`, docError);
@@ -390,7 +382,7 @@ export default function UploadTransactionsModal() {
                   }
                 }
               }
-              
+
               console.log(`Created ${documentsCreated} documents from Google Drive`);
             } else {
               errors.push("URL de carpeta de Google Drive inválida");
@@ -406,7 +398,7 @@ export default function UploadTransactionsModal() {
           errors.push(`Error de Google Drive: ${driveError instanceof Error ? driveError.message : "Error desconocido"}`);
         }
       }
-      
+
       setIsProcessing(false);
       setIsUploading(false);
 
@@ -414,15 +406,15 @@ export default function UploadTransactionsModal() {
         const description = documentsCreated > 0
           ? `Se crearon ${successCount} transacciones y ${documentsCreated} documentos${errorCount > 0 || errors.length > 0 ? ` con algunos errores` : ""}.`
           : `Se crearon ${successCount} transacciones exitosamente${errorCount > 0 ? ` (${errorCount} errores)` : ""}.`;
-        
+
         toast.success("Proceso completado", { description });
-        
+
         if (errors.length > 0 && errors.length <= 5) {
           errors.forEach((error) => {
             toast.warning(error, { duration: 3000 });
           });
         }
-        
+
         handleClose();
       } else {
         toast.error("Error al crear transacciones", {
@@ -441,7 +433,6 @@ export default function UploadTransactionsModal() {
 
   const handleClose = () => {
     if (isUploading || isProcessing) return;
-    setSelectedProyecto("");
     setFile(null);
     setGoogleDriveFolder("");
     setGoogleAccessToken("");
@@ -449,7 +440,7 @@ export default function UploadTransactionsModal() {
     onClose();
   };
 
-  const isFormValid = selectedProyecto !== "" && file !== null;
+  const isFormValid = file !== null;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -459,40 +450,21 @@ export default function UploadTransactionsModal() {
             Subir Transacciones desde Excel
           </DialogTitle>
           <DialogDescription>
-            Selecciona un proyecto y sube el archivo Excel con las transacciones
+            {proyectoNombre && (
+              <span className="font-medium text-gray-700">
+                Proyecto: {proyectoNombre}
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          {/* Project Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="proyecto" className="text-sm font-medium">
-              Proyecto *
-            </Label>
-            <Select
-              value={selectedProyecto as string}
-              onValueChange={(value) => setSelectedProyecto(value as Id<"desarrollos">)}
-              disabled={isUploading || isProcessing}
-            >
-              <SelectTrigger className="rounded-none">
-                <SelectValue placeholder="Selecciona un proyecto" />
-              </SelectTrigger>
-              <SelectContent>
-                {proyectos?.map((proyecto) => (
-                  <SelectItem key={proyecto._id} value={proyecto._id}>
-                    {proyecto.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Google Drive Integration (Optional) */}
           <div className="space-y-4 border-t pt-4">
             <div className="flex items-center gap-2">
               <Label className="text-sm font-medium">Integración con Google Drive (Opcional)</Label>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="googleDrive" className="text-xs font-medium text-gray-600">
                 URL de Carpeta de Google Drive
@@ -509,7 +481,7 @@ export default function UploadTransactionsModal() {
                 Carpeta donde se encuentran los documentos referenciados en el Excel
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="accessToken" className="text-xs font-medium text-gray-600">
                 Token de Acceso de Google (Requerido para vincular automáticamente)
@@ -535,7 +507,7 @@ export default function UploadTransactionsModal() {
                 </a>
               </p>
             </div>
-            
+
             {googleDriveFolder && !isValidDriveFolderUrl(googleDriveFolder) && (
               <p className="text-xs text-red-600">
                 ⚠️ URL de carpeta inválida. Debe ser una URL de carpeta de Google Drive.
@@ -547,13 +519,12 @@ export default function UploadTransactionsModal() {
           <div className="space-y-2">
             <Label className="text-sm font-medium">Archivo Excel *</Label>
             <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                dragActive
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragActive
                   ? "border-blue-500 bg-blue-50"
                   : file
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-300 hover:border-gray-400"
-              }`}
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-300 hover:border-gray-400"
+                }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
@@ -587,7 +558,7 @@ export default function UploadTransactionsModal() {
                     </Button>
                   </div>
                   <input
-                    id="transaction-file-upload"
+                    id="project-transaction-file-upload"
                     type="file"
                     accept=".xlsx,.xls"
                     onChange={handleFileInput}
@@ -615,7 +586,7 @@ export default function UploadTransactionsModal() {
                       Explorar Archivos
                     </Button>
                     <input
-                      id="transaction-file-upload"
+                      id="project-transaction-file-upload"
                       type="file"
                       accept=".xlsx,.xls"
                       onChange={handleFileInput}

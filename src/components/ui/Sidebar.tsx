@@ -171,7 +171,7 @@ export default function Sidebar() {
 
       {/* Bottom Menu - Only show for authenticated admin users */}
       {isAuthenticated && !authLoading && (
-        <div className="border-t border-gray-200 p-4 space-y-1">
+        <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
           {currentUser?.role === "admin" ? (
             bottomMenuItems.map((item) => {
               const Icon = item.icon;

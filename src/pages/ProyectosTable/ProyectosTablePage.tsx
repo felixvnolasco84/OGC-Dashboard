@@ -36,7 +36,7 @@ export default function ProyectosTablePage() {
   const editProyectoModal = useEditProyectoModal();
   const uploadTransactionsModal = useUploadTransactionsModal();
   const uploadProjectionsModal = useUploadProjectionsModal();
-  
+
   const filteredProjects = projects?.filter((project) =>
     project.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -91,24 +91,27 @@ export default function ProyectosTablePage() {
                 Gestiona y consulta todos tus proyectos de construcción
               </p>
             </div>
-            <Button
-              onClick={() => addProyectoModal.onOpen()}
-              variant="outline"
-              size="lg"
-              className="flex items-center gap-2 rounded-none text-gray-500 py-6"
-            >
-              Agregar Proyecto
-              <Plus className="h-6 w-6 rounded-full shadow-none" />
-            </Button>
-            <Button
-              onClick={() => uploadTransactionsModal.onOpen()}
-              variant="outline"
-              size="lg"
-              className="flex items-center gap-2 rounded-none text-gray-500 py-6"
-            >
-              Subir Transacciones
-              <Upload className="h-6 w-6 rounded-full shadow-none" />
-            </Button>
+            <div className="flex space-x-4">
+              <Button
+                onClick={() => addProyectoModal.onOpen()}
+                variant="outline"
+                size="lg"
+                className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+              >
+                Agregar Proyecto
+                <Plus className="h-6 w-6 rounded-full shadow-none" />
+              </Button>
+              <Button
+                onClick={() => uploadTransactionsModal.onOpen()}
+                variant="outline"
+                size="lg"
+                className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+              >
+                Subir Transacciones
+                <Upload className="h-6 w-6 rounded-full shadow-none" />
+              </Button>
+            </div>
+
           </div>
 
           {/* Search Bar */}
@@ -222,18 +225,18 @@ export default function ProyectosTablePage() {
                             <MoreVertical className="h-4 w-4 text-gray-400" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-48 space-y-2">                          
+                        <PopoverContent className="w-48 space-y-2">
                           <Button onClick={() => editProyectoModal.onOpen(project._id)} variant="outline" className="w-full text-xs">
                             Editar
                           </Button>
-                          <Button 
-                            onClick={() => uploadProjectionsModal.onOpen(project._id)} 
-                            variant="outline" 
+                          <Button
+                            onClick={() => uploadProjectionsModal.onOpen(project._id)}
+                            variant="outline"
                             className="w-full text-xs flex items-center gap-2"
                           >
                             <Upload className="h-3 w-3" />
                             Subir Proyecciones
-                          </Button>                          
+                          </Button>
                           <Button onClick={() => openDeleteDialog(project._id)} variant="outline" className="w-full text-xs">
                             Eliminar
                           </Button>

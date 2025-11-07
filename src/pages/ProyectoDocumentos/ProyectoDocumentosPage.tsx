@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  FileText, Search, Upload
+  FileText, Search, Upload, Download, ExternalLink, Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  deleteDocument
+  deleteDocument,
+  getFileDownloadUrl,
+  getFileUrl
 } from "@/lib/appwrite";
 import { Id } from "../../../convex/_generated/dataModel";
 import {
@@ -117,6 +119,21 @@ export default function ProyectoDocumentosPage() {
     }
   };
 
+  const handleView = (fileId: string) => {
+    const viewUrl = getFileUrl(fileId);
+    window.open(viewUrl, '_blank');
+  };
+
+  const handleDownload = (fileId: string) => {
+    const downloadUrl = getFileDownloadUrl(fileId);
+    window.open(downloadUrl, '_blank');
+  };
+
+  const openDeleteDialog = (documentId: Id<"documentos">) => {
+    setDocumentToDelete(documentId);
+    setDeleteDialogOpen(true);
+  };
+
   if (!proyecto) {
     return (
       <div className="bg-white min-h-screen flex items-center justify-center">
@@ -177,7 +194,7 @@ export default function ProyectoDocumentosPage() {
                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
                   Transacción
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200"></th>
+                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -231,7 +248,37 @@ export default function ProyectoDocumentosPage() {
                         {transaction?.factura || transaction?.codigo_referencia || "-"}
                       </td>
                       <td className="px-6 py-4 border-r border-gray-200">
-                        {/* Action buttons can be added here */}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleView(doc.image!)}
+                            className="h-8 px-2 text-gray-600 hover:text-gray-900"
+                            disabled={!doc.image}
+                            title="Ver documento"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownload(doc.image!)}
+                            className="h-8 px-2 text-gray-600 hover:text-gray-900"
+                            disabled={!doc.image}
+                            title="Descargar documento"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteDialog(doc._id)}
+                            className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Eliminar documento"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );

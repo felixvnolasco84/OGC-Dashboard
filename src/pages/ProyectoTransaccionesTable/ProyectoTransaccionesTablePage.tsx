@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, FileText } from "lucide-react";
+import { Search, MoreVertical, FileText, Upload, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -19,24 +19,34 @@ import {
 import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
 import { useTransactionConceptosModal } from "@/hooks/transaction-conceptos-modal";
 import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
+import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
+import UploadProjectTransactionsModal from "@/components/modals/upload-project-transactions-modal";
+import TransactionDetailsModal from "@/components/modals/transaction-details-modal";
+import TransactionConceptosModal from "@/components/modals/transaction-conceptos-modal";
+import TransactionDocumentosModal from "@/components/modals/transaction-documentos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { Popover } from "@radix-ui/react-popover";
 import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function ProyectoTransaccionesTablePage() {
+
+    const uploadProjectTransactionsModal = useUploadProjectTransactionsModal();
+
     const { proyectoId } = useParams<{ proyectoId: string }>();
     const [searchTerm, setSearchTerm] = useState("");
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Id<"transacciones"> | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     // Fetch project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
-    
+
     // Fetch transactions for this specific project with details
     const transacciones = useQuery(api.transacciones.getByProyectoWithDetails, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
-    
+
     const deleteTransaction = useMutation(api.transacciones.deleteTransaction);
+    const syncTransactionsWithDocuments = useMutation(api.sync.syncTransactionsWithDocuments);
 
     const detailsModal = useTransactionDetailsModal();
     const conceptosModal = useTransactionConceptosModal();
@@ -127,6 +137,50 @@ export default function ProyectoTransaccionesTablePage() {
         setDeleteDialogOpen(true);
     };
 
+    const handleSync = async () => {
+        if (!proyectoId) return;
+
+        setIsSyncing(true);
+        try {
+            const result = await syncTransactionsWithDocuments({
+                proyecto_id: proyectoId as Id<"desarrollos">,
+            });
+
+            if (result.success) {
+                const { summary } = result;
+                toast.success("Sincronización completada", {
+                    description: `${summary.matched} documentos vinculados, ${summary.alreadyLinked} ya estaban vinculados, ${summary.unmatched} sin coincidencias.`,
+                    duration: 5000,
+                });
+
+                // Show detailed info if there are unmatched documents
+                if (summary.unmatched > 0) {
+                    const unmatchedDocs = result.details
+                        .filter(d => d.action === "no_match")
+                        .slice(0, 5)
+                        .map(d => d.documentoNombre)
+                        .join(", ");
+                    
+                    toast.info("Documentos sin coincidencias", {
+                        description: `${unmatchedDocs}${summary.unmatched > 5 ? ` y ${summary.unmatched - 5} más...` : ""}`,
+                        duration: 5000,
+                    });
+                }
+            } else {
+                toast.error("Error en la sincronización", {
+                    description: "No se pudieron sincronizar los documentos.",
+                });
+            }
+        } catch (error) {
+            console.error("Error syncing:", error);
+            toast.error("Error al sincronizar", {
+                description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
+            });
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     if (!proyecto) {
         return (
             <div className="bg-white min-h-screen flex items-center justify-center">
@@ -134,6 +188,9 @@ export default function ProyectoTransaccionesTablePage() {
             </div>
         );
     }
+
+
+
 
     return (
         <div className="bg-white min-h-screen">
@@ -145,6 +202,25 @@ export default function ProyectoTransaccionesTablePage() {
                             <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
+                            <Button
+                                onClick={() => uploadProjectTransactionsModal.onOpen(proyectoId as Id<"desarrollos">, proyecto.nombre)}
+                                variant="outline"
+                                size="lg"
+                                className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+                            >
+                                Subir Transacciones
+                                <Upload className="h-6 w-6 rounded-full shadow-none" />
+                            </Button>
+                            <Button
+                                onClick={handleSync}
+                                disabled={isSyncing}
+                                variant="outline"
+                                size="lg"
+                                className="flex items-center gap-2 rounded-none py-6  text-gray-500"
+                            >
+                                {isSyncing ? "Sincronizando..." : "Sincronizar Docs"}
+                                <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
+                            </Button>
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
                                 <span className="text-sm font-normal">
                                     Total: {transacciones?.length || 0}
@@ -356,6 +432,12 @@ export default function ProyectoTransaccionesTablePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Modals */}
+            <UploadProjectTransactionsModal />
+            <TransactionDetailsModal />
+            <TransactionConceptosModal />
+            <TransactionDocumentosModal />
         </div>
     );
 }

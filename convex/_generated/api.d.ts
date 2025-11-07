@@ -22,6 +22,7 @@ import type * as partida from "../partida.js";
 import type * as permissions from "../permissions.js";
 import type * as projected_transactions from "../projected_transactions.js";
 import type * as proveedores from "../proveedores.js";
+import type * as sync from "../sync.js";
 import type * as transacciones from "../transacciones.js";
 import type * as users from "../users.js";
 import type * as weekly_projected_totals from "../weekly_projected_totals.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   permissions: typeof permissions;
   projected_transactions: typeof projected_transactions;
   proveedores: typeof proveedores;
+  sync: typeof sync;
   transacciones: typeof transacciones;
   users: typeof users;
   weekly_projected_totals: typeof weekly_projected_totals;
