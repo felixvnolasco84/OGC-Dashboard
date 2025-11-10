@@ -5,7 +5,6 @@ import "./index.css";
 import WebsiteLayout from "./components/WebsiteLayout.tsx";
 import ScrollToTop from "./components/ui/ScrollToTop.tsx";
 import { HelmetProvider } from "react-helmet-async";
-
 import { BrowserRouter, Routes, Route } from "react-router";
 import Legales from "./pages/Legales.tsx";
 import { ConvexReactClient } from "convex/react";
@@ -25,6 +24,8 @@ import PartidaDetails from "./pages/PartidaDetails/PartidaDetails.tsx";
 import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
 import Dashboard from "./pages/Dashboard/Dashboard.tsx";
 import AdminPage from "./pages/Admin/AdminPage.tsx";
+import AdminFlujoPage from "./pages/AdminFlujo/AdminFlujoPage.tsx";
+import ProyectoFlujoPage from "./pages/ProyectoFlujo/ProyectoFlujoPage.tsx";
 import UserManagementPage from "./pages/UserManagement/UserManagementPage.tsx";
 import ProtectedRoute from "./components/Auth/ProtectedRoute.tsx";
 
@@ -106,11 +107,21 @@ createRoot(document.getElementById("root")!).render(
                     <PartidaDetails />
                   </ProtectedRoute>
                 } />
+                <Route path="/proyecto/:proyectoId/flujo" element={
+                  <ProtectedRoute requiredRole="user">
+                    <ProyectoFlujoPage />
+                  </ProtectedRoute>
+                } />
 
                 {/* Admin routes */}
                 <Route path="/admin" element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/flujo" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminFlujoPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/usuarios" element={

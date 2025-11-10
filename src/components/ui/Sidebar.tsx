@@ -21,6 +21,7 @@ import {
   // LockKeyhole,
   User,
   FileText,
+  TrendingUp,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { UserButton, SignInButton } from "@clerk/clerk-react";
@@ -39,6 +40,7 @@ const projectMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
   { id: "control", label: "Control", path: "control", disabled: false },
   // { id: "programa", label: "Programa", path: "programa", disabled: true },
+  { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
   { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
   { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
   { id: "proveedores", label: "Proveedores", path: "proveedores", disabled: false },
@@ -49,6 +51,7 @@ const bottomMenuItems = [
   { id: "transacciones", label: "Transacciones", path: "/transacciones", icon: CreditCard },
   { id: "proveedores", label: "Proveedores", path: "/proveedores", icon: Users },
   { id: "documentos", label: "Documentos", path: "/documentos", icon: FileText },
+  { id: "flujo", label: "Flujo", path: "/admin/flujo", icon: TrendingUp },
   // { id: "admin", label: "Admin", path: "/admin", icon: LockKeyhole },
   { id: "usuarios", label: "Usuarios", path: "/usuarios", icon: User },
 ];
