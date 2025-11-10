@@ -482,14 +482,28 @@ export const getProgressChartData = query({
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
       .collect();
 
-    // Sort transactions by date (parse DD/MM/YYYY format)
+    // Sort transactions by date (handle both DD/MM/YYYY and YYYY-MM-DD formats)
     const sortedTransactions = transactions.sort((a, b) => {
       const parseDate = (dateStr: string | undefined) => {
         if (!dateStr) return 0;
-        const parts = dateStr.split('/').map(Number);
-        if (parts.length !== 3) return 0;
-        const [day, month, year] = parts;
-        return new Date(year, month - 1, day).getTime();
+        
+        // Handle "DD/MM/YYYY" format
+        if (dateStr.includes('/')) {
+          const parts = dateStr.split('/').map(Number);
+          if (parts.length !== 3) return 0;
+          const [day, month, year] = parts;
+          return new Date(year, month - 1, day).getTime();
+        }
+        
+        // Handle "YYYY-MM-DD" format (ISO)
+        if (dateStr.includes('-')) {
+          const parts = dateStr.split('-').map(Number);
+          if (parts.length !== 3) return 0;
+          const [year, month, day] = parts;
+          return new Date(year, month - 1, day).getTime();
+        }
+        
+        return 0;
       };
       return parseDate(a.fecha) - parseDate(b.fecha);
     });
@@ -528,13 +542,30 @@ export const getProgressChartData = query({
         : 0;
 
       // Format date as "DD Mon YYYY" with full year for better compatibility
-      const parts = transaction.fecha.split('/');
-      if (parts.length !== 3) {
-        console.warn('Invalid fecha format:', transaction.fecha);
+      // Handle both "DD/MM/YYYY" and "YYYY-MM-DD" formats
+      let day: string, month: string, year: string;
+      
+      if (transaction.fecha.includes('/')) {
+        // Format: "DD/MM/YYYY"
+        const parts = transaction.fecha.split('/');
+        if (parts.length !== 3) {
+          console.warn('Invalid fecha format (expected DD/MM/YYYY):', transaction.fecha);
+          continue;
+        }
+        [day, month, year] = parts;
+      } else if (transaction.fecha.includes('-')) {
+        // Format: "YYYY-MM-DD"
+        const parts = transaction.fecha.split('-');
+        if (parts.length !== 3) {
+          console.warn('Invalid fecha format (expected YYYY-MM-DD):', transaction.fecha);
+          continue;
+        }
+        [year, month, day] = parts;
+      } else {
+        console.warn('Invalid fecha format (unknown format):', transaction.fecha);
         continue;
       }
       
-      const [day, month, year] = parts;
       const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
       const monthName = monthNames[parseInt(month, 10) - 1] || 'Ene';
       const dateLabel = `${day} ${monthName} ${year}`;
@@ -624,11 +655,20 @@ export const getFamiliaChartData = query({
       }
     }
 
-    // Sort by transaction date
+    // Sort by transaction date (handle both DD/MM/YYYY and YYYY-MM-DD formats)
     const sortedPagos = allPagos.sort((a, b) => {
       const parseDate = (dateStr: string) => {
-        const [day, month, year] = dateStr.split('/').map(Number);
-        return new Date(year, month - 1, day).getTime();
+        // Handle "DD/MM/YYYY" format
+        if (dateStr.includes('/')) {
+          const [day, month, year] = dateStr.split('/').map(Number);
+          return new Date(year, month - 1, day).getTime();
+        }
+        // Handle "YYYY-MM-DD" format (ISO)
+        if (dateStr.includes('-')) {
+          const [year, month, day] = dateStr.split('-').map(Number);
+          return new Date(year, month - 1, day).getTime();
+        }
+        return 0;
       };
       return parseDate(a.transaction.fecha) - parseDate(b.transaction.fecha);
     });
@@ -645,8 +685,18 @@ export const getFamiliaChartData = query({
       const pago = sortedPagos[i];
       cumulativeMonto += pago.monto;
 
-      // Format date as "DD Mon"
-      const [day, month] = pago.transaction.fecha.split('/');
+      // Format date as "DD Mon" (handle both DD/MM/YYYY and YYYY-MM-DD formats)
+      let day: string, month: string;
+      
+      if (pago.transaction.fecha.includes('/')) {
+        // Format: "DD/MM/YYYY"
+        [day, month] = pago.transaction.fecha.split('/');
+      } else {
+        // Format: "YYYY-MM-DD"
+        const parts = pago.transaction.fecha.split('-');
+        [, month, day] = parts; // Extract year, month, day
+      }
+      
       const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
       const monthName = monthNames[parseInt(month, 10) - 1] || 'Ene';
       const dateLabel = `${day} ${monthName}`;

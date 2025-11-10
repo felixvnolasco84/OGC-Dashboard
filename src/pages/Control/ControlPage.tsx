@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import {
     useQuery,
-    usePaginatedQuery
+    // usePaginatedQuery
 } from "convex/react";
 import {
     Select,
@@ -68,10 +68,10 @@ export default function ControlPage() {
     // Progress chart filters    
     const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");
     const [selectedRangoFecha, setSelectedRangoFecha] = useState("Ultimos 30 dias");
-    
+
     // Modal state
     const [activeChartId, setActiveChartId] = useState<string | null>(null);
-    
+
     // Persistent chart configurations
     const chart1Config = useChartConfig({
         proyectoId: proyectoId as Id<"desarrollos">,
@@ -101,16 +101,19 @@ export default function ControlPage() {
     // const createPayment = useMutation(api.pagos.create);
     // Fetch current project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
-    
-    // Fetch metrics
-    const metrics = useQuery(api.partida.getProjectMetrics, proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip");
+
+    // Fetch metrics from meticas_presupuesto (same as PresupuestoPage)
+    const budgetMetrics = useQuery(
+        api.meticas_presupuesto.getByProyecto,
+        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+    );
 
     // Fetch all partidas for the table with pagination
-    const { results: allPartidas } = usePaginatedQuery(
-        api.partida.getByProjectPaginated,
-        proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip",
-        { initialNumItems: 100 }
-    );
+    // const { results: allPartidas } = usePaginatedQuery(
+    //     api.partida.getByProjectPaginated,
+    //     proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip",
+    //     { initialNumItems: 100 }
+    // );
 
     // Fetch progress chart data
     const progressChartData = useQuery(
@@ -123,11 +126,11 @@ export default function ControlPage() {
         api.transacciones.getFamiliaChartData,
         proyectoId && !chart1Config.isLoading
             ? {
-                  proyecto_id: proyectoId as Id<"desarrollos">,
-                  partidas: chart1Config.config.partidas,
-                  familias: chart1Config.config.familias,
-                  sub_partidas: chart1Config.config.sub_partidas,
-              }
+                proyecto_id: proyectoId as Id<"desarrollos">,
+                partidas: chart1Config.config.partidas,
+                familias: chart1Config.config.familias,
+                sub_partidas: chart1Config.config.sub_partidas,
+            }
             : "skip"
     );
 
@@ -136,14 +139,25 @@ export default function ControlPage() {
         api.transacciones.getFamiliaChartData,
         proyectoId && !chart2Config.isLoading
             ? {
-                  proyecto_id: proyectoId as Id<"desarrollos">,
-                  partidas: chart2Config.config.partidas,
-                  familias: chart2Config.config.familias,
-                  sub_partidas: chart2Config.config.sub_partidas,
-              }
+                proyecto_id: proyectoId as Id<"desarrollos">,
+                partidas: chart2Config.config.partidas,
+                familias: chart2Config.config.familias,
+                sub_partidas: chart2Config.config.sub_partidas,
+            }
             : "skip"
     );
-    
+
+    // Fetch filtered metrics based on selected date range
+    const filteredMetrics = useQuery(
+        api.meticas_presupuesto.getFilteredMetrics,
+        proyectoId
+            ? {
+                proyecto_id: proyectoId as Id<"desarrollos">,
+                rango_fechas: selectedRangoFecha,
+            }
+            : "skip"
+    );
+
     // Get current chart config for modal
     const getActiveChartConfig = () => {
         if (activeChartId === "control-chart-1") return chart1Config;
@@ -153,18 +167,16 @@ export default function ControlPage() {
 
     const activeConfig = getActiveChartConfig();
 
-
-    const por_liquidar = allPartidas?.reduce((sum, p) => sum + p.presupuesto_aprobado || 0, 0) || 0;
-    // Calculate secondary metrics from allPartidas
+    // Use filtered metrics from query instead of calculating locally
     const secondaryMetrics = {
-        gasto: allPartidas?.reduce((sum, p) => sum + p.pagado || 0, 0) || 0,
-        porVencer: por_liquidar,
-        honorarios: allPartidas?.filter(p => p.familia === "HONORARIOS").reduce((sum, p) => sum + p.pagado || 0, 0) || 0
+        gasto: filteredMetrics?.gasto || 0,
+        porVencer: filteredMetrics?.por_ejercer || 0,
+        honorarios: filteredMetrics?.honorarios || 0
     };
 
 
 
-    if (!proyecto || !metrics) {
+    if (!proyecto || !budgetMetrics) {
         return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
             <p className="text-gray-500">Cargando datos...</p>
         </div>;
@@ -204,7 +216,7 @@ export default function ControlPage() {
                                 <p className="text-xs text-gray-500">Presupuesto aprobado</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-gray-900">
-                                        ${formatNumber(Math.round(metrics.presupuestoAprobado))}
+                                        ${formatNumber(Math.round(budgetMetrics.presupuesto_aprobado || 0))}
                                     </span>
                                 </div>
 
@@ -222,11 +234,11 @@ export default function ControlPage() {
                                 <p className="text-xs text-gray-500">Gasto total</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-[#802424]">
-                                        ${formatNumber(Math.round(metrics.gastoTotal))}
+                                        ${formatNumber(Math.round(budgetMetrics.gasto_total || 0))}
                                     </span>
                                 </div>
                                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
-                                    Avance {metrics.presupuestoAprobado > 0 ? Math.round((metrics.gastoTotal / metrics.presupuestoAprobado) * 100) : 0}%
+                                    Avance {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.gasto_total / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
                                 </Badge>
                             </div>
                         </CardContent>
@@ -239,11 +251,11 @@ export default function ControlPage() {
                                 <p className="text-xs text-gray-500">Por gastar</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-[#1A5D21]">
-                                        ${formatNumber(Math.round(metrics.porGastar))}
+                                        ${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}
                                     </span>
                                 </div>
                                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
-                                    Pendiente {metrics.presupuestoAprobado > 0 ? Math.round((metrics.porGastar / metrics.presupuestoAprobado) * 100) : 0}%
+                                    Pendiente {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.por_gastar / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
                                 </Badge>
                             </div>
                         </CardContent>
@@ -308,15 +320,15 @@ export default function ControlPage() {
                                     <div className="flex items-center space-x-12">
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-gray-500">Gasto</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.gasto))}<span className="text-sm text-gray-400">.10</span></p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.gasto))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-gray-500">Por ejercer</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}<span className="text-sm text-gray-400">.10</span></p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-gray-500">Honorarios</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.honorarios))}<span className="text-sm text-gray-400">.10</span></p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.honorarios))}</p>
                                         </div>
                                     </div>
 
@@ -402,7 +414,7 @@ export default function ControlPage() {
                     </div>
                 </div>
             </div>
-            
+
             {/* Persistent Configuration Modal */}
             {activeChartId && activeConfig && proyectoId && (
                 <ChartConfigModal
