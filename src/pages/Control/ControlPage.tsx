@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import {
@@ -18,8 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import ProgressChart from "@/components/Charts/ProgressChart";
 import FamiliaChart from "@/components/Charts/FamiliaChart";
 import { DashboardTable } from "../Dashboard/Table";
-import FamiliaChartConfigModal from "@/components/modals/FamiliaChartConfigModal";
-import { useFamiliaChartConfigModal, FamiliaChartConfig } from "@/hooks/familia-chart-config-modal";
+import ChartConfigModal from "@/components/Charts/ChartConfigModal";
+import { useChartConfig } from "@/hooks/useChartConfig";
 // import { Plus } from "lucide-react";
 // import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { Id } from "convex/_generated/dataModel";
@@ -69,27 +69,31 @@ export default function ControlPage() {
     const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");
     const [selectedRangoFecha, setSelectedRangoFecha] = useState("Ultimos 30 dias");
     
-    // Chart configurations state
-    const [chartConfigs, setChartConfigs] = useState<Record<string, FamiliaChartConfig>>({
-        chart1: {
-            chartId: "chart1",
+    // Modal state
+    const [activeChartId, setActiveChartId] = useState<string | null>(null);
+    
+    // Persistent chart configurations
+    const chart1Config = useChartConfig({
+        proyectoId: proyectoId as Id<"desarrollos">,
+        chartId: "control-chart-1",
+        defaultConfig: {
             title: "Gasto Mano de Obra",
             color: "#3B82F6",
-            partidas: [],
+            height: 300,
             familias: ["ALBAÑILERÍAS"],
-            sub_partidas: [],
-        },
-        chart2: {
-            chartId: "chart2",
-            title: "Indirectos",
-            color: "#10B981",
-            partidas: [],
-            familias: ["HONORARIOS"],
-            sub_partidas: [],
         },
     });
-    
-    const { open: openConfigModal } = useFamiliaChartConfigModal();
+
+    const chart2Config = useChartConfig({
+        proyectoId: proyectoId as Id<"desarrollos">,
+        chartId: "control-chart-2",
+        defaultConfig: {
+            title: "Indirectos",
+            color: "#10B981",
+            height: 300,
+            familias: ["HONORARIOS"],
+        },
+    });
 
     // Add partida modal
     // const addPartidaModal = useAddPartidaModal();
@@ -114,98 +118,40 @@ export default function ControlPage() {
         proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
     );
 
-    // Extract available options from all partidas for the modal
-    const availableOptions = useMemo(() => {
-        if (!allPartidas) return { availablePartidas: [], availableFamilias: [], availableSubPartidas: [] };
-        
-        const partidasSet = new Set<string>();
-        const familiasSet = new Set<string>();
-        const subPartidasSet = new Set<string>();
-        
-        allPartidas.forEach(p => {
-            if (p.nombre) partidasSet.add(p.nombre);
-            if (p.partida_nombre) partidasSet.add(p.partida_nombre);
-            if (p.familia) familiasSet.add(p.familia);
-            if (p.sub_partida) subPartidasSet.add(p.sub_partida);
-        });
-        
-        return {
-            availablePartidas: Array.from(partidasSet).filter(Boolean).sort(),
-            availableFamilias: Array.from(familiasSet).filter(Boolean).sort(),
-            availableSubPartidas: Array.from(subPartidasSet).filter(Boolean).sort(),
-        };
-    }, [allPartidas]);
-
-    // Build query parameters from chart configs
-    const getQueryParams = (config: FamiliaChartConfig) => {
-        if (!proyectoId) return "skip" as const;
-        
-        const params: {
-            proyecto_id: Id<"desarrollos">;
-            partidas?: string[];
-            familias?: string[];
-            sub_partidas?: string[];
-        } = {
-            proyecto_id: proyectoId as Id<"desarrollos">,
-        };
-        
-        if (config.partidas.length > 0) {
-            params.partidas = config.partidas;
-        }
-        if (config.familias.length > 0) {
-            params.familias = config.familias;
-        }
-        if (config.sub_partidas.length > 0) {
-            params.sub_partidas = config.sub_partidas;
-        }
-        
-        return params;
-    };
-
-    // Fetch data for each chart based on its configuration
+    // Fetch data for chart 1 based on its persisted configuration
     const chart1Data = useQuery(
         api.transacciones.getFamiliaChartData,
-        getQueryParams(chartConfigs.chart1)
+        proyectoId && !chart1Config.isLoading
+            ? {
+                  proyecto_id: proyectoId as Id<"desarrollos">,
+                  partidas: chart1Config.config.partidas,
+                  familias: chart1Config.config.familias,
+                  sub_partidas: chart1Config.config.sub_partidas,
+              }
+            : "skip"
     );
 
-
-    console.log("chart1Data", chart1Data);
-
-    // RESPONSE EXAMPLE FROM API CHART1DATA
-//     {
-//     "dataPoints": [
-//         {
-//             "date": "2025-11-06 Ene",
-//             "monto": 12000
-//         },
-//         {
-//             "date": "2025-11-06 Ene",
-//             "monto": 24000
-//         }
-//     ],
-//     "total": 24000
-// }
-
+    // Fetch data for chart 2 based on its persisted configuration
     const chart2Data = useQuery(
         api.transacciones.getFamiliaChartData,
-        getQueryParams(chartConfigs.chart2)
+        proyectoId && !chart2Config.isLoading
+            ? {
+                  proyecto_id: proyectoId as Id<"desarrollos">,
+                  partidas: chart2Config.config.partidas,
+                  familias: chart2Config.config.familias,
+                  sub_partidas: chart2Config.config.sub_partidas,
+              }
+            : "skip"
     );
     
-    // Handle config updates from modal
-    const handleConfigSave = (config: FamiliaChartConfig) => {
-        setChartConfigs(prev => ({
-            ...prev,
-            [config.chartId]: config,
-        }));
+    // Get current chart config for modal
+    const getActiveChartConfig = () => {
+        if (activeChartId === "control-chart-1") return chart1Config;
+        if (activeChartId === "control-chart-2") return chart2Config;
+        return null;
     };
-    
-    // Handle opening config modal for a specific chart
-    const handleOpenConfig = (chartId: string) => {
-        const config = chartConfigs[chartId];
-        if (config) {
-            openConfigModal(config, availableOptions);
-        }
-    };
+
+    const activeConfig = getActiveChartConfig();
 
 
     const por_liquidar = allPartidas?.reduce((sum, p) => sum + p.presupuesto_aprobado || 0, 0) || 0;
@@ -408,27 +354,47 @@ export default function ControlPage() {
 
                     </div>
 
-                    {/* Familia Charts - Configurable charts */}
+                    {/* Familia Charts - Configurable charts with persistent user settings */}
                     <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                        {/* Chart 1 */}
-                        <FamiliaChart
-                            chartId={chartConfigs.chart1.chartId}
-                            data={chart1Data?.dataPoints || []}
-                            title={chartConfigs.chart1.title}
-                            total={chart1Data?.total || 0}
-                            color={chartConfigs.chart1.color}
-                            onConfigClick={() => handleOpenConfig("chart1")}
-                        />
+                        {/* Chart 1 - Mano de Obra */}
+                        {chart1Config.isLoading ? (
+                            <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500">Cargando configuración...</p>
+                            </div>
+                        ) : (
+                            <FamiliaChart
+                                chartId="control-chart-1"
+                                data={chart1Data?.dataPoints || []}
+                                title={chart1Config.config.title}
+                                total={chart1Data?.total || 0}
+                                color={chart1Config.config.color}
+                                height={chart1Config.config.height}
+                                partidas={chart1Config.config.partidas}
+                                familias={chart1Config.config.familias}
+                                sub_partidas={chart1Config.config.sub_partidas}
+                                onConfigClick={() => setActiveChartId("control-chart-1")}
+                            />
+                        )}
 
-                        {/* Chart 2 */}
-                        <FamiliaChart
-                            chartId={chartConfigs.chart2.chartId}
-                            data={chart2Data?.dataPoints || []}
-                            title={chartConfigs.chart2.title}
-                            total={chart2Data?.total || 0}
-                            color={chartConfigs.chart2.color}
-                            onConfigClick={() => handleOpenConfig("chart2")}
-                        />
+                        {/* Chart 2 - Indirectos */}
+                        {chart2Config.isLoading ? (
+                            <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500">Cargando configuración...</p>
+                            </div>
+                        ) : (
+                            <FamiliaChart
+                                chartId="control-chart-2"
+                                data={chart2Data?.dataPoints || []}
+                                title={chart2Config.config.title}
+                                total={chart2Data?.total || 0}
+                                color={chart2Config.config.color}
+                                height={chart2Config.config.height}
+                                partidas={chart2Config.config.partidas}
+                                familias={chart2Config.config.familias}
+                                sub_partidas={chart2Config.config.sub_partidas}
+                                onConfigClick={() => setActiveChartId("control-chart-2")}
+                            />
+                        )}
                     </div>
 
                     <div className="col-span-4 py-12">
@@ -437,8 +403,18 @@ export default function ControlPage() {
                 </div>
             </div>
             
-            {/* Configuration Modal */}
-            <FamiliaChartConfigModal onSave={handleConfigSave} />
+            {/* Persistent Configuration Modal */}
+            {activeChartId && activeConfig && proyectoId && (
+                <ChartConfigModal
+                    isOpen={true}
+                    onClose={() => setActiveChartId(null)}
+                    proyectoId={proyectoId as Id<"desarrollos">}
+                    chartId={activeChartId}
+                    currentConfig={activeConfig.config}
+                    onSave={activeConfig.saveConfig}
+                    onReset={activeConfig.resetConfig}
+                />
+            )}
         </div>
     );
 }

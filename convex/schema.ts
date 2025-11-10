@@ -138,4 +138,24 @@ export default defineSchema({
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_proyecto_week", { fields: ["proyecto", "week_date"] })
     .index("by_upload_id", { fields: ["upload_id"] }),
+  
+  // Chart configurations per user (for FamiliaChart and other customizable charts)
+  chart_configurations: defineTable({
+    user_id: v.id("users"), // User who owns this configuration
+    proyecto_id: v.id("desarrollos"), // Project this chart belongs to
+    chart_id: v.string(), // Unique identifier for chart instance (e.g., "familia-chart-1")
+    title: v.string(), // Chart title
+    color: v.string(), // Chart color (hex code)
+    height: v.optional(v.number()), // Chart height in pixels
+    // Filters
+    partidas: v.optional(v.array(v.string())), // Filter by partida names
+    familias: v.optional(v.array(v.string())), // Filter by familia names
+    sub_partidas: v.optional(v.array(v.string())), // Filter by sub-partida names
+    // Metadata
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_user", { fields: ["user_id"] })
+    .index("by_proyecto", { fields: ["proyecto_id"] })
+    .index("by_user_proyecto", { fields: ["user_id", "proyecto_id"] })
+    .index("by_user_proyecto_chart", { fields: ["user_id", "proyecto_id", "chart_id"] }),
 });

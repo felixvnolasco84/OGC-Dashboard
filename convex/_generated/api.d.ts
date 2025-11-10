@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as chart_configurations from "../chart_configurations.js";
 import type * as desarrollos from "../desarrollos.js";
 import type * as documentos from "../documentos.js";
 import type * as functions from "../functions.js";
@@ -36,6 +37,7 @@ import type * as weekly_projected_totals from "../weekly_projected_totals.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  chart_configurations: typeof chart_configurations;
   desarrollos: typeof desarrollos;
   documentos: typeof documentos;
   functions: typeof functions;
