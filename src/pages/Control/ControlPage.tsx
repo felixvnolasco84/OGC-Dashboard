@@ -80,7 +80,7 @@ export default function ControlPage() {
             title: "Gasto Mano de Obra",
             color: "#3B82F6",
             height: 300,
-            familias: ["ALBAÑILERÍAS"],
+            familias: [],
         },
     });
 
@@ -91,7 +91,7 @@ export default function ControlPage() {
             title: "Indirectos",
             color: "#10B981",
             height: 300,
-            familias: ["HONORARIOS"],
+            familias: [],
         },
     });
 

@@ -49,7 +49,7 @@ export const uploadWeeklyTotals = mutation({
 
     // Insert all new weekly totals
     const insertedIds: Id<"weekly_projected_totals">[] = [];
-    
+
     for (let i = 0; i < args.weeklyData.length; i++) {
       const weekData = args.weeklyData[i];
       const excelSerial = dateToExcelSerial(weekData.date);

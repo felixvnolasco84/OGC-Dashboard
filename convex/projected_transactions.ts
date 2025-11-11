@@ -2,6 +2,15 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
+// Helper function to format Excel serial date to D/M/YYYY
+function formatExcelDate(serial: number): string {
+  const date = new Date((serial - 25569) * 86400 * 1000);
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 // Upload projected transactions from Excel API response
 export const uploadProjections = mutation({
   args: {
@@ -40,8 +49,19 @@ export const uploadProjections = mutation({
       await ctx.db.delete(projection._id);
     }
 
-    // Insert all new projections
+    // Delete any existing weekly totals for this project
+    const existingWeeklyTotals = await ctx.db
+      .query("weekly_projected_totals")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
+      .collect();
+
+    for (const total of existingWeeklyTotals) {
+      await ctx.db.delete(total._id);
+    }
+
+    // Insert all new projections and track weekly aggregates
     const insertedIds: Id<"projected_transactions">[] = [];
+    const weeklyAggregates = new Map<number, { amount: number; position: number }>();
     
     for (const partidaProjection of args.projections) {
       for (const weekProjection of partidaProjection.weeklyProjections) {
@@ -57,14 +77,41 @@ export const uploadProjections = mutation({
           uploaded_at: uploadedAt,
         });
         insertedIds.push(id);
+
+        // Aggregate amounts by week_date
+        const existing = weeklyAggregates.get(weekProjection.week);
+        if (existing) {
+          existing.amount += weekProjection.amount;
+        } else {
+          weeklyAggregates.set(weekProjection.week, {
+            amount: weekProjection.amount,
+            position: weekProjection.position,
+          });
+        }
       }
+    }
+
+    // Insert weekly projected totals
+    const weeklyTotalIds: Id<"weekly_projected_totals">[] = [];
+    for (const [weekDate, data] of weeklyAggregates.entries()) {
+      const id = await ctx.db.insert("weekly_projected_totals", {
+        proyecto: args.proyecto,
+        week_date: weekDate,
+        week_date_formatted: formatExcelDate(weekDate),
+        weekly_total: data.amount,
+        position: data.position,
+        upload_id: uploadId,
+        uploaded_at: uploadedAt,
+      });
+      weeklyTotalIds.push(id);
     }
 
     return {
       success: true,
       uploadId,
       totalInserted: insertedIds.length,
-      message: `Successfully uploaded ${insertedIds.length} projected transactions`,
+      weeklyTotalsCreated: weeklyTotalIds.length,
+      message: `Successfully uploaded ${insertedIds.length} projected transactions and created ${weeklyTotalIds.length} weekly totals`,
     };
   },
 });
