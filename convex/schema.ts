@@ -158,4 +158,15 @@ export default defineSchema({
     .index("by_proyecto", { fields: ["proyecto_id"] })
     .index("by_user_proyecto", { fields: ["user_id", "proyecto_id"] })
     .index("by_user_proyecto_chart", { fields: ["user_id", "proyecto_id", "chart_id"] }),
+
+  // Weekly avance real (user-defined progress percentage per week)
+  weekly_avance_real: defineTable({
+    proyecto: v.id("desarrollos"),
+    week_date: v.number(), // Excel serial date (days since 1/1/1900)
+    week_date_formatted: v.string(), // Formatted date string (DD Mon YYYY)
+    avance_real: v.number(), // Progress percentage (0-100)
+    // Metadata
+    updated_at: v.number(), // Last update timestamp
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proyecto_week", { fields: ["proyecto", "week_date"] }),
 });

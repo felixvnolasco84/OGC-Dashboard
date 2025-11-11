@@ -26,6 +26,7 @@ import type * as proveedores from "../proveedores.js";
 import type * as sync from "../sync.js";
 import type * as transacciones from "../transacciones.js";
 import type * as users from "../users.js";
+import type * as weekly_avance_real from "../weekly_avance_real.js";
 import type * as weekly_projected_totals from "../weekly_projected_totals.js";
 
 /**
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   sync: typeof sync;
   transacciones: typeof transacciones;
   users: typeof users;
+  weekly_avance_real: typeof weekly_avance_real;
   weekly_projected_totals: typeof weekly_projected_totals;
 }>;
 export declare const api: FilterApi<

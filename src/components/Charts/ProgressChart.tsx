@@ -3,6 +3,10 @@ import { AxisOptions, Chart } from "react-charts";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useWeeklyAvanceModal } from "@/hooks/weekly-avance-modal";
+import WeeklyAvanceModal from "@/components/modals/weekly-avance-modal";
 
 interface ChartDataPoint {
     date: string;
@@ -43,6 +47,21 @@ export default function ProgressChart({
         api.weekly_projected_totals.getCumulativeTotals,
         proyectoId ? { proyecto: proyectoId } : "skip"
     );
+
+    // Query weekly avance real data
+    const weeklyAvanceData = useQuery(
+        api.weekly_avance_real.getByProyecto,
+        proyectoId ? { proyecto: proyectoId } : "skip"
+    );
+
+    // Query project info for modal
+    const proyecto = useQuery(
+        api.desarrollos.getById,
+        proyectoId ? { id: proyectoId } : "skip"
+    );
+
+    // Modal hook
+    const weeklyAvanceModal = useWeeklyAvanceModal();
 
     // Helper: Get date range based on filter
     const getDateRangeFilter = React.useMemo(() => {
@@ -138,6 +157,16 @@ export default function ProgressChart({
             }
         });
 
+        // Process weekly avance real data
+        const avanceRealMap = new Map<string, number>();
+        if (weeklyAvanceData && weeklyAvanceData.length > 0) {
+            weeklyAvanceData.forEach((avanceRecord) => {
+                // Convert Excel serial date to the same format used in the chart
+                const dateLabel = excelDateToString(avanceRecord.week_date);
+                avanceRealMap.set(dateLabel, avanceRecord.avance_real);
+            });
+        }
+
         // Process projected data separately
         const projectedDataMap = new Map<string, number>();
         if (projectedData && projectedData.length > 0) {
@@ -181,22 +210,24 @@ export default function ProgressChart({
             });
         }
 
-        // Combine both datasets: create unified date set
+        // Combine all datasets: create unified date set
         const allDates = new Set([
             ...actualDataMap.keys(),
-            ...projectedDataMap.keys()
+            ...projectedDataMap.keys(),
+            ...avanceRealMap.keys()
         ]);
 
         const dataMap = new Map<string, ChartDataPoint>();
         allDates.forEach(date => {
             const actualData = actualDataMap.get(date);
             const projectedAmount = projectedDataMap.get(date);
+            const weeklyAvance = avanceRealMap.get(date);
 
             dataMap.set(date, {
                 date: date,
                 gastoProgramado: projectedAmount || 0,
                 gastoTotal: actualData?.gastoTotal || 0,
-                avanceReal: actualData?.avanceReal || 0,
+                avanceReal: weeklyAvance || actualData?.avanceReal || 0,
             });
         });
 
@@ -211,7 +242,7 @@ export default function ProgressChart({
             const pointDate = parseDateFromLabel(point.date);
             return pointDate >= getDateRangeFilter.startDate && pointDate <= getDateRangeFilter.endDate;
         });
-    }, [rawData, projectedData, selectedPeriodo, getDateRangeFilter]);
+    }, [rawData, projectedData, weeklyAvanceData, selectedPeriodo, getDateRangeFilter]);
 
     // Transform data for react-charts format
     const transformedData: ReactChartsSeries[] = React.useMemo(() => {
@@ -367,8 +398,28 @@ export default function ProgressChart({
         []
     );
 
+    const handleOpenAvanceModal = () => {
+        if (proyectoId && proyecto) {
+            weeklyAvanceModal.onOpen({
+                proyectoId,
+                proyectoNombre: proyecto.nombre,
+            });
+        }
+    };
+
     return (
-        <div className="w-full h-full relative">
+        <div className="w-full h-full relative flex flex-col items-end space-y-2">
+            {/* Configure Avance Button */}
+            {proyectoId && (                
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleOpenAvanceModal}
+                        className="bg-white hover:bg-gray-50"
+                    >
+                        <Settings className="h-4 w-4" />
+                    </Button>                
+            )}
 
             {/* Info message when no projected data */}
             {proyectoId && (!projectedData || projectedData.length === 0) && (
@@ -404,6 +455,9 @@ export default function ProgressChart({
                     </div>
                 </div>
             )}
+
+            {/* Weekly Avance Modal */}
+            <WeeklyAvanceModal />
         </div>
     );
 }
