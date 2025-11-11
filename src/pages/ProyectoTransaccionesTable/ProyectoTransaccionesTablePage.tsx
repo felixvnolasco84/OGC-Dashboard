@@ -20,10 +20,7 @@ import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
 import { useTransactionConceptosModal } from "@/hooks/transaction-conceptos-modal";
 import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
-import UploadProjectTransactionsModal from "@/components/modals/upload-project-transactions-modal";
-import TransactionDetailsModal from "@/components/modals/transaction-details-modal";
-import TransactionConceptosModal from "@/components/modals/transaction-conceptos-modal";
-import TransactionDocumentosModal from "@/components/modals/transaction-documentos-modal";
+
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { Popover } from "@radix-ui/react-popover";
@@ -57,6 +54,12 @@ export default function ProyectoTransaccionesTablePage() {
         transaccion.codigo_referencia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transaccion.tipo_pago?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+
+    console.log("transacciones", transacciones)
+
+    console.log("filteredTransacciones", filteredTransacciones)
+
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("es-MX", {
@@ -160,7 +163,7 @@ export default function ProyectoTransaccionesTablePage() {
                         .slice(0, 5)
                         .map(d => d.documentoNombre)
                         .join(", ");
-                    
+
                     toast.info("Documentos sin coincidencias", {
                         description: `${unmatchedDocs}${summary.unmatched > 5 ? ` y ${summary.unmatched - 5} más...` : ""}`,
                         duration: 5000,
@@ -432,12 +435,6 @@ export default function ProyectoTransaccionesTablePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-            {/* Modals */}
-            <UploadProjectTransactionsModal />
-            <TransactionDetailsModal />
-            <TransactionConceptosModal />
-            <TransactionDocumentosModal />
         </div>
     );
 }

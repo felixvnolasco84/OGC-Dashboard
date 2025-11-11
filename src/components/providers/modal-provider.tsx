@@ -12,6 +12,10 @@ import TransactionConceptosModal from "../modals/transaction-conceptos-modal";
 import TransactionDocumentosModal from "../modals/transaction-documentos-modal";
 import UploadDocumentsModal from "../modals/upload-documents-modal";
 import UploadProyectoDocumentsModal from "../modals/upload-proyecto-documents-modal";
+import UploadProjectTransactionsModal from "../modals/upload-project-transactions-modal";
+import AddProyectoModal from "../modals/add-proyecto-modal";
+import EditProyectoModal from "../modals/edit-proyecto-modal";
+import UploadProjectionsModal from "../modals/upload-projections-modal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -36,5 +40,9 @@ export const ModalProvider = () => {
     <TransactionDocumentosModal />
     <UploadDocumentsModal />
     <UploadProyectoDocumentsModal />
+    <UploadProjectTransactionsModal />
+    <AddProyectoModal />
+    <EditProyectoModal />
+    <UploadProjectionsModal />
   </>;
 };

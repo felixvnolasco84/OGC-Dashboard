@@ -11,7 +11,7 @@ import {
   useQuery
 } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { DashboardTable } from "./Table";
+import { DashboardTable } from "./DashboardTable";
 import BarHorizontalChart from "./BarHorizontalChart";
 
 

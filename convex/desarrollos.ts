@@ -118,31 +118,36 @@ export const deleteProject = rawMutation({
             throw new Error("Project not found");
         }
 
-        // 1. Get all partidas for this proyecto
+        // 1. Get all transacciones for this proyecto (do this FIRST)
+        const transacciones = await ctx.db
+            .query("transacciones")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .collect();
+
+        // 2. Delete all pagos associated with this proyecto's transacciones
+        // Query pagos for each transaction using the by_transaccion index
+        const allPagos = [];
+        for (const transaccion of transacciones) {
+            const pagosForTransaccion = await ctx.db
+                .query("pagos")
+                .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaccion._id))
+                .collect();
+            allPagos.push(...pagosForTransaccion);
+        }
+
+        // Delete all pagos
+        await Promise.all(allPagos.map((pago) => ctx.db.delete(pago._id)));
+
+        // 3. Delete all transacciones for this proyecto
+        await Promise.all(transacciones.map((transaccion) => ctx.db.delete(transaccion._id)));
+
+        // 4. Get all partidas for this proyecto
         const partidas = await ctx.db
             .query("partidas")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
             .collect();
 
-        // 2. Delete all pagos associated with this proyecto's partidas
-        const partidaIds = partidas.map(p => p._id);
-        const pagos = await ctx.db
-            .query("pagos")
-            .filter((q) => partidaIds.some(pid => q.eq(q.field("partida_id"), pid)))
-            .collect();
-
-        // Delete all pagos
-        await Promise.all(pagos.map((pago) => ctx.db.delete(pago._id)));
-
-        // 3. Delete all transacciones for this proyecto
-        const transacciones = await ctx.db
-            .query("transacciones")
-            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
-            .collect();
-        
-        await Promise.all(transacciones.map((transaccion) => ctx.db.delete(transaccion._id)));
-
-        // 4. Delete all documentos for this proyecto
+        // 5. Delete all documentos for this proyecto
         const documentos = await ctx.db
             .query("documentos")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
@@ -151,37 +156,37 @@ export const deleteProject = rawMutation({
         // Delete all documentos (Note: Appwrite files should be deleted separately)
         await Promise.all(documentos.map((doc) => ctx.db.delete(doc._id)));
 
-        // 5. Delete all partidas for this proyecto
+        // 6. Delete all partidas for this proyecto
         await Promise.all(partidas.map((partida) => ctx.db.delete(partida._id)));
 
-        // 6. Delete meticas_presupuesto for this proyecto
+        // 7. Delete meticas_presupuesto for this proyecto
         const meticas = await ctx.db
             .query("meticas_presupuesto")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
             .collect();
         await Promise.all(meticas.map((m) => ctx.db.delete(m._id)));
 
-        // 7. Delete projected_transactions for this proyecto
+        // 8. Delete projected_transactions for this proyecto
         const projectedTransactions = await ctx.db
             .query("projected_transactions")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
             .collect();
         await Promise.all(projectedTransactions.map((pt) => ctx.db.delete(pt._id)));
 
-        // 8. Delete weekly_projected_totals for this proyecto
+        // 9. Delete weekly_projected_totals for this proyecto
         const weeklyTotals = await ctx.db
             .query("weekly_projected_totals")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
             .collect();
         await Promise.all(weeklyTotals.map((wt) => ctx.db.delete(wt._id)));
 
-        // 9. Finally, delete the proyecto itself
+        // 10. Finally, delete the proyecto itself
         await ctx.db.delete(args.id);
 
         return {
             success: true,
             deletedPartidas: partidas.length,
-            deletedPagos: pagos.length,
+            deletedPagos: allPagos.length,
             deletedTransacciones: transacciones.length,
             deletedDocumentos: documentos.length,
             deletedMeticas: meticas.length,

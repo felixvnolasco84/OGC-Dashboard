@@ -16,7 +16,7 @@ function WebsiteLayout() {
       <StoreUserEffect />
       <div className="flex h-screen bg-white">
         <Sidebar />
-        <div className="flex-1 ml-64 flex flex-col">
+        <div className="flex-1 ml-64 flex flex-col ">
           <main className="flex-1 overflow-auto">
             <Outlet />
           </main>

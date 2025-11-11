@@ -18,11 +18,8 @@ import {
 import { useAddProyectoModal } from "@/hooks/add-proyecto-modal";
 import { useEditProyectoModal } from "@/hooks/edit-proyecto-modal";
 import { Id } from "../../../convex/_generated/dataModel";
-import AddProyectoModal from "@/components/modals/add-proyecto-modal";
-import EditProyectoModal from "@/components/modals/edit-proyecto-modal";
 import { useUploadTransactionsModal } from "@/hooks/upload-transactions-modal";
 import { useUploadProjectionsModal } from "@/hooks/upload-projections-modal";
-import UploadProjectionsModal from "@/components/modals/upload-projections-modal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function ProyectosTablePage() {
@@ -250,12 +247,6 @@ export default function ProyectosTablePage() {
           </table>
         </div>
       </div>
-
-      {/* Modals */}
-      <AddProyectoModal />
-      <EditProyectoModal />
-      <UploadProjectionsModal />
-
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 // import { Button } from "@/components/ui/button";
 import ProgressChart from "@/components/Charts/ProgressChart";
 import FamiliaChart from "@/components/Charts/FamiliaChart";
-import { DashboardTable } from "../Dashboard/Table";
+import { DashboardTable } from "../Dashboard/DashboardTable";
 import ChartConfigModal from "@/components/Charts/ChartConfigModal";
 import { useChartConfig } from "@/hooks/useChartConfig";
 // import { Plus } from "lucide-react";
@@ -67,7 +67,7 @@ export default function ControlPage() {
 
     // Progress chart filters    
     const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");
-    const [selectedRangoFecha, setSelectedRangoFecha] = useState("Ultimos 30 dias");
+    const [selectedRangoFecha, setSelectedRangoFecha] = useState("Todo el tiempo");
 
     // Modal state
     const [activeChartId, setActiveChartId] = useState<string | null>(null);
@@ -133,6 +133,7 @@ export default function ControlPage() {
             }
             : "skip"
     );
+    
 
     // Fetch data for chart 2 based on its persisted configuration
     const chart2Data = useQuery(

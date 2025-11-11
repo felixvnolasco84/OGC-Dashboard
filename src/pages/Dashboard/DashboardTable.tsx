@@ -67,13 +67,12 @@ export const columns: ColumnDef<Doc<"partidas">>[] = [
         header: "Familia",
         cell: ({ row }) => <div className="flex flex-col text-left">
             <span className="capitalize">{row.getValue("familia")}</span>
-            <span className="text-xs text-muted-foreground capitalize">{(row.getValue("sub_partida") as string).slice(0, 20)}...</span>
         </div>,
     },
     {
         accessorKey: "sub_partida",
         header: "Sub Partida",
-        cell: ({ row }) => <div className="lowercase hidden">{row.getValue("sub_partida")}</div>,
+        cell: ({ row }) => <div className="lowercase">{row.getValue("sub_partida")}</div>,
     },
     // {
     //     accessorKey: "Cantidad",
