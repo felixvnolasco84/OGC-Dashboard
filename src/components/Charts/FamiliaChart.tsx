@@ -76,14 +76,14 @@ const formatNumber = (amount: number) => {
     }).format(amount);
 };
 
-export default function FamiliaChart({ 
+export default function FamiliaChart({
     chartId, // Used for identification purposes when configuring
-    data, 
-    title, 
-    total, 
-    color, 
+    data,
+    title,
+    total,
+    color,
     height = 300,
-    onConfigClick 
+    onConfigClick
 }: FamiliaChartProps) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _chartId = chartId; // Suppress unused warning - used for component identification
@@ -124,18 +124,18 @@ export default function FamiliaChart({
             }
 
             const parts = dateStr.trim().split(' ');
-            
+
             // Format: "YYYY-MM-DD Mon" (e.g., "2025-11-06 Ene")
             if (parts.length >= 2 && parts[0].includes('-')) {
                 const datePart = parts[0]; // "2025-11-06"
                 const [year, month, day] = datePart.split('-').map(n => parseInt(n, 10));
-                
+
                 if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
                     // Month is 1-based in the string, but Date constructor expects 0-based
                     return new Date(year, month - 1, day);
                 }
             }
-            
+
             // Format: "DD Mon" (e.g., "06 Ene")
             if (parts.length === 2) {
                 const monthMap: { [key: string]: number } = {
@@ -152,10 +152,10 @@ export default function FamiliaChart({
                     'Nov': 10, 'Noviembre': 10, 'November': 10,
                     'Dic': 11, 'Diciembre': 11, 'Dec': 11, 'December': 11
                 };
-                
+
                 const day = parseInt(parts[0], 10);
                 const month = monthMap[parts[1]];
-                
+
                 if (!isNaN(day) && month !== undefined) {
                     return new Date(new Date().getFullYear(), month, day);
                 }
@@ -229,7 +229,7 @@ export default function FamiliaChart({
     );
 
     return (
-        <div className="w-full h-full relative bg-[#F7F7F7] p-6 rounded-lg border border-gray-200">
+        <div className="w-full h-full relative bg-[#fcfcfc] p-6 rounded-lg border border-gray-200">
             {/* Header with title and total */}
             <div className="mb-6 text-left space-y-4">
                 <div className="flex items-start justify-between">

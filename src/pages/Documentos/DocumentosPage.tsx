@@ -10,10 +10,6 @@ import {
   Plus, Upload
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  // getFileUrl,
-  deleteDocument
-} from "@/lib/appwrite";
 import { Id } from "../../../convex/_generated/dataModel";
 import {
   Select,
@@ -94,12 +90,8 @@ export default function DocumentosPage() {
       if (!doc) return;
 
       // 1. Delete from Convex database
-      const result = await deleteDocumentMutation({ id: documentToDelete });
+      await deleteDocumentMutation({ id: documentToDelete });
 
-      // 2. Delete from Appwrite storage
-      if (result.fileId) {
-        await deleteDocument(result.fileId);
-      }
 
       toast.success("Documento eliminado", {
         description: "El documento se eliminó correctamente.",

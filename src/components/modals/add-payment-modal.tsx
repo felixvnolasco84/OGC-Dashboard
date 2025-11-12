@@ -17,7 +17,6 @@ import { Check, Circle, Plus, X, Upload, File, ChevronDown, ChevronRight, Trash2
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
-import { uploadDocument } from "@/lib/appwrite";
 import { toast } from "sonner";
 
 export default function AddPaymentModal() {
@@ -54,10 +53,10 @@ export default function AddPaymentModal() {
     const [documentType, setDocumentType] = useState("");
     const [documentName, setDocumentName] = useState("");
     const [documentDescription, setDocumentDescription] = useState("");
-    const [isUploadingDocument, setIsUploadingDocument] = useState(false);
-    
+    // const [isUploadingDocument, setIsUploadingDocument] = useState(false); // Unused after Appwrite removal
+
     const createTransaction = useMutation(api.transacciones.createTransaction);
-    const createDocument = useMutation(api.documentos.create);
+    // const createDocument = useMutation(api.documentos.create); // Unused after Appwrite removal
 
     // Fetch all partidas for this project
     const allPartidas = useQuery(
@@ -76,8 +75,8 @@ export default function AddPaymentModal() {
     // Get available familias for a partida
     const getAvailableFamilias = (partidaName: string) => {
         if (!partidaName || !allPartidas) return [];
-        const partidasNivel2 = allPartidas.filter(p => 
-            p.nivel === 2 && 
+        const partidasNivel2 = allPartidas.filter(p =>
+            p.nivel === 2 &&
             p.partida_nombre === partidaName
         );
         const uniqueFamilias = [...new Set(partidasNivel2.map(p => p.familia).filter(f => f && f.trim() !== ""))];
@@ -87,9 +86,9 @@ export default function AddPaymentModal() {
     // Get available sub_partidas for a partida and familia
     const getAvailableSubPartidas = (partidaName: string, familiaName: string) => {
         if (!partidaName || !familiaName || !allPartidas) return [];
-        const partidasNivel3 = allPartidas.filter(p => 
+        const partidasNivel3 = allPartidas.filter(p =>
             p.nivel === 3 &&
-            p.partida_nombre === partidaName && 
+            p.partida_nombre === partidaName &&
             p.familia === familiaName
         );
         const uniqueSubPartidas = [...new Set(partidasNivel3.map(p => p.sub_partida || p.nombre).filter(sp => sp && sp.trim() !== ""))];
@@ -104,14 +103,14 @@ export default function AddPaymentModal() {
     // When familia is selected, find its ID (for direct payments)
     const handleFamiliaSelectWithId = (partidaId: string, familiaId: string, partidaName: string, familiaName: string) => {
         if (!allPartidas) return;
-        
+
         // Find the nivel 2 item with matching partida_nombre and familia
-        const exactFamilia = allPartidas.find(p => 
+        const exactFamilia = allPartidas.find(p =>
             p.nivel === 2 &&
-            p.partida_nombre === partidaName && 
+            p.partida_nombre === partidaName &&
             p.familia === familiaName
         );
-        
+
         if (exactFamilia) {
             updateFamilia(partidaId, familiaId, familiaName);
             updateFamiliaDirectPayment(partidaId, familiaId, {
@@ -125,14 +124,14 @@ export default function AddPaymentModal() {
     // When sub_partida is selected, find its ID
     const handleSubPartidaSelect = (partidaId: string, familiaId: string, subPartidaId: string, partidaName: string, familiaName: string, subPartidaName: string) => {
         if (!allPartidas) return;
-        
-        const exactPartida = allPartidas.find(p => 
+
+        const exactPartida = allPartidas.find(p =>
             p.nivel === 3 &&
-            p.partida_nombre === partidaName && 
-            p.familia === familiaName && 
+            p.partida_nombre === partidaName &&
+            p.familia === familiaName &&
             (p.sub_partida === subPartidaName || p.nombre === subPartidaName)
         );
-        
+
         if (exactPartida) {
             updateSubPartida(partidaId, familiaId, subPartidaId, {
                 sub_partida: subPartidaName,
@@ -146,7 +145,7 @@ export default function AddPaymentModal() {
         return partidas.reduce((partidaSum, partida) => {
             return partidaSum + partida.familias.reduce((familiaSum, familia) => {
                 const hasSubPartidas = familiaHasSubPartidas(partida.partida, familia.familia);
-                
+
                 // If familia is direct payment AND has no sub-partidas, add its monto
                 if (familia.isDirect && !hasSubPartidas) {
                     return familiaSum + (familia.monto || 0);
@@ -173,13 +172,13 @@ export default function AddPaymentModal() {
                 sub_partida: string;
                 monto: number;
             }> = [];
-            
+
             // Iterate through all partidas, familias, and subPartidas to build line items
             for (const partida of partidas) {
                 for (const familia of partida.familias) {
                     // Check if this familia is a direct payment AND has no sub-partidas available
                     const hasSubPartidas = familiaHasSubPartidas(partida.partida, familia.familia);
-                    
+
                     if (familia.isDirect && !hasSubPartidas) {
                         if (familia.partida_id && familia.partida_id !== "" && familia.monto && familia.monto > 0) {
                             lineItems.push({
@@ -228,35 +227,12 @@ export default function AddPaymentModal() {
                 lineItems,
             });
 
-            // Upload document if provided
+            // Note: Document upload functionality removed (Appwrite dependency removed)
+            // To re-enable, integrate with Convex storage or another storage solution
             if (documentFile && result.transaccionId) {
-                setIsUploadingDocument(true);
-                try {
-                    const uploadResult = await uploadDocument(documentFile);
-                    
-                    if (uploadResult.success && documentType) {
-                        await createDocument({
-                            nombre: documentName || documentFile.name,
-                            descripcion: documentDescription || `Documento adjunto al pago - ${new Date().toLocaleDateString()}`,
-                            image: uploadResult.fileId!,
-                            type: documentType,
-                            proyecto: paymentContext.projectId,
-                            transaccion_id: result.transaccionId,
-                        });
-                        toast.success("Documento adjuntado", {
-                            description: `El documento se vinculó a la transacción con ${result.pagoIds.length} concepto(s).`,
-                        });
-                    } else {
-                        toast.error("Error al subir el documento", {
-                            description: uploadResult.error,
-                        });
-                    }
-                } catch (error) {
-                    console.error("Error uploading document:", error);
-                    toast.error("Error al subir el documento");
-                } finally {
-                    setIsUploadingDocument(false);
-                }
+                toast.info("Funcionalidad de documentos temporalmente deshabilitada", {
+                    description: "El pago se registró correctamente, pero la carga de documentos requiere configuración adicional.",
+                });
             }
 
             // Reset form
@@ -272,7 +248,7 @@ export default function AddPaymentModal() {
             setDocumentType("");
             setDocumentName("");
             setDocumentDescription("");
-            
+
             toast.success("Transacción registrada", {
                 description: `Se creó la transacción con ${result.pagoIds.length} concepto(s) exitosamente.`,
             });
@@ -290,25 +266,25 @@ export default function AddPaymentModal() {
         const hasValidPayment = partidas.some(partida =>
             partida.familias.some(familia => {
                 const hasSubPartidas = familiaHasSubPartidas(partida.partida, familia.familia);
-                
+
                 // Check direct familia payment - only valid if familia has NO sub-partidas
                 if (familia.isDirect && !hasSubPartidas) {
-                    return familia.partida_id && 
-                           familia.partida_id !== "" && 
-                           familia.familia &&
-                           familia.monto && 
-                           familia.monto > 0;
+                    return familia.partida_id &&
+                        familia.partida_id !== "" &&
+                        familia.familia &&
+                        familia.monto &&
+                        familia.monto > 0;
                 }
                 // Check sub-partida payment
                 return familia.subPartidas.some(sub =>
-                    sub.partida_id && 
-                    sub.partida_id !== "" && 
+                    sub.partida_id &&
+                    sub.partida_id !== "" &&
                     sub.sub_partida &&
                     sub.monto > 0
                 );
             })
         );
-        
+
         return hasValidPayment && tipoPago && fecha && status;
     };
 
@@ -505,7 +481,7 @@ export default function AddPaymentModal() {
                                                                         <MoneyInput
                                                                             placeholder="Monto"
                                                                             value={familia.monto || 0}
-                                                                            onChange={(value) => 
+                                                                            onChange={(value) =>
                                                                                 updateFamiliaDirectPayment(partida.id, familia.id, { monto: value })
                                                                             }
                                                                             currency={moneda}
@@ -516,67 +492,67 @@ export default function AddPaymentModal() {
                                                             ) : (
                                                                 /* Normal Mode with SubPartidas - shown when familia has sub-partidas OR isDirect is false */
                                                                 <div className="space-y-2 ml-4">
-                                                            {familia.subPartidas.map((subPartida) => (
-                                                                <div key={subPartida.id} className="flex items-center gap-2">
-                                                                    <Select
-                                                                        value={subPartida.sub_partida}
-                                                                        onValueChange={(value) => 
-                                                                            handleSubPartidaSelect(
-                                                                                partida.id, 
-                                                                                familia.id, 
-                                                                                subPartida.id, 
-                                                                                partida.partida, 
-                                                                                familia.familia, 
-                                                                                value
-                                                                            )
-                                                                        }
+                                                                    {familia.subPartidas.map((subPartida) => (
+                                                                        <div key={subPartida.id} className="flex items-center gap-2">
+                                                                            <Select
+                                                                                value={subPartida.sub_partida}
+                                                                                onValueChange={(value) =>
+                                                                                    handleSubPartidaSelect(
+                                                                                        partida.id,
+                                                                                        familia.id,
+                                                                                        subPartida.id,
+                                                                                        partida.partida,
+                                                                                        familia.familia,
+                                                                                        value
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <SelectTrigger className="flex-1 h-9 text-sm">
+                                                                                    <SelectValue placeholder="Sub-partida" />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {getAvailableSubPartidas(partida.partida, familia.familia).map((sub) => (
+                                                                                        <SelectItem key={sub} value={sub}>
+                                                                                            {sub}
+                                                                                        </SelectItem>
+                                                                                    ))}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                            <div className="w-32">
+                                                                                <MoneyInput
+                                                                                    placeholder="Monto"
+                                                                                    value={subPartida.monto || 0}
+                                                                                    onChange={(value) =>
+                                                                                        updateSubPartida(partida.id, familia.id, subPartida.id, { monto: value })
+                                                                                    }
+                                                                                    currency={moneda}
+                                                                                    className="text-left h-9 text-sm"
+                                                                                />
+                                                                            </div>
+                                                                            {familia.subPartidas.length > 1 && (
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={() => removeSubPartida(partida.id, familia.id, subPartida.id)}
+                                                                                    className="h-7 w-7 p-0"
+                                                                                >
+                                                                                    <X className="h-3 w-3 text-gray-400" />
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => addSubPartida(partida.id, familia.id)}
+                                                                        className="w-full text-xs h-8"
                                                                     >
-                                                                        <SelectTrigger className="flex-1 h-9 text-sm">
-                                                                            <SelectValue placeholder="Sub-partida" />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            {getAvailableSubPartidas(partida.partida, familia.familia).map((sub) => (
-                                                                                <SelectItem key={sub} value={sub}>
-                                                                                    {sub}
-                                                                                </SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                    <div className="w-32">
-                                                                        <MoneyInput
-                                                                            placeholder="Monto"
-                                                                            value={subPartida.monto || 0}
-                                                                            onChange={(value) => 
-                                                                                updateSubPartida(partida.id, familia.id, subPartida.id, { monto: value })
-                                                                            }
-                                                                            currency={moneda}
-                                                                            className="text-left h-9 text-sm"
-                                                                        />
-                                                                    </div>
-                                                                    {familia.subPartidas.length > 1 && (
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => removeSubPartida(partida.id, familia.id, subPartida.id)}
-                                                                            className="h-7 w-7 p-0"
-                                                                        >
-                                                                            <X className="h-3 w-3 text-gray-400" />
-                                                                        </Button>
-                                                                    )}
+                                                                        <Plus className="h-3 w-3 mr-1" />
+                                                                        Agregar Sub-partida
+                                                                    </Button>
                                                                 </div>
-                                                            ))}
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => addSubPartida(partida.id, familia.id)}
-                                                                className="w-full text-xs h-8"
-                                                            >
-                                                                <Plus className="h-3 w-3 mr-1" />
-                                                                Agregar Sub-partida
-                                                            </Button>
-                                                        </div>
                                                             )}
                                                         </>
                                                     )}
@@ -652,7 +628,7 @@ export default function AddPaymentModal() {
                                 <MoneyInput
                                     placeholder="Monto total"
                                     value={totalAmount}
-                                    onChange={() => {}}
+                                    onChange={() => { }}
                                     currency={moneda}
                                     disabled
                                     className="h-12 bg-gray-100"
@@ -696,7 +672,7 @@ export default function AddPaymentModal() {
                         {/* Document Attachment */}
                         <div className="space-y-3 pt-4 border-t">
                             <h3 className="text-sm font-medium text-gray-900">Adjuntar documento (opcional)</h3>
-                            
+
                             <div className="space-y-2">
                                 <label className="text-sm text-gray-700">Tipo de documento</label>
                                 <Select value={documentType} onValueChange={setDocumentType}>
@@ -781,10 +757,10 @@ export default function AddPaymentModal() {
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!isFormValid() || isSubmitting || isUploadingDocument}
+                            disabled={!isFormValid() || isSubmitting}
                             className="bg-black hover:bg-gray-800 text-white h-11"
                         >
-                            {isSubmitting || isUploadingDocument ? 'Guardando...' : `Guardar ${totalPayments} pago(s)`}
+                            {isSubmitting ? 'Guardando...' : `Guardar ${totalPayments} pago(s)`}
                         </Button>
                     </div>
                 </form>

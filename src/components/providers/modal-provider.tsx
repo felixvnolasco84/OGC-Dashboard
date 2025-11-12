@@ -16,6 +16,7 @@ import UploadProjectTransactionsModal from "../modals/upload-project-transaction
 import AddProyectoModal from "../modals/add-proyecto-modal";
 import EditProyectoModal from "../modals/edit-proyecto-modal";
 import UploadProjectionsModal from "../modals/upload-projections-modal";
+import EditTransactionModal from "../modals/edit-transaction-modal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -44,5 +45,6 @@ export const ModalProvider = () => {
     <AddProyectoModal />
     <EditProyectoModal />
     <UploadProjectionsModal />
+    <EditTransactionModal />
   </>;
 };

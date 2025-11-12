@@ -22,7 +22,7 @@ type PartidaFormData = {
     monto: number;
     fecha_pago: string;
 
-    // File uploads (URLs from  Appwrite)
+    // File uploads
     factura: string;
     comprobante: string;
     presupuesto: string;

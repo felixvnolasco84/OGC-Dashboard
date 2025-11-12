@@ -9,11 +9,6 @@ import {
   FileText, Search, Upload, Download, ExternalLink, Trash2
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  deleteDocument,
-  getFileDownloadUrl,
-  getFileUrl
-} from "@/lib/appwrite";
 import { Id } from "../../../convex/_generated/dataModel";
 import {
   AlertDialog,
@@ -88,13 +83,8 @@ export default function ProyectoDocumentosPage() {
       const doc = documentos?.find(d => d._id === documentToDelete);
       if (!doc) return;
 
-      // 1. Delete from Convex database
-      const result = await deleteDocumentMutation({ id: documentToDelete });
-
-      // 2. Delete from Appwrite storage
-      if (result.fileId) {
-        await deleteDocument(result.fileId);
-      }
+      // Delete from Convex database
+      await deleteDocumentMutation({ id: documentToDelete });
 
       toast.success("Documento eliminado", {
         description: "El documento se eliminó correctamente.",
@@ -119,14 +109,12 @@ export default function ProyectoDocumentosPage() {
     }
   };
 
-  const handleView = (fileId: string) => {
-    const viewUrl = getFileUrl(fileId);
-    window.open(viewUrl, '_blank');
+  const handleView = (fileUrl: string) => {
+    window.open(fileUrl, '_blank');
   };
 
-  const handleDownload = (fileId: string) => {
-    const downloadUrl = getFileDownloadUrl(fileId);
-    window.open(downloadUrl, '_blank');
+  const handleDownload = (fileUrl: string) => {
+    window.open(fileUrl, '_blank');
   };
 
   const openDeleteDialog = (documentId: Id<"documentos">) => {

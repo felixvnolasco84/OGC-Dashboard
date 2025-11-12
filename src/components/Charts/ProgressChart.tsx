@@ -3,9 +3,9 @@ import { AxisOptions, Chart } from "react-charts";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import { Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useWeeklyAvanceModal } from "@/hooks/weekly-avance-modal";
+// import { Settings } from "lucide-react";
+// import { Button } from "@/components/ui/button";
+// import { useWeeklyAvanceModal } from "@/hooks/weekly-avance-modal";
 import WeeklyAvanceModal from "@/components/modals/weekly-avance-modal";
 
 interface ChartDataPoint {
@@ -41,7 +41,7 @@ export default function ProgressChart({
     selectedPeriodo = "Diario",
     selectedRangoFecha = "Ultimos 30 dias"
 }: ProgressChartProps) {
-    
+
     // Query weekly projected totals if proyectoId is provided
     const projectedData = useQuery(
         api.weekly_projected_totals.getCumulativeTotals,
@@ -55,13 +55,13 @@ export default function ProgressChart({
     );
 
     // Query project info for modal
-    const proyecto = useQuery(
-        api.desarrollos.getById,
-        proyectoId ? { id: proyectoId } : "skip"
-    );
+    // const proyecto = useQuery(
+    //     api.desarrollos.getById,
+    //     proyectoId ? { id: proyectoId } : "skip"
+    // );
 
     // Modal hook
-    const weeklyAvanceModal = useWeeklyAvanceModal();
+    // const weeklyAvanceModal = useWeeklyAvanceModal();
 
     // Helper: Get date range based on filter
     const getDateRangeFilter = React.useMemo(() => {
@@ -145,10 +145,10 @@ export default function ProgressChart({
                     date: point.date,
                     gastoProgramado: 0,
                     gastoTotal: Math.max(existing.gastoTotal || 0, point.gastoTotal || 0),
-                    avanceReal: Math.max(existing.avanceReal || 0, point.avanceReal || 0),
+                    // avanceReal: Math.max(existing.avanceReal || 0, point.avanceReal || 0),
                 });
             } else {
-                actualDataMap.set(point.date, { 
+                actualDataMap.set(point.date, {
                     date: point.date,
                     gastoProgramado: 0,
                     gastoTotal: point.gastoTotal || 0,
@@ -158,14 +158,14 @@ export default function ProgressChart({
         });
 
         // Process weekly avance real data
-        const avanceRealMap = new Map<string, number>();
-        if (weeklyAvanceData && weeklyAvanceData.length > 0) {
-            weeklyAvanceData.forEach((avanceRecord) => {
-                // Convert Excel serial date to the same format used in the chart
-                const dateLabel = excelDateToString(avanceRecord.week_date);
-                avanceRealMap.set(dateLabel, avanceRecord.avance_real);
-            });
-        }
+        // const avanceRealMap = new Map<string, number>();
+        // if (weeklyAvanceData && weeklyAvanceData.length > 0) {
+        //     weeklyAvanceData.forEach((avanceRecord) => {
+        //         // Convert Excel serial date to the same format used in the chart
+        //         const dateLabel = excelDateToString(avanceRecord.week_date);
+        //         avanceRealMap.set(dateLabel, avanceRecord.avance_real);
+        //     });
+        // }
 
         // Process projected data separately
         const projectedDataMap = new Map<string, number>();
@@ -214,20 +214,20 @@ export default function ProgressChart({
         const allDates = new Set([
             ...actualDataMap.keys(),
             ...projectedDataMap.keys(),
-            ...avanceRealMap.keys()
+            // ...avanceRealMap.keys()
         ]);
 
         const dataMap = new Map<string, ChartDataPoint>();
         allDates.forEach(date => {
             const actualData = actualDataMap.get(date);
             const projectedAmount = projectedDataMap.get(date);
-            const weeklyAvance = avanceRealMap.get(date);
+            // const weeklyAvance = avanceRealMap.get(date);
 
             dataMap.set(date, {
                 date: date,
                 gastoProgramado: projectedAmount || 0,
                 gastoTotal: actualData?.gastoTotal || 0,
-                avanceReal: weeklyAvance || actualData?.avanceReal || 0,
+                // avanceReal: weeklyAvance || actualData?.avanceReal || 0,
             });
         });
 
@@ -237,7 +237,7 @@ export default function ProgressChart({
             // No date filtering - return all data
             return allData;
         }
-        
+
         return allData.filter((point) => {
             const pointDate = parseDateFromLabel(point.date);
             return pointDate >= getDateRangeFilter.startDate && pointDate <= getDateRangeFilter.endDate;
@@ -360,8 +360,15 @@ export default function ProgressChart({
         () => ({
             getValue: (datum) => datum.primary,
             scaleType: 'time',
+            showGrid: true, // Remove X-axis grid lines
+            hardMin: transformedData.length > 0 && transformedData[0].data.length > 0
+                ? transformedData[0].data[0].primary
+                : undefined,
+            hardMax: transformedData.length > 0 && transformedData[0].data.length > 0
+                ? transformedData[0].data[transformedData[0].data.length - 1].primary
+                : undefined,
         }),
-        []
+        [transformedData]
     );
 
     const secondaryAxes = React.useMemo<AxisOptions<ReactChartsDataPoint>[]>(
@@ -370,6 +377,8 @@ export default function ProgressChart({
                 getValue: (datum) => datum.secondary,
                 scaleType: 'linear',
                 elementType: "area",
+                showGrid: false, // Keep Y-axis grid lines
+                showDatumElements: true, // Remove data point markers
                 formatters: {
                     scale: (value: number) => {
                         if (value >= 1000000) {
@@ -398,28 +407,28 @@ export default function ProgressChart({
         []
     );
 
-    const handleOpenAvanceModal = () => {
-        if (proyectoId && proyecto) {
-            weeklyAvanceModal.onOpen({
-                proyectoId,
-                proyectoNombre: proyecto.nombre,
-            });
-        }
-    };
+    // const handleOpenAvanceModal = () => {
+    //     if (proyectoId && proyecto) {
+    //         weeklyAvanceModal.onOpen({
+    //             proyectoId,
+    //             proyectoNombre: proyecto.nombre,
+    //         });
+    //     }
+    // };
 
     return (
         <div className="w-full h-full relative flex flex-col items-end space-y-2">
             {/* Configure Avance Button */}
-            {proyectoId && (                
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleOpenAvanceModal}
-                        className="bg-white hover:bg-gray-50"
-                    >
-                        <Settings className="h-4 w-4" />
-                    </Button>                
-            )}
+            {/* {proyectoId && (
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleOpenAvanceModal}
+                    className="bg-white hover:bg-gray-50"
+                >
+                    <Settings className="h-4 w-4" />
+                </Button>
+            )} */}
 
             {/* Info message when no projected data */}
             {proyectoId && (!projectedData || projectedData.length === 0) && (
@@ -436,19 +445,187 @@ export default function ProgressChart({
                     </div>
                 </div>
             ) : (
-                <div className="w-full pointer-events-none" style={{ height: `${height}px` }}>
+                <div
+                    className="w-full pointer-events-none relative progress-chart-container"
+                    style={{
+                        height: `${height}px`,
+                        background: 'linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%)'
+                    }}
+                >
+
                     <div className="pointer-events-auto w-full h-full">
                         <Chart
                             options={{
                                 data: transformedData,
                                 primaryAxis,
                                 secondaryAxes,
-                                // Light blue gradient for Gasto Programado, darker blue for Gasto Total, dashed line for Avance Real
-                                defaultColors: ['#BFCFDC', '#79AAAF', '#6B7280'],
+                                // Light blue gradient for Gasto Programado, darker blue for Gasto Total
+                                defaultColors: ['#BFCFDC', '#79AAAF'],
                                 dark: false,
                                 interactionMode: "primary",
                                 tooltip: {
                                     show: true,
+                                    align: 'auto',
+                                    render: ({ focusedDatum }) => {
+                                        if (!focusedDatum) return null;
+
+                                        const date = focusedDatum.primaryValue as Date;
+                                        const dateStr = date.toLocaleDateString('es-MX', {
+                                            day: '2-digit',
+                                            month: 'short',
+                                            year: 'numeric'
+                                        });
+
+                                        const formatCurrency = (val: number) => {
+                                            return new Intl.NumberFormat('es-MX', {
+                                                style: 'currency',
+                                                currency: 'MXN',
+                                                minimumFractionDigits: 0,
+                                                maximumFractionDigits: 0,
+                                            }).format(val);
+                                        };
+
+                                        // Find all series values at this date
+                                        // Collect all series and their values at the focused date
+                                        const seriesData: Array<{ label: string; value: number; color: string }> = [];
+                                        let cumulativeGastoReal = 0; // Store cumulative value for total
+
+                                        // Define expected series
+                                        const expectedSeries = ['Gasto Proyectado', 'Gasto Real'];
+
+                                        expectedSeries.forEach((expectedLabel) => {
+                                            const series = transformedData.find(s => s.label === expectedLabel);
+
+                                            if (series) {
+                                                // Find the closest data point to the focused date
+                                                let closestPoint = series.data[0];
+                                                let closestPointIndex = 0;
+                                                let minDiff = Math.abs(series.data[0].primary.getTime() - date.getTime());
+
+                                                series.data.forEach((d, index) => {
+                                                    const diff = Math.abs(d.primary.getTime() - date.getTime());
+                                                    if (diff < minDiff) {
+                                                        minDiff = diff;
+                                                        closestPoint = d;
+                                                        closestPointIndex = index;
+                                                    }
+                                                });
+
+                                                // Only use the value if it's within a reasonable timeframe (e.g., 7 days)
+                                                const daysDiff = minDiff / (1000 * 60 * 60 * 24);
+                                                let value = daysDiff <= 7 ? closestPoint.secondary : 0;
+
+                                                // For Gasto Real, store cumulative value for total display
+                                                if (expectedLabel === 'Gasto Real') {
+                                                    cumulativeGastoReal = value; // Store cumulative for total
+                                                }
+
+                                                // For both series, calculate weekly amount (non-cumulative) for breakdown
+                                                if (value > 0 && closestPointIndex > 0) {
+                                                    const previousPoint = series.data[closestPointIndex - 1];
+                                                    value = closestPoint.secondary - previousPoint.secondary; // Weekly amount for breakdown
+                                                }
+
+                                                seriesData.push({
+                                                    label: expectedLabel,
+                                                    value: value,
+                                                    color: expectedLabel === 'Gasto Proyectado' ? '#BFCFDC' : '#79AAAF'
+                                                });
+                                            } else {
+                                                // Series doesn't exist, show 0
+                                                seriesData.push({
+                                                    label: expectedLabel,
+                                                    value: 0,
+                                                    color: expectedLabel === 'Gasto Proyectado' ? '#BFCFDC' : '#79AAAF'
+                                                });
+                                            }
+                                        });
+
+                                        // Use cumulative Gasto Real for total
+                                        const total = cumulativeGastoReal;
+
+                                        return (
+                                            <div style={{
+
+                                                minWidth: '200px'
+                                            }}>
+                                                {/* Date */}
+                                                <div style={{
+                                                    fontSize: '12px',
+                                                    fontWeight: '500',
+                                                    width: 'fit-content',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    marginBottom: '4px',
+                                                }}>
+                                                    <div style={{
+                                                        padding: '8px',
+                                                        borderRadius: '4px',
+
+                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                                        backgroundColor: '#AFAEA2',
+                                                        color: 'white',
+                                                        width: 'fit-content',
+                                                    }}>
+
+                                                        {dateStr}
+                                                    </div>
+                                                    <div style={{
+                                                        padding: '8px',
+                                                        borderRadius: '4px',
+                                                        border: '1px solid #e5e7eb',
+                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                                        backgroundColor: '#fff',
+                                                        color: '#111827',
+                                                        width: 'fit-content',
+
+
+                                                    }}>
+                                                        {formatCurrency(total)}
+                                                    </div>
+                                                </div>
+
+                                                {/* Series breakdown */}
+                                                <div style={{
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '6px',
+                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                                    padding: '8px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid #e5e7eb',
+                                                    backgroundColor: '#fff',
+                                                }}>
+                                                    {seriesData.map((item, idx) => (
+                                                        <div key={idx} style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'space-between',
+                                                            gap: '12px',
+                                                            fontSize: '12px'
+                                                        }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <div style={{
+                                                                    width: '8px',
+                                                                    height: '8px',
+                                                                    borderRadius: '50%',
+                                                                    backgroundColor: item.color
+                                                                }}></div>
+                                                                <span style={{ color: '#6B7280' }}>{item.label}</span>
+                                                            </div>
+                                                            <span style={{
+                                                                fontWeight: '500',
+                                                                color: '#111827'
+                                                            }}>
+                                                                {formatCurrency(item.value)}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
                                 },
                             }}
                         />

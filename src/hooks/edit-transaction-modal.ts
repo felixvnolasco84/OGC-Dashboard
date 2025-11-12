@@ -4,9 +4,12 @@ import { create } from "zustand";
 type EditTransactionContext = {
     transaction: Doc<"transacciones">;
     lineItems: Array<Doc<"pagos"> & {
-        partida?: string;
-        familia?: string;
-        sub_partida?: string;
+        partida?: {
+            _id: string;
+            nombre: string;
+            familia: string;
+            sub_partida: string;
+        };
     }>;
 };
 
@@ -58,9 +61,27 @@ export const useEditTransactionModal = create<EditTransactionModalStore>((set) =
     onOpen: (transactionContext: EditTransactionContext) => {
         const transaction = transactionContext.transaction;
         
+        // Convert date from DD/MM/YYYY to YYYY-MM-DD for HTML date input
+        const convertDateToISO = (dateStr: string): string => {
+            if (!dateStr) return "";
+            
+            // Check if already in ISO format (YYYY-MM-DD)
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dateStr;
+            }
+            
+            // Convert from DD/MM/YYYY to YYYY-MM-DD
+            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const [day, month, year] = dateStr.split('/');
+                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+            
+            return "";
+        };
+        
         const prefilledData: TransactionFormData = {
-            fecha: transaction.fecha || "",
-            tipo_pago: transaction.tipo_pago || "efectivo",
+            fecha: convertDateToISO(transaction.fecha || ""),
+            tipo_pago: (transaction.tipo_pago || "efectivo").toLowerCase(),
             banco: transaction.banco || "",
             tarjeta: transaction.tarjeta || "",
             numero_cuenta: transaction.numero_cuenta || "",
@@ -71,7 +92,7 @@ export const useEditTransactionModal = create<EditTransactionModalStore>((set) =
             moneda: transaction.moneda || "MXN",
             tipo_cambio: transaction.tipo_cambio || "1",
             status: transaction.status || "",
-            categoria: transaction.categoria || "",
+            categoria: (transaction.categoria || "").toLowerCase(),
         };
 
         set({

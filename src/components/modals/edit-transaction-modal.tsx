@@ -15,6 +15,7 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
+import { Doc, Id } from "../../../convex/_generated/dataModel";
 
 export default function EditTransactionModal() {
     const transactionContext = useEditTransactionModal((state) => state.transactionContext);
@@ -39,7 +40,7 @@ export default function EditTransactionModal() {
         }));
     };
 
-    const getLineItemAmount = (item: any) => {
+    const getLineItemAmount = (item: Doc<"pagos">) => {
         if (item._id in editedLineItems) {
             return editedLineItems[item._id];
         }
@@ -55,7 +56,7 @@ export default function EditTransactionModal() {
             // Update edited line items first
             for (const [itemId, newAmount] of Object.entries(editedLineItems)) {
                 await updatePago({
-                    id: itemId as any,
+                    id: itemId as Id<"pagos">,
                     monto: newAmount,
                 });
             }
@@ -66,16 +67,26 @@ export default function EditTransactionModal() {
                 return sum + amount;
             }, 0);
 
+            // Convert date from YYYY-MM-DD back to DD/MM/YYYY for storage
+            const convertDateToDDMMYYYY = (dateStr: string): string => {
+                if (!dateStr) return "";
+                if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    const [year, month, day] = dateStr.split('-');
+                    return `${day}/${month}/${year}`;
+                }
+                return dateStr;
+            };
+
             // Update transaction details with new total
             await updateTransaction({
                 id: transactionContext.transaction._id,
                 monto_total: newTotalAmount,
-                fecha: formData.fecha,
-                tipo_pago: formData.tipo_pago,
+                fecha: convertDateToDDMMYYYY(formData.fecha),
+                tipo_pago: formData.tipo_pago.toUpperCase(),
                 moneda: formData.moneda,
                 tipo_cambio: formData.tipo_cambio,
                 status: formData.status,
-                categoria: formData.categoria,
+                categoria: formData.categoria.toUpperCase(),
                 banco: formData.banco,
                 tarjeta: formData.tarjeta,
                 numero_cuenta: formData.numero_cuenta,
@@ -128,8 +139,13 @@ export default function EditTransactionModal() {
                 <form onSubmit={handleSubmit} className="mt-6 space-y-6">
                     {/* Transaction Summary */}
                     <div className="bg-gray-50 p-4 rounded-lg border">
-                        <p className="text-sm text-gray-600 mb-1">Monto total de la transacción</p>
+                        <p className="text-sm text-gray-600 mb-1">{transactionContext.transaction.monto_total === totalAmount ? "Monto total de la transacción" : "Monto total parcial"}</p>                        
                         <p className="text-2xl font-semibold">{formatCurrency(totalAmount)}</p>
+                        {
+                            transactionContext.transaction.monto_total !== totalAmount && (
+                                <small className="text-muted-foreground">El monto total de la transacción es {formatCurrency(transactionContext.transaction.monto_total)}</small>
+                            )
+                        }
                         <p className="text-xs text-gray-500 mt-1">
                             {transactionContext.lineItems.length} concepto{transactionContext.lineItems.length !== 1 ? 's' : ''}
                         </p>
@@ -301,7 +317,7 @@ export default function EditTransactionModal() {
 
                     {/* Reference Section */}
                     <div className="space-y-3">
-                        <h3 className="text-base font-semibold text-gray-900">Referencia</h3>
+                        <h3 className="text-base font-semibold text-gray-900">Código de Referencia</h3>
                         <Input
                             placeholder="Código de referencia o notas"
                             value={formData.codigo_referencia || ''}
@@ -318,8 +334,8 @@ export default function EditTransactionModal() {
                                 <div key={item._id || idx} className="p-3 flex justify-between items-center gap-3">
                                     <div className="flex-1">
                                         <p className="text-sm text-gray-900">
-                                            {item.partida && item.familia && item.sub_partida
-                                                ? `${item.partida} › ${item.familia} › ${item.sub_partida}`
+                                            {item.partida
+                                                ? `${item.partida.nombre} › ${item.partida.familia} › ${item.partida.sub_partida}`
                                                 : 'Concepto'}
                                         </p>
                                     </div>

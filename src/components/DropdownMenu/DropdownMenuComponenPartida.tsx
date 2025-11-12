@@ -199,7 +199,7 @@ export default function DropdownMenuComponentPartida({
               onClick={handleViewTransactions}
             >
               <CreditCard className="h-4 w-4" />
-              {level === 2 ? 'Ver pagos de subpartida' : `Ver transacciones de ${labels.title.toLowerCase()}`}
+              {level === 2 ? 'Ver pagos' : `Ver transacciones`}
               {/* Ver transacciones */}
             </Button>
 

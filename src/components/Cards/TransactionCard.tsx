@@ -1,6 +1,5 @@
 import { Check, Lock, FileText, ExternalLink, Edit } from "lucide-react";
 import { Doc } from "convex/_generated/dataModel";
-import { getFileUrl } from "@/lib/appwrite";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 
@@ -53,10 +52,17 @@ export default function TransactionCard({
     editTransactionModal.onOpen({
       transaction,
       lineItems: lineItems.map(item => ({
-        ...item,
-        partida: item.partida,
-        familia: item.familia,
-        sub_partida: item.sub_partida,
+        _id: item._id,
+        _creationTime: item._creationTime,
+        transaccion_id: item.transaccion_id,
+        partida_id: item.partida_id,
+        monto: item.monto,
+        partida: item.partida && item.familia && item.sub_partida ? {
+          _id: item.partida_id,
+          nombre: item.partida,
+          familia: item.familia,
+          sub_partida: item.sub_partida,
+        } : undefined,
       })),
     });
   };
@@ -185,7 +191,7 @@ export default function TransactionCard({
                 doc.image ? (
                   <Button
                     key={doc._id}
-                    onClick={() => window.open(getFileUrl(doc.image!), '_blank')}
+                    onClick={() => window.open(doc.image!, '_blank')}
                     size={"md"}
                     className="flex items-center gap-2 px-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md justify-end transition-colors cursor-pointer"
                     title={`Ver ${doc.nombre}`}

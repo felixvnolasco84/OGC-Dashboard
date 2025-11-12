@@ -713,3 +713,46 @@ export const getFamiliaChartData = query({
     };
   },
 });
+
+// PROVISIONAL: Migration function to transfer values from codigo_referencia to categoria
+// This should be run once and then removed
+export const migrateCodigoReferenciaToCategoria = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Get all transactions
+    const allTransactions = await ctx.db.query("transacciones").collect();
+    
+    let migratedCount = 0;
+    const migrationLog: Array<{
+      id: string;
+      oldCodigoReferencia: string;
+      newCategoria: string;
+    }> = [];
+
+    for (const transaction of allTransactions) {
+      // Only migrate if:
+      // 1. codigo_referencia has a value
+      // 2. categoria is empty or undefined
+      if (transaction.codigo_referencia && !transaction.categoria) {
+        await ctx.db.patch(transaction._id, {
+          categoria: transaction.codigo_referencia,
+          codigo_referencia: "", // Clear the old field
+        });
+        
+        migratedCount++;
+        migrationLog.push({
+          id: transaction._id,
+          oldCodigoReferencia: transaction.codigo_referencia,
+          newCategoria: transaction.codigo_referencia,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      migratedCount,
+      totalTransactions: allTransactions.length,
+      migrationLog,
+    };
+  },
+});

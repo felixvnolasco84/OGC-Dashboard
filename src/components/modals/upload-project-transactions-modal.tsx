@@ -15,11 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Upload, FileSpreadsheet, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Id } from "../../../convex/_generated/dataModel";
-import {
-  extractFolderIdFromUrl,
-  searchFilesInFolder,
-  isValidDriveFolderUrl,
-} from "@/lib/google-drive";
 
 type UploadResult = {
   success: boolean;
@@ -74,8 +69,7 @@ export default function UploadProjectTransactionsModal() {
   const [result, setResult] = useState<UploadResult | null>(null);
 
   // Queries and mutations
-  const createTransaction = useMutation(api.transacciones.createTransaction);
-  const createDocumento = useMutation(api.documentos.create);
+  const createTransaction = useMutation(api.transacciones.createTransaction);  
   const partidasForProject = useQuery(
     api.partida.getByProject,
     proyectoId ? { projectId: proyectoId } : "skip"
@@ -213,8 +207,7 @@ export default function UploadProjectTransactionsModal() {
 
       setIsProcessing(true);
       let successCount = 0;
-      let errorCount = 0;
-      let documentsCreated = 0;
+      let errorCount = 0;      
       const errors: string[] = [];
       const createdTransactionIds: Array<{ id: Id<"transacciones">; factura: string }> = [];
 
@@ -298,114 +291,13 @@ export default function UploadProjectTransactionsModal() {
           errors.push(error instanceof Error ? error.message : "Error desconocido");
           errorCount++;
         }
-      }
-
-      // Process Google Drive documents if folder URL is provided
-      if (googleDriveFolder && isValidDriveFolderUrl(googleDriveFolder)) {
-        try {
-          console.log("Processing Google Drive documents...");
-
-          // Collect all unique document names from all transactions
-          const documentNames = new Set<string>();
-          const documentsByTransaction = new Map<string, Array<{
-            nombre: string;
-            tipo: string;
-            descripcion: string;
-          }>>();
-
-          response.transactions.forEach((txn: typeof response.transactions[0], txnIndex: number) => {
-            const txnDocs: Array<{ nombre: string; tipo: string; descripcion: string }> = [];
-
-            txn.lineitems.forEach((item: typeof txn.lineitems[0]) => {
-              if (item.nombre_documento) {
-                documentNames.add(item.nombre_documento);
-                txnDocs.push({
-                  nombre: item.nombre_documento,
-                  tipo: item.tipo_documento || "Documento",
-                  descripcion: item.descripcion_documento || "",
-                });
-              }
-            });
-
-            if (txnDocs.length > 0 && createdTransactionIds[txnIndex]) {
-              documentsByTransaction.set(
-                createdTransactionIds[txnIndex].id,
-                txnDocs
-              );
-            }
-          });
-
-          // Only proceed if we have an access token
-          if (googleAccessToken) {
-            const folderId = extractFolderIdFromUrl(googleDriveFolder);
-
-            if (folderId) {
-              // Search for files in Google Drive
-              const driveFiles = await searchFilesInFolder(
-                folderId,
-                Array.from(documentNames),
-                googleAccessToken
-              );
-
-              // Create documento records for matched files
-              for (const [transactionId, docs] of documentsByTransaction.entries()) {
-                // Group documents by name to avoid duplicates
-                const uniqueDocs = new Map<string, typeof docs[0]>();
-                docs.forEach((doc) => {
-                  if (!uniqueDocs.has(doc.nombre)) {
-                    uniqueDocs.set(doc.nombre, doc);
-                  }
-                });
-
-                for (const doc of uniqueDocs.values()) {
-                  const driveFile = driveFiles.get(doc.nombre);
-
-                  if (driveFile) {
-                    try {
-                      await createDocumento({
-                        nombre: doc.nombre,
-                        descripcion: doc.descripcion,
-                        image: driveFile.id, // Store Google Drive file ID
-                        type: doc.tipo,
-                        proyecto: proyectoId,
-                        transaccion_id: transactionId as Id<"transacciones">,
-                      });
-
-                      documentsCreated++;
-                    } catch (docError) {
-                      console.error(`Error creating document ${doc.nombre}:`, docError);
-                      errors.push(`Documento ${doc.nombre}: ${docError instanceof Error ? docError.message : "Error"}`);
-                    }
-                  } else {
-                    console.warn(`Document not found in Google Drive: ${doc.nombre}`);
-                    errors.push(`Documento no encontrado: ${doc.nombre}`);
-                  }
-                }
-              }
-
-              console.log(`Created ${documentsCreated} documents from Google Drive`);
-            } else {
-              errors.push("URL de carpeta de Google Drive inválida");
-            }
-          } else {
-            console.log("No access token provided, skipping Google Drive integration");
-            toast.info("Documentos omitidos", {
-              description: "Proporciona un token de acceso de Google para vincular documentos automáticamente.",
-            });
-          }
-        } catch (driveError) {
-          console.error("Error processing Google Drive documents:", driveError);
-          errors.push(`Error de Google Drive: ${driveError instanceof Error ? driveError.message : "Error desconocido"}`);
-        }
-      }
+      }  
 
       setIsProcessing(false);
       setIsUploading(false);
 
       if (successCount > 0) {
-        const description = documentsCreated > 0
-          ? `Se crearon ${successCount} transacciones y ${documentsCreated} documentos${errorCount > 0 || errors.length > 0 ? ` con algunos errores` : ""}.`
-          : `Se crearon ${successCount} transacciones exitosamente${errorCount > 0 ? ` (${errorCount} errores)` : ""}.`;
+        const description = errorCount > 0 || errors.length > 0 ? ` con algunos errores` : "";
 
         toast.success("Proceso completado", { description });
 
@@ -507,12 +399,7 @@ export default function UploadProjectTransactionsModal() {
                 </a>
               </p>
             </div>
-
-            {googleDriveFolder && !isValidDriveFolderUrl(googleDriveFolder) && (
-              <p className="text-xs text-red-600">
-                ⚠️ URL de carpeta inválida. Debe ser una URL de carpeta de Google Drive.
-              </p>
-            )}
+   
           </div>
 
           {/* File Upload */}

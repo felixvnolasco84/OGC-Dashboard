@@ -3,7 +3,6 @@ import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import {
     useQuery,
-    // usePaginatedQuery
 } from "convex/react";
 import {
     Select,
@@ -22,36 +21,14 @@ import ChartConfigModal from "@/components/Charts/ChartConfigModal";
 import { useChartConfig } from "@/hooks/useChartConfig";
 // import { Plus } from "lucide-react";
 // import { useAddPartidaModal } from "@/hooks/add-partida-modal";
+
 import { Id } from "convex/_generated/dataModel";
 
 // Mockup data
 const mockData = {
-    project: {
-        name: "Larena - Torre I",
-        type: "Proyecto"
-    },
-    metrics: {
-        presupuestoAprobado: {
-            amount: 94225001,
-            percentage: 36,
-            comparison: 103533069,
-            comparisonLabel: "Presupuesto año anterior"
-        },
-        gastoTotal: {
-            amount: 22759332,
-            percentage: 42,
-            comparison: null,
-            comparisonLabel: "Avance 50%"
-        },
-        porGastar: {
-            amount: 83240580,
-            percentage: 10,
-            comparison: null,
-            comparisonLabel: "Pendiente 77%"
-        }
-    },
     filters: {
-        rango_fechas: ["Ultimos 7 dias", "Ultimos 30 dias", "Ultimos 60 dias", "Ultimos 90 dias", "Ultimos 180 dias", "Ultimos 365 dias", "Todo el tiempo"],
+        // rango_fechas: ["Ultimos 7 dias", "Ultimos 30 dias", "Ultimos 60 dias", "Ultimos 90 dias", "Ultimos 180 dias", "Ultimos 365 dias", "Todo el tiempo"],
+        rango_fechas: ["Ultimos 30 dias", "Ultimos 60 dias", "Ultimos 90 dias", "Ultimos 180 dias", "Ultimos 365 dias", "Todo el tiempo"],
         periodos: ["Mensual", "Semanal", "Diario"]
     },
 
@@ -133,7 +110,7 @@ export default function ControlPage() {
             }
             : "skip"
     );
-    
+
 
     // Fetch data for chart 2 based on its persisted configuration
     const chart2Data = useQuery(
@@ -214,7 +191,7 @@ export default function ControlPage() {
                     <Card className="bg-transparent shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-xs text-gray-500">Presupuesto aprobado</p>
+                                <p className="text-xs text-[#777770]">Presupuesto aprobado</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-gray-900">
                                         ${formatNumber(Math.round(budgetMetrics.presupuesto_aprobado || 0))}
@@ -232,7 +209,7 @@ export default function ControlPage() {
                     <Card className="bg-white shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-xs text-gray-500">Gasto total</p>
+                                <p className="text-xs text-[#777770]">Gasto total</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-[#802424]">
                                         ${formatNumber(Math.round(budgetMetrics.gasto_total || 0))}
@@ -249,7 +226,7 @@ export default function ControlPage() {
                     <Card className="bg-white shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-xs text-gray-500">Por gastar</p>
+                                <p className="text-xs text-[#777770]">Por gastar</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-[#1A5D21]">
                                         ${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}
@@ -266,11 +243,12 @@ export default function ControlPage() {
                 {/* Filters */}
                 <div className="bg-white">
                     <div className="grid grid-cols-3 items-center space-x-12">
-                        <div className="flex items-center space-x-3 text-left border-b border-gray-600 py-4 h-full">
+                        <div className="flex flex-col items-start space-y-1 text-left border-b border-[#AFAEA2] py-2 h-full">
+                            <span className="text-xs text-gray-500">Proyecto</span>
                             <div className="text-gray-900">{proyecto.nombre}</div>
                         </div>
 
-                        <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
+                        <div className="flex flex-col space-y-1 text-left border-b border-[#AFAEA2] py-2">
                             <span className="text-xs text-gray-500">Rango de fecha</span>
                             <Select value={selectedRangoFecha} onValueChange={setSelectedRangoFecha}>
                                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
@@ -286,7 +264,7 @@ export default function ControlPage() {
                             </Select>
                         </div>
 
-                        <div className="flex flex-col space-y-1 text-left border-b border-gray-600 py-4">
+                        <div className="flex flex-col space-y-1 text-left border-b border-[#AFAEA2] py-2">
                             <span className="text-xs text-gray-500">Periodo</span>
                             <Select value={selectedPeriodo} onValueChange={setSelectedPeriodo}>
                                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
@@ -310,49 +288,49 @@ export default function ControlPage() {
                 {/* Secondary Metrics and Chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Chart Area with integrated metrics */}
-                    <div className="lg:col-span-4 p-4 border rounded-md bg-[#F7F7F7]">
+                    <div className="lg:col-span-4 py-8 px-10 border rounded-md bg-[#fcfcfc]">
 
                         {/* New Progress Chart Section */}
 
                         <Card className="bg-transparent border-none shadow-none">
-                            <CardContent className="px-0 pt-4 pb-0">
+                            <CardContent className="p-0">
                                 {/* Metrics Row */}
                                 <div className="flex items-start justify-between mb-8 gap-4">
                                     <div className="flex items-center space-x-12">
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-500">Gasto</p>
+                                            <p className="text-xs text-gray-[#5A5A50]">Gasto</p>
                                             <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.gasto))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-500">Por ejercer</p>
+                                            <p className="text-xs text-gray-[#5A5A50]">Por ejercer</p>
                                             <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-500">Honorarios</p>
+                                            <p className="text-xs text-gray-[#5A5A50]">Honorarios</p>
                                             <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.honorarios))}</p>
                                         </div>
                                     </div>
 
                                     {/* Legend for Progress Chart */}
-                                    <div className="flex items-center space-x-6 flex-wrap">
+                                    <div className="flex items-center space-x-6 flex-wrap text-xs">
                                         <div className="flex items-center space-x-2">
                                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#BFCFDC' }}></div>
-                                            <span className="text-sm text-gray-600">Gasto Proyectado</span>
+                                            <span className=" text-gray-600 leading-none">Gasto Proyectado</span>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#79AAAF' }}></div>
-                                            <span className="text-sm text-gray-600">Gasto Real</span>
+                                            <span className=" text-gray-600 leading-none">Gasto Real</span>
                                         </div>
-                                        <div className="flex items-center space-x-2">
+                                        {/* <div className="flex items-center space-x-2">
                                             <div className="w-8 h-0.5 border-t-2 border-dashed border-gray-500"></div>
-                                            <span className="text-sm text-gray-600">Avance %</span>
-                                        </div>
+                                            <span className=" text-gray-600">Avance %</span>
+                                        </div> */}
                                     </div>
                                 </div>
 
                                 {/* Progress Chart */}
                                 <div className="w-full h-80">
-                                    {(proyectoId === "jh777ebcj1d1vy5nc61cp4hbp97txj0s" || proyectoId === "jh74r6m925ympd6pzz2drqe5tn7tyj07" || proyectoId === "jh7bwrk7yk0p0n250as6msqwmd7v6f5d" || proyectoId === "jh72y1bbjtv0eb3vkz04fdp0fd7v85aw" || proyectoId === "jh76f3c025tf00sbtmn4yf4rxn7v82ym") && (
+                                    {(
                                         <ProgressChart
                                             data={progressChartData || []}
                                             proyectoId={proyectoId as Id<"desarrollos">}

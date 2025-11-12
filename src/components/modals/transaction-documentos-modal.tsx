@@ -15,7 +15,6 @@ import {
     ExternalLink
 } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
-import { getFileUrl, getFileDownloadUrl } from "@/lib/appwrite";
 
 // Type definitions
 type Document = {
@@ -39,12 +38,12 @@ export default function TransactionDocumentosModal() {
         transactionId ? { id: transactionId } : "skip"
     );
 
-    const getDocumentUrl = (documentId: string) => {
-        return getFileUrl(documentId);
+    const getDocumentUrl = (documentUrl: string) => {
+        return documentUrl;
     };
 
-    const getDocumentDownloadUrl = (documentId: string) => {
-        return getFileDownloadUrl(documentId);
+    const getDocumentDownloadUrl = (documentUrl: string) => {
+        return documentUrl;
     };
 
     const getDocumentTypeColor = (type?: string) => {

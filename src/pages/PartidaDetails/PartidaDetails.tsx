@@ -104,14 +104,13 @@ export default function PartidaDetails() {
         return allDocuments?.filter(doc => doc.transaccion_id === pago.transaction!._id) || [];
     };
 
-    // Helper function to get file view URL
-    const getFileUrl = (fileId: string) => {
-        return `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${import.meta.env.VITE_APPWRITE_BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+    // Helper functions to open file URLs directly
+    const getFileUrl = (fileUrl: string) => {
+        return fileUrl;
     };
 
-    // Helper function to get file download URL
-    const getFileDownloadUrl = (fileId: string) => {
-        return `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${import.meta.env.VITE_APPWRITE_BUCKET_ID}/files/${fileId}/download?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+    const getFileDownloadUrl = (fileUrl: string) => {
+        return fileUrl;
     };
 
     return (
