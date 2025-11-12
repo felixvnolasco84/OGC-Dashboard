@@ -352,7 +352,7 @@ export default function ControlPage() {
 
                                 {/* Progress Chart */}
                                 <div className="w-full h-80">
-                                    {(proyectoId === "jh777ebcj1d1vy5nc61cp4hbp97txj0s" || proyectoId === "jh74r6m925ympd6pzz2drqe5tn7tyj07" || proyectoId === "jh7bwrk7yk0p0n250as6msqwmd7v6f5d" || proyectoId === "jh72y1bbjtv0eb3vkz04fdp0fd7v85aw") && (
+                                    {(proyectoId === "jh777ebcj1d1vy5nc61cp4hbp97txj0s" || proyectoId === "jh74r6m925ympd6pzz2drqe5tn7tyj07" || proyectoId === "jh7bwrk7yk0p0n250as6msqwmd7v6f5d" || proyectoId === "jh72y1bbjtv0eb3vkz04fdp0fd7v85aw" || proyectoId === "jh76f3c025tf00sbtmn4yf4rxn7v82ym") && (
                                         <ProgressChart
                                             data={progressChartData || []}
                                             proyectoId={proyectoId as Id<"desarrollos">}

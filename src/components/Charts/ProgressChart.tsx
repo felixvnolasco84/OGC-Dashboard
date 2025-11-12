@@ -48,8 +48,6 @@ export default function ProgressChart({
         proyectoId ? { proyecto: proyectoId } : "skip"
     );
 
-    console.log("projectedData", projectedData);
-
     // Query weekly avance real data
     const weeklyAvanceData = useQuery(
         api.weekly_avance_real.getByProyecto,
