@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, FileSpreadsheet, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -60,9 +59,7 @@ type UploadResult = {
 
 export default function UploadProjectTransactionsModal() {
   const { isOpen, proyectoId, proyectoNombre, onClose } = useUploadProjectTransactionsModal();
-  const [file, setFile] = useState<File | null>(null);
-  const [googleDriveFolder, setGoogleDriveFolder] = useState("");
-  const [googleAccessToken, setGoogleAccessToken] = useState("");
+  const [file, setFile] = useState<File | null>(null);  
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -325,9 +322,7 @@ export default function UploadProjectTransactionsModal() {
 
   const handleClose = () => {
     if (isUploading || isProcessing) return;
-    setFile(null);
-    setGoogleDriveFolder("");
-    setGoogleAccessToken("");
+    setFile(null);    
     setResult(null);
     onClose();
   };
@@ -351,57 +346,6 @@ export default function UploadProjectTransactionsModal() {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          {/* Google Drive Integration (Optional) */}
-          <div className="space-y-4 border-t pt-4">
-            <div className="flex items-center gap-2">
-              <Label className="text-sm font-medium">Integración con Google Drive (Opcional)</Label>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="googleDrive" className="text-xs font-medium text-gray-600">
-                URL de Carpeta de Google Drive
-              </Label>
-              <Input
-                id="googleDrive"
-                value={googleDriveFolder}
-                onChange={(e) => setGoogleDriveFolder(e.target.value)}
-                placeholder="https://drive.google.com/drive/folders/..."
-                className="rounded-none"
-                disabled={isUploading || isProcessing}
-              />
-              <p className="text-xs text-gray-500">
-                Carpeta donde se encuentran los documentos referenciados en el Excel
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="accessToken" className="text-xs font-medium text-gray-600">
-                Token de Acceso de Google (Requerido para vincular automáticamente)
-              </Label>
-              <Input
-                id="accessToken"
-                type="password"
-                value={googleAccessToken}
-                onChange={(e) => setGoogleAccessToken(e.target.value)}
-                placeholder="Pega tu token de acceso aquí..."
-                className="rounded-none"
-                disabled={isUploading || isProcessing}
-              />
-              <p className="text-xs text-gray-500">
-                Token OAuth2 para acceder a Google Drive.{" "}
-                <a
-                  href="https://developers.google.com/oauthplayground/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  Obtener token
-                </a>
-              </p>
-            </div>
-   
-          </div>
-
           {/* File Upload */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Archivo Excel *</Label>

@@ -247,6 +247,7 @@ export default function EditTransactionModal() {
                                         <SelectItem value="anticipo">Anticipo</SelectItem>
                                         <SelectItem value="material">Material</SelectItem>
                                         <SelectItem value="estimacion">Estimación</SelectItem>
+                                        <SelectItem value="otro">Otro</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

@@ -24,12 +24,16 @@ type EnrichedPayment = Doc<"pagos"> & {
   transaction?: Doc<"transacciones"> | null;
 };
 
+interface DocumentWithUrl extends Doc<"documentos"> {
+  url: string | null;
+}
+
 interface TransactionCardProps {
   transaction: Doc<"transacciones">;
   lineItems: EnrichedPayment[];
   index: number;
   formatCurrency: (amount: string | number) => string;
-  documents?: Doc<"documentos">[];
+  documents?: DocumentWithUrl[];
 }
 
 export default function TransactionCard({
@@ -70,7 +74,7 @@ export default function TransactionCard({
   return (
     <div className="bg-white overflow-hidden">
       {/* Transaction Header */}
-      <div className="p-4 border-b border-gray-400">
+      <div className="p-4 border-b border-gray-400 leading-none">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1">
             <div className={`w-12 h-12 rounded-md flex items-center justify-center ${isPagado ? 'bg-[#E0F0E2]' : 'bg-orange-100'
@@ -99,6 +103,16 @@ export default function TransactionCard({
               {formatCurrency(totalAmount)} {transaction.moneda || 'MXN'}
             </p>
 
+          </div>
+          <div className="flex">
+            <Button
+              onClick={handleEdit}
+              variant="ghost"
+              size="icon"
+              className="justify-end ml-2 font-normal"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -188,10 +202,10 @@ export default function TransactionCard({
             {documents && documents.length > 0 ? (
               // Show documents from database with preview links
               documents.map((doc) => (
-                doc.image ? (
+                doc.url ? (
                   <Button
                     key={doc._id}
-                    onClick={() => window.open(doc.image!, '_blank')}
+                    onClick={() => window.open(doc.url!, '_blank')}
                     size={"md"}
                     className="flex items-center gap-2 px-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md justify-end transition-colors cursor-pointer"
                     title={`Ver ${doc.nombre}`}
@@ -242,16 +256,7 @@ export default function TransactionCard({
             )}
           </div>
         </div>
-        <div className="flex justify-end">
-          <Button
-            onClick={handleEdit}
-            variant="ghost"
-            className="w-fit justify-end gap-2 font-normal mt-2"
-          >
-            <Edit className="h-4 w-4" />
-          Editar transacción
-        </Button>
-        </div>
+
       </div>
     </div>
   );

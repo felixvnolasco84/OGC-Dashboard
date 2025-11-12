@@ -1,35 +1,71 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-// Get all documents
+// Get all documents (with URLs)
 export const getAll = query(async (ctx) => {
-    return await ctx.db.query("documentos").collect();
+    const documents = await ctx.db.query("documentos").collect();
+    
+    // Enrich with URLs for Convex storage files
+    return await Promise.all(
+        documents.map(async (doc) => {
+            if (doc.storage_id) {
+                const url = await ctx.storage.getUrl(doc.storage_id);
+                return { ...doc, url };
+            }
+            // For legacy Appwrite files, return the image field as-is
+            return { ...doc, url: doc.image || null };
+        })
+    );
 });
 
 
-// Get documents by transaction
+// Get documents by transaction (with URLs)
 export const getByTransaccion = query({
     args: {
         transaccion_id: v.id("transacciones"),
     },
     handler: async (ctx, args) => {
-        return await ctx.db
+        const documents = await ctx.db
             .query("documentos")
             .withIndex("by_transaccion", (q) => q.eq("transaccion_id", args.transaccion_id))
             .collect();
+        
+        // Enrich with URLs for Convex storage files
+        return await Promise.all(
+            documents.map(async (doc) => {
+                if (doc.storage_id) {
+                    const url = await ctx.storage.getUrl(doc.storage_id);
+                    return { ...doc, url };
+                }
+                // For legacy Appwrite files, return the image field as-is
+                return { ...doc, url: doc.image || null };
+            })
+        );
     },
 });
 
-// Get documents by proyecto
+// Get documents by proyecto (with URLs)
 export const getByProyecto = query({
     args: {
         proyecto_id: v.id("desarrollos"),
     },
     handler: async (ctx, args) => {
-        return await ctx.db
+        const documents = await ctx.db
             .query("documentos")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
             .collect();
+        
+        // Enrich with URLs for Convex storage files
+        return await Promise.all(
+            documents.map(async (doc) => {
+                if (doc.storage_id) {
+                    const url = await ctx.storage.getUrl(doc.storage_id);
+                    return { ...doc, url };
+                }
+                // For legacy Appwrite files, return the image field as-is
+                return { ...doc, url: doc.image || null };
+            })
+        );
     },
 });
 
