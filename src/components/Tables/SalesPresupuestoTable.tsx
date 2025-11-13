@@ -21,7 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Plus, X } from "lucide-react";
+import {
+  ChevronDown, ChevronRight,
+  // Plus,
+  X
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useParams } from "react-router";
 import { useQuery } from "convex/react";
@@ -155,7 +159,7 @@ export default function SalesPresupuestoTable() {
     };
 
     const nivel1Partidas = partidas.filter(p => p.nivel === 1);
-    
+
     return {
       presupuestoOriginal: nivel1Partidas.reduce((sum, p) => sum + (p.presupuesto_original || 0), 0),
       presupuestoAprobado: nivel1Partidas.reduce((sum, p) => sum + (p.presupuesto_aprobado || 0), 0),
@@ -360,7 +364,7 @@ export default function SalesPresupuestoTable() {
               <p className="text-base text-gray-500 mb-1">Presupuesto</p>
               <h1 className="text-2xl text-gray-900">{salesProyecto.nombre}</h1>
             </div>
-            <div className="flex items-end gap-3">
+            {/* <div className="flex items-end gap-3">
               <Button
                 variant="outline"
                 size="lg"
@@ -369,7 +373,7 @@ export default function SalesPresupuestoTable() {
                 Agregar Unidad
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -393,7 +397,7 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Venido</p>
+                <p className="text-sm text-gray-500">Vendido</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics.presupuestoAprobado))}
@@ -429,7 +433,7 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Por cobrar</p>
+                <p className="text-sm text-gray-500">Por Vender</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics.porGastar))}
@@ -656,122 +660,122 @@ export default function SalesPresupuestoTable() {
 
       {/* Budget Table */}
       <div className="space-y-4">
-      <div className="bg-white border border-gray-200 overflow-hidden">
-        <Table>
-          <TableHeader className="bg-white">
-            <TableRow className="border-b border-gray-200">
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Unidad
-              </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Total Ventas
-              </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Venido
-              </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Pagado
-              </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Avance
-              </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Fecha inicio
-              </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Fecha fin
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {flattenedData.map((item) => {
-              const approvedDiff = getApprovedVsOriginal(item.presupuestoOriginal, item.presupuestoAprobado);
-              const porGastarBadge = getPorGastarBadge(item.porGastar);
+        <div className="bg-white border border-gray-200 overflow-hidden">
+          <Table>
+            <TableHeader className="bg-white">
+              <TableRow className="border-b border-gray-200">
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                  Unidad
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                  Total Ventas
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                  Vendido
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                  Pagado
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                  Avance
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                  Fecha inicio
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                  Fecha fin
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {flattenedData.map((item) => {
+                const approvedDiff = getApprovedVsOriginal(item.presupuestoOriginal, item.presupuestoAprobado);
+                const porGastarBadge = getPorGastarBadge(item.porGastar);
 
-              return (
-                <TableRow
-                  key={item.uniqueId}
-                  className="border-b border-gray-100 hover:bg-gray-50"
-                >
-                  <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
-                    <div
-                      className="flex items-center space-x-2"
-                      style={{ paddingLeft: `${item.level * 20}px` }}
-                    >
-                      {item.children && item.children.length > 0 ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleExpanded(item.uniqueId)}
-                          className="p-0 h-auto hover:bg-transparent"
-                        >
-                          {item.expanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-500" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-500" />
-                          )}
-                        </Button>
-                      ) : (
-                        <div className="w-4" />
-                      )}
-                      <span className={`${item.level > 0 ? 'text-gray-600 text-wrap max-w-48' : 'text-gray-900 font-medium'}`}>
-                        {item.displayName}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                    {formatCurrency(item.presupuestoOriginal)} MXN
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                    <div className="flex flex-col gap-2 text-left">
-                      <span>{formatCurrency(item.presupuestoAprobado)} MXN</span>
-                      {!approvedDiff.isEqual && (
-                        <Badge
-                          className={cn(
-                            "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
-                            approvedDiff.isSavings
-                              ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-400'
-                              : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
-                          )}
-                        >
-                          {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +${approvedDiff.formattedAmount} MXN
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                    <div className="flex flex-col gap-2 text-left">
-                      <span>{formatCurrency(item.pagado)} MXN</span>
-                      {!porGastarBadge.isEqual && (
-                        <Badge
-                          className={cn(
-                            "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
-                            porGastarBadge.isRemaining
-                              ? 'bg-[#f5f5f5] text-gray-500 hover:bg-[#f5f5f5] border border-[#b8b7ac]'
-                              : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
-                          )}
-                        >
-                          {porGastarBadge.isRemaining ? 'Por ejercer' : 'Incremento'}: +${porGastarBadge.formattedAmount} MXN
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                    {item.avance}%
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
-                    {item.fechaInicio || '-'}
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
-                    {item.fechaFin || '-'}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                return (
+                  <TableRow
+                    key={item.uniqueId}
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                      <div
+                        className="flex items-center space-x-2"
+                        style={{ paddingLeft: `${item.level * 20}px` }}
+                      >
+                        {item.children && item.children.length > 0 ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleExpanded(item.uniqueId)}
+                            className="p-0 h-auto hover:bg-transparent"
+                          >
+                            {item.expanded ? (
+                              <ChevronDown className="h-4 w-4 text-gray-500" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-gray-500" />
+                            )}
+                          </Button>
+                        ) : (
+                          <div className="w-4" />
+                        )}
+                        <span className={`${item.level > 0 ? 'text-gray-600 text-wrap max-w-48' : 'text-gray-900 font-medium'}`}>
+                          {item.displayName}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                      {formatCurrency(item.presupuestoOriginal)} MXN
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                      <div className="flex flex-col gap-2 text-left">
+                        <span>{formatCurrency(item.presupuestoAprobado)} MXN</span>
+                        {!approvedDiff.isEqual && (
+                          <Badge
+                            className={cn(
+                              "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
+                              approvedDiff.isSavings
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-400'
+                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
+                            )}
+                          >
+                            {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +${approvedDiff.formattedAmount} MXN
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                      <div className="flex flex-col gap-2 text-left">
+                        <span>{formatCurrency(item.pagado)} MXN</span>
+                        {!porGastarBadge.isEqual && (
+                          <Badge
+                            className={cn(
+                              "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
+                              porGastarBadge.isRemaining
+                                ? 'bg-[#f5f5f5] text-gray-500 hover:bg-[#f5f5f5] border border-[#b8b7ac]'
+                                : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
+                            )}
+                          >
+                            {porGastarBadge.isRemaining ? 'Por ejercer' : 'Incremento'}: +${porGastarBadge.formattedAmount} MXN
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                      {item.avance}%
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                      {item.fechaInicio || '-'}
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                      {item.fechaFin || '-'}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-    </div>
     </div>
   );
 }
