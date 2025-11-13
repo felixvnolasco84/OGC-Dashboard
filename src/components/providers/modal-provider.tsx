@@ -17,6 +17,10 @@ import AddProyectoModal from "../modals/add-proyecto-modal";
 import EditProyectoModal from "../modals/edit-proyecto-modal";
 import UploadProjectionsModal from "../modals/upload-projections-modal";
 import EditTransactionModal from "../modals/edit-transaction-modal";
+import AddSalesProjectModal from "../modals/add-sales-project-modal";
+import EditSalesProjectModal from "../modals/edit-sales-project-modal";
+import UploadSalesProjectTransactionsModal from "../modals/upload-sales-project-transactions-modal";
+import UploadSalesProyectoDocumentsModal from "../modals/upload-sales-proyecto-documents-modal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -46,5 +50,9 @@ export const ModalProvider = () => {
     <EditProyectoModal />
     <UploadProjectionsModal />
     <EditTransactionModal />
+    <AddSalesProjectModal />
+    <EditSalesProjectModal />
+    <UploadSalesProjectTransactionsModal />
+    <UploadSalesProyectoDocumentsModal />
   </>;
 };

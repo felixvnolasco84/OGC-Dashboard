@@ -16,7 +16,7 @@ import {
   Search,
   Folder,
   CreditCard,
-  Users,
+  // Users,
   Bookmark,
   // LockKeyhole,
   User,
@@ -43,28 +43,40 @@ const projectMenuItems: ProjectMenuItem[] = [
   { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
   { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
   { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
-  { id: "proveedores", label: "Proveedores", path: "proveedores", disabled: false },
+  // { id: "proveedores", label: "Proveedores", path: "proveedores", disabled: false },
 ];
 
-const bottomMenuItems = [
-  { id: "proyectos", label: "Proyectos", path: "/proyectos", icon: Bookmark },
+const salesProjectMenuItems: ProjectMenuItem[] = [
+  { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
+  // { id: "control", label: "Control", path: "control", disabled: false },
+  // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
+  { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
+  { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
+];
+
+const bottomProjectMenuItems = [
+  { id: "proyectos", label: "Proyectos", path: "/proyectos", icon: Bookmark },  
   { id: "transacciones", label: "Transacciones", path: "/transacciones", icon: CreditCard },
-  { id: "proveedores", label: "Proveedores", path: "/proveedores", icon: Users },
+  // { id: "proveedores", label: "Proveedores", path: "/proveedores", icon: Users },
   { id: "documentos", label: "Documentos", path: "/documentos", icon: FileText },
   { id: "flujo", label: "Flujo", path: "/admin/flujo", icon: TrendingUp },
   // { id: "admin", label: "Admin", path: "/admin", icon: LockKeyhole },
   { id: "usuarios", label: "Usuarios", path: "/usuarios", icon: User },
 ];
 
-
-
+const bottomSalesMenuItems = [
+  { id: "sales-proyectos", label: "Proyectos Ventas", path: "/sales-proyectos", icon: Bookmark },
+  // { id: "sales-flujo", label: "Flujo ", path: "/admin/sales-flujo", icon: TrendingUp },  
+  // { id: "sales-documentos", label: "Documentos", path: "/sales-documentos", icon: FileText },
+];
 
 
 export default function Sidebar() {
   const location = useLocation();
-  const { proyectoId } = useParams<{ proyectoId: string }>();
+  const { proyectoId, salesProyectoId } = useParams<{ proyectoId?: string; salesProyectoId?: string }>();
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const desarrollos = useQuery(api.desarrollos.getAll);
+  const salesProjects = useQuery(api.sales_projects.getAll);
   const currentUser = useQuery(api.users.getCurrentUser);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,6 +84,11 @@ export default function Sidebar() {
 
   // Filter projects based on search query
   const filteredProjects = desarrollos?.filter((proyecto) =>
+    proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  // Filter sales projects based on search query
+  const filteredSalesProjects = salesProjects?.filter((proyecto) =>
     proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
@@ -126,57 +143,110 @@ export default function Sidebar() {
 
       {/* Projects List */}
       <Accordion type="multiple" className="overflow-y-auto px-4 space-y-2">
-        {filteredProjects.map((proyecto) => {
-
-          const isCurrentProject = proyectoId === proyecto._id;
-          return (
-            <AccordionItem value={proyecto._id} key={proyecto._id} className="space-y-1 border-b-0">
-              {/* Project Header */}
-              <AccordionTrigger
-                disabled={!isAuthenticated}
-                onClick={() => toggleProject(proyecto._id)}
-                className={cn(
-                  "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
-                  isCurrentProject ? "bg-gray-100" : "hover:bg-gray-50"
-                )}
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <Folder className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                  <span className="text-sm text-gray-900 truncate">
-                    {proyecto.nombre}
-                  </span>
-                </div>
-
-              </AccordionTrigger>
-
-              {/* Project Sub-menu */}
-              <AccordionContent className="space-y-0.5 bg-gray-50 rounded-lg py-2 text-left">
-                {projectMenuItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    to={`/proyecto/${proyecto._id}/${item.path}`}
+        {/* Regular Projects Section */}
+        {filteredProjects.length > 0 && (
+          <div className="mb-4 text-left">
+            <p className="text-xs font-medium text-gray-400 px-3 mb-2">PROYECTOS</p>
+            {filteredProjects.map((proyecto) => {
+              const isCurrentProject = proyectoId === proyecto._id;
+              return (
+                <AccordionItem value={proyecto._id} key={proyecto._id} className="space-y-1 border-b-0">
+                  {/* Project Header */}
+                  <AccordionTrigger
+                    disabled={!isAuthenticated}
+                    onClick={() => toggleProject(proyecto._id)}
                     className={cn(
-                      "block px-3 py-2 text-sm rounded transition-colors m-1",
-                      item.disabled ? "text-gray-400 cursor-not-allowed" : "",
-                      isActive(`/proyecto/${proyecto._id}/${item.path}`)
-                        ? "text-gray-900 bg-white font-medium"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                      "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
+                      isCurrentProject ? "bg-gray-100" : "hover:bg-gray-50"
                     )}
                   >
-                    {item.label}
-                  </Link>
-                ))}
-              </AccordionContent>
-            </AccordionItem>
-          );
-        })}
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Folder className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <span className="text-sm text-gray-900 truncate">
+                        {proyecto.nombre}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+
+                  {/* Project Sub-menu */}
+                  <AccordionContent className="space-y-0.5 bg-gray-50 rounded-lg py-2 text-left">
+                    {projectMenuItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        to={`/proyecto/${proyecto._id}/${item.path}`}
+                        className={cn(
+                          "block px-3 py-2 text-sm rounded transition-colors m-1",
+                          item.disabled ? "text-gray-400 cursor-not-allowed" : "",
+                          isActive(`/proyecto/${proyecto._id}/${item.path}`)
+                            ? "text-gray-900 bg-white font-medium"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Sales Projects Section */}
+        {filteredSalesProjects.length > 0 && (
+          <div className="text-left">
+            <p className="text-xs font-medium text-gray-400 px-3 mb-2">PROYECTOS DE VENTAS</p>
+            {filteredSalesProjects.map((salesProyecto) => {
+              const isCurrentSalesProject = salesProyectoId === salesProyecto._id;
+              return (
+                <AccordionItem value={salesProyecto._id} key={salesProyecto._id} className="space-y-1 border-b-0">
+                  {/* Sales Project Header */}
+                  <AccordionTrigger
+                    disabled={!isAuthenticated}
+                    onClick={() => toggleProject(salesProyecto._id)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
+                      isCurrentSalesProject ? "bg-gray-100" : "hover:bg-gray-50"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <TrendingUp className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <span className="text-sm text-gray-900 truncate">
+                        {salesProyecto.nombre}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+
+                  {/* Sales Project Sub-menu */}
+                  <AccordionContent className="space-y-0.5 bg-gray-50 rounded-lg py-2 text-left">
+                    {salesProjectMenuItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        to={`/sales-proyecto/${salesProyecto._id}/${item.path}`}
+                        className={cn(
+                          "block px-3 py-2 text-sm rounded transition-colors m-1",
+                          item.disabled ? "text-gray-400 cursor-not-allowed" : "",
+                          isActive(`/sales-proyecto/${salesProyecto._id}/${item.path}`)
+                            ? "text-gray-900 bg-white font-medium"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </div>
+        )}
       </Accordion>
 
       {/* Bottom Menu - Only show for authenticated admin users */}
       {isAuthenticated && !authLoading && (
-        <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
+        <div className="border-t border-gray-200 p-4 space-y-1 mt-6">          
           {currentUser?.role === "admin" ? (
-            bottomMenuItems.map((item) => {
+            bottomProjectMenuItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
@@ -194,6 +264,7 @@ export default function Sidebar() {
                 </Link>
               );
             })
+
           ) : (
             <div className="px-3 py-2 text-xs text-gray-400 text-center">
               Menú de administrador no disponible
@@ -201,6 +272,37 @@ export default function Sidebar() {
           )}
         </div>
       )}
+
+      {
+        isAuthenticated && !authLoading && (
+          <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
+            {currentUser?.role === "admin" ? (
+              bottomSalesMenuItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.id}
+                    to={item.path}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors",
+                      isActive(item.path)
+                        ? "text-gray-900 bg-gray-100 font-medium"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                Menú de administrador no disponible
+              </div>
+            )}
+          </div>
+        )
+      }
     </div>
   );
 }

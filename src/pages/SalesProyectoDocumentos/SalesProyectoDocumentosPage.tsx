@@ -20,25 +20,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useUploadProyectoDocumentsModal } from "@/hooks/upload-proyecto-documents-modal";
+import { useUploadSalesProyectoDocumentsModal } from "@/hooks/upload-sales-proyecto-documents-modal";
 
-export default function ProyectoDocumentosPage() {
-  const { proyectoId } = useParams<{ proyectoId: string }>();
+export default function SalesProyectoDocumentosPage() {
+  const { salesProyectoId } = useParams<{ salesProyectoId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<Id<"documentos"> | null>(null);
 
-  // Fetch project
-  const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
+  // Fetch sales project
+  const salesProyecto = useQuery(api.sales_projects.getById, salesProyectoId ? { id: salesProyectoId as Id<"sales_projects"> } : "skip");
   
-  // Fetch documents for this specific project
-  const documentos = useQuery(api.documentos.getByProyecto, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
+  // Fetch documents for this sales project
+  const documentos = useQuery(api.sales_documentos.getBySalesProyecto, salesProyectoId ? { sales_proyecto_id: salesProyectoId as Id<"sales_projects"> } : "skip");
   
-  // Fetch transactions for this project (to get transaction details)
-  const transacciones = useQuery(api.transacciones.getByProyecto, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
+  // Fetch sales transactions for this project (to get transaction details)
+  const transacciones = useQuery(api.sales_transacciones_queries.getBySalesProyecto, salesProyectoId ? { sales_proyecto_id: salesProyectoId as Id<"sales_projects"> } : "skip");
 
   // Mutations
-  const deleteDocumentMutation = useMutation(api.documentos.deleteDocument);
+  const deleteDocumentMutation = useMutation(api.sales_documentos.deleteDocument);
 
   // Filter documents
   const filteredDocumentos = documentos?.filter(doc => {
@@ -49,8 +49,8 @@ export default function ProyectoDocumentosPage() {
   });
 
   // Get transaction details for a document
-  const getTransactionForDoc = (transaccionId: Id<"transacciones">) => {
-    return transacciones?.find(tx => tx._id === transaccionId);
+  const getTransactionForDoc = (transaccionId: Id<"sales_transacciones">) => {
+    return transacciones?.find((tx) => tx._id === transaccionId);
   };
 
   // Get tipo badge color
@@ -100,12 +100,12 @@ export default function ProyectoDocumentosPage() {
     }
   };
 
-  const uploadModal = useUploadProyectoDocumentsModal();
+  const uploadModal = useUploadSalesProyectoDocumentsModal();
 
   const handleUploadClick = () => {
-    // Open modal with proyectoId from URL
-    if (proyectoId) {
-      uploadModal.onOpen(proyectoId as Id<"desarrollos">);
+    // Open modal with salesProyectoId from URL
+    if (salesProyectoId) {
+      uploadModal.onOpen(salesProyectoId as Id<"sales_projects">);
     }
   };
 
@@ -122,7 +122,7 @@ export default function ProyectoDocumentosPage() {
     setDeleteDialogOpen(true);
   };
 
-  if (!proyecto) {
+  if (!salesProyecto) {
     return (
       <div className="bg-white min-h-screen flex items-center justify-center">
         <p className="text-gray-500">Cargando...</p>
@@ -137,7 +137,7 @@ export default function ProyectoDocumentosPage() {
           <div className="mb-8 flex items-start justify-between">
             <div>
               <p className="text-sm text-gray-500 mb-1">Documentos</p>
-              <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
+              <h1 className="text-2xl text-gray-900">{salesProyecto.nombre}</h1>
             </div>
             <div className="flex gap-2">
               <Button onClick={handleUploadClick}>
@@ -174,7 +174,7 @@ export default function ProyectoDocumentosPage() {
                   Documento
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Proveedor
+                  Cliente
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
                   Tipo
@@ -200,7 +200,7 @@ export default function ProyectoDocumentosPage() {
                 </tr>
               ) : (
                 filteredDocumentos?.map((doc) => {
-                  const transaction = getTransactionForDoc(doc.transaccion_id!);
+                  const transaction = doc.sales_transaccion_id ? getTransactionForDoc(doc.sales_transaccion_id) : null;
                   return (
                     <tr
                       key={doc._id}
@@ -220,7 +220,7 @@ export default function ProyectoDocumentosPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                        {transaction?.banco || "-"}
+                        {transaction?.nombre_cliente || "-"}
                       </td>
                       <td className="px-6 py-4 border-r border-gray-200">
                         <Badge

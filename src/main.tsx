@@ -25,9 +25,16 @@ import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
 import Dashboard from "./pages/Dashboard/Dashboard.tsx";
 import AdminPage from "./pages/Admin/AdminPage.tsx";
 import AdminFlujoPage from "./pages/AdminFlujo/AdminFlujoPage.tsx";
+import AdminSalesFlujoPage from "./pages/AdminSalesFlujo/AdminSalesFlujoPage.tsx";
 import ProyectoFlujoPage from "./pages/ProyectoFlujo/ProyectoFlujoPage.tsx";
 import UserManagementPage from "./pages/UserManagement/UserManagementPage.tsx";
 import ProtectedRoute from "./components/Auth/ProtectedRoute.tsx";
+import SalesProyectosTablePage from "./pages/SalesProyectosTable/SalesProyectosTablePage.tsx";
+import SalesProyectoDocumentosPage from "./pages/SalesProyectoDocumentos/SalesProyectoDocumentosPage.tsx";
+import SalesProyectoTransaccionesPage from "./pages/SalesProyectoTransacciones/SalesProyectoTransaccionesPage.tsx";
+import SalesProyectoFlujoPage from "./pages/SalesProyectoFlujo/SalesProyectoFlujoPage.tsx";
+import SalesPresupuestoTable from "./components/Tables/SalesPresupuestoTable.tsx";
+import ControlSalePage from "./pages/Control/ControlSalePage.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -53,6 +60,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/proyectos" element={
                   <ProtectedRoute requiredRole="admin">
                     <ProyectosTablePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/sales-proyectos" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <SalesProyectosTablePage />
                   </ProtectedRoute>
                 } />
                 <Route path="/transacciones" element={
@@ -113,6 +125,34 @@ createRoot(document.getElementById("root")!).render(
                   </ProtectedRoute>
                 } />
 
+                {/* Sales Project-specific routes */}
+                <Route path="/sales-proyecto/:salesProyectoId/documentos" element={
+                  <ProtectedRoute requiredRole="user">
+                    <SalesProyectoDocumentosPage />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/sales-proyecto/:salesProyectoId/presupuesto" element={
+                  <ProtectedRoute requiredRole="user">
+                    <SalesPresupuestoTable />
+                  </ProtectedRoute>
+                } />
+                <Route path="/sales-proyecto/:salesProyectoId/transacciones" element={
+                  <ProtectedRoute requiredRole="user">
+                    <SalesProyectoTransaccionesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/sales-proyecto/:salesProyectoId/control" element={
+                  <ProtectedRoute requiredRole="user">
+                    <ControlSalePage/>
+                  </ProtectedRoute>
+                } />
+                <Route path="/sales-proyecto/:salesProyectoId/flujo" element={
+                  <ProtectedRoute requiredRole="user">
+                    <SalesProyectoFlujoPage />
+                  </ProtectedRoute>
+                } />
+
                 {/* Admin routes */}
                 <Route path="/admin" element={
                   <ProtectedRoute requiredRole="admin">
@@ -122,6 +162,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/admin/flujo" element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminFlujoPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/sales-flujo" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminSalesFlujoPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/usuarios" element={

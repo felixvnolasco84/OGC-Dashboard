@@ -55,7 +55,8 @@ export default function DocumentosPage() {
   });
 
   // Get transaction details for a document
-  const getTransactionForDoc = (transaccionId: Id<"transacciones">) => {
+  const getTransactionForDoc = (transaccionId: Id<"transacciones"> | undefined) => {
+    if (!transaccionId) return undefined;
     return transacciones?.find(tx => tx._id === transaccionId);
   };
 

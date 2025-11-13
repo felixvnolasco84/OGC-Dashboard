@@ -104,8 +104,10 @@ export const createWithStorage = mutation({
         storage_id: v.id("_storage"),
         type: v.string(),
         size: v.number(),
-        proyecto: v.id("desarrollos"),
-        transaccion_id: v.id("transacciones"),
+        proyecto: v.optional(v.id("desarrollos")),
+        transaccion_id: v.optional(v.id("transacciones")),
+        sales_proyecto: v.optional(v.id("sales_projects")),
+        sales_transaccion_id: v.optional(v.id("sales_transacciones")),
     },
     handler: async (ctx, args) => {
         const documento = await ctx.db.insert("documentos", {
@@ -116,6 +118,8 @@ export const createWithStorage = mutation({
             size: args.size,
             proyecto: args.proyecto,
             transaccion_id: args.transaccion_id,
+            sales_proyecto: args.sales_proyecto,
+            sales_transaccion_id: args.sales_transaccion_id,
             uploaded_at: Date.now(),
         });
         return documento;

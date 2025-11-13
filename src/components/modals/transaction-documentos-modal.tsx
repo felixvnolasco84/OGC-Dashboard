@@ -19,13 +19,15 @@ import { Id } from "../../../convex/_generated/dataModel";
 // Type definitions
 type Document = {
     _id: Id<"documentos">;
-    transaccion_id: Id<"transacciones">;
+    transaccion_id?: Id<"transacciones">; // Optional: may reference regular transaction
+    sales_transaccion_id?: Id<"sales_transacciones">; // Optional: may reference sales transaction
     nombre: string;
     descripcion: string;
     image?: string; // Optional: Legacy Appwrite file ID
     storage_id?: Id<"_storage">; // Optional: New Convex storage ID
     type: string;
-    proyecto: Id<"desarrollos">;
+    proyecto?: Id<"desarrollos">; // Optional: may reference regular project
+    sales_proyecto?: Id<"sales_projects">; // Optional: may reference sales project
     size?: number;
     uploaded_at?: number;
 };
