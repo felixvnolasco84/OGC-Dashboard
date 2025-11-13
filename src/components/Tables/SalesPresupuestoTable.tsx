@@ -24,12 +24,13 @@ import {
 import {
   ChevronDown, ChevronRight,
   // Plus,
-  X
+  X, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useParams } from "react-router";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { toast } from "sonner";
 
 // Hierarchical structure helper types
 type SalesPartidaRow = Omit<Partial<Doc<"sales_partidas">>, 'pagado' | 'total' | 'aprobado'> & {
@@ -96,11 +97,15 @@ export default function SalesPresupuestoTable() {
   const [familiaSearchTerm, setFamiliaSearchTerm] = useState("");
   const [isPartidaOpen, setIsPartidaOpen] = useState(false);
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Fetch sales project
   const salesProyecto = useQuery(api.sales_projects.getById, salesProyectoId ? { id: salesProyectoId as Id<"sales_projects"> } : "skip");
 
   const partidas = useQuery(api.sales_partidas.getBySalesProject, salesProyectoId ? { salesProjectId: salesProyectoId as Id<"sales_projects"> } : "skip");
+
+  // Sync mutation - updates in cascade like functions.ts
+  const syncPartidas = useMutation(api.sales_partidas_sync.syncSalesPartidasFromTransactions);
 
   // Get unique partidas and familias for filters
   const uniquePartidas = useMemo(() =>
@@ -363,6 +368,34 @@ export default function SalesPresupuestoTable() {
             <div className="flex flex-col text-left">
               <p className="text-base text-gray-500 mb-1">Presupuesto</p>
               <h1 className="text-2xl text-gray-900">{salesProyecto.nombre}</h1>
+            </div>
+            <div className="flex items-end gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
+                onClick={async () => {
+                  if (!salesProyectoId) return;
+                  setIsSyncing(true);
+                  try {
+                    const result = await syncPartidas({ salesProjectId: salesProyectoId as Id<"sales_projects"> });
+                    toast.success("Sincronización exitosa", {
+                      description: result.message,
+                    });
+                  } catch (error) {
+                    console.error("Error syncing:", error);
+                    toast.error("Error al sincronizar", {
+                      description: "No se pudo sincronizar los datos.",
+                    });
+                  } finally {
+                    setIsSyncing(false);
+                  }
+                }}
+                disabled={isSyncing}
+              >
+                <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? "Sincronizando..." : "Sincronizar"}
+              </Button>
             </div>
             {/* <div className="flex items-end gap-3">
               <Button

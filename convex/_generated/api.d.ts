@@ -27,6 +27,7 @@ import type * as sales_documentos from "../sales_documentos.js";
 import type * as sales_meticas_presupuesto from "../sales_meticas_presupuesto.js";
 import type * as sales_partidas from "../sales_partidas.js";
 import type * as sales_partidas_queries from "../sales_partidas_queries.js";
+import type * as sales_partidas_sync from "../sales_partidas_sync.js";
 import type * as sales_projected_transactions from "../sales_projected_transactions.js";
 import type * as sales_projected_transactions_queries from "../sales_projected_transactions_queries.js";
 import type * as sales_projects from "../sales_projects.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   sales_meticas_presupuesto: typeof sales_meticas_presupuesto;
   sales_partidas: typeof sales_partidas;
   sales_partidas_queries: typeof sales_partidas_queries;
+  sales_partidas_sync: typeof sales_partidas_sync;
   sales_projected_transactions: typeof sales_projected_transactions;
   sales_projected_transactions_queries: typeof sales_projected_transactions_queries;
   sales_projects: typeof sales_projects;
