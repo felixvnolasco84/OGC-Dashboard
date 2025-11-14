@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { query} from "./_generated/server";
+import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 
@@ -8,10 +8,11 @@ import { v } from "convex/values";
 //TODO: IMPLEMENT PAGINATION IN THE REST OF THE APP WHERE IT MAKES SENSE
 export const list = query({
   args: {
-    paginationOpts : paginationOptsValidator
+    paginationOpts: paginationOptsValidator,
+    proyectoId: v.id("desarrollos"),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.query("partidas").order("asc").paginate(args.paginationOpts);
+    return await ctx.db.query("partidas").withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyectoId)).order("asc").paginate(args.paginationOpts);
   },
 });
 
@@ -33,7 +34,7 @@ export const getByFamily = query({
       .filter((q) => q.eq(q.field("familia"), args.family))
       .order("desc")
       .take(100)
-      
+
     return tasks;
   },
 });
@@ -385,7 +386,7 @@ export const getById = query({
       .query("pagos")
       .withIndex("by_partida_id", (q) => q.eq("partida_id", args.id))
       .collect();
-    
+
     // Enrich pagos with transaction data
     const pagosWithTransactionData = await Promise.all(
       pagos.map(async (pago) => {
@@ -478,7 +479,7 @@ export const syncPorGastarForAllPartidas = mutation({
   },
   handler: async (ctx, args) => {
     console.log("🔄 Starting por_gastar sync for all partidas...");
-    
+
     try {
       // Get all partidas (filtered by project if provided)
       let partidas;
@@ -506,7 +507,7 @@ export const syncPorGastarForAllPartidas = mutation({
         if (partida.por_gastar !== porGastar) {
           await ctx.db.patch(partida._id, { por_gastar: porGastar });
           updatedCount++;
-          
+
           // Log every 50 updates to track progress
           if (updatedCount % 50 === 0) {
             console.log(`✅ Updated ${updatedCount} partidas...`);
@@ -546,7 +547,7 @@ export const syncGastadoForAllPartidas = mutation({
   },
   handler: async (ctx, args) => {
     console.log("🔄 Starting gastado sync for all partidas...");
-    
+
     try {
       // Get all partidas (filtered by project if provided)
       let partidas;
@@ -579,7 +580,7 @@ export const syncGastadoForAllPartidas = mutation({
         if (partida.pagado !== gastado) {
           await ctx.db.patch(partida._id, { pagado: gastado });
           updatedCount++;
-          
+
           // Log every 50 updates to track progress
           if (updatedCount % 50 === 0) {
             console.log(`✅ Updated ${updatedCount} partidas...`);

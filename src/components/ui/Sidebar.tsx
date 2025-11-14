@@ -46,16 +46,16 @@ const projectMenuItems: ProjectMenuItem[] = [
   // { id: "proveedores", label: "Proveedores", path: "proveedores", disabled: false },
 ];
 
-const salesProjectMenuItems: ProjectMenuItem[] = [
-  { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
-  // { id: "control", label: "Control", path: "control", disabled: false },
-  // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
-  { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
-  { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
-];
+// const salesProjectMenuItems: ProjectMenuItem[] = [
+//   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
+//   // { id: "control", label: "Control", path: "control", disabled: false },
+//   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
+//   { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
+//   { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
+// ];
 
 const bottomProjectMenuItems = [
-  { id: "proyectos", label: "Proyectos", path: "/proyectos", icon: Bookmark },  
+  { id: "proyectos", label: "Proyectos", path: "/proyectos", icon: Bookmark },
   { id: "transacciones", label: "Transacciones", path: "/transacciones", icon: CreditCard },
   // { id: "proveedores", label: "Proveedores", path: "/proveedores", icon: Users },
   { id: "documentos", label: "Documentos", path: "/documentos", icon: FileText },
@@ -64,19 +64,20 @@ const bottomProjectMenuItems = [
   { id: "usuarios", label: "Usuarios", path: "/usuarios", icon: User },
 ];
 
-const bottomSalesMenuItems = [
-  { id: "sales-proyectos", label: "Proyectos Ventas", path: "/sales-proyectos", icon: Bookmark },
-  // { id: "sales-flujo", label: "Flujo ", path: "/admin/sales-flujo", icon: TrendingUp },  
-  // { id: "sales-documentos", label: "Documentos", path: "/sales-documentos", icon: FileText },
-];
+// const bottomSalesMenuItems = [
+//   { id: "sales-proyectos", label: "Proyectos Ventas", path: "/sales-proyectos", icon: Bookmark },
+//   { id: "sales-flujo", label: "Flujo ", path: "/admin/sales-flujo", icon: TrendingUp },  
+//   { id: "sales-documentos", label: "Documentos", path: "/sales-documentos", icon: FileText },
+// ];
 
 
 export default function Sidebar() {
   const location = useLocation();
-  const { proyectoId, salesProyectoId } = useParams<{ proyectoId?: string; salesProyectoId?: string }>();
+  // const { proyectoId, salesProyectoId } = useParams<{ proyectoId?: string; salesProyectoId?: string }>();
+  const { proyectoId } = useParams<{ proyectoId?: string }>();
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const desarrollos = useQuery(api.desarrollos.getAll);
-  const salesProjects = useQuery(api.sales_projects.getAll);
+  // const salesProjects = useQuery(api.sales_projects.getAll);
   const currentUser = useQuery(api.users.getCurrentUser);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -88,9 +89,9 @@ export default function Sidebar() {
   ) || [];
 
   // Filter sales projects based on search query
-  const filteredSalesProjects = salesProjects?.filter((proyecto) =>
-    proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  // const filteredSalesProjects = salesProjects?.filter((proyecto) =>
+  //   proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+  // ) || [];
 
   // Toggle project expansion
   const toggleProject = (projectId: string) => {
@@ -193,14 +194,13 @@ export default function Sidebar() {
         )}
 
         {/* Sales Projects Section */}
-        {filteredSalesProjects.length > 0 && (
+        {/* {filteredSalesProjects.length > 0 && (
           <div className="text-left">
             <p className="text-xs font-medium text-gray-400 px-3 mb-2">PROYECTOS DE VENTAS</p>
             {filteredSalesProjects.map((salesProyecto) => {
               const isCurrentSalesProject = salesProyectoId === salesProyecto._id;
               return (
                 <AccordionItem value={salesProyecto._id} key={salesProyecto._id} className="space-y-1 border-b-0">
-                  {/* Sales Project Header */}
                   <AccordionTrigger
                     disabled={!isAuthenticated}
                     onClick={() => toggleProject(salesProyecto._id)}
@@ -217,7 +217,6 @@ export default function Sidebar() {
                     </div>
                   </AccordionTrigger>
 
-                  {/* Sales Project Sub-menu */}
                   <AccordionContent className="space-y-0.5 bg-gray-50 rounded-lg py-2 text-left">
                     {salesProjectMenuItems.map((item) => (
                       <Link
@@ -239,12 +238,12 @@ export default function Sidebar() {
               );
             })}
           </div>
-        )}
+        )} */}
       </Accordion>
 
       {/* Bottom Menu - Only show for authenticated admin users */}
       {isAuthenticated && !authLoading && (
-        <div className="border-t border-gray-200 p-4 space-y-1 mt-6">          
+        <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
           {currentUser?.role === "admin" ? (
             bottomProjectMenuItems.map((item) => {
               const Icon = item.icon;
@@ -273,7 +272,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      {
+      {/* {
         isAuthenticated && !authLoading && (
           <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
             {currentUser?.role === "admin" ? (
@@ -302,7 +301,7 @@ export default function Sidebar() {
             )}
           </div>
         )
-      }
+      } */}
     </div>
   );
 }

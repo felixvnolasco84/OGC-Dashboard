@@ -42,6 +42,8 @@ export default function ProgressChart({
     selectedRangoFecha = "Ultimos 30 dias"
 }: ProgressChartProps) {
 
+    console.log(data)
+
     // Query weekly projected totals if proyectoId is provided
     const projectedData = useQuery(
         api.weekly_projected_totals.getCumulativeTotals,
@@ -372,39 +374,49 @@ export default function ProgressChart({
     );
 
     const secondaryAxes = React.useMemo<AxisOptions<ReactChartsDataPoint>[]>(
-        () => [
-            {
-                getValue: (datum) => datum.secondary,
-                scaleType: 'linear',
-                elementType: "area",
-                showGrid: false, // Keep Y-axis grid lines
-                showDatumElements: true, // Remove data point markers
-                formatters: {
-                    scale: (value: number) => {
-                        if (value >= 1000000) {
-                            return `$${(value / 1000000).toFixed(1)}M`;
-                        } else if (value >= 1000) {
-                            return `$${(value / 1000).toFixed(0)}K`;
-                        }
-                        return new Intl.NumberFormat('es-MX', {
-                            style: 'currency',
-                            currency: 'MXN',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0,
-                        }).format(value);
-                    },
-                    tooltip: (value: number) => {
-                        return new Intl.NumberFormat('es-MX', {
-                            style: 'currency',
-                            currency: 'MXN',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0,
-                        }).format(value);
+        () => {
+            // Calculate min and max values from ALL series to ensure proper scaling
+            const allValues = transformedData.flatMap(series =>
+                series.data.map(d => d.secondary)
+            );
+            const maxValue = allValues.length > 0 ? Math.max(...allValues) : undefined;
+
+            return [
+                {
+                    getValue: (datum) => datum.secondary,
+                    scaleType: 'linear',
+                    elementType: "area",
+                    showGrid: false, // Keep Y-axis grid lines
+                    showDatumElements: true, // Remove data point markers
+                    hardMin: 0, // Always start from 0
+                    hardMax: maxValue, // Set max to accommodate all series data
+                    formatters: {
+                        scale: (value: number) => {
+                            if (value >= 1000000) {
+                                return `$${(value / 1000000).toFixed(1)}M`;
+                            } else if (value >= 1000) {
+                                return `$${(value / 1000).toFixed(0)}K`;
+                            }
+                            return new Intl.NumberFormat('es-MX', {
+                                style: 'currency',
+                                currency: 'MXN',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                            }).format(value);
+                        },
+                        tooltip: (value: number) => {
+                            return new Intl.NumberFormat('es-MX', {
+                                style: 'currency',
+                                currency: 'MXN',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                            }).format(value);
+                        },
                     },
                 },
-            },
-        ],
-        []
+            ];
+        },
+        [transformedData]
     );
 
     // const handleOpenAvanceModal = () => {

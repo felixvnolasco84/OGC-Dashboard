@@ -389,7 +389,7 @@ export default function ControlPage() {
                     </div>
 
                     <div className="col-span-4 py-12">
-                        <DashboardTable />
+                        <DashboardTable proyectoId={proyectoId as Id<"desarrollos">} />
                     </div>
                 </div>
             </div>

@@ -189,10 +189,20 @@ export default function FamiliaChart({
     }, [chartData, title]);
 
     const primaryAxis = React.useMemo<AxisOptions<ReactChartsDataPoint>>(
-        () => ({
-            getValue: (datum) => datum.primary,
-        }),
-        []
+        () => {
+            // Calculate min and max dates from data to eliminate empty spaces
+            const dates = transformedData.flatMap(series => series.data.map(d => d.primary.getTime()));
+            const minDate = dates.length > 0 ? new Date(Math.min(...dates)) : undefined;
+            const maxDate = dates.length > 0 ? new Date(Math.max(...dates)) : undefined;
+
+            return {
+                getValue: (datum) => datum.primary,
+                padBandRange: false, // Remove empty spaces at start/end of chart
+                hardMin: minDate, // Set exact start date
+                hardMax: maxDate, // Set exact end date
+            };
+        },
+        [transformedData]
     );
 
     const secondaryAxes = React.useMemo<AxisOptions<ReactChartsDataPoint>[]>(

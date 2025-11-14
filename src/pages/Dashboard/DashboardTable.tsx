@@ -4,7 +4,7 @@ import * as React from "react"
 import {
     ColumnDef,
     ColumnFiltersState,
-    flexRender,
+    // flexRender,
     getCoreRowModel,
     getFilteredRowModel,
     getPaginationRowModel,
@@ -28,7 +28,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { usePaginatedQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
-import { Doc } from "../../../convex/_generated/dataModel"
+import { Doc, Id } from "../../../convex/_generated/dataModel"
 import DropdownMenuComponentPartida from "@/components/DropdownMenu/DropdownMenuComponenPartida"
 
 export const columns: ColumnDef<Doc<"partidas">>[] = [
@@ -210,11 +210,11 @@ export const columns: ColumnDef<Doc<"partidas">>[] = [
     },
 ]
 
-export function DashboardTable() {
+export function DashboardTable({ proyectoId }: { proyectoId: Id<"desarrollos"> }) {
 
     const { results, status, loadMore } = usePaginatedQuery(
         api.partida.list,
-        {},
+        { proyectoId },
         { initialNumItems: 50 },
     );
 
@@ -270,6 +270,10 @@ export function DashboardTable() {
             );
         }
 
+        const formatNumber = (amount: number) => {
+            return new Intl.NumberFormat('es-MX').format(amount);
+        };
+
         return (
             <div>
                 <div className="flex items-center py-4 gap-4">
@@ -288,7 +292,20 @@ export function DashboardTable() {
                 <div className="bg-white border border-gray-200 overflow-hidden">
                     <Table>
                         <TableHeader className="bg-gray-50">
-                            {table.getHeaderGroups().map((headerGroup) => (
+                            <TableRow>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">{proyectoId === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Unidad" : "Partida"}</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">{proyectoId === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Codigo" : "Familia"}</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">{proyectoId === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Cliente" : "Sub Partida"}</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">{proyectoId === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Cliente" : "Familia"}</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">{proyectoId === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Vendido" : "Presupuesto Original"}</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">{proyectoId === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Pagado" : "Presupuesto Aprobado"}</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">Avance</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">Factura</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">#Pago</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">Fecha Carga</TableHead>
+                                <TableHead className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 last:border-r-0 bg-white">Actual</TableHead>
+                            </TableRow>
+                            {/* {table.getHeaderGroups().map((headerGroup) => (
                                 <TableRow key={headerGroup.id} className="border-b border-gray-200">
                                     {headerGroup.headers.map((header) => {
                                         return (
@@ -303,10 +320,10 @@ export function DashboardTable() {
                                         )
                                     })}
                                 </TableRow>
-                            ))}
+                            ))} */}
                         </TableHeader>
                         <TableBody>
-                            {table.getRowModel().rows?.length ? (
+                            {/* {table.getRowModel().rows?.length ? (
                                 table.getRowModel().rows.map((row) => (
                                     <TableRow
                                         key={row.id}
@@ -331,7 +348,48 @@ export function DashboardTable() {
                                         No results.
                                     </TableCell>
                                 </TableRow>
-                            )}
+                            )} */}
+                            {results?.map((partida) => (
+                                <TableRow
+                                    key={partida._id}
+                                    className="border-b border-gray-100 hover:bg-gray-50"
+                                >
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        {partida.partida_nombre}
+                                        <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                            {partida.unidad}
+                                        </TableCell>
+                                    </TableCell>
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        {partida.familia}
+                                    </TableCell>
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        {partida.sub_partida}
+                                    </TableCell>
+
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        ${formatNumber(Math.round(partida.presupuesto_original || 0))}
+                                    </TableCell>
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        ${formatNumber(Math.round(partida.presupuesto_aprobado || 0))}
+                                    </TableCell>
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        {partida.presupuesto_aprobado > 0 ? (partida.pagado / partida.presupuesto_aprobado * 100).toFixed(2) : 0}%
+                                    </TableCell>
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        ${formatNumber(Math.round(partida.pagado || 0))}
+                                    </TableCell>
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        {/* {partida.pago} */} -
+                                    </TableCell>
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        {new Date(partida._creationTime).toLocaleDateString()}
+                                    </TableCell>
+                                    <TableCell className="px-6 py-4 text-sm text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                                        {/* {partida.actual} */} -
+                                    </TableCell>
+                                </TableRow>
+                            ))}
                         </TableBody>
                     </Table>
                 </div>

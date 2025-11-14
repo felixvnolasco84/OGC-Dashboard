@@ -82,6 +82,9 @@ export default function PresupuestoPage() {
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
 
+
+
+
   // Fetch all partidas for selected project with pagination
   const { results: allPartidas, status: partidasStatus, loadMore } = usePaginatedQuery(
     api.partida.getByProjectPaginated,
@@ -203,7 +206,9 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Presupuesto Original</p>
+                <p className="text-sm text-gray-500">{
+                  proyecto._id === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Total Ventas" : "Presupuesto Original"
+                }</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.presupuesto_original || 0))}
@@ -217,7 +222,9 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Presupuesto aprobado</p>
+                <p className="text-sm text-gray-500">{
+                  proyecto._id === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Vendido" : "Presupuesto aprobado"
+                }</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.presupuesto_aprobado || 0))}
@@ -236,7 +243,9 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Gasto total</p>
+                <p className="text-sm text-gray-500">{
+                  proyecto._id === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Pagado" : "Gasto total"
+                }</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
                     ${formatNumber(Math.round(metrics?.gasto_total || 0))}
@@ -250,12 +259,15 @@ export default function PresupuestoPage() {
           </Card>
 
           {/* Por Gastar */}
+          {proyecto._id !== "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" && (
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Por gastar</p>
+                <p className="text-sm text-gray-500">{
+                  proyecto._id === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "" : "Por gastar"
+                }</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-gray-900">
+                  <p className="text-4xl font-normal text-gray-900">                    
                     ${formatNumber(Math.round(metrics?.por_gastar || 0))}
                   </p>
                 </div>
@@ -265,6 +277,7 @@ export default function PresupuestoPage() {
               </div>
             </CardContent>
           </Card>
+          )}
         </div>
 
         {/* Filters */}

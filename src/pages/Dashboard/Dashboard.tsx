@@ -13,6 +13,7 @@ import {
 import { api } from "../../../convex/_generated/api";
 import { DashboardTable } from "./DashboardTable";
 import BarHorizontalChart from "./BarHorizontalChart";
+import { Id } from "convex/_generated/dataModel";
 
 
 export default function Dashboard() {
@@ -86,7 +87,7 @@ export default function Dashboard() {
       </div>
 
       <div className="flex flex-col gap-4">
-        <DashboardTable />
+        <DashboardTable proyectoId={selectedDevelopment as Id<"desarrollos">} />
         <BarHorizontalChart constructionData={data} />
       </div>
     </div>
