@@ -207,7 +207,7 @@ export default function PresupuestoPage() {
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">{
-                  proyecto._id === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Total Ventas" : "Presupuesto Original"
+                  proyecto._id === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Total Ventas" : "Presupuesto Original"
                 }</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
@@ -223,7 +223,7 @@ export default function PresupuestoPage() {
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">{
-                  proyecto._id === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Vendido" : "Presupuesto aprobado"
+                  proyecto._id === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Vendido" : "Presupuesto aprobado"
                 }</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
@@ -244,7 +244,7 @@ export default function PresupuestoPage() {
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">{
-                  proyecto._id === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Pagado" : "Gasto total"
+                  proyecto._id === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Pagado" : "Gasto total"
                 }</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
@@ -259,12 +259,12 @@ export default function PresupuestoPage() {
           </Card>
 
           {/* Por Gastar */}
-          {proyecto._id !== "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" && (
+          {proyecto._id !== "jh7c61q0zx890z88wz52gejtxx7vcm66" && (
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">{
-                  proyecto._id === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "" : "Por gastar"
+                  proyecto._id === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "" : "Por gastar"
                 }</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">                    

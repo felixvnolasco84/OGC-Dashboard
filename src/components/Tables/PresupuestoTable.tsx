@@ -259,14 +259,14 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
             <TableRow className="border-b border-gray-200">
 
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">                
-                {data[0].proyecto === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Unidad" : "Partida - Familia - Subpartida"}
+                {data[0].proyecto === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Unidad" : "Partida - Familia - Subpartida"}
                 
               </TableHead>
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                {data[0].proyecto === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Total Ventas" : "Presupuesto original"}
+                {data[0].proyecto === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Total Ventas" : "Presupuesto original"}
               </TableHead>
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                {data[0].proyecto === "jh7bxaf0h29hsh7hgyfbcea22h7v90hz" ? "Vendido" : "Presupuesto aprobado"}
+                {data[0].proyecto === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Vendido" : "Presupuesto aprobado"}
               </TableHead>
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Pagado
