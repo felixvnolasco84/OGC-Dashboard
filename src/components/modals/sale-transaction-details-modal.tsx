@@ -1,5 +1,6 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { useSaleTransactionDetailsModal } from "@/hooks/sale-transaction-details-modal";
 import {
   Dialog,
   DialogContent,
@@ -8,13 +9,12 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar, DollarSign, CreditCard, FileText, Building2, Hash } from "lucide-react";
-import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
 
-export default function TransactionDetailsModal() {
-  const { isOpen, onClose, transactionId } = useTransactionDetailsModal();
-    
+export default function SaleTransactionDetailsModal() {
+  const { isOpen, onClose, transactionId } = useSaleTransactionDetailsModal();
+
   const transaction = useQuery(
-    api.transacciones.getTransactionById,
+    api.sales_transacciones.getTransactionById,
     transactionId ? { id: transactionId } : "skip"
   );
 
@@ -97,10 +97,10 @@ export default function TransactionDetailsModal() {
                   <span>
                     {transaction.fecha
                       ? new Date(transaction.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })
                       : "-"}
                   </span>
                 </div>
@@ -116,7 +116,7 @@ export default function TransactionDetailsModal() {
             {/* Transaction Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Información de Pago</h3>
-              
+
               <div className="grid grid-cols-2 gap-6">
                 {/* Factura */}
                 {transaction.factura && (

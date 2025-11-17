@@ -21,6 +21,7 @@ import AddSalesProjectModal from "../modals/add-sales-project-modal";
 import EditSalesProjectModal from "../modals/edit-sales-project-modal";
 import UploadSalesProjectTransactionsModal from "../modals/upload-sales-project-transactions-modal";
 import UploadSalesProyectoDocumentsModal from "../modals/upload-sales-proyecto-documents-modal";
+import SaleTransactionDetailsModal from "../modals/sale-transaction-details-modal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -41,6 +42,7 @@ export const ModalProvider = () => {
     <AddPartidaModal />
     <UploadTransactionsModal />
     <TransactionDetailsModal />
+    <SaleTransactionDetailsModal />
     <TransactionConceptosModal />
     <TransactionDocumentosModal />
     <UploadDocumentsModal />

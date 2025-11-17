@@ -26,7 +26,7 @@ import {
   // Plus,
   X, RefreshCw
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrencyCompact } from "@/lib/utils";
 import { useParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -53,15 +53,6 @@ type HierarchicalGroup = SalesPartidaRow & {
   familias: Record<string, SalesPartidaRow>;
 };
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
 const getApprovedVsOriginal = (original: number, approved: number) => {
   const difference = approved - original;
   const isSavings = difference < 0;
@@ -81,9 +72,6 @@ const getPorGastarBadge = (porGastar: number) => {
   return { isRemaining, isOverpayment, isEqual, formattedAmount };
 };
 
-const formatNumber = (amount: number) => {
-  return new Intl.NumberFormat('es-MX').format(amount);
-};
 
 
 export default function SalesPresupuestoTable() {
@@ -103,6 +91,13 @@ export default function SalesPresupuestoTable() {
   const salesProyecto = useQuery(api.sales_projects.getById, salesProyectoId ? { id: salesProyectoId as Id<"sales_projects"> } : "skip");
 
   const partidas = useQuery(api.sales_partidas.getBySalesProject, salesProyectoId ? { salesProjectId: salesProyectoId as Id<"sales_projects"> } : "skip");
+  
+  // Get project's default currency based on transaction history
+  const currencyInfo = useQuery(
+    api.currency_helpers.getSalesProjectDefaultCurrency,
+    salesProyectoId ? { sales_proyecto_id: salesProyectoId as Id<"sales_projects"> } : "skip"
+  );
+  const defaultCurrency = currencyInfo?.defaultCurrency || "MXN";
 
   // Sync mutation - updates in cascade like functions.ts
   const syncPartidas = useMutation(api.sales_partidas_sync.syncSalesPartidasFromTransactions);
@@ -419,7 +414,7 @@ export default function SalesPresupuestoTable() {
                 <p className="text-sm text-gray-500">Total Ventas</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics.presupuestoOriginal))}
+                    {formatCurrencyCompact(Math.round(metrics.presupuestoOriginal), defaultCurrency)}
                   </p>
                 </div>
               </div>
@@ -433,7 +428,7 @@ export default function SalesPresupuestoTable() {
                 <p className="text-sm text-gray-500">Vendido</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics.presupuestoAprobado))}
+                    {formatCurrencyCompact(Math.round(metrics.presupuestoAprobado), defaultCurrency)}
                   </p>
                 </div>
                 <div className="text-lg text-gray-500">
@@ -452,7 +447,7 @@ export default function SalesPresupuestoTable() {
                 <p className="text-sm text-gray-500">Pagado</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics.pagado))}
+                    {formatCurrencyCompact(Math.round(metrics.pagado), defaultCurrency)}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
@@ -462,14 +457,14 @@ export default function SalesPresupuestoTable() {
             </CardContent>
           </Card>
 
-          {/* Por Cobrar */}
+          {/* Por Vender */}
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">Por Vender</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics.porGastar))}
+                    {formatCurrencyCompact(Math.round(metrics.porGastar), defaultCurrency)}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
@@ -757,11 +752,11 @@ export default function SalesPresupuestoTable() {
                       </div>
                     </TableCell>
                     <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                      {formatCurrency(item.presupuestoOriginal)} MXN
+                      {formatCurrencyCompact(item.presupuestoOriginal, defaultCurrency)}
                     </TableCell>
                     <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                       <div className="flex flex-col gap-2 text-left">
-                        <span>{formatCurrency(item.presupuestoAprobado)} MXN</span>
+                        <span>{formatCurrencyCompact(item.presupuestoAprobado, defaultCurrency)}</span>
                         {!approvedDiff.isEqual && (
                           <Badge
                             className={cn(
@@ -771,14 +766,14 @@ export default function SalesPresupuestoTable() {
                                 : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
                             )}
                           >
-                            {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +${approvedDiff.formattedAmount} MXN
+                            {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +{formatCurrencyCompact(Math.abs(item.presupuestoAprobado - item.presupuestoOriginal), defaultCurrency)}
                           </Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                       <div className="flex flex-col gap-2 text-left">
-                        <span>{formatCurrency(item.pagado)} MXN</span>
+                        <span>{formatCurrencyCompact(item.pagado, defaultCurrency)}</span>
                         {!porGastarBadge.isEqual && (
                           <Badge
                             className={cn(
@@ -788,7 +783,7 @@ export default function SalesPresupuestoTable() {
                                 : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
                             )}
                           >
-                            {porGastarBadge.isRemaining ? 'Por ejercer' : 'Incremento'}: +${porGastarBadge.formattedAmount} MXN
+                            {porGastarBadge.isRemaining ? 'Por gastar' : 'Incremento'} - {formatCurrencyCompact(Math.abs(item.porGastar), defaultCurrency)}
                           </Badge>
                         )}
                       </div>

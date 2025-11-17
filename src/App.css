@@ -80,3 +80,8 @@ mux-player {
   --media-object-fit: cover;
   --media-object-position: center;
 }
+
+* {
+  scrollbar-color: #888 #fff;
+  scrollbar-width: thin;
+}

@@ -44,9 +44,34 @@ export type partida = {
   partida_nombre: string;
   unidad: string;
   cantidad: number;
-  precio_unitario: number;    
+  precio_unitario: number;
   presupuesto_aprobado: number;
   presupuesto_original: number;
   pagado: number;
 }
 
+
+export function formatNumber(number: number, proyectoId?: string) {
+  // Legacy function - kept for backward compatibility
+  // Uses MXN as default, except for specific sales project
+  const isSalesProject = proyectoId === "jh7c61q0zx890z88wz52gejtxx7vcm66";
+  return formatCurrency(number, isSalesProject ? "MXN" : "MXN");
+}
+
+export function formatCurrency(amount: number, currency: string = "MXN") {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+export function formatCurrencyCompact(amount: number, currency: string = "MXN") {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}

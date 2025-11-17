@@ -35,6 +35,7 @@ import SalesProyectoTransaccionesPage from "./pages/SalesProyectoTransacciones/S
 import SalesProyectoFlujoPage from "./pages/SalesProyectoFlujo/SalesProyectoFlujoPage.tsx";
 import SalesPresupuestoTable from "./components/Tables/SalesPresupuestoTable.tsx";
 import ControlSalePage from "./pages/Control/ControlSalePage.tsx";
+import SalesTransaccionesTablePage from "./pages/TransaccionesTable/SalesTransaccionesTablePage.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -70,6 +71,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/transacciones" element={
                   <ProtectedRoute requiredRole="admin">
                     <TransaccionesTablePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/sales-transacciones" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <SalesTransaccionesTablePage />
                   </ProtectedRoute>
                 } />
                 <Route path="/proveedores" element={

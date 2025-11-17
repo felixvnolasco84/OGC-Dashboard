@@ -1,10 +1,16 @@
 import { useState } from "react";
-import { useParams } from "react-router";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, FileText, RefreshCw, Upload } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Search, MoreVertical, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -16,34 +22,40 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useSaleTransactionDetailsModal } from "@/hooks/sale-transaction-details-modal";
+// TODO: Implementar conceptos y documentos para proyectos de ventas
+// import { useTransactionConceptosModal } from "@/hooks/transaction-conceptos-modal";
+// import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { Popover } from "@radix-ui/react-popover";
 import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useUploadSalesProjectTransactionsModal } from "@/hooks/upload-sales-project-transactions-modal";
 
-export default function SalesProyectoTransaccionesPage() {
-    const uploadSalesProjectTransactionsModal = useUploadSalesProjectTransactionsModal();
-    
-    const { salesProyectoId } = useParams<{ salesProyectoId: string }>();
+export default function SalesTransaccionesTablePage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Id<"sales_transacciones"> | null>(null);
-    const [isSyncing, setIsSyncing] = useState(false);
+    const [selectedProyecto, setSelectedProyecto] = useState<Id<"sales_projects"> | "">("");
 
-    // Fetch sales project
-    const salesProyecto = useQuery(api.sales_projects.getById, salesProyectoId ? { id: salesProyectoId as Id<"sales_projects"> } : "skip");
+    // Queries
+    const proyectos = useQuery(api.sales_projects.getAll);
+    const transacciones = useQuery(api.sales_transacciones.getAllWithDetails);
+    const deleteTransaction = useMutation(api.sales_transacciones.deleteTransaction);
 
-    // Fetch transactions for this sales project
-    const transacciones = useQuery(api.sales_transacciones_queries.getBySalesProyectoWithDetails, salesProyectoId ? { sales_proyecto_id: salesProyectoId as Id<"sales_projects"> } : "skip");
+    const detailsModal = useSaleTransactionDetailsModal();
+    // const conceptosModal = useTransactionConceptosModal();
+    // const documentosModal = useTransactionDocumentosModal();
 
-    // const deleteTransaction = useMutation(api.sales_transacciones.deleteTransaction);
-
-    const filteredTransacciones = transacciones?.filter((transaccion) =>
-        transaccion.factura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaccion.codigo_referencia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaccion.tipo_pago?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredTransacciones = transacciones?.filter((transaccion) => {
+        const matchesSearch = transaccion.proyectoNombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transaccion.factura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transaccion.codigo_referencia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transaccion.tipo_pago?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesProyecto = !selectedProyecto || transaccion.sales_proyecto === selectedProyecto;
+        
+        return matchesSearch && matchesProyecto;
+    });
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("es-MX", {
@@ -56,12 +68,9 @@ export default function SalesProyectoTransaccionesPage() {
 
     const getStatusColor = (status?: string) => {
         switch (status) {
-            case "Cobrado":
             case "Pagado":
                 return "bg-green-50 text-green-700 border-green-200";
-            case "Por cobrar":
             case "Por pagar":
-            case "Pendiente":
                 return "bg-orange-50 text-orange-700 border-orange-200";
             default:
                 return "bg-gray-100 text-gray-700 border-gray-200";
@@ -85,12 +94,12 @@ export default function SalesProyectoTransaccionesPage() {
 
     const getCategoriaColor = (categoria?: string) => {
         switch (categoria?.toLowerCase()) {
-            case "enganche":
+            case "anticipo":
                 return "bg-cyan-50 text-cyan-700 border-cyan-200 rounded-none";
-            case "mensualidad":
+            case "material":
                 return "bg-amber-50 text-amber-700 border-amber-200 rounded-none";
-            case "liquidación":
-            case "liquidacion":
+            case "estimación":
+            case "estimacion":
                 return "bg-emerald-50 text-emerald-700 border-emerald-200 rounded-none";
             default:
                 return "bg-gray-100 text-gray-700 border-gray-200 rounded-none";
@@ -107,26 +116,19 @@ export default function SalesProyectoTransaccionesPage() {
     const handleDelete = async () => {
         if (!transactionToDelete) return;
 
-        // TODO: Implement delete mutation for sales_transacciones
-        toast.info("Próximamente", {
-            description: "La funcionalidad de eliminar transacciones de ventas estará disponible pronto.",
-        });
-        setDeleteDialogOpen(false);
-        setTransactionToDelete(null);
-        
-        // try {
-        //     await deleteTransaction({ id: transactionToDelete });
-        //     toast.success("Transacción eliminada", {
-        //         description: "La transacción y sus conceptos han sido eliminados exitosamente.",
-        //     });
-        //     setDeleteDialogOpen(false);
-        //     setTransactionToDelete(null);
-        // } catch (error) {
-        //     console.error("Error deleting transaction:", error);
-        //     toast.error("Error al eliminar", {
-        //         description: error instanceof Error ? error.message : "No se pudo eliminar la transacción.",
-        //     });
-        // }
+        try {
+            await deleteTransaction({ id: transactionToDelete });
+            toast.success("Transacción eliminada", {
+                description: "La transacción y sus conceptos han sido eliminados exitosamente.",
+            });
+            setDeleteDialogOpen(false);
+            setTransactionToDelete(null);
+        } catch (error) {
+            console.error("Error deleting transaction:", error);
+            toast.error("Error al eliminar", {
+                description: error instanceof Error ? error.message : "No se pudo eliminar la transacción.",
+            });
+        }
     };
 
     const openDeleteDialog = (transactionId: Id<"sales_transacciones">) => {
@@ -134,59 +136,24 @@ export default function SalesProyectoTransaccionesPage() {
         setDeleteDialogOpen(true);
     };
 
-    const handleSync = async () => {
-        if (!salesProyectoId) return;
-
-        setIsSyncing(true);
-        toast.info("Sincronizando...", {
-            description: "Esta funcionalidad estará disponible próximamente para proyectos de ventas.",
-        });
-        setIsSyncing(false);
-    };
-
-    if (!salesProyecto) {
-        return (
-            <div className="bg-white min-h-screen flex items-center justify-center">
-                <p className="text-gray-500">Cargando...</p>
-            </div>
-        );
-    }
-
     return (
         <div className="bg-white min-h-screen">
             <div className="max-w-full mx-auto py-8 text-left">
                 <div className="flex flex-col gap-4 px-12">
                     <div className="mb-8 flex items-start justify-between">
                         <div>
-                            <p className="text-sm text-gray-500 mb-1">Transacciones</p>
-                            <h1 className="text-2xl text-gray-900">{salesProyecto.nombre}</h1>
+                            <h1 className="text-3xl font-normal text-gray-900 mb-2">Transacciones</h1>
+                            <p className="text-sm text-gray-500">
+                                Consulta y gestiona todas las transacciones registradas en el sistema
+                            </p>
                         </div>
                         <div className="flex gap-2">
-                            <Button
-                                onClick={() => uploadSalesProjectTransactionsModal.onOpen(salesProyectoId as Id<"sales_projects">, salesProyecto.nombre)}
-                                variant="outline"
-                                size="lg"
-                                className="flex items-center gap-2 rounded-none text-gray-500 py-6"
-                            >
-                                Subir Transacciones
-                                <Upload className="h-6 w-6 rounded-full shadow-none" />
-                            </Button>
-                            <Button
-                                onClick={handleSync}
-                                disabled={isSyncing}
-                                variant="outline"
-                                size="lg"
-                                className="flex items-center gap-2 rounded-none py-6 text-gray-500"
-                            >
-                                {isSyncing ? "Sincronizando..." : "Sincronizar Docs"}
-                                <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
-                            </Button>
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
                                 <span className="text-sm font-normal">
                                     Total: {transacciones?.length || 0}
                                 </span>
                             </Badge>
-                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
+                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100  ">
                                 <span className="text-sm font-normal">
                                     Monto total: {formatCurrency(
                                         transacciones?.reduce((sum, t) => sum + t.monto_total, 0) || 0
@@ -196,16 +163,46 @@ export default function SalesProyectoTransaccionesPage() {
                         </div>
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="mb-8 relative">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                        <Input
-                            type="text"
-                            placeholder="Buscar por factura, código de referencia o tipo de pago..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-12 rounded-none border-gray-300 h-12"
-                        />
+                    {/* Search and Filter */}
+                    <div className="mb-8 grid grid-cols-2 gap-4">
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                            <Input
+                                type="text"
+                                placeholder="Buscar..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-12 rounded-none border-gray-300 h-12"
+                            />
+                        </div>
+
+                        {/* Project Filter */}
+                        <Select
+                            value={selectedProyecto || undefined}
+                            onValueChange={(value) => {
+                                if (value === "clear") {
+                                    setSelectedProyecto("");
+                                } else {
+                                    setSelectedProyecto(value as Id<"sales_projects">);
+                                }
+                            }}
+                        >
+                            <SelectTrigger className="rounded-none h-12">
+                                <SelectValue placeholder="Todos los proyectos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {selectedProyecto && (
+                                    <SelectItem value="clear">
+                                        <span className="text-gray-500">Limpiar filtro</span>
+                                    </SelectItem>
+                                )}
+                                {proyectos?.map((proyecto) => (
+                                    <SelectItem key={proyecto._id} value={proyecto._id}>
+                                        {proyecto.nombre}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 
@@ -214,6 +211,9 @@ export default function SalesProyectoTransaccionesPage() {
                     <table className="w-full">
                         <thead className="border-b border-gray-200">
                             <tr>
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                    Proyecto
+                                </th>
                                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
                                     Factura
                                 </th>
@@ -227,10 +227,7 @@ export default function SalesProyectoTransaccionesPage() {
                                     Tipo de pago
                                 </th>
                                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                                    Categoria
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                                    Cliente
+                                    Categoría
                                 </th>
                                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
                                     Status
@@ -250,13 +247,13 @@ export default function SalesProyectoTransaccionesPage() {
                         <tbody className="divide-y divide-gray-200">
                             {!transacciones ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -266,6 +263,11 @@ export default function SalesProyectoTransaccionesPage() {
                                         key={transaccion._id}
                                         className="hover:bg-gray-50 transition-colors"
                                     >
+                                        <td className="px-6 py-4 border-r border-gray-200">
+                                            <div className="text-sm font-medium text-gray-900">
+                                                {transaccion.proyectoNombre || "-"}
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4 border-r border-gray-200">
                                             <div className="flex items-center gap-2">
                                                 {transaccion.factura && (
@@ -293,7 +295,7 @@ export default function SalesProyectoTransaccionesPage() {
                                                 variant="outline"
                                                 className={`${getTipoPagoColor(
                                                     transaccion.tipo_pago
-                                                )} px-3 py-1 text-xs font-normal capitalize rounded-none`}
+                                                )}  px-3 py-1 text-xs font-normal capitalize rounded-none`}
                                             >
                                                 {transaccion.tipo_pago || "-"}
                                             </Badge>
@@ -304,7 +306,7 @@ export default function SalesProyectoTransaccionesPage() {
                                                     variant="outline"
                                                     className={`${getCategoriaColor(
                                                         transaccion.categoria
-                                                    )} px-3 py-1 text-xs font-normal capitalize rounded-none`}
+                                                    )}  px-3 py-1 text-xs font-normal capitalize rounded-none`}
                                                 >
                                                     {transaccion.categoria}
                                                 </Badge>
@@ -312,17 +314,12 @@ export default function SalesProyectoTransaccionesPage() {
                                                 <span className="text-sm text-gray-400">-</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 border-r border-gray-200 text-xs">
-                                            {
-                                                transaccion.nombre_cliente || "-"
-                                            }
-                                        </td>
                                         <td className="px-6 py-4 border-r border-gray-200">
                                             <Badge
                                                 variant="outline"
                                                 className={`${getStatusColor(
                                                     transaccion.status
-                                                )} px-3 py-1 text-xs font-normal rounded-none`}
+                                                )}  px-3 py-1 text-xs font-normal rounded-none`}
                                             >
                                                 {transaccion.status || "-"}
                                             </Badge>
@@ -332,19 +329,19 @@ export default function SalesProyectoTransaccionesPage() {
                                                 variant="outline"
                                                 className={`${getMonedaBadge(
                                                     transaccion.moneda
-                                                )} px-2 py-1 text-xs font-medium rounded-none`}
+                                                )}  px-2 py-1 text-xs font-medium rounded-none`}
                                             >
                                                 {transaccion.moneda || "MXN"}
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-center text-gray-900 border-r border-gray-200">
-                                            <Badge variant="outline" className="px-2 py-1 text-xs">
-                                                {transaccion.conceptosCount || 0}
+                                            <Badge variant="outline" className=" px-2 py-1 text-xs">
+                                                {transaccion.lineItemsCount || 0}
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-center text-gray-900 border-r border-gray-200">
-                                            <Badge variant="outline" className="px-2 py-1 text-xs">
-                                                {transaccion.documentosCount || 0}
+                                            <Badge variant="outline" className=" px-2 py-1 text-xs">
+                                                {transaccion.documentsCount || 0}
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 border-r border-gray-200">
@@ -355,15 +352,15 @@ export default function SalesProyectoTransaccionesPage() {
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="flex flex-col space-y-1" align="end">
-                                                    <Button variant={"ghost"} onClick={() => toast.info("Próximamente", { description: "La vista de detalles estará disponible pronto." })}>
+                                                    <Button variant={"ghost"} onClick={() => detailsModal.onOpen(transaccion._id)}>
                                                         Ver detalles
                                                     </Button>
-                                                    <Button variant={"ghost"} onClick={() => toast.info("Próximamente", { description: "La vista de conceptos estará disponible pronto." })}>
+                                                    {/* <Button variant={"ghost"} onClick={() => conceptosModal.onOpen(transaccion._id)}>
                                                         Ver conceptos
                                                     </Button>
-                                                    <Button variant={"ghost"} onClick={() => toast.info("Próximamente", { description: "La vista de documentos estará disponible pronto." })}>
+                                                    <Button variant={"ghost"} onClick={() => documentosModal.onOpen(transaccion._id)}>
                                                         Ver documentos
-                                                    </Button>
+                                                    </Button> */}
                                                     <Button variant={"ghost"} className="text-red-600" onClick={() => openDeleteDialog(transaccion._id)}>
                                                         Eliminar
                                                     </Button>
@@ -377,6 +374,7 @@ export default function SalesProyectoTransaccionesPage() {
                     </table>
                 </div>
             </div>
+
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

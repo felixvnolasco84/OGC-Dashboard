@@ -21,6 +21,7 @@ import {
   // LockKeyhole,
   User,
   FileText,
+  Tag,
   TrendingUp,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -46,13 +47,13 @@ const projectMenuItems: ProjectMenuItem[] = [
   // { id: "proveedores", label: "Proveedores", path: "proveedores", disabled: false },
 ];
 
-// const salesProjectMenuItems: ProjectMenuItem[] = [
-//   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
-//   // { id: "control", label: "Control", path: "control", disabled: false },
-//   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
-//   { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
-//   { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
-// ];
+const salesProjectMenuItems: ProjectMenuItem[] = [
+  { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
+  { id: "control", label: "Control", path: "control", disabled: false },
+  { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
+  { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
+  { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
+];
 
 const bottomProjectMenuItems = [
   { id: "proyectos", label: "Proyectos", path: "/proyectos", icon: Bookmark },
@@ -64,20 +65,20 @@ const bottomProjectMenuItems = [
   { id: "usuarios", label: "Usuarios", path: "/usuarios", icon: User },
 ];
 
-// const bottomSalesMenuItems = [
-//   { id: "sales-proyectos", label: "Proyectos Ventas", path: "/sales-proyectos", icon: Bookmark },
-//   { id: "sales-flujo", label: "Flujo ", path: "/admin/sales-flujo", icon: TrendingUp },  
-//   { id: "sales-documentos", label: "Documentos", path: "/sales-documentos", icon: FileText },
-// ];
+const bottomSalesMenuItems = [
+  { id: "sales-proyectos", label: "Proyectos Ventas", path: "/sales-proyectos", icon: Bookmark },
+  { id: "sales-transacciones", label: "Transacciones", path: "/sales-transacciones", icon: CreditCard },
+  { id: "sales-flujo", label: "Flujo ", path: "/admin/sales-flujo", icon: TrendingUp },
+  { id: "sales-documentos", label: "Documentos", path: "/sales-documentos", icon: FileText },
+];
 
 
 export default function Sidebar() {
   const location = useLocation();
-  // const { proyectoId, salesProyectoId } = useParams<{ proyectoId?: string; salesProyectoId?: string }>();
-  const { proyectoId } = useParams<{ proyectoId?: string }>();
+  const { proyectoId, salesProyectoId } = useParams<{ proyectoId?: string; salesProyectoId?: string }>();
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const desarrollos = useQuery(api.desarrollos.getAll);
-  // const salesProjects = useQuery(api.sales_projects.getAll);
+  const salesProjects = useQuery(api.sales_projects.getAll);
   const currentUser = useQuery(api.users.getCurrentUser);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,9 +90,9 @@ export default function Sidebar() {
   ) || [];
 
   // Filter sales projects based on search query
-  // const filteredSalesProjects = salesProjects?.filter((proyecto) =>
-  //   proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-  // ) || [];
+  const filteredSalesProjects = salesProjects?.filter((proyecto) =>
+    proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   // Toggle project expansion
   const toggleProject = (projectId: string) => {
@@ -194,7 +195,7 @@ export default function Sidebar() {
         )}
 
         {/* Sales Projects Section */}
-        {/* {filteredSalesProjects.length > 0 && (
+        {filteredSalesProjects.length > 0 && (
           <div className="text-left">
             <p className="text-xs font-medium text-gray-400 px-3 mb-2">PROYECTOS DE VENTAS</p>
             {filteredSalesProjects.map((salesProyecto) => {
@@ -210,7 +211,7 @@ export default function Sidebar() {
                     )}
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <TrendingUp className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <Tag className="w-4 h-4 text-gray-500 flex-shrink-0" />
                       <span className="text-sm text-gray-900 truncate">
                         {salesProyecto.nombre}
                       </span>
@@ -238,7 +239,7 @@ export default function Sidebar() {
               );
             })}
           </div>
-        )} */}
+        )}
       </Accordion>
 
       {/* Bottom Menu - Only show for authenticated admin users */}
@@ -272,7 +273,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* {
+      {
         isAuthenticated && !authLoading && (
           <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
             {currentUser?.role === "admin" ? (
@@ -301,7 +302,7 @@ export default function Sidebar() {
             )}
           </div>
         )
-      } */}
+      }
     </div>
   );
 }

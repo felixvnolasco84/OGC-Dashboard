@@ -65,7 +65,7 @@ triggers.register("pagos", async (ctx, change) => {
   }
 });
 
-// Helper to calculate pagado for a specific set of partida IDs
+// Helper to calculate pagado for a specific set of partida IDs (only "Pagado" transactions)
 async function calculatePagadoForPartidas(ctx: { db: any }, partidaIds: any[]): Promise<Map<string, number>> {
   const pagadoMap = new Map<string, number>();
   
@@ -79,11 +79,24 @@ async function calculatePagadoForPartidas(ctx: { db: any }, partidaIds: any[]): 
     )
   );
   
-  // Sum up pagos for each partida
-  partidaIds.forEach((id, index) => {
-    const total = pagosArrays[index].reduce((sum: number, p: any) => sum + (p.monto || 0), 0);
-    pagadoMap.set(id, total);
-  });
+  // Sum up pagos for each partida, BUT only include those from "Pagado" transactions
+  for (let i = 0; i < partidaIds.length; i++) {
+    const partidaId = partidaIds[i];
+    const pagos = pagosArrays[i];
+    let total = 0;
+    
+    for (const pago of pagos) {
+      // Get the associated transaction to check status
+      const transaction = await ctx.db.get(pago.transaccion_id);
+      
+      // Only count if transaction exists and status is "Pagado"
+      if (transaction && transaction.status === "Pagado") {
+        total += (pago.monto || 0);
+      }
+    }
+    
+    pagadoMap.set(partidaId, total);
+  }
   
   return pagadoMap;
 }
@@ -611,7 +624,44 @@ async function updateHonorariosPartida(
   }
 }
 
-// Register trigger for transacciones table to update honorarios monto
+// Helper function to update proyecto's primary currency based on transaction history
+async function updateProyectoMonedaPrincipal(ctx: { db: any }, proyectoId: string) {
+  // Get all transactions for this proyecto
+  const transactions = await ctx.db
+    .query("transacciones")
+    .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId))
+    .collect();
+  
+  if (transactions.length === 0) {
+    // No transactions, set default to MXN
+    await ctx.db.patch(proyectoId, { moneda_principal: "MXN" });
+    return;
+  }
+  
+  // Count currency occurrences
+  const currencyCounts = new Map<string, number>();
+  for (const transaction of transactions) {
+    if (!transaction) continue;
+    const currency = transaction.moneda || "MXN";
+    currencyCounts.set(currency, (currencyCounts.get(currency) || 0) + 1);
+  }
+  
+  // Find most common currency
+  let dominantCurrency = "MXN";
+  let maxCount = 0;
+  for (const [currency, count] of currencyCounts.entries()) {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantCurrency = currency;
+    }
+  }
+  
+  // Update proyecto with dominant currency
+  await ctx.db.patch(proyectoId, { moneda_principal: dominantCurrency });
+  console.log(`✅ Updated proyecto ${proyectoId} currency to ${dominantCurrency}`);
+}
+
+// Register trigger for transacciones table to update honorarios monto and currency
 triggers.register("transacciones", async (ctx, change) => {
   console.log("Transaction changed:", change.operation, change.id);
   
@@ -629,14 +679,26 @@ triggers.register("transacciones", async (ctx, change) => {
       return;
     }
     
-    // For updates, only recalculate if monto_total changed (percentage is set separately)
+    // For updates, only recalculate if monto_total or moneda changed
     if (change.operation === "update" && change.oldDoc) {
       const montoChanged = change.oldDoc.monto_total !== change.newDoc.monto_total;
+      const monedaChanged = change.oldDoc.moneda !== change.newDoc.moneda;
       
-      if (!montoChanged) {
-        console.log("monto_total not changed, skipping honorarios update");
+      if (!montoChanged && !monedaChanged) {
+        console.log("monto_total and moneda not changed, skipping updates");
         return;
       }
+      
+      // Update currency if moneda changed
+      if (monedaChanged) {
+        await updateProyectoMonedaPrincipal(ctx, transaction.proyecto);
+      }
+    } else if (change.operation === "insert") {
+      // On insert, always update currency
+      await updateProyectoMonedaPrincipal(ctx, transaction.proyecto);
+    } else if (change.operation === "delete") {
+      // On delete, recalculate currency
+      await updateProyectoMonedaPrincipal(ctx, transaction.proyecto);
     }
     
     // Update honorarios monto for the proyecto
@@ -678,6 +740,83 @@ triggers.register("desarrollos", async (ctx, change) => {
     }
   } catch (error) {
     console.error("❌ Error in desarrollo trigger:", error);
+    throw error;
+  }
+});
+
+// Helper function to update sales project's primary currency based on transaction history
+async function updateSalesProyectoMonedaPrincipal(ctx: { db: any }, salesProyectoId: string) {
+  // Get all sales transactions for this sales project
+  const transactions = await ctx.db
+    .query("sales_transacciones")
+    .withIndex("by_sales_proyecto", (q: any) => q.eq("sales_proyecto", salesProyectoId))
+    .collect();
+  
+  if (transactions.length === 0) {
+    // No transactions, set default to MXN
+    await ctx.db.patch(salesProyectoId, { moneda_principal: "MXN" });
+    return;
+  }
+  
+  // Count currency occurrences
+  const currencyCounts = new Map<string, number>();
+  for (const transaction of transactions) {
+    if (!transaction) continue;
+    const currency = transaction.moneda || "MXN";
+    currencyCounts.set(currency, (currencyCounts.get(currency) || 0) + 1);
+  }
+  
+  // Find most common currency
+  let dominantCurrency = "MXN";
+  let maxCount = 0;
+  for (const [currency, count] of currencyCounts.entries()) {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantCurrency = currency;
+    }
+  }
+  
+  // Update sales project with dominant currency
+  await ctx.db.patch(salesProyectoId, { moneda_principal: dominantCurrency });
+  console.log(`✅ Updated sales_proyecto ${salesProyectoId} currency to ${dominantCurrency}`);
+}
+
+// Register trigger for sales_transacciones table to update currency
+triggers.register("sales_transacciones", async (ctx, change) => {
+  console.log("Sales transaction changed:", change.operation, change.id);
+  
+  try {
+    // Get the transaction record to extract sales_proyecto information
+    let transaction;
+    if (change.operation === "insert" || change.operation === "update") {
+      transaction = change.newDoc;
+    } else if (change.operation === "delete") {
+      transaction = change.oldDoc;
+    }
+    
+    if (!transaction || !transaction.sales_proyecto) {
+      console.log("No sales transaction or sales_proyecto found, skipping trigger");
+      return;
+    }
+    
+    // For updates, check if moneda changed
+    if (change.operation === "update" && change.oldDoc) {
+      const monedaChanged = change.oldDoc.moneda !== change.newDoc.moneda;
+      
+      if (monedaChanged) {
+        await updateSalesProyectoMonedaPrincipal(ctx, transaction.sales_proyecto);
+      }
+    } else if (change.operation === "insert") {
+      // On insert, always update currency
+      await updateSalesProyectoMonedaPrincipal(ctx, transaction.sales_proyecto);
+    } else if (change.operation === "delete") {
+      // On delete, recalculate currency
+      await updateSalesProyectoMonedaPrincipal(ctx, transaction.sales_proyecto);
+    }
+    
+    console.log("✅ Successfully updated sales project currency after transaction change");
+  } catch (error) {
+    console.error("❌ Error in sales transaction trigger:", error);
     throw error;
   }
 });

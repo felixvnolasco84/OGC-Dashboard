@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Doc } from "convex/_generated/dataModel";
+import { Doc, Id } from "convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,8 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import DropdownMenuComponentPartida from "../DropdownMenu/DropdownMenuComponenPartida";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 // Hierarchical structure helper types
 // Extend Doc<"partidas"> with hierarchical properties
@@ -34,15 +36,6 @@ type PartidaRow = Omit<Partial<Doc<"partidas">>, 'pagado' | 'total' | 'aprobado'
 
 type HierarchicalGroup = PartidaRow & {
   familias: Record<string, PartidaRow>;
-};
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
 };
 
 // Compare approved vs original for "Presupuesto aprobado" column
@@ -69,10 +62,17 @@ const getPorGastarBadge = (porGastar: number) => {
 interface PresupuestoTableProps {
   data: Doc<"partidas">[];
   status: "CanLoadMore" | "LoadingFirstPage" | "LoadingMore" | "Exhausted";
-  loadMore: (numItems: number) => void;  
+  loadMore: (numItems: number) => void;
 }
 
 export default function PresupuestoTable({ data, status, loadMore }: PresupuestoTableProps) {
+  // Get project's default currency based on transaction history
+  const projectId = data.length > 0 ? data[0].proyecto : undefined;
+  const currencyInfo = useQuery(
+    api.currency_helpers.getProjectDefaultCurrency,
+    projectId ? { proyecto_id: projectId as Id<"desarrollos"> } : "skip"
+  );
+  const defaultCurrency = currencyInfo?.defaultCurrency || "MXN";
 
   // Transform flat partidas data into hierarchical structure based on nivel
   const hierarchicalData = useMemo(() => {
@@ -249,8 +249,6 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
 
   const flattenedData = flattenData(budgetData);
 
-
-
   return (
     <div className="space-y-4">
       <div className="bg-white border border-gray-200 overflow-hidden">
@@ -258,15 +256,15 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
           <TableHeader className="bg-white">
             <TableRow className="border-b border-gray-200">
 
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">                
-                {data[0].proyecto === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Unidad" : "Partida - Familia - Subpartida"}
-                
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                Partida - Familia - Subpartida
+
               </TableHead>
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                {data[0].proyecto === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Total Ventas" : "Presupuesto original"}
+                Presupuesto original
               </TableHead>
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                {data[0].proyecto === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Vendido" : "Presupuesto aprobado"}
+                Presupuesto aprobado
               </TableHead>
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Pagado
@@ -323,11 +321,11 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                    {formatCurrency(item.presupuestoOriginal)} MXN
+                    {formatCurrency(item.presupuestoOriginal, defaultCurrency)}
                   </TableCell>
                   <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                     <div className="flex flex-col gap-2 text-left">
-                      <span>{formatCurrency(item.presupuestoAprobado)} MXN</span>
+                      <span>{formatCurrency(item.presupuestoAprobado, defaultCurrency)}</span>
                       {!approvedDiff.isEqual && (
                         <Badge
                           className={cn(
@@ -337,14 +335,14 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                               : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
                           )}
                         >
-                          {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +${approvedDiff.formattedAmount} MXN
+                          {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +{formatCurrency(Math.abs(item.presupuestoAprobado - item.presupuestoOriginal), defaultCurrency)}
                         </Badge>
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                     <div className="flex flex-col gap-2 text-left">
-                      <span>{formatCurrency(item.pagado)} MXN</span>
+                      <span>{formatCurrency(item.pagado, defaultCurrency)}</span>
                       {!porGastarBadge.isEqual && (
                         <Badge
                           className={cn(
@@ -354,7 +352,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                               : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
                           )}
                         >
-                          {porGastarBadge.isRemaining ? 'Por ejercer' : 'Incremento'}: +${porGastarBadge.formattedAmount} MXN
+                          {porGastarBadge.isRemaining ? 'Por gastar' : 'Incremento'} - {formatCurrency(Math.abs(item.porGastar), defaultCurrency)}
                         </Badge>
                       )}
                     </div>

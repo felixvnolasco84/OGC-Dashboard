@@ -23,6 +23,7 @@ import {
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { Id } from "../../../convex/_generated/dataModel";
+import { formatCurrencyCompact } from "@/lib/utils";
 
 // Mock data for the presupuesto page
 const mockData = {
@@ -61,10 +62,6 @@ const mockData = {
   }
 };
 
-const formatNumber = (amount: number) => {
-  return new Intl.NumberFormat('es-MX').format(amount);
-};
-
 export default function PresupuestoPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
 
@@ -82,7 +79,12 @@ export default function PresupuestoPage() {
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
 
-
+  // Get project's default currency (efficient - uses cached field)
+  const currencyInfo = useQuery(
+    api.currency_helpers.getProjectDefaultCurrency,
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  );
+  const moneda = currencyInfo?.defaultCurrency || "MXN";
 
 
   // Fetch all partidas for selected project with pagination
@@ -144,9 +146,6 @@ export default function PresupuestoPage() {
   const avancePercentage = metrics && metrics.presupuesto_aprobado > 0
     ? Math.round((metrics.gasto_total / metrics.presupuesto_aprobado) * 100)
     : 0;
-  const pendientePercentage = metrics && metrics.presupuesto_aprobado > 0
-    ? Math.round((metrics.por_gastar / metrics.presupuesto_aprobado) * 100)
-    : 0;
 
 
   // Loading state
@@ -206,12 +205,10 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">{
-                  proyecto._id === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Total Ventas" : "Presupuesto Original"
-                }</p>
+                Presupuesto Original
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics?.presupuesto_original || 0))}
+                    {formatCurrencyCompact(metrics?.presupuesto_original || 0, moneda)}
                   </p>
                 </div>
               </div>
@@ -222,12 +219,10 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">{
-                  proyecto._id === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Vendido" : "Presupuesto aprobado"
-                }</p>
+                Presupuesto aprobado
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics?.presupuesto_aprobado || 0))}
+                    {formatCurrencyCompact(metrics?.presupuesto_aprobado || 0, moneda)}
                   </p>
                 </div>
                 <div className="text-lg text-gray-500">
@@ -243,12 +238,10 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">{
-                  proyecto._id === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "Pagado" : "Gasto total"
-                }</p>
+                <p className="text-sm text-gray-500">Pagado</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
-                    ${formatNumber(Math.round(metrics?.gasto_total || 0))}
+                    {formatCurrencyCompact(metrics?.gasto_total || 0, moneda)}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
@@ -258,26 +251,6 @@ export default function PresupuestoPage() {
             </CardContent>
           </Card>
 
-          {/* Por Gastar */}
-          {proyecto._id !== "jh7c61q0zx890z88wz52gejtxx7vcm66" && (
-          <Card className="bg-transparent shadow-none border-none px-12">
-            <CardContent className="pl-0 text-left">
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">{
-                  proyecto._id === "jh7c61q0zx890z88wz52gejtxx7vcm66" ? "" : "Por gastar"
-                }</p>
-                <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-gray-900">                    
-                    ${formatNumber(Math.round(metrics?.por_gastar || 0))}
-                  </p>
-                </div>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
-                  Pendiente {pendientePercentage}%
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-          )}
         </div>
 
         {/* Filters */}

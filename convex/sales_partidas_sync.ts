@@ -2,7 +2,7 @@
 import { mutation } from "./functions";
 import { v } from "convex/values";
 
-// Helper to calculate pagado for sales_partidas from sales_pagos
+// Helper to calculate pagado for sales_partidas from sales_pagos (only "Pagado" transactions)
 async function calculateSalesPagadoForPartidas(ctx: { db: any }, partidaIds: any[]): Promise<Map<string, number>> {
   const pagadoMap = new Map<string, number>();
   
@@ -16,11 +16,24 @@ async function calculateSalesPagadoForPartidas(ctx: { db: any }, partidaIds: any
     )
   );
   
-  // Sum up pagos for each partida
-  partidaIds.forEach((id, index) => {
-    const total = pagosArrays[index].reduce((sum: number, p: any) => sum + (p.monto || 0), 0);
-    pagadoMap.set(id, total);
-  });
+  // Sum up pagos for each partida, BUT only include those from "Pagado" transactions
+  for (let i = 0; i < partidaIds.length; i++) {
+    const partidaId = partidaIds[i];
+    const pagos = pagosArrays[i];
+    let total = 0;
+    
+    for (const pago of pagos) {
+      // Get the associated transaction to check status
+      const transaction = await ctx.db.get(pago.sales_transaccion_id);
+      
+      // Only count if transaction exists and status is "Pagado"
+      if (transaction && transaction.status === "Pagado") {
+        total += (pago.monto || 0);
+      }
+    }
+    
+    pagadoMap.set(partidaId, total);
+  }
   
   return pagadoMap;
 }

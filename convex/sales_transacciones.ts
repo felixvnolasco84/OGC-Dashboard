@@ -1,3 +1,4 @@
+import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 
@@ -46,5 +47,117 @@ export const createSalesTransaction = mutation({
         await Promise.all(pagoPromises);
 
         return transactionId;
+    },
+});
+
+
+// Get all transactions with project name, line items count, and documents count
+export const getAllWithDetails = query({
+    args: {},
+    handler: async (ctx) => {
+        const transactions = await ctx.db
+            .query("sales_transacciones")
+            .order("desc")
+            .collect();
+
+        // For each transaction, get related data
+        const transactionsWithDetails = await Promise.all(
+            transactions.map(async (transaction) => {
+                // Get project name
+                const proyecto = await ctx.db.get(transaction.sales_proyecto);
+
+                // Count line items
+                const lineItems = await ctx.db
+                    .query("sales_pagos")
+                    .withIndex("by_sales_transaccion", (q) =>
+                        q.eq("sales_transaccion_id", transaction._id)
+                    )
+                    .collect();
+
+                // Count documents
+                const documents = await ctx.db
+                    .query("documentos")
+                    .withIndex("by_sales_transaccion", (q) =>
+                        q.eq("sales_transaccion_id", transaction._id)
+                    )
+                    .collect();
+
+                return {
+                    ...transaction,
+                    proyectoNombre: proyecto?.nombre,
+                    lineItemsCount: lineItems.length,
+                    documentsCount: documents.length,
+                };
+            })
+        );
+
+        return transactionsWithDetails;
+    },
+});
+
+// Delete transaction and all its line items
+export const deleteTransaction = mutation({
+    args: {
+        id: v.id("sales_transacciones"),
+    },
+    handler: async (ctx, args) => {
+        const existingTransaction = await ctx.db.get(args.id);
+        if (!existingTransaction) {
+            throw new Error("Transaction not found");
+        }
+
+        // Delete all line items (pagos) associated with this transaction
+        const lineItems = await ctx.db
+            .query("sales_pagos")
+            .withIndex("by_sales_transaccion", (q) => q.eq("sales_transaccion_id", args.id))
+            .collect();
+
+        for (const item of lineItems) {
+            await ctx.db.delete(item._id);
+        }
+
+        // Delete associated documents
+        const documents = await ctx.db
+            .query("documentos")
+            .withIndex("by_sales_transaccion", (q) => q.eq("sales_transaccion_id", args.id))
+            .collect();
+
+        for (const doc of documents) {
+            await ctx.db.delete(doc._id);
+        }
+
+        // Delete the transaction
+        await ctx.db.delete(args.id);
+    },
+});
+
+
+export const getTransactionById = query({
+    args: {
+        id: v.id("sales_transacciones"),
+    },
+    handler: async (ctx, args) => {
+        const transaction = await ctx.db.get(args.id);
+        if (!transaction) {
+            return null;
+        }
+
+        // Get all line items for this transaction
+        const lineItems = await ctx.db
+            .query("sales_pagos")
+            .withIndex("by_sales_transaccion", (q) => q.eq("sales_transaccion_id", args.id))
+            .collect();
+
+        // Get associated documents
+        const documents = await ctx.db
+            .query("documentos")
+            .withIndex("by_sales_transaccion", (q) => q.eq("sales_transaccion_id", args.id))
+            .collect();
+
+        return {
+            ...transaction,
+            lineItems,
+            documents,
+        };
     },
 });

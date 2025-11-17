@@ -45,6 +45,7 @@ export default defineSchema({
     honorarios_porcentaje: v.optional(v.number()), // User-set percentage (e.g., 15 for 15%)
     honorarios_monto: v.optional(v.number()), // Auto-calculated amount based on percentage
     excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
+    moneda_principal: v.optional(v.string()), // Primary currency for project (MXN, USD, EUR) - auto-updated from transactions
   }),
   sales_projects: defineTable({
     nombre: v.string(),
@@ -54,6 +55,7 @@ export default defineSchema({
     fecha_creacion: v.optional(v.string()),
     comision_porcentaje: v.optional(v.number()), // Commission percentage for sales
     comision_monto: v.optional(v.number()), // Auto-calculated commission amount
+    moneda_principal: v.optional(v.string()), // Primary currency for sales project (MXN, USD, EUR) - auto-updated from transactions
   }),
   // Sales project line items (similar to partidas but for sales)
   sales_partidas: defineTable({

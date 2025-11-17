@@ -14,10 +14,12 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as chart_configurations from "../chart_configurations.js";
+import type * as currency_helpers from "../currency_helpers.js";
 import type * as desarrollos from "../desarrollos.js";
 import type * as documentos from "../documentos.js";
 import type * as functions from "../functions.js";
 import type * as meticas_presupuesto from "../meticas_presupuesto.js";
+import type * as migrations from "../migrations.js";
 import type * as pagos from "../pagos.js";
 import type * as partida from "../partida.js";
 import type * as permissions from "../permissions.js";
@@ -49,10 +51,12 @@ import type * as weekly_projected_totals from "../weekly_projected_totals.js";
  */
 declare const fullApi: ApiFromModules<{
   chart_configurations: typeof chart_configurations;
+  currency_helpers: typeof currency_helpers;
   desarrollos: typeof desarrollos;
   documentos: typeof documentos;
   functions: typeof functions;
   meticas_presupuesto: typeof meticas_presupuesto;
+  migrations: typeof migrations;
   pagos: typeof pagos;
   partida: typeof partida;
   permissions: typeof permissions;
