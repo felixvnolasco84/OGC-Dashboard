@@ -1,6 +1,7 @@
 import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
+import { syncSalesPartidasInternal } from "./sales_partidas_sync";
 
 // Create a new sales transaction with line items
 export const createSalesTransaction = mutation({
@@ -45,6 +46,9 @@ export const createSalesTransaction = mutation({
         );
 
         await Promise.all(pagoPromises);
+
+        // Sync partidas to update pagado and por_gastar fields
+        await syncSalesPartidasInternal(ctx, args.sales_proyecto);
 
         return transactionId;
     },
@@ -106,6 +110,9 @@ export const deleteTransaction = mutation({
             throw new Error("Transaction not found");
         }
 
+        // Store the project ID for sync later
+        const projectId = existingTransaction.sales_proyecto;
+
         // Delete all line items (pagos) associated with this transaction
         const lineItems = await ctx.db
             .query("sales_pagos")
@@ -128,6 +135,9 @@ export const deleteTransaction = mutation({
 
         // Delete the transaction
         await ctx.db.delete(args.id);
+
+        // Sync partidas to update pagado and por_gastar fields
+        await syncSalesPartidasInternal(ctx, projectId);
     },
 });
 

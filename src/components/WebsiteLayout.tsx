@@ -15,13 +15,12 @@ function WebsiteLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StoreUserEffect />
-      <div className="flex h-screen bg-white">
+      <div className="flex h-screen bg-white overflow-x-hidden">
         <Sidebar />
-        <div className="flex-1 ml-64 flex flex-col ">
-          <main className="flex-1 overflow-auto">
-            <Outlet />
-          </main>
-        </div>
+        <main className="flex-1 ml-64 h-screen overflow-auto">
+          <Outlet />
+        </main>
+
         <ModalProvider />
         <Toaster />
       </div>

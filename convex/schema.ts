@@ -70,7 +70,8 @@ export default defineSchema({
     presupuesto_original: v.number(),
     presupuesto_aprobado: v.number(),
     pagado: v.number(),    
-    por_gastar: v.optional(v.number()),    
+    por_gastar: v.optional(v.number()),
+    avance: v.optional(v.number()), // Progress percentage (pagado / presupuesto_aprobado * 100)
     archivo_origen: v.string(),
     sales_proyecto: v.optional(v.id("sales_projects")),
   }).index("by_sales_proyecto", { fields: ["sales_proyecto"] })

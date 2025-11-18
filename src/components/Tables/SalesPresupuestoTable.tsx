@@ -407,10 +407,10 @@ export default function SalesPresupuestoTable() {
         </div>
 
         {/* Main Metrics */}
-        <div className="flex lg:flex-row gap-6 mb-8 px-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4 gap-12 mb-8 px-12">
           {/* Total Ventas */}
           <Card className="bg-transparent shadow-none border-none">
-            <CardContent className="pl-0 text-left">
+            <CardContent className="p-0 text-left">
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">Total Ventas</p>
                 <div className="flex items-baseline space-x-2">
@@ -423,8 +423,8 @@ export default function SalesPresupuestoTable() {
           </Card>
 
           {/* Venido */}
-          <Card className="bg-transparent shadow-none border-none px-12">
-            <CardContent className="pl-0 text-left">
+          <Card className="bg-transparent shadow-none border-none">
+            <CardContent className="p-0 text-left">
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">Vendido</p>
                 <div className="flex items-baseline space-x-2">
@@ -442,8 +442,8 @@ export default function SalesPresupuestoTable() {
           </Card>
 
           {/* Pagado */}
-          <Card className="bg-transparent shadow-none border-none px-12">
-            <CardContent className="pl-0 text-left">
+          <Card className="bg-transparent shadow-none border-none">
+            <CardContent className="p-0 text-left">
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">Pagado</p>
                 <div className="flex items-baseline space-x-2">
@@ -459,10 +459,10 @@ export default function SalesPresupuestoTable() {
           </Card>
 
           {/* Por Vender */}
-          <Card className="bg-transparent shadow-none border-none px-12">
-            <CardContent className="pl-0 text-left">
+          <Card className="bg-transparent shadow-none border-none">
+            <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Por Vender</p>
+                <p className="text-sm text-gray-500">Por Pagar</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
                     {formatCurrencyCompact(Math.round(metrics.porGastar), defaultCurrency)}
