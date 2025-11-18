@@ -22,6 +22,9 @@ import EditSalesProjectModal from "../modals/edit-sales-project-modal";
 import UploadSalesProjectTransactionsModal from "../modals/upload-sales-project-transactions-modal";
 import UploadSalesProyectoDocumentsModal from "../modals/upload-sales-proyecto-documents-modal";
 import SaleTransactionDetailsModal from "../modals/sale-transaction-details-modal";
+import SaleTransactionConceptosModal from "../modals/sale-transaction-conceptos-modal";
+import SaleTransactionDocumentosModal from "../modals/sale-transaction-documentos-modal";
+import SeeSalesTransactionsDetailsModal from "../modals/see-sales-transactions-details-modal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -36,6 +39,7 @@ export const ModalProvider = () => {
 
   return <>
     <SeeTransactionsDetailsModal />
+    <SeeSalesTransactionsDetailsModal />
     <AddPaymentModal />
     <EditPaymentModal />
     <AggregatedDetailsModal />
@@ -43,6 +47,8 @@ export const ModalProvider = () => {
     <UploadTransactionsModal />
     <TransactionDetailsModal />
     <SaleTransactionDetailsModal />
+    <SaleTransactionConceptosModal />
+    <SaleTransactionDocumentosModal />
     <TransactionConceptosModal />
     <TransactionDocumentosModal />
     <UploadDocumentsModal />
