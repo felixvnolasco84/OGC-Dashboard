@@ -68,10 +68,20 @@ export function formatCurrency(amount: number, currency: string = "MXN") {
 }
 
 export function formatCurrencyCompact(amount: number, currency: string = "MXN") {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+
+  if (currency === "USD") {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } else {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  }
 }

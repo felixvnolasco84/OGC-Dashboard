@@ -31,6 +31,7 @@ import { useParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
+import DropdownMenuComponentSalesPartida from "../DropdownMenu/DropdownMenuComponentSalesPartida";
 
 // Hierarchical structure helper types
 type SalesPartidaRow = Omit<Partial<Doc<"sales_partidas">>, 'pagado' | 'total' | 'aprobado'> & {
@@ -433,7 +434,7 @@ export default function SalesPresupuestoTable() {
                 </div>
                 <div className="text-lg text-gray-500">
                   <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
-                    {presupuestoReduction < 0 ? 'Reducción' : 'Aumento'} {Math.abs(presupuestoReduction)}%
+                    {presupuestoReduction < 0 ? 'Avance' : 'Aumento'} {Math.abs(presupuestoReduction)}%
                   </Badge>
                 </div>
               </div>
@@ -450,7 +451,7 @@ export default function SalesPresupuestoTable() {
                     {formatCurrencyCompact(Math.round(metrics.pagado), defaultCurrency)}
                   </p>
                 </div>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
                   Avance {avancePercentage}%
                 </Badge>
               </div>
@@ -467,7 +468,7 @@ export default function SalesPresupuestoTable() {
                     {formatCurrencyCompact(Math.round(metrics.porGastar), defaultCurrency)}
                   </p>
                 </div>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
                   Pendiente {pendientePercentage}%
                 </Badge>
               </div>
@@ -713,6 +714,9 @@ export default function SalesPresupuestoTable() {
                 <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                   Fecha fin
                 </TableHead>
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                  
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -762,11 +766,11 @@ export default function SalesPresupuestoTable() {
                             className={cn(
                               "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
                               approvedDiff.isSavings
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-400'
+                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-400'
                                 : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
                             )}
                           >
-                            {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +{formatCurrencyCompact(Math.abs(item.presupuestoAprobado - item.presupuestoOriginal), defaultCurrency)}
+                            {approvedDiff.isSavings ? 'Por vender' : 'Sobre vendido'}: +{formatCurrencyCompact(Math.abs(item.presupuestoAprobado - item.presupuestoOriginal), defaultCurrency)}
                           </Badge>
                         )}
                       </div>
@@ -783,7 +787,7 @@ export default function SalesPresupuestoTable() {
                                 : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
                             )}
                           >
-                            {porGastarBadge.isRemaining ? 'Por gastar' : 'Incremento'} - {formatCurrencyCompact(Math.abs(item.porGastar), defaultCurrency)}
+                            {porGastarBadge.isRemaining ? 'Por pagar' : 'Sobre pagado'} - {formatCurrencyCompact(Math.abs(item.porGastar), defaultCurrency)}
                           </Badge>
                         )}
                       </div>
@@ -796,6 +800,13 @@ export default function SalesPresupuestoTable() {
                     </TableCell>
                     <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
                       {item.fechaFin || '-'}
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                      <DropdownMenuComponentSalesPartida
+                        partida={item.originalDoc!}
+                        level={item.level}
+                        rowData={item}
+                      />
                     </TableCell>
                   </TableRow>
                 );

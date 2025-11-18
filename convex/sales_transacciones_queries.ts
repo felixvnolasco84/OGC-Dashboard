@@ -1,6 +1,41 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// Get all sales transactions with details
+export const getAllWithDetails = query({
+  args: {},
+  handler: async (ctx) => {
+    const transacciones = await ctx.db
+      .query("sales_transacciones")
+      .collect();
+
+    // For each transaction, get its line items (pagos) and count documents
+    const transaccionesWithDetails = await Promise.all(
+      transacciones.map(async (transaccion) => {
+        // Get line items (pagos)
+        const lineItems = await ctx.db
+          .query("sales_pagos")
+          .withIndex("by_sales_transaccion", (q) => q.eq("sales_transaccion_id", transaccion._id))
+          .collect();
+
+        // Get documents count
+        const documentos = await ctx.db
+          .query("documentos")
+          .withIndex("by_sales_transaccion", (q) => q.eq("sales_transaccion_id", transaccion._id))
+          .collect();
+
+        return {
+          ...transaccion,
+          conceptosCount: lineItems.length,
+          documentosCount: documentos.length,
+        };
+      })
+    );
+
+    return transaccionesWithDetails;
+  },
+});
+
 // Get transactions by sales project (without details)
 export const getBySalesProyecto = query({
   args: { sales_proyecto_id: v.id("sales_projects") },

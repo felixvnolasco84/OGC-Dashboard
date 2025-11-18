@@ -17,10 +17,11 @@ interface ChartDataPoint {
 
 interface ProgressChartProps {
     data: ChartDataPoint[];
-    proyectoId?: Id<"desarrollos">;
+    proyectoId?: Id<"desarrollos"> | Id<"sales_projects">;
     height?: number;
     selectedPeriodo?: string; // "Diario", "Semanal", "Mensual"
     selectedRangoFecha?: string; // "Ultimos 7 dias", "Ultimos 30 dias", etc.
+    isSalesProject?: boolean; // Flag to indicate if this is a sales project
 }
 
 // Data structure that matches react-charts expected format
@@ -39,21 +40,22 @@ export default function ProgressChart({
     proyectoId,
     height = 320,
     selectedPeriodo = "Diario",
-    selectedRangoFecha = "Ultimos 30 dias"
+    selectedRangoFecha = "Ultimos 30 dias",
+    isSalesProject = false
 }: ProgressChartProps) {
 
     console.log(data)
 
-    // Query weekly projected totals if proyectoId is provided
+    // Query weekly projected totals if proyectoId is provided (only for regular projects)
     const projectedData = useQuery(
         api.weekly_projected_totals.getCumulativeTotals,
-        proyectoId ? { proyecto: proyectoId } : "skip"
+        proyectoId && !isSalesProject ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
     );
 
-    // Query weekly avance real data
+    // Query weekly avance real data (only for regular projects)
     const weeklyAvanceData = useQuery(
         api.weekly_avance_real.getByProyecto,
-        proyectoId ? { proyecto: proyectoId } : "skip"
+        proyectoId && !isSalesProject ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
     );
 
     // Query project info for modal

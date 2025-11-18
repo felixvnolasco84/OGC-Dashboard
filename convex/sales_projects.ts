@@ -45,7 +45,7 @@ export const create = mutation({
         comision_porcentaje: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
-        const project = await ctx.db.insert("sales_projects", {
+        const projectId = await ctx.db.insert("sales_projects", {
             nombre: args.nombre,
             descripcion: args.descripcion,
             image: args.image,
@@ -58,7 +58,17 @@ export const create = mutation({
             comision_porcentaje: args.comision_porcentaje || 0,
             comision_monto: 0, // Initial value
         });
-        return project;
+
+        // Automatically create sales_meticas_presupuesto record with initial values
+        await ctx.db.insert("sales_meticas_presupuesto", {
+            sales_proyecto: projectId,
+            presupuesto_original: 0,
+            presupuesto_aprobado: 0,
+            gasto_total: 0,
+            por_gastar: 0,
+        });
+
+        return projectId;
     },
 });
 
@@ -93,6 +103,16 @@ export const deleteProject = rawMutation({
         const project = await ctx.db.get(args.id);
         if (!project) {
             throw new Error("Sales project not found");
+        }
+
+        // Delete associated sales_meticas_presupuesto record
+        const metricsRecord = await ctx.db
+            .query("sales_meticas_presupuesto")
+            .withIndex("by_sales_proyecto", (q) => q.eq("sales_proyecto", args.id))
+            .first();
+        
+        if (metricsRecord) {
+            await ctx.db.delete(metricsRecord._id);
         }
 
         // Delete the sales project

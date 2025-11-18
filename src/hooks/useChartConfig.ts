@@ -13,7 +13,7 @@ export interface ChartConfig {
 }
 
 interface UseChartConfigOptions {
-  proyectoId: Id<"desarrollos">;
+  proyectoId: Id<"desarrollos"> | Id<"sales_projects">;
   chartId: string;
   defaultConfig: ChartConfig;
 }
@@ -55,10 +55,10 @@ interface UseChartConfigOptions {
  * });
  */
 export function useChartConfig({ proyectoId, chartId, defaultConfig }: UseChartConfigOptions) {
-  // Fetch saved configuration
+  // Fetch saved configuration (only when proyectoId is available)
   const savedConfig = useQuery(
     api.chart_configurations.getChartConfig,
-    { proyecto_id: proyectoId, chart_id: chartId }
+    proyectoId ? { proyecto_id: proyectoId, chart_id: chartId } : "skip"
   );
 
   // Mutations
@@ -142,11 +142,11 @@ export function useChartConfig({ proyectoId, chartId, defaultConfig }: UseChartC
  *   { chartId: "chart-2", title: "Title 2", color: "#000", ... }
  * ]);
  */
-export function useMultipleChartConfigs(proyectoId: Id<"desarrollos">) {
-  // Fetch all configs for this project
+export function useMultipleChartConfigs(proyectoId: Id<"desarrollos"> | Id<"sales_projects">) {
+  // Fetch all configs for this project (only when proyectoId is available)
   const allConfigs = useQuery(
     api.chart_configurations.getUserChartConfigs,
-    { proyecto_id: proyectoId }
+    proyectoId ? { proyecto_id: proyectoId } : "skip"
   );
 
   // Mutation for bulk save
@@ -165,6 +165,10 @@ export function useMultipleChartConfigs(proyectoId: Id<"desarrollos">) {
         sub_partidas?: string[];
       }>
     ) => {
+      if (!proyectoId) {
+        return { success: false, error: new Error("Project ID is required") };
+      }
+      
       try {
         await saveMultipleMutation({
           proyecto_id: proyectoId,

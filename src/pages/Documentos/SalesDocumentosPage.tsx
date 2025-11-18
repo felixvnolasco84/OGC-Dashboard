@@ -1,15 +1,23 @@
 import { useState } from "react";
-import { useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  FileText, Search, Upload, Download, ExternalLink, Trash2
+  FileText, Search,
+  //  Trash2, Download,
+  Plus, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { Id } from "../../../convex/_generated/dataModel";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,36 +28,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useUploadProyectoDocumentsModal } from "@/hooks/upload-proyecto-documents-modal";
+import { useUploadSalesDocumentsModal } from "@/hooks/upload-sales-documents-modal";
 
-export default function ProyectoDocumentosPage() {
-  const { salesProyectoId } = useParams<{ salesProyectoId: string }>();
+export default function SalesDocumentosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<Id<"documentos"> | null>(null);
+  const [selectedProyecto, setSelectedProyecto] = useState<Id<"sales_projects"> | "">("");
 
-  // Fetch project
-  const proyecto = useQuery(api.desarrollos.getById, salesProyectoId ? { id: salesProyectoId as Id<"desarrollos"> } : "skip");
-
-  // Fetch documents for this specific project
-  const documentos = useQuery(api.documentos.getByProyecto, salesProyectoId ? { proyecto_id: salesProyectoId as Id<"desarrollos"> } : "skip");
-
-  // Fetch transactions for this project (to get transaction details)
-  const transacciones = useQuery(api.transacciones.getByProyecto, salesProyectoId ? { proyecto_id: salesProyectoId as Id<"desarrollos"> } : "skip");
+  // Queries
+  const proyectos = useQuery(api.sales_projects.getAll);
+  const documentos = useQuery(api.sales_documentos.getAll);
+  const transacciones = useQuery(api.sales_transacciones_queries.getAllWithDetails);
 
   // Mutations
-  const deleteDocumentMutation = useMutation(api.documentos.deleteDocument);
+  const deleteDocumentMutation = useMutation(api.sales_documentos.deleteDocument);
 
   // Filter documents
   const filteredDocumentos = documentos?.filter(doc => {
     const matchesSearch = doc.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.type.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch;
+    const matchesProyecto = !selectedProyecto || doc.sales_proyecto === selectedProyecto;
+
+    return matchesSearch && matchesProyecto;
   });
 
   // Get transaction details for a document
-  const getTransactionForDoc = (transaccionId: Id<"transacciones">) => {
+  const getTransactionForDoc = (transaccionId: Id<"sales_transacciones"> | undefined) => {
+    if (!transaccionId) return undefined;
     return transacciones?.find(tx => tx._id === transaccionId);
   };
 
@@ -83,8 +90,9 @@ export default function ProyectoDocumentosPage() {
       const doc = documentos?.find(d => d._id === documentToDelete);
       if (!doc) return;
 
-      // Delete from Convex database
+      // 1. Delete from Convex database
       await deleteDocumentMutation({ id: documentToDelete });
+
 
       toast.success("Documento eliminado", {
         description: "El documento se eliminó correctamente.",
@@ -100,35 +108,18 @@ export default function ProyectoDocumentosPage() {
     }
   };
 
-  const uploadModal = useUploadProyectoDocumentsModal();
+  // const openDeleteDialog = (documentId: Id<"documentos">) => {
+  //   setDocumentToDelete(documentId);
+  //   setDeleteDialogOpen(true);
+  // };
+
+  const uploadModal = useUploadSalesDocumentsModal();
 
   const handleUploadClick = () => {
-    // Open modal with proyectoId from URL
-    if (salesProyectoId) {
-      uploadModal.onOpen(salesProyectoId as Id<"desarrollos">);
-    }
+    // Open modal and let user select sales project and sales transaction
+    uploadModal.onOpen();
   };
 
-  const handleView = (fileUrl: string) => {
-    window.open(fileUrl, '_blank');
-  };
-
-  const handleDownload = (fileUrl: string) => {
-    window.open(fileUrl, '_blank');
-  };
-
-  const openDeleteDialog = (documentId: Id<"documentos">) => {
-    setDocumentToDelete(documentId);
-    setDeleteDialogOpen(true);
-  };
-
-  if (!proyecto) {
-    return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Cargando...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white min-h-screen">
@@ -136,32 +127,66 @@ export default function ProyectoDocumentosPage() {
         <div className="flex flex-col gap-4 px-12">
           <div className="mb-8 flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Documentos</p>
-              <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
+              <h1 className="text-3xl font-normal text-gray-900 mb-2">Documentos de Ventas</h1>
+              <p className="text-sm text-gray-500">
+                Gestiona los documentos asociados a las transacciones de ventas
+              </p>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleUploadClick}>
-                <Upload className="mr-2 h-4 w-4" />
-                Subir Documentos
-              </Button>
-              <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
-                <span className="text-sm font-normal">
-                  Total: {documentos?.length || 0}
-                </span>
-              </Badge>
-            </div>
+            <Button onClick={handleUploadClick}>
+              <Upload className="mr-2 h-4 w-4" />
+              Subir Documentos
+            </Button>
+            <Button
+              onClick={() => toast.info("Funcionalidad de agregar documento próximamente")}
+              variant="outline"
+              size="lg"
+              className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+            >
+              Agregar Documento
+              <Plus className="h-6 w-6 rounded-full shadow-none" />
+            </Button>
           </div>
 
-          {/* Search Bar */}
-          <div className="mb-8 relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              type="text"
-              placeholder="Buscar por nombre o tipo de documento..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 rounded-none border-gray-300 h-12"
-            />
+          {/* Search and Filter */}
+          <div className="mb-8 grid grid-cols-2 gap-4">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                type="text"
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-12 rounded-none border-gray-300 h-12"
+              />
+            </div>
+
+            {/* Project Filter */}
+            <Select
+              value={selectedProyecto || undefined}
+              onValueChange={(value) => {
+                if (value === "clear") {
+                  setSelectedProyecto("");
+                } else {
+                  setSelectedProyecto(value as Id<"sales_projects">);
+                }
+              }}
+            >
+              <SelectTrigger className="rounded-none h-12">
+                <SelectValue placeholder="Todos los proyectos de ventas" />
+              </SelectTrigger>
+              <SelectContent>
+                {selectedProyecto && (
+                  <SelectItem value="clear">
+                    <span className="text-gray-500">Limpiar filtro</span>
+                  </SelectItem>
+                )}
+                {proyectos?.map((proyecto) => (
+                  <SelectItem key={proyecto._id} value={proyecto._id}>
+                    {proyecto.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -174,7 +199,7 @@ export default function ProyectoDocumentosPage() {
                   Documento
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Proveedor
+                  Cliente
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
                   Tipo
@@ -182,7 +207,7 @@ export default function ProyectoDocumentosPage() {
                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
                   Transacción
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">Acciones</th>
+                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -195,12 +220,12 @@ export default function ProyectoDocumentosPage() {
               ) : filteredDocumentos && filteredDocumentos.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    No se encontraron documentos en este proyecto
+                    No se encontraron documentos
                   </td>
                 </tr>
               ) : (
                 filteredDocumentos?.map((doc) => {
-                  const transaction = getTransactionForDoc(doc.transaccion_id!);
+                  const transaction = getTransactionForDoc(doc.sales_transaccion_id);
                   return (
                     <tr
                       key={doc._id}
@@ -220,7 +245,7 @@ export default function ProyectoDocumentosPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                        {transaction?.banco || "-"}
+                        {transaction?.nombre_cliente || "-"}
                       </td>
                       <td className="px-6 py-4 border-r border-gray-200">
                         <Badge
@@ -236,37 +261,29 @@ export default function ProyectoDocumentosPage() {
                         {transaction?.factura || transaction?.codigo_referencia || "-"}
                       </td>
                       <td className="px-6 py-4 border-r border-gray-200">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleView(doc.image!)}
-                            className="h-8 px-2 text-gray-600 hover:text-gray-900"
-                            disabled={!doc.image}
-                            title="Ver documento"
+                        {/* <div className="flex items-center gap-2">
+                          {
+                            doc.image ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                            onClick={() => window.open(getFileUrl(doc.image), "_blank")}
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            <Download className="h-4 w-4 text-gray-400" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDownload(doc.image!)}
-                            className="h-8 px-2 text-gray-600 hover:text-gray-900"
-                            disabled={!doc.image}
-                            title="Descargar documento"
-                          >
-                            <Download className="h-4 w-4" />
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => openDeleteDialog(doc._id)}
+                              >
+                            <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-600" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDeleteDialog(doc._id)}
-                            className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            title="Eliminar documento"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                            )
+                          }
+                        </div> */}
                       </td>
                     </tr>
                   );

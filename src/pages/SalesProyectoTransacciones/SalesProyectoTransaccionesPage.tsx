@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +21,15 @@ import { toast } from "sonner";
 import { Popover } from "@radix-ui/react-popover";
 import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUploadSalesProjectTransactionsModal } from "@/hooks/upload-sales-project-transactions-modal";
+import { useSaleTransactionDetailsModal } from "@/hooks/sale-transaction-details-modal";
+import { useSaleTransactionConceptosModal } from "@/hooks/sale-transaction-conceptos-modal";
+import { useSaleTransactionDocumentosModal } from "@/hooks/sale-transaction-documentos-modal";
 
 export default function SalesProyectoTransaccionesPage() {
     const uploadSalesProjectTransactionsModal = useUploadSalesProjectTransactionsModal();
+    const detailsModal = useSaleTransactionDetailsModal();
+    const conceptosModal = useSaleTransactionConceptosModal();
+    const documentosModal = useSaleTransactionDocumentosModal();
     
     const { salesProyectoId } = useParams<{ salesProyectoId: string }>();
     const [searchTerm, setSearchTerm] = useState("");
@@ -38,6 +44,7 @@ export default function SalesProyectoTransaccionesPage() {
     const transacciones = useQuery(api.sales_transacciones_queries.getBySalesProyectoWithDetails, salesProyectoId ? { sales_proyecto_id: salesProyectoId as Id<"sales_projects"> } : "skip");
 
     // const deleteTransaction = useMutation(api.sales_transacciones.deleteTransaction);
+    const syncSalesTransactionsWithDocuments = useMutation(api.sync.syncSalesTransactionsWithDocuments);
 
     const filteredTransacciones = transacciones?.filter((transaccion) =>
         transaccion.factura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,10 +145,44 @@ export default function SalesProyectoTransaccionesPage() {
         if (!salesProyectoId) return;
 
         setIsSyncing(true);
-        toast.info("Sincronizando...", {
-            description: "Esta funcionalidad estará disponible próximamente para proyectos de ventas.",
-        });
-        setIsSyncing(false);
+        try {
+            const result = await syncSalesTransactionsWithDocuments({
+                sales_proyecto_id: salesProyectoId as Id<"sales_projects">,
+            });
+
+            if (result.success) {
+                const { summary } = result;
+                toast.success("Sincronización completada", {
+                    description: `${summary.matched} documentos vinculados, ${summary.alreadyLinked} ya estaban vinculados, ${summary.unmatched} sin coincidencias.`,
+                    duration: 5000,
+                });
+
+                // Show detailed info if there are unmatched documents
+                if (summary.unmatched > 0) {
+                    const unmatchedDocs = result.details
+                        .filter(d => d.action === "no_match")
+                        .slice(0, 5)
+                        .map(d => d.documentoNombre)
+                        .join(", ");
+
+                    toast.info("Documentos sin coincidencias", {
+                        description: `${unmatchedDocs}${summary.unmatched > 5 ? ` y ${summary.unmatched - 5} más...` : ""}`,
+                        duration: 5000,
+                    });
+                }
+            } else {
+                toast.error("Error en la sincronización", {
+                    description: "No se pudieron sincronizar los documentos.",
+                });
+            }
+        } catch (error) {
+            console.error("Error syncing:", error);
+            toast.error("Error al sincronizar", {
+                description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
+            });
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
     if (!salesProyecto) {
@@ -354,14 +395,15 @@ export default function SalesProyectoTransaccionesPage() {
                                                         <MoreVertical className="h-4 w-4 text-gray-400" />
                                                     </Button>
                                                 </PopoverTrigger>
+                                                {/* button actions */}
                                                 <PopoverContent className="flex flex-col space-y-1" align="end">
-                                                    <Button variant={"ghost"} onClick={() => toast.info("Próximamente", { description: "La vista de detalles estará disponible pronto." })}>
+                                                    <Button variant={"ghost"} onClick={() => detailsModal.onOpen(transaccion._id)}>
                                                         Ver detalles
                                                     </Button>
-                                                    <Button variant={"ghost"} onClick={() => toast.info("Próximamente", { description: "La vista de conceptos estará disponible pronto." })}>
+                                                    <Button variant={"ghost"} onClick={() => conceptosModal.onOpen(transaccion._id)}>
                                                         Ver conceptos
                                                     </Button>
-                                                    <Button variant={"ghost"} onClick={() => toast.info("Próximamente", { description: "La vista de documentos estará disponible pronto." })}>
+                                                    <Button variant={"ghost"} onClick={() => documentosModal.onOpen(transaccion._id)}>
                                                         Ver documentos
                                                     </Button>
                                                     <Button variant={"ghost"} className="text-red-600" onClick={() => openDeleteDialog(transaccion._id)}>

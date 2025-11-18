@@ -254,7 +254,7 @@ export default defineSchema({
   // Chart configurations per user (for FamiliaChart and other customizable charts)
   chart_configurations: defineTable({
     user_id: v.id("users"), // User who owns this configuration
-    proyecto_id: v.id("desarrollos"), // Project this chart belongs to
+    proyecto_id: v.union(v.id("desarrollos"), v.id("sales_projects")), // Project this chart belongs to (regular or sales)
     chart_id: v.string(), // Unique identifier for chart instance (e.g., "familia-chart-1")
     title: v.string(), // Chart title
     color: v.string(), // Chart color (hex code)

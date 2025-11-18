@@ -15,10 +15,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 // import { Button } from "@/components/ui/button";
 import ProgressChart from "@/components/Charts/ProgressChart";
-// import FamiliaChart from "@/components/Charts/FamiliaChart";
-// import { DashboardTable } from "../Dashboard/DashboardTable";
-// import ChartConfigModal from "@/components/Charts/ChartConfigModal";
-// import { useChartConfig } from "@/hooks/useChartConfig";
+import FamiliaChart from "@/components/Charts/FamiliaChart";
+import { DashboardTable } from "../Dashboard/DashboardTable";
+import ChartConfigModal from "@/components/Charts/ChartConfigModal";
+import { useChartConfig } from "@/hooks/useChartConfig";
 // import { Plus } from "lucide-react";
 // import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 
@@ -40,37 +40,40 @@ const formatNumber = (amount: number) => {
 
 
 export default function ControlSalePage() {
-    const { proyectoId } = useParams<{ proyectoId: string }>();
+    const { salesProyectoId } = useParams<{ salesProyectoId: string }>();
+    const proyectoId = salesProyectoId;
+
+    console.log(proyectoId)
 
     // Progress chart filters    
     const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");
     const [selectedRangoFecha, setSelectedRangoFecha] = useState("Todo el tiempo");
 
     // Modal state
-    // const [activeChartId, setActiveChartId] = useState<string | null>(null);
+    const [activeChartId, setActiveChartId] = useState<string | null>(null);
 
     // Persistent chart configurations
-    // const chart1Config = useChartConfig({
-    //     proyectoId: proyectoId as Id<"sales_proyectos">,
-    //     chartId: "control-chart-1",
-    //     defaultConfig: {
-    //         title: "Gasto Mano de Obra",
-    //         color: "#3B82F6",
-    //         height: 300,
-    //         familias: [],
-    //     },
-    // });
+    const chart1Config = useChartConfig({
+        proyectoId: proyectoId as Id<"sales_projects">,
+        chartId: "sales-control-chart-1",
+        defaultConfig: {
+            title: "Ventas por Categoria",
+            color: "#3B82F6",
+            height: 300,
+            familias: [],
+        },
+    });
 
-    // const chart2Config = useChartConfig({
-    //     proyectoId: proyectoId as Id<"sales_proyectos">,
-    //     chartId: "control-chart-2",
-    //     defaultConfig: {
-    //         title: "Indirectos",
-    //         color: "#10B981",
-    //         height: 300,
-    //         familias: [],
-    //     },
-    // });
+    const chart2Config = useChartConfig({
+        proyectoId: proyectoId as Id<"sales_projects">,
+        chartId: "sales-control-chart-2",
+        defaultConfig: {
+            title: "Pagos Recibidos",
+            color: "#10B981",
+            height: 300,
+            familias: [],
+        },
+    });
 
     // Add partida modal
     // const addPartidaModal = useAddPartidaModal();
@@ -94,65 +97,69 @@ export default function ControlSalePage() {
 
     // Fetch progress chart data
     const progressChartData = useQuery(
-        api.transacciones.getProgressChartData,
-        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+        api.sales_transacciones.getProgressChartData,
+        proyectoId ? { proyecto_id: proyectoId as Id<"sales_projects"> } : "skip"
     );
 
-    // // Fetch data for chart 1 based on its persisted configuration
-    // const chart1Data = useQuery(
-    //     api.transacciones.getFamiliaChartData,
-    //     proyectoId && !chart1Config.isLoading
-    //         ? {
-    //             proyecto_id: proyectoId as Id<"desarrollos">,
-    //             partidas: chart1Config.config.partidas,
-    //             familias: chart1Config.config.familias,
-    //             sub_partidas: chart1Config.config.sub_partidas,
-    //         }
-    //         : "skip"
-    // );
+    // Fetch data for chart 1 based on its persisted configuration
+    const chart1Data = useQuery(
+        api.sales_transacciones.getFamiliaChartData,
+        proyectoId && !chart1Config.isLoading
+            ? {
+                proyecto_id: proyectoId as Id<"sales_projects">,
+                partidas: chart1Config.config.partidas,
+                familias: chart1Config.config.familias,
+                sub_partidas: chart1Config.config.sub_partidas,
+            }
+            : "skip"
+    );
 
 
-    // // Fetch data for chart 2 based on its persisted configuration
-    // const chart2Data = useQuery(
-    //     api.transacciones.getFamiliaChartData,
-    //     proyectoId && !chart2Config.isLoading
-    //         ? {
-    //             proyecto_id: proyectoId as Id<"desarrollos">,
-    //             partidas: chart2Config.config.partidas,
-    //             familias: chart2Config.config.familias,
-    //             sub_partidas: chart2Config.config.sub_partidas,
-    //         }
-    //         : "skip"
-    // );
+    // Fetch data for chart 2 based on its persisted configuration
+    const chart2Data = useQuery(
+        api.sales_transacciones.getFamiliaChartData,
+        proyectoId && !chart2Config.isLoading
+            ? {
+                proyecto_id: proyectoId as Id<"sales_projects">,
+                partidas: chart2Config.config.partidas,
+                familias: chart2Config.config.familias,
+                sub_partidas: chart2Config.config.sub_partidas,
+            }
+            : "skip"
+    );
 
     // Fetch filtered metrics based on selected date range
     const filteredMetrics = useQuery(
-        api.meticas_presupuesto.getFilteredMetrics,
+        api.sales_meticas_presupuesto.getFilteredMetrics,
         proyectoId
             ? {
-                proyecto_id: proyectoId as Id<"desarrollos">,
+                proyecto_id: proyectoId as Id<"sales_projects">,
                 rango_fechas: selectedRangoFecha,
             }
             : "skip"
     );
 
-    // // Get current chart config for modal
-    // const getActiveChartConfig = () => {
-    //     if (activeChartId === "control-chart-1") return chart1Config;
-    //     if (activeChartId === "control-chart-2") return chart2Config;
-    //     return null;
-    // };
+    // Get current chart config for modal
+    const getActiveChartConfig = () => {
+        if (activeChartId === "sales-control-chart-1") return chart1Config;
+        if (activeChartId === "sales-control-chart-2") return chart2Config;
+        return null;
+    };
 
-    // const activeConfig = getActiveChartConfig();
+    const activeConfig = getActiveChartConfig();
 
     // Use filtered metrics from query instead of calculating locally
     const secondaryMetrics = {
         gasto: filteredMetrics?.gasto || 0,
         porVencer: filteredMetrics?.por_ejercer || 0,
-        honorarios: filteredMetrics?.honorarios || 0
+        comision: filteredMetrics?.comision || 0
     };
 
+    
 
+
+    console.log("proyecto", proyecto)
+    console.log("budgetMetrics", budgetMetrics)
 
     if (!proyecto || !budgetMetrics) {
         return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
@@ -306,8 +313,8 @@ export default function ControlSalePage() {
                                             <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-[#5A5A50]">Honorarios</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.honorarios))}</p>
+                                            <p className="text-xs text-gray-[#5A5A50]">Comisión</p>
+                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.comision))}</p>
                                         </div>
                                     </div>
 
@@ -333,9 +340,10 @@ export default function ControlSalePage() {
                                     {(
                                         <ProgressChart
                                             data={progressChartData || []}
-                                            proyectoId={proyectoId as Id<"desarrollos">}
+                                            proyectoId={proyectoId as Id<"sales_projects">}
                                             selectedPeriodo={selectedPeriodo}
                                             selectedRangoFecha={selectedRangoFecha}
+                                            isSalesProject={true}
                                         />
                                     )}
                                 </div>
@@ -345,25 +353,67 @@ export default function ControlSalePage() {
 
                     </div>
 
+                    {/* Familia Charts - Configurable charts with persistent user settings */}
+                    <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                        {/* Chart 1 - Ventas por Categoria */}
+                        {chart1Config.isLoading ? (
+                            <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500">Cargando configuración...</p>
+                            </div>
+                        ) : (
+                            <FamiliaChart
+                                chartId="sales-control-chart-1"
+                                data={chart1Data?.dataPoints || []}
+                                title={chart1Config.config.title}
+                                total={chart1Data?.total || 0}
+                                color={chart1Config.config.color}
+                                height={chart1Config.config.height}
+                                partidas={chart1Config.config.partidas}
+                                familias={chart1Config.config.familias}
+                                sub_partidas={chart1Config.config.sub_partidas}
+                                onConfigClick={() => setActiveChartId("sales-control-chart-1")}
+                            />
+                        )}
 
-                    {/* <div className="col-span-4 py-12">
-                        <DashboardTable />
-                    </div> */}
+                        {/* Chart 2 - Pagos Recibidos */}
+                        {chart2Config.isLoading ? (
+                            <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500">Cargando configuración...</p>
+                            </div>
+                        ) : (
+                            <FamiliaChart
+                                chartId="sales-control-chart-2"
+                                data={chart2Data?.dataPoints || []}
+                                title={chart2Config.config.title}
+                                total={chart2Data?.total || 0}
+                                color={chart2Config.config.color}
+                                height={chart2Config.config.height}
+                                partidas={chart2Config.config.partidas}
+                                familias={chart2Config.config.familias}
+                                sub_partidas={chart2Config.config.sub_partidas}
+                                onConfigClick={() => setActiveChartId("sales-control-chart-2")}
+                            />
+                        )}
+                    </div>
+
+                    <div className="col-span-4 py-12">
+                        <DashboardTable proyectoId={proyectoId as Id<"sales_projects">} isSalesProject={true} />
+                    </div>
                 </div>
             </div>
 
-            {/* Persistent Configuration Modal
+            {/* Persistent Configuration Modal */}
             {activeChartId && activeConfig && proyectoId && (
                 <ChartConfigModal
                     isOpen={true}
                     onClose={() => setActiveChartId(null)}
-                    proyectoId={proyectoId as Id<"desarrollos">}
+                    proyectoId={proyectoId as Id<"sales_projects">}
                     chartId={activeChartId}
                     currentConfig={activeConfig.config}
                     onSave={activeConfig.saveConfig}
                     onReset={activeConfig.resetConfig}
                 />
-            )} */}
+            )}
         </div>
     );
 }

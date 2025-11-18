@@ -19,11 +19,11 @@ import { ChartConfig } from "@/hooks/useChartConfig";
 interface ChartConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
-  proyectoId: Id<"desarrollos">;
+  proyectoId: Id<"desarrollos"> | Id<"sales_projects">;
   chartId: string;
   currentConfig: ChartConfig;
   onSave: (config: ChartConfig) => Promise<{ success: boolean }>;
-  onReset: () => Promise<{ success: boolean }>;
+  onReset?: () => Promise<{ success: boolean }>;
 }
 
 export default function ChartConfigModal({
@@ -54,7 +54,7 @@ export default function ChartConfigModal({
 
   // Fetch all partidas for the project
   const allPartidas = useQuery(api.partida.getByProject, {
-    projectId: proyectoId,
+    projectId: proyectoId as Id<"desarrollos">,
   });
 
   // Extract unique names by nivel
@@ -121,6 +121,8 @@ export default function ChartConfigModal({
   };
 
   const handleReset = async () => {
+    if (!onReset) return;
+    
     setIsSaving(true);
     setSaveMessage(null);
 

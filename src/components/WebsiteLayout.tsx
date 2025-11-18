@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
 import Sidebar from "./ui/Sidebar";
-import { ModalProvider } from "./providers/modal-provider";
+
 import { StoreUserEffect } from "./Auth/StoreUserEffect";
 
 import {
@@ -8,6 +8,7 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import { Toaster } from "sonner";
+import { ModalProvider } from "./providers/modal-provider";
 
 const queryClient = new QueryClient()
 function WebsiteLayout() {

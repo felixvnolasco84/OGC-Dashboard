@@ -210,13 +210,23 @@ export const columns: ColumnDef<Doc<"partidas">>[] = [
     },
 ]
 
-export function DashboardTable({ proyectoId }: { proyectoId: Id<"desarrollos"> }) {
+export function DashboardTable({ proyectoId, isSalesProject = false }: { proyectoId: Id<"desarrollos"> | Id<"sales_projects">, isSalesProject?: boolean }) {
 
-    const { results, status, loadMore } = usePaginatedQuery(
+    // Use the appropriate query based on project type
+    const regularResults = usePaginatedQuery(
         api.partida.list,
-        { proyectoId },
+        !isSalesProject ? { proyectoId: proyectoId as Id<"desarrollos"> } : "skip",
         { initialNumItems: 50 },
     );
+    
+    const salesResults = usePaginatedQuery(
+        api.sales_partidas.list,
+        isSalesProject ? { proyectoId: proyectoId as Id<"sales_projects"> } : "skip",
+        { initialNumItems: 50 },
+    );
+    
+    // Use the appropriate result set
+    const { results, status, loadMore } = isSalesProject ? salesResults : regularResults;
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -228,7 +238,8 @@ export function DashboardTable({ proyectoId }: { proyectoId: Id<"desarrollos"> }
     const [activeTab, setActiveTab] = React.useState("ultimos-movimientos")
 
     const table = useReactTable({
-        data: results ?? [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: (results ?? []) as any, // Type assertion needed for union types (partidas vs sales_partidas)
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,

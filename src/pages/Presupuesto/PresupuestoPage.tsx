@@ -205,7 +205,7 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                Presupuesto Original
+                <p className="text-sm text-gray-500">Presupuesto Original</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
                     {formatCurrencyCompact(metrics?.presupuesto_original || 0, moneda)}
@@ -219,7 +219,7 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                Presupuesto aprobado
+                <p className="text-sm text-gray-500">Presupuesto aprobado</p>                
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
                     {formatCurrencyCompact(metrics?.presupuesto_aprobado || 0, moneda)}
@@ -238,10 +238,27 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none px-12">
             <CardContent className="pl-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Pagado</p>
+                <p className="text-sm text-gray-500">Gasto Total</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-gray-900">
                     {formatCurrencyCompact(metrics?.gasto_total || 0, moneda)}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                  Avance {avancePercentage}%
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Por gastar */}
+          <Card className="bg-transparent shadow-none border-none px-12">
+            <CardContent className="pl-0 text-left">
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">Por ejercer</p>
+                <div className="flex items-baseline space-x-2">
+                  <p className="text-4xl font-normal text-gray-900">
+                    {formatCurrencyCompact(metrics?.por_gastar || 0, moneda)}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">

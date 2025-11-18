@@ -389,6 +389,7 @@ export default function ProyectoTransaccionesTablePage() {
                                                         <MoreVertical className="h-4 w-4 text-gray-400" />
                                                     </Button>
                                                 </PopoverTrigger>
+                                                {/* button actions */}
                                                 <PopoverContent className="flex flex-col space-y-1" align="end">
                                                     <Button variant={"ghost"} onClick={() => detailsModal.onOpen(transaccion._id)}>
                                                         Ver detalles
