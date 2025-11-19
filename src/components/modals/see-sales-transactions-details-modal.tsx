@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Doc } from "convex/_generated/dataModel";
+import { Check, Lock } from "lucide-react";
 
 export default function SeeSalesTransactionsDetailsModal() {
     const paymentContext = useSeeSalesPaymentDetailsModal((state) => state.paymentContext);
@@ -71,9 +72,9 @@ export default function SeeSalesTransactionsDetailsModal() {
         return Array.from(transactionMap.values());
     };
     
-    // Determine if we should show transactions or individual payments
-    const shouldShowTransactions = paymentContext?.relatedPartida?.nivel === 1 || 
-                                    paymentContext?.relatedPartida?.nivel === 2;
+    // Always show grouped transactions for sales (all niveles)
+    // This prevents showing duplicate line items from the same transaction
+    const shouldShowTransactions = true;
     const groupedTransactions = shouldShowTransactions ? getGroupedTransactions() : [];
 
     return (
@@ -167,121 +168,116 @@ export default function SeeSalesTransactionsDetailsModal() {
                         {/* Transactions/Payments List */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">
-                                {shouldShowTransactions ? 'Transacciones' : 'Pagos'}
+                                Transacciones
                                 <Badge variant="secondary" className="ml-2">
-                                    {shouldShowTransactions ? groupedTransactions.length : paymentContext.payments.length}
+                                    {groupedTransactions.length}
                                 </Badge>
                             </h3>
 
-                            {shouldShowTransactions ? (
-                                // Show grouped transactions
-                                groupedTransactions.map((group) => (
-                                    <Card key={group.transaction._id} className="p-4">
-                                        <div className="space-y-3">
+                            {/* Show grouped transactions */}
+                            {groupedTransactions.map((group) => {
+                                    const isPagado = group.transaction.status === 'Pagado';
+                                    const lineItemsCount = group.lineItems.length;
+                                    
+                                    return (
+                                        <div key={group.transaction._id} className="bg-white overflow-hidden">
                                             {/* Transaction Header */}
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-medium">
-                                                        {group.transaction.nombre_cliente || 'Cliente no especificado'}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {group.transaction.fecha || 'Fecha no especificada'}
-                                                    </p>
+                                            <div className="p-4 border-b border-gray-400 leading-none">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <div className={`w-12 h-12 rounded-md flex items-center justify-center ${
+                                                            isPagado ? 'bg-[#E0F0E2]' : 'bg-orange-100'
+                                                        }`}>
+                                                            {isPagado ? (
+                                                                <div className="w-fit bg-green-800 rounded-full p-0.5">
+                                                                    <Check className="w-4 h-4 text-white" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-fit bg-orange-800 rounded-full p-0.5">
+                                                                    <Lock className="w-4 h-4 text-white" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-gray-900">
+                                                                {group.transaction.status || (isPagado ? 'Aprobado' : 'Pendiente')}
+                                                            </p>
+                                                            <p className="text-sm text-gray-600">
+                                                                {group.transaction.nombre_cliente || 'Cliente no especificado'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right flex items-center gap-3">
+                                                        <p className="text-xl text-gray-900">
+                                                            {formatCurrency(group.transaction.monto_total || 0)} {group.transaction.moneda || 'MXN'}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <Badge variant={
-                                                    group.transaction.status === 'Pagado' ? 'default' : 
-                                                    group.transaction.status === 'Pendiente' ? 'secondary' : 
-                                                    'outline'
-                                                }>
-                                                    {group.transaction.status || 'Sin estado'}
-                                                </Badge>
                                             </div>
 
                                             {/* Transaction Details */}
-                                            <div className="text-sm space-y-1">
-                                                {group.transaction.tipo_pago && (
-                                                    <p><span className="text-gray-600">Tipo:</span> {group.transaction.tipo_pago}</p>
-                                                )}
-                                                {group.transaction.codigo_referencia && (
-                                                    <p><span className="text-gray-600">Referencia:</span> {group.transaction.codigo_referencia}</p>
-                                                )}
-                                                {group.transaction.moneda && group.transaction.moneda !== 'MXN' && (
-                                                    <p><span className="text-gray-600">Moneda:</span> {group.transaction.moneda}</p>
-                                                )}
-                                            </div>
-
-                                            {/* Line Items */}
-                                            <div className="border-t pt-3 space-y-2">
-                                                <p className="text-sm font-medium text-gray-600">Conceptos:</p>
-                                                {group.lineItems.map((item, idx) => (
-                                                    <div key={idx} className="flex justify-between text-sm pl-4">
-                                                        <span className="text-gray-600">
-                                                            {item.partida || item.familia || item.sub_partida || 'Concepto'}
-                                                        </span>
-                                                        <span className="font-medium">
-                                                            {formatCurrency(item.monto)}
-                                                        </span>
+                                            <div className="p-4 space-y-3">
+                                                <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-[#777770]">Fecha</span>
+                                                        <span className="text-muted-foreground">{group.transaction.fecha || 'No especificada'}</span>
                                                     </div>
-                                                ))}
-                                            </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-[#777770]">Método de pago</span>
+                                                        <span className="text-muted-foreground">{group.transaction.tipo_pago || 'No especificado'}</span>
+                                                    </div>
+                                                    {group.transaction.codigo_referencia && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-[#777770]">Referencia</span>
+                                                            <span className="text-muted-foreground">{group.transaction.codigo_referencia}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
 
-                                            {/* Total */}
-                                            <div className="border-t pt-2 flex justify-between font-semibold">
-                                                <span>Total:</span>
-                                                <span>{formatCurrency(group.transaction.monto_total || 0)}</span>
+                                                {/* Line Items Summary */}
+                                                {lineItemsCount > 0 && (
+                                                    <div className="mt-4 pt-3 border-t border-gray-200">
+                                                        <p className="text-xs font-medium text-gray-500 mb-2">
+                                                            Conceptos incluidos:
+                                                        </p>
+                                                        <div className="space-y-1">
+                                                            {group.lineItems.map((item, idx) => (
+                                                                <div key={idx} className="flex justify-between text-sm">
+                                                                    <span className="text-gray-600 truncate">
+                                                                        {item.partida && item.familia && item.sub_partida
+                                                                            ? `${item.partida} › ${item.familia} › ${item.sub_partida}`
+                                                                            : item.partida && item.familia
+                                                                            ? `${item.partida} › ${item.familia}`
+                                                                            : item.partida || 'Concepto'}
+                                                                    </span>
+                                                                    <span className="text-gray-900 ml-2 whitespace-nowrap">
+                                                                        {formatCurrency(item.monto)}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="grid grid-cols-2">
+                                                    {/* Additional Tags */}
+                                                    <div className="space-y-2 pt-2 flex flex-wrap gap-2">
+                                                        {group.transaction.moneda && group.transaction.moneda !== 'MXN' && (
+                                                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
+                                                                {group.transaction.moneda}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </Card>
-                                ))
-                            ) : (
-                                // Show individual payments for nivel 3
-                                paymentContext.payments.map((payment, index) => (
-                                    <Card key={payment._id || index} className="p-4">
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-medium">
-                                                        {payment.transaction?.nombre_cliente || 'Cliente no especificado'}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {payment.fecha || payment.transaction?.fecha || 'Fecha no especificada'}
-                                                    </p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-semibold text-lg">
-                                                        {formatCurrency(payment.monto)}
-                                                    </p>
-                                                    <Badge variant={
-                                                        payment.status === 'Pagado' ? 'default' : 
-                                                        payment.status === 'Pendiente' ? 'secondary' : 
-                                                        'outline'
-                                                    }>
-                                                        {payment.status || 'Sin estado'}
-                                                    </Badge>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Payment Details */}
-                                            <div className="text-sm space-y-1 text-gray-600">
-                                                {payment.tipo_pago && (
-                                                    <p><span className="font-medium">Tipo:</span> {payment.tipo_pago}</p>
-                                                )}
-                                                {payment.codigo_referencia && (
-                                                    <p><span className="font-medium">Referencia:</span> {payment.codigo_referencia}</p>
-                                                )}
-                                                {payment.moneda && payment.moneda !== 'MXN' && (
-                                                    <p><span className="font-medium">Moneda:</span> {payment.moneda}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </Card>
-                                ))
-                            )}
+                                    );
+                                })}
 
                             {/* Empty State */}
-                            {paymentContext.payments.length === 0 && (
+                            {groupedTransactions.length === 0 && (
                                 <div className="text-center py-8 text-gray-500">
-                                    <p>No hay pagos registrados</p>
+                                    <p>No hay transacciones registradas</p>
                                 </div>
                             )}
                         </div>
