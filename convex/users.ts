@@ -48,7 +48,8 @@ export const storeUser = mutation({
       email: identity.email ?? "",
       name: identity.name ?? "",
       role: "viewer", // Default role
-      allowed_desarrollos: [], // No access by default
+      allowed_desarrollos: [], // No cost projects access by default
+      allowed_sales_projects: [], // No sales projects access by default
       created_at: Date.now(),
       last_login: Date.now(),
     });
@@ -84,7 +85,8 @@ export const updateUserPermissions = mutation({
   args: {
     userId: v.id("users"),
     role: v.string(),
-    allowed_desarrollos: v.array(v.id("desarrollos")),
+    allowed_desarrollos: v.optional(v.array(v.id("desarrollos"))),
+    allowed_sales_projects: v.optional(v.array(v.id("sales_projects"))),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -102,10 +104,24 @@ export const updateUserPermissions = mutation({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    await ctx.db.patch(args.userId, {
+    // Build update object with only provided fields
+    const updateData: {
+      role: string;
+      allowed_desarrollos?: typeof args.allowed_desarrollos;
+      allowed_sales_projects?: typeof args.allowed_sales_projects;
+    } = {
       role: args.role,
-      allowed_desarrollos: args.allowed_desarrollos,
-    });
+    };
+    
+    if (args.allowed_desarrollos !== undefined) {
+      updateData.allowed_desarrollos = args.allowed_desarrollos;
+    }
+    
+    if (args.allowed_sales_projects !== undefined) {
+      updateData.allowed_sales_projects = args.allowed_sales_projects;
+    }
+
+    await ctx.db.patch(args.userId, updateData);
 
     return { success: true };
   },
@@ -138,5 +154,37 @@ export const hasAccessToDesarrollo = query({
 
     // Check if desarrollo is in allowed list
     return user.allowed_desarrollos.includes(args.desarrolloId);
+  },
+});
+
+// Helper to check if user has access to a sales project
+export const hasAccessToSalesProject = query({
+  args: {
+    salesProyectoId: v.id("sales_projects"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return false;
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) {
+      return false;
+    }
+
+    // Admins have access to everything
+    if (user.role === "admin") {
+      return true;
+    }
+
+    const allowedSales = user.allowed_sales_projects || [];
+
+    // Check if sales project is in allowed list
+    return allowedSales.includes(args.salesProyectoId);
   },
 });

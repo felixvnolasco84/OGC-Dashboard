@@ -8,6 +8,7 @@ export default defineSchema({
     name: v.string(),
     role: v.string(), // "admin", "user", "viewer"
     allowed_desarrollos: v.array(v.id("desarrollos")), // Projects user can access
+    allowed_sales_projects: v.optional(v.array(v.id("sales_projects"))), // Sales projects user can access
     created_at: v.number(),
     last_login: v.optional(v.number()),
   }).index("by_clerk_id", { fields: ["clerkId"] })

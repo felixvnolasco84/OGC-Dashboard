@@ -23,6 +23,7 @@ import {
   FileText,
   Tag,
   TrendingUp,
+  // Settings,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { UserButton, SignInButton } from "@clerk/clerk-react";
@@ -70,6 +71,8 @@ const bottomSalesMenuItems = [
   { id: "sales-transacciones", label: "Transacciones", path: "/sales-transacciones", icon: CreditCard },
   { id: "sales-flujo", label: "Flujo ", path: "/admin/sales-flujo", icon: TrendingUp },
   { id: "sales-documentos", label: "Documentos", path: "/sales-documentos", icon: FileText },
+  // { id: "sales-gestion", label: "Gestión Proyectos", path: "/sales-gestion", icon: Settings },
+  { id: "sales-usuarios", label: "Acceso Usuarios", path: "/sales-usuarios", icon: User },
 ];
 
 
@@ -89,10 +92,23 @@ export default function Sidebar() {
     proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  // Filter sales projects based on search query
-  const filteredSalesProjects = salesProjects?.filter((proyecto) =>
-    proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  // Filter sales projects based on user access and search query
+  const filteredSalesProjects = (salesProjects || []).filter((proyecto) => {
+    const matchesSearch = proyecto.nombre
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+
+    // Admins can see all sales projects
+    if (currentUser?.role === "admin") {
+      return matchesSearch;
+    }
+
+    // Non-admin users: only projects explicitly allowed
+    const allowedSalesProjects = currentUser?.allowed_sales_projects || [];
+    const hasAccess = allowedSalesProjects.includes(proyecto._id);
+
+    return matchesSearch && hasAccess;
+  });
 
   // Toggle project expansion
   const toggleProject = (projectId: string) => {
