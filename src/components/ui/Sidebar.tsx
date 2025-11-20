@@ -112,6 +112,11 @@ export default function Sidebar() {
     return location.pathname.startsWith(path);
   };
 
+  // Don't render sidebar if not authenticated
+  if (!isAuthenticated && !authLoading) {
+    return null;
+  }
+
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 z-10 flex flex-col">
       {/* Header */}
@@ -123,7 +128,7 @@ export default function Sidebar() {
           <UserButton />
         </Authenticated>
         <Unauthenticated>
-          <SignInButton />
+          <SignInButton mode="modal" />
         </Unauthenticated>
       </div>
 

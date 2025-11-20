@@ -37,6 +37,8 @@ import SalesPresupuestoTable from "./components/Tables/SalesPresupuestoTable.tsx
 import ControlSalePage from "./pages/Control/ControlSalePage.tsx";
 import SalesTransaccionesTablePage from "./pages/TransaccionesTable/SalesTransaccionesTablePage.tsx";
 import SalesDocumentosPage from "./pages/Documentos/SalesDocumentosPage.tsx";
+import SignInPage from "./pages/SignIn/SignInPage.tsx";
+import SignUpPage from "./pages/SignUp/SignUpPage.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -55,6 +57,11 @@ createRoot(document.getElementById("root")!).render(
           <BrowserRouter>
             <ScrollToTop />
             <Routes>
+              {/* Public Authentication Routes - No Sidebar */}
+              <Route path="/sign-in" element={<SignInPage />} />
+              <Route path="/sign-up" element={<SignUpPage />} />
+              
+              {/* Protected Routes with Sidebar */}
               <Route element={<WebsiteLayout />}>
                 <Route index element={<ProtectedRoute requiredRole="admin">
                   <ProyectosTablePage />

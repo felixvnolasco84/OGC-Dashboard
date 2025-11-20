@@ -13,7 +13,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ 
   children, 
   requiredRole = "viewer",
-  redirectTo = "/proyectos" 
+  redirectTo = "/sign-in" 
 }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const currentUser = useQuery(api.users.getCurrentUser);
