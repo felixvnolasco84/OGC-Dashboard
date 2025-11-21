@@ -39,6 +39,7 @@ export default function DocumentosPage() {
   // Queries
   const proyectos = useQuery(api.desarrollos.getAll);
   const documentos = useQuery(api.documentos.getAll);
+
   const transacciones = useQuery(api.transacciones.getAllWithDetails);
 
   // Mutations

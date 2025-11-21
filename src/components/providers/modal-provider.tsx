@@ -25,6 +25,7 @@ import SaleTransactionDetailsModal from "../modals/sale-transaction-details-moda
 import SaleTransactionConceptosModal from "../modals/sale-transaction-conceptos-modal";
 import SaleTransactionDocumentosModal from "../modals/sale-transaction-documentos-modal";
 import SeeSalesTransactionsDetailsModal from "../modals/see-sales-transactions-details-modal";
+import AddSalePaymentModal from "../modals/add-sale-payment-modal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -41,6 +42,7 @@ export const ModalProvider = () => {
     <SeeTransactionsDetailsModal />
     <SeeSalesTransactionsDetailsModal />
     <AddPaymentModal />
+    <AddSalePaymentModal />
     <EditPaymentModal />
     <AggregatedDetailsModal />
     <AddPartidaModal />

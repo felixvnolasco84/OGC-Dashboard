@@ -23,19 +23,23 @@ import {
 import { useUploadProyectoDocumentsModal } from "@/hooks/upload-proyecto-documents-modal";
 
 export default function ProyectoDocumentosPage() {
-  const { salesProyectoId } = useParams<{ salesProyectoId: string }>();
+  const { proyectoId } = useParams<{ proyectoId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<Id<"documentos"> | null>(null);
 
   // Fetch project
-  const proyecto = useQuery(api.desarrollos.getById, salesProyectoId ? { id: salesProyectoId as Id<"desarrollos"> } : "skip");
+  const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
+
+  console.log(proyecto)
 
   // Fetch documents for this specific project
-  const documentos = useQuery(api.documentos.getByProyecto, salesProyectoId ? { proyecto_id: salesProyectoId as Id<"desarrollos"> } : "skip");
+  const documentos = useQuery(api.documentos.getByProyecto, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
+
+  // console.log(documentos)
 
   // Fetch transactions for this project (to get transaction details)
-  const transacciones = useQuery(api.transacciones.getByProyecto, salesProyectoId ? { proyecto_id: salesProyectoId as Id<"desarrollos"> } : "skip");
+  const transacciones = useQuery(api.transacciones.getByProyecto, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
 
   // Mutations
   const deleteDocumentMutation = useMutation(api.documentos.deleteDocument);
@@ -104,8 +108,8 @@ export default function ProyectoDocumentosPage() {
 
   const handleUploadClick = () => {
     // Open modal with proyectoId from URL
-    if (salesProyectoId) {
-      uploadModal.onOpen(salesProyectoId as Id<"desarrollos">);
+    if (proyectoId) {
+      uploadModal.onOpen(proyectoId as Id<"desarrollos">);
     }
   };
 

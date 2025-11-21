@@ -194,7 +194,7 @@ export default function EditSalesPartidaForm({ partida, level = 2, onClose }: Re
 
 
             {/* Quantity and Pricing */}
-            <div className="border-t pt-4 mt-2">
+            {/* <div className="border-t pt-4 mt-2">
               <h3 className="text-sm font-medium mb-3">Información de costos</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
@@ -258,7 +258,7 @@ export default function EditSalesPartidaForm({ partida, level = 2, onClose }: Re
                   )}
                 />
               </div>
-            </div>
+            </div> */}
 
             {/* Budget Status */}
             <div className="border-t pt-4 mt-2">
@@ -269,7 +269,7 @@ export default function EditSalesPartidaForm({ partida, level = 2, onClose }: Re
                   name="presupuesto_original"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel>Presupuesto Original</FormLabel>
+                      <FormLabel>Total Ventas</FormLabel>
                       <FormControl>
                         <MoneyInput
                           placeholder="0.00"
@@ -289,7 +289,7 @@ export default function EditSalesPartidaForm({ partida, level = 2, onClose }: Re
                   name="presupuesto_aprobado"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel>Presupuesto Aprobado</FormLabel>
+                      <FormLabel>Vendido</FormLabel>
                       <FormControl>
                         <MoneyInput
                           placeholder="0.00"

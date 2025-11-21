@@ -13,7 +13,7 @@ export interface ChartConfig {
 }
 
 interface UseChartConfigOptions {
-  proyectoId: Id<"desarrollos">;
+  proyectoId: Id<"sales_projects">;
   chartId: string;
   defaultConfig: ChartConfig;
 }
@@ -57,13 +57,13 @@ interface UseChartConfigOptions {
 export function useChartConfig({ proyectoId, chartId, defaultConfig }: UseChartConfigOptions) {
   // Fetch saved configuration (only when proyectoId is available)
   const savedConfig = useQuery(
-    api.chart_configurations.getChartConfig,
+    api.sale_chart_configurations.getChartConfig,
     proyectoId ? { proyecto_id: proyectoId, chart_id: chartId } : "skip"
   );
 
   // Mutations
-  const saveConfigMutation = useMutation(api.chart_configurations.saveChartConfig);
-  const resetConfigMutation = useMutation(api.chart_configurations.resetChartConfig);
+  const saveConfigMutation = useMutation(api.sale_chart_configurations.saveChartConfig);
+  const resetConfigMutation = useMutation(api.sale_chart_configurations.resetChartConfig);
 
   // Merge saved config with defaults
   const config: ChartConfig = useMemo(() => {
@@ -142,15 +142,15 @@ export function useChartConfig({ proyectoId, chartId, defaultConfig }: UseChartC
  *   { chartId: "chart-2", title: "Title 2", color: "#000", ... }
  * ]);
  */
-export function useMultipleChartConfigs(proyectoId: Id<"desarrollos">) {
+export function useMultipleChartConfigs(proyectoId: Id<"sales_projects">) {
   // Fetch all configs for this project (only when proyectoId is available)
   const allConfigs = useQuery(
-    api.chart_configurations.getUserChartConfigs,
+    api.sale_chart_configurations.getUserChartConfigs,
     proyectoId ? { proyecto_id: proyectoId } : "skip"
   );
 
   // Mutation for bulk save
-  const saveMultipleMutation = useMutation(api.chart_configurations.saveMultipleChartConfigs);
+  const saveMultipleMutation = useMutation(api.sale_chart_configurations.saveMultipleChartConfigs);
 
   // Save multiple configurations
   const saveConfigs = useCallback(

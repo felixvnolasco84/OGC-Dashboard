@@ -264,9 +264,9 @@ export default function Sidebar() {
       </Accordion>
 
       {/* Bottom Menu - Only show for authenticated admin users */}
-      {isAuthenticated && !authLoading && (
+      {isAuthenticated && !authLoading && currentUser?.role === "admin" && (
         <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
-          {currentUser?.role === "admin" ? (
+          {(
             bottomProjectMenuItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -285,19 +285,14 @@ export default function Sidebar() {
                 </Link>
               );
             })
-
-          ) : (
-            <div className="px-3 py-2 text-xs text-gray-400 text-center">
-              Menú de administrador no disponible
-            </div>
           )}
         </div>
       )}
 
       {
-        isAuthenticated && !authLoading && (
+        isAuthenticated && !authLoading && currentUser?.role === "admin" && (
           <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
-            {currentUser?.role === "admin" ? (
+            {(
               bottomSalesMenuItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -316,10 +311,6 @@ export default function Sidebar() {
                   </Link>
                 );
               })
-            ) : (
-              <div className="px-3 py-2 text-xs text-gray-400 text-center">
-                Menú de administrador no disponible
-              </div>
             )}
           </div>
         )

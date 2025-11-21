@@ -11,12 +11,15 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Doc } from "convex/_generated/dataModel";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Plus } from "lucide-react";
+import { Button } from "../ui/button";
+import { useAddPaymentModal } from "@/hooks/add-sale-payment-modal";
 
 export default function SeeSalesTransactionsDetailsModal() {
     const paymentContext = useSeeSalesPaymentDetailsModal((state) => state.paymentContext);
     const isOpen = useSeeSalesPaymentDetailsModal((state) => state.isOpen);
     const onClose = useSeeSalesPaymentDetailsModal((state) => state.onClose);
+    const addPaymentModal = useAddPaymentModal((state) => state);
 
     const formatCurrency = (amount: string | number) => {
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -43,6 +46,15 @@ export default function SeeSalesTransactionsDetailsModal() {
     const getRemainingAmount = () => {
         const totalPaid = getTotalPaidAmount();
         return (paymentContext?.totalAmount || 0) - totalPaid;
+    };
+
+    const handleOpenAddPayment = () => {
+        if (paymentContext?.relatedPartida && paymentContext.relatedPartida.sales_proyecto) {
+            addPaymentModal.onOpen({
+                projectId: paymentContext.relatedPartida.sales_proyecto,
+                relatedPartida: paymentContext.relatedPartida
+            });
+        }
     };
 
     // Group payments by transaction for nivel 1 and 2
@@ -82,6 +94,13 @@ export default function SeeSalesTransactionsDetailsModal() {
             <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 {paymentContext && (
                     <>
+
+                                            <div className="flex justify-end mt-4 items-end">
+                            <Button size={"md"} variant="secondary" onClick={handleOpenAddPayment}>
+                                Nuevo Pago
+                                <Plus className="h-3 w-3 bg-gray-600 text-white p-0.5 rounded-full" />
+                            </Button>
+                        </div>
                         <SheetHeader>
                             <SheetTitle className="hidden">Detalles de Pagos</SheetTitle>
                             <SheetDescription className="hidden">

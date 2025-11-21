@@ -5,7 +5,7 @@ import { Id } from "./_generated/dataModel";
 // Get all chart configurations for current user and project
 export const getUserChartConfigs = query({
   args: {
-    proyecto_id: v.id("desarrollos"),
+    proyecto_id: v.id("sales_projects"),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -38,7 +38,7 @@ export const getUserChartConfigs = query({
 // Get a specific chart configuration
 export const getChartConfig = query({
   args: {
-    proyecto_id: v.id("desarrollos"),
+    proyecto_id: v.id("sales_projects"),
     chart_id: v.string(),
   },
   handler: async (ctx, args) => {
@@ -75,7 +75,7 @@ export const getChartConfig = query({
 // Create or update a chart configuration
 export const saveChartConfig = mutation({
   args: {
-    proyecto_id: v.id("desarrollos"),
+    proyecto_id: v.id("sales_projects"),
     chart_id: v.string(),
     title: v.string(),
     color: v.string(),
@@ -199,7 +199,7 @@ export const deleteChartConfig = mutation({
 // Reset chart configuration to defaults
 export const resetChartConfig = mutation({
   args: {
-    proyecto_id: v.id("desarrollos"),
+    proyecto_id: v.id("sales_projects"),
     chart_id: v.string(),
   },
   handler: async (ctx, args) => {
@@ -243,7 +243,7 @@ export const resetChartConfig = mutation({
 // Bulk update multiple chart configurations (useful for dashboard layouts)
 export const saveMultipleChartConfigs = mutation({
   args: {
-    proyecto_id: v.id("desarrollos"),
+    proyecto_id: v.id("sales_projects"),
     configs: v.array(
       v.object({
         chart_id: v.string(),

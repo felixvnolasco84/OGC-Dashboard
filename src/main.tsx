@@ -60,8 +60,8 @@ createRoot(document.getElementById("root")!).render(
             <ScrollToTop />
             <Routes>
               {/* Public Authentication Routes - No Sidebar */}
-              <Route path="/sign-in" element={<SignInPage />} />
-              <Route path="/sign-up" element={<SignUpPage />} />
+              <Route path="/sign-in/*" element={<SignInPage />} />
+              <Route path="/sign-up/*" element={<SignUpPage />} />
               
               {/* Protected Routes with Sidebar */}
               <Route element={<WebsiteLayout />}>

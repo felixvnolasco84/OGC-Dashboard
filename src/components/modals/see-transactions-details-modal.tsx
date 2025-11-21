@@ -62,14 +62,14 @@ export default function SeeTransactionsDetailsModal() {
     // Group payments by transaction for nivel 1 and 2
     const getGroupedTransactions = () => {
         if (!paymentContext?.payments) return [];
-        
+
         type PaymentType = typeof paymentContext.payments[number];
-        
+
         const transactionMap = new Map<string, {
             transaction: Doc<"transacciones">;
             lineItems: PaymentType[];
         }>();
-        
+
         paymentContext.payments.forEach(payment => {
             if (payment.transaction && payment.transaction._id) {
                 const txId = payment.transaction._id;
@@ -82,13 +82,13 @@ export default function SeeTransactionsDetailsModal() {
                 transactionMap.get(txId)!.lineItems.push(payment);
             }
         });
-        
+
         return Array.from(transactionMap.values());
     };
-    
+
     // Determine if we should show transactions or individual payments
-    const shouldShowTransactions = paymentContext?.relatedPartida?.nivel === 1 || 
-                                    paymentContext?.relatedPartida?.nivel === 2;
+    const shouldShowTransactions = paymentContext?.relatedPartida?.nivel === 1 ||
+        paymentContext?.relatedPartida?.nivel === 2;
     const groupedTransactions = shouldShowTransactions ? getGroupedTransactions() : [];
 
     // Don't return null before rendering Sheet - this breaks exit animation

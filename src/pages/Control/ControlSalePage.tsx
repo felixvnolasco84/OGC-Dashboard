@@ -13,16 +13,13 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-// import { Button } from "@/components/ui/button";
 import ProgressChart from "@/components/Charts/ProgressChart";
 import FamiliaChart from "@/components/Charts/FamiliaChart";
 import { DashboardTable } from "../Dashboard/DashboardTable";
-import ChartConfigModal from "@/components/Charts/ChartConfigModal";
-import { useChartConfig } from "@/hooks/useChartConfig";
-// import { Plus } from "lucide-react";
-// import { useAddPartidaModal } from "@/hooks/add-partida-modal";
+import { useChartConfig } from "@/hooks/useSaleChartConfig";
 
 import { Id } from "convex/_generated/dataModel";
+import SaleChartConfigModal from "@/components/Charts/SaleChartConfigModal";
 
 // Mockup data
 const mockData = {
@@ -114,6 +111,8 @@ export default function ControlSalePage() {
             : "skip"
     );
 
+    console.log(chart1Config)
+
 
     // Fetch data for chart 2 based on its persisted configuration
     const chart2Data = useQuery(
@@ -155,7 +154,7 @@ export default function ControlSalePage() {
         comision: filteredMetrics?.comision || 0
     };
 
-    
+
 
 
     console.log("proyecto", proyecto)
@@ -404,7 +403,7 @@ export default function ControlSalePage() {
 
             {/* Persistent Configuration Modal */}
             {activeChartId && activeConfig && proyectoId && (
-                <ChartConfigModal
+                <SaleChartConfigModal
                     isOpen={true}
                     onClose={() => setActiveChartId(null)}
                     proyectoId={proyectoId as Id<"sales_projects">}
