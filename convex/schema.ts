@@ -6,7 +6,7 @@ export default defineSchema({
     clerkId: v.string(), // Clerk user ID
     email: v.string(),
     name: v.string(),
-    role: v.string(), // "admin", "user", "viewer"
+    role: v.string(), // "admin", "user", "viewer", "contratista"
     allowed_desarrollos: v.array(v.id("desarrollos")), // Projects user can access
     allowed_sales_projects: v.optional(v.array(v.id("sales_projects"))), // Sales projects user can access
     created_at: v.number(),
@@ -161,10 +161,14 @@ export default defineSchema({
     proyecto: v.optional(v.id("desarrollos")), // Regular project
     sales_proyecto: v.optional(v.id("sales_projects")), // Sales project
     uploaded_at: v.optional(v.number()), // Timestamp
+    partida_id: v.optional(v.id("partidas")), // Linked Level 1 Partida for bitacora
+    bitacora_id: v.optional(v.union(v.id("documentos"), v.id("bitacora"))), // Parent bitacora entry ID for photos
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_sales_proyecto", { fields: ["sales_proyecto"] })
     .index("by_transaccion", { fields: ["transaccion_id"] })
-    .index("by_sales_transaccion", { fields: ["sales_transaccion_id"] }),
+    .index("by_sales_transaccion", { fields: ["sales_transaccion_id"] })
+    .index("by_partida_id", { fields: ["partida_id"] })
+    .index("by_bitacora_id", { fields: ["bitacora_id"] }),
   meticas_presupuesto: defineTable({
     proyecto: v.id("desarrollos"),
     presupuesto_original: v.number(),
@@ -301,4 +305,23 @@ export default defineSchema({
     updated_at: v.number(), // Last update timestamp
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_proyecto_week", { fields: ["proyecto", "week_date"] }),
+  
+  // Bitacora (Construction Log) - Daily reports with partida and familia tags
+  bitacora: defineTable({
+    proyecto: v.id("desarrollos"),
+    categoria: v.string(), // Estructura, Instalaciones, Acabados, Seguridad, Generales
+    partida_id: v.id("partidas"), // Level 1 item (Instalaciones, Estructura, etc.)
+    familias_tags: v.array(v.string()), // Level 2 items tags (INSTALACIONES HIDRÁULICAS, etc.)
+    responsable: v.string(),
+    fecha: v.string(), // DD/MM/YYYY or "DD Mes, YYYY"
+    avance_dia: v.string(), // Daily progress notes
+    comentarios: v.optional(v.string()), // Retos / Incidencias
+    status: v.optional(v.string()), // "Sin problemas", "Con retrasos", etc.
+    // Metadata
+    uploaded_at: v.number(), // Timestamp
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_partida_id", { fields: ["partida_id"] })
+    .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] })
+    .index("by_proyecto_fecha", { fields: ["proyecto", "fecha"] })
+    .index("by_proyecto_categoria", { fields: ["proyecto", "categoria"] }),
 });

@@ -26,6 +26,7 @@ import SaleTransactionConceptosModal from "../modals/sale-transaction-conceptos-
 import SaleTransactionDocumentosModal from "../modals/sale-transaction-documentos-modal";
 import SeeSalesTransactionsDetailsModal from "../modals/see-sales-transactions-details-modal";
 import AddSalePaymentModal from "../modals/add-sale-payment-modal";
+import BitacoraModal from "../Bitacora/BitacoraModal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -64,5 +65,6 @@ export const ModalProvider = () => {
     <EditSalesProjectModal />
     <UploadSalesProjectTransactionsModal />
     <UploadSalesProyectoDocumentsModal />
+    <BitacoraModal />
   </>;
 };

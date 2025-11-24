@@ -16,6 +16,21 @@ export const list = query({
   },
 });
 
+export const getByNivel = query({
+  args: {
+    proyecto: v.id("desarrollos"),
+    nivel: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto_nivel_nombre", (q) => 
+        q.eq("proyecto", args.proyecto).eq("nivel", args.nivel)
+      )
+      .collect();
+  },
+});
+
 export const getPartidas = query({
   args: {},
   handler: async (ctx) => {

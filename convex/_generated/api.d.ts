@@ -13,10 +13,12 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as bitacora from "../bitacora.js";
 import type * as chart_configurations from "../chart_configurations.js";
 import type * as currency_helpers from "../currency_helpers.js";
 import type * as desarrollos from "../desarrollos.js";
 import type * as documentos from "../documentos.js";
+import type * as files from "../files.js";
 import type * as functions from "../functions.js";
 import type * as meticas_presupuesto from "../meticas_presupuesto.js";
 import type * as migrations from "../migrations.js";
@@ -53,10 +55,12 @@ import type * as weekly_projected_totals from "../weekly_projected_totals.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  bitacora: typeof bitacora;
   chart_configurations: typeof chart_configurations;
   currency_helpers: typeof currency_helpers;
   desarrollos: typeof desarrollos;
   documentos: typeof documentos;
+  files: typeof files;
   functions: typeof functions;
   meticas_presupuesto: typeof meticas_presupuesto;
   migrations: typeof migrations;

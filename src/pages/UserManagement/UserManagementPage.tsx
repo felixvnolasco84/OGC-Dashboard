@@ -79,6 +79,8 @@ export default function UserManagementPage() {
         return <User className="h-4 w-4 text-blue-600" />;
       case "viewer":
         return <Eye className="h-4 w-4 text-gray-600" />;
+      case "contratista":
+        return <User className="h-4 w-4 text-orange-600" />;
       default:
         return null;
     }
@@ -181,6 +183,12 @@ export default function UserManagementPage() {
                             Usuario (proyectos asignados)
                           </div>
                         </SelectItem>
+                        <SelectItem value="contratista">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-orange-600" />
+                            Contratista (solo bitácora)
+                          </div>
+                        </SelectItem>
                         <SelectItem value="viewer">
                           <div className="flex items-center gap-2">
                             <Eye className="h-4 w-4 text-gray-600" />
@@ -194,10 +202,15 @@ export default function UserManagementPage() {
                         Los administradores tienen acceso a todos los proyectos y pueden gestionar usuarios
                       </p>
                     )}
+                    {selectedRole === "contratista" && (
+                      <p className="text-xs text-gray-500">
+                        Los contratistas solo tienen acceso a la bitácora en todos los proyectos
+                      </p>
+                    )}
                   </div>
 
                   {/* Project Access */}
-                  {selectedRole !== "admin" && (
+                  {selectedRole !== "admin" && selectedRole !== "contratista" && (
                     <div className="space-y-2">
                       <Label>Proyectos con acceso</Label>
                       <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">

@@ -41,6 +41,7 @@ import SignInPage from "./pages/SignIn/SignInPage.tsx";
 import SignUpPage from "./pages/SignUp/SignUpPage.tsx";
 import SalesProjectManagementPage from "./pages/SalesProjectManagement/SalesProjectManagementPage.tsx";
 import SalesUserManagementPage from "./pages/SalesUserManagement/SalesUserManagementPage.tsx";
+import BitacoraPage from "./pages/Bitacora/BitacoraPage.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -143,6 +144,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/proyecto/:proyectoId/flujo" element={
                   <ProtectedRoute requiredRole="user">
                     <ProyectoFlujoPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/bitacora" element={
+                  <ProtectedRoute requiredRole="contratista">
+                    <BitacoraPage />
                   </ProtectedRoute>
                 } />
 
