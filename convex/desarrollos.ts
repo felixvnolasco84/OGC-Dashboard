@@ -192,7 +192,8 @@ export const deleteProject = rawMutation({
             deletedMeticas: meticas.length,
             deletedProjectedTransactions: projectedTransactions.length,
             deletedWeeklyTotals: weeklyTotals.length,
-            appwriteFileIds: documentos.map(doc => doc.image), // Return file IDs for manual cleanup
+            // Filter out undefined/null image IDs to avoid Convex validation error
+            appwriteFileIds: documentos.map(doc => doc.image).filter((id): id is string => id !== undefined && id !== null),
         };
     },
 });

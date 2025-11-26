@@ -108,12 +108,12 @@ export const getLogEntriesByProject = query({
           }
           return { ...foto, url: null };
         })
-      );
+      );      
 
       return {
         ...log,
         departamento: partidaNombre,
-        fotos: fotosWithUrls,
+        fotos: fotosWithUrls,        
       };
     }));
 
@@ -195,7 +195,7 @@ export const getLogsByDateRange = query({
       logsByDate[fecha].push({
         ...log,
         departamento: partida?.nombre || "General",
-      } as any);
+      } as typeof log);
     }
 
     return logsByDate;
@@ -214,6 +214,7 @@ export const updateLogEntry = mutation({
     avance_dia: v.optional(v.string()),
     comentarios: v.optional(v.string()),
     status: v.optional(v.string()),
+    imagenes: v.optional(v.array(v.id("_storage"))), // New images to add
   },
   handler: async (ctx, args) => {
     await getUserIdentity(ctx);
@@ -224,7 +225,7 @@ export const updateLogEntry = mutation({
     }
 
     // Build update object with only provided fields
-    const updates: any = {};
+    const updates: Partial<typeof log> = {};
     if (args.categoria !== undefined) updates.categoria = args.categoria;
     if (args.partida_id !== undefined) updates.partida_id = args.partida_id;
     if (args.familias_tags !== undefined) updates.familias_tags = args.familias_tags;
@@ -235,6 +236,20 @@ export const updateLogEntry = mutation({
     if (args.status !== undefined) updates.status = args.status;
 
     await ctx.db.patch(args.logId, updates);
+    
+    // Add new images if provided
+    if (args.imagenes && args.imagenes.length > 0) {
+      for (const storageId of args.imagenes) {
+        await ctx.db.insert("documentos", {
+          nombre: `foto_${Date.now()}`,
+          descripcion: "Foto de bitácora",
+          type: "imagen",
+          storage_id: storageId,
+          bitacora_id: args.logId,
+          uploaded_at: Date.now(),
+        });
+      }
+    }
 
     return args.logId;
   },
@@ -256,7 +271,7 @@ export const deleteLogEntry = mutation({
     // Delete associated photos
     const photos = await ctx.db
       .query("documentos")
-      .withIndex("by_bitacora_id", (q) => q.eq("bitacora_id", args.logId as any))
+      .withIndex("by_bitacora_id", (q) => q.eq("bitacora_id", args.logId as Id<"bitacora">))
       .collect();
     
     for (const photo of photos) {
@@ -290,6 +305,28 @@ export const deletePhoto = mutation({
 
     // Delete the document entry
     await ctx.db.delete(args.photoId);
+
+    return args.photoId;
+  },
+});
+
+// Update photo comment
+export const updatePhotoComment = mutation({
+  args: {
+    photoId: v.id("documentos"),
+    comment: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await getUserIdentity(ctx);
+
+    const photo = await ctx.db.get(args.photoId);
+    if (!photo) {
+      throw new Error("Photo not found");
+    }
+
+    await ctx.db.patch(args.photoId, {
+      comment: args.comment,
+    });
 
     return args.photoId;
   },
@@ -357,7 +394,7 @@ export const uploadBitacoraPhoto = mutation({
       type: "bitacora_foto",
       storage_id: args.storage_id,
       proyecto: bitacora.proyecto,
-      bitacora_id: args.bitacora_id as any,
+      bitacora_id: args.bitacora_id,
       uploaded_at: Date.now(),
     });
 

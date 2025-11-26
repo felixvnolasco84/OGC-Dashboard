@@ -96,7 +96,7 @@ export default function SeeSalesTransactionsDetailsModal() {
                     <>
 
                                             <div className="flex justify-end mt-4 items-end">
-                            <Button size={"md"} variant="secondary" onClick={handleOpenAddPayment}>
+                            <Button size={"default"} variant="secondary" onClick={handleOpenAddPayment}>
                                 Nuevo Pago
                                 <Plus className="h-3 w-3 bg-gray-600 text-white p-0.5 rounded-full" />
                             </Button>

@@ -20,11 +20,13 @@ interface BitacoraModalState {
   proyectoId?: Id<"desarrollos">;
   logEntry?: LogEntry;
   categoria?: string; // Auto-populate category when creating from a specific group
+  fecha?: string; // Auto-populate date when creating from calendar
   onOpen: (data: {
     proyectoId: Id<"desarrollos">;
     mode: "create" | "edit" | "view";
     logEntry?: LogEntry;
     categoria?: string; // Optional category to pre-fill
+    fecha?: string; // Optional date to pre-fill (DD/MM/YYYY format)
   }) => void;
   onClose: () => void;
 }
@@ -35,6 +37,7 @@ export const useBitacoraModal = create<BitacoraModalState>((set) => ({
   proyectoId: undefined,
   logEntry: undefined,
   categoria: undefined,
+  fecha: undefined,
   onOpen: (data) =>
     set({
       isOpen: true,
@@ -42,6 +45,7 @@ export const useBitacoraModal = create<BitacoraModalState>((set) => ({
       proyectoId: data.proyectoId,
       logEntry: data.logEntry,
       categoria: data.categoria,
+      fecha: data.fecha,
     }),
   onClose: () =>
     set({
@@ -50,5 +54,6 @@ export const useBitacoraModal = create<BitacoraModalState>((set) => ({
       proyectoId: undefined,
       logEntry: undefined,
       categoria: undefined,
+      fecha: undefined,
     }),
 }));

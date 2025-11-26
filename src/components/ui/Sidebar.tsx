@@ -93,10 +93,31 @@ export default function Sidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
 
-  // Filter projects based on search query
-  const filteredProjects = desarrollos?.filter((proyecto) =>
-    proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  // Filter projects based on search query and user access
+  const filteredProjects = (desarrollos || []).filter((proyecto) => {
+    const matchesSearch = proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Admins can see all projects
+    if (currentUser?.role === "admin") {
+      return matchesSearch;
+    }
+    
+    // Users and contratistas: only projects explicitly allowed
+    if (currentUser?.role === "user" || currentUser?.role === "contratista") {
+      const allowedProjects = currentUser?.allowed_desarrollos || [];
+      const hasAccess = allowedProjects.includes(proyecto._id);
+      return matchesSearch && hasAccess;
+    }
+    
+    // Viewers: only projects explicitly allowed
+    if (currentUser?.role === "viewer") {
+      const allowedProjects = currentUser?.allowed_desarrollos || [];
+      const hasAccess = allowedProjects.includes(proyecto._id);
+      return matchesSearch && hasAccess;
+    }
+    
+    return matchesSearch;
+  });
 
   // Filter sales projects based on user access and search query
   const filteredSalesProjects = (salesProjects || []).filter((proyecto) => {

@@ -204,13 +204,13 @@ export default function UserManagementPage() {
                     )}
                     {selectedRole === "contratista" && (
                       <p className="text-xs text-gray-500">
-                        Los contratistas solo tienen acceso a la bitácora en todos los proyectos
+                        Los contratistas solo tienen acceso a la bitácora en los proyectos asignados
                       </p>
                     )}
                   </div>
 
-                  {/* Project Access */}
-                  {selectedRole !== "admin" && selectedRole !== "contratista" && (
+                  {/* Project Access - Show for user, contratista, and viewer roles */}
+                  {selectedRole !== "admin" && (
                     <div className="space-y-2">
                       <Label>Proyectos con acceso</Label>
                       <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">

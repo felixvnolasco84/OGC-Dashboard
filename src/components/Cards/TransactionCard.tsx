@@ -206,7 +206,7 @@ export default function TransactionCard({
                   <Button
                     key={doc._id}
                     onClick={() => window.open(doc.url!, '_blank')}
-                    size={"md"}
+                    size={"default"}
                     className="flex items-center gap-2 px-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md justify-end transition-colors cursor-pointer"
                     title={`Ver ${doc.nombre}`}
                   >

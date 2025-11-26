@@ -163,6 +163,7 @@ export default defineSchema({
     uploaded_at: v.optional(v.number()), // Timestamp
     partida_id: v.optional(v.id("partidas")), // Linked Level 1 Partida for bitacora
     bitacora_id: v.optional(v.union(v.id("documentos"), v.id("bitacora"))), // Parent bitacora entry ID for photos
+    comment: v.optional(v.string()), // Comment for bitacora photos
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_sales_proyecto", { fields: ["sales_proyecto"] })
     .index("by_transaccion", { fields: ["transaccion_id"] })

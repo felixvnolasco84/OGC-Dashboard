@@ -1,4 +1,4 @@
-import { X, Upload, Loader2, Trash2 } from "lucide-react";
+import { X, Upload, Loader2, Trash2, ChevronLeft, ChevronRight, CalendarIcon, Maximize2, Minimize2 } from "lucide-react";
 import { useBitacoraModal } from "../../hooks/use-bitacora-modal";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -9,9 +9,23 @@ import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Checkbox } from "../ui/checkbox";
+import { Calendar } from "../ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Button } from "../ui/button";
+import { cn } from "@/lib/utils";
+import { es } from "date-fns/locale";
+
+// Type for unified photo management
+interface ManagedPhoto {
+  id: string;
+  type: "existing" | "new";
+  url: string;
+  file?: File;
+  isDeleting?: boolean;
+}
 
 export default function BitacoraModal() {
-  const { isOpen, onClose, mode, proyectoId, logEntry } = useBitacoraModal();
+  const { isOpen, onClose, mode, proyectoId, logEntry, categoria: storeCategoria, fecha: storeFecha } = useBitacoraModal();
   const createLog = useMutation(api.bitacora.createLogEntry);
   const updateLog = useMutation(api.bitacora.updateLogEntry);
   const deletePhoto = useMutation(api.bitacora.deletePhoto);
@@ -38,10 +52,19 @@ export default function BitacoraModal() {
   const [comentarios, setComentarios] = useState(logEntry?.comentarios || "");
   const [status, setStatus] = useState(logEntry?.status || "Sin problemas");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewImages, setPreviewImages] = useState<File[]>([]);
-  const [existingPhotos, setExistingPhotos] = useState<Array<{_id: string; url?: string | null}>>([]);
-  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  // Unified photo management state
+  const [managedPhotos, setManagedPhotos] = useState<ManagedPhoto[]>([]);
+  const [photosToDelete, setPhotosToDelete] = useState<string[]>([]); // Track existing photos to delete on save
+  const [newFiles, setNewFiles] = useState<File[]>([]); // Track new files to upload on save
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Gallery view state (for view mode)
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Calendar popover state
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Fetch log entry with photos for view/edit mode
   const fullLogEntry = useQuery(
@@ -52,41 +75,129 @@ export default function BitacoraModal() {
   // Update local state when logEntry changes or modal opens
   useEffect(() => {
     if (isOpen) {
-        setCategoria(logEntry?.categoria || "");
+        // Use store values for auto-populate, fallback to logEntry values for edit/view
+        setCategoria(logEntry?.categoria || storeCategoria || "");
         setSelectedPartidaId(logEntry?.partida_id || "");
         setSelectedFamiliasTags(logEntry?.familias_tags || []);
         // Auto-populate responsable from current user if creating new
         setResponsable(logEntry?.responsable || currentUser?.name || "");
-        setFecha(logEntry?.fecha || new Date().toLocaleDateString("es-MX"));
+        // Use store fecha for auto-populate from calendar, fallback to logEntry or today
+        setFecha(logEntry?.fecha || storeFecha || new Date().toLocaleDateString("es-MX"));
         setAvanceDia(logEntry?.avance_dia || "");
         setComentarios(logEntry?.comentarios || "");
         setStatus(logEntry?.status || "Sin problemas");
-        setPreviewImages([]);
-        // Load existing photos for view/edit mode
+        // Reset photo management state
+        setPhotosToDelete([]);
+        setNewFiles([]);
+        setGalleryIndex(0);
+        
+        // Load existing photos into managed state
         if (fullLogEntry?.fotos) {
-          setExistingPhotos(fullLogEntry.fotos);
+          const existingManaged: ManagedPhoto[] = fullLogEntry.fotos
+            .filter(f => f.url)
+            .map(f => ({
+              id: f._id,
+              type: "existing" as const,
+              url: f.url!,
+            }));
+          setManagedPhotos(existingManaged);
         } else {
-          setExistingPhotos([]);
+          setManagedPhotos([]);
         }
     }
-  }, [isOpen, logEntry, currentUser, fullLogEntry]);
+  }, [isOpen, logEntry, currentUser, fullLogEntry, storeCategoria, storeFecha]);
+  
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
-  // Handle file selection for preview (don't upload yet)
+  // Handle file selection - add to managed photos
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const fileArray = Array.from(files);
-    setPreviewImages([...previewImages, ...fileArray]);
+    const newManagedPhotos: ManagedPhoto[] = fileArray.map((file, index) => ({
+      id: `new-${Date.now()}-${index}`,
+      type: "new" as const,
+      url: URL.createObjectURL(file),
+      file,
+    }));
+    
+    setManagedPhotos(prev => [...prev, ...newManagedPhotos]);
+    setNewFiles(prev => [...prev, ...fileArray]);
     
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  // Remove image from preview
-  const removeImage = (index: number) => {
-    setPreviewImages(previewImages.filter((_, i) => i !== index));
+  // Remove photo from managed list
+  const removePhoto = (photo: ManagedPhoto) => {
+    if (photo.type === "existing") {
+      // Mark for deletion on save
+      setPhotosToDelete(prev => [...prev, photo.id]);
+    } else {
+      // Remove from new files
+      setNewFiles(prev => prev.filter(f => f !== photo.file));
+      // Revoke object URL to prevent memory leaks
+      URL.revokeObjectURL(photo.url);
+    }
+    setManagedPhotos(prev => prev.filter(p => p.id !== photo.id));
+  };
+  
+  // Gallery navigation for view mode
+  const handlePreviousPhoto = () => {
+    setGalleryIndex(prev => (prev > 0 ? prev - 1 : managedPhotos.length - 1));
+  };
+  
+  const handleNextPhoto = () => {
+    setGalleryIndex(prev => (prev < managedPhotos.length - 1 ? prev + 1 : 0));
+  };
+  
+  const handleFullscreen = async () => {
+    if (!imageContainerRef.current) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      } else {
+        await imageContainerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      }
+    } catch (error) {
+      console.error("Fullscreen error:", error);
+    }
+  };
+  
+  // Parse date string to Date object
+  const parseDate = (dateStr: string): Date | undefined => {
+    try {
+      // Try DD/MM/YYYY format
+      const parts = dateStr.split("/");
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day);
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  
+  // Format Date to DD/MM/YYYY string
+  const formatDateToString = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,10 +206,17 @@ export default function BitacoraModal() {
 
     setIsSubmitting(true);
     try {
-      // Upload images if any
+      // Delete marked photos first (for edit mode)
+      if (mode === "edit" && photosToDelete.length > 0) {
+        for (const photoId of photosToDelete) {
+          await deletePhoto({ photoId: photoId as Id<"documentos"> });
+        }
+      }
+      
+      // Upload new images
       const imageStorageIds: Id<"_storage">[] = [];
-      if (previewImages.length > 0) {
-        for (const file of previewImages) {
+      if (newFiles.length > 0) {
+        for (const file of newFiles) {
           const uploadUrl = await generateUploadUrl();
           const result = await fetch(uploadUrl, {
             method: "POST",
@@ -134,6 +252,7 @@ export default function BitacoraModal() {
           avance_dia: avanceDia,
           comentarios,
           status,
+          imagenes: imageStorageIds.length > 0 ? imageStorageIds : undefined,
         });
       }
       handleClose();
@@ -154,7 +273,10 @@ export default function BitacoraModal() {
     setAvanceDia("");
     setComentarios("");
     setStatus("Sin problemas");
-    setPreviewImages([]);
+    setManagedPhotos([]);
+    setPhotosToDelete([]);
+    setNewFiles([]);
+    setGalleryIndex(0);
     onClose();
   };
 
@@ -239,9 +361,10 @@ export default function BitacoraModal() {
                 Partida (Nivel 1) <span className="text-red-500">*</span>
               </Label>
               {isViewMode ? (
-                <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-                  {partidas?.find(p => p._id === selectedPartidaId)?.nombre || "N/A"}
-                </div>
+                <Input
+                  value={partidas?.find(p => p._id === selectedPartidaId)?.nombre || "N/A"}
+                  disabled
+                />
               ) : (
                 <Select
                   value={selectedPartidaId}
@@ -307,14 +430,38 @@ export default function BitacoraModal() {
                 <Label>
                   Fecha <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  value={fecha}
-                  onChange={(e) => setFecha(e.target.value)}
-                  disabled={isViewMode}
-                  placeholder="DD/MM/YYYY"
-                  required
-                />
+                {isViewMode ? (
+                  <Input value={fecha} disabled />
+                ) : (
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !fecha && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {fecha || "Selecciona una fecha"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={parseDate(fecha)}
+                        onSelect={(date) => {
+                          if (date) {
+                            setFecha(formatDateToString(date));
+                            setCalendarOpen(false);
+                          }
+                        }}
+                        locale={es}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
               <div>
                 <Label>
@@ -354,6 +501,7 @@ export default function BitacoraModal() {
             </div>
 
             {/* Comentarios / Retos */}
+            { status !== "Sin problemas" && (
             <div>
               <Label className="block text-sm font-medium text-gray-700 mb-2">
                 Retos / Incidencias
@@ -367,7 +515,7 @@ export default function BitacoraModal() {
                 className="resize-none"
               />
             </div>
-
+            )}
             {/* Daily Progress */}
             <div>
               <Label className="block text-sm font-medium text-gray-700 mb-2">
@@ -387,114 +535,150 @@ export default function BitacoraModal() {
               </p>
             </div>
 
-            {/* Existing Photos Display (view and edit mode) */}
-            {(isViewMode || mode === "edit") && existingPhotos.length > 0 && (
-              <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fotografías Existentes {mode === "edit" && `(${existingPhotos.length})`}
-                </Label>
-                <div className="grid grid-cols-4 gap-3">
-                  {existingPhotos.map((foto) => (
-                    <div key={foto._id} className="relative group">
-                      {foto.url && (
-                        <>
-                          <img
-                            src={foto.url}
-                            alt="Evidencia"
-                            className={`w-full h-24 object-cover rounded-sm border border-gray-300 transition-opacity ${
-                              deletingPhotoId === foto._id ? "opacity-50" : ""
-                            }`}
-                          />
-                          {/* Delete button (edit mode only) */}
-                          {mode === "edit" && (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                if (confirm("¿Estás seguro de eliminar esta foto?")) {
-                                  try {
-                                    setDeletingPhotoId(foto._id);
-                                    await deletePhoto({ photoId: foto._id as Id<"documentos"> });
-                                    // Remove from local state
-                                    setExistingPhotos(prev => prev.filter(p => p._id !== foto._id));
-                                  } catch (error) {
-                                    console.error("Error deleting photo:", error);
-                                    alert("Error al eliminar la foto");
-                                  } finally {
-                                    setDeletingPhotoId(null);
-                                  }
-                                }
-                              }}
-                              disabled={deletingPhotoId === foto._id}
-                              className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {deletingPhotoId === foto._id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3 w-3" />
-                              )}
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Photo Upload Section (create and edit mode) */}
-            {mode !== "view" && (
-              <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fotografías
-                </Label>
-                <div 
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 mb-1">
-                    Arrastra y suelta fotos aquí, o haz clic para seleccionar
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    PNG, JPG, JPEG hasta 10MB
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                </div>
-                
-                {/* Image Preview Grid */}
-                {previewImages.length > 0 && (
-                  <div className="mt-4 grid grid-cols-4 gap-3">
-                    {previewImages.map((file, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-sm border border-gray-300"
-                        />
+            {/* Photos Section */}
+            <div>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">
+                Fotografías {managedPhotos.length > 0 && `(${managedPhotos.length})`}
+              </Label>
+              
+              {/* View Mode - Gallery */}
+              {isViewMode && managedPhotos.length > 0 && (
+                <div className="space-y-3">
+                  {/* Main Image */}
+                  <div 
+                    ref={imageContainerRef}
+                    className={`relative bg-gray-100 rounded-lg overflow-hidden ${isFullscreen ? "flex items-center justify-center bg-black" : ""}`}
+                  >
+                    <img
+                      src={managedPhotos[galleryIndex]?.url}
+                      alt="Foto de bitácora"
+                      className={`w-full object-contain ${isFullscreen ? "h-screen" : "h-64"}`}
+                    />
+                    
+                    {/* Fullscreen button */}
+                    <button
+                      type="button"
+                      onClick={handleFullscreen}
+                      className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors z-10"
+                    >
+                      {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    </button>
+                    
+                    {/* Navigation arrows */}
+                    {managedPhotos.length > 1 && (
+                      <>
                         <button
                           type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={handlePreviousPhoto}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <ChevronLeft className="h-4 w-4" />
                         </button>
-                        <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-                          {file.name.length > 15 ? file.name.substring(0, 12) + '...' : file.name}
-                        </div>
-                      </div>
-                    ))}
+                        <button
+                          type="button"
+                          onClick={handleNextPhoto}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                    
+                    {/* Photo counter */}
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                      {galleryIndex + 1} / {managedPhotos.length}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+                  
+                  {/* Thumbnails */}
+                  {managedPhotos.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {managedPhotos.map((photo, index) => (
+                        <button
+                          key={photo.id}
+                          type="button"
+                          onClick={() => setGalleryIndex(index)}
+                          className={`flex-shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 transition-colors ${
+                            index === galleryIndex ? "border-gray-900" : "border-transparent hover:border-gray-300"
+                          }`}
+                        >
+                          <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {isViewMode && managedPhotos.length === 0 && (
+                <p className="text-sm text-muted-foreground">Sin fotografías</p>
+              )}
+              
+              {/* Edit/Create Mode - Unified Photo Management */}
+              {!isViewMode && (
+                <div className="space-y-4">
+                  {/* Upload area */}
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-1">
+                      Haz clic para agregar fotos
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, JPEG hasta 10MB
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                  
+                  {/* All photos grid (existing + new) */}
+                  {managedPhotos.length > 0 && (
+                    <div className="grid grid-cols-4 gap-3">
+                      {managedPhotos.map((photo) => (
+                        <div key={photo.id} className="relative group">
+                          <img
+                            src={photo.url}
+                            alt="Foto"
+                            className="w-full h-24 object-cover rounded-md border border-gray-200"
+                          />
+                          {/* Type badge */}
+                          {photo.type === "new" && (
+                            <div className="absolute bottom-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded">
+                              Nueva
+                            </div>
+                          )}
+                          {/* Delete button */}
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(photo)}
+                            className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Summary */}
+                  {(managedPhotos.length > 0 || photosToDelete.length > 0) && (
+                    <p className="text-xs text-muted-foreground">
+                      {managedPhotos.filter(p => p.type === "existing").length} existentes
+                      {newFiles.length > 0 && `, ${newFiles.length} nuevas`}
+                      {photosToDelete.length > 0 && ` (${photosToDelete.length} se eliminarán al guardar)`}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </form>
 
