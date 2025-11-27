@@ -132,9 +132,46 @@ export default function PresupuestoPage() {
   const filteredPartidas = useMemo(() => {
     if (!allPartidas) return [];
 
+    // When filtering by familia, we need to:
+    // 1. Keep nivel 1 (partida) items only if they have matching nivel 2/3 children
+    // 2. Keep nivel 2 (familia) items that match the selected familias
+    // 3. Keep nivel 3 (sub-partida) items that match the selected familias
+
+    // First, determine which partida names have matching familias
+    const partidasWithMatchingFamilias = new Set<string>();
+    if (selectedFamilias.length > 0) {
+      allPartidas.forEach(p => {
+        if (p.nivel === 2 || p.nivel === 3) {
+          if (p.familia && selectedFamilias.includes(p.familia)) {
+            // Add the parent partida name
+            partidasWithMatchingFamilias.add(p.partida_nombre || p.nombre);
+          }
+        }
+      });
+    }
+
     return allPartidas.filter(p => {
-      if (selectedPartidas.length > 0 && !selectedPartidas.includes(p.nombre)) return false;
-      if (selectedFamilias.length > 0 && !selectedFamilias.includes(p.familia)) return false;
+      // Filter by selected partidas (nombre)
+      if (selectedPartidas.length > 0 && !selectedPartidas.includes(p.nombre)) {
+        // For nivel 2/3, also check partida_nombre
+        if (p.nivel === 2 || p.nivel === 3) {
+          if (!selectedPartidas.includes(p.partida_nombre || "")) return false;
+        } else {
+          return false;
+        }
+      }
+
+      // Filter by selected familias
+      if (selectedFamilias.length > 0) {
+        if (p.nivel === 1) {
+          // For nivel 1 (partida), only include if it has matching children
+          if (!partidasWithMatchingFamilias.has(p.nombre)) return false;
+        } else {
+          // For nivel 2/3, check if familia matches
+          if (!p.familia || !selectedFamilias.includes(p.familia)) return false;
+        }
+      }
+
       return true;
     });
   }, [allPartidas, selectedPartidas, selectedFamilias]);
@@ -351,16 +388,15 @@ export default function PresupuestoPage() {
                 </PopoverContent>
               </Popover>
               {selectedPartidas.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
+                <div className="flex flex-wrap gap-1 mt-1 items-center">
                   {selectedPartidas.map((partida) => (
                     <Badge
                       key={partida}
-                      variant="secondary"
-                      className="text-base py-0.5 px-2 gap-1"
+                      variant="secondary"                      
                     >
                       {partida.length > 15 ? `${partida.slice(0, 15)}...` : partida}
                       <X
-                        className="h-3 w-3 cursor-pointer"
+                        className="h-3 w-3 cursor-pointer ml-1"
                         onClick={() => setSelectedPartidas(selectedPartidas.filter(p => p !== partida))}
                       />
                     </Badge>
@@ -447,16 +483,16 @@ export default function PresupuestoPage() {
                 </PopoverContent>
               </Popover>
               {selectedFamilias.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
+                <div className="flex flex-wrap gap-1 mt-1 items-center">
                   {selectedFamilias.map((familia) => (
                     <Badge
                       key={familia}
                       variant="secondary"
-                      className="text-base py-0.5 px-2 gap-1"
+                      // className="text-base py-0.5 px-2 gap-1"
                     >
                       {familia.length > 15 ? `${familia.slice(0, 15)}...` : familia}
                       <X
-                        className="h-3 w-3 cursor-pointer"
+                        className="h-3 w-3 cursor-pointer ml-1"
                         onClick={() => setSelectedFamilias(selectedFamilias.filter(f => f !== familia))}
                       />
                     </Badge>

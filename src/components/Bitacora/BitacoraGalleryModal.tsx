@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Loader2, Maximize2, Minimize2, Edit2, Plus } from "lucide-react";
-import { useMutation } from "convex/react";
+import { Loader2, Maximize2, Minimize2, Plus, Send, Trash2, User, Pencil, Check, X } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -29,253 +29,359 @@ interface BitacoraGalleryModalProps {
   logResponsable?: string;
 }
 
-export default function BitacoraGalleryModal({
-  isOpen,
-  onClose,
-  photos,
-  initialIndex = 0,
-  logDate,
-  logResponsable,
-}: BitacoraGalleryModalProps) {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [editingComment, setEditingComment] = useState(false);
-  const [commentText, setCommentText] = useState("");
+// Individual photo card with comments
+function PhotoCard({ 
+  photo, 
+  onMaximize 
+}: { 
+  photo: Photo; 
+  onMaximize: (photoUrl: string) => void;
+}) {
+  const [newComment, setNewComment] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const [showAddComment, setShowAddComment] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<Id<"photo_comments"> | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
-  const updatePhotoComment = useMutation(api.bitacora.updatePhotoComment);
+  const addPhotoComment = useMutation(api.bitacora.addPhotoComment);
+  const deletePhotoComment = useMutation(api.bitacora.deletePhotoComment);
+  const editPhotoComment = useMutation(api.bitacora.editPhotoComment);
+  const comments = useQuery(api.bitacora.getPhotoComments, { 
+    photoId: photo._id as Id<"documentos"> 
+  });
 
-  const validPhotos = photos.filter((p) => p.url);
-  const currentPhoto = validPhotos[currentIndex];
-
-  // Reset index when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setCurrentIndex(initialIndex);
-      setEditingComment(false);
-      setCommentText("");
-    }
-  }, [isOpen, initialIndex]);
-
-  // Listen for fullscreen changes (e.g., user presses Escape)
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : validPhotos.length - 1));
-    setEditingComment(false);
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev < validPhotos.length - 1 ? prev + 1 : 0));
-    setEditingComment(false);
-  };
-
-  const handleEditComment = () => {
-    setEditingComment(true);
-    setCommentText(currentPhoto?.comment || "");
-  };
-
-  const handleSaveComment = async () => {
-    if (!currentPhoto) return;
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
 
     setIsSaving(true);
     try {
-      await updatePhotoComment({
-        photoId: currentPhoto._id as Id<"documentos">,
-        comment: commentText,
+      await addPhotoComment({
+        photoId: photo._id as Id<"documentos">,
+        comment: newComment.trim(),
       });
-      setEditingComment(false);
+      setNewComment("");
+      setShowAddComment(false);
     } catch (error) {
-      console.error("Error saving comment:", error);
-      alert("Error al guardar el comentario");
+      console.error("Error adding comment:", error);
+      alert("Error al agregar el comentario");
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleDeleteComment = async (commentId: Id<"photo_comments">) => {
+    try {
+      await deletePhotoComment({ commentId });
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      alert("Error al eliminar el comentario");
+    }
+  };
+
+  const handleStartEdit = (commentId: Id<"photo_comments">, currentText: string) => {
+    setEditingCommentId(commentId);
+    setEditingText(currentText);
+  };
+
   const handleCancelEdit = () => {
-    setEditingComment(false);
-    setCommentText("");
+    setEditingCommentId(null);
+    setEditingText("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCommentId || !editingText.trim()) return;
+
+    setIsEditing(true);
+    try {
+      await editPhotoComment({
+        commentId: editingCommentId,
+        comment: editingText.trim(),
+      });
+      setEditingCommentId(null);
+      setEditingText("");
+    } catch (error) {
+      console.error("Error editing comment:", error);
+      alert("Error al editar el comentario");
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString("es-MX", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      {/* Image */}
+      <div className="relative bg-gray-100">
+        {photo.url && (
+          <img
+            src={photo.url}
+            alt={photo.nombre || "Foto de bitácora"}
+            className="w-full h-64 object-cover"
+          />
+        )}
+        
+        {/* Maximize button */}
+        <button
+          onClick={() => photo.url && onMaximize(photo.url)}
+          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Comments Section */}
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium text-gray-700">
+            Comentarios {comments && comments.length > 0 && `(${comments.length})`}
+          </span>
+          {!showAddComment && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAddComment(true)}
+              className="h-7 px-2"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Comments List */}
+        <div className="space-y-3 max-h-48 overflow-y-auto">
+          {comments && comments.length > 0 ? (
+            comments.map((comment) => (
+              <div 
+                key={comment._id} 
+                className="bg-gray-50 rounded-lg p-3 group"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                      <User className="h-3 w-3 text-gray-500" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">
+                      {comment.user_name}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {formatDate(comment.created_at)}
+                    </span>
+                  </div>
+                  {editingCommentId !== comment._id && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={() => handleStartEdit(comment._id, comment.comment)}
+                        className="p-1 hover:bg-blue-100 rounded transition-all"
+                      >
+                        <Pencil className="h-3 w-3 text-blue-500" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteComment(comment._id)}
+                        className="p-1 hover:bg-red-100 rounded transition-all"
+                      >
+                        <Trash2 className="h-3 w-3 text-red-500" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Edit mode or display mode */}
+                {editingCommentId === comment._id ? (
+                  <div className="pl-8 space-y-2">
+                    <Textarea
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      className="resize-none text-sm"
+                      rows={2}
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-1">
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={isEditing}
+                        className="p-1.5 hover:bg-gray-200 rounded transition-all"
+                      >
+                        <X className="h-4 w-4 text-gray-500" />
+                      </button>
+                      <button
+                        onClick={handleSaveEdit}
+                        disabled={isEditing || !editingText.trim()}
+                        className="p-1.5 hover:bg-green-100 rounded transition-all disabled:opacity-50"
+                      >
+                        {isEditing ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-green-500" />
+                        ) : (
+                          <Check className="h-4 w-4 text-green-500" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-700 pl-8">
+                    {comment.comment}
+                  </p>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-2">
+              Sin comentarios
+            </p>
+          )}
+        </div>
+
+        {/* Add Comment Form */}
+        {showAddComment && (
+          <div className="mt-3 space-y-2">
+            <Textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Escribe un comentario..."
+              className="resize-none text-sm"
+              rows={2}
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowAddComment(false);
+                  setNewComment("");
+                }}
+                disabled={isSaving}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleAddComment}
+                disabled={isSaving || !newComment.trim()}
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-1" />
+                    Enviar
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function BitacoraGalleryModal({
+  isOpen,
+  onClose,
+  photos,
+  logDate,
+  logResponsable,
+}: BitacoraGalleryModalProps) {
+  const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
+  const fullscreenRef = useRef<HTMLDivElement>(null);
+
+  const validPhotos = photos.filter((p) => p.url);
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setFullscreenUrl(null);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const handleMaximize = async (photoUrl: string) => {
+    setFullscreenUrl(photoUrl);
+    // Wait for state update and ref to be set
+    setTimeout(async () => {
+      if (fullscreenRef.current) {
+        try {
+          await fullscreenRef.current.requestFullscreen();
+        } catch (error) {
+          console.error("Fullscreen error:", error);
+        }
+      }
+    }, 50);
+  };
+
+  const handleExitFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+      setFullscreenUrl(null);
+    } catch (error) {
+      console.error("Exit fullscreen error:", error);
+    }
   };
 
   if (validPhotos.length === 0) {
     return null;
   }
 
-
-  const handleFullscreen = async () => {
-    if (!currentPhoto || !imageContainerRef.current) return;
-
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-        setIsFullscreen(false);
-      } else {
-        await imageContainerRef.current.requestFullscreen();
-        setIsFullscreen(true);
-      }
-    } catch (error) {
-      console.error("Fullscreen error:", error);
-    }
-  };
-
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col">
-        <SheetHeader className="p-6 pb-4 border-b">
-          <SheetTitle>Galería de Fotos</SheetTitle>
-          {logDate && (
-            <SheetDescription>
-              {logDate} {logResponsable && `• ${logResponsable}`}
-            </SheetDescription>
-          )}
-        </SheetHeader>
+    <>
+      <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col">
+          <SheetHeader className="p-6 pb-4 border-b">
+            <SheetTitle>Galería de Fotos</SheetTitle>
+            {logDate && (
+              <SheetDescription>
+                {logDate} {logResponsable && `• ${logResponsable}`}
+              </SheetDescription>
+            )}
+          </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          {/* Main Image */}
-          <div
-            ref={imageContainerRef}
-            className={`relative bg-gray-100 ${isFullscreen ? "flex items-center justify-center bg-black" : ""}`}
-          >
-            {currentPhoto?.url && (
-              <img
-                src={currentPhoto.url}
-                alt={currentPhoto.nombre || "Foto de bitácora"}
-                className={`w-full object-contain ${isFullscreen ? "h-screen" : "h-[400px]"}`}
+          {/* Scrollable Photos List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {validPhotos.map((photo) => (
+              <PhotoCard
+                key={photo._id}
+                photo={photo}
+                onMaximize={handleMaximize}
               />
-            )}
-
-
-            {/* fullscreen */}
-            <button
-              onClick={handleFullscreen}
-              className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors z-10"
-            >
-              {isFullscreen ? (
-                <Minimize2 className="h-5 w-5" />
-              ) : (
-                <Maximize2 className="h-5 w-5" />
-              )}
-            </button>
-
-            {/* Navigation Arrows */}
-            {validPhotos.length > 1 && (
-              <>
-                <button
-                  onClick={handlePrevious}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={handleNext}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </>
-            )}
-
-            {/* Photo Counter */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
-              {currentIndex + 1} / {validPhotos.length}
-            </div>
+            ))}
           </div>
+        </SheetContent>
+      </Sheet>
 
-          {/* Thumbnails */}
-          {validPhotos.length > 1 && (
-            <div className="flex gap-2 p-4 overflow-x-auto border-b">
-              {validPhotos.map((photo, index) => (
-                <button
-                  key={photo._id}
-                  onClick={() => {
-                    setCurrentIndex(index);
-                    setEditingComment(false);
-                  }}
-                  className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${index === currentIndex
-                    ? "border-gray-900"
-                    : "border-transparent hover:border-gray-300"
-                    }`}
-                >
-                  {photo.url && (
-                    <img
-                      src={photo.url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Comment Section */}
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-gray-700">
-                <span className="font-medium">Comentarios</span>
-              </div>
-              {!editingComment && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleEditComment}
-                  className="text-base h-7"
-                >
-                  {currentPhoto?.comment ?
-                    <Edit2 className="h-4 w-4" /> :
-                    <Plus className="h-4 w-4" />}
-                </Button>
-              )}
-            </div>
-
-            {editingComment ? (
-              <div className="space-y-3">
-                <Textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Escribe un comentario para esta foto..."
-                  className="w-full resize-none text-base"
-                  rows={3}
-                />
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleCancelEdit}
-                    disabled={isSaving}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleSaveComment}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Guardar"
-
-                    )}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 p-4 bg-[#f5f5f5] rounded-sm">
-                <p className="text-gray-700 text-base">
-                  {currentPhoto?.comment || "Sin comentario"}
-                </p>
-              </div>
-            )}
-          </div>
+      {/* Fullscreen Overlay */}
+      {fullscreenUrl && (
+        <div
+          ref={fullscreenRef}
+          className="fixed inset-0 bg-black flex items-center justify-center z-[100]"
+          onClick={handleExitFullscreen}
+        >
+          <img
+            src={fullscreenUrl}
+            alt="Foto en pantalla completa"
+            className="max-w-full max-h-full object-contain"
+          />
+          <button
+            onClick={handleExitFullscreen}
+            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+          >
+            <Minimize2 className="h-5 w-5" />
+          </button>
         </div>
-      </SheetContent>
-    </Sheet>
+      )}
+    </>
   );
 }

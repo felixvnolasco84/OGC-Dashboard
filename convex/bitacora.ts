@@ -25,6 +25,7 @@ export const createLogEntry = mutation({
     comentarios: v.optional(v.string()), // Retos / Incidencias
     status: v.optional(v.string()), // "Sin problemas", "Con retrasos", etc.
     imagenes: v.optional(v.array(v.id("_storage"))), // Array of storage IDs for photos
+    imagenesDescripciones: v.optional(v.array(v.string())), // Descriptions for each image (same order as imagenes)
   },
   handler: async (ctx, args) => {
     await getUserIdentity(ctx);
@@ -49,10 +50,13 @@ export const createLogEntry = mutation({
       const partida = await ctx.db.get(args.partida_id);
       const partidaNombre = partida?.nombre || "Bitácora";
       
-      for (const storageId of args.imagenes) {
+      for (let i = 0; i < args.imagenes.length; i++) {
+        const storageId = args.imagenes[i];
+        const descripcion = args.imagenesDescripciones?.[i] || `Foto adjunta a bitácora ${partidaNombre}`;
+        
         await ctx.db.insert("documentos", {
           nombre: `${partidaNombre} - Foto`,
-          descripcion: `Foto adjunta a bitácora ${partidaNombre}`,
+          descripcion: descripcion,
           type: "bitacora_foto",
           storage_id: storageId,
           proyecto: args.proyecto,
@@ -215,6 +219,7 @@ export const updateLogEntry = mutation({
     comentarios: v.optional(v.string()),
     status: v.optional(v.string()),
     imagenes: v.optional(v.array(v.id("_storage"))), // New images to add
+    imagenesDescripciones: v.optional(v.array(v.string())), // Descriptions for each new image
   },
   handler: async (ctx, args) => {
     await getUserIdentity(ctx);
@@ -239,10 +244,13 @@ export const updateLogEntry = mutation({
     
     // Add new images if provided
     if (args.imagenes && args.imagenes.length > 0) {
-      for (const storageId of args.imagenes) {
+      for (let i = 0; i < args.imagenes.length; i++) {
+        const storageId = args.imagenes[i];
+        const descripcion = args.imagenesDescripciones?.[i] || "Foto de bitácora";
+        
         await ctx.db.insert("documentos", {
           nombre: `foto_${Date.now()}`,
-          descripcion: "Foto de bitácora",
+          descripcion: descripcion,
           type: "imagen",
           storage_id: storageId,
           bitacora_id: args.logId,
@@ -310,7 +318,7 @@ export const deletePhoto = mutation({
   },
 });
 
-// Update photo comment
+// Update photo comment (legacy - updates the single comment field on documentos)
 export const updatePhotoComment = mutation({
   args: {
     photoId: v.id("documentos"),
@@ -329,6 +337,121 @@ export const updatePhotoComment = mutation({
     });
 
     return args.photoId;
+  },
+});
+
+// Add a new comment to a photo
+export const addPhotoComment = mutation({
+  args: {
+    photoId: v.id("documentos"),
+    comment: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await getUserIdentity(ctx);
+    
+    // Get user from database
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const photo = await ctx.db.get(args.photoId);
+    if (!photo) {
+      throw new Error("Photo not found");
+    }
+
+    const commentId = await ctx.db.insert("photo_comments", {
+      photo_id: args.photoId,
+      user_id: user._id,
+      user_name: user.name,
+      comment: args.comment,
+      created_at: Date.now(),
+    });
+
+    return commentId;
+  },
+});
+
+// Get all comments for a photo
+export const getPhotoComments = query({
+  args: {
+    photoId: v.id("documentos"),
+  },
+  handler: async (ctx, args) => {
+    await getUserIdentity(ctx);
+
+    const comments = await ctx.db
+      .query("photo_comments")
+      .withIndex("by_photo", (q) => q.eq("photo_id", args.photoId))
+      .collect();
+
+    // Sort by created_at (oldest first)
+    return comments.sort((a, b) => a.created_at - b.created_at);
+  },
+});
+
+// Delete a photo comment
+export const deletePhotoComment = mutation({
+  args: {
+    commentId: v.id("photo_comments"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await getUserIdentity(ctx);
+    
+    const comment = await ctx.db.get(args.commentId);
+    if (!comment) {
+      throw new Error("Comment not found");
+    }
+
+    // Get user to check ownership
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+    
+    // Only allow deletion by comment owner or admin
+    if (user && (comment.user_id === user._id || user.role === "admin")) {
+      await ctx.db.delete(args.commentId);
+      return args.commentId;
+    }
+
+    throw new Error("Not authorized to delete this comment");
+  },
+});
+
+// Edit a photo comment
+export const editPhotoComment = mutation({
+  args: {
+    commentId: v.id("photo_comments"),
+    comment: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await getUserIdentity(ctx);
+    
+    const existingComment = await ctx.db.get(args.commentId);
+    if (!existingComment) {
+      throw new Error("Comment not found");
+    }
+
+    // Get user to check ownership
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+    
+    // Only allow editing by comment owner or admin
+    if (user && (existingComment.user_id === user._id || user.role === "admin")) {
+      await ctx.db.patch(args.commentId, {
+        comment: args.comment,
+      });
+      return args.commentId;
+    }
+
+    throw new Error("Not authorized to edit this comment");
   },
 });
 

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Upload, FileSpreadsheet, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, Loader2, CheckCircle2, XCircle, AlertTriangle, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Id } from "../../../convex/_generated/dataModel";
 
@@ -57,13 +57,85 @@ type UploadResult = {
   }>;
 };
 
+// Upload report types
+interface TransactionReport {
+  factura: string;
+  status: "success" | "error" | "partial";
+  monto: number;
+  fecha: string;
+  lineItemsTotal: number;
+  lineItemsProcessed: number;
+  errors: string[];
+  partidasNotFound: string[];
+}
+
+interface UploadReport {
+  totalTransactions: number;
+  successfulTransactions: number;
+  failedTransactions: number;
+  partialTransactions: number;
+  totalAmount: number;
+  successfulAmount: number;
+  totalPartidasNotFound: number;
+  transactions: TransactionReport[];
+}
+
+// Validation report types (before upload)
+interface ValidationReport {
+  totalTransactions: number;
+  validTransactions: number;
+  invalidTransactions: number;
+  partialTransactions: number;
+  totalAmount: number;
+  validAmount: number;
+  totalPartidasNotFound: number;
+  transactions: Array<{
+    factura: string;
+    status: "valid" | "invalid" | "partial";
+    monto: number;
+    fecha: string;
+    lineItemsTotal: number;
+    lineItemsValid: number;
+    errors: string[];
+    partidasNotFound: string[];
+    // Store prepared data for upload
+    preparedData?: {
+      transaction: {
+        proyecto: string;
+        monto_total: number;
+        fecha: number;
+        tipo_pago: string;
+        moneda: string;
+        tipo_cambio: string;
+        status: string;
+        categoria: string;
+        factura: string;
+      };
+      lineItems: Array<{
+        partida_id: Id<"partidas">;
+        partida: string;
+        familia: string;
+        sub_partida: string;
+        monto: number;
+      }>;
+    };
+  }>;
+}
+
+type ModalStep = "upload" | "preview" | "result";
+
 export default function UploadProjectTransactionsModal() {
   const { isOpen, proyectoId, proyectoNombre, onClose } = useUploadProjectTransactionsModal();
   const [file, setFile] = useState<File | null>(null);  
-  const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
+  const [uploadReport, setUploadReport] = useState<UploadReport | null>(null);
+  const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
+  const [showFailedOnly, setShowFailedOnly] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [currentStep, setCurrentStep] = useState<ModalStep>("upload");
 
   // Queries and mutations
   const createTransaction = useMutation(api.transacciones.createTransaction);  
@@ -170,7 +242,8 @@ export default function UploadProjectTransactionsModal() {
     return data;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Step 1: Validate file and show preview
+  const handleValidate = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!proyectoId) {
@@ -187,10 +260,10 @@ export default function UploadProjectTransactionsModal() {
       return;
     }
 
-    setIsUploading(true);
+    setIsValidating(true);
 
     try {
-      // Upload file to API
+      // Upload file to API for parsing
       const response = await handleExcelUpload(file);
       setResult(response);
 
@@ -198,19 +271,12 @@ export default function UploadProjectTransactionsModal() {
         toast.error("Error al procesar el archivo", {
           description: response.message || "No se pudieron procesar las transacciones.",
         });
-        setIsUploading(false);
+        setIsValidating(false);
         return;
       }
 
-      setIsProcessing(true);
-      let successCount = 0;
-      let errorCount = 0;      
-      const errors: string[] = [];
-      const createdTransactionIds: Array<{ id: Id<"transacciones">; factura: string }> = [];
-
       // Create lookup map for fast partida resolution
       const partidasMap = new Map<string, Id<"partidas">>();
-
       if (partidasForProject) {
         for (const p of partidasForProject) {
           const key = `${p.nombre}_${p.familia}_${p.sub_partida}`;
@@ -218,54 +284,169 @@ export default function UploadProjectTransactionsModal() {
         }
       }
 
-      // Process each transaction
+      // Validate each transaction without uploading
+      let validCount = 0;
+      let invalidCount = 0;
+      let partialCount = 0;
+      let validAmount = 0;
+      const validationTransactions: ValidationReport["transactions"] = [];
+
       for (const txn of response.transactions) {
-        try {
-          // Prepare line items with partida lookup
-          const lineItems: Array<{
-            partida_id: Id<"partidas">;
-            partida: string;
-            familia: string;
-            sub_partida: string;
-            monto: number;
-          }> = [];
+        const report: ValidationReport["transactions"][0] = {
+          factura: txn.factura || "Sin factura",
+          status: "valid",
+          monto: txn.transaction.monto_total,
+          fecha: excelSerialToDate(txn.transaction.fecha),
+          lineItemsTotal: txn.lineitems.length,
+          lineItemsValid: 0,
+          errors: [],
+          partidasNotFound: [],
+        };
 
-          for (const item of txn.lineitems) {
-            const key = `${item.partida_identifier.partida}_${item.partida_identifier.familia}_${item.partida_identifier.subpartida}`;
-            const partidaId = partidasMap.get(key);
+        // Prepare line items with partida lookup
+        const lineItems: Array<{
+          partida_id: Id<"partidas">;
+          partida: string;
+          familia: string;
+          sub_partida: string;
+          monto: number;
+        }> = [];
 
-            if (!partidaId) {
-              console.warn(`Partida not found: ${key}`);
-              errors.push(`Partida no encontrada: ${item.codigo}`);
-              continue;
-            }
+        for (const item of txn.lineitems) {
+          const key = `${item.partida_identifier.partida}_${item.partida_identifier.familia}_${item.partida_identifier.subpartida}`;
+          const partidaId = partidasMap.get(key);
 
-            lineItems.push({
-              partida_id: partidaId,
-              partida: item.partida_identifier.partida,
-              familia: item.partida_identifier.familia,
-              sub_partida: item.partida_identifier.subpartida,
-              monto: item.monto,
-            });
-          }
-
-          // Only create transaction if we have line items
-          if (lineItems.length === 0) {
-            console.warn(`No line items found for transaction ${txn.factura}`);
-            errorCount++;
+          if (!partidaId) {
+            report.partidasNotFound.push(`${item.partida_identifier.partida} > ${item.partida_identifier.familia} > ${item.partida_identifier.subpartida}`);
             continue;
           }
 
-          // Create transaction with line items
-          const result = await createTransaction({
+          lineItems.push({
+            partida_id: partidaId,
+            partida: item.partida_identifier.partida,
+            familia: item.partida_identifier.familia,
+            sub_partida: item.partida_identifier.subpartida,
+            monto: item.monto,
+          });
+        }
+
+        report.lineItemsValid = lineItems.length;
+
+        // Determine status
+        if (lineItems.length === 0) {
+          report.status = "invalid";
+          report.errors.push("No se encontraron partidas válidas para esta transacción");
+          invalidCount++;
+        } else if (lineItems.length < txn.lineitems.length) {
+          report.status = "partial";
+          partialCount++;
+          validAmount += txn.transaction.monto_total;
+          // Store prepared data for upload
+          report.preparedData = {
+            transaction: txn.transaction,
+            lineItems,
+          };
+        } else {
+          report.status = "valid";
+          validCount++;
+          validAmount += txn.transaction.monto_total;
+          // Store prepared data for upload
+          report.preparedData = {
+            transaction: txn.transaction,
+            lineItems,
+          };
+        }
+
+        validationTransactions.push(report);
+      }
+
+      // Build validation report
+      const report: ValidationReport = {
+        totalTransactions: response.transactions.length,
+        validTransactions: validCount,
+        invalidTransactions: invalidCount,
+        partialTransactions: partialCount,
+        totalAmount: response.summary?.totalAmount || 0,
+        validAmount,
+        totalPartidasNotFound: validationTransactions.reduce((sum, r) => sum + r.partidasNotFound.length, 0),
+        transactions: validationTransactions,
+      };
+
+      setValidationReport(report);
+      setCurrentStep("preview");
+      setIsValidating(false);
+
+      if (invalidCount > 0 || partialCount > 0) {
+        toast.warning("Validación completada con advertencias", {
+          description: `${validCount} válidas, ${partialCount} parciales, ${invalidCount} inválidas`,
+        });
+      } else {
+        toast.success("Validación exitosa", {
+          description: `${validCount} transacciones listas para cargar`,
+        });
+      }
+    } catch (error) {
+      console.error("Error validating file:", error);
+      toast.error("Error al validar el archivo", {
+        description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
+      });
+      setIsValidating(false);
+    }
+  };
+
+  // Step 2: Confirm and upload validated transactions
+  const handleConfirmUpload = async () => {
+    if (!proyectoId || !validationReport) return;
+
+    setIsProcessing(true);
+
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      let partialCount = 0;
+      let successfulAmount = 0;
+      const transactionReports: TransactionReport[] = [];
+
+      // Process only valid/partial transactions
+      for (const txn of validationReport.transactions) {
+        if (txn.status === "invalid" || !txn.preparedData) {
+          // Skip invalid transactions, but add to report
+          transactionReports.push({
+            factura: txn.factura,
+            status: "error",
+            monto: txn.monto,
+            fecha: txn.fecha,
+            lineItemsTotal: txn.lineItemsTotal,
+            lineItemsProcessed: 0,
+            errors: txn.errors,
+            partidasNotFound: txn.partidasNotFound,
+          });
+          errorCount++;
+          continue;
+        }
+
+        const report: TransactionReport = {
+          factura: txn.factura,
+          status: txn.status === "partial" ? "partial" : "success",
+          monto: txn.monto,
+          fecha: txn.fecha,
+          lineItemsTotal: txn.lineItemsTotal,
+          lineItemsProcessed: txn.lineItemsValid,
+          errors: [],
+          partidasNotFound: txn.partidasNotFound,
+        };
+
+        try {
+          // Create transaction with prepared line items
+          await createTransaction({
             proyecto: proyectoId,
-            monto_total: txn.transaction.monto_total,
-            fecha: excelSerialToDate(txn.transaction.fecha),
-            tipo_pago: txn.transaction.tipo_pago,
-            moneda: txn.transaction.moneda,
-            tipo_cambio: txn.transaction.tipo_cambio,
-            status: txn.transaction.status,
-            codigo_referencia: txn.transaction.categoria || "",
+            monto_total: txn.preparedData.transaction.monto_total,
+            fecha: excelSerialToDate(txn.preparedData.transaction.fecha),
+            tipo_pago: txn.preparedData.transaction.tipo_pago,
+            moneda: txn.preparedData.transaction.moneda,
+            tipo_cambio: txn.preparedData.transaction.tipo_cambio,
+            status: txn.preparedData.transaction.status,
+            codigo_referencia: txn.preparedData.transaction.categoria || "",
             banco: "",
             tarjeta: "",
             numero_cuenta: "",
@@ -273,58 +454,142 @@ export default function UploadProjectTransactionsModal() {
             factura: txn.factura || "",
             comprobante: "",
             presupuesto_archivo: "",
-            lineItems: lineItems,
+            lineItems: txn.preparedData.lineItems,
           });
 
-          // Store transaction ID and documents for later processing
-          createdTransactionIds.push({
-            id: result.transaccionId,
-            factura: txn.factura,
-          });
-
+          if (txn.status === "partial") {
+            partialCount++;
+          }
           successCount++;
+          successfulAmount += txn.monto;
         } catch (error) {
           console.error("Error creating transaction:", error);
-          errors.push(error instanceof Error ? error.message : "Error desconocido");
+          report.status = "error";
+          report.errors.push(error instanceof Error ? error.message : "Error desconocido");
           errorCount++;
         }
-      }  
 
+        transactionReports.push(report);
+      }
+
+      // Build final report
+      const finalReport: UploadReport = {
+        totalTransactions: validationReport.totalTransactions,
+        successfulTransactions: successCount,
+        failedTransactions: errorCount,
+        partialTransactions: partialCount,
+        totalAmount: validationReport.totalAmount,
+        successfulAmount,
+        totalPartidasNotFound: transactionReports.reduce((sum, r) => sum + r.partidasNotFound.length, 0),
+        transactions: transactionReports,
+      };
+
+      setUploadReport(finalReport);
+      setCurrentStep("result");
       setIsProcessing(false);
-      setIsUploading(false);
 
       if (successCount > 0) {
-        const description = errorCount > 0 || errors.length > 0 ? ` con algunos errores` : "";
+        const description = errorCount > 0 || partialCount > 0
+          ? `${successCount} exitosas, ${partialCount} parciales, ${errorCount} fallidas`
+          : `${successCount} transacciones creadas exitosamente`;
 
-        toast.success("Proceso completado", { description });
-
-        if (errors.length > 0 && errors.length <= 5) {
-          errors.forEach((error) => {
-            toast.warning(error, { duration: 3000 });
-          });
-        }
-
-        handleClose();
+        toast.success("Carga completada", { description });
       } else {
         toast.error("Error al crear transacciones", {
           description: "No se pudo crear ninguna transacción.",
         });
       }
     } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error("Error al subir el archivo", {
+      console.error("Error uploading transactions:", error);
+      toast.error("Error al cargar las transacciones", {
         description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
       });
-      setIsUploading(false);
       setIsProcessing(false);
     }
   };
 
+  // Legacy submit handler (kept for compatibility)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Now just calls validate
+    await handleValidate(e);
+  };
+
   const handleClose = () => {
-    if (isUploading || isProcessing) return;
+    if (isProcessing || isValidating) return;
     setFile(null);    
     setResult(null);
+    setUploadReport(null);
+    setValidationReport(null);
+    setShowFailedOnly(false);
+    setExpandedRows(new Set());
+    setCurrentStep("upload");
     onClose();
+  };
+
+  const toggleRowExpanded = (factura: string) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(factura)) {
+        newSet.delete(factura);
+      } else {
+        newSet.add(factura);
+      }
+      return newSet;
+    });
+  };
+
+  const getStatusColor = (status: TransactionReport["status"]) => {
+    switch (status) {
+      case "success": return "text-green-600 bg-green-50";
+      case "error": return "text-red-600 bg-red-50";
+      case "partial": return "text-yellow-600 bg-yellow-50";
+    }
+  };
+
+  const getStatusIcon = (status: TransactionReport["status"]) => {
+    switch (status) {
+      case "success": return <CheckCircle2 className="h-4 w-4" />;
+      case "error": return <XCircle className="h-4 w-4" />;
+      case "partial": return <AlertTriangle className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusLabel = (status: TransactionReport["status"]) => {
+    switch (status) {
+      case "success": return "Exitosa";
+      case "error": return "Fallida";
+      case "partial": return "Parcial";
+    }
+  };
+
+  const filteredReportTransactions = uploadReport?.transactions.filter(t => 
+    !showFailedOnly || t.status !== "success"
+  ) || [];
+
+  const exportReportToCSV = () => {
+    if (!uploadReport) return;
+    
+    const headers = ["Factura", "Estado", "Monto", "Fecha", "Items Total", "Items Procesados", "Errores", "Partidas No Encontradas"];
+    const rows = uploadReport.transactions.map(t => [
+      t.factura,
+      getStatusLabel(t.status),
+      t.monto.toFixed(2),
+      t.fecha,
+      t.lineItemsTotal,
+      t.lineItemsProcessed,
+      t.errors.join("; "),
+      t.partidasNotFound.join("; ")
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `reporte_carga_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const isFormValid = file !== null;
@@ -375,7 +640,7 @@ export default function UploadProjectTransactionsModal() {
                       type="button"
                       variant="outline"
                       onClick={handleBrowseClick}
-                      disabled={isUploading || isProcessing}
+                      disabled={isValidating || isProcessing}
                     >
                       Cambiar Archivo
                     </Button>
@@ -383,7 +648,7 @@ export default function UploadProjectTransactionsModal() {
                       type="button"
                       variant="outline"
                       onClick={handleRemoveFile}
-                      disabled={isUploading || isProcessing}
+                      disabled={isValidating || isProcessing}
                     >
                       Eliminar
                     </Button>
@@ -412,7 +677,7 @@ export default function UploadProjectTransactionsModal() {
                       type="button"
                       variant="outline"
                       onClick={handleBrowseClick}
-                      disabled={isUploading || isProcessing}
+                      disabled={isValidating || isProcessing}
                     >
                       Explorar Archivos
                     </Button>
@@ -466,31 +731,360 @@ export default function UploadProjectTransactionsModal() {
             </div>
           )}
 
-          {/* Actions */}
+          {/* Validation Preview (Step 2) */}
+          {currentStep === "preview" && validationReport && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-blue-700 bg-blue-50 p-3 rounded-lg">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="text-sm font-medium">Vista previa - Revisa los datos antes de confirmar la carga</span>
+              </div>
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-4 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-semibold text-gray-900">{validationReport.totalTransactions}</p>
+                  <p className="text-xs text-gray-500">Total</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-semibold text-green-600">{validationReport.validTransactions}</p>
+                  <p className="text-xs text-green-600">Válidas</p>
+                </div>
+                <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-semibold text-yellow-600">{validationReport.partialTransactions}</p>
+                  <p className="text-xs text-yellow-600">Parciales</p>
+                </div>
+                <div className="bg-red-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-semibold text-red-600">{validationReport.invalidTransactions}</p>
+                  <p className="text-xs text-red-600">Inválidas</p>
+                </div>
+              </div>
+
+              {/* Amount Summary */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-blue-800">Monto a procesar:</span>
+                  <span className="font-semibold text-blue-900">
+                    ${validationReport.validAmount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                {validationReport.totalPartidasNotFound > 0 && (
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-200">
+                    <span className="text-sm text-orange-700">Partidas no encontradas:</span>
+                    <span className="font-semibold text-orange-700">{validationReport.totalPartidasNotFound}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Report Header */}
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-gray-900">Detalle de Validación</h4>
+                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showFailedOnly}
+                    onChange={(e) => setShowFailedOnly(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  Solo con errores
+                </label>
+              </div>
+
+              {/* Validation Table */}
+              <div className="border rounded-lg max-h-64 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="text-left p-2 font-medium text-gray-600">Factura</th>
+                      <th className="text-left p-2 font-medium text-gray-600">Estado</th>
+                      <th className="text-right p-2 font-medium text-gray-600">Monto</th>
+                      <th className="text-center p-2 font-medium text-gray-600">Items</th>
+                      <th className="text-left p-2 font-medium text-gray-600"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {validationReport.transactions
+                      .filter(t => !showFailedOnly || t.status !== "valid")
+                      .map((txn) => (
+                      <>
+                        <tr 
+                          key={txn.factura} 
+                          className={`hover:bg-gray-50 cursor-pointer ${expandedRows.has(txn.factura) ? "bg-gray-50" : ""}`}
+                          onClick={() => (txn.errors.length > 0 || txn.partidasNotFound.length > 0) && toggleRowExpanded(txn.factura)}
+                        >
+                          <td className="p-2 font-mono text-xs">{txn.factura}</td>
+                          <td className="p-2">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+                              txn.status === "valid" ? "text-green-600 bg-green-50" :
+                              txn.status === "partial" ? "text-yellow-600 bg-yellow-50" :
+                              "text-red-600 bg-red-50"
+                            }`}>
+                              {txn.status === "valid" ? <CheckCircle2 className="h-4 w-4" /> :
+                               txn.status === "partial" ? <AlertTriangle className="h-4 w-4" /> :
+                               <XCircle className="h-4 w-4" />}
+                              {txn.status === "valid" ? "Válida" : txn.status === "partial" ? "Parcial" : "Inválida"}
+                            </span>
+                          </td>
+                          <td className="p-2 text-right font-mono">
+                            ${txn.monto.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className={txn.lineItemsValid < txn.lineItemsTotal ? "text-yellow-600" : ""}>
+                              {txn.lineItemsValid}/{txn.lineItemsTotal}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            {(txn.errors.length > 0 || txn.partidasNotFound.length > 0) && (
+                              expandedRows.has(txn.factura) 
+                                ? <ChevronUp className="h-4 w-4 text-gray-400" />
+                                : <ChevronDown className="h-4 w-4 text-gray-400" />
+                            )}
+                          </td>
+                        </tr>
+                        {expandedRows.has(txn.factura) && (txn.errors.length > 0 || txn.partidasNotFound.length > 0) && (
+                          <tr key={`${txn.factura}-details`}>
+                            <td colSpan={5} className="p-3 bg-gray-50">
+                              {txn.errors.length > 0 && (
+                                <div className="mb-2">
+                                  <p className="text-xs font-medium text-red-700 mb-1">Errores:</p>
+                                  <ul className="text-xs text-red-600 list-disc list-inside">
+                                    {txn.errors.map((err, i) => <li key={i}>{err}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                              {txn.partidasNotFound.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-orange-700 mb-1">Partidas no encontradas:</p>
+                                  <ul className="text-xs text-orange-600 list-disc list-inside">
+                                    {txn.partidasNotFound.map((p, i) => <li key={i}>{p}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Report (Step 3 - Result) */}
+          {currentStep === "result" && uploadReport && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-green-700 bg-green-50 p-3 rounded-lg">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="text-sm font-medium">Carga completada</span>
+              </div>
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-4 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-semibold text-gray-900">{uploadReport.totalTransactions}</p>
+                  <p className="text-xs text-gray-500">Total</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-semibold text-green-600">{uploadReport.successfulTransactions}</p>
+                  <p className="text-xs text-green-600">Exitosas</p>
+                </div>
+                <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-semibold text-yellow-600">{uploadReport.partialTransactions}</p>
+                  <p className="text-xs text-yellow-600">Parciales</p>
+                </div>
+                <div className="bg-red-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-semibold text-red-600">{uploadReport.failedTransactions}</p>
+                  <p className="text-xs text-red-600">Fallidas</p>
+                </div>
+              </div>
+
+              {/* Amount Summary */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-blue-800">Monto procesado exitosamente:</span>
+                  <span className="font-semibold text-blue-900">
+                    ${uploadReport.successfulAmount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                {uploadReport.totalPartidasNotFound > 0 && (
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-200">
+                    <span className="text-sm text-orange-700">Partidas no encontradas:</span>
+                    <span className="font-semibold text-orange-700">{uploadReport.totalPartidasNotFound}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Report Header */}
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-gray-900">Detalle de Transacciones</h4>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showFailedOnly}
+                      onChange={(e) => setShowFailedOnly(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Solo con errores
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={exportReportToCSV}
+                    className="h-8"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    CSV
+                  </Button>
+                </div>
+              </div>
+
+              {/* Transactions Table */}
+              <div className="border rounded-lg max-h-64 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="text-left p-2 font-medium text-gray-600">Factura</th>
+                      <th className="text-left p-2 font-medium text-gray-600">Estado</th>
+                      <th className="text-right p-2 font-medium text-gray-600">Monto</th>
+                      <th className="text-center p-2 font-medium text-gray-600">Items</th>
+                      <th className="text-left p-2 font-medium text-gray-600"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {filteredReportTransactions.map((txn) => (
+                      <>
+                        <tr 
+                          key={txn.factura} 
+                          className={`hover:bg-gray-50 cursor-pointer ${expandedRows.has(txn.factura) ? "bg-gray-50" : ""}`}
+                          onClick={() => (txn.errors.length > 0 || txn.partidasNotFound.length > 0) && toggleRowExpanded(txn.factura)}
+                        >
+                          <td className="p-2 font-mono text-xs">{txn.factura}</td>
+                          <td className="p-2">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${getStatusColor(txn.status)}`}>
+                              {getStatusIcon(txn.status)}
+                              {getStatusLabel(txn.status)}
+                            </span>
+                          </td>
+                          <td className="p-2 text-right font-mono">
+                            ${txn.monto.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className={txn.lineItemsProcessed < txn.lineItemsTotal ? "text-yellow-600" : ""}>
+                              {txn.lineItemsProcessed}/{txn.lineItemsTotal}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            {(txn.errors.length > 0 || txn.partidasNotFound.length > 0) && (
+                              expandedRows.has(txn.factura) 
+                                ? <ChevronUp className="h-4 w-4 text-gray-400" />
+                                : <ChevronDown className="h-4 w-4 text-gray-400" />
+                            )}
+                          </td>
+                        </tr>
+                        {expandedRows.has(txn.factura) && (txn.errors.length > 0 || txn.partidasNotFound.length > 0) && (
+                          <tr key={`${txn.factura}-details`}>
+                            <td colSpan={5} className="p-3 bg-gray-50">
+                              {txn.errors.length > 0 && (
+                                <div className="mb-2">
+                                  <p className="text-xs font-medium text-red-700 mb-1">Errores:</p>
+                                  <ul className="text-xs text-red-600 list-disc list-inside">
+                                    {txn.errors.map((err, i) => <li key={i}>{err}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                              {txn.partidasNotFound.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-orange-700 mb-1">Partidas no encontradas:</p>
+                                  <ul className="text-xs text-orange-600 list-disc list-inside">
+                                    {txn.partidasNotFound.map((p, i) => <li key={i}>{p}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Actions - Step based */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isUploading || isProcessing}
-              className="rounded-none"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={!isFormValid || isUploading || isProcessing}
-              className="rounded-none"
-            >
-              {isUploading || isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isProcessing ? "Procesando..." : "Subiendo..."}
-                </>
-              ) : (
-                "Subir y Procesar"
-              )}
-            </Button>
+            {currentStep === "upload" && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  disabled={isValidating}
+                  className="rounded-none"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!isFormValid || isValidating}
+                  className="rounded-none"
+                >
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Validando...
+                    </>
+                  ) : (
+                    "Validar Datos"
+                  )}
+                </Button>
+              </>
+            )}
+
+            {currentStep === "preview" && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCurrentStep("upload");
+                    setValidationReport(null);
+                    setResult(null);
+                  }}
+                  disabled={isProcessing}
+                  className="rounded-none"
+                >
+                  Volver
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmUpload}
+                  disabled={isProcessing || (validationReport?.validTransactions === 0 && validationReport?.partialTransactions === 0)}
+                  className="rounded-none"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    `Confirmar Carga (${(validationReport?.validTransactions || 0) + (validationReport?.partialTransactions || 0)} transacciones)`
+                  )}
+                </Button>
+              </>
+            )}
+
+            {currentStep === "result" && (
+              <Button
+                type="button"
+                onClick={handleClose}
+                className="rounded-none"
+              >
+                Cerrar
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>

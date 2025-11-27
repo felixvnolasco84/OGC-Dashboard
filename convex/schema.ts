@@ -325,4 +325,14 @@ export default defineSchema({
     .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] })
     .index("by_proyecto_fecha", { fields: ["proyecto", "fecha"] })
     .index("by_proyecto_categoria", { fields: ["proyecto", "categoria"] }),
+  
+  // Photo comments - Multiple comments per photo with user attribution
+  photo_comments: defineTable({
+    photo_id: v.id("documentos"), // Reference to the photo document
+    user_id: v.id("users"), // User who made the comment
+    user_name: v.string(), // Cached user name for display
+    comment: v.string(), // Comment text
+    created_at: v.number(), // Timestamp
+  }).index("by_photo", { fields: ["photo_id"] })
+    .index("by_user", { fields: ["user_id"] }),
 });

@@ -22,6 +22,7 @@ interface ManagedPhoto {
   url: string;
   file?: File;
   isDeleting?: boolean;
+  description: string; // Required description for each photo
 }
 
 export default function BitacoraModal() {
@@ -99,6 +100,7 @@ export default function BitacoraModal() {
               id: f._id,
               type: "existing" as const,
               url: f.url!,
+              description: f.descripcion || f.nombre || "", // Use existing description
             }));
           setManagedPhotos(existingManaged);
         } else {
@@ -127,6 +129,7 @@ export default function BitacoraModal() {
       type: "new" as const,
       url: URL.createObjectURL(file),
       file,
+      description: "", // Initialize with empty description
     }));
     
     setManagedPhotos(prev => [...prev, ...newManagedPhotos]);
@@ -149,6 +152,18 @@ export default function BitacoraModal() {
       URL.revokeObjectURL(photo.url);
     }
     setManagedPhotos(prev => prev.filter(p => p.id !== photo.id));
+  };
+
+  // Update photo description
+  const updatePhotoDescription = (photoId: string, description: string) => {
+    setManagedPhotos(prev => 
+      prev.map(p => p.id === photoId ? { ...p, description } : p)
+    );
+  };
+
+  // Check if all photos have descriptions
+  const allPhotosHaveDescriptions = () => {
+    return managedPhotos.every(p => p.description.trim().length > 0);
   };
   
   // Gallery navigation for view mode
@@ -204,6 +219,12 @@ export default function BitacoraModal() {
     e.preventDefault();
     if (!proyectoId || !selectedPartidaId || !categoria) return;
 
+    // Validate that all photos have descriptions
+    if (managedPhotos.length > 0 && !allPhotosHaveDescriptions()) {
+      alert("Por favor, agrega una descripción a todas las fotografías antes de guardar.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Delete marked photos first (for edit mode)
@@ -213,18 +234,20 @@ export default function BitacoraModal() {
         }
       }
       
-      // Upload new images
-      const imageStorageIds: Id<"_storage">[] = [];
-      if (newFiles.length > 0) {
-        for (const file of newFiles) {
+      // Upload new images with their descriptions
+      const imageData: { storageId: Id<"_storage">; description: string }[] = [];
+      const newPhotos = managedPhotos.filter(p => p.type === "new" && p.file);
+      
+      for (const photo of newPhotos) {
+        if (photo.file) {
           const uploadUrl = await generateUploadUrl();
           const result = await fetch(uploadUrl, {
             method: "POST",
-            headers: { "Content-Type": file.type },
-            body: file,
+            headers: { "Content-Type": photo.file.type },
+            body: photo.file,
           });
           const { storageId } = await result.json();
-          imageStorageIds.push(storageId);
+          imageData.push({ storageId, description: photo.description });
         }
       }
 
@@ -239,7 +262,8 @@ export default function BitacoraModal() {
           avance_dia: avanceDia,
           comentarios,
           status,
-          imagenes: imageStorageIds.length > 0 ? imageStorageIds : undefined,
+          imagenes: imageData.length > 0 ? imageData.map(d => d.storageId) : undefined,
+          imagenesDescripciones: imageData.length > 0 ? imageData.map(d => d.description) : undefined,
         });
       } else if (mode === "edit" && logEntry) {
         await updateLog({
@@ -252,7 +276,8 @@ export default function BitacoraModal() {
           avance_dia: avanceDia,
           comentarios,
           status,
-          imagenes: imageStorageIds.length > 0 ? imageStorageIds : undefined,
+          imagenes: imageData.length > 0 ? imageData.map(d => d.storageId) : undefined,
+          imagenesDescripciones: imageData.length > 0 ? imageData.map(d => d.description) : undefined,
         });
       }
       handleClose();
@@ -639,30 +664,54 @@ export default function BitacoraModal() {
                     />
                   </div>
                   
-                  {/* All photos grid (existing + new) */}
+                  {/* All photos with descriptions */}
                   {managedPhotos.length > 0 && (
-                    <div className="grid grid-cols-4 gap-3">
-                      {managedPhotos.map((photo) => (
-                        <div key={photo.id} className="relative group">
-                          <img
-                            src={photo.url}
-                            alt="Foto"
-                            className="w-full h-24 object-cover rounded-md border border-gray-200"
-                          />
-                          {/* Type badge */}
-                          {photo.type === "new" && (
-                            <div className="absolute bottom-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded">
-                              Nueva
+                    <div className="space-y-4">
+                      {managedPhotos.map((photo, index) => (
+                        <div key={photo.id} className="border border-gray-200 rounded-lg p-3">
+                          <div className="flex gap-3">
+                            {/* Photo thumbnail */}
+                            <div className="relative flex-shrink-0">
+                              <img
+                                src={photo.url}
+                                alt="Foto"
+                                className="w-24 h-24 object-cover rounded-md border border-gray-200"
+                              />
+                              {/* Type badge */}
+                              {photo.type === "new" && (
+                                <div className="absolute bottom-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded">
+                                  Nueva
+                                </div>
+                              )}
                             </div>
-                          )}
-                          {/* Delete button */}
-                          <button
-                            type="button"
-                            onClick={() => removePhoto(photo)}
-                            className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                            
+                            {/* Description input */}
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-sm font-medium">
+                                  Descripción de foto {index + 1} <span className="text-red-500">*</span>
+                                </Label>
+                                <button
+                                  type="button"
+                                  onClick={() => removePhoto(photo)}
+                                  className="p-1.5 hover:bg-red-100 rounded-full transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </button>
+                              </div>
+                              <Textarea
+                                value={photo.description}
+                                onChange={(e) => updatePhotoDescription(photo.id, e.target.value)}
+                                placeholder="Describe qué muestra esta fotografía..."
+                                className={`resize-none text-sm ${!photo.description.trim() ? "border-red-300" : ""}`}
+                                rows={2}
+                                required
+                              />
+                              {!photo.description.trim() && (
+                                <p className="text-xs text-red-500">La descripción es requerida</p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
