@@ -105,8 +105,12 @@ export const update = mutation({
     },
 });
 
+// Batch size for paginated deletes to avoid hitting read limits
+const BATCH_SIZE = 100;
+
 // Delete project and all related data (cascade delete)
 // Uses rawMutation to bypass triggers and avoid timeout during bulk deletes
+// Deletes in batches to avoid hitting the 4096 read limit
 export const deleteProject = rawMutation({
     args: {
         id: v.id("desarrollos"),
@@ -118,82 +122,190 @@ export const deleteProject = rawMutation({
             throw new Error("Project not found");
         }
 
-        // 1. Get all transacciones for this proyecto (do this FIRST)
-        const transacciones = await ctx.db
+        let deletedPagos = 0;
+        let deletedTransacciones = 0;
+        let deletedPartidas = 0;
+        let deletedDocumentos = 0;
+        let deletedMeticas = 0;
+        let deletedProjectedTransactions = 0;
+        let deletedWeeklyTotals = 0;
+        let deletedBitacora = 0;
+        let deletedPhotoComments = 0;
+        const appwriteFileIds: string[] = [];
+
+        // 1. Delete pagos in batches (paginate to avoid too many reads)
+        // First get transacciones with pagination
+        let transaccionesCursor = await ctx.db
             .query("transacciones")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
-            .collect();
-
-        // 2. Delete all pagos associated with this proyecto's transacciones
-        // Query pagos for each transaction using the by_transaccion index
-        const allPagos = [];
-        for (const transaccion of transacciones) {
-            const pagosForTransaccion = await ctx.db
-                .query("pagos")
-                .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaccion._id))
-                .collect();
-            allPagos.push(...pagosForTransaccion);
+            .take(BATCH_SIZE);
+        
+        while (transaccionesCursor.length > 0) {
+            // For each transaction batch, get and delete pagos
+            for (const transaccion of transaccionesCursor) {
+                const pagos = await ctx.db
+                    .query("pagos")
+                    .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaccion._id))
+                    .collect();
+                for (const pago of pagos) {
+                    await ctx.db.delete(pago._id);
+                    deletedPagos++;
+                }
+            }
+            
+            // Delete this batch of transacciones
+            for (const t of transaccionesCursor) {
+                await ctx.db.delete(t._id);
+                deletedTransacciones++;
+            }
+            
+            // Get next batch (items after the last one we processed)
+            const lastId = transaccionesCursor[transaccionesCursor.length - 1]._id;
+            transaccionesCursor = await ctx.db
+                .query("transacciones")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .filter((q) => q.gt(q.field("_id"), lastId))
+                .take(BATCH_SIZE);
         }
 
-        // Delete all pagos
-        await Promise.all(allPagos.map((pago) => ctx.db.delete(pago._id)));
-
-        // 3. Delete all transacciones for this proyecto
-        await Promise.all(transacciones.map((transaccion) => ctx.db.delete(transaccion._id)));
-
-        // 4. Get all partidas for this proyecto
-        const partidas = await ctx.db
-            .query("partidas")
-            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
-            .collect();
-
-        // 5. Delete all documentos for this proyecto
-        const documentos = await ctx.db
+        // 2. Delete documentos in batches (and collect file IDs)
+        let documentosCursor = await ctx.db
             .query("documentos")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
-            .collect();
+            .take(BATCH_SIZE);
+        
+        while (documentosCursor.length > 0) {
+            // Collect file IDs and delete photo_comments before deleting docs
+            for (const doc of documentosCursor) {
+                if (doc.image) appwriteFileIds.push(doc.image);
+                
+                // Delete any photo_comments for this document
+                const comments = await ctx.db
+                    .query("photo_comments")
+                    .withIndex("by_photo", (q) => q.eq("photo_id", doc._id))
+                    .collect();
+                for (const comment of comments) {
+                    await ctx.db.delete(comment._id);
+                    deletedPhotoComments++;
+                }
+                
+                await ctx.db.delete(doc._id);
+                deletedDocumentos++;
+            }
+            
+            const lastId = documentosCursor[documentosCursor.length - 1]._id;
+            documentosCursor = await ctx.db
+                .query("documentos")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .filter((q) => q.gt(q.field("_id"), lastId))
+                .take(BATCH_SIZE);
+        }
 
-        // Delete all documentos (Note: Appwrite files should be deleted separately)
-        await Promise.all(documentos.map((doc) => ctx.db.delete(doc._id)));
+        // 3. Delete partidas in batches
+        let partidasCursor = await ctx.db
+            .query("partidas")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .take(BATCH_SIZE);
+        
+        while (partidasCursor.length > 0) {
+            for (const p of partidasCursor) {
+                await ctx.db.delete(p._id);
+                deletedPartidas++;
+            }
+            
+            const lastId = partidasCursor[partidasCursor.length - 1]._id;
+            partidasCursor = await ctx.db
+                .query("partidas")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .filter((q) => q.gt(q.field("_id"), lastId))
+                .take(BATCH_SIZE);
+        }
 
-        // 6. Delete all partidas for this proyecto
-        await Promise.all(partidas.map((partida) => ctx.db.delete(partida._id)));
+        // 4. Delete bitacora entries in batches
+        let bitacoraCursor = await ctx.db
+            .query("bitacora")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .take(BATCH_SIZE);
+        
+        while (bitacoraCursor.length > 0) {
+            for (const b of bitacoraCursor) {
+                await ctx.db.delete(b._id);
+                deletedBitacora++;
+            }
+            
+            const lastId = bitacoraCursor[bitacoraCursor.length - 1]._id;
+            bitacoraCursor = await ctx.db
+                .query("bitacora")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .filter((q) => q.gt(q.field("_id"), lastId))
+                .take(BATCH_SIZE);
+        }
 
-        // 7. Delete meticas_presupuesto for this proyecto
+        // 5. Delete meticas_presupuesto (usually just one per project)
         const meticas = await ctx.db
             .query("meticas_presupuesto")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
             .collect();
-        await Promise.all(meticas.map((m) => ctx.db.delete(m._id)));
+        for (const m of meticas) {
+            await ctx.db.delete(m._id);
+            deletedMeticas++;
+        }
 
-        // 8. Delete projected_transactions for this proyecto
-        const projectedTransactions = await ctx.db
+        // 6. Delete projected_transactions in batches
+        let projectedCursor = await ctx.db
             .query("projected_transactions")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
-            .collect();
-        await Promise.all(projectedTransactions.map((pt) => ctx.db.delete(pt._id)));
+            .take(BATCH_SIZE);
+        
+        while (projectedCursor.length > 0) {
+            for (const pt of projectedCursor) {
+                await ctx.db.delete(pt._id);
+                deletedProjectedTransactions++;
+            }
+            
+            const lastId = projectedCursor[projectedCursor.length - 1]._id;
+            projectedCursor = await ctx.db
+                .query("projected_transactions")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .filter((q) => q.gt(q.field("_id"), lastId))
+                .take(BATCH_SIZE);
+        }
 
-        // 9. Delete weekly_projected_totals for this proyecto
-        const weeklyTotals = await ctx.db
+        // 7. Delete weekly_projected_totals in batches
+        let weeklyCursor = await ctx.db
             .query("weekly_projected_totals")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
-            .collect();
-        await Promise.all(weeklyTotals.map((wt) => ctx.db.delete(wt._id)));
+            .take(BATCH_SIZE);
+        
+        while (weeklyCursor.length > 0) {
+            for (const wt of weeklyCursor) {
+                await ctx.db.delete(wt._id);
+                deletedWeeklyTotals++;
+            }
+            
+            const lastId = weeklyCursor[weeklyCursor.length - 1]._id;
+            weeklyCursor = await ctx.db
+                .query("weekly_projected_totals")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .filter((q) => q.gt(q.field("_id"), lastId))
+                .take(BATCH_SIZE);
+        }
 
-        // 10. Finally, delete the proyecto itself
+        // 8. Finally, delete the proyecto itself
         await ctx.db.delete(args.id);
 
         return {
             success: true,
-            deletedPartidas: partidas.length,
-            deletedPagos: allPagos.length,
-            deletedTransacciones: transacciones.length,
-            deletedDocumentos: documentos.length,
-            deletedMeticas: meticas.length,
-            deletedProjectedTransactions: projectedTransactions.length,
-            deletedWeeklyTotals: weeklyTotals.length,
-            // Filter out undefined/null image IDs to avoid Convex validation error
-            appwriteFileIds: documentos.map(doc => doc.image).filter((id): id is string => id !== undefined && id !== null),
+            deletedPartidas,
+            deletedPagos,
+            deletedTransacciones,
+            deletedDocumentos,
+            deletedMeticas,
+            deletedProjectedTransactions,
+            deletedWeeklyTotals,
+            deletedBitacora,
+            deletedPhotoComments,
+            appwriteFileIds,
         };
     },
 });

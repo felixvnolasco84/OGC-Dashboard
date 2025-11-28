@@ -50,11 +50,28 @@ export const createLogEntry = mutation({
       const partida = await ctx.db.get(args.partida_id);
       const partidaNombre = partida?.nombre || "Bitácora";
       
+      // Get current user for photo comments
+      const identity = await ctx.auth.getUserIdentity();
+      let userId: Id<"users"> | null = null;
+      let userName = "Sistema";
+      
+      if (identity) {
+        const user = await ctx.db
+          .query("users")
+          .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+          .first();
+        if (user) {
+          userId = user._id;
+          userName = user.name;
+        }
+      }
+      
       for (let i = 0; i < args.imagenes.length; i++) {
         const storageId = args.imagenes[i];
-        const descripcion = args.imagenesDescripciones?.[i] || `Foto adjunta a bitácora ${partidaNombre}`;
+        const descripcion = args.imagenesDescripciones?.[i] || "";
         
-        await ctx.db.insert("documentos", {
+        // Create the documento entry
+        const docId = await ctx.db.insert("documentos", {
           nombre: `${partidaNombre} - Foto`,
           descripcion: descripcion,
           type: "bitacora_foto",
@@ -63,6 +80,17 @@ export const createLogEntry = mutation({
           bitacora_id: logId,
           uploaded_at: Date.now(),
         });
+        
+        // If there's a description and we have a user, also create a photo comment
+        if (descripcion && descripcion.trim() !== "" && userId) {
+          await ctx.db.insert("photo_comments", {
+            photo_id: docId,
+            user_id: userId,
+            user_name: userName,
+            comment: descripcion,
+            created_at: Date.now(),
+          });
+        }
       }
     }
 
@@ -244,18 +272,47 @@ export const updateLogEntry = mutation({
     
     // Add new images if provided
     if (args.imagenes && args.imagenes.length > 0) {
+      // Get current user for photo comments
+      const identity = await ctx.auth.getUserIdentity();
+      let userId: Id<"users"> | null = null;
+      let userName = "Sistema";
+      
+      if (identity) {
+        const user = await ctx.db
+          .query("users")
+          .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+          .first();
+        if (user) {
+          userId = user._id;
+          userName = user.name;
+        }
+      }
+      
       for (let i = 0; i < args.imagenes.length; i++) {
         const storageId = args.imagenes[i];
-        const descripcion = args.imagenesDescripciones?.[i] || "Foto de bitácora";
+        const descripcion = args.imagenesDescripciones?.[i] || "";
         
-        await ctx.db.insert("documentos", {
+        // Create the documento entry
+        const docId = await ctx.db.insert("documentos", {
           nombre: `foto_${Date.now()}`,
           descripcion: descripcion,
-          type: "imagen",
+          type: "bitacora_foto",
           storage_id: storageId,
+          proyecto: log.proyecto,
           bitacora_id: args.logId,
           uploaded_at: Date.now(),
         });
+        
+        // If there's a description and we have a user, also create a photo comment
+        if (descripcion && descripcion.trim() !== "" && userId) {
+          await ctx.db.insert("photo_comments", {
+            photo_id: docId,
+            user_id: userId,
+            user_name: userName,
+            comment: descripcion,
+            created_at: Date.now(),
+          });
+        }
       }
     }
 
