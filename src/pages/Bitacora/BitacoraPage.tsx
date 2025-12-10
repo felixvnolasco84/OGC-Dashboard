@@ -83,7 +83,6 @@ export default function BitacoraPage() {
     }>({ isOpen: false, logId: null, logDate: "" });
     const [isDeleting, setIsDeleting] = useState(false);
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-    const [compactMode, setCompactMode] = useState(false);
     const deleteLog = useMutation(api.bitacora.deleteLogEntry);
     
     // Get current user for role-based features
@@ -183,9 +182,6 @@ export default function BitacoraPage() {
     
     // Get visible logs for a category (6 by default, all if expanded, or compact mode)
     const getVisibleLogs = (categoryName: string, logs: LogEntry[]) => {
-        if (compactMode && !expandedCategories.has(categoryName)) {
-            return logs.slice(0, 6);
-        }
         const isExpanded = expandedCategories.has(categoryName);
         return isExpanded ? logs : logs.slice(0, 6);
     };
@@ -237,15 +233,6 @@ export default function BitacoraPage() {
                             <h1 className="text-3xl font-medium text-gray-900">Bitácora {proyecto?.nombre || ""}</h1>
                         </div>
                         <div className="flex items-center gap-3">
-                            {/* Compact Mode Toggle */}
-                            <Button
-                                onClick={() => setCompactMode(!compactMode)}
-                                variant={compactMode ? "default" : "outline"}
-                                className="flex items-center gap-2"
-                            >
-                                <ChevronsUpDown className="h-4 w-4" />
-                                {compactMode ? "Expandir todo" : "Compactar"}
-                            </Button>
                             {/* View Mode Toggle */}
                             <div className="flex items-center border border-gray-300">
                                 <Button
@@ -443,7 +430,7 @@ export default function BitacoraPage() {
                                                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                                                             >
                                                                 <Edit2 className="h-4 w-4" />
-                                                                Reasignar
+                                                                Editar
                                                             </button>
                                                             )}
                                                             {isAdmin && (
@@ -538,15 +525,18 @@ export default function BitacoraPage() {
                             })}
                         </div>
                         
-                        {/* Per-category Load More Button */}
-                        {categoryHasMore(groupName, logs) && (
+                        {/* Per-category Expand/Compact Button */}
+                        {logs.length > 6 && (
                             <div className="flex justify-center py-4 border-t border-gray-100">
                                 <Button
                                     variant="ghost"
                                     onClick={() => toggleCategoryExpansion(groupName)}
-                                    className="text-gray-600 hover:text-gray-900"
+                                    className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
                                 >
-                                    Cargar más reportes ({logs.length - 4} restantes)
+                                    <ChevronsUpDown className="h-4 w-4" />
+                                    {expandedCategories.has(groupName) 
+                                        ? "Compactar" 
+                                        : `Expandir (${logs.length - 6} más)`}
                                 </Button>
                             </div>
                         )}
