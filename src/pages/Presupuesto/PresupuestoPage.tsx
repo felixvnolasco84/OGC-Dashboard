@@ -21,7 +21,7 @@ import {
   // Download
 } from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
-import { useAddPartidaModal } from "@/hooks/add-partida-modal";
+// import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { formatCurrencyCompact } from "@/lib/utils";
@@ -75,7 +75,7 @@ export default function PresupuestoPage() {
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
 
   // Add partida modal
-  const addPartidaModal = useAddPartidaModal();
+  // const addPartidaModal = useAddPartidaModal();
   const addPaymentModal = useAddPaymentModal();
 
   // Handler to open add payment modal
