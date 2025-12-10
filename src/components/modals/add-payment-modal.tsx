@@ -9,6 +9,7 @@ import {
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
@@ -53,10 +54,11 @@ export default function AddPaymentModal() {
     const [documentType, setDocumentType] = useState("");
     const [documentName, setDocumentName] = useState("");
     const [documentDescription, setDocumentDescription] = useState("");
-    // const [isUploadingDocument, setIsUploadingDocument] = useState(false); // Unused after Appwrite removal
+    const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
     const createTransaction = useMutation(api.transacciones.createTransaction);
-    // const createDocument = useMutation(api.documentos.create); // Unused after Appwrite removal
+    const generateUploadUrl = useMutation(api.documentos.generateUploadUrl);
+    const createDocumentWithStorage = useMutation(api.documentos.createWithStorage);
 
     // Fetch all partidas for this project
     const allPartidas = useQuery(
@@ -206,6 +208,10 @@ export default function AddPaymentModal() {
                 }
             }
 
+            // Determine factura/comprobante based on document type
+            const isFactura = documentType === "factura" && documentName;
+            const isComprobante = documentType === "comprobante" && documentName;
+
             // Create a single transaction with all line items
             const result = await createTransaction({
                 proyecto: paymentContext.projectId,
@@ -221,18 +227,56 @@ export default function AddPaymentModal() {
                 numero_cuenta: tipoPago !== 'efectivo' ? numeroCuenta : undefined,
                 numero_transferencia: undefined,
                 codigo_referencia: codigoReferencia || undefined,
-                factura: undefined,
-                comprobante: undefined,
-                presupuesto_archivo: undefined,
+                factura: isFactura ? documentName : undefined,
+                comprobante: isComprobante ? documentName : undefined,
+                presupuesto_archivo: documentType === "presupuesto" && documentName ? documentName : undefined,
                 lineItems,
             });
 
-            // Note: Document upload functionality removed (Appwrite dependency removed)
-            // To re-enable, integrate with Convex storage or another storage solution
-            if (documentFile && result.transaccionId) {
-                toast.info("Funcionalidad de documentos temporalmente deshabilitada", {
-                    description: "El pago se registró correctamente, pero la carga de documentos requiere configuración adicional.",
-                });
+            // Upload document if provided using Convex storage
+            let documentUploaded = false;
+            let uploadedDocumentName = "";
+            if (documentFile && result.transaccionId && documentType && documentName) {
+                try {
+                    setIsUploadingDocument(true);
+                    uploadedDocumentName = documentName; // Store before reset
+                    
+                    // Step 1: Generate upload URL
+                    const uploadUrl = await generateUploadUrl();
+                    
+                    // Step 2: Upload file to Convex storage
+                    const uploadResult = await fetch(uploadUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": documentFile.type },
+                        body: documentFile,
+                    });
+                    
+                    if (!uploadResult.ok) {
+                        throw new Error("Failed to upload file");
+                    }
+                    
+                    const { storageId } = await uploadResult.json();
+                    
+                    // Step 3: Create document record linked to the transaction
+                    await createDocumentWithStorage({
+                        nombre: documentName,
+                        descripcion: documentDescription || "",
+                        storage_id: storageId,
+                        type: documentType,
+                        size: documentFile.size,
+                        proyecto: paymentContext.projectId,
+                        transaccion_id: result.transaccionId,
+                    });
+                    
+                    documentUploaded = true;
+                } catch (docError) {
+                    console.error("Error uploading document:", docError);
+                    toast.error("Error al subir documento", {
+                        description: "La transacción se creó pero el documento no se pudo adjuntar.",
+                    });
+                } finally {
+                    setIsUploadingDocument(false);
+                }
             }
 
             // Reset form
@@ -249,8 +293,11 @@ export default function AddPaymentModal() {
             setDocumentName("");
             setDocumentDescription("");
 
+            // Show success toast with document info if applicable
+            const conceptosText = `${result.pagoIds.length} concepto(s)`;
+            const documentText = documentUploaded ? ` y documento "${uploadedDocumentName}" adjuntado` : "";
             toast.success("Transacción registrada", {
-                description: `Se creó la transacción con ${result.pagoIds.length} concepto(s) exitosamente.`,
+                description: `Se creó la transacción con ${conceptosText}${documentText}.`,
             });
             onClose();
         } catch (error) {
@@ -757,10 +804,17 @@ export default function AddPaymentModal() {
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!isFormValid() || isSubmitting}
+                            disabled={!isFormValid() || isSubmitting || isUploadingDocument}
                             className="bg-black hover:bg-gray-800 text-white h-11"
                         >
-                            {isSubmitting ? 'Guardando...' : `Guardar ${totalPayments} pago(s)`}
+                            {isSubmitting || isUploadingDocument ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    {isUploadingDocument ? 'Subiendo documento...' : 'Guardando...'}
+                                </>
+                            ) : (
+                                `Guardar ${totalPayments} pago(s)`
+                            )}
                         </Button>
                     </div>
                 </form>

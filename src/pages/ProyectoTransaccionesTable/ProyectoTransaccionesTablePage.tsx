@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, FileText, Upload, RefreshCw } from "lucide-react";
+import { Search, MoreVertical, FileText, Upload, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -25,6 +26,10 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { Popover } from "@radix-ui/react-popover";
 import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { type DateRange } from "react-day-picker";
 
 export default function ProyectoTransaccionesTablePage() {
 
@@ -35,6 +40,18 @@ export default function ProyectoTransaccionesTablePage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Id<"transacciones"> | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    
+    // Advanced search filters
+    const [minAmount, setMinAmount] = useState<string>("");
+    const [maxAmount, setMaxAmount] = useState<string>("");
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
+    const [categoriaFilter, setCategoriaFilter] = useState<string>("all");
+    const [monedaFilter, setMonedaFilter] = useState<string>("all");
+    const [sortField, setSortField] = useState<"monto_total" | "fecha">("fecha");
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+    const [showFilters, setShowFilters] = useState(false);
 
     // Fetch project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -49,16 +66,101 @@ export default function ProyectoTransaccionesTablePage() {
     const conceptosModal = useTransactionConceptosModal();
     const documentosModal = useTransactionDocumentosModal();
 
-    const filteredTransacciones = transacciones?.filter((transaccion) =>
-        transaccion.factura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaccion.codigo_referencia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaccion.tipo_pago?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Parse date from DD/MM/YYYY format to comparable value
+    const parseDateForSort = (dateStr: string): number => {
+        const parts = dateStr.split("/");
+        if (parts.length !== 3) return 0;
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day).getTime();
+    };
 
-
-    console.log("transacciones", transacciones)
-
-    console.log("filteredTransacciones", filteredTransacciones)
+    // Advanced filtering and sorting
+    const filteredTransacciones = useMemo(() => {
+        if (!transacciones) return [];
+        
+        let filtered = transacciones.filter((transaccion) => {
+            // Text search (factura, codigo_referencia, tipo_pago)
+            const searchLower = searchTerm.toLowerCase();
+            const matchesSearch = !searchTerm || 
+                transaccion.factura?.toLowerCase().includes(searchLower) ||
+                transaccion.codigo_referencia?.toLowerCase().includes(searchLower) ||
+                transaccion.tipo_pago?.toLowerCase().includes(searchLower) ||
+                transaccion.categoria?.toLowerCase().includes(searchLower) ||
+                transaccion.banco?.toLowerCase().includes(searchLower);
+            
+            // Amount range filter
+            const minAmt = minAmount ? parseFloat(minAmount) : null;
+            const maxAmt = maxAmount ? parseFloat(maxAmount) : null;
+            const matchesMinAmount = minAmt === null || transaccion.monto_total >= minAmt;
+            const matchesMaxAmount = maxAmt === null || transaccion.monto_total <= maxAmt;
+            
+            // Date range filter
+            const txDate = parseDateForSort(transaccion.fecha);
+            const startDateTs = dateRange?.from ? dateRange.from.getTime() : null;
+            const endDateTs = dateRange?.to ? dateRange.to.getTime() + 86400000 : null; // Add 1 day for inclusive end
+            const matchesStartDate = startDateTs === null || txDate >= startDateTs;
+            const matchesEndDate = endDateTs === null || txDate <= endDateTs;
+            
+            // Status filter
+            const matchesStatus = statusFilter === "all" || transaccion.status === statusFilter;
+            
+            // Tipo pago filter
+            const matchesTipoPago = tipoPagoFilter === "all" || transaccion.tipo_pago?.toLowerCase() === tipoPagoFilter.toLowerCase();
+            
+            // Categoria filter
+            const matchesCategoria = categoriaFilter === "all" || transaccion.categoria?.toLowerCase() === categoriaFilter.toLowerCase();
+            
+            // Moneda filter
+            const matchesMoneda = monedaFilter === "all" || transaccion.moneda === monedaFilter;
+            
+            return matchesSearch && matchesMinAmount && matchesMaxAmount && 
+                   matchesStartDate && matchesEndDate && matchesStatus && 
+                   matchesTipoPago && matchesCategoria && matchesMoneda;
+        });
+        
+        // Sort results
+        filtered.sort((a, b) => {
+            let comparison = 0;
+            if (sortField === "monto_total") {
+                comparison = a.monto_total - b.monto_total;
+            } else if (sortField === "fecha") {
+                comparison = parseDateForSort(a.fecha) - parseDateForSort(b.fecha);
+            }
+            return sortDirection === "asc" ? comparison : -comparison;
+        });
+        
+        return filtered;
+    }, [transacciones, searchTerm, minAmount, maxAmount, dateRange, statusFilter, tipoPagoFilter, categoriaFilter, monedaFilter, sortField, sortDirection]);
+    
+    // Clear all filters
+    const clearFilters = () => {
+        setSearchTerm("");
+        setMinAmount("");
+        setMaxAmount("");
+        setDateRange(undefined);
+        setStatusFilter("all");
+        setTipoPagoFilter("all");
+        setCategoriaFilter("all");
+        setMonedaFilter("all");
+        setSortField("fecha");
+        setSortDirection("desc");
+    };
+    
+    // Toggle sort
+    const toggleSort = (field: "monto_total" | "fecha") => {
+        if (sortField === field) {
+            setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+        } else {
+            setSortField(field);
+            setSortDirection("desc");
+        }
+    };
+    
+    // Check if any filter is active
+    const hasActiveFilters = searchTerm || minAmount || maxAmount || dateRange?.from || dateRange?.to || 
+        statusFilter !== "all" || tipoPagoFilter !== "all" || categoriaFilter !== "all" || monedaFilter !== "all";
 
 
     const formatCurrency = (amount: number) => {
@@ -240,16 +342,198 @@ export default function ProyectoTransaccionesTablePage() {
                     </div>
 
                     {/* Search Bar */}
-                    <div className="mb-8 relative">
+                    <div className="mb-4 relative">
                         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                         <Input
                             type="text"
-                            placeholder="Buscar por factura, código de referencia o tipo de pago..."
+                            placeholder="Buscar por factura, código, tipo de pago, categoría, banco..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-12 rounded-none border-gray-300 h-12"
+                            className="pl-12 pr-24 rounded-none border-gray-300 h-12"
                         />
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
+                            {hasActiveFilters && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={clearFilters}
+                                    className="h-8 px-2 text-gray-500 hover:text-gray-700"
+                                >
+                                    <X className="h-4 w-4 mr-1" />
+                                    Limpiar
+                                </Button>
+                            )}
+                            <Button
+                                variant={showFilters ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setShowFilters(!showFilters)}
+                                className="h-8 rounded-none"
+                            >
+                                <Filter className="h-4 w-4 mr-1" />
+                                Filtros
+                            </Button>
+                        </div>
                     </div>
+                    
+                    {/* Advanced Filters Panel */}
+                    {showFilters && (
+                        <div className="mb-6 p-4 border border-gray-200 bg-gray-50 space-y-4">
+                            <div className="grid grid-cols-4 gap-4">
+                                {/* Amount Range */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Monto mínimo</label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0.00"
+                                        value={minAmount}
+                                        onChange={(e) => setMinAmount(e.target.value)}
+                                        className="rounded-none h-10"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Monto máximo</label>
+                                    <Input
+                                        type="number"
+                                        placeholder="999999.99"
+                                        value={maxAmount}
+                                        onChange={(e) => setMaxAmount(e.target.value)}
+                                        className="rounded-none h-10"
+                                    />
+                                </div>
+                                
+                                {/* Date Range */}
+                                <div className="space-y-2 col-span-2">
+                                    <label className="text-sm font-medium text-gray-700">Rango de fechas</label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-start text-left font-normal rounded-none h-10"
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {dateRange?.from ? (
+                                                    dateRange.to ? (
+                                                        <>
+                                                            {format(dateRange.from, "dd MMM yyyy", { locale: es })} - {format(dateRange.to, "dd MMM yyyy", { locale: es })}
+                                                        </>
+                                                    ) : (
+                                                        format(dateRange.from, "dd MMM yyyy", { locale: es })
+                                                    )
+                                                ) : (
+                                                    "Seleccionar rango"
+                                                )}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="range"
+                                                defaultMonth={dateRange?.from}
+                                                selected={dateRange}
+                                                onSelect={setDateRange}
+                                                numberOfMonths={2}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-4 gap-4">
+                                {/* Status Filter */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Estado</label>
+                                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                        <SelectTrigger className="rounded-none h-10">
+                                            <SelectValue placeholder="Todos" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Todos</SelectItem>
+                                            <SelectItem value="Pagado">Pagado</SelectItem>
+                                            <SelectItem value="Por pagar">Por pagar</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                
+                                {/* Tipo Pago Filter */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Tipo de pago</label>
+                                    <Select value={tipoPagoFilter} onValueChange={setTipoPagoFilter}>
+                                        <SelectTrigger className="rounded-none h-10">
+                                            <SelectValue placeholder="Todos" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Todos</SelectItem>
+                                            <SelectItem value="efectivo">Efectivo</SelectItem>
+                                            <SelectItem value="transferencia">Transferencia</SelectItem>
+                                            <SelectItem value="tarjeta">Tarjeta</SelectItem>
+                                            <SelectItem value="cheque">Cheque</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                
+                                {/* Categoria Filter */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Categoría</label>
+                                    <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+                                        <SelectTrigger className="rounded-none h-10">
+                                            <SelectValue placeholder="Todas" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Todas</SelectItem>
+                                            <SelectItem value="anticipo">Anticipo</SelectItem>
+                                            <SelectItem value="material">Material</SelectItem>
+                                            <SelectItem value="estimacion">Estimación</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                
+                                {/* Moneda Filter */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Moneda</label>
+                                    <Select value={monedaFilter} onValueChange={setMonedaFilter}>
+                                        <SelectTrigger className="rounded-none h-10">
+                                            <SelectValue placeholder="Todas" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Todas</SelectItem>
+                                            <SelectItem value="MXN">MXN</SelectItem>
+                                            <SelectItem value="USD">USD</SelectItem>
+                                            <SelectItem value="EUR">EUR</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            
+                            {/* Sort Controls */}
+                            <div className="flex items-center gap-4 pt-2 border-t border-gray-200">
+                                <span className="text-sm font-medium text-gray-700">Ordenar por:</span>
+                                <Button
+                                    variant={sortField === "fecha" ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => toggleSort("fecha")}
+                                    className="rounded-none"
+                                >
+                                    Fecha
+                                    {sortField === "fecha" && (
+                                        sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
+                                    )}
+                                </Button>
+                                <Button
+                                    variant={sortField === "monto_total" ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => toggleSort("monto_total")}
+                                    className="rounded-none"
+                                >
+                                    Monto
+                                    {sortField === "monto_total" && (
+                                        sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
+                                    )}
+                                </Button>
+                                <span className="text-sm text-gray-500 ml-auto">
+                                    {filteredTransacciones.length} de {transacciones?.length || 0} transacciones
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Table */}

@@ -59,7 +59,17 @@ export default function SeeTransactionsDetailsModal() {
         }
     };
 
-    // Group payments by transaction for nivel 1 and 2
+    // Parse date from DD/MM/YYYY format to comparable value
+    const parseDateForSort = (dateStr: string): number => {
+        const parts = dateStr.split("/");
+        if (parts.length !== 3) return 0;
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day).getTime();
+    };
+
+    // Group payments by transaction for nivel 1 and 2, sorted by date (most recent first)
     const getGroupedTransactions = () => {
         if (!paymentContext?.payments) return [];
 
@@ -83,7 +93,10 @@ export default function SeeTransactionsDetailsModal() {
             }
         });
 
-        return Array.from(transactionMap.values());
+        // Sort by date descending (most recent first)
+        return Array.from(transactionMap.values()).sort((a, b) => 
+            parseDateForSort(b.transaction.fecha) - parseDateForSort(a.transaction.fecha)
+        );
     };
 
     // Determine if we should show transactions or individual payments

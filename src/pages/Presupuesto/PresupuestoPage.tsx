@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
+import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { formatCurrencyCompact } from "@/lib/utils";
 
@@ -75,6 +76,16 @@ export default function PresupuestoPage() {
 
   // Add partida modal
   const addPartidaModal = useAddPartidaModal();
+  const addPaymentModal = useAddPaymentModal();
+
+  // Handler to open add payment modal
+  const handleOpenAddPayment = () => {
+    if (proyecto) {
+      addPaymentModal.onOpen({
+        projectId: proyecto._id,
+      });
+    }
+  };
 
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -219,7 +230,7 @@ export default function PresupuestoPage() {
                 Reporte
                 <Download className="h-6 w-6 rounded-full shadow-none" />
               </Button> */}
-              <Button
+              {/* <Button
                 onClick={() => proyecto && addPartidaModal.onOpen({
                   proyecto: proyecto._id,
                   projectName: proyecto.nombre
@@ -230,6 +241,18 @@ export default function PresupuestoPage() {
                 className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
               >
                 Agregar Partida
+                <Plus className="h-6 w-6 rounded-full shadow-none" />
+              </Button> */}
+
+              {/* handleOpenAddPayment */}
+              <Button
+                onClick={handleOpenAddPayment}
+                variant={"outline"}
+                size={"lg"}
+                disabled={!proyecto}
+                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
+              >
+                Nuevo pago
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
               </Button>
             </div>

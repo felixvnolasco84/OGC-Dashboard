@@ -2,8 +2,9 @@ import { useState, useMemo } from "react";
 import { useParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { useUser } from "@clerk/clerk-react";
 import { Id } from "../../../convex/_generated/dataModel";
-import { ChevronRight, Plus, MoreHorizontal, ChevronDown, Edit2, Trash2, Eye, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { ChevronRight, Plus, MoreHorizontal, ChevronDown, Edit2, Trash2, Eye, Calendar as CalendarIcon, Loader2, ChevronsUpDown } from "lucide-react";
 import { useBitacoraModal } from "../../hooks/use-bitacora-modal";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,7 +82,17 @@ export default function BitacoraPage() {
         logDate: string;
     }>({ isOpen: false, logId: null, logDate: "" });
     const [isDeleting, setIsDeleting] = useState(false);
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+    const [compactMode, setCompactMode] = useState(false);
     const deleteLog = useMutation(api.bitacora.deleteLogEntry);
+    
+    // Get current user for role-based features
+    const { user: clerkUser } = useUser();
+    const currentUser = useQuery(
+        api.users.getCurrentUser,
+        clerkUser ? undefined : "skip"
+    );
+    const isAdmin = currentUser?.role === "admin";
 
     const handleDeleteConfirm = async () => {
         if (!deleteDialogState.logId) return;
@@ -128,20 +139,61 @@ export default function BitacoraPage() {
             : "skip"
     );
 
-    // Group logs by Departamento/Partida
+    // Parse date from DD/MM/YYYY format to comparable value
+    const parseDateForSort = (dateStr: string): number => {
+        const parts = dateStr.split("/");
+        if (parts.length !== 3) return 0;
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day).getTime();
+    };
+
+    // Group logs by Departamento/Partida (all logs grouped, pagination per category)
+    // Sort by date descending (most recent first) within each category
     const groupedLogs = useMemo(() => {
         if (!logEntries) return {};
         // Cast to LogEntry[] to avoid type issues with Convex generic return types
         const logs = logEntries as unknown as LogEntry[];
+        
+        // Sort all logs by date descending (most recent first)
+        const sortedLogs = [...logs].sort((a, b) => parseDateForSort(b.fecha) - parseDateForSort(a.fecha));
 
         // Group by categoria (Estructura, Instalaciones, Acabados, etc.)
-        return logs.reduce((acc, log) => {
+        return sortedLogs.reduce((acc, log) => {
             const group = log.categoria || "General";
             if (!acc[group]) acc[group] = [];
             acc[group].push(log);
             return acc;
         }, {} as Record<string, LogEntry[]>);
-    }, [logEntries]);    
+    }, [logEntries]);
+    
+    // Toggle showing all logs for a specific category
+    const toggleCategoryExpansion = (categoryName: string) => {
+        setExpandedCategories(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(categoryName)) {
+                newSet.delete(categoryName);
+            } else {
+                newSet.add(categoryName);
+            }
+            return newSet;
+        });
+    };
+    
+    // Get visible logs for a category (6 by default, all if expanded, or compact mode)
+    const getVisibleLogs = (categoryName: string, logs: LogEntry[]) => {
+        if (compactMode && !expandedCategories.has(categoryName)) {
+            return logs.slice(0, 6);
+        }
+        const isExpanded = expandedCategories.has(categoryName);
+        return isExpanded ? logs : logs.slice(0, 6);
+    };
+    
+    // Check if category has more logs to show
+    const categoryHasMore = (categoryName: string, logs: LogEntry[]) => {
+        return !expandedCategories.has(categoryName) && logs.length > 6;
+    };    
 
     const handleCreateLog = () => {
         if (!proyectoId) return;
@@ -185,6 +237,15 @@ export default function BitacoraPage() {
                             <h1 className="text-3xl font-medium text-gray-900">Bitácora {proyecto?.nombre || ""}</h1>
                         </div>
                         <div className="flex items-center gap-3">
+                            {/* Compact Mode Toggle */}
+                            <Button
+                                onClick={() => setCompactMode(!compactMode)}
+                                variant={compactMode ? "default" : "outline"}
+                                className="flex items-center gap-2"
+                            >
+                                <ChevronsUpDown className="h-4 w-4" />
+                                {compactMode ? "Expandir todo" : "Compactar"}
+                            </Button>
                             {/* View Mode Toggle */}
                             <div className="flex items-center border border-gray-300">
                                 <Button
@@ -271,7 +332,7 @@ export default function BitacoraPage() {
 
                         {/* Logs List */}
                         <div className="divide-y divide-gray-100">
-                            {logs.map((log) => {
+                            {getVisibleLogs(groupName, logs).map((log) => {
                                 const isExpanded = expandedLogIds.has(log._id);
                                 return (
                                     <div key={log._id} className="">
@@ -357,6 +418,7 @@ export default function BitacoraPage() {
                                                                 <Eye className="h-4 w-4" />
                                                                 Ver detalles
                                                             </button>
+                                                            {isAdmin && (
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -381,8 +443,10 @@ export default function BitacoraPage() {
                                                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                                                             >
                                                                 <Edit2 className="h-4 w-4" />
-                                                                Editar
+                                                                Reasignar
                                                             </button>
+                                                            )}
+                                                            {isAdmin && (
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -398,6 +462,7 @@ export default function BitacoraPage() {
                                                                 <Trash2 className="h-4 w-4" />
                                                                 Eliminar
                                                             </button>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
@@ -472,6 +537,19 @@ export default function BitacoraPage() {
                                 );
                             })}
                         </div>
+                        
+                        {/* Per-category Load More Button */}
+                        {categoryHasMore(groupName, logs) && (
+                            <div className="flex justify-center py-4 border-t border-gray-100">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => toggleCategoryExpansion(groupName)}
+                                    className="text-gray-600 hover:text-gray-900"
+                                >
+                                    Cargar más reportes ({logs.length - 4} restantes)
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 ))}
 

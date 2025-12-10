@@ -33,6 +33,15 @@ export default function BitacoraModal() {
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const currentUser = useQuery(api.users.getCurrentUser);
   
+  // Check if current user is admin for reassignment feature
+  const isAdmin = currentUser?.role === "admin";
+  
+  // Fetch all users for admin reassignment (only when admin and in edit mode)
+  const allUsers = useQuery(
+    api.users.getAllUsers,
+    isAdmin && mode === "edit" ? undefined : "skip"
+  );
+  
   // Fetch Level 1 Partidas
   const partidas = useQuery(api.partida.getByNivel, proyectoId ? { proyecto: proyectoId, nivel: 1 } : "skip");
   
@@ -492,15 +501,32 @@ export default function BitacoraModal() {
                 <Label>
                   Responsable <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  value={responsable}
-                  onChange={(e) => setResponsable(e.target.value)}
-                  // disabled={isViewMode}
-                  disabled={true}
-                  placeholder="Nombre del responsable"
-                  required
-                />
+                {isAdmin && mode === "edit" && allUsers ? (
+                  <Select
+                    value={responsable}
+                    onValueChange={setResponsable}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona un responsable" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allUsers.map((user) => (
+                        <SelectItem key={user._id} value={user.name}>
+                          {user.name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    type="text"
+                    value={responsable}
+                    onChange={(e) => setResponsable(e.target.value)}
+                    disabled={true}
+                    placeholder="Nombre del responsable"
+                    required
+                  />
+                )}
               </div>
             </div>
 
