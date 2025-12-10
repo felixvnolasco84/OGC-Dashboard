@@ -187,9 +187,9 @@ export default function BitacoraPage() {
     };
     
     // Check if category has more logs to show
-    const categoryHasMore = (categoryName: string, logs: LogEntry[]) => {
-        return !expandedCategories.has(categoryName) && logs.length > 6;
-    };    
+    // const categoryHasMore = (categoryName: string, logs: LogEntry[]) => {
+    //     return !expandedCategories.has(categoryName) && logs.length > 6;
+    // };    
 
     const handleCreateLog = () => {
         if (!proyectoId) return;
