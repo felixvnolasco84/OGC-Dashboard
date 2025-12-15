@@ -18,13 +18,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   X, Plus,
+  ChevronRight,
   // Download
 } from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
 // import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { Id } from "../../../convex/_generated/dataModel";
-import { formatCurrencyCompact } from "@/lib/utils";
+import { cn, formatCurrencyCompact } from "@/lib/utils";
 
 // Mock data for the presupuesto page
 const mockData = {
@@ -73,6 +74,7 @@ export default function PresupuestoPage() {
   const [familiaSearchTerm, setFamiliaSearchTerm] = useState("");
   const [isPartidaOpen, setIsPartidaOpen] = useState(false);
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
+  const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
 
   // Add partida modal
   // const addPartidaModal = useAddPartidaModal();
@@ -85,6 +87,11 @@ export default function PresupuestoPage() {
         projectId: proyecto._id,
       });
     }
+  };
+
+    // Function to toggle precio unitario columns visibility
+  const togglePrecioUnitario = () => {
+    setShowPrecioUnitario(!showPrecioUnitario);
   };
 
   // Fetch current project
@@ -545,12 +552,35 @@ export default function PresupuestoPage() {
 
 
       </div>
+
+      <div className="flex flex-col gap-4">
+
+        {/* toggle precio unitario */}
+
+
+                  
+                    <div onClick={togglePrecioUnitario} className="flex items-center space-x-2 w-fit px-4 text-gray-900 ">
+<small>Precio unitario</small>
+              <Button 
+                        className="text-left text-base font-medium text-muted-foreground rounded-full"
+                        onClick={togglePrecioUnitario}
+                        size={"icon"}
+                        variant={"ghost"}
+                      >
+                        
+                          <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPrecioUnitario && "rotate-90")} />
+                        
+                      </Button>
+                    </div>
+       
       {/* Budget Table Component */}
       <PresupuestoTable
         data={filteredPartidas}
         status={partidasStatus}
         loadMore={loadMore}
+        showPrecioUnitario={showPrecioUnitario}
       />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Doc, Id } from "convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,10 +28,15 @@ type PartidaRow = Omit<Partial<Doc<"partidas">>, 'pagado' | 'total' | 'aprobado'
   fechaInicio?: string;
   fechaFin?: string;
   expanded: boolean;
+  detailsExpanded: boolean; // For showing precio unitario details
   level: number; // 0 = partida, 1 = familia, 2 = sub_partida
   children: PartidaRow[];
   originalDoc?: Doc<"partidas">; // Store original doc for level 2 items
   uniqueId: string; // Unique identifier for React keys
+  // Precio unitario details
+  unidad?: string;
+  cantidad?: number;
+  precioUnitario?: number;
 };
 
 type HierarchicalGroup = PartidaRow & {
@@ -62,10 +67,11 @@ const getPorGastarBadge = (porGastar: number) => {
 interface PresupuestoTableProps {
   data: Doc<"partidas">[];
   status: "CanLoadMore" | "LoadingFirstPage" | "LoadingMore" | "Exhausted";
+  showPrecioUnitario: boolean;
   loadMore: (numItems: number) => void;
 }
 
-export default function PresupuestoTable({ data, status, loadMore }: PresupuestoTableProps) {
+export default function PresupuestoTable({ data, status, showPrecioUnitario, loadMore }: PresupuestoTableProps) {
   // Get project's default currency based on transaction history
   const projectId = data.length > 0 ? data[0].proyecto : undefined;
   const currencyInfo = useQuery(
@@ -101,11 +107,15 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
         fechaInicio: "-",
         fechaFin: "-",
         expanded: false,
+        detailsExpanded: false,
         level: 0,
         children: [] as PartidaRow[],
         familias: {} as Record<string, PartidaRow>,
         originalDoc: item, // Store original database doc for editing
-        uniqueId: `partida-${partidaKey}` // Stable unique ID for partida level
+        uniqueId: `partida-${partidaKey}`, // Stable unique ID for partida level
+        unidad: item.unidad,
+        cantidad: item.cantidad,
+        precioUnitario: item.precio_unitario
       };
     });
 
@@ -136,10 +146,14 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
           fechaInicio: "-",
           fechaFin: "-",
           expanded: false,
+          detailsExpanded: false,
           level: 1,
           children: [] as PartidaRow[],
           originalDoc: item, // Store original database doc for editing
-          uniqueId: `familia-${partidaKey}-${familiaKey}` // Stable unique ID for familia level
+          uniqueId: `familia-${partidaKey}-${familiaKey}`, // Stable unique ID for familia level
+          unidad: item.unidad,
+          cantidad: item.cantidad,
+          precioUnitario: item.precio_unitario
         };
         partida.familias[familiaKey] = familiaGroup;
         partida.children.push(familiaGroup);
@@ -170,10 +184,14 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
           fechaInicio: "-",
           fechaFin: "-",
           expanded: false,
+          detailsExpanded: false,
           level: 2,
           children: [],
           originalDoc: item,
-          uniqueId: item._id // Use database _id for nivel 3 items
+          uniqueId: item._id, // Use database _id for nivel 3 items
+          unidad: item.unidad,
+          cantidad: item.cantidad,
+          precioUnitario: item.precio_unitario
         });
       }
     });
@@ -214,6 +232,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
   }, [data]);
 
   const [budgetData, setBudgetData] = useState<PartidaRow[]>([]);
+  // const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
 
   // Update budgetData when hierarchicalData changes
   useMemo(() => {
@@ -235,6 +254,11 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
     };
     setBudgetData(updateExpanded(budgetData));
   };
+
+  // Function to toggle precio unitario columns visibility
+  // const togglePrecioUnitario = () => {
+  //   setShowPrecioUnitario(!showPrecioUnitario);
+  // };
 
   // Function to flatten the hierarchical data for rendering
   const flattenData = (items: PartidaRow[], result: PartidaRow[] = []): PartidaRow[] => {
@@ -258,8 +282,29 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
 
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Partida - Familia - Subpartida
-
               </TableHead>
+              {/* <TableHead 
+                className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 cursor-pointer hover:bg-gray-50"
+                onClick={togglePrecioUnitario}
+              >
+                <div className="flex items-center gap-2">
+                  <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPrecioUnitario && "rotate-90")} />
+                  <span>Precio unitario</span>
+                </div>
+              </TableHead> */}
+              {showPrecioUnitario && (
+                <>
+                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-gray-200 ">
+                    Unidad
+                  </TableHead>
+                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-gray-200 ">
+                    Cantidad
+                  </TableHead>
+                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-gray-200 ">
+                    Precio Unitario
+                  </TableHead>
+                </>
+              )}
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Presupuesto original
               </TableHead>
@@ -290,36 +335,51 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
               const porGastarBadge = getPorGastarBadge(item.porGastar);
 
               return (
-                <TableRow
-                  key={item.uniqueId}
-                  className="border-b border-gray-100 hover:bg-gray-50"
-                >
-                  <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
-                    <div
-                      className="flex items-center space-x-2"
-                      style={{ paddingLeft: `${item.level * 20}px` }}
-                    >
-                      {item.children && item.children.length > 0 ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleExpanded(item.uniqueId)}
-                          className="p-0 h-auto hover:bg-transparent"
-                        >
-                          {item.expanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-500" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-500" />
-                          )}
-                        </Button>
-                      ) : (
-                        <div className="w-4" />
-                      )}
-                      <span className={`${item.level > 0 ? 'text-gray-600 text-wrap max-w-48' : 'text-gray-900 font-medium'}`}>
-                        {item.displayName}
-                      </span>
-                    </div>
-                  </TableCell>
+                <React.Fragment key={item.uniqueId}>
+                  <TableRow
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                      <div
+                        className="flex items-center space-x-2"
+                        style={{ paddingLeft: `${item.level * 20}px` }}
+                      >
+                        {item.children && item.children.length > 0 ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleExpanded(item.uniqueId)}
+                            className="p-0 h-auto hover:bg-transparent"
+                          >
+                            {item.expanded ? (
+                              <ChevronDown className="h-4 w-4 text-[#AFAEA2]" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-[#AFAEA2]" />
+                            )}
+                          </Button>
+                        ) : (
+                          <div className="w-4" />
+                        )}
+                        <span className={`${item.level > 0 ? 'text-gray-600 text-wrap max-w-48' : 'text-gray-900 font-medium'}`}>
+                          {item.displayName}
+                        </span>
+                      </div>
+                    </TableCell>
+                    {/* <TableCell className="px-4 py-4 text-base text-[#AFAEA2] border-r border-gray-100 last:border-r-0 text-center">
+                    </TableCell> */}
+                    {showPrecioUnitario && (
+                      <>
+                        <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r font-light border-gray-100">
+                          {item.unidad || null}
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r font-light border-gray-100">
+                          {item.cantidad ? item.cantidad.toLocaleString('es-MX') : null}
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r font-light border-gray-100">
+                          {item.precioUnitario ? formatCurrency(item.precioUnitario, defaultCurrency) : null}
+                        </TableCell>
+                      </>
+                    )}
                   <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                     {formatCurrency(item.presupuestoOriginal, defaultCurrency)}
                   </TableCell>
@@ -348,7 +408,7 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                           className={cn(
                             "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
                             porGastarBadge.isRemaining
-                              ? 'bg-[#f5f5f5] text-gray-500 hover:bg-[#f5f5f5] border border-[#b8b7ac]'
+                              ? 'bg-[#f5f5f5] text-[#AFAEA2] hover:bg-[#f5f5f5] border border-[#b8b7ac]'
                               : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
                           )}
                         >
@@ -360,22 +420,21 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
                   <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                     {item.avance}%
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                  <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0">
                     {item.fechaInicio || '-'}
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                  <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0">
                     {item.fechaFin || '-'}
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
-
-                    <DropdownMenuComponentPartida
-                      partida={item.originalDoc!}
-                      level={item.level}
-                      rowData={item}
-                    />
-
-                  </TableCell>
-                </TableRow>
+                  <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0">
+                      <DropdownMenuComponentPartida
+                        partida={item.originalDoc!}
+                        level={item.level}
+                        rowData={item}
+                      />
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
               );
             })}
           </TableBody>
@@ -399,14 +458,14 @@ export default function PresupuestoTable({ data, status, loadMore }: Presupuesto
         <div className="flex justify-center py-4">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
-            <p className="text-base text-gray-500">Cargando más partidas...</p>
+            <p className="text-base text-[#AFAEA2]">Cargando más partidas...</p>
           </div>
         </div>
       )}
 
       {status === "Exhausted" && data.length > 100 && (
         <div className="flex justify-center py-4">
-          <p className="text-base text-gray-500">Todas las partidas han sido cargadas</p>
+          <p className="text-base text-[#AFAEA2]">Todas las partidas han sido cargadas</p>
         </div>
       )}
     </div>

@@ -236,6 +236,7 @@ export default function AddPaymentModal() {
             // Upload document if provided using Convex storage
             let documentUploaded = false;
             let uploadedDocumentName = "";
+            
             if (documentFile && result.transaccionId && documentType && documentName) {
                 try {
                     setIsUploadingDocument(true);
@@ -332,7 +333,7 @@ export default function AddPaymentModal() {
             })
         );
 
-        return hasValidPayment && tipoPago && fecha && status;
+        return hasValidPayment && tipoPago && fecha && status && categoria;
     };
 
     if (!paymentContext) return null;
@@ -728,15 +729,15 @@ export default function AddPaymentModal() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="factura">Factura</SelectItem>
-                                        <SelectItem value="comprobante">Comprobante</SelectItem>
-                                        <SelectItem value="presupuesto">Presupuesto</SelectItem>
+                                        {/* <SelectItem value="comprobante">Comprobante</SelectItem>
+                                        <SelectItem value="presupuesto">Presupuesto</SelectItem> */}
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             {documentType && (
                                 <>
-                                    <div className="space-y-2">
+                                    {/* <div className="space-y-2">
                                         <label className="text-sm text-gray-700">Nombre del documento</label>
                                         <Input
                                             placeholder="Ej: Factura #12345"
@@ -744,19 +745,8 @@ export default function AddPaymentModal() {
                                             onChange={(e) => setDocumentName(e.target.value)}
                                             className="h-12"
                                         />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm text-gray-700">Descripción (opcional)</label>
-                                        <Input
-                                            placeholder="Descripción del documento"
-                                            value={documentDescription}
-                                            onChange={(e) => setDocumentDescription(e.target.value)}
-                                            className="h-12"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
+                                    </div> */}
+                                                               <div className="space-y-2">
                                         <label className="text-sm text-gray-700">Archivo</label>
                                         <div className="border-2 border-dashed rounded-none p-4 text-center">
                                             {documentFile ? (
@@ -783,7 +773,13 @@ export default function AddPaymentModal() {
                                                         type="file"
                                                         onChange={(e) => {
                                                             const file = e.target.files?.[0];
-                                                            if (file) setDocumentFile(file);
+                                                            if (file) {
+                                                                setDocumentFile(file);
+                                                                // Auto-populate document name if empty
+                                                                if (!documentName) {
+                                                                    setDocumentName(file.name); // Keep full filename with extension
+                                                                }
+                                                            }
                                                         }}
                                                         className="max-w-xs mx-auto"
                                                         accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
@@ -792,6 +788,18 @@ export default function AddPaymentModal() {
                                             )}
                                         </div>
                                     </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-gray-700">Descripción (opcional)</label>
+                                        <Input
+                                            placeholder="Descripción del documento"
+                                            value={documentDescription}
+                                            onChange={(e) => setDocumentDescription(e.target.value)}
+                                            className="h-12"
+                                        />
+                                    </div>
+
+         
                                 </>
                             )}
                         </div>
