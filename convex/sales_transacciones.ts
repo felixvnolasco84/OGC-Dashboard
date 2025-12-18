@@ -99,6 +99,74 @@ export const getAllWithDetails = query({
     },
 });
 
+// Get transactions by project with line items and documents count
+export const getByProyectoWithDetails = query({
+    args: {
+        proyecto_id: v.id("sales_projects"),
+    },
+    handler: async (ctx, args) => {
+        const transactions = await ctx.db
+            .query("sales_transacciones")
+            .withIndex("by_sales_proyecto", (q) => q.eq("sales_proyecto", args.proyecto_id))
+            .order("desc")
+            .collect();
+
+        // For each transaction, count related data and get partida info
+        const transactionsWithDetails = await Promise.all(
+            transactions.map(async (transaction) => {
+                // Get line items with partida details
+                const lineItems = await ctx.db
+                    .query("sales_pagos")
+                    .withIndex("by_sales_transaccion", (q) =>
+                        q.eq("sales_transaccion_id", transaction._id)
+                    )
+                    .collect();
+
+                // Get partida names for display
+                const partidaNames: string[] = [];
+                for (const item of lineItems) {
+                    const partida = await ctx.db.get(item.sales_partida_id);
+                    if (partida) {
+                        partidaNames.push(partida.partida_nombre || partida.familia || "Sin nombre");
+                    }
+                }
+
+                // Get documents with URLs
+                const documents = await ctx.db
+                    .query("documentos")
+                    .withIndex("by_sales_transaccion", (q) =>
+                        q.eq("sales_transaccion_id", transaction._id)
+                    )
+                    .collect();
+
+                // Get URL for the first document (factura)
+                let firstDocumentUrl: string | null = null;
+                if (documents.length > 0) {
+                    const firstDoc = documents[0];
+                    if (firstDoc.storage_id) {
+                        firstDocumentUrl = await ctx.storage.getUrl(firstDoc.storage_id);
+                    } else if (firstDoc.image) {
+                        firstDocumentUrl = firstDoc.image;
+                    }
+                }
+
+                // Count documents
+                const documentsCount = documents.length;
+
+                return {
+                    ...transaction,
+                    lineItemsCount: lineItems.length,
+                    documentsCount,
+                    partidaNames: partidaNames.slice(0, 3), // First 3 partida names
+                    documentUrl: firstDocumentUrl, // URL to open the document
+                };
+            })
+        );
+
+        return transactionsWithDetails;
+    },
+});
+
 // Delete transaction and all its line items
 export const deleteTransaction = mutation({
     args: {

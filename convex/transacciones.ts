@@ -261,10 +261,10 @@ export const getByProyectoWithDetails = query({
       .order("desc")
       .collect();
 
-    // For each transaction, count related data
+    // For each transaction, count related data and get partida info
     const transactionsWithDetails = await Promise.all(
       transactions.map(async (transaction) => {
-        // Count line items
+        // Get line items with partida details
         const lineItems = await ctx.db
           .query("pagos")
           .withIndex("by_transaccion", (q) =>
@@ -272,7 +272,16 @@ export const getByProyectoWithDetails = query({
           )
           .collect();
 
-        // Count documents
+        // Get partida names for display
+        const partidaNames: string[] = [];
+        for (const item of lineItems) {
+          const partida = await ctx.db.get(item.partida_id);
+          if (partida) {
+            partidaNames.push(partida.sub_partida || partida.familia || partida.nombre || "Sin nombre");
+          }
+        }
+
+        // Get documents with URLs
         const documents = await ctx.db
           .query("documentos")
           .withIndex("by_transaccion", (q) =>
@@ -280,10 +289,23 @@ export const getByProyectoWithDetails = query({
           )
           .collect();
 
+        // Get URL for the first document (factura)
+        let firstDocumentUrl: string | null = null;
+        if (documents.length > 0) {
+          const firstDoc = documents[0];
+          if (firstDoc.storage_id) {
+            firstDocumentUrl = await ctx.storage.getUrl(firstDoc.storage_id);
+          } else if (firstDoc.image) {
+            firstDocumentUrl = firstDoc.image;
+          }
+        }
+
         return {
           ...transaction,
           lineItemsCount: lineItems.length,
           documentsCount: documents.length,
+          partidaNames: partidaNames.slice(0, 3), // First 3 partida names
+          documentUrl: firstDocumentUrl, // URL to open the document
         };
       })
     );

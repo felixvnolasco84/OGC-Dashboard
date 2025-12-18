@@ -6,7 +6,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 // import { Settings } from "lucide-react";
 // import { Button } from "@/components/ui/button";
 // import { useWeeklyAvanceModal } from "@/hooks/weekly-avance-modal";
-import WeeklyAvanceModal from "@/components/modals/weekly-avance-modal";
+// import WeeklyAvanceModal from "@/components/modals/weekly-avance-modal";
 
 interface ChartDataPoint {
     date: string;
@@ -69,12 +69,13 @@ export default function ProgressChart({
 
     // Helper: Get date range based on filter
     const getDateRangeFilter = React.useMemo(() => {
-        // For "Todo el tiempo", return null to skip date filtering
+        const now = new Date();
+        
+        // For "Todo el tiempo", return null for startDate but still limit endDate to today
         if (selectedRangoFecha === "Todo el tiempo") {
-            return { startDate: null, endDate: null };
+            return { startDate: null, endDate: now };
         }
 
-        const now = new Date();
         const daysMap: { [key: string]: number } = {
             "Ultimos 7 dias": 7,
             "Ultimos 30 dias": 30,
@@ -174,14 +175,18 @@ export default function ProgressChart({
         // Process projected data separately
         const projectedDataMap = new Map<string, number>();
         if (projectedData && projectedData.length > 0) {
-            // Filter projected data by date range (skip filter if dates are null - "Todo el tiempo")
+            // Filter projected data by date range - always limit to endDate (today) to prevent future projections
             const filteredProjections = projectedData.filter((projection) => {
-                // If no date filter (Todo el tiempo), include all data
-                if (!getDateRangeFilter.startDate || !getDateRangeFilter.endDate) {
-                    return true;
-                }
                 const projDate = new Date((projection.week_date - 25569) * 86400 * 1000);
-                return projDate >= getDateRangeFilter.startDate && projDate <= getDateRangeFilter.endDate;
+                // Always filter by endDate to prevent showing future projections
+                if (getDateRangeFilter.endDate && projDate > getDateRangeFilter.endDate) {
+                    return false;
+                }
+                // If startDate is set, also filter by it
+                if (getDateRangeFilter.startDate && projDate < getDateRangeFilter.startDate) {
+                    return false;
+                }
+                return true;
             });
 
             // Apply period aggregation if needed
@@ -235,22 +240,26 @@ export default function ProgressChart({
             });
         });
 
-        // Filter the final data by date range (skip filter if dates are null - "Todo el tiempo")
+        // Filter the final data by date range - always limit to endDate to prevent future data
         const allData = Array.from(dataMap.values());
-        if (!getDateRangeFilter.startDate || !getDateRangeFilter.endDate) {
-            // No date filtering - return all data
-            return allData;
-        }
 
         return allData.filter((point) => {
             const pointDate = parseDateFromLabel(point.date);
-            return pointDate >= getDateRangeFilter.startDate && pointDate <= getDateRangeFilter.endDate;
+            // Always filter by endDate to prevent showing future data
+            if (getDateRangeFilter.endDate && pointDate > getDateRangeFilter.endDate) {
+                return false;
+            }
+            // If startDate is set, also filter by it
+            if (getDateRangeFilter.startDate && pointDate < getDateRangeFilter.startDate) {
+                return false;
+            }
+            return true;
         });
     }, [rawData, projectedData, weeklyAvanceData, selectedPeriodo, getDateRangeFilter]);
 
     // Transform data for react-charts format
-    const transformedData: ReactChartsSeries[] = React.useMemo(() => {
-        if (chartData.length === 0) return [];
+    const transformedDataWithOrder = React.useMemo(() => {
+        if (chartData.length === 0) return { series: [] as ReactChartsSeries[], isRealLarger: false };
 
         // Parse dates from string format "DD Mon YYYY"
         const parseDateString = (dateStr: string | undefined): Date => {
@@ -310,8 +319,6 @@ export default function ProgressChart({
             return date >= dateRange.start && date <= dateRange.end;
         });
 
-        const series: ReactChartsSeries[] = [];
-
         // Gasto Proyectado (Light blue area) - from weekly projected totals
         const proyectadoData = filteredData
             .filter(d => (d.gastoProgramado || 0) > 0)
@@ -319,13 +326,6 @@ export default function ProgressChart({
                 primary: parseDateString(d.date),
                 secondary: d.gastoProgramado || 0,
             }));
-
-        if (proyectadoData.length > 0) {
-            series.push({
-                label: 'Gasto Proyectado',
-                data: proyectadoData,
-            });
-        }
 
         // Gasto Real (Darker blue area) - actual spending from transactions
         const realData = filteredData
@@ -335,11 +335,46 @@ export default function ProgressChart({
                 secondary: d.gastoTotal || 0,
             }));
 
-        if (realData.length > 0) {
-            series.push({
-                label: 'Gasto Real',
-                data: realData,
-            });
+        // Calculate max values for each series to determine render order
+        const maxProyectado = proyectadoData.length > 0 
+            ? Math.max(...proyectadoData.map(d => d.secondary)) 
+            : 0;
+        const maxReal = realData.length > 0 
+            ? Math.max(...realData.map(d => d.secondary)) 
+            : 0;
+
+        // Build series array with larger series first (rendered in back)
+        // This ensures the smaller series overlays the larger one properly
+        const series: ReactChartsSeries[] = [];
+
+        if (maxProyectado >= maxReal) {
+            // Proyectado is larger or equal - render it first (back)
+            if (proyectadoData.length > 0) {
+                series.push({
+                    label: 'Gasto Proyectado',
+                    data: proyectadoData,
+                });
+            }
+            if (realData.length > 0) {
+                series.push({
+                    label: 'Gasto Real',
+                    data: realData,
+                });
+            }
+        } else {
+            // Real is larger - render it first (back)
+            if (realData.length > 0) {
+                series.push({
+                    label: 'Gasto Real',
+                    data: realData,
+                });
+            }
+            if (proyectadoData.length > 0) {
+                series.push({
+                    label: 'Gasto Proyectado',
+                    data: proyectadoData,
+                });
+            }
         }
 
         // Avance % (Dashed line)
@@ -357,41 +392,49 @@ export default function ProgressChart({
             });
         }
 
-        return series;
+        // Return series with color order info
+        return {
+            series,
+            isRealLarger: maxReal > maxProyectado
+        };
     }, [chartData, dateRange.start, dateRange.end]);
+
+    // Extract series and color order from transformed data
+    const transformedData = transformedDataWithOrder.series;
+    const isRealLarger = transformedDataWithOrder.isRealLarger;
+
+    // Dynamic colors based on series order - larger series gets lighter color (back), smaller gets darker (front)
+    const chartColors = React.useMemo(() => {
+        if (isRealLarger) {
+            // Real is larger (rendered first/back) - Real gets light, Proyectado gets dark
+            return ['#79AAAF', '#BFCFDC'];
+        } else {
+            // Proyectado is larger or equal (rendered first/back) - Proyectado gets light, Real gets dark
+            return ['#BFCFDC', '#79AAAF'];
+        }
+    }, [isRealLarger]);
 
     const primaryAxis = React.useMemo<AxisOptions<ReactChartsDataPoint>>(
         () => ({
             getValue: (datum) => datum.primary,
             scaleType: 'time',
-            showGrid: true, // Remove X-axis grid lines
-            hardMin: transformedData.length > 0 && transformedData[0].data.length > 0
-                ? transformedData[0].data[0].primary
-                : undefined,
-            hardMax: transformedData.length > 0 && transformedData[0].data.length > 0
-                ? transformedData[0].data[transformedData[0].data.length - 1].primary
-                : undefined,
+            showGrid: true,
+            // Let react-charts auto-calculate the X-axis range from all series data
         }),
-        [transformedData]
+        []
     );
 
     const secondaryAxes = React.useMemo<AxisOptions<ReactChartsDataPoint>[]>(
         () => {
-            // Calculate min and max values from ALL series to ensure proper scaling
-            const allValues = transformedData.flatMap(series =>
-                series.data.map(d => d.secondary)
-            );
-            const maxValue = allValues.length > 0 ? Math.max(...allValues) : undefined;
-
             return [
                 {
                     getValue: (datum) => datum.secondary,
                     scaleType: 'linear',
                     elementType: "area",
-                    showGrid: false, // Keep Y-axis grid lines
-                    showDatumElements: true, // Remove data point markers
-                    hardMin: 0, // Always start from 0
-                    hardMax: maxValue, // Set max to accommodate all series data
+                    showGrid: false,
+                    showDatumElements: false, // Hide data point markers for cleaner look
+                    min: 0, // Always start Y-axis from 0
+                    // Let react-charts auto-calculate the max from all series data
                     formatters: {
                         scale: (value: number) => {
                             if (value >= 1000000) {
@@ -469,14 +512,16 @@ export default function ProgressChart({
 
                     <div className="pointer-events-auto w-full h-full">
                         <Chart
+                            className="bg-[#fcfcfc]"
                             options={{
                                 data: transformedData,
                                 primaryAxis,
                                 secondaryAxes,
-                                // Light blue gradient for Gasto Programado, darker blue for Gasto Total
-                                defaultColors: ['#BFCFDC', '#79AAAF'],
+                                // Dynamic colors based on series order - larger series in back gets lighter color
+                                defaultColors: chartColors,
                                 dark: false,
                                 interactionMode: "primary",
+                                
                                 tooltip: {
                                     show: true,
                                     align: 'auto',
@@ -648,7 +693,7 @@ export default function ProgressChart({
             )}
 
             {/* Weekly Avance Modal */}
-            <WeeklyAvanceModal />
+            {/* <WeeklyAvanceModal /> */}
         </div>
     );
 }
