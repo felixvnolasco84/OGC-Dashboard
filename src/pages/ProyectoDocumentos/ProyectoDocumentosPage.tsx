@@ -113,12 +113,29 @@ export default function ProyectoDocumentosPage() {
     }
   };
 
-  const handleView = (fileUrl: string) => {
-    window.open(fileUrl, '_blank');
-  };
-
-  const handleDownload = (fileUrl: string) => {
-    window.open(fileUrl, '_blank');
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    try {
+      toast.loading("Descargando documento...", { id: "download" });
+      
+      const response = await fetch(fileUrl);
+      if (!response.ok) throw new Error("Error al descargar");
+      
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      
+      toast.success("Documento descargado", { id: "download" });
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      toast.error("Error al descargar el documento", { id: "download" });
+    }
   };
 
   const openDeleteDialog = (documentId: Id<"documentos">) => {
@@ -241,26 +258,38 @@ export default function ProyectoDocumentosPage() {
                       </td>
                       <td className="px-6 py-4 border-r border-gray-200">
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleView(doc.image!)}
-                            className="h-8 px-2 text-gray-600 hover:text-gray-900"
-                            disabled={!doc.image}
-                            title="Ver documento"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDownload(doc.image!)}
-                            className="h-8 px-2 text-gray-600 hover:text-gray-900"
-                            disabled={!doc.image}
-                            title="Descargar documento"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
+                          {
+                            doc.url ? (
+                              <Button
+                                key={doc._id}
+                                onClick={() => window.open(doc.url!, '_blank')}
+                                size={"sm"}
+                                variant="ghost"
+                                className="h-8 px-2 text-gray-600 hover:text-gray-900"
+                                title={`Ver ${doc.nombre}`}
+                                disabled={!doc.url}
+                              >
+                                <ExternalLink className="w-3 h-3 text-gray-600" />
+                              </Button>
+                            ) : (
+                              <></>
+                            )
+                          }
+                          {
+                            doc.url ? (
+                              // direct download button 
+                              <Button size={"sm"}
+                                variant="ghost"
+                                onClick={() => handleDownload(doc.url!, doc.nombre)}
+                                title="Descargar documento" disabled={!doc.url}>
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              // download button 
+                              <></>
+                            )
+                          }
+
                           <Button
                             variant="ghost"
                             size="sm"
