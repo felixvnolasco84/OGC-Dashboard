@@ -335,6 +335,41 @@ export default function ProgressChart({
                 secondary: d.gastoTotal || 0,
             }));
 
+        // Find the overall max date from both series to extend shorter series
+        const allDataPoints = [...proyectadoData, ...realData];
+        let overallMaxDate: Date | undefined = undefined;
+        for (const d of allDataPoints) {
+            if (!overallMaxDate || d.primary > overallMaxDate) {
+                overallMaxDate = d.primary;
+            }
+        }
+
+        // Extend proyectadoData to the max date if it ends earlier
+        // This prevents the "floating" appearance where one series ends before the other
+        if (proyectadoData.length > 0 && overallMaxDate !== undefined) {
+            const lastProyectado = proyectadoData[proyectadoData.length - 1];
+            const maxDate = overallMaxDate;
+            if (lastProyectado.primary.getTime() < maxDate.getTime()) {
+                // Add a point at the max date with the last known value to extend the area
+                proyectadoData.push({
+                    primary: maxDate,
+                    secondary: lastProyectado.secondary,
+                });
+            }
+        }
+
+        // Extend realData to the max date if it ends earlier
+        if (realData.length > 0 && overallMaxDate !== undefined) {
+            const lastReal = realData[realData.length - 1];
+            const maxDate = overallMaxDate;
+            if (lastReal.primary.getTime() < maxDate.getTime()) {
+                realData.push({
+                    primary: maxDate,
+                    secondary: lastReal.secondary,
+                });
+            }
+        }
+
         // Calculate max values for each series to determine render order
         const maxProyectado = proyectadoData.length > 0 
             ? Math.max(...proyectadoData.map(d => d.secondary)) 
@@ -414,14 +449,38 @@ export default function ProgressChart({
         }
     }, [isRealLarger]);
 
+    // Calculate the actual date range from all series data
+    const dateRangeBounds = React.useMemo(() => {
+        if (transformedData.length === 0) return { min: undefined, max: undefined };
+        
+        let minDate: Date | undefined;
+        let maxDate: Date | undefined;
+        
+        transformedData.forEach(series => {
+            series.data.forEach(point => {
+                if (!minDate || point.primary < minDate) {
+                    minDate = point.primary;
+                }
+                if (!maxDate || point.primary > maxDate) {
+                    maxDate = point.primary;
+                }
+            });
+        });
+        
+        return { min: minDate, max: maxDate };
+    }, [transformedData]);
+
     const primaryAxis = React.useMemo<AxisOptions<ReactChartsDataPoint>>(
         () => ({
             getValue: (datum) => datum.primary,
             scaleType: 'time',
             showGrid: true,
-            // Let react-charts auto-calculate the X-axis range from all series data
+            // Set explicit min/max to prevent empty space at chart edges
+            min: dateRangeBounds.min,
+            max: dateRangeBounds.max,
+            padBandRange: false,
         }),
-        []
+        [dateRangeBounds]
     );
 
     const secondaryAxes = React.useMemo<AxisOptions<ReactChartsDataPoint>[]>(

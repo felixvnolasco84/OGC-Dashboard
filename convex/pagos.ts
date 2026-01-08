@@ -246,6 +246,74 @@ export const getAll = query({
   },
 });
 
+// Get last week's payments grouped by partida_id
+// "Last week" = Monday to Sunday of the previous week (not including current week)
+export const getLastWeekPaymentsByProject = query({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    // Calculate last week's date range
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    // Get Monday of current week
+    const mondayThisWeek = new Date(now);
+    const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+    mondayThisWeek.setDate(now.getDate() - daysFromMonday);
+    mondayThisWeek.setHours(0, 0, 0, 0);
+    
+    // Get Monday of last week
+    const mondayLastWeek = new Date(mondayThisWeek);
+    mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+    
+    // Get Sunday of last week (end of last week)
+    const sundayLastWeek = new Date(mondayThisWeek);
+    sundayLastWeek.setDate(mondayThisWeek.getDate() - 1);
+    sundayLastWeek.setHours(23, 59, 59, 999);
+    
+    // Format dates for comparison (YYYY-MM-DD)
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    const lastWeekStart = formatDate(mondayLastWeek);
+    const lastWeekEnd = formatDate(sundayLastWeek);
+    
+    // Get all transactions for this project
+    const transactions = await ctx.db
+      .query("transacciones")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+    
+    // Filter transactions from last week
+    const lastWeekTransactions = transactions.filter(tx => {
+      const txDate = tx.fecha; // Format: YYYY-MM-DD or similar
+      return txDate >= lastWeekStart && txDate <= lastWeekEnd;
+    });
+    
+    // Get all pagos for last week transactions and group by partida_id
+    const paymentsByPartida: Record<string, number> = {};
+    
+    for (const transaction of lastWeekTransactions) {
+      const pagos = await ctx.db
+        .query("pagos")
+        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
+        .collect();
+      
+      for (const pago of pagos) {
+        const partidaId = pago.partida_id as string;
+        paymentsByPartida[partidaId] = (paymentsByPartida[partidaId] || 0) + pago.monto;
+      }
+    }
+    
+    return {
+      paymentsByPartida,
+      weekRange: {
+        start: lastWeekStart,
+        end: lastWeekEnd,
+      },
+    };
+  },
+});
+
 // Update a pago (line item) amount
 export const updatePago = mutation({
   args: {

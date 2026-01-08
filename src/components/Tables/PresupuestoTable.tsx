@@ -25,8 +25,6 @@ type PartidaRow = Omit<Partial<Doc<"partidas">>, 'pagado' | 'total' | 'aprobado'
   pagado: number;
   porGastar: number; // Read from database: presupuesto_aprobado - pagado
   avance: number;
-  fechaInicio?: string;
-  fechaFin?: string;
   expanded: boolean;
   detailsExpanded: boolean; // For showing precio unitario details
   level: number; // 0 = partida, 1 = familia, 2 = sub_partida
@@ -37,6 +35,8 @@ type PartidaRow = Omit<Partial<Doc<"partidas">>, 'pagado' | 'total' | 'aprobado'
   unidad?: string;
   cantidad?: number;
   precioUnitario?: number;
+  // Last week payment (calculated from lastWeekPayments prop)
+  pagadoSemanaAnterior?: number;
 };
 
 type HierarchicalGroup = PartidaRow & {
@@ -68,10 +68,12 @@ interface PresupuestoTableProps {
   data: Doc<"partidas">[];
   status: "CanLoadMore" | "LoadingFirstPage" | "LoadingMore" | "Exhausted";
   showPrecioUnitario: boolean;
+  showPagadoSemanaAnterior: boolean;
+  lastWeekPayments?: Record<string, number>;
   loadMore: (numItems: number) => void;
 }
 
-export default function PresupuestoTable({ data, status, showPrecioUnitario, loadMore }: PresupuestoTableProps) {
+export default function PresupuestoTable({ data, status, showPrecioUnitario, showPagadoSemanaAnterior, lastWeekPayments, loadMore }: PresupuestoTableProps) {
   // Get project's default currency based on transaction history
   const projectId = data.length > 0 ? data[0].proyecto : undefined;
   const currencyInfo = useQuery(
@@ -104,8 +106,6 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
         pagado,
         porGastar, // Use por_gastar from database or calculated
         avance: 0,
-        fechaInicio: "-",
-        fechaFin: "-",
         expanded: false,
         detailsExpanded: false,
         level: 0,
@@ -115,7 +115,8 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
         uniqueId: `partida-${partidaKey}`, // Stable unique ID for partida level
         unidad: item.unidad,
         cantidad: item.cantidad,
-        precioUnitario: item.precio_unitario
+        precioUnitario: item.precio_unitario,
+        pagadoSemanaAnterior: lastWeekPayments?.[item._id] || 0
       };
     });
 
@@ -143,8 +144,6 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
           pagado,
           porGastar, // Use por_gastar from database or calculated
           avance: 0,
-          fechaInicio: "-",
-          fechaFin: "-",
           expanded: false,
           detailsExpanded: false,
           level: 1,
@@ -153,7 +152,8 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
           uniqueId: `familia-${partidaKey}-${familiaKey}`, // Stable unique ID for familia level
           unidad: item.unidad,
           cantidad: item.cantidad,
-          precioUnitario: item.precio_unitario
+          precioUnitario: item.precio_unitario,
+          pagadoSemanaAnterior: lastWeekPayments?.[item._id] || 0
         };
         partida.familias[familiaKey] = familiaGroup;
         partida.children.push(familiaGroup);
@@ -181,8 +181,6 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
           pagado,
           porGastar, // Use por_gastar from database or calculated
           avance: 0,
-          fechaInicio: "-",
-          fechaFin: "-",
           expanded: false,
           detailsExpanded: false,
           level: 2,
@@ -191,17 +189,21 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
           uniqueId: item._id, // Use database _id for nivel 3 items
           unidad: item.unidad,
           cantidad: item.cantidad,
-          precioUnitario: item.precio_unitario
+          precioUnitario: item.precio_unitario,
+          pagadoSemanaAnterior: lastWeekPayments?.[item._id] || 0
         });
       }
     });
 
-    // Calculate avance for all levels
+    // Calculate avance and aggregate pagadoSemanaAnterior for all levels
     const result = Object.values(grouped).map((partidaGroup) => {
       // Calculate avance for partida level (pagado already set from database)
       partidaGroup.avance = partidaGroup.presupuestoAprobado > 0
         ? Math.round((partidaGroup.pagado / partidaGroup.presupuestoAprobado) * 100)
         : 0;
+
+      // Track total pagadoSemanaAnterior for partida level
+      let partidaTotalSemanaAnterior = partidaGroup.pagadoSemanaAnterior || 0;
 
       partidaGroup.children.forEach((familia: PartidaRow) => {
         // Calculate avance for familia level (pagado already set from database)
@@ -209,18 +211,33 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
           ? Math.round((familia.pagado / familia.presupuestoAprobado) * 100)
           : 0;
 
+        // Track total pagadoSemanaAnterior for familia level
+        let familiaTotalSemanaAnterior = familia.pagadoSemanaAnterior || 0;
+
         // Calculate avance for sub-partida level (pagado already set from database)
         familia.children.forEach((subPartida: PartidaRow) => {
           subPartida.avance = subPartida.presupuestoAprobado > 0
             ? Math.round((subPartida.pagado / subPartida.presupuestoAprobado) * 100)
             : 0;
+          
+          // Aggregate sub-partida payments to familia
+          familiaTotalSemanaAnterior += subPartida.pagadoSemanaAnterior || 0;
         });
+
+        // Set aggregated pagadoSemanaAnterior for familia (sum of its own + children)
+        familia.pagadoSemanaAnterior = familiaTotalSemanaAnterior;
+        
+        // Aggregate familia payments to partida
+        partidaTotalSemanaAnterior += familiaTotalSemanaAnterior;
 
         // If familia has no children, clear children array
         if (familia.children.length === 0) {
           familia.children = [];
         }
       });
+
+      // Set aggregated pagadoSemanaAnterior for partida (sum of all familias)
+      partidaGroup.pagadoSemanaAnterior = partidaTotalSemanaAnterior;
 
       // Return without familias object
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -229,7 +246,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
     });
 
     return result;
-  }, [data]);
+  }, [data, lastWeekPayments]);
 
   const [budgetData, setBudgetData] = useState<PartidaRow[]>([]);
   // const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
@@ -317,12 +334,11 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Avance
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Fecha inicio
-              </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Fecha fin
-              </TableHead>
+              {showPagadoSemanaAnterior && (
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                  Pagado semana anterior
+                </TableHead>
+              )}
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
               </TableHead>
             </TableRow>
@@ -380,53 +396,52 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, loa
                         </TableCell>
                       </>
                     )}
-                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                    {formatCurrency(item.presupuestoOriginal, defaultCurrency)}
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                    <div className="flex flex-col gap-2 text-left">
-                      <span>{formatCurrency(item.presupuestoAprobado, defaultCurrency)}</span>
-                      {!approvedDiff.isEqual && (
-                        <Badge
-                          className={cn(
-                            "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
-                            approvedDiff.isSavings
-                              ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-400'
-                              : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
-                          )}
-                        >
-                          {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +{formatCurrency(Math.abs(item.presupuestoAprobado - item.presupuestoOriginal), defaultCurrency)}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                    <div className="flex flex-col gap-2 text-left">
-                      <span>{formatCurrency(item.pagado, defaultCurrency)}</span>
-                      {!porGastarBadge.isEqual && (
-                        <Badge
-                          className={cn(
-                            "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
-                            porGastarBadge.isRemaining
-                              ? 'bg-[#f5f5f5] text-[#AFAEA2] hover:bg-[#f5f5f5] border border-[#b8b7ac]'
-                              : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
-                          )}
-                        >
-                          {porGastarBadge.isRemaining ? 'Por gastar' : 'Incremento'} - {formatCurrency(Math.abs(item.porGastar), defaultCurrency)}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                    {item.avance}%
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0">
-                    {item.fechaInicio || '-'}
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0">
-                    {item.fechaFin || '-'}
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                      {formatCurrency(item.presupuestoOriginal, defaultCurrency)}
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                      <div className="flex flex-col gap-2 text-left">
+                        <span>{formatCurrency(item.presupuestoAprobado, defaultCurrency)}</span>
+                        {!approvedDiff.isEqual && (
+                          <Badge
+                            className={cn(
+                              "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
+                              approvedDiff.isSavings
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-400'
+                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
+                            )}
+                          >
+                            {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +{formatCurrency(Math.abs(item.presupuestoAprobado - item.presupuestoOriginal), defaultCurrency)}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                      <div className="flex flex-col gap-2 text-left">
+                        <span>{formatCurrency(item.pagado, defaultCurrency)}</span>
+                        {!porGastarBadge.isEqual && (
+                          <Badge
+                            className={cn(
+                              "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
+                              porGastarBadge.isRemaining
+                                ? 'bg-[#f5f5f5] text-[#AFAEA2] hover:bg-[#f5f5f5] border border-[#b8b7ac]'
+                                : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
+                            )}
+                          >
+                            {porGastarBadge.isRemaining ? 'Por gastar' : 'Incremento'} - {formatCurrency(Math.abs(item.porGastar), defaultCurrency)}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                      {item.avance}%
+                    </TableCell>
+                    {showPagadoSemanaAnterior && (
+                      <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0 font-light">
+                        {item.pagadoSemanaAnterior ? formatCurrency(item.pagadoSemanaAnterior, defaultCurrency) : '-'}
+                      </TableCell>
+                    )}
+                    <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0">
                       <DropdownMenuComponentPartida
                         partida={item.originalDoc!}
                         level={item.level}

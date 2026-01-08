@@ -329,7 +329,7 @@ export default function ControlPage() {
                                 </div>
 
                                 {/* Progress Chart */}
-                                <div className="w-full h-80">
+                                <div className="w-full h-64">
                                     {(
                                         <ProgressChart
                                             data={progressChartData || []}

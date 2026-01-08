@@ -40,6 +40,7 @@ import type * as sales_projects from "../sales_projects.js";
 import type * as sales_projects_migration from "../sales_projects_migration.js";
 import type * as sales_transacciones from "../sales_transacciones.js";
 import type * as sales_transacciones_queries from "../sales_transacciones_queries.js";
+import type * as seed_last_week_payments from "../seed_last_week_payments.js";
 import type * as sync from "../sync.js";
 import type * as transacciones from "../transacciones.js";
 import type * as users from "../users.js";
@@ -82,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   sales_projects_migration: typeof sales_projects_migration;
   sales_transacciones: typeof sales_transacciones;
   sales_transacciones_queries: typeof sales_transacciones_queries;
+  seed_last_week_payments: typeof seed_last_week_payments;
   sync: typeof sync;
   transacciones: typeof transacciones;
   users: typeof users;

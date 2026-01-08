@@ -75,6 +75,7 @@ export default function PresupuestoPage() {
   const [isPartidaOpen, setIsPartidaOpen] = useState(false);
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
   const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
+  const [showPagadoSemanaAnterior, setShowPagadoSemanaAnterior] = useState(false);
 
   // Add partida modal
   // const addPartidaModal = useAddPartidaModal();
@@ -89,9 +90,14 @@ export default function PresupuestoPage() {
     }
   };
 
-    // Function to toggle precio unitario columns visibility
+  // Function to toggle precio unitario columns visibility
   const togglePrecioUnitario = () => {
     setShowPrecioUnitario(!showPrecioUnitario);
+  };
+
+  // Function to toggle pagado semana anterior columns visibility
+  const togglePagadoSemanaAnterior = () => {
+    setShowPagadoSemanaAnterior(!showPagadoSemanaAnterior);
   };
 
   // Fetch current project
@@ -103,6 +109,12 @@ export default function PresupuestoPage() {
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
   const moneda = currencyInfo?.defaultCurrency || "MXN";
+
+  // Get last week's payments by partida
+  const lastWeekPayments = useQuery(
+    api.pagos.getLastWeekPaymentsByProject,
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  );
 
 
   // Fetch all partidas for selected project with pagination
@@ -267,7 +279,7 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Main Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4 gap-12 mb-8 px-12"> 
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4 gap-12 mb-8 px-12">
           {/* Presupuesto Original */}
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
@@ -286,7 +298,7 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none ">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Presupuesto aprobado</p>                
+                <p className="text-sm text-gray-500">Presupuesto aprobado</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-3xl 2xl:text-4xl font-normal text-gray-900">
                     {formatCurrencyCompact(metrics?.presupuesto_aprobado || 0, moneda)}
@@ -422,7 +434,7 @@ export default function PresupuestoPage() {
                   {selectedPartidas.map((partida) => (
                     <Badge
                       key={partida}
-                      variant="secondary"                      
+                      variant="secondary"
                     >
                       {partida.length > 15 ? `${partida.slice(0, 15)}...` : partida}
                       <X
@@ -518,7 +530,7 @@ export default function PresupuestoPage() {
                     <Badge
                       key={familia}
                       variant="secondary"
-                      // className="text-base py-0.5 px-2 gap-1"
+                    // className="text-base py-0.5 px-2 gap-1"
                     >
                       {familia.length > 15 ? `${familia.slice(0, 15)}...` : familia}
                       <X
@@ -558,28 +570,42 @@ export default function PresupuestoPage() {
         {/* toggle precio unitario */}
 
 
-                  
-                    <div onClick={togglePrecioUnitario} className="flex items-center space-x-2 w-fit px-4 text-gray-900 ">
-<small>Precio unitario</small>
-              <Button 
-                        className="text-left text-base font-medium text-muted-foreground rounded-full"
-                        onClick={togglePrecioUnitario}
-                        size={"icon"}
-                        variant={"ghost"}
-                      >
-                        
-                          <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPrecioUnitario && "rotate-90")} />
-                        
-                      </Button>
-                    </div>
-       
-      {/* Budget Table Component */}
-      <PresupuestoTable
-        data={filteredPartidas}
-        status={partidasStatus}
-        loadMore={loadMore}
-        showPrecioUnitario={showPrecioUnitario}
-      />
+
+        <div className="flex items-center gap-6 px-4">
+          <div onClick={togglePrecioUnitario} className="flex items-center space-x-2 w-fit text-gray-900 cursor-pointer">
+            <small>Precio unitario</small>
+            <Button
+              className="text-left text-base font-medium text-muted-foreground rounded-full"
+              onClick={togglePrecioUnitario}
+              size={"icon"}
+              variant={"ghost"}
+            >
+              <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPrecioUnitario && "rotate-90")} />
+            </Button>
+          </div>
+
+          <div onClick={togglePagadoSemanaAnterior} className="flex items-center space-x-2 w-fit text-gray-900 cursor-pointer">
+            <small>Pagado semana anterior</small>
+            <Button
+              className="text-left text-base font-medium text-muted-foreground rounded-full"
+              onClick={togglePagadoSemanaAnterior}
+              size={"icon"}
+              variant={"ghost"}
+            >
+              <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPagadoSemanaAnterior && "rotate-90")} />
+            </Button>
+          </div>
+        </div>
+
+        {/* Budget Table Component */}
+        <PresupuestoTable
+          data={filteredPartidas}
+          status={partidasStatus}
+          loadMore={loadMore}
+          showPrecioUnitario={showPrecioUnitario}
+          showPagadoSemanaAnterior={showPagadoSemanaAnterior}
+          lastWeekPayments={lastWeekPayments?.paymentsByPartida}
+        />
       </div>
     </div>
   );
