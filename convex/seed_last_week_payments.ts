@@ -7,7 +7,7 @@
  * Run this script using: npx convex run seed_last_week_payments:seedLastWeekPayments
  */
 
-import { mutation, internalMutation } from "./functions";
+import { mutation } from "./functions";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
