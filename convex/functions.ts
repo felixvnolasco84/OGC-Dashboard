@@ -821,6 +821,86 @@ triggers.register("sales_transacciones", async (ctx, change) => {
   }
 });
 
+// Register trigger for ingresos table to update totals when income entries change
+triggers.register("ingresos", async (ctx, change) => {
+  console.log("Ingreso changed:", change.operation, change.id);
+  
+  try {
+    // Get the ingreso record to extract proyecto information
+    let ingreso;
+    if (change.operation === "insert" || change.operation === "update") {
+      ingreso = change.newDoc;
+    } else if (change.operation === "delete") {
+      ingreso = change.oldDoc;
+    }
+    
+    if (!ingreso || !ingreso.proyecto) {
+      console.log("No ingreso or proyecto found, skipping trigger");
+      return;
+    }
+    
+    // Recalculate and update ingresos_totals for this proyecto
+    await updateIngresosTotalsInternal(ctx, ingreso.proyecto);
+    console.log("✅ Successfully updated ingresos_totals after ingreso change");
+  } catch (error) {
+    console.error("❌ Error in ingreso trigger:", error);
+    throw error;
+  }
+});
+
+// Helper function to update ingresos_totals (internal implementation for trigger)
+async function updateIngresosTotalsInternal(
+  ctx: { db: any },
+  proyectoId: string
+) {
+  console.log(`Calculating ingresos totals for proyecto: ${proyectoId}`);
+  
+  try {
+    // Get all ingresos for this proyecto
+    const ingresos = await ctx.db
+      .query("ingresos")
+      .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId))
+      .collect();
+    
+    // Calculate totals
+    const total_ingresos = ingresos.reduce(
+      (sum: number, i: any) => sum + (i.monto || 0),
+      0
+    );
+    const total_count = ingresos.length;
+    
+    console.log("Calculated ingresos totals:", { total_ingresos, total_count });
+    
+    // Check if totals record exists
+    const existingTotals = await ctx.db
+      .query("ingresos_totals")
+      .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId))
+      .first();
+    
+    if (existingTotals) {
+      // Update existing record
+      await ctx.db.patch(existingTotals._id, {
+        total_ingresos,
+        total_count,
+        last_updated: Date.now(),
+      });
+      console.log("Updated existing ingresos_totals record");
+    } else {
+      // Create new record
+      await ctx.db.insert("ingresos_totals", {
+        proyecto: proyectoId,
+        total_ingresos,
+        total_count,
+        last_updated: Date.now(),
+      });
+      console.log("Created new ingresos_totals record");
+    }
+  } catch (error) {
+    console.error("❌ Error updating ingresos_totals:", error);
+    throw error;
+  }
+}
+
 // Create wrappers that replace the built-in `mutation` and `internalMutation`
 // The wrappers override `ctx` so that `ctx.db.insert`, `ctx.db.patch`, etc. run registered trigger functions
 export const mutation = customMutation(rawMutation, customCtx(triggers.wrapDB));

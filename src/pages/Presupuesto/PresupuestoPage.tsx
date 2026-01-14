@@ -20,11 +20,11 @@ import {
   X, Plus,
   ChevronRight,
   RefreshCw,
-  // Download
 } from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
-// import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
+import { useIngresosModal } from "@/hooks/ingresos-modal";
+import IngresosModal from "@/components/modals/ingresos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { cn, formatCurrencyCompact } from "@/lib/utils";
 
@@ -79,9 +79,9 @@ export default function PresupuestoPage() {
   const [showPagadoSemanaAnterior, setShowPagadoSemanaAnterior] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Add partida modal
-  // const addPartidaModal = useAddPartidaModal();
+  // Modals
   const addPaymentModal = useAddPaymentModal();
+  const ingresosModal = useIngresosModal();
 
   // Sync mutation
   const syncProjectData = useMutation(api.partida.syncProjectData);
@@ -95,14 +95,24 @@ export default function PresupuestoPage() {
     }
   };
 
+  // Handler to open ingresos modal
+  const handleOpenIngresos = () => {
+    if (proyecto) {
+      ingresosModal.onOpen({
+        projectId: proyecto._id,
+        projectName: proyecto.nombre,
+      });
+    }
+  };
+
   // Handler for sync button
   const handleSync = async () => {
     if (!proyectoId) return;
-    
+
     setIsSyncing(true);
     try {
-      const result = await syncProjectData({ 
-        projectId: proyectoId as Id<"desarrollos"> 
+      const result = await syncProjectData({
+        projectId: proyectoId as Id<"desarrollos">
       });
       console.log("Sync completed:", result);
     } catch (error) {
@@ -150,6 +160,12 @@ export default function PresupuestoPage() {
   // Get metrics for a proyecto
   const metrics = useQuery(
     api.meticas_presupuesto.getByProyecto,
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  );
+
+  // Get ingresos totals for a proyecto
+  const ingresosTotals = useQuery(
+    api.ingresos.getTotalsByProyecto,
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
 
@@ -257,7 +273,7 @@ export default function PresupuestoPage() {
               <p className="text-base text-gray-500 mb-1">Presupuesto</p>
               <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
             </div>
-            <div className="flex items-end gap-3">
+            <div className="flex items-start gap-3">
               {/* <Button
                 onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
                   proyecto: selectedDesarrollo._id,
@@ -284,7 +300,28 @@ export default function PresupuestoPage() {
                 Agregar Partida
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
               </Button> */}
-              
+
+              {/* Total Ingresos - Based on image reference */}
+              <Card className="bg-transparent shadow-none border-none col-span-1 md:col-span-2 lg:col-span-1 mr-4">
+                <CardContent className="p-0 text-left" onClick={handleOpenIngresos}>
+                  <div className="space-y-1 text-center">
+                    <p className="text-sm text-muted-foreground text-right">Total Ingresos</p>
+                    <div className="flex items-baseline space-x-2">
+                      <p className="text-3xl font-normal text-gray-900 leading-none">
+                        {formatCurrencyCompact((ingresosTotals?.total_ingresos || 0) + (metrics?.gasto_total || 0), moneda)}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] text-center font-normal py-1.5 leading-none bg-gray-100 text-gray-600 rounded-xl border-gray-400 min-w-24">
+                      <span className="text-center">
+                        Neto
+                        {" "}
+                        {formatCurrencyCompact(ingresosTotals?.total_ingresos || 0, moneda)}
+                      </span>
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
 
               {/* handle sync button */}
               <Button
@@ -314,7 +351,9 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Main Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4 gap-12 mb-8 px-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-12 mb-8 px-12">
+
+
           {/* Presupuesto Original */}
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
@@ -642,6 +681,9 @@ export default function PresupuestoPage() {
           lastWeekPayments={lastWeekPayments?.paymentsByPartida}
         />
       </div>
+
+      {/* Ingresos Modal */}
+      <IngresosModal />
     </div>
   );
 }

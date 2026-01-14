@@ -335,4 +335,47 @@ export default defineSchema({
     created_at: v.number(), // Timestamp
   }).index("by_photo", { fields: ["photo_id"] })
     .index("by_user", { fields: ["user_id"] }),
+  
+  // Ingresos (Income) - Money entries for a project
+  ingresos: defineTable({
+    proyecto: v.id("desarrollos"),
+    monto: v.number(), // Amount
+    fecha: v.string(), // Date in DD/MM/YYYY format
+    descripcion: v.optional(v.string()), // Optional description/notes
+    moneda: v.string(), // Currency: MXN, USD, EUR
+    // Document attachment (URL to uploaded file)
+    documento_adjunto: v.optional(v.string()), // URL to attached document
+    documento_nombre: v.optional(v.string()), // Original file name
+    // User tracking
+    added_by_id: v.id("users"), // User who added this entry
+    added_by_name: v.string(), // Cached user name for display
+    // Metadata
+    created_at: v.number(), // Timestamp when created
+    updated_at: v.optional(v.number()), // Timestamp when last updated
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_added_by", { fields: ["added_by_id"] })
+    .index("by_fecha", { fields: ["fecha"] }),
+  
+  // Ingresos totals - Cached total for each project (updated via trigger)
+  ingresos_totals: defineTable({
+    proyecto: v.id("desarrollos"),
+    total_ingresos: v.number(), // Sum of all ingresos.monto for this project
+    total_count: v.number(), // Number of income entries
+    last_updated: v.number(), // Timestamp of last update
+  }).index("by_proyecto", { fields: ["proyecto"] }),
+  
+  // Ingresos documents - Separate document storage for income entries
+  ingresos_documentos: defineTable({
+    ingreso_id: v.id("ingresos"), // Reference to parent ingreso
+    proyecto: v.id("desarrollos"), // Project reference
+    nombre: v.string(), // Document name
+    descripcion: v.optional(v.string()), // Description
+    storage_id: v.id("_storage"), // Convex storage ID
+    type: v.string(), // Document type (factura, comprobante, etc.)
+    size: v.number(), // File size in bytes
+    uploaded_at: v.number(), // Timestamp
+    uploaded_by_id: v.id("users"), // User who uploaded
+    uploaded_by_name: v.string(), // Cached user name
+  }).index("by_ingreso", { fields: ["ingreso_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] }),
 });

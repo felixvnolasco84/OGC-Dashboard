@@ -20,6 +20,8 @@ import type * as desarrollos from "../desarrollos.js";
 import type * as documentos from "../documentos.js";
 import type * as files from "../files.js";
 import type * as functions from "../functions.js";
+import type * as ingresos from "../ingresos.js";
+import type * as ingresos_documentos from "../ingresos_documentos.js";
 import type * as meticas_presupuesto from "../meticas_presupuesto.js";
 import type * as migrations from "../migrations.js";
 import type * as pagos from "../pagos.js";
@@ -63,6 +65,8 @@ declare const fullApi: ApiFromModules<{
   documentos: typeof documentos;
   files: typeof files;
   functions: typeof functions;
+  ingresos: typeof ingresos;
+  ingresos_documentos: typeof ingresos_documentos;
   meticas_presupuesto: typeof meticas_presupuesto;
   migrations: typeof migrations;
   pagos: typeof pagos;
