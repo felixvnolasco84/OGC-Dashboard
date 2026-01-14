@@ -620,3 +620,384 @@ export const syncGastadoForAllPartidas = mutation({
     }
   },
 });
+
+/**
+ * Comprehensive sync mutation for a project that:
+ * 1. Recalculates `pagado` for all partida levels (1, 2, 3)
+ * 2. Updates `por_gastar` = presupuesto_aprobado - pagado
+ * 3. Updates `honorarios_monto` on the proyecto based on honorarios_porcentaje
+ * 4. Updates the HONORARIOS partida with the calculated amount
+ * 
+ * @param projectId - Required: Project ID to sync
+ */
+export const syncProjectData = mutation({
+  args: {
+    projectId: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    console.log(`🔄 Starting comprehensive sync for project: ${args.projectId}`);
+
+    try {
+      // Get the proyecto
+      const proyecto = await ctx.db.get(args.projectId);
+      if (!proyecto) {
+        throw new Error("Proyecto not found");
+      }
+
+      // ============================================
+      // STEP 1: Sync pagado for all partida levels
+      // ============================================
+      console.log("Step 1: Syncing pagado for all partidas...");
+
+      // Get all partidas for this project
+      const allPartidas = await ctx.db
+        .query("partidas")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+        .collect();
+      console.log(`Found ${allPartidas.length} partidas`);
+
+      // Get all pagos - filter by project's transactions to avoid cross-project issues
+      const projectTransactions = await ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+        .collect();
+      const projectTransactionIds = new Set(projectTransactions.map(t => t._id));
+      
+      const allPagos = await ctx.db.query("pagos").collect();
+      // Filter pagos to only those belonging to this project's transactions
+      const projectPagos = allPagos.filter(p => projectTransactionIds.has(p.transaccion_id));
+      console.log(`Found ${projectPagos.length} pagos for this project (${allPagos.length} total)`);
+
+      // Build a map of partida_id -> sum of pagos (only from "Pagado" transactions)
+      const pagosByPartidaId = new Map<Id<"partidas">, number>();
+      const transactionStatusMap = new Map(projectTransactions.map(t => [t._id, t.status]));
+      
+      for (const pago of projectPagos) {
+        // Only count pagos from transactions with status "Pagado"
+        const txStatus = transactionStatusMap.get(pago.transaccion_id);
+        if (txStatus !== "Pagado") {
+          console.log(`Skipping pago (status=${txStatus}): ${pago.monto}`);
+          continue;
+        }
+        
+        const current = pagosByPartidaId.get(pago.partida_id) || 0;
+        pagosByPartidaId.set(pago.partida_id, current + (pago.monto || 0));
+        
+        // Debug: Log each pago
+        const partida = allPartidas.find(p => p._id === pago.partida_id);
+        if (partida) {
+          console.log(`Pago: ${pago.monto} -> ${partida.sub_partida || partida.familia || partida.nombre} (nivel ${partida.nivel})`);
+        }
+      }
+
+      // Build aggregation maps for nivel 1 and 2
+      // IMPORTANT: Only aggregate from nivel 3 (leaf nodes) to avoid double-counting
+      // For nivel 2: key = "nombre|familia" -> sum of pagos from nivel 3 children
+      // For nivel 1: key = "nombre" -> sum of pagos from nivel 3 children
+      const pagadoByFamilia = new Map<string, number>();
+      const pagadoByPartida = new Map<string, number>();
+
+      // Debug: Log partida structure
+      console.log("=== PARTIDA STRUCTURE DEBUG ===");
+      const sampleNivel2 = allPartidas.find(p => p.nivel === 2 && p.familia === "EXCAVACIÓN");
+      const sampleNivel3 = allPartidas.find(p => p.nivel === 3 && p.familia === "EXCAVACIÓN");
+      if (sampleNivel2) {
+        console.log(`Nivel 2 EXCAVACIÓN: nombre=${sampleNivel2.nombre}, partida_nombre=${sampleNivel2.partida_nombre}, familia=${sampleNivel2.familia}`);
+      }
+      if (sampleNivel3) {
+        console.log(`Nivel 3 sample: nombre=${sampleNivel3.nombre}, partida_nombre=${sampleNivel3.partida_nombre}, familia=${sampleNivel3.familia}, sub_partida=${sampleNivel3.sub_partida}`);
+      }
+
+      // Only iterate over nivel 3 partidas (leaf nodes where payments are actually made)
+      const nivel3Partidas = allPartidas.filter(p => p.nivel === 3);
+      console.log(`Found ${nivel3Partidas.length} nivel 3 partidas`);
+      
+      for (const partida of nivel3Partidas) {
+        const directPagado = pagosByPartidaId.get(partida._id) || 0;
+
+        // Aggregate for familia level (nivel 2) using partida_nombre (parent partida name)
+        const familiaKey = `${partida.partida_nombre || partida.nombre}|${partida.familia}`;
+        pagadoByFamilia.set(familiaKey, (pagadoByFamilia.get(familiaKey) || 0) + directPagado);
+        
+        if (directPagado > 0) {
+          console.log(`Nivel 3 aggregation: ${partida.sub_partida} -> key=${familiaKey}, amount=${directPagado}`);
+        }
+
+        // Aggregate for partida level (nivel 1) using partida_nombre (parent partida name)
+        const partidaName = partida.partida_nombre || partida.nombre;
+        pagadoByPartida.set(partidaName, (pagadoByPartida.get(partidaName) || 0) + directPagado);
+      }
+      
+      // Also handle nivel 2 partidas that have direct payments (familias without sub-partidas)
+      const nivel2Partidas = allPartidas.filter(p => p.nivel === 2);
+      for (const partida of nivel2Partidas) {
+        const directPagado = pagosByPartidaId.get(partida._id) || 0;
+        if (directPagado > 0) {
+          // Add to familia aggregation
+          const familiaKey = `${partida.nombre}|${partida.familia}`;
+          pagadoByFamilia.set(familiaKey, (pagadoByFamilia.get(familiaKey) || 0) + directPagado);
+          
+          // Add to partida aggregation
+          pagadoByPartida.set(partida.nombre, (pagadoByPartida.get(partida.nombre) || 0) + directPagado);
+        }
+      }
+
+      // Debug: Log the aggregation maps
+      console.log("pagadoByFamilia entries:");
+      pagadoByFamilia.forEach((value, key) => {
+        console.log(`  ${key}: ${value}`);
+      });
+      console.log("pagadoByPartida entries:");
+      pagadoByPartida.forEach((value, key) => {
+        console.log(`  ${key}: ${value}`);
+      });
+
+      let updatedPagadoCount = 0;
+
+      // Update each partida with correct pagado and por_gastar
+      for (const partida of allPartidas) {
+        let correctPagado: number;
+
+        if (partida.nivel === 1) {
+          correctPagado = pagadoByPartida.get(partida.nombre) || 0;
+        } else if (partida.nivel === 2) {
+          // Use partida_nombre if available (reference to parent), otherwise use nombre
+          const partidaName = partida.partida_nombre || partida.nombre;
+          const lookupKey = `${partidaName}|${partida.familia}`;
+          correctPagado = pagadoByFamilia.get(lookupKey) || 0;
+          console.log(`Nivel 2 lookup: ${partida.familia} -> key=${lookupKey}, pagado=${correctPagado}`);
+        } else {
+          correctPagado = pagosByPartidaId.get(partida._id) || 0;
+        }
+
+        const presupuestoAprobado = partida.presupuesto_aprobado || 0;
+        const correctPorGastar = presupuestoAprobado - correctPagado;
+
+        const pagadoChanged = Math.abs((partida.pagado || 0) - correctPagado) > 0.001;
+        const porGastarChanged = Math.abs((partida.por_gastar || 0) - correctPorGastar) > 0.001;
+
+        if (pagadoChanged || porGastarChanged) {
+          await ctx.db.patch(partida._id, {
+            pagado: correctPagado,
+            por_gastar: correctPorGastar
+          });
+          updatedPagadoCount++;
+        }
+      }
+      console.log(`✅ Updated pagado/por_gastar for ${updatedPagadoCount} partidas`);
+
+      // ============================================
+      // STEP 2: Calculate and update honorarios
+      // ============================================
+      console.log("Step 2: Calculating honorarios...");
+
+      const honorariosPorcentaje = proyecto.honorarios_porcentaje || 0;
+      const excludedPartidasIds = proyecto.excluded_partidas_honorarios || [];
+
+      // Get all transactions for this project
+      const allTransactions = await ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+        .collect();
+
+      // Calculate total amount from all transactions
+      const totalAmount = allTransactions.reduce(
+        (sum, t) => sum + (t.monto_total || 0),
+        0
+      );
+
+      // Calculate excluded amount if there are excluded partidas
+      let excludedAmount = 0;
+      if (excludedPartidasIds.length > 0) {
+        // Get the excluded nivel 1 partidas to find their names
+        const excludedNivel1Partidas: Doc<"partidas">[] = [];
+        for (const excludedId of excludedPartidasIds) {
+          const partida = await ctx.db.get(excludedId);
+          if (partida) excludedNivel1Partidas.push(partida);
+        }
+
+        const excludedPartidasNames = excludedNivel1Partidas.map(p => p.nombre);
+
+        // Filter to get all partidas that should be excluded (nivel 1, 2, and 3)
+        const allExcludedPartidas = allPartidas.filter(p =>
+          excludedPartidasIds.includes(p._id) ||
+          (p.partida_nombre && excludedPartidasNames.includes(p.partida_nombre))
+        );
+
+        const allExcludedPartidasIds = allExcludedPartidas.map(p => p._id);
+        const transactionIds = allTransactions.map(t => t._id);
+
+        // Get pagos that belong to excluded partidas
+        const excludedPagos = allPagos.filter(pago =>
+          transactionIds.includes(pago.transaccion_id) &&
+          allExcludedPartidasIds.includes(pago.partida_id)
+        );
+
+        excludedAmount = excludedPagos.reduce(
+          (sum, pago) => sum + (pago.monto || 0),
+          0
+        );
+
+        console.log(`Excluding ${allExcludedPartidas.length} partidas, amount: ${excludedAmount}`);
+      }
+
+      // Calculate honorarios
+      const baseAmount = totalAmount - excludedAmount;
+      const honorariosMonto = Math.round(baseAmount * (honorariosPorcentaje / 100) * 100) / 100;
+
+      console.log("Honorarios calculation:", {
+        totalAmount,
+        excludedAmount,
+        baseAmount,
+        honorariosPorcentaje,
+        honorariosMonto
+      });
+
+      // Update proyecto's honorarios_monto
+      await ctx.db.patch(args.projectId, {
+        honorarios_monto: honorariosMonto
+      });
+      console.log(`✅ Updated proyecto honorarios_monto to ${honorariosMonto}`);
+
+      // ============================================
+      // STEP 3: Update HONORARIOS partida
+      // ============================================
+      console.log("Step 3: Updating HONORARIOS partida...");
+
+      // Find HONORARIOS partida with case-insensitive match (honorarios, Honorarios, HONORARIOS)
+      // Use allPartidas which was already fetched earlier
+      const honorariosPartida = allPartidas.find(p => 
+        p.nivel === 1 && p.nombre.toLowerCase() === "honorarios"
+      );
+
+      if (honorariosPartida) {
+        const presupuestoAprobado = honorariosPartida.presupuesto_aprobado || 0;
+        const porGastar = presupuestoAprobado - honorariosMonto;
+
+        await ctx.db.patch(honorariosPartida._id, {
+          pagado: honorariosMonto,
+          por_gastar: porGastar
+        });
+        console.log(`✅ Updated HONORARIOS partida (found as "${honorariosPartida.nombre}"): pagado=${honorariosMonto}, por_gastar=${porGastar}`);
+      } else {
+        console.log("⚠️ HONORARIOS partida not found (checked: honorarios, Honorarios, HONORARIOS)");
+      }
+
+      // ============================================
+      // STEP 4: Update meticas_presupuesto
+      // ============================================
+      console.log("Step 4: Updating meticas_presupuesto...");
+
+      // Calculate totals from nivel 1 partidas only
+      const nivel1Partidas = allPartidas.filter(p => p.nivel === 1);
+      const presupuesto_original = nivel1Partidas.reduce((sum, p) => sum + (p.presupuesto_original || 0), 0);
+      const presupuesto_aprobado = nivel1Partidas.reduce((sum, p) => sum + (p.presupuesto_aprobado || 0), 0);
+      const gasto_total = nivel1Partidas.reduce((sum, p) => sum + (p.pagado || 0), 0);
+      const por_gastar = presupuesto_aprobado - gasto_total;
+
+      const existingMetrics = await ctx.db
+        .query("meticas_presupuesto")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+        .first();
+
+      if (existingMetrics) {
+        await ctx.db.patch(existingMetrics._id, {
+          presupuesto_original,
+          presupuesto_aprobado,
+          gasto_total,
+          por_gastar
+        });
+      } else {
+        await ctx.db.insert("meticas_presupuesto", {
+          proyecto: args.projectId,
+          presupuesto_original,
+          presupuesto_aprobado,
+          gasto_total,
+          por_gastar
+        });
+      }
+      console.log(`✅ Updated meticas_presupuesto`);
+
+      const summary = {
+        projectId: args.projectId,
+        partidasUpdated: updatedPagadoCount,
+        totalPartidas: allPartidas.length,
+        honorariosPorcentaje,
+        honorariosMonto,
+        metrics: {
+          presupuesto_original,
+          presupuesto_aprobado,
+          gasto_total,
+          por_gastar
+        }
+      };
+
+      console.log("✅ Comprehensive sync completed:", summary);
+      return summary;
+    } catch (error) {
+      console.error("❌ Error in syncProjectData:", error);
+      throw error;
+    }
+  },
+});
+
+/**
+ * Mutation to recalculate and update `por_gastar` for partidas matching the given filters.
+ * 
+ * Formula: por_gastar = presupuesto_aprobado - pagado
+ * 
+ * @param proyecto - Required: Project ID
+ * @param nombre - Required: Partida name (nivel 1)
+ * @param familia - Required: Familia name (nivel 2)
+ */
+export const updatePorGastarByFilters = mutation({
+  args: {
+    proyecto: v.id("desarrollos"),
+    nombre: v.string(),
+    familia: v.string(),
+  },
+  handler: async (ctx, args) => {
+    console.log(`🔄 Updating por_gastar for: ${args.nombre} / ${args.familia}`);
+
+    // Find all partidas matching the filters
+    const matchingPartidas = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("nombre"), args.nombre),
+          q.eq(q.field("familia"), args.familia)
+        )
+      )
+      .collect();
+
+    if (matchingPartidas.length === 0) {
+      console.log("No partidas found matching filters");
+      return { updated: 0, message: "No partidas found matching filters" };
+    }
+
+    let updatedCount = 0;
+
+    for (const partida of matchingPartidas) {
+      const presupuestoAprobado = partida.presupuesto_aprobado || 0;
+      const pagado = partida.pagado || 0;
+      const correctPorGastar = presupuestoAprobado - pagado;
+
+      // Only update if value is different
+      if (Math.abs((partida.por_gastar || 0) - correctPorGastar) > 0.001) {
+        await ctx.db.patch(partida._id, { por_gastar: correctPorGastar });
+        updatedCount++;
+        console.log(`Updated partida ${partida._id}: por_gastar = ${correctPorGastar}`);
+      }
+    }
+
+    const summary = {
+      updated: updatedCount,
+      total: matchingPartidas.length,
+      filters: { proyecto: args.proyecto, nombre: args.nombre, familia: args.familia }
+    };
+
+    console.log("✅ Update completed:", summary);
+    return summary;
+  },
+});

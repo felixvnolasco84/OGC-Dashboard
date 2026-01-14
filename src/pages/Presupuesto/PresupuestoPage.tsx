@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
-import { useQuery, usePaginatedQuery } from "convex/react";
+import { useQuery, usePaginatedQuery, useMutation } from "convex/react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   X, Plus,
   ChevronRight,
+  RefreshCw,
   // Download
 } from "lucide-react";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
@@ -76,10 +77,14 @@ export default function PresupuestoPage() {
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
   const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
   const [showPagadoSemanaAnterior, setShowPagadoSemanaAnterior] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Add partida modal
   // const addPartidaModal = useAddPartidaModal();
   const addPaymentModal = useAddPaymentModal();
+
+  // Sync mutation
+  const syncProjectData = useMutation(api.partida.syncProjectData);
 
   // Handler to open add payment modal
   const handleOpenAddPayment = () => {
@@ -87,6 +92,23 @@ export default function PresupuestoPage() {
       addPaymentModal.onOpen({
         projectId: proyecto._id,
       });
+    }
+  };
+
+  // Handler for sync button
+  const handleSync = async () => {
+    if (!proyectoId) return;
+    
+    setIsSyncing(true);
+    try {
+      const result = await syncProjectData({ 
+        projectId: proyectoId as Id<"desarrollos"> 
+      });
+      console.log("Sync completed:", result);
+    } catch (error) {
+      console.error("Sync failed:", error);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -262,6 +284,19 @@ export default function PresupuestoPage() {
                 Agregar Partida
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
               </Button> */}
+              
+
+              {/* handle sync button */}
+              <Button
+                onClick={handleSync}
+                variant={"outline"}
+                size={"lg"}
+                disabled={!proyecto || isSyncing}
+                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
+              >
+                {isSyncing ? "Sincronizando..." : "Sincronizar"}
+                <RefreshCw className={cn("h-5 w-5", isSyncing && "animate-spin")} />
+              </Button>
 
               {/* handleOpenAddPayment */}
               <Button
