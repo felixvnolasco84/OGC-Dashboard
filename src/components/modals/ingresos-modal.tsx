@@ -385,7 +385,7 @@ export default function IngresosModal() {
                   {/* Fecha */}
                   <div className="space-y-2">
                     <Label htmlFor="fecha">Fecha *</Label>
-                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen} modal={false}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
@@ -398,7 +398,7 @@ export default function IngresosModal() {
                           {formData.fecha || "Selecciona una fecha"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                      <PopoverContent className="w-auto p-0 z-[9999] pointer-events-auto" align="start" sideOffset={4}>
                         <Calendar
                           mode="single"
                           selected={parseDate(formData.fecha)}
@@ -746,12 +746,13 @@ export default function IngresosModal() {
                                   <Button
                                     key={doc._id}
                                     variant="ghost"
-                                    size="sm"
+                                    size="lg"
                                     onClick={() => doc.url && window.open(doc.url, '_blank')}
-                                    className="p-1 h-auto"
+                                    className="p-1 h-auto hover:bg-slate-300"
                                     title={doc.nombre}
                                   >
-                                    <FileText className="h-4 w-4 text-blue-600" />
+                                    <FileText className="h-4 w-4 text-gray-600" />
+                                    {doc.nombre}
                                   </Button>
                                 ))}
                               </div>
