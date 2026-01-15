@@ -315,7 +315,7 @@ export default function PresupuestoPage() {
                       <span className="text-center">
                         Neto
                         {" "}
-                        {formatCurrencyCompact((metrics?.gasto_total || 0) - (ingresosTotals?.total_ingresos || 0), moneda)}
+                        {formatCurrencyCompact((ingresosTotals?.total_ingresos || 0) - (metrics?.gasto_total || 0), moneda)}
                       </span>
                     </Badge>
                   </div>
