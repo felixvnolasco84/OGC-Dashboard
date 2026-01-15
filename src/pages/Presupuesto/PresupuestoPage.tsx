@@ -304,8 +304,8 @@ export default function PresupuestoPage() {
               {/* Total Ingresos - Based on image reference */}
               <Card className="bg-transparent shadow-none border-none col-span-1 md:col-span-2 lg:col-span-1 mr-4">
                 <CardContent className="p-0 text-left" onClick={handleOpenIngresos}>
-                  <div className="space-y-1 text-center">
-                    <p className="text-sm text-muted-foreground text-right">Total Ingresos</p>
+                  <div className="space-y-1 text-right">
+                    <p className="text-sm text-muted-foreground text-right mr-0.5">Total Ingresos</p>
                     <div className="flex items-baseline space-x-2">
                       <p className="text-3xl font-normal text-gray-900 leading-none">
                         {formatCurrencyCompact(ingresosTotals?.total_ingresos || 0, moneda)}
@@ -316,7 +316,6 @@ export default function PresupuestoPage() {
                         Neto
                         {" "}
                         {formatCurrencyCompact((metrics?.gasto_total || 0) - (ingresosTotals?.total_ingresos || 0), moneda)}
-
                       </span>
                     </Badge>
                   </div>
