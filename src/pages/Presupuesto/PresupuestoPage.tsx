@@ -308,14 +308,15 @@ export default function PresupuestoPage() {
                     <p className="text-sm text-muted-foreground text-right">Total Ingresos</p>
                     <div className="flex items-baseline space-x-2">
                       <p className="text-3xl font-normal text-gray-900 leading-none">
-                        {formatCurrencyCompact((ingresosTotals?.total_ingresos || 0) + (metrics?.gasto_total || 0), moneda)}
+                        {formatCurrencyCompact(ingresosTotals?.total_ingresos || 0, moneda)}
                       </p>
                     </div>
                     <Badge variant="secondary" className="text-[10px] text-center font-normal py-1.5 leading-none bg-gray-100 text-gray-600 rounded-xl border-gray-400 min-w-24">
                       <span className="text-center">
                         Neto
                         {" "}
-                        {formatCurrencyCompact(ingresosTotals?.total_ingresos || 0, moneda)}
+                        {formatCurrencyCompact((metrics?.gasto_total || 0) - (ingresosTotals?.total_ingresos || 0), moneda)}
+
                       </span>
                     </Badge>
                   </div>
