@@ -671,6 +671,8 @@ export default function PresupuestoPage() {
           </div>
         </div>
 
+        
+
         {/* Budget Table Component */}
         <PresupuestoTable
           data={filteredPartidas}

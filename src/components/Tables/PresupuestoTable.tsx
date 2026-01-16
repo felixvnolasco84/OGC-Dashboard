@@ -82,6 +82,18 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
   );
   const defaultCurrency = currencyInfo?.defaultCurrency || "MXN";
 
+  // Get proyecto data for honorarios info
+  const proyecto = useQuery(
+    api.desarrollos.getById,
+    projectId ? { id: projectId as Id<"desarrollos"> } : "skip"
+  );
+
+  // Helper to check if item is "Honorarios" (case-insensitive, trimmed)
+  const isHonorariosItem = (nombre: string | undefined) => {
+    return nombre?.toLowerCase().trim() === "honorarios";
+  };
+
+  
   // Transform flat partidas data into hierarchical structure based on nivel
   const hierarchicalData = useMemo(() => {
 
@@ -401,7 +413,12 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
                     </TableCell>
                     <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                       <div className="flex flex-col gap-2 text-left">
-                        <span>{formatCurrency(item.presupuestoAprobado, defaultCurrency)}</span>
+                        {/* For Honorarios level 0 items, show honorarios_monto from proyecto */}
+                        {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_monto !== undefined ? (
+                          <span>{formatCurrency(proyecto.honorarios_monto, defaultCurrency)}</span>
+                        ) : (
+                          <span>{formatCurrency(item.presupuestoAprobado, defaultCurrency)}</span>
+                        )}
                         {!approvedDiff.isEqual && (
                           <Badge
                             className={cn(
@@ -434,7 +451,12 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
                       </div>
                     </TableCell>
                     <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
-                      {item.avance}%
+                      {/* For Honorarios level 0 items, show honorarios_porcentaje from proyecto */}
+                      {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_porcentaje !== undefined ? (
+                        <span>{proyecto.honorarios_porcentaje}%</span>
+                      ) : (
+                        <span>{item.avance}%</span>
+                      )}
                     </TableCell>
                     {showPagadoSemanaAnterior && (
                       <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0 font-light">
