@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, FileText, ExternalLink } from "lucide-react"
+import { Search, FileText, ExternalLink, Download, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,25 +14,21 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { useQuery } from "convex/react"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
-import { Badge } from "@/components/ui/badge"
-
-const getTipoPagoColor = (tipoPago?: string) => {
-    switch (tipoPago?.toLowerCase()) {
-        case "efectivo":
-            return "bg-blue-50 text-blue-700 border-blue-200 rounded-none";
-        case "transferencia":
-            return "bg-purple-50 text-purple-700 border-purple-200 rounded-none";
-        case "tarjeta":
-            return "bg-indigo-50 text-indigo-700 border-indigo-200 rounded-none";
-        case "cheque":
-            return "bg-gray-50 text-gray-700 border-gray-200 rounded-none";
-        default:
-            return "bg-gray-100 text-gray-700 border-gray-200 rounded-none";
-    }
-};
+import { toast } from "sonner"
 
 
 export function DashboardTable({ proyectoId, isSalesProject = false }: { proyectoId: Id<"desarrollos"> | Id<"sales_projects">, isSalesProject?: boolean }) {
@@ -48,6 +44,10 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
         isSalesProject ? { proyecto_id: proyectoId as Id<"sales_projects"> } : "skip"
     );
 
+    // Delete mutations
+    const deleteRegularTransaction = useMutation(api.transacciones.deleteTransaction);
+    const deleteSalesTransaction = useMutation(api.sales_transacciones.deleteTransaction);
+
     // Use the appropriate result set
     const transactions = isSalesProject ? salesTransactions : regularTransactions;
     const isLoading = transactions === undefined;
@@ -55,6 +55,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
     const [activeTab, setActiveTab] = React.useState("ultimos-movimientos")
     const [searchFilter, setSearchFilter] = React.useState("")
     const [displayCount, setDisplayCount] = React.useState(50)
+    const [deletingId, setDeletingId] = React.useState<string | null>(null)
 
     // Parse date string to Date object for sorting
     const parseDate = (dateStr: string | undefined): Date => {
@@ -119,6 +120,37 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
         setDisplayCount(prev => prev + 50);
     };
 
+    const handleDeleteTransaction = async (transactionId: string) => {
+        setDeletingId(transactionId);
+        try {
+            if (isSalesProject) {
+                await deleteSalesTransaction({ id: transactionId as Id<"sales_transacciones"> });
+            } else {
+                await deleteRegularTransaction({ id: transactionId as Id<"transacciones"> });
+            }
+            toast.success("Transacción eliminada correctamente");
+        } catch (error) {
+            console.error("Error deleting transaction:", error);
+            toast.error("Error al eliminar la transacción");
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    
+    const formatDateDisplay = (dateStr: string | undefined): string => {
+        if (!dateStr) return '-';
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const day = parts[0];
+            const monthIdx = parseInt(parts[1], 10) - 1;
+            const year = parts[2];
+            return `${day} de ${months[monthIdx]} de ${year}`;
+        }
+        return dateStr;
+    };
+
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-MX', {
             style: 'currency',
@@ -156,24 +188,22 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                 </div>
                 <div className="bg-white border border-gray-200 overflow-hidden overflow-x-auto">
                     <Table>
-                        <TableHeader className="bg-gray-50">
-                            <TableRow>
-                                <TableHead className="px-4 py-3 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 bg-white min-w-[100px]">Factura</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 bg-white min-w-[120px]">Monto</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 bg-white min-w-[100px]">Fecha</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 bg-white min-w-[100px]">Tipo de Pago</TableHead>
-                                {/* <TableHead className="px-4 py-3 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 bg-white min-w-[100px]">Tipo Pago</TableHead> */}
-                                <TableHead className="px-4 py-3 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 bg-white min-w-[200px]">Partidas</TableHead>
-                                {/* <TableHead className="px-4 py-3 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 bg-white min-w-[100px]">Banco</TableHead> */}
-                                {/* <TableHead className="px-4 py-3 text-left text-sm font-medium text-muted-foreground border-r border-gray-200 bg-white min-w-[80px]">Conceptos</TableHead> */}
-                                {/* <TableHead className="px-4 py-3 text-left text-sm font-medium text-muted-foreground bg-white min-w-[80px]">Docs</TableHead> */}
+                        <TableHeader>
+                            <TableRow className="border-b border-gray-200">
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[180px]">Partida</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[120px]">Monto Total</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[120px]">Fecha</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[140px]">Tipo de Pago</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[180px]">Proveedor</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[200px]">Factura</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[100px]">Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredTransactions.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={9}
+                                        colSpan={7}
                                         className="h-24 text-center text-gray-500"
                                     >
                                         No hay transacciones registradas
@@ -185,84 +215,132 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                         key={transaction._id}
                                         className="border-b border-gray-100 hover:bg-gray-50"
                                     >
-                                        <TableCell className="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
-                                            {transaction.documentUrl ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => window.open(transaction.documentUrl!, '_blank')}
-                                                    className="flex items-center gap-2 px-2 py-1 h-auto bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition-colors"
-                                                    title="Ver documento"
-                                                >
-                                                    <FileText className="w-3.5 h-3.5 text-gray-600" />
-                                                    <span className="text-xs text-gray-700 font-medium">
-                                                        {transaction.factura || 'Documento'}
-                                                    </span>
-                                                    <ExternalLink className="w-3 h-3 text-gray-500" />
-                                                </Button>
-                                            ) : transaction.factura ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-700">
-                                                    <FileText className="w-3.5 h-3.5 text-gray-500" />
-                                                    {transaction.factura}
-                                                </span>
-                                            ) : (
-                                                <span className="text-gray-400">-</span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
-                                            {formatCurrency(transaction.monto_total || 0)}
-                                        </TableCell>
-                                        <TableCell className="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
-                                            {transaction.fecha || '-'}
-                                        </TableCell>
-
-                                        {/* <TableCell className="px-4 py-3 text-sm border-r border-gray-100">
-                                            <Badge className={`${getStatusColor(transaction.status)} border-0 font-normal`}>
-                                                {transaction.status || 'Sin status'}
-                                            </Badge>
-                                        </TableCell> */}
-                                        <TableCell className="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
-                                            <Badge
-                                                variant="outline"
-                                                className={`${getTipoPagoColor(
-                                                    transaction.tipo_pago
-                                                )}  px-3 py-1 text-xs font-normal capitalize rounded-none`}
-                                            >
-                                                {transaction.tipo_pago || "-"}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">
-                                            <div className="flex flex-col gap-1">
+                                        {/* Partida Column */}
+                                        <TableCell className="px-4 py-4 text-sm text-left">
+                                            <div className="flex flex-col">
                                                 {transaction.partidaNames && transaction.partidaNames.length > 0 ? (
                                                     <>
-                                                        {transaction.partidaNames.map((name, idx) => (
-                                                            <div key={idx} className="flex items-center gap-1">
-                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 max-w-[250px] truncate" title={name}>
-                                                                    {name}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                        {transaction.lineItemsCount > 3 && (
-                                                            <span className="text-xs text-blue-600 font-medium">
-                                                                +{transaction.lineItemsCount - 3} concepto{transaction.lineItemsCount - 3 !== 1 ? 's' : ''} más
-                                                            </span>
-                                                        )}
+                                                        <span className="font-medium text-gray-900 uppercase">
+                                                            {transaction.partidaNames[0]?.split(' ')[0] || 'SIN PARTIDA'}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500 uppercase">
+                                                            {transaction.partidaNames[0] || ''}
+                                                        </span>
                                                     </>
                                                 ) : (
-                                                    <span className="text-gray-400 text-xs">Sin partidas</span>
+                                                    <span className="text-gray-400">Sin partida</span>
                                                 )}
                                             </div>
                                         </TableCell>
 
-                                        {/* <TableCell className="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
-                                            {transaction.banco || '-'}
-                                        </TableCell> */}
-                                        {/* <TableCell className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100 text-center">
-                                            {transaction.lineItemsCount || 0}
-                                        </TableCell> */}
-                                        {/* <TableCell className="px-4 py-3 text-sm text-gray-600 text-center">
-                                            {transaction.documentsCount || 0}
-                                        </TableCell> */}
+                                        {/* Monto Total Column */}
+                                        <TableCell className="px-4 py-4 text-sm text-gray-900 text-left">
+                                            {formatCurrency(transaction.monto_total || 0)} MXN
+                                        </TableCell>
+
+                                        {/* Fecha Column */}
+                                        <TableCell className="px-4 py-4 text-sm text-gray-900 text-left">
+                                            {formatDateDisplay(transaction.fecha)}
+                                        </TableCell>
+
+                                        {/* Tipo de Pago Column */}
+                                        <TableCell className="px-4 py-4 text-sm text-gray-900 uppercase text-left">
+                                            {transaction.tipo_pago || "-"}
+                                        </TableCell>
+
+                                        {/* Proveedor Column (empty for now) */}
+                                        <TableCell className="px-4 py-4 text-sm text-gray-900">
+                                            {""}
+                                        </TableCell>
+
+                                        {/* Factura Column */}
+                                        <TableCell className="px-4 py-4 text-sm">
+                                            {transaction.documentUrl || transaction.factura ? (
+                                                <div className="flex items-start gap-2 text-left">
+                                                    <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-gray-900 font-medium">
+                                                            {transaction.factura || 'Documento'}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">
+                                                            {transaction.fecha ? `Subido el ${formatDateDisplay(transaction.fecha)}` : ''}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">-</span>
+                                            )}
+                                        </TableCell>
+
+                                        {/* Acciones Column */}
+                                        <TableCell className="px-4 py-4 text-sm">
+                                            <div className="flex items-center gap-1">
+                                                {/* Open Document */}
+                                                {transaction.documentUrl && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-gray-900 hover:text-gray-700"
+                                                        onClick={() => window.open(transaction.documentUrl!, '_blank')}
+                                                        title="Abrir documento"
+                                                    >
+                                                        <ExternalLink className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+
+                                                {/* Download Document */}
+                                                {transaction.documentUrl && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-gray-900 hover:text-gray-700"
+                                                        onClick={() => {
+                                                            const link = document.createElement('a');
+                                                            link.href = transaction.documentUrl!;
+                                                            link.download = transaction.factura || 'documento';
+                                                            link.target = '_blank';
+                                                            link.click();
+                                                        }}
+                                                        title="Descargar documento"
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+
+                                                {/* Delete Transaction */}
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-gray-500 hover:text-red-600"
+                                                            title="Eliminar transacción"
+                                                            disabled={deletingId === transaction._id}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Esta acción no se puede deshacer. Se eliminará la transacción
+                                                                junto con todos sus pagos y documentos asociados.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                                className="bg-red-600 hover:bg-red-700"
+                                                                onClick={() => handleDeleteTransaction(transaction._id)}
+                                                            >
+                                                                Eliminar
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
                                 ))
                             )}

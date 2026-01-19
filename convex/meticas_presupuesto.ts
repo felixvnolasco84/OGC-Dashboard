@@ -12,7 +12,24 @@ export const getByProyecto = query({
       .query("meticas_presupuesto")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
       .first();
-      return metrics;
+    
+    // Get honorarios_monto from the proyecto
+    const proyecto = await ctx.db.get(args.proyecto_id);
+    const honorarios_monto = proyecto?.honorarios_monto || 0;
+    
+    if (!metrics) {
+      return null;
+    }
+    
+    // Add honorarios to gasto_total
+    const gasto_total_with_honorarios = (metrics.gasto_total || 0) + honorarios_monto;
+    
+    return {
+      ...metrics,
+      gasto_total: gasto_total_with_honorarios,
+      gasto_total_sin_honorarios: metrics.gasto_total || 0,
+      honorarios_monto,
+    };
   },
 });
 
@@ -177,10 +194,17 @@ export const recalculate = mutation({
       0
     );
     
-    const gasto_total = nivel1Partidas.reduce(
+    const gasto_total_partidas = nivel1Partidas.reduce(
       (sum, p) => sum + (p.pagado || 0),
       0
     );
+    
+    // Get honorarios_monto from the proyecto
+    const proyecto = await ctx.db.get(args.proyecto_id);
+    const honorarios_monto = proyecto?.honorarios_monto || 0;
+    
+    // Add honorarios to gasto_total
+    const gasto_total = gasto_total_partidas + honorarios_monto;
     
     const por_gastar = presupuesto_aprobado - gasto_total;
     

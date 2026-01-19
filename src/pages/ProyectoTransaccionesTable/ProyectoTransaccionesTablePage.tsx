@@ -80,7 +80,7 @@ export default function ProyectoTransaccionesTablePage() {
     const filteredTransacciones = useMemo(() => {
         if (!transacciones) return [];
         
-        let filtered = transacciones.filter((transaccion) => {
+        const filtered = transacciones.filter((transaccion) => {
             // Text search (factura, codigo_referencia, tipo_pago)
             const searchLower = searchTerm.toLowerCase();
             const matchesSearch = !searchTerm || 
@@ -170,53 +170,6 @@ export default function ProyectoTransaccionesTablePage() {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(amount);
-    };
-
-    const getStatusColor = (status?: string) => {
-        switch (status) {
-            case "Pagado":
-                return "bg-green-50 text-green-700 border-green-200";
-            case "Por pagar":
-                return "bg-orange-50 text-orange-700 border-orange-200";
-            default:
-                return "bg-gray-100 text-gray-700 border-gray-200";
-        }
-    };
-
-    const getTipoPagoColor = (tipoPago?: string) => {
-        switch (tipoPago?.toLowerCase()) {
-            case "efectivo":
-                return "bg-blue-50 text-blue-700 border-blue-200 rounded-none";
-            case "transferencia":
-                return "bg-purple-50 text-purple-700 border-purple-200 rounded-none";
-            case "tarjeta":
-                return "bg-indigo-50 text-indigo-700 border-indigo-200 rounded-none";
-            case "cheque":
-                return "bg-gray-50 text-gray-700 border-gray-200 rounded-none";
-            default:
-                return "bg-gray-100 text-gray-700 border-gray-200 rounded-none";
-        }
-    };
-
-    const getCategoriaColor = (categoria?: string) => {
-        switch (categoria?.toLowerCase()) {
-            case "anticipo":
-                return "bg-cyan-50 text-cyan-700 border-cyan-200 rounded-none";
-            case "material":
-                return "bg-amber-50 text-amber-700 border-amber-200 rounded-none";
-            case "estimación":
-            case "estimacion":
-                return "bg-emerald-50 text-emerald-700 border-emerald-200 rounded-none";
-            default:
-                return "bg-gray-100 text-gray-700 border-gray-200 rounded-none";
-        }
-    };
-
-    const getMonedaBadge = (moneda?: string) => {
-        if (moneda === "USD") {
-            return "bg-green-100 text-green-800 border-green-300 rounded-none";
-        }
-        return "bg-gray-100 text-gray-700 border-gray-300 rounded-none";
     };
 
     const handleDelete = async () => {
@@ -541,46 +494,40 @@ export default function ProyectoTransaccionesTablePage() {
                     <table className="w-full">
                         <thead className="border-b border-gray-200">
                             <tr>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
                                     Factura
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
                                     Monto Total
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
                                     Fecha
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                                    Tipo de pago
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
+                                    Tipo de Pago
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                                    Categoría
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
                                     Status
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
                                     Moneda
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                                    Conceptos
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
                                     Docs
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200"></th>
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {!transacciones ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -590,20 +537,35 @@ export default function ProyectoTransaccionesTablePage() {
                                         key={transaccion._id}
                                         className="hover:bg-gray-50 transition-colors"
                                     >
+                                        {/* Factura */}
                                         <td className="px-6 py-4 border-r border-gray-200">
-                                            <div className="flex items-center gap-2">
-                                                {transaccion.factura && (
-                                                    <FileText className="h-4 w-4 text-gray-400" />
-                                                )}
-                                                <span className="text-sm text-gray-900 font-medium">
-                                                    {transaccion.factura || "-"}
-                                                </span>
+                                            <div className="flex items-start gap-2">
+                                                <FileText className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm text-gray-900 font-medium">
+                                                        {transaccion.factura || "-"}
+                                                    </span>
+                                                    {transaccion.fecha && (
+                                                        <span className="text-xs text-gray-400">
+                                                            Subido el {(() => {
+                                                                const parts = transaccion.fecha.split("/");
+                                                                if (parts.length === 3) {
+                                                                    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                                                                    return `${parts[0]} de ${months[parseInt(parts[1], 10) - 1]} de ${parts[2]}`;
+                                                                }
+                                                                return transaccion.fecha;
+                                                            })()}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm font-semibold text-gray-900 border-r border-gray-200">
-                                            {formatCurrency(transaccion.monto_total)}
+                                        {/* Monto Total */}
+                                        <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
+                                            {formatCurrency(transaccion.monto_total)} {transaccion.moneda || "MXN"}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">
+                                        {/* Fecha */}
+                                        <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
                                             {transaccion.fecha
                                                 ? new Date(transaccion.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
                                                     day: "2-digit",
@@ -612,61 +574,29 @@ export default function ProyectoTransaccionesTablePage() {
                                                 })
                                                 : "-"}
                                         </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
-                                            <Badge
-                                                variant="outline"
-                                                className={`${getTipoPagoColor(
-                                                    transaccion.tipo_pago
-                                                )}  px-3 py-1 text-xs font-normal capitalize rounded-none`}
-                                            >
-                                                {transaccion.tipo_pago || "-"}
-                                            </Badge>
+                                        {/* Tipo de Pago */}
+                                        <td className="px-6 py-4 text-sm text-gray-900 uppercase border-r border-gray-200">
+                                            {transaccion.tipo_pago || "-"}
                                         </td>
+                                        {/* Status */}
                                         <td className="px-6 py-4 border-r border-gray-200">
-                                            {transaccion.categoria ? (
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`${getCategoriaColor(
-                                                        transaccion.categoria
-                                                    )}  px-3 py-1 text-xs font-normal capitalize rounded-none`}
-                                                >
-                                                    {transaccion.categoria}
-                                                </Badge>
-                                            ) : (
-                                                <span className="text-sm text-gray-400">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
-                                            <Badge
-                                                variant="outline"
-                                                className={`${getStatusColor(
-                                                    transaccion.status
-                                                )}  px-3 py-1 text-xs font-normal rounded-none`}
-                                            >
+                                            <span className={`text-sm font-medium uppercase ${
+                                                transaccion.status === "Pagado" ? "text-green-600" : 
+                                                transaccion.status === "Por pagar" ? "text-orange-600" : "text-gray-600"
+                                            }`}>
                                                 {transaccion.status || "-"}
-                                            </Badge>
+                                            </span>
                                         </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
-                                            <Badge
-                                                variant="outline"
-                                                className={`${getMonedaBadge(
-                                                    transaccion.moneda
-                                                )}  px-2 py-1 text-xs font-medium rounded-none`}
-                                            >
-                                                {transaccion.moneda || "MXN"}
-                                            </Badge>
+                                        {/* Moneda */}
+                                        <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
+                                            {transaccion.moneda || "MXN"}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-center text-gray-900 border-r border-gray-200">
-                                            <Badge variant="outline" className=" px-2 py-1 text-xs">
-                                                {transaccion.lineItemsCount || 0}
-                                            </Badge>
+                                        {/* Docs */}
+                                        <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
+                                            {String(transaccion.documentsCount || 0).padStart(2, '0')}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-center text-gray-900 border-r border-gray-200">
-                                            <Badge variant="outline" className=" px-2 py-1 text-xs">
-                                                {transaccion.documentsCount || 0}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
+                                        {/* Actions */}
+                                        <td className="px-6 py-4">
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
