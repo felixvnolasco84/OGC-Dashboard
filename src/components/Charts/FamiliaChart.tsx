@@ -99,10 +99,10 @@ export default function FamiliaChart({
         rawData.forEach((point) => {
             const existing = dataMap.get(point.date);
             if (existing) {
-                // Keep the highest value for duplicate dates (cumulative should be increasing)
+                // Sum values for duplicate dates (aggregate all transactions on the same date)
                 dataMap.set(point.date, {
                     date: point.date,
-                    monto: Math.max(existing.monto || 0, point.monto || 0),
+                    monto: (existing.monto || 0) + (point.monto || 0),
                 });
             } else {
                 dataMap.set(point.date, point);
@@ -174,15 +174,23 @@ export default function FamiliaChart({
             return dateA.getTime() - dateB.getTime();
         });
 
+        // Calculate cumulative values - each point should be sum of all previous + current
+        // This ensures the chart only grows upward over time (like ProgressChart)
+        let cumulativeTotal = 0;
+        const cumulativeData = sortedData.map((d) => {
+            cumulativeTotal += d.monto || 0;
+            return {
+                primary: parseDateString(d.date),
+                secondary: cumulativeTotal,
+            };
+        });
+
         const series: ReactChartsSeries[] = [];
 
-        // Single series for this familia
+        // Single series for this familia with cumulative data
         series.push({
             label: title,
-            data: sortedData.map((d) => ({
-                primary: parseDateString(d.date),
-                secondary: d.monto || 0,
-            })),
+            data: cumulativeData,
         });
 
         return series;
