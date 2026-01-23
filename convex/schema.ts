@@ -378,4 +378,49 @@ export default defineSchema({
     uploaded_by_name: v.string(), // Cached user name
   }).index("by_ingreso", { fields: ["ingreso_id"] })
     .index("by_proyecto", { fields: ["proyecto"] }),
+  
+  // Requisiciones (Material/Equipment Requests) - Purchase workflow
+  requisiciones: defineTable({
+    proyecto: v.id("desarrollos"),
+    tipo: v.string(), // "material" | "equipo"
+    solicitante_id: v.id("users"),
+    solicitante_nombre: v.string(), // Cached user name
+    proveedor_id: v.optional(v.id("proveedores")),
+    fecha_solicitud: v.string(), // DD/MM/YYYY - When submitted
+    fecha_entrega: v.optional(v.string()), // DD/MM/YYYY - Requested delivery date
+    descripcion: v.optional(v.string()), // Comments/notes
+    status: v.string(), // En proceso, Cancelado, Pagado, Recibido, Parcial
+    // Metadata
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_solicitante", { fields: ["solicitante_id"] })
+    .index("by_status", { fields: ["status"] })
+    .index("by_proyecto_status", { fields: ["proyecto", "status"] }),
+  
+  // Requisicion line items - Materials/equipment requested
+  requisicion_items: defineTable({
+    requisicion_id: v.id("requisiciones"),
+    partida_id: v.id("partidas"), // Level 1 reference (required)
+    familia: v.string(), // Level 2 name (required)
+    sub_partida: v.optional(v.string()), // Level 3 name or custom text
+    cantidad: v.number(),
+    unidad: v.string(), // Editable unit (defaults from budget)
+    monto: v.optional(v.number()), // Optional estimated amount
+  }).index("by_requisicion", { fields: ["requisicion_id"] })
+    .index("by_partida", { fields: ["partida_id"] }),
+  
+  // Requisicion documents - Attached support files
+  requisicion_documentos: defineTable({
+    requisicion_id: v.id("requisiciones"),
+    proyecto: v.id("desarrollos"),
+    storage_id: v.id("_storage"),
+    nombre: v.string(),
+    type: v.string(),
+    size: v.number(),
+    uploaded_at: v.number(),
+    uploaded_by_id: v.id("users"),
+    uploaded_by_name: v.string(),
+  }).index("by_requisicion", { fields: ["requisicion_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] }),
 });
