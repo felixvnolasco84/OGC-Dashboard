@@ -1,4 +1,4 @@
-import { X, Upload, Loader2, Trash2, ChevronLeft, ChevronRight, CalendarIcon, Maximize2, Minimize2 } from "lucide-react";
+import { X, Upload, Loader2, Trash2, ChevronLeft, ChevronRight, CalendarIcon, Maximize2, Minimize2, FileText } from "lucide-react";
 import { useBitacoraModal } from "../../hooks/use-bitacora-modal";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -23,6 +23,16 @@ interface ManagedPhoto {
   file?: File;
   isDeleting?: boolean;
   description: string; // Required description for each photo
+}
+
+// Type for unified document management
+interface ManagedDocument {
+  id: string;
+  type: "existing" | "new";
+  name: string;
+  url?: string;
+  file?: File;
+  isDeleting?: boolean;
 }
 
 export default function BitacoraModal() {
@@ -67,6 +77,12 @@ export default function BitacoraModal() {
   const [photosToDelete, setPhotosToDelete] = useState<string[]>([]); // Track existing photos to delete on save
   const [newFiles, setNewFiles] = useState<File[]>([]); // Track new files to upload on save
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Document management state
+  const [managedDocuments, setManagedDocuments] = useState<ManagedDocument[]>([]);
+  const [documentsToDelete, setDocumentsToDelete] = useState<string[]>([]);
+  const [newDocFiles, setNewDocFiles] = useState<File[]>([]);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
   
   // Gallery view state (for view mode)
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -114,6 +130,26 @@ export default function BitacoraModal() {
           setManagedPhotos(existingManaged);
         } else {
           setManagedPhotos([]);
+        }
+        
+        // Reset document management state
+        setDocumentsToDelete([]);
+        setNewDocFiles([]);
+        
+        // Load existing documents into managed state
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const logEntryWithDocs = fullLogEntry as any;
+        if (logEntryWithDocs?.documentos) {
+          const existingDocs: ManagedDocument[] = logEntryWithDocs.documentos
+            .map((d: { _id: string; nombre: string; url?: string }) => ({
+              id: d._id,
+              type: "existing" as const,
+              name: d.nombre,
+              url: d.url || undefined,
+            }));
+          setManagedDocuments(existingDocs);
+        } else {
+          setManagedDocuments([]);
         }
     }
   }, [isOpen, logEntry, currentUser, fullLogEntry, storeCategoria, storeFecha]);
@@ -173,6 +209,37 @@ export default function BitacoraModal() {
   // Check if all photos have descriptions
   const allPhotosHaveDescriptions = () => {
     return managedPhotos.every(p => p.description.trim().length > 0);
+  };
+
+  // Handle document file selection
+  const handleDocFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    const newManagedDocs: ManagedDocument[] = fileArray.map((file, index) => ({
+      id: `new-doc-${Date.now()}-${index}`,
+      type: "new" as const,
+      name: file.name,
+      file,
+    }));
+    
+    setManagedDocuments(prev => [...prev, ...newManagedDocs]);
+    setNewDocFiles(prev => [...prev, ...fileArray]);
+    
+    if (docFileInputRef.current) {
+      docFileInputRef.current.value = "";
+    }
+  };
+
+  // Remove document from managed list
+  const removeDocument = (doc: ManagedDocument) => {
+    if (doc.type === "existing") {
+      setDocumentsToDelete(prev => [...prev, doc.id]);
+    } else {
+      setNewDocFiles(prev => prev.filter(f => f !== doc.file));
+    }
+    setManagedDocuments(prev => prev.filter(d => d.id !== doc.id));
   };
   
   // Gallery navigation for view mode
@@ -243,6 +310,13 @@ export default function BitacoraModal() {
         }
       }
       
+      // Delete marked documents (for edit mode)
+      if (mode === "edit" && documentsToDelete.length > 0) {
+        for (const docId of documentsToDelete) {
+          await deletePhoto({ photoId: docId as Id<"documentos"> });
+        }
+      }
+      
       // Upload new images with their descriptions
       const imageData: { storageId: Id<"_storage">; description: string }[] = [];
       const newPhotos = managedPhotos.filter(p => p.type === "new" && p.file);
@@ -259,6 +333,23 @@ export default function BitacoraModal() {
           imageData.push({ storageId, description: photo.description });
         }
       }
+      
+      // Upload new documents
+      const documentData: { storageId: Id<"_storage">; name: string }[] = [];
+      const newDocs = managedDocuments.filter(d => d.type === "new" && d.file);
+      
+      for (const doc of newDocs) {
+        if (doc.file) {
+          const uploadUrl = await generateUploadUrl();
+          const result = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": doc.file.type },
+            body: doc.file,
+          });
+          const { storageId } = await result.json();
+          documentData.push({ storageId, name: doc.name });
+        }
+      }
 
       if (mode === "create") {
         await createLog({
@@ -273,6 +364,8 @@ export default function BitacoraModal() {
           status,
           imagenes: imageData.length > 0 ? imageData.map(d => d.storageId) : undefined,
           imagenesDescripciones: imageData.length > 0 ? imageData.map(d => d.description) : undefined,
+          documentos: documentData.length > 0 ? documentData.map(d => d.storageId) : undefined,
+          documentosNombres: documentData.length > 0 ? documentData.map(d => d.name) : undefined,
         });
       } else if (mode === "edit" && logEntry) {
         await updateLog({
@@ -287,6 +380,8 @@ export default function BitacoraModal() {
           status,
           imagenes: imageData.length > 0 ? imageData.map(d => d.storageId) : undefined,
           imagenesDescripciones: imageData.length > 0 ? imageData.map(d => d.description) : undefined,
+          documentos: documentData.length > 0 ? documentData.map(d => d.storageId) : undefined,
+          documentosNombres: documentData.length > 0 ? documentData.map(d => d.name) : undefined,
         });
       }
       handleClose();
@@ -311,6 +406,9 @@ export default function BitacoraModal() {
     setPhotosToDelete([]);
     setNewFiles([]);
     setGalleryIndex(0);
+    setManagedDocuments([]);
+    setDocumentsToDelete([]);
+    setNewDocFiles([]);
     onClose();
   };
 
@@ -749,6 +847,95 @@ export default function BitacoraModal() {
                       {managedPhotos.filter(p => p.type === "existing").length} existentes
                       {newFiles.length > 0 && `, ${newFiles.length} nuevas`}
                       {photosToDelete.length > 0 && ` (${photosToDelete.length} se eliminarán al guardar)`}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Documents Section */}
+            <div>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">
+                Documentos {managedDocuments.length > 0 && `(${managedDocuments.length})`}
+              </Label>
+              
+              {/* View Mode - Document List */}
+              {isViewMode && managedDocuments.length > 0 && (
+                <div className="space-y-2">
+                  {managedDocuments.map((doc) => (
+                    <a
+                      key={doc.id}
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                    >
+                      <FileText className="h-5 w-5 text-gray-500" />
+                      <span className="text-sm text-gray-700 truncate flex-1">{doc.name}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+              
+              {isViewMode && managedDocuments.length === 0 && (
+                <p className="text-sm text-muted-foreground">Sin documentos</p>
+              )}
+              
+              {/* Edit/Create Mode - Document Management */}
+              {!isViewMode && (
+                <div className="space-y-4">
+                  {/* Upload area */}
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                    onClick={() => docFileInputRef.current?.click()}
+                  >
+                    <FileText className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-1">
+                      Haz clic para agregar documentos
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PDF, DOC, DOCX, XLS, XLSX hasta 10MB
+                    </p>
+                    <input
+                      ref={docFileInputRef}
+                      type="file"
+                      multiple
+                      accept=".pdf,.doc,.docx,.xls,.xlsx"
+                      className="hidden"
+                      onChange={handleDocFileChange}
+                    />
+                  </div>
+                  
+                  {/* Document list */}
+                  {managedDocuments.length > 0 && (
+                    <div className="space-y-2">
+                      {managedDocuments.map((doc) => (
+                        <div key={doc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                          <span className="text-sm text-gray-700 truncate flex-1">{doc.name}</span>
+                          {doc.type === "new" && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-green-500 text-white rounded">
+                              Nuevo
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeDocument(doc)}
+                            className="p-1.5 hover:bg-red-100 rounded-full transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Summary */}
+                  {(managedDocuments.length > 0 || documentsToDelete.length > 0) && (
+                    <p className="text-xs text-muted-foreground">
+                      {managedDocuments.filter(d => d.type === "existing").length} existentes
+                      {newDocFiles.length > 0 && `, ${newDocFiles.length} nuevos`}
+                      {documentsToDelete.length > 0 && ` (${documentsToDelete.length} se eliminarán al guardar)`}
                     </p>
                   )}
                 </div>

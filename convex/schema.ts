@@ -193,8 +193,11 @@ export default defineSchema({
     cuenta: v.string(),
     clabe: v.string(),
     banco: v.string(),
+    created_by: v.optional(v.id("users")), // User who created this provider
+    created_at: v.optional(v.number()), // Timestamp when created
   }).index("by_rfc", { fields: ["rfc"] })
-    .index("by_razon_social", { fields: ["razon_social"] }),
+    .index("by_razon_social", { fields: ["razon_social"] })
+    .index("by_created_by", { fields: ["created_by"] }),
   
   // Projected transactions from Excel upload (weekly cash flow projections)
   projected_transactions: defineTable({

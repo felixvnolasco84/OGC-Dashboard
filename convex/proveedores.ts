@@ -1,9 +1,24 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-// Get all proveedores
+// Get all proveedores with creator info
 export const getAll = query(async (ctx) => {
-    return await ctx.db.query("proveedores").collect();
+    const proveedores = await ctx.db.query("proveedores").collect();
+    
+    // Enrich with creator info
+    const enriched = await Promise.all(proveedores.map(async (proveedor) => {
+        let creatorName = null;
+        if (proveedor.created_by) {
+            const creator = await ctx.db.get(proveedor.created_by);
+            creatorName = creator?.name || null;
+        }
+        return {
+            ...proveedor,
+            creator_name: creatorName,
+        };
+    }));
+    
+    return enriched;
 });
 
 // Get proveedor by ID
@@ -42,6 +57,20 @@ export const create = mutation({
         banco: v.string(),
     },
     handler: async (ctx, args) => {
+        // Get current user
+        const identity = await ctx.auth.getUserIdentity();
+        let userId = undefined;
+        
+        if (identity) {
+            const user = await ctx.db
+                .query("users")
+                .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+                .first();
+            if (user) {
+                userId = user._id;
+            }
+        }
+        
         const proveedor = await ctx.db.insert("proveedores", {
             razon_social: args.razon_social,
             rfc: args.rfc,
@@ -51,6 +80,8 @@ export const create = mutation({
             cuenta: args.cuenta,
             clabe: args.clabe,
             banco: args.banco,
+            created_by: userId,
+            created_at: Date.now(),
         });
         return proveedor;
     },

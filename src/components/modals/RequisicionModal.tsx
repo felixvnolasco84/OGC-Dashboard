@@ -1,4 +1,4 @@
-import { X, Plus, Trash2, Upload, Loader2, Check, CalendarIcon, FileText, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Upload, Loader2, Check, CalendarIcon, FileText, ExternalLink, Package, Clock } from "lucide-react";
 import { useRequisicionModal, RequisicionItem } from "../../hooks/nueva-requisicion-modal";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -26,6 +26,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "../ui/sheet";
 
 export default function RequisicionModal() {
   const { user } = useUser();
@@ -35,6 +43,7 @@ export default function RequisicionModal() {
     context,
     mode,
     tipo,
+    selectedPartida,
     items,
     proveedor_id,
     fecha_entrega,
@@ -43,7 +52,8 @@ export default function RequisicionModal() {
     solicitante_nombre,
     fecha_solicitud,
     setTipo,
-    setProveedorId,
+    setSelectedPartida,
+    // setProveedorId,
     setFechaEntrega,
     setDescripcion,
     setStatus,
@@ -51,6 +61,9 @@ export default function RequisicionModal() {
     addItem,
     removeItem,
     updateItem,
+    addSubPartida,
+    removeSubPartida,
+    updateSubPartida,
   } = useRequisicionModal();
 
   const createRequisicion = useMutation(api.requisiciones.create);
@@ -59,27 +72,42 @@ export default function RequisicionModal() {
   const deleteDocument = useMutation(api.requisiciones.deleteDocument);
   const generateUploadUrl = useMutation(api.requisiciones.generateUploadUrl);
   const currentUser = useQuery(api.users.getCurrentUser);
-  
+
   // Fetch requisicion data for edit/view modes
   const requisicionData = useQuery(
     api.requisiciones.getById,
     context?.requisicionId ? { id: context.requisicionId } : "skip"
   );
-  
+
   // Fetch partidas (nivel 1) for the project
   const partidas = useQuery(
     api.partida.getByNivel,
     context?.projectId ? { proyecto: context.projectId, nivel: 1 } : "skip"
   );
-  
+
   // Fetch all partidas for cascading selects
   const allPartidas = useQuery(
     api.partida.getByProject,
     context?.projectId ? { projectId: context.projectId } : "skip"
   );
-  
+
+  // Track the current item being edited for sub-partida query
+  const [currentFamiliaForSubPartidas, setCurrentFamiliaForSubPartidas] = useState<{ partida: string; familia: string } | null>(null);
+
+  // Fetch sub-partidas dynamically based on selected partida and familia
+  const subPartidasQuery = useQuery(
+    api.partida.getDistinctSubPartidasByFamilia,
+    currentFamiliaForSubPartidas && context?.projectId
+      ? {
+        partidaNombre: currentFamiliaForSubPartidas.partida,
+        familia: currentFamiliaForSubPartidas.familia,
+        projectId: context.projectId,
+      }
+      : "skip"
+  );
+
   // Fetch proveedores
-  const proveedores = useQuery(api.proveedores.getAll);
+  // const proveedores = useQuery(api.proveedores.getAll);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -92,23 +120,45 @@ export default function RequisicionModal() {
   // Prefill form when editing/viewing
   useEffect(() => {
     if ((mode === "edit" || mode === "view") && requisicionData && allPartidas) {
-      const mappedItems: RequisicionItem[] = requisicionData.items.map((item) => {
-        const partida = item.partida;
-        return {
+      // Extract partida from first item (all items share same partida)
+      const firstItem = requisicionData.items[0];
+      const partida = firstItem?.partida;
+      const partidaNombre = partida?.nombre || partida?.partida_nombre || "";
+      const partidaRecord = partidas?.find(p => p.nombre === partidaNombre);
+
+      // Group items by familia into nested structure
+      const familiaGroups: Record<string, RequisicionItem> = {};
+
+      requisicionData.items.forEach((item) => {
+        if (!familiaGroups[item.familia]) {
+          familiaGroups[item.familia] = {
+            id: `familia-${item.familia}-${Date.now()}`,
+            familia: item.familia,
+            subPartidas: [],
+            partida_id: item.partida_id,
+          };
+        }
+        familiaGroups[item.familia].subPartidas.push({
           id: item._id,
-          partida_id: item.partida_id,
-          partida_nombre: partida?.nombre || partida?.partida_nombre || "",
-          familia: item.familia,
           sub_partida: item.sub_partida || "",
           cantidad: item.cantidad,
           unidad: item.unidad,
           monto: item.monto,
-        };
+          partida_id: item.partida_id,
+        });
       });
-      
+
+      const mappedItems: RequisicionItem[] = Object.values(familiaGroups);
+      const defaultItem: RequisicionItem = {
+        id: "1",
+        familia: "",
+        subPartidas: [{ id: "sp-1", sub_partida: "", cantidad: 0, unidad: "" }],
+      };
+
       prefillForm({
         tipo: requisicionData.tipo as "material" | "equipo",
-        items: mappedItems.length > 0 ? mappedItems : [{ id: "1", partida_id: "", partida_nombre: "", familia: "", sub_partida: "", cantidad: 0, unidad: "" }],
+        selectedPartida: { id: partidaRecord?._id || "", nombre: partidaNombre },
+        items: mappedItems.length > 0 ? mappedItems : [defaultItem],
         proveedor_id: requisicionData.proveedor_id || "",
         fecha_entrega: requisicionData.fecha_entrega || "",
         descripcion: requisicionData.descripcion || "",
@@ -117,7 +167,7 @@ export default function RequisicionModal() {
         fecha_solicitud: requisicionData.fecha_solicitud,
       });
     }
-  }, [mode, requisicionData, allPartidas, prefillForm]);
+  }, [mode, requisicionData, allPartidas, partidas, prefillForm]);
 
   // Parse date string (DD/MM/YYYY) to Date object
   const parseDate = (dateStr: string): Date | undefined => {
@@ -163,12 +213,12 @@ export default function RequisicionModal() {
   // Get budget info for selection
   const getBudgetInfo = (partidaNombre: string, familia?: string, subPartida?: string) => {
     if (!allPartidas) return null;
-    
+
     let match;
     if (subPartida) {
       match = allPartidas.find(
-        p => p.nivel === 3 && p.partida_nombre === partidaNombre && 
-             p.familia === familia && p.sub_partida === subPartida
+        p => p.nivel === 3 && p.partida_nombre === partidaNombre &&
+          p.familia === familia && p.sub_partida === subPartida
       );
     } else if (familia) {
       match = allPartidas.find(
@@ -179,7 +229,7 @@ export default function RequisicionModal() {
         p => p.nivel === 1 && p.nombre === partidaNombre
       );
     }
-    
+
     if (!match) return null;
     return {
       presupuesto_aprobado: match.presupuesto_aprobado,
@@ -191,60 +241,51 @@ export default function RequisicionModal() {
     };
   };
 
-  // Handle partida selection change
-  const handlePartidaChange = (itemId: string, partidaNombre: string) => {
-    const partida = partidas?.find(p => p.nombre === partidaNombre);
-    updateItem(itemId, {
-      partida_nombre: partidaNombre,
-      partida_id: partida?._id || "",
-      familia: "",
-      sub_partida: "",
-      unidad: partida?.unidad || "",
-    });
-  };
-
   // Handle familia selection change - detect if it's a custom item (no sub-partidas)
-  const handleFamiliaChange = (itemId: string, partidaNombre: string, familia: string) => {
-    const budgetInfo = getBudgetInfo(partidaNombre, familia);
-    const subPartidas = getSubPartidasForFamilia(partidaNombre, familia);
-    const isCustomItem = subPartidas.length === 0;
-    
+  const handleFamiliaChange = (itemId: string, familia: string) => {
+    const budgetInfo = getBudgetInfo(selectedPartida.nombre, familia);
+    const subPartidasList = getSubPartidasForFamilia(selectedPartida.nombre, familia);
+    const isCustomItem = subPartidasList.length === 0;
+
+    // Set current familia to trigger sub-partidas query
+    setCurrentFamiliaForSubPartidas({
+      partida: selectedPartida.nombre,
+      familia: familia,
+    });
+
     updateItem(itemId, {
       familia,
-      sub_partida: "",
-      unidad: budgetInfo?.unidad || "",
       presupuesto_aprobado: budgetInfo?.presupuesto_aprobado,
       pagado: budgetInfo?.pagado,
       por_gastar: budgetInfo?.por_gastar,
       isCustomItem,
-      precio_unitario: undefined,
-      monto: undefined,
+      partida_id: budgetInfo?.partida_id,
     });
   };
 
-  // Handle sub-partida selection change
-  const handleSubPartidaChange = (itemId: string, partidaNombre: string, familia: string, subPartida: string) => {
-    const budgetInfo = getBudgetInfo(partidaNombre, familia, subPartida);
+  // Handle sub-partida selection change (now works with nested structure)
+  const handleSubPartidaChange = (itemId: string, subPartidaId: string, familia: string, subPartida: string) => {
+    const budgetInfo = getBudgetInfo(selectedPartida.nombre, familia, subPartida);
     const item = items.find(i => i.id === itemId);
-    const cantidad = item?.cantidad || 0;
-    
+    const sp = item?.subPartidas.find(s => s.id === subPartidaId);
+    const cantidad = sp?.cantidad || 0;
+
     // Check if precio_unitario exists and is valid (not 0 or undefined)
     const precioUnitario = budgetInfo?.precio_unitario;
     const hasValidPrice = precioUnitario !== undefined && precioUnitario > 0;
-    
+
     // Calculate monto if precio_unitario is valid, otherwise mark as needing manual input
     const calculatedMonto = hasValidPrice && cantidad > 0 ? cantidad * precioUnitario : undefined;
-    
-    updateItem(itemId, {
+
+    updateSubPartida(itemId, subPartidaId, {
       sub_partida: subPartida,
-      partida_id: budgetInfo?.partida_id || "",
+      partida_id: budgetInfo?.partida_id,
       unidad: budgetInfo?.unidad || "",
       presupuesto_aprobado: budgetInfo?.presupuesto_aprobado,
       pagado: budgetInfo?.pagado,
       por_gastar: budgetInfo?.por_gastar,
       precio_unitario: precioUnitario,
       monto: calculatedMonto,
-      isCustomItem: !hasValidPrice, // Treat as custom if no valid price
     });
   };
 
@@ -272,34 +313,35 @@ export default function RequisicionModal() {
 
   // Check if form is valid
   const isFormValid = () => {
+    if (!selectedPartida.nombre) return false;
     if (items.length === 0) return false;
-    return items.every(item => 
-      item.partida_id && 
-      item.partida_nombre && 
-      item.familia && 
-      item.cantidad > 0 && 
-      item.unidad
+    return items.every(item =>
+      item.familia &&
+      item.subPartidas.length > 0 &&
+      item.subPartidas.every(sp => sp.cantidad > 0 && sp.unidad)
     );
   };
 
-  // Handle price per unit change with auto-calculation
-  const handlePrecioUnitarioChange = (itemId: string, precio: number) => {
+  // Handle price per unit change with auto-calculation (now for sub-partidas)
+  const handlePrecioUnitarioChange = (itemId: string, subPartidaId: string, precio: number) => {
     const item = items.find(i => i.id === itemId);
-    if (item) {
-      const monto = item.cantidad > 0 && precio > 0 ? item.cantidad * precio : undefined;
-      updateItem(itemId, { precio_unitario: precio, monto });
+    const sp = item?.subPartidas.find(s => s.id === subPartidaId);
+    if (sp) {
+      const monto = sp.cantidad > 0 && precio > 0 ? sp.cantidad * precio : undefined;
+      updateSubPartida(itemId, subPartidaId, { precio_unitario: precio, monto });
     }
   };
 
-  // Handle cantidad change with auto-calculation (both for custom items and existing items with precio_unitario)
-  const handleCantidadChange = (itemId: string, cantidad: number) => {
+  // Handle cantidad change with auto-calculation (now for sub-partidas)
+  const handleCantidadChange = (itemId: string, subPartidaId: string, cantidad: number) => {
     const item = items.find(i => i.id === itemId);
-    if (item && item.precio_unitario && item.precio_unitario > 0) {
-      // Auto-calculate monto for any item with valid precio_unitario
-      const monto = cantidad > 0 ? cantidad * item.precio_unitario : undefined;
-      updateItem(itemId, { cantidad, monto });
+    const sp = item?.subPartidas.find(s => s.id === subPartidaId);
+    if (sp && sp.precio_unitario && sp.precio_unitario > 0) {
+      // Auto-calculate monto for any sub-partida with valid precio_unitario
+      const monto = cantidad > 0 ? cantidad * sp.precio_unitario : undefined;
+      updateSubPartida(itemId, subPartidaId, { cantidad, monto });
     } else {
-      updateItem(itemId, { cantidad });
+      updateSubPartida(itemId, subPartidaId, { cantidad });
     }
   };
 
@@ -311,11 +353,11 @@ export default function RequisicionModal() {
       headers: { "Content-Type": file.type },
       body: file,
     });
-    
+
     if (!result.ok) throw new Error("Failed to upload file");
-    
+
     const { storageId } = await result.json();
-    
+
     await addDocument({
       requisicion_id: requisicionId,
       proyecto: context!.projectId,
@@ -335,11 +377,23 @@ export default function RequisicionModal() {
     setIsSubmitting(true);
     try {
       let requisicionId: Id<"requisiciones">;
-      
+
       if (mode === "create") {
         // Format date
         const today = new Date();
         const fechaSolicitud = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+
+        // Flatten nested sub-partidas into individual items
+        const flattenedItems = items.flatMap(item =>
+          item.subPartidas.map(sp => ({
+            partida_id: (sp.partida_id || item.partida_id || selectedPartida.id) as Id<"partidas">,
+            familia: item.familia,
+            sub_partida: sp.sub_partida || undefined,
+            cantidad: sp.cantidad,
+            unidad: sp.unidad,
+            monto: sp.monto,
+          }))
+        );
 
         requisicionId = await createRequisicion({
           proyecto: context.projectId,
@@ -350,16 +404,9 @@ export default function RequisicionModal() {
           fecha_solicitud: fechaSolicitud,
           fecha_entrega: fecha_entrega || undefined,
           descripcion: descripcion || undefined,
-          items: items.map(item => ({
-            partida_id: item.partida_id as Id<"partidas">,
-            familia: item.familia,
-            sub_partida: item.sub_partida || undefined,
-            cantidad: item.cantidad,
-            unidad: item.unidad,
-            monto: item.monto,
-          })),
+          items: flattenedItems,
         });
-        
+
         // Upload files if any
         if (uploadedFiles.length > 0) {
           setIsUploadingDocument(true);
@@ -376,29 +423,34 @@ export default function RequisicionModal() {
             setIsUploadingDocument(false);
           }
         }
-        
+
         toast.success("Requisición creada", {
           description: "La requisición ha sido enviada exitosamente.",
         });
       } else if (mode === "edit" && context.requisicionId) {
         requisicionId = context.requisicionId;
-        
+
+        // Flatten nested sub-partidas into individual items
+        const flattenedItems = items.flatMap(item =>
+          item.subPartidas.map(sp => ({
+            partida_id: (sp.partida_id || item.partida_id || selectedPartida.id) as Id<"partidas">,
+            familia: item.familia,
+            sub_partida: sp.sub_partida || undefined,
+            cantidad: sp.cantidad,
+            unidad: sp.unidad,
+            monto: sp.monto,
+          }))
+        );
+
         await updateRequisicion({
           id: context.requisicionId,
           tipo,
           proveedor_id: proveedor_id || undefined,
           fecha_entrega: fecha_entrega || undefined,
           descripcion: descripcion || undefined,
-          items: items.map(item => ({
-            partida_id: item.partida_id as Id<"partidas">,
-            familia: item.familia,
-            sub_partida: item.sub_partida || undefined,
-            cantidad: item.cantidad,
-            unidad: item.unidad,
-            monto: item.monto,
-          })),
+          items: flattenedItems,
         });
-        
+
         // Upload new files if any
         if (uploadedFiles.length > 0) {
           setIsUploadingDocument(true);
@@ -415,7 +467,7 @@ export default function RequisicionModal() {
             setIsUploadingDocument(false);
           }
         }
-        
+
         toast.success("Requisición actualizada", {
           description: "Los cambios han sido guardados exitosamente.",
         });
@@ -435,7 +487,7 @@ export default function RequisicionModal() {
   // Handle document deletion
   const handleDeleteDocument = async () => {
     if (!documentToDelete) return;
-    
+
     try {
       await deleteDocument({ id: documentToDelete });
       toast.success("Documento eliminado");
@@ -454,112 +506,118 @@ export default function RequisicionModal() {
 
   const isViewMode = mode === "view";
 
-  if (!isOpen) return null;
+  // Loading state for edit/view inside Sheet
+  const loadingContent = (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      <p className="text-gray-500 mt-4">Cargando requisición...</p>
+    </div>
+  );
 
-  // Loading state for edit/view
-  if ((mode === "edit" || mode === "view") && !requisicionData) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white  shadow-xl p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto" />
-          <p className="text-gray-500 mt-4">Cargando requisición...</p>
-        </div>
-      </div>
-    );
-  }
+  // Calculate totals for view mode
+  const totalMonto = items.reduce((acc, item) => 
+    acc + item.subPartidas.reduce((sum, sp) => sum + ((sp.monto || 0) * 1.16), 0), 0
+  );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white  shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-scroll">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex-1">
-            <div className="flex items-center justify-end gap-2 text-sm text-gray-500 mb-2">
-              <span>Solicita</span>
-              <span className="font-medium text-gray-900">
-                {mode === "create" ? (user?.fullName || currentUser?.name) : solicitante_nombre}
-              </span>
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
-                {(mode === "create" ? (user?.fullName || currentUser?.name || "U") : solicitante_nombre || "U").charAt(0).toUpperCase()}
+    <Sheet open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
+        {/* Loading State */}
+        {(mode === "edit" || mode === "view") && !requisicionData ? (
+          loadingContent
+        ) : (
+          <>
+            {/* Header */}
+            <SheetHeader className="p-6 border-b border-gray-200 space-y-4">
+              {/* User info */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-[#dddcd8] flex items-center justify-center text-sm  text-gray-700">
+                    {(mode === "create" ? (user?.fullName || currentUser?.name || "U") : solicitante_nombre || "U").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm  text-gray-900">
+                      {mode === "create" ? (user?.fullName || currentUser?.name) : solicitante_nombre}
+                    </p>
+                    {(mode === "edit" || mode === "view") && fecha_solicitud && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {fecha_solicitud}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {(mode === "edit" || mode === "view") && (
+                  <span className={`px-3 py-1 rounded-full text-xs  ${
+                    status === "En proceso" ? "bg-blue-100  border border-blue-200 text-blue-700" :
+                    status === "Cancelado" ? "bg-red-50 text-red-700 border border-red-200 " :
+                    status === "Pagado" ? "bg-green-50 text-green-700 border border-green-200" :
+                    status === "Recibido" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                    status === "Parcial" ? "bg-yellow-50 text-yellow-700 border border-yellow-200" :
+                    "bg-gray-50 text-gray-700 border border-gray-200"
+                  }`}>
+                    {status}
+                  </span>
+                )}
               </div>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {mode === "create" && "Nueva Requisición"}
-              {mode === "edit" && "Editar Requisición"}
-              {mode === "view" && "Detalle de Requisición"}
-            </h2>
-            {(mode === "edit" || mode === "view") && fecha_solicitud && (
-              <p className="text-sm text-gray-500 mt-1">Solicitada el {fecha_solicitud}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Status Badge */}
-            {(mode === "edit" || mode === "view") && (
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                status === "En proceso" ? "bg-blue-100 text-blue-700" :
-                status === "Cancelado" ? "bg-red-100 text-red-700" :
-                status === "Pagado" ? "bg-green-100 text-green-700" :
-                status === "Recibido" ? "bg-emerald-100 text-emerald-700" :
-                status === "Parcial" ? "bg-yellow-100 text-yellow-700" :
-                "bg-gray-100 text-gray-700"
-              }`}>
-                {status}
-              </span>
-            )}
-            <button
-              onClick={handleClose}
-              className="p-2 hover:bg-gray-100  transition-colors"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
-          </div>
-        </div>
+
+              <div>
+                <SheetTitle className="text-xl text-left font-normal">
+                  {mode === "create" && "Nueva Requisición"}
+                  {mode === "edit" && "Editar Requisición"}
+                  {mode === "view" && "Detalle de Requisición"}
+                </SheetTitle>
+                <SheetDescription className="text-left text-sm">
+                  {mode === "create" && "Completa los datos para crear una nueva requisición"}
+                  {mode === "edit" && "Modifica los datos de la requisición"}
+                  {mode === "view" && `${items.length} familia(s) • ${items.reduce((acc, i) => acc + i.subPartidas.length, 0)} item(s)`}
+                </SheetDescription>
+              </div>
+
+              {/* Type Toggle - compact for view mode */}
+              {isViewMode ? (
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-700 capitalize">{tipo}</span>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                     variant={"ghost"}
+                    size="sm"
+                    onClick={() => setTipo("material")}
+                    className={cn("flex-1 items-left rounded-none h-10", tipo === "material" ? "bg-[#f3fdf5] border border-green-300 text-gray-900" : "bg-gray-100 text-gray-700")}
+                    >
+                      <div className={cn("rounded-full p-0.5 border", tipo === "material" ? "bg-green-500 text-white" : "bg-gray-100 h-5 w-5")}>
+                        {tipo === "material" && <Check className="h-2 w-2" />}
+                      </div>
+                    Material
+                  </Button>
+                  <Button
+                    type="button"
+                     variant={"ghost"}
+                    size="sm"
+                    onClick={() => setTipo("equipo")}
+                    className={cn("flex-1 items-center rounded-none h-10", tipo === "equipo" ? "bg-[#f3fdf5] border border-green-300 text-gray-900" : "bg-gray-100 text-gray-700")}
+                    >
+                      <div className={cn("rounded-full p-0.5 border", tipo === "equipo" ? "bg-green-500 text-white" : "bg-gray-100 h-5 w-5")}>
+                        {tipo === "equipo" && <Check className="h-2 w-2" />}
+                      </div>
+                    Equipo
+                  </Button>
+                </div>
+              )}
+            </SheetHeader>
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           <div className="space-y-6">
-            {/* Type Toggle */}
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={() => !isViewMode && setTipo("material")}
-                disabled={isViewMode}
-                className={`flex-1 flex items-center gap-3 px-4 py-3  border-2 transition-all ${
-                  tipo === "material"
-                    ? "border-green-500 bg-green-50"
-                    : "border-gray-200 hover:border-gray-300"
-                } ${isViewMode ? "cursor-default" : ""}`}
-              >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  tipo === "material" ? "border-green-500 bg-green-500" : "border-gray-300"
-                }`}>
-                  {tipo === "material" && <Check className="h-3 w-3 text-white" />}
-                </div>
-                <span className="font-medium">Material</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => !isViewMode && setTipo("equipo")}
-                disabled={isViewMode}
-                className={`flex-1 flex items-center gap-3 px-4 py-3  border-2 transition-all ${
-                  tipo === "equipo"
-                    ? "border-green-500 bg-green-50"
-                    : "border-gray-200 hover:border-gray-300"
-                } ${isViewMode ? "cursor-default" : ""}`}
-              >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  tipo === "equipo" ? "border-green-500 bg-green-500" : "border-gray-300"
-                }`}>
-                  {tipo === "equipo" && <Check className="h-3 w-3 text-white" />}
-                </div>
-                <span className="font-medium">Equipo</span>
-              </button>
-            </div>
 
             {/* Status Select (Edit mode only for admins) */}
             {mode === "edit" && currentUser?.role === "admin" && (
               <div>
-                <Label className="text-sm font-medium mb-2 block">Estado</Label>
+                <Label className="text-sm  mb-2 block">Estado</Label>
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona estado" />
@@ -576,402 +634,305 @@ export default function RequisicionModal() {
             )}
 
             {/* Line Items */}
-            <div className="space-y-4">
-              {items.map((item) => (
-                <div key={item.id} className="space-y-3">
-                  {/* Partida Select */}
-                  {isViewMode ? (
-                    <div className="p-3 bg-gray-50 ">
-                      <span className="text-sm text-gray-500">Partida:</span>
-                      <p className="font-medium">{item.partida_nombre || "-"}</p>
-                    </div>
-                  ) : (
-                    <Select
-                      value={item.partida_nombre}
-                      onValueChange={(value) => handlePartidaChange(item.id, value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecciona Partida" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {partidas?.map((partida) => (
-                          <SelectItem key={partida._id} value={partida.nombre}>
-                            {partida.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+            {/* Partida Select - ONE partida for the entire requisicion */}
+            <div className="space-y-2">
+              {isViewMode ? (
+                <div className="flex items-center gap-2 py-2 border-b border-gray-100">
+                  <span className="text-xs text-gray-500 uppercase tracking-wide">Partida:</span>
+                  <span className=" text-gray-900">{selectedPartida.nombre || "-"}</span>
+                </div>
+              ) : (
+                <>
+                  <Label className="text-base font-normal">Partida</Label>
+                  <Select
+                    value={selectedPartida.nombre}
+                    onValueChange={(value) => {
+                      const partida = partidas?.find(p => p.nombre === value);
+                      setSelectedPartida({ id: partida?._id || "", nombre: value });
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona Partida" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {partidas?.map((partida) => (
+                        <SelectItem key={partida._id} value={partida.nombre}>
+                          {partida.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+            </div>
 
-                  {/* Familia Select */}
-                  {item.partida_nombre && (
-                    isViewMode ? (
-                      <div className="p-3 bg-orange-50 ">
-                        <span className="text-sm text-gray-500">Familia:</span>
-                        <p className="font-medium text-orange-700">{item.familia || "-"}</p>
+            {/* Familia Items - Multiple familias within the selected partida */}
+            {selectedPartida.nombre && (
+              <div className="space-y-4">
+                {!isViewMode && <Label className="text-base font-normal">Familias</Label>}
+                {items.map((item) => (
+                  <div key={item.id} className={`space-y-3 ${isViewMode ? 'border-l-2 border-gray-200 pl-4' : 'border border-gray-200 p-3 rounded'}`}>
+                    {/* Familia Select */}
+                    {isViewMode ? (
+                      <div className="flex items-center justify-between">
+                        <span className=" text-gray-900">{item.familia || "-"}</span>
+                        <span className="text-xs text-gray-500">{item.subPartidas.length} item(s)</span>
                       </div>
                     ) : (
                       <Select
                         value={item.familia}
-                        onValueChange={(value) => handleFamiliaChange(item.id, item.partida_nombre, value)}
+                        onValueChange={(value) => handleFamiliaChange(item.id, value)}
                       >
-                        <SelectTrigger className="w-full bg-orange-50 border-orange-200">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecciona Familia" />
                         </SelectTrigger>
                         <SelectContent>
-                          {getFamiliasForPartida(item.partida_nombre).map((familia) => (
+                          {getFamiliasForPartida(selectedPartida.nombre).map((familia) => (
                             <SelectItem key={familia} value={familia}>
                               {familia}
                             </SelectItem>
                           ))}
+                          <SelectItem value="OTRO">OTRO</SelectItem>
                         </SelectContent>
                       </Select>
-                    )
-                  )}
+                    )}
 
-                  {/* Sub-partida and Quantity */}
-                  {item.familia && (
-                    <div className="bg-orange-50 border border-orange-200  p-3 space-y-2">
-                      {isViewMode ? (
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <div>
-                              <span className="text-sm text-gray-500">Sub-partida:</span>
-                              <p className="font-medium">{item.sub_partida || "-"}</p>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-sm text-gray-500">Cantidad:</span>
-                              <p className="font-medium">{item.cantidad} {item.unidad}</p>
-                            </div>
-                          </div>
-                          
-                          {/* Price and Monto display */}
-                          <div className="flex justify-between">
-                            {item.precio_unitario !== undefined && item.precio_unitario > 0 && (
-                              <div>
-                                <span className="text-sm text-gray-500">Precio unitario:</span>
-                                <p className="font-medium">{formatCurrency(item.precio_unitario)}</p>
-                              </div>
-                            )}
-                            {item.monto && (
-                              <div className="text-right">
-                                <span className="text-sm text-gray-500">Monto:</span>
-                                <p className="font-medium text-green-700">{formatCurrency(item.monto)}</p>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Budget headroom with Progress in view mode */}
-                          {item.presupuesto_aprobado !== undefined && item.presupuesto_aprobado > 0 && (
-                            <div className="space-y-1 pt-2 border-t border-orange-200">
-                              <div className="flex justify-between text-xs text-gray-600">
-                                <span>Presupuesto: {formatCurrency(item.presupuesto_aprobado)}</span>
-                                <span>Disponible: {formatCurrency(item.por_gastar || 0)}</span>
-                              </div>
-                              <Progress 
-                                value={item.presupuesto_aprobado > 0 
-                                  ? Math.min(100, ((item.pagado || 0) / item.presupuesto_aprobado) * 100) 
-                                  : 0
-                                } 
-                                className={`h-2 ${
-                                  (item.por_gastar || 0) < 0 
-                                    ? "[&>div]:bg-red-500" 
-                                    : ((item.pagado || 0) / (item.presupuesto_aprobado || 1)) > 0.8 
-                                      ? "[&>div]:bg-yellow-500" 
-                                      : "[&>div]:bg-green-500"
-                                }`}
-                              />
-                              <div className="flex justify-between text-xs">
-                                <span className="text-gray-500">
-                                  Ejercido: {formatCurrency(item.pagado || 0)} 
-                                  ({item.presupuesto_aprobado > 0 
-                                    ? ((item.pagado || 0) / item.presupuesto_aprobado * 100).toFixed(0) 
-                                    : 0}%)
-                                </span>
-                                {(item.por_gastar || 0) < 0 && (
-                                  <span className="text-red-500 font-medium">⚠️ Excede presupuesto</span>
+                    {/* Sub-partidas - Multiple per familia */}
+                    {item.familia && (
+                      <div className={`${isViewMode ? 'space-y-2' : 'bg-gray-50 border border-gray-200 p-3 space-y-3'}`}>
+                        {!isViewMode && <Label className="text-sm  text-gray-700">Sub-partidas</Label>}
+
+                        {/* Loop through all sub-partidas in this familia */}
+                        {item.subPartidas.map((sp, spIndex) => (
+                          <div key={sp.id} className={`${isViewMode ? 'py-2 border-b border-gray-100 last:border-0' : 'bg-white border border-gray-200 p-3 rounded space-y-2'}`}>
+                            {isViewMode ? (
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-gray-900 truncate">{sp.sub_partida || "-"}</p>
+                                  <p className="text-xs text-gray-500">{sp.cantidad} {sp.unidad}</p>
+                                </div>
+                                {sp.monto && (
+                                  <span className="text-sm  text-gray-900 whitespace-nowrap">
+                                    {formatCurrency(sp.monto * 1.16)}
+                                  </span>
                                 )}
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <>
-                          {/* Sub-partida rows */}
-                          {getSubPartidasForFamilia(item.partida_nombre, item.familia).length > 0 ? (
-                            <div className="space-y-2">
-                              <div className="flex gap-2">
-                                <Select
-                                  value={item.sub_partida}
-                                  onValueChange={(value) => handleSubPartidaChange(item.id, item.partida_nombre, item.familia, value)}
-                                >
-                                  <SelectTrigger className="flex-1 bg-white">
-                                    <SelectValue placeholder="Selecciona Sub-partida" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {getSubPartidasForFamilia(item.partida_nombre, item.familia).map((sp) => (
-                                      <SelectItem key={sp._id} value={sp.sub_partida}>
-                                        {sp.sub_partida}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              
-                              {/* Show quantity/unit/price fields based on whether precio_unitario exists */}
-                              {item.sub_partida && (
-                                item.precio_unitario && item.precio_unitario > 0 ? (
-                                  // Item has valid precio_unitario from partidas - show auto-calculated
+                            ) : (
+                              <>
+                                {/* Sub-partida header with delete button */}
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-gray-500">Sub-partida {spIndex + 1}</span>
+                                  {item.subPartidas.length > 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeSubPartida(item.id, sp.id)}
+                                      className="text-red-400 hover:text-red-600 hover:bg-red-50 h-6 w-6 p-0"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </div>
+
+                                {/* Sub-partida select or custom input */}
+                                {(subPartidasQuery && subPartidasQuery.length > 0) || getSubPartidasForFamilia(selectedPartida.nombre, item.familia).length > 0 ? (
+                                  <div className="space-y-2">
+                                    <Select
+                                      value={sp.sub_partida}
+                                      onValueChange={(value) => handleSubPartidaChange(item.id, sp.id, item.familia, value)}
+                                      onOpenChange={(open) => {
+                                        if (open) {
+                                          setCurrentFamiliaForSubPartidas({
+                                            partida: selectedPartida.nombre,
+                                            familia: item.familia,
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <SelectTrigger className="w-full bg-white">
+                                        <SelectValue placeholder="Selecciona Sub-partida" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {(currentFamiliaForSubPartidas?.partida === selectedPartida.nombre &&
+                                          currentFamiliaForSubPartidas?.familia === item.familia &&
+                                          subPartidasQuery
+                                        ) ? (
+                                          subPartidasQuery.map((subPartida) => (
+                                            <SelectItem key={subPartida} value={subPartida}>
+                                              {subPartida}
+                                            </SelectItem>
+                                          ))
+                                        ) : (
+                                          getSubPartidasForFamilia(selectedPartida.nombre, item.familia).map((spOption) => (
+                                            <SelectItem key={spOption._id} value={spOption.sub_partida}>
+                                              {spOption.sub_partida}
+                                            </SelectItem>
+                                          ))
+                                        )}
+                                        <SelectItem value="OTRO">OTRO</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+
+                                    {/* Custom description when OTRO selected */}
+                                    {sp.sub_partida === "OTRO" && (
+                                      <Input
+                                        type="text"
+                                        value={sp.descripcion_otro || ""}
+                                        onChange={(e) => updateSubPartida(item.id, sp.id, { descripcion_otro: e.target.value })}
+                                        className="bg-white"
+                                        placeholder="Descripción del material..."
+                                      />
+                                    )}
+                                  </div>
+                                ) : (
+                                  <Input
+                                    type="text"
+                                    value={sp.sub_partida}
+                                    onChange={(e) => updateSubPartida(item.id, sp.id, { sub_partida: e.target.value })}
+                                    className="bg-white"
+                                    placeholder="Escribe el material..."
+                                  />
+                                )}
+
+                                {/* Quantity/Unit/Price fields */}
+                                {sp.sub_partida && (
                                   <div className="grid grid-cols-4 gap-2">
                                     <div>
                                       <Label className="text-xs text-gray-500 mb-1 block">Cantidad</Label>
                                       <Input
                                         type="number"
-                                        value={item.cantidad || ""}
-                                        onChange={(e) => handleCantidadChange(item.id, parseFloat(e.target.value) || 0)}
-                                        className="bg-orange-100 border-orange-300 text-right"
+                                        value={sp.cantidad || ""}
+                                        onChange={(e) => handleCantidadChange(item.id, sp.id, parseFloat(e.target.value) || 0)}
+                                        className="bg-green-50 border-green-300 text-right"
                                         placeholder="0"
                                       />
                                     </div>
                                     <div>
                                       <Label className="text-xs text-gray-500 mb-1 block">Unidad</Label>
-                                      <div className="h-9 px-3 py-2 bg-gray-100 border border-gray-200 text-center text-sm">
-                                        {item.unidad || "-"}
-                                      </div>
+                                      <Input
+                                        type="text"
+                                        value={sp.unidad || ""}
+                                        onChange={(e) => updateSubPartida(item.id, sp.id, { unidad: e.target.value })}
+                                        className="bg-white text-center text-sm"
+                                        placeholder="PZA"
+                                      />
                                     </div>
                                     <div>
                                       <Label className="text-xs text-gray-500 mb-1 block">P. Unit.</Label>
-                                      <div className="h-9 px-3 py-2 bg-gray-100 border border-gray-200 text-right text-sm">
-                                        {formatCurrency(item.precio_unitario)}
-                                      </div>
+                                      <Input
+                                        type="number"
+                                        value={sp.precio_unitario || ""}
+                                        onChange={(e) => handlePrecioUnitarioChange(item.id, sp.id, parseFloat(e.target.value) || 0)}
+                                        className="bg-white text-right"
+                                        placeholder="$0.00"
+                                      />
                                     </div>
                                     <div>
                                       <Label className="text-xs text-gray-500 mb-1 block">Total</Label>
-                                      <div className="h-9 px-3 py-2 bg-green-50 border border-green-200 text-right text-sm font-medium text-green-700">
-                                        {item.monto ? formatCurrency(item.monto) : "-"}
+                                      <div className="h-9 px-3 py-2 bg-green-50 border border-green-200 text-right text-sm  text-green-700">
+                                        {sp.monto ? formatCurrency(sp.monto * 1.16) : "-"}
                                       </div>
                                     </div>
                                   </div>
-                                ) : (
-                                  // Item has NO valid precio_unitario - need manual input
-                                  <div className="space-y-2">
-                                    <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                                      ⚠️ Este item no tiene precio unitario definido. Por favor ingrese el precio.
-                                    </p>
-                                    <div className="grid grid-cols-4 gap-2">
-                                      <div>
-                                        <Label className="text-xs text-gray-500 mb-1 block">Cantidad</Label>
-                                        <Input
-                                          type="number"
-                                          value={item.cantidad || ""}
-                                          onChange={(e) => handleCantidadChange(item.id, parseFloat(e.target.value) || 0)}
-                                          className="bg-orange-100 border-orange-300 text-right"
-                                          placeholder="0"
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label className="text-xs text-gray-500 mb-1 block">Unidad</Label>
-                                        <Input
-                                          type="text"
-                                          value={item.unidad}
-                                          onChange={(e) => updateItem(item.id, { unidad: e.target.value })}
-                                          className="bg-white text-center text-sm"
-                                          placeholder="pz, ton"
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label className="text-xs text-gray-500 mb-1 block">Precio Unit.</Label>
-                                        <Input
-                                          type="number"
-                                          value={item.precio_unitario || ""}
-                                          onChange={(e) => handlePrecioUnitarioChange(item.id, parseFloat(e.target.value) || 0)}
-                                          className="bg-white text-right"
-                                          placeholder="$0.00"
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label className="text-xs text-gray-500 mb-1 block">Total</Label>
-                                        <div className="h-9 px-3 py-2 bg-gray-100 border border-gray-200 text-right text-sm font-medium">
-                                          {item.monto ? formatCurrency(item.monto) : "-"}
-                                        </div>
-                                      </div>
+                                )}
+
+                                {/* Budget indicator */}
+                                {sp.presupuesto_aprobado !== undefined && sp.presupuesto_aprobado > 0 && (
+                                  <div className="space-y-1 pt-2 border-t border-gray-100">
+                                    <div className="flex justify-between text-xs text-gray-600">
+                                      <span>Ejercido: {formatCurrency(sp.pagado || 0)}</span>
+                                      <span>Disponible: {formatCurrency(sp.por_gastar || 0)}</span>
                                     </div>
+                                    <Progress
+                                      value={sp.presupuesto_aprobado > 0
+                                        ? Math.min(100, ((sp.pagado || 0) / sp.presupuesto_aprobado) * 100)
+                                        : 0
+                                      }
+                                      className={`h-1.5 ${(sp.por_gastar || 0) < 0
+                                        ? "[&>div]:bg-red-500"
+                                        : "[&>div]:bg-green-500"
+                                        }`}
+                                    />
                                   </div>
-                                )
-                              )}
-                              
-                              {/* Simple cantidad/unidad if no sub-partida selected yet */}
-                              {!item.sub_partida && (
-                                <div className="flex items-center gap-1">
-                                  <Input
-                                    type="number"
-                                    value={item.cantidad || ""}
-                                    onChange={(e) => updateItem(item.id, { cantidad: parseFloat(e.target.value) || 0 })}
-                                    className="w-20 bg-orange-100 border-orange-300 text-right"
-                                    placeholder="0"
-                                  />
-                                  <Input
-                                    type="text"
-                                    value={item.unidad}
-                                    onChange={(e) => updateItem(item.id, { unidad: e.target.value })}
-                                    className="w-16 bg-white text-center text-sm"
-                                    placeholder="UND"
-                                  />
-                                </div>
-                              )}
-                              
-                              {/* Budget indicator with Progress */}
-                              {item.presupuesto_aprobado !== undefined && item.presupuesto_aprobado > 0 && (
-                                <div className="space-y-1 pt-2 border-t border-orange-200">
-                                  <div className="flex justify-between text-xs text-gray-600">
-                                    <span>Presupuesto: {formatCurrency(item.presupuesto_aprobado)}</span>
-                                    <span>Disponible: {formatCurrency(item.por_gastar || 0)}</span>
-                                  </div>
-                                  <Progress 
-                                    value={item.presupuesto_aprobado > 0 
-                                      ? Math.min(100, ((item.pagado || 0) / item.presupuesto_aprobado) * 100) 
-                                      : 0
-                                    } 
-                                    className={`h-2 ${
-                                      (item.por_gastar || 0) < 0 
-                                        ? "[&>div]:bg-red-500" 
-                                        : ((item.pagado || 0) / (item.presupuesto_aprobado || 1)) > 0.8 
-                                          ? "[&>div]:bg-yellow-500" 
-                                          : "[&>div]:bg-green-500"
-                                    }`}
-                                  />
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-gray-500">
-                                      Ejercido: {formatCurrency(item.pagado || 0)} 
-                                      ({item.presupuesto_aprobado > 0 
-                                        ? ((item.pagado || 0) / item.presupuesto_aprobado * 100).toFixed(0) 
-                                        : 0}%)
-                                    </span>
-                                    {(item.por_gastar || 0) < 0 && (
-                                      <span className="text-red-500 font-medium">⚠️ Excede presupuesto</span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            // Custom text input when no sub-partidas exist - request price per unit
-                            <div className="space-y-3">
-                              <div className="flex gap-2">
-                                <Input
-                                  type="text"
-                                  value={item.sub_partida}
-                                  onChange={(e) => updateItem(item.id, { sub_partida: e.target.value })}
-                                  className="flex-1 bg-white"
-                                  placeholder="Escribe el material..."
-                                />
-                              </div>
-                              
-                              {/* Price per unit and quantity for custom items */}
-                              <div className="grid grid-cols-4 gap-2">
-                                <div>
-                                  <Label className="text-xs text-gray-500 mb-1 block">Cantidad</Label>
-                                  <Input
-                                    type="number"
-                                    value={item.cantidad || ""}
-                                    onChange={(e) => handleCantidadChange(item.id, parseFloat(e.target.value) || 0)}
-                                    className="bg-orange-100 border-orange-300 text-right"
-                                    placeholder="0"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-gray-500 mb-1 block">Unidad</Label>
-                                  <Input
-                                    type="text"
-                                    value={item.unidad}
-                                    onChange={(e) => updateItem(item.id, { unidad: e.target.value })}
-                                    className="bg-white text-center text-sm"
-                                    placeholder="pz, ton, m³"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-gray-500 mb-1 block">Precio Unit.</Label>
-                                  <Input
-                                    type="number"
-                                    value={item.precio_unitario || ""}
-                                    onChange={(e) => handlePrecioUnitarioChange(item.id, parseFloat(e.target.value) || 0)}
-                                    className="bg-white text-right"
-                                    placeholder="$0.00"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-gray-500 mb-1 block">Total</Label>
-                                  <div className="h-9 px-3 py-2 bg-gray-100 border border-gray-200 text-right text-sm font-medium">
-                                    {item.monto ? formatCurrency(item.monto) : "-"}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              {/* Auto-calculation notice */}
-                              {item.cantidad > 0 && item.precio_unitario && item.precio_unitario > 0 && (
-                                <p className="text-xs text-green-600">
-                                  Total calculado: {item.cantidad} × {formatCurrency(item.precio_unitario)} = {formatCurrency(item.monto || 0)}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Add more items button */}
-                          <button
-                            type="button"
-                            onClick={addItem}
-                            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mt-2"
-                          >
-                            <span>Agregar Partida</span>
-                            <Plus className="h-4 w-4" />
-                          </button>
-
-                          {/* Optional Monto */}
-                          <div className="flex justify-end">
-                            <Input
-                              type="number"
-                              value={item.monto || ""}
-                              onChange={(e) => updateItem(item.id, { monto: parseFloat(e.target.value) || undefined })}
-                              className="w-32 bg-white text-right"
-                              placeholder="Monto"
-                            />
+                                )}
+                              </>
+                            )}
                           </div>
-                        </>
-                      )}
-                    </div>
-                  )}
+                        ))}
 
-                  {/* Remove item button */}
-                  {!isViewMode && items.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeItem(item.id)}
-                      className="text-red-500 hover:text-red-700 text-sm flex items-center gap-1"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                      Eliminar
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+                        {/* Add more sub-partida button */}
+                        {!isViewMode && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => addSubPartida(item.id)}
+                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-0 h-auto"
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Agregar Sub-partida
+                          </Button>
+                        )}
+
+                        {/* Familia Total - hide in view mode since we show total in footer */}
+                        {!isViewMode && (
+                          <div className="flex justify-end pt-2 border-t border-gray-200">
+                            <div className="text-right">
+                              <span className="text-xs text-gray-500">Total Familia:</span>
+                              <div className="text-lg  text-gray-900">
+                                {formatCurrency(item.subPartidas.reduce((sum, sp) => sum + ((sp.monto || 0) * 1.16), 0))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Remove item button */}
+                    {!isViewMode && items.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeItem(item.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-0 h-auto"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Eliminar
+                      </Button>
+                    )}
+                  </div>
+                ))}
+
+                {/* Add more familia button - outside the item boxes */}
+                {!isViewMode && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addItem}
+                    className="mt-2"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Agregar Familia
+                  </Button>
+                )}
+              </div>
+            )}
 
             {/* Proveedor and Fecha de entrega */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {isViewMode ? (
-                <>
-                  <div className="p-3 bg-gray-50 ">
-                    <span className="text-sm text-gray-500">Proveedor sugerido:</span>
-                    <p className="font-medium">{requisicionData?.proveedor?.razon_social || "-"}</p>
+                fecha_entrega && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <CalendarIcon className="h-4 w-4" />
+                    <span>Entrega: {fecha_entrega}</span>
                   </div>
-                  <div className="p-3 bg-gray-50 ">
-                    <span className="text-sm text-gray-500">Fecha de entrega:</span>
-                    <p className="font-medium">{fecha_entrega || "-"}</p>
-                  </div>
-                </>
+                )
               ) : (
                 <>
-                  <Select
+                  {/* <Select
                     value={proveedor_id || ""}
                     onValueChange={(value) => setProveedorId(value as Id<"proveedores"> | "")}
                   >
@@ -985,7 +946,7 @@ export default function RequisicionModal() {
                         </SelectItem>
                       ))}
                     </SelectContent>
-                  </Select>
+                  </Select> */}
 
                   {/* Calendar Date Picker */}
                   <Popover open={calendarOpen} onOpenChange={setCalendarOpen} modal={false}>
@@ -1022,42 +983,47 @@ export default function RequisicionModal() {
 
             {/* Descripción */}
             <div>
-              <Label className="text-base font-semibold mb-2 block">Descripción</Label>
               {isViewMode ? (
-                <div className="p-3 bg-gray-50  min-h-[80px]">
-                  <p className="text-gray-700">{descripcion || "Sin comentarios"}</p>
-                </div>
+                descripcion && (
+                  <div className="text-sm">
+                    <span className="text-xs text-gray-500 uppercase tracking-wide block mb-1">Notas</span>
+                    <p className="text-gray-700">{descripcion}</p>
+                  </div>
+                )
               ) : (
-                <Textarea
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  placeholder="Comentarios..."
-                  rows={3}
-                  className="resize-none"
-                />
+                <>
+                  <Label className="text-base  mb-2 block font-normal">Descripción</Label>
+                  <Textarea
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="Comentarios..."
+                    rows={3}
+                    className="resize-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </>
               )}
             </div>
 
             {/* Soporte - File Upload */}
             <div>
-              <Label className="text-base font-semibold mb-2 block">Soporte</Label>
-              
+              {!isViewMode && <Label className="text-base  mb-2 block font-normal">Soporte</Label>}
+
               {/* Existing documents (edit/view mode) */}
               {(mode === "edit" || mode === "view") && requisicionData?.documentos && requisicionData.documentos.length > 0 && (
                 <div className="mb-3 space-y-2">
-                  <p className="text-sm text-gray-500">Documentos existentes:</p>
+                  {isViewMode && (
+                    <span className="text-xs text-gray-500 uppercase tracking-wide block mb-1">Documentos</span>
+                  )}
+                  {!isViewMode && <p className="text-sm text-gray-500">Documentos existentes:</p>}
                   {requisicionData.documentos.map((doc) => (
-                    <div key={doc._id} className="flex items-center justify-between bg-gray-50 px-3 py-2 border border-gray-200">
-                      <div 
+                    <div key={doc._id} className={`flex items-center justify-between ${isViewMode ? 'py-2 border-b border-gray-100' : 'bg-gray-50 px-3 py-2 border border-gray-200'}`}>
+                      <div
                         className="flex items-center gap-2 cursor-pointer hover:text-blue-600 flex-1"
                         onClick={() => doc.url && window.open(doc.url, '_blank')}
                       >
-                        <FileText className="w-5 h-5 text-gray-600" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-700">{doc.nombre}</p>
-                          <p className="text-xs text-gray-500">{doc.type}</p>
-                        </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400" />
+                        <FileText className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-700 truncate">{doc.nombre}</span>
+                        <ExternalLink className="w-3 h-3 text-gray-400" />
                       </div>
                       {!isViewMode && (
                         <Button
@@ -1077,7 +1043,7 @@ export default function RequisicionModal() {
                   ))}
                 </div>
               )}
-              
+
               {/* File upload area (not for view mode) */}
               {!isViewMode && (
                 <>
@@ -1097,7 +1063,7 @@ export default function RequisicionModal() {
                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xml"
                     />
                   </div>
-                  
+
                   {/* Pending uploads list */}
                   {uploadedFiles.length > 0 && (
                     <div className="mt-3 space-y-2">
@@ -1109,18 +1075,20 @@ export default function RequisicionModal() {
                             <span className="text-sm text-gray-700 truncate">{file.name}</span>
                             <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(1)} KB)</span>
                           </div>
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => removeFile(index)}
-                            className="p-1 hover:bg-blue-100 rounded"
+                            className="h-6 w-6 p-0 hover:bg-blue-100"
                           >
-                            <X className="h-4 w-4 text-gray-500" />
-                          </button>
+                            <Trash2 className="h-4 w-4 text-gray-500" />
+                          </Button>
                         </div>
                       ))}
                     </div>
                   )}
-                  
+
                   {/* Upload status */}
                   {isUploadingDocument && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-blue-600">
@@ -1157,27 +1125,38 @@ export default function RequisicionModal() {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-          <Button            
-            onClick={handleClose}
-            disabled={isSubmitting}            
-            variant={"outline"}
-          >
-            {isViewMode ? "Cerrar" : "Cancelar"}
-          </Button>
-          {!isViewMode && (
-            <Button              
-              onClick={handleSubmit}
-              disabled={isSubmitting || !isFormValid()}
-              variant={"default"}
-            >
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {mode === "create" ? "Enviar solicitud" : "Guardar cambios"}
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
+            {/* Footer */}
+            <SheetFooter className="p-6 border-t border-gray-200">
+              <div className="flex items-center justify-between w-full">
+                {isViewMode && totalMonto > 0 && (
+                  <div className="text-left">
+                    <p className="text-xs text-gray-500">Total</p>
+                    <p className="text-lg  text-gray-900">{formatCurrency(totalMonto)}</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 ml-auto">
+                  <Button
+                    onClick={handleClose}
+                    disabled={isSubmitting}
+                    variant="outline"
+                  >
+                    {isViewMode ? "Cerrar" : "Cancelar"}
+                  </Button>
+                  {!isViewMode && (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || !isFormValid()}
+                    >
+                      {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {mode === "create" ? "Enviar solicitud" : "Guardar cambios"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </SheetFooter>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }

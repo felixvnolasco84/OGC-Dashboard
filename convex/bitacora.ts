@@ -26,6 +26,8 @@ export const createLogEntry = mutation({
     status: v.optional(v.string()), // "Sin problemas", "Con retrasos", etc.
     imagenes: v.optional(v.array(v.id("_storage"))), // Array of storage IDs for photos
     imagenesDescripciones: v.optional(v.array(v.string())), // Descriptions for each image (same order as imagenes)
+    documentos: v.optional(v.array(v.id("_storage"))), // Array of storage IDs for documents
+    documentosNombres: v.optional(v.array(v.string())), // Names for each document (same order as documentos)
   },
   handler: async (ctx, args) => {
     await getUserIdentity(ctx);
@@ -93,6 +95,24 @@ export const createLogEntry = mutation({
         }
       }
     }
+    
+    // If there are documents, create document entries for each
+    if (args.documentos && args.documentos.length > 0) {
+      for (let i = 0; i < args.documentos.length; i++) {
+        const storageId = args.documentos[i];
+        const nombre = args.documentosNombres?.[i] || `Documento ${i + 1}`;
+        
+        await ctx.db.insert("documentos", {
+          nombre: nombre,
+          descripcion: "",
+          type: "bitacora_documento",
+          storage_id: storageId,
+          proyecto: args.proyecto,
+          bitacora_id: logId,
+          uploaded_at: Date.now(),
+        });
+      }
+    }
 
     return logId;
   },
@@ -119,33 +139,49 @@ export const getLogEntriesByProject = query({
       logs = logs.filter((log) => log.partida_id === args.partida_id);
     }
 
-    // Enrich with partida info and photos
+    // Enrich with partida info, photos, and documents
     const enrichedLogs = await Promise.all(logs.map(async (log) => {
       // Get partida info
       const partida = await ctx.db.get(log.partida_id);
       const partidaNombre = partida?.nombre || "General";
       
-      // Fetch photos linked to this log
-      const fotos = await ctx.db
+      // Fetch all linked documents (photos and files)
+      const allDocs = await ctx.db
         .query("documentos")
         .withIndex("by_bitacora_id", (q) => q.eq("bitacora_id", log._id as Id<"bitacora">))
         .collect();
+      
+      // Separate photos from documents
+      const photos = allDocs.filter(d => d.type === "bitacora_foto");
+      const docs = allDocs.filter(d => d.type === "bitacora_documento");
 
       // Generate URLs for photos with storage_id
       const fotosWithUrls = await Promise.all(
-        fotos.map(async (foto) => {
+        photos.map(async (foto) => {
           if (foto.storage_id) {
             const url = await ctx.storage.getUrl(foto.storage_id);
             return { ...foto, url };
           }
           return { ...foto, url: null };
         })
-      );      
+      );
+      
+      // Generate URLs for documents with storage_id
+      const docsWithUrls = await Promise.all(
+        docs.map(async (doc) => {
+          if (doc.storage_id) {
+            const url = await ctx.storage.getUrl(doc.storage_id);
+            return { ...doc, url };
+          }
+          return { ...doc, url: null };
+        })
+      );
 
       return {
         ...log,
         departamento: partidaNombre,
-        fotos: fotosWithUrls,        
+        fotos: fotosWithUrls,
+        documentos: docsWithUrls,
       };
     }));
 
@@ -154,7 +190,7 @@ export const getLogEntriesByProject = query({
   },
 });
 
-// Get bitacora entry by ID with photos
+// Get bitacora entry by ID with photos and documents
 export const getLogEntryById = query({
   args: {
     logId: v.id("bitacora"),
@@ -171,11 +207,15 @@ export const getLogEntryById = query({
     const partida = await ctx.db.get(log.partida_id);
     const partidaNombre = partida?.nombre || "General";
 
-    // Get associated photos
-    const photos = await ctx.db
+    // Get all associated documents (photos and files)
+    const allDocs = await ctx.db
       .query("documentos")
       .withIndex("by_bitacora_id", (q) => q.eq("bitacora_id", log._id as Id<"bitacora">))
       .collect();
+    
+    // Separate photos from documents
+    const photos = allDocs.filter(d => d.type === "bitacora_foto");
+    const docs = allDocs.filter(d => d.type === "bitacora_documento");
 
     // Generate URLs for photos with storage_id
     const photosWithUrls = await Promise.all(
@@ -187,11 +227,23 @@ export const getLogEntryById = query({
         return { ...photo, url: null };
       })
     );
+    
+    // Generate URLs for documents with storage_id
+    const docsWithUrls = await Promise.all(
+      docs.map(async (doc) => {
+        if (doc.storage_id) {
+          const url = await ctx.storage.getUrl(doc.storage_id);
+          return { ...doc, url };
+        }
+        return { ...doc, url: null };
+      })
+    );
 
     return {
       ...log,
       departamento: partidaNombre,
       fotos: photosWithUrls,
+      documentos: docsWithUrls,
     };
   },
 });
@@ -248,6 +300,8 @@ export const updateLogEntry = mutation({
     status: v.optional(v.string()),
     imagenes: v.optional(v.array(v.id("_storage"))), // New images to add
     imagenesDescripciones: v.optional(v.array(v.string())), // Descriptions for each new image
+    documentos: v.optional(v.array(v.id("_storage"))), // New documents to add
+    documentosNombres: v.optional(v.array(v.string())), // Names for each new document
   },
   handler: async (ctx, args) => {
     await getUserIdentity(ctx);
@@ -313,6 +367,24 @@ export const updateLogEntry = mutation({
             created_at: Date.now(),
           });
         }
+      }
+    }
+    
+    // Add new documents if provided
+    if (args.documentos && args.documentos.length > 0) {
+      for (let i = 0; i < args.documentos.length; i++) {
+        const storageId = args.documentos[i];
+        const nombre = args.documentosNombres?.[i] || `Documento ${i + 1}`;
+        
+        await ctx.db.insert("documentos", {
+          nombre: nombre,
+          descripcion: "",
+          type: "bitacora_documento",
+          storage_id: storageId,
+          proyecto: log.proyecto,
+          bitacora_id: args.logId,
+          uploaded_at: Date.now(),
+        });
       }
     }
 

@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { Id } from "../../../convex/_generated/dataModel";
-import { ChevronRight, Plus, MoreHorizontal, ChevronDown, Edit2, Trash2, Eye, Calendar as CalendarIcon, Loader2, ChevronsUpDown } from "lucide-react";
+import { ChevronRight, Plus, MoreHorizontal, ChevronDown, Edit2, Trash2, Eye, Calendar as CalendarIcon, Loader2, ChevronsUpDown, FileText } from "lucide-react";
 import { useBitacoraModal } from "../../hooks/use-bitacora-modal";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,7 @@ interface LogEntry {
     comentarios?: string;
     avance_dia: string;
     fotos?: { _id: string; storage_id?: string; url?: string | null; comment?: string }[];
+    documentos?: { _id: string; nombre: string; url?: string | null }[];
     partida_id: Id<"partidas">;
     familias_tags: string[];
     status: string;
@@ -351,6 +352,19 @@ export default function BitacoraPage() {
                                                             <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
                                                                 {tag}
                                                             </span>
+                                                        ))}
+                                                        {log.documentos && log.documentos.length > 0 && log.documentos.map((doc) => (
+                                                            <a
+                                                                key={doc._id}
+                                                                href={doc.url || "#"}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 transition-colors"
+                                                            >
+                                                                <FileText className="h-3 w-3" />
+                                                                {doc.nombre.length > 15 ? doc.nombre.substring(0, 15) + "..." : doc.nombre}
+                                                            </a>
                                                         ))}
                                                     </div>
                                                 </div>

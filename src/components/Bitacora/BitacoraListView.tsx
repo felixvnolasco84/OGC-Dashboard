@@ -1,4 +1,4 @@
-import { User, Calendar as CalendarIcon, MessageSquare, MoreVertical, Eye, Edit2, Trash2 } from "lucide-react";
+import { User, Calendar as CalendarIcon, MessageSquare, MoreVertical, Eye, Edit2, Trash2, FileText } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -17,6 +17,7 @@ interface LogEntry {
   status: string;
   uploaded_at?: number;
   fotos?: { _id: string; storage_id?: string; url?: string | null }[];
+  documentos?: { _id: string; nombre: string; url?: string | null }[];
 }
 
 interface BitacoraListViewProps {
@@ -181,6 +182,27 @@ export default function BitacoraListView({ logEntries, proyectoId, onOpenModal }
               <div className="whitespace-pre-wrap text-sm text-gray-700">{entry.avance_dia}</div>
             </div>
           </div>
+
+          {/* Documents */}
+          {entry.documentos && entry.documentos.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-900 mb-2">Documentos adjuntos:</h4>
+              <div className="flex flex-wrap gap-2">
+                {entry.documentos.map((doc) => (
+                  <a
+                    key={doc._id}
+                    href={doc.url || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 transition-colors"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {doc.nombre}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
