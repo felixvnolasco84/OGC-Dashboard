@@ -232,6 +232,8 @@ export default function ProyectoRequisicionesPage() {
     const getStatusEntregaColor = (status: string | undefined) => {
         switch (status) {
             case "Pendiente": return "bg-gray-50 text-gray-700 border border-gray-200";
+            case "Cancelado": return "bg-red-50 text-red-700 border border-red-200";
+            case "En proceso": return "bg-blue-50 text-blue-700 border border-blue-200";
             case "Parcial": return "bg-yellow-50 text-yellow-700 border border-yellow-200";
             case "Completo": return "bg-emerald-50 text-emerald-700 border border-emerald-200";
             default: return "bg-gray-50 text-gray-700 border border-gray-200";
@@ -621,15 +623,15 @@ export default function ProyectoRequisicionesPage() {
                                                     <div className={cn("rounded-full p-1", req.status === "Pagado" ? "bg-green-800 text-white" : "text-muted-foreground bg-gray-200")}>
                                                         <Check className="w-3 h-3" />
                                                     </div>
-                                                                   {/* Delivery Status */}
-                                                <span className={`px-2 py-1 rounded-full text-xs w-fit ${getStatusEntregaColor(req.status_entrega)}`}>
-                                                    {req.status_entrega || "Pendiente"}
-                                                </span>
+                                                    {/* Delivery Status */}
+                                                    <span className={`px-2 py-1 rounded-full text-xs w-fit ${getStatusEntregaColor(req.status_entrega)}`}>
+                                                        {req.status_entrega || "Pendiente"}
+                                                    </span>
                                                     {/* <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(req.status)}`}>
                                                         {req.status}
                                                     </span> */}
                                                 </div>
-                                 
+
                                             </div>
                                         </td>
                                         {/* Proveedor */}
@@ -664,11 +666,12 @@ export default function ProyectoRequisicionesPage() {
                                                         <MoreVertical className="h-4 w-4 text-gray-400" />
                                                     </Button>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="flex flex-col space-y-1 w-56" align="end">
+                                                <PopoverContent className="flex flex-col space-y-1 w-56 p-2" align="end">
                                                     {/* View details - available to all roles */}
                                                     <Button
                                                         variant="ghost"
                                                         className="justify-start"
+                                                        size="sm"
                                                         onClick={() => requisicionModal.onOpen({
                                                             projectId: proyectoId as Id<"desarrollos">,
                                                             requisicionId: req._id
@@ -683,6 +686,7 @@ export default function ProyectoRequisicionesPage() {
                                                             <Button
                                                                 variant="ghost"
                                                                 className="justify-start"
+                                                                size="sm"
                                                                 onClick={() => requisicionModal.onOpen({
                                                                     projectId: proyectoId as Id<"desarrollos">,
                                                                     requisicionId: req._id
@@ -698,6 +702,7 @@ export default function ProyectoRequisicionesPage() {
                                                             <Button
                                                                 variant="ghost"
                                                                 className="justify-start"
+                                                                size="sm"
                                                                 onClick={() => openProviderDialog(req._id)}
                                                             >
                                                                 Agregar proveedor
@@ -706,8 +711,9 @@ export default function ProyectoRequisicionesPage() {
 
                                                     {/* Payment Status change options - role-based filtering */}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
-                                                            <div className="border-t border-gray-100 pt-1 mt-1">
-                                                                <p className="text-xs text-gray-500 px-2 py-1">Estado de pago:</p>
+                                                        <div className="border-t border-gray-100 pt-1 mt-1">
+                                                            <p className="text-xs text-gray-500 px-2 py-1">Estado de pago:</p>
+                                                            <div className="space-y-1 flex flex-col">
                                                                 {(currentUser?.role === "finance"
                                                                     ? ["Pagado", "Cancelado"]
                                                                     : ["En proceso", "Pagado", "Cancelado"]
@@ -717,34 +723,39 @@ export default function ProyectoRequisicionesPage() {
                                                                             key={s}
                                                                             variant="ghost"
                                                                             size="sm"
-                                                                            className="justify-start w-full text-xs"
+                                                                            className={cn("justify-start text-[10px] rounded-full w-fit", getStatusEntregaColor(s))}
                                                                             onClick={() => handleStatusChange(req._id, s)}
                                                                         >
-                                                                            → {s}
+                                                                            {s}
                                                                         </Button>
                                                                     )
                                                                 ))}
                                                             </div>
-                                                        )}
+
+                                                        </div>
+                                                    )}
 
                                                     {/* Delivery Status change options */}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <div className="border-t border-gray-100 pt-1 mt-1">
                                                                 <p className="text-xs text-gray-500 px-2 py-1">Estado de entrega:</p>
-                                                                {["Pendiente", "Parcial", "Completo"].map(s => (
+                                                                <div className="space-y-1 flex flex-col">
+                                                                                       {["Pendiente", "Parcial", "Completo"].map(s => (
                                                                     s !== (req.status_entrega || "Pendiente") && (
                                                                         <Button
                                                                             key={s}
                                                                             variant="ghost"
                                                                             size="sm"
-                                                                            className="justify-start w-full text-xs"
+                                                                            className={cn("justify-start w-fit text-[10px] rounded-full", getStatusEntregaColor(s))}
                                                                             onClick={() => handleStatusEntregaChange(req._id, s)}
                                                                         >
-                                                                            → {s}
+                                                                            {s}
                                                                         </Button>
                                                                     )
                                                                 ))}
+                                                                </div>
+                                             
                                                             </div>
                                                         )}
 
@@ -754,6 +765,7 @@ export default function ProyectoRequisicionesPage() {
                                                             <div className="border-t border-gray-100 pt-1 mt-1">
                                                                 <Button
                                                                     variant="ghost"
+                                                                    size="sm"
                                                                     className="text-red-600 justify-start w-full"
                                                                     onClick={() => openDeleteDialog(req._id)}
                                                                 >
