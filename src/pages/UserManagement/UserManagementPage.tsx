@@ -13,7 +13,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Shield, User, Eye } from "lucide-react";
+import { Loader2, Shield, User, Eye, DollarSign } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
 
 export default function UserManagementPage() {
@@ -81,6 +81,8 @@ export default function UserManagementPage() {
         return <Eye className="h-4 w-4 text-gray-600" />;
       case "contratista":
         return <User className="h-4 w-4 text-orange-600" />;
+      case "finance":
+        return <DollarSign className="h-4 w-4 text-green-600" />;
       default:
         return null;
     }
@@ -186,7 +188,13 @@ export default function UserManagementPage() {
                         <SelectItem value="contratista">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-orange-600" />
-                            Contratista (solo bitácora)
+                            Contratista (bitácora y requisiciones)
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="finance">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-green-600" />
+                            Finanzas (solo requisiciones)
                           </div>
                         </SelectItem>
                         <SelectItem value="viewer">
@@ -204,7 +212,12 @@ export default function UserManagementPage() {
                     )}
                     {selectedRole === "contratista" && (
                       <p className="text-xs text-gray-500">
-                        Los contratistas solo tienen acceso a la bitácora en los proyectos asignados
+                        Los contratistas tienen acceso a la bitácora y requisiciones en los proyectos asignados
+                      </p>
+                    )}
+                    {selectedRole === "finance" && (
+                      <p className="text-xs text-gray-500">
+                        El rol de finanzas solo puede ver requisiciones y cambiar estados a Pagado o Cancelado
                       </p>
                     )}
                   </div>

@@ -43,15 +43,22 @@ const projectMenuItems: ProjectMenuItem[] = [
   { id: "control", label: "Control", path: "control", disabled: false },
   // { id: "programa", label: "Programa", path: "programa", disabled: true },
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
-  { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false },
+  { id: "bitacora", label: "Bitácora", path: "bitacora", disabled: false },
+  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false },
   { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
   { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
   // { id: "proveedores", label: "Proveedores", path: "proveedores", disabled: false },
 ];
 
-// Restricted menu items for contratista role (only Bitacora)
+// Restricted menu items for contratista role (Bitacora + Requisiciones)
 const contratistaMenuItems: ProjectMenuItem[] = [
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false },
+  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false },
+];
+
+// Restricted menu items for finance role (only Requisiciones)
+const financeMenuItems: ProjectMenuItem[] = [
+  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false },
 ];
 
 const salesProjectMenuItems: ProjectMenuItem[] = [
@@ -102,8 +109,8 @@ export default function Sidebar() {
       return matchesSearch;
     }
     
-    // Users and contratistas: only projects explicitly allowed
-    if (currentUser?.role === "user" || currentUser?.role === "contratista") {
+    // Users, contratistas, and finance: only projects explicitly allowed
+    if (currentUser?.role === "user" || currentUser?.role === "contratista" || currentUser?.role === "finance") {
       const allowedProjects = currentUser?.allowed_desarrollos || [];
       const hasAccess = allowedProjects.includes(proyecto._id);
       return matchesSearch && hasAccess;
@@ -220,7 +227,12 @@ export default function Sidebar() {
 
                   {/* Project Sub-menu */}
                   <AccordionContent className="space-y-0.5 bg-gray-50 rounded-lg py-2 text-left">
-                    {(currentUser?.role === "contratista" ? contratistaMenuItems : projectMenuItems).map((item) => (
+                    {(currentUser?.role === "contratista" 
+                        ? contratistaMenuItems 
+                        : currentUser?.role === "finance" 
+                          ? financeMenuItems 
+                          : projectMenuItems
+                      ).map((item) => (
                       <Link
                         key={item.id}
                         to={`/proyecto/${proyecto._id}/${item.path}`}

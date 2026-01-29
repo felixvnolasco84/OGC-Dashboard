@@ -392,14 +392,16 @@ export default defineSchema({
     fecha_solicitud: v.string(), // DD/MM/YYYY - When submitted
     fecha_entrega: v.optional(v.string()), // DD/MM/YYYY - Requested delivery date
     descripcion: v.optional(v.string()), // Comments/notes
-    status: v.string(), // En proceso, Cancelado, Pagado, Recibido, Parcial
+    status: v.string(), // En proceso, Pagado, Cancelado (payment status)
+    status_entrega: v.optional(v.string()), // Pendiente, Parcial, Completo (delivery status)
     // Metadata
     created_at: v.number(),
     updated_at: v.optional(v.number()),
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_solicitante", { fields: ["solicitante_id"] })
     .index("by_status", { fields: ["status"] })
-    .index("by_proyecto_status", { fields: ["proyecto", "status"] }),
+    .index("by_proyecto_status", { fields: ["proyecto", "status"] })
+    .index("by_proyecto_status_entrega", { fields: ["proyecto", "status_entrega"] }),
   
   // Requisicion line items - Materials/equipment requested
   requisicion_items: defineTable({

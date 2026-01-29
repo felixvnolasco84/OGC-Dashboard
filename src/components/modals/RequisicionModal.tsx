@@ -2,7 +2,7 @@ import { Plus, Trash2, Upload, Loader2, Check, CalendarIcon, FileText, ExternalL
 import { useRequisicionModal, RequisicionItem } from "../../hooks/nueva-requisicion-modal";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Fragment } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -14,6 +14,7 @@ import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Progress } from "../ui/progress";
+import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 import { es } from "date-fns/locale";
 import {
@@ -670,8 +671,10 @@ export default function RequisicionModal() {
             {selectedPartida.nombre && (
               <div className="space-y-4">
                 {!isViewMode && <Label className="text-base font-normal">Familias</Label>}
-                {items.map((item) => (
-                  <div key={item.id} className={`space-y-3 ${isViewMode ? 'border-l-2 border-gray-200 pl-4' : 'border border-gray-200 p-3 rounded'}`}>
+                {items.map((item, itemIndex) => (
+                  <Fragment key={item.id}>
+                    {isViewMode && itemIndex > 0 && <Separator className="my-4" />}
+                    <div className={`space-y-3 ${isViewMode ? 'border-l-2 border-gray-200 pl-4' : 'border border-gray-200 p-3 rounded'}`}>
                     {/* Familia Select */}
                     {isViewMode ? (
                       <div className="flex items-center justify-between">
@@ -708,14 +711,21 @@ export default function RequisicionModal() {
                             {isViewMode ? (
                               <div className="flex items-center justify-between gap-4">
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-gray-900 truncate">{sp.sub_partida || "-"}</p>
-                                  <p className="text-xs text-gray-500">{sp.cantidad} {sp.unidad}</p>
+                                  <p className="text-sm text-gray-900 uppercase">{sp.sub_partida || "-"}</p>
+                                  <p className="text-sm text-gray-500">{sp.cantidad} {sp.unidad}</p>
                                 </div>
-                                {sp.monto && (
-                                  <span className="text-sm  text-gray-900 whitespace-nowrap">
-                                    {formatCurrency(sp.monto * 1.16)}
-                                  </span>
-                                )}
+                                <div className="text-right">
+                                  {sp.monto && (
+                                    <p className="text-sm text-gray-700 whitespace-nowrap">
+                                      {formatCurrency(sp.monto)} × {sp.cantidad}
+                                    </p>
+                                  )}
+                                  {sp.monto && (
+                                    <p className="text-xs text-gray-400 whitespace-nowrap">
+                                      {formatCurrency(sp.monto * sp.cantidad * 1.16)}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             ) : (
                               <>
@@ -865,10 +875,9 @@ export default function RequisicionModal() {
                         {!isViewMode && (
                           <Button
                             type="button"
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            onClick={() => addSubPartida(item.id)}
-                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-0 h-auto"
+                            onClick={() => addSubPartida(item.id)}                            
                           >
                             <Plus className="h-3 w-3 mr-1" />
                             Agregar Sub-partida
@@ -903,6 +912,7 @@ export default function RequisicionModal() {
                       </Button>
                     )}
                   </div>
+                  </Fragment>
                 ))}
 
                 {/* Add more familia button - outside the item boxes */}

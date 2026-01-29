@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, FileText, ExternalLink, Building2, Loader2, Eye, Edit2, ChevronLeft } from "lucide-react";
+import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, FileText, ExternalLink, Building2, Loader2, Eye, Edit2, ChevronLeft, Check } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export default function ProyectoRequisicionesPage() {
     const { proyectoId } = useParams<{ proyectoId: string }>();
@@ -53,6 +54,7 @@ export default function ProyectoRequisicionesPage() {
 
     const deleteRequisicion = useMutation(api.requisiciones.deleteRequisicion);
     const updateStatus = useMutation(api.requisiciones.updateStatus);
+    const updateStatusEntrega = useMutation(api.requisiciones.updateStatusEntrega);
     const updateRequisicionProveedor = useMutation(api.requisiciones.update);
     const createProveedor = useMutation(api.proveedores.create);
 
@@ -193,24 +195,45 @@ export default function ProyectoRequisicionesPage() {
     const handleStatusChange = async (requisicionId: Id<"requisiciones">, newStatus: string) => {
         try {
             await updateStatus({ id: requisicionId, status: newStatus });
-            toast.success("Estado actualizado", {
+            toast.success("Estado de pago actualizado", {
                 description: `La requisición ahora está "${newStatus}".`,
             });
         } catch (error) {
             console.error("Error updating status:", error);
             toast.error("Error al actualizar", {
-                description: "No se pudo actualizar el estado.",
+                description: "No se pudo actualizar el estado de pago.",
             });
         }
     };
 
-    const getStatusColor = (status: string) => {
+    const handleStatusEntregaChange = async (requisicionId: Id<"requisiciones">, newStatus: string) => {
+        try {
+            await updateStatusEntrega({ id: requisicionId, status_entrega: newStatus });
+            toast.success("Estado de entrega actualizado", {
+                description: `La entrega ahora está "${newStatus}".`,
+            });
+        } catch (error) {
+            console.error("Error updating delivery status:", error);
+            toast.error("Error al actualizar", {
+                description: "No se pudo actualizar el estado de entrega.",
+            });
+        }
+    };
+
+    // const getStatusColor = (status: string) => {
+    //     switch (status) {
+    //         case "En proceso": return "bg-blue-50 text-blue-700 border border-blue-200";
+    //         case "Cancelado": return "bg-red-50 text-red-700 border border-red-200";
+    //         case "Pagado": return "bg-green-50 text-green-700 border border-green-200";
+    //         default: return "bg-gray-50 text-gray-700 border border-gray-200";
+    //     }
+    // };
+
+    const getStatusEntregaColor = (status: string | undefined) => {
         switch (status) {
-            case "En proceso": return "bg-blue-50 text-blue-700 border border-blue-200";
-            case "Cancelado": return "bg-red-50 text-red-700 border border-red-200";
-            case "Pagado": return "bg-green-50 text-green-700 border border-green-200";
-            case "Recibido": return "bg-emerald-50 text-emerald-700 border border-emeral-200";
+            case "Pendiente": return "bg-gray-50 text-gray-700 border border-gray-200";
             case "Parcial": return "bg-yellow-50 text-yellow-700 border border-yellow-200";
+            case "Completo": return "bg-emerald-50 text-emerald-700 border border-emerald-200";
             default: return "bg-gray-50 text-gray-700 border border-gray-200";
         }
     };
@@ -283,7 +306,7 @@ export default function ProyectoRequisicionesPage() {
         if (!proveedores) return [];
         if (!providerSearchTerm) return proveedores;
         const searchLower = providerSearchTerm.toLowerCase();
-        return proveedores.filter(p => 
+        return proveedores.filter(p =>
             p.razon_social.toLowerCase().includes(searchLower) ||
             p.rfc.toLowerCase().includes(searchLower) ||
             p.nombre_contacto?.toLowerCase().includes(searchLower)
@@ -376,15 +399,18 @@ export default function ProyectoRequisicionesPage() {
                             <h1 className="text-2xl text-gray-700">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
-                            <Button
-                                onClick={() => requisicionModal.onOpen({ projectId: proyectoId as Id<"desarrollos"> }, "create")}
-                                variant="outline"
-                                size="lg"
-                                className="flex items-center gap-2 rounded-none text-gray-500 py-6"
-                            >
-                                Nueva Requisición
-                                <Plus className="h-5 w-5" />
-                            </Button>
+                            {/* Nueva Requisición - admin, user, or contratista (contratista can create their own) */}
+                            {(currentUser?.role === "admin" || currentUser?.role === "user" || currentUser?.role === "contratista") && (
+                                <Button
+                                    onClick={() => requisicionModal.onOpen({ projectId: proyectoId as Id<"desarrollos"> }, "create")}
+                                    variant="outline"
+                                    size="lg"
+                                    className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+                                >
+                                    Nueva Requisición
+                                    <Plus className="h-5 w-5" />
+                                </Button>
+                            )}
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
                                 <span className="text-sm font-normal">
                                     Total: {requisiciones?.length || 0}
@@ -589,9 +615,22 @@ export default function ProyectoRequisicionesPage() {
                                         </td>
                                         {/* Status */}
                                         <td className="px-6 py-4 border-r border-gray-200">
-                                            <span className={`px-2 py-1.5 rounded-full text-xs ${getStatusColor(req.status)}`}>
-                                                {req.status}
-                                            </span>
+                                            <div className="flex flex-col gap-1.5">
+                                                {/* Payment Status */}
+                                                <div className="flex items-center space-x-2">
+                                                    <div className={cn("rounded-full p-1", req.status === "Pagado" ? "bg-green-800 text-white" : "text-muted-foreground bg-gray-200")}>
+                                                        <Check className="w-3 h-3" />
+                                                    </div>
+                                                                   {/* Delivery Status */}
+                                                <span className={`px-2 py-1 rounded-full text-xs w-fit ${getStatusEntregaColor(req.status_entrega)}`}>
+                                                    {req.status_entrega || "Pendiente"}
+                                                </span>
+                                                    {/* <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(req.status)}`}>
+                                                        {req.status}
+                                                    </span> */}
+                                                </div>
+                                 
+                                            </div>
                                         </td>
                                         {/* Proveedor */}
                                         <td className="px-6 py-4 text-sm text-gray-700 border-r border-gray-200">
@@ -626,6 +665,7 @@ export default function ProyectoRequisicionesPage() {
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="flex flex-col space-y-1 w-56" align="end">
+                                                    {/* View details - available to all roles */}
                                                     <Button
                                                         variant="ghost"
                                                         className="justify-start"
@@ -636,51 +676,91 @@ export default function ProyectoRequisicionesPage() {
                                                     >
                                                         Ver detalles
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="justify-start"
-                                                        onClick={() => requisicionModal.onOpen({
-                                                            projectId: proyectoId as Id<"desarrollos">,
-                                                            requisicionId: req._id
-                                                        }, "edit")}
-                                                    >
-                                                        Editar
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="justify-start"
-                                                        onClick={() => openProviderDialog(req._id)}
-                                                    >                                                        
-                                                        Agregar proveedor
-                                                    </Button>
 
-                                                    {/* Status change options */}
-                                                    <div className="border-t border-gray-100 pt-1 mt-1">
-                                                        <p className="text-xs text-gray-500 px-2 py-1">Cambiar estado:</p>
-                                                        {["En proceso", "Pagado", "Recibido", "Parcial", "Cancelado"].map(s => (
-                                                            s !== req.status && (
+                                                    {/* Edit - admin, user, or contratista (own requisiciones only) */}
+                                                    {(currentUser?.role === "admin" || currentUser?.role === "user" ||
+                                                        (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="justify-start"
+                                                                onClick={() => requisicionModal.onOpen({
+                                                                    projectId: proyectoId as Id<"desarrollos">,
+                                                                    requisicionId: req._id
+                                                                }, "edit")}
+                                                            >
+                                                                Editar
+                                                            </Button>
+                                                        )}
+
+                                                    {/* Add provider - admin, user, or contratista (own requisiciones only) */}
+                                                    {(currentUser?.role === "admin" || currentUser?.role === "user" ||
+                                                        (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="justify-start"
+                                                                onClick={() => openProviderDialog(req._id)}
+                                                            >
+                                                                Agregar proveedor
+                                                            </Button>
+                                                        )}
+
+                                                    {/* Payment Status change options - role-based filtering */}
+                                                    {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
+                                                            <div className="border-t border-gray-100 pt-1 mt-1">
+                                                                <p className="text-xs text-gray-500 px-2 py-1">Estado de pago:</p>
+                                                                {(currentUser?.role === "finance"
+                                                                    ? ["Pagado", "Cancelado"]
+                                                                    : ["En proceso", "Pagado", "Cancelado"]
+                                                                ).map(s => (
+                                                                    s !== req.status && (
+                                                                        <Button
+                                                                            key={s}
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            className="justify-start w-full text-xs"
+                                                                            onClick={() => handleStatusChange(req._id, s)}
+                                                                        >
+                                                                            → {s}
+                                                                        </Button>
+                                                                    )
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                    {/* Delivery Status change options */}
+                                                    {(currentUser?.role === "admin" || currentUser?.role === "user" ||
+                                                        (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
+                                                            <div className="border-t border-gray-100 pt-1 mt-1">
+                                                                <p className="text-xs text-gray-500 px-2 py-1">Estado de entrega:</p>
+                                                                {["Pendiente", "Parcial", "Completo"].map(s => (
+                                                                    s !== (req.status_entrega || "Pendiente") && (
+                                                                        <Button
+                                                                            key={s}
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            className="justify-start w-full text-xs"
+                                                                            onClick={() => handleStatusEntregaChange(req._id, s)}
+                                                                        >
+                                                                            → {s}
+                                                                        </Button>
+                                                                    )
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                    {/* Delete - admin or contratista (own requisiciones only) */}
+                                                    {(currentUser?.role === "admin" ||
+                                                        (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
+                                                            <div className="border-t border-gray-100 pt-1 mt-1">
                                                                 <Button
-                                                                    key={s}
                                                                     variant="ghost"
-                                                                    size="sm"
-                                                                    className="justify-start w-full text-xs"
-                                                                    onClick={() => handleStatusChange(req._id, s)}
+                                                                    className="text-red-600 justify-start w-full"
+                                                                    onClick={() => openDeleteDialog(req._id)}
                                                                 >
-                                                                    → {s}
+                                                                    Eliminar
                                                                 </Button>
-                                                            )
-                                                        ))}
-                                                    </div>
-
-                                                    <div className="border-t border-gray-100 pt-1 mt-1">
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="text-red-600 justify-start w-full"
-                                                            onClick={() => openDeleteDialog(req._id)}
-                                                        >
-                                                            Eliminar
-                                                        </Button>
-                                                    </div>
+                                                            </div>
+                                                        )}
                                                 </PopoverContent>
                                             </Popover>
                                         </td>
@@ -740,7 +820,7 @@ export default function ProyectoRequisicionesPage() {
                                             {isEditingProvider ? "Editar Proveedor" : "Detalles del Proveedor"}
                                         </DialogTitle>
                                         <DialogDescription>
-                                            {isEditingProvider 
+                                            {isEditingProvider
                                                 ? "Modifica los datos del proveedor"
                                                 : viewingProvider.razon_social}
                                         </DialogDescription>
@@ -946,7 +1026,7 @@ export default function ProyectoRequisicionesPage() {
                                             className="pl-10"
                                         />
                                     </div>
-                                    
+
                                     {/* Provider List */}
                                     <div className="flex-1 overflow-y-auto border rounded-lg max-h-[300px]">
                                         {filteredProviders.length === 0 ? (
@@ -958,9 +1038,8 @@ export default function ProyectoRequisicionesPage() {
                                                 {filteredProviders.map((proveedor) => (
                                                     <div
                                                         key={proveedor._id}
-                                                        className={`p-3 hover:bg-gray-50 cursor-pointer flex items-center justify-between ${
-                                                            selectedProviderId === proveedor._id ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
-                                                        }`}
+                                                        className={`p-3 hover:bg-gray-50 cursor-pointer flex items-center justify-between ${selectedProviderId === proveedor._id ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
+                                                            }`}
                                                         onClick={() => setSelectedProviderId(proveedor._id)}
                                                     >
                                                         <div className="flex-1 min-w-0">
@@ -1000,7 +1079,7 @@ export default function ProyectoRequisicionesPage() {
                                             </div>
                                         )}
                                     </div>
-                                    
+
                                     <div className="flex justify-end gap-2 pt-4">
                                         <Button variant="outline" onClick={() => setProviderDialogOpen(false)}>
                                             Cancelar
@@ -1015,90 +1094,90 @@ export default function ProyectoRequisicionesPage() {
                                     </div>
                                 </div>
                             ) : (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Razón Social *</Label>
-                                    <Input
-                                        value={newProviderData.razon_social}
-                                        onChange={(e) => setNewProviderData(prev => ({ ...prev, razon_social: e.target.value }))}
-                                        placeholder="Nombre de la empresa"
-                                    />
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Razón Social *</Label>
+                                            <Input
+                                                value={newProviderData.razon_social}
+                                                onChange={(e) => setNewProviderData(prev => ({ ...prev, razon_social: e.target.value }))}
+                                                placeholder="Nombre de la empresa"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>RFC *</Label>
+                                            <Input
+                                                value={newProviderData.rfc}
+                                                onChange={(e) => setNewProviderData(prev => ({ ...prev, rfc: e.target.value }))}
+                                                placeholder="RFC"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Dirección</Label>
+                                        <Input
+                                            value={newProviderData.direccion}
+                                            onChange={(e) => setNewProviderData(prev => ({ ...prev, direccion: e.target.value }))}
+                                            placeholder="Dirección"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Contacto</Label>
+                                            <Input
+                                                value={newProviderData.nombre_contacto}
+                                                onChange={(e) => setNewProviderData(prev => ({ ...prev, nombre_contacto: e.target.value }))}
+                                                placeholder="Nombre del contacto"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Teléfono</Label>
+                                            <Input
+                                                value={newProviderData.telefono_contacto}
+                                                onChange={(e) => setNewProviderData(prev => ({ ...prev, telefono_contacto: e.target.value }))}
+                                                placeholder="Teléfono"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Banco</Label>
+                                            <Input
+                                                value={newProviderData.banco}
+                                                onChange={(e) => setNewProviderData(prev => ({ ...prev, banco: e.target.value }))}
+                                                placeholder="Banco"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Cuenta</Label>
+                                            <Input
+                                                value={newProviderData.cuenta}
+                                                onChange={(e) => setNewProviderData(prev => ({ ...prev, cuenta: e.target.value }))}
+                                                placeholder="No. Cuenta"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>CLABE</Label>
+                                            <Input
+                                                value={newProviderData.clabe}
+                                                onChange={(e) => setNewProviderData(prev => ({ ...prev, clabe: e.target.value }))}
+                                                placeholder="CLABE"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2 pt-4">
+                                        <Button variant="outline" onClick={() => setProviderDialogOpen(false)}>
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            onClick={handleCreateProvider}
+                                            disabled={!newProviderData.razon_social || !newProviderData.rfc || isSubmittingProvider}
+                                        >
+                                            {isSubmittingProvider && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                                            Crear y Asignar
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>RFC *</Label>
-                                    <Input
-                                        value={newProviderData.rfc}
-                                        onChange={(e) => setNewProviderData(prev => ({ ...prev, rfc: e.target.value }))}
-                                        placeholder="RFC"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Dirección</Label>
-                                <Input
-                                    value={newProviderData.direccion}
-                                    onChange={(e) => setNewProviderData(prev => ({ ...prev, direccion: e.target.value }))}
-                                    placeholder="Dirección"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Contacto</Label>
-                                    <Input
-                                        value={newProviderData.nombre_contacto}
-                                        onChange={(e) => setNewProviderData(prev => ({ ...prev, nombre_contacto: e.target.value }))}
-                                        placeholder="Nombre del contacto"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Teléfono</Label>
-                                    <Input
-                                        value={newProviderData.telefono_contacto}
-                                        onChange={(e) => setNewProviderData(prev => ({ ...prev, telefono_contacto: e.target.value }))}
-                                        placeholder="Teléfono"
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Banco</Label>
-                                    <Input
-                                        value={newProviderData.banco}
-                                        onChange={(e) => setNewProviderData(prev => ({ ...prev, banco: e.target.value }))}
-                                        placeholder="Banco"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Cuenta</Label>
-                                    <Input
-                                        value={newProviderData.cuenta}
-                                        onChange={(e) => setNewProviderData(prev => ({ ...prev, cuenta: e.target.value }))}
-                                        placeholder="No. Cuenta"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>CLABE</Label>
-                                    <Input
-                                        value={newProviderData.clabe}
-                                        onChange={(e) => setNewProviderData(prev => ({ ...prev, clabe: e.target.value }))}
-                                        placeholder="CLABE"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-2 pt-4">
-                                <Button variant="outline" onClick={() => setProviderDialogOpen(false)}>
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    onClick={handleCreateProvider}
-                                    disabled={!newProviderData.razon_social || !newProviderData.rfc || isSubmittingProvider}
-                                >
-                                    {isSubmittingProvider && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                                    Crear y Asignar
-                                </Button>
-                            </div>
-                        </div>
                             )}
                         </>
                     )}

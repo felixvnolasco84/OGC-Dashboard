@@ -178,10 +178,11 @@ export const create = mutation({
     handler: async (ctx, args) => {
         const { items, ...requisicionData } = args;
         
-        // Create requisicion with auto "En proceso" status
+        // Create requisicion with default statuses
         const requisicionId = await ctx.db.insert("requisiciones", {
             ...requisicionData,
             status: "En proceso",
+            status_entrega: "Pendiente",
             created_at: Date.now(),
         });
         
@@ -202,7 +203,7 @@ export const create = mutation({
     },
 });
 
-// Update requisicion status
+// Update requisicion payment status
 export const updateStatus = mutation({
     args: {
         id: v.id("requisiciones"),
@@ -211,6 +212,21 @@ export const updateStatus = mutation({
     handler: async (ctx, args) => {
         await ctx.db.patch(args.id, {
             status: args.status,
+            updated_at: Date.now(),
+        });
+        return { success: true };
+    },
+});
+
+// Update requisicion delivery status
+export const updateStatusEntrega = mutation({
+    args: {
+        id: v.id("requisiciones"),
+        status_entrega: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.id, {
+            status_entrega: args.status_entrega,
             updated_at: Date.now(),
         });
         return { success: true };

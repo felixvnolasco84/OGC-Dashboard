@@ -8,7 +8,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: "admin" | "user" | "viewer" | "contratista";
+  requiredRole?: "admin" | "user" | "viewer" | "contratista" | "finance";
   redirectTo?: string;
 }
 
@@ -139,14 +139,15 @@ export default function ProtectedRoute({
   return <>{children}</>;
 }
 
-// Role hierarchy: admin > user > viewer > contratista
+// Role hierarchy: admin > user > finance > viewer > contratista
 function hasRequiredRole(
   userRole: string,
-  requiredRole: "admin" | "user" | "viewer" | "contratista"
+  requiredRole: "admin" | "user" | "viewer" | "contratista" | "finance"
 ): boolean {
   const roleHierarchy: Record<string, number> = {
-    admin: 4,
-    user: 3,
+    admin: 5,
+    user: 4,
+    finance: 3,
     viewer: 2,
     contratista: 1,
   };

@@ -153,7 +153,7 @@ createRoot(document.getElementById("root")!).render(
                   </ProtectedRoute>
                 } />
                 <Route path="/proyecto/:proyectoId/requisiciones" element={
-                  <ProtectedRoute requiredRole="user">
+                  <ProtectedRoute requiredRole="contratista">
                     <ProyectoRequisicionesPage />
                   </ProtectedRoute>
                 } />
