@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ProyectoRequisicionesPage() {
     const { proyectoId } = useParams<{ proyectoId: string }>();
@@ -47,6 +48,7 @@ export default function ProyectoRequisicionesPage() {
     const [sortField, setSortField] = useState<"fecha_solicitud" | "tipo">("fecha_solicitud");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [showFilters, setShowFilters] = useState(false);
+    const [activeTab, setActiveTab] = useState<"solicitudes" | "pagadas" | "parcial" | "recibidas">("solicitudes");
 
     // Fetch project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -128,6 +130,23 @@ export default function ProyectoRequisicionesPage() {
         if (!requisiciones) return [];
 
         const filtered = requisiciones.filter((req) => {
+            // Tab filter
+            let matchesTab = true;
+            switch (activeTab) {
+                case "solicitudes":
+                    matchesTab = true; // Show all
+                    break;
+                case "pagadas":
+                    matchesTab = req.status === "Pagado";
+                    break;
+                case "parcial":
+                    matchesTab = req.status_entrega === "Parcial";
+                    break;
+                case "recibidas":
+                    matchesTab = req.status_entrega === "Completo";
+                    break;
+            }
+
             // Text search (solicitante, descripcion, partida, familia)
             const searchLower = searchTerm.toLowerCase();
             const matchesSearch = !searchTerm ||
@@ -144,7 +163,7 @@ export default function ProyectoRequisicionesPage() {
             // Tipo filter
             const matchesTipo = tipoFilter === "all" || req.tipo === tipoFilter;
 
-            return matchesSearch && matchesStatus && matchesTipo;
+            return matchesTab && matchesSearch && matchesStatus && matchesTipo;
         });
 
         // Sort results
@@ -159,7 +178,7 @@ export default function ProyectoRequisicionesPage() {
         });
 
         return filtered;
-    }, [requisiciones, searchTerm, statusFilter, tipoFilter, sortField, sortDirection]);
+    }, [requisiciones, searchTerm, statusFilter, tipoFilter, sortField, sortDirection, activeTab]);
 
     // Clear all filters
     const clearFilters = () => {
@@ -570,8 +589,40 @@ export default function ProyectoRequisicionesPage() {
                     )}
                 </div>
 
+                {/* Status Tabs */}
+                <div className="px-12 mb-4">
+                    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
+                        <TabsList className="bg-transparent h-auto p-0 gap-0 border-b border-gray-200 w-full justify-start rounded-none">
+                            <TabsTrigger 
+                                value="solicitudes" 
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900"
+                            >
+                                Solicitudes
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="pagadas" 
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900"
+                            >
+                                Pagadas
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="parcial" 
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900"
+                            >
+                                Parcial
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="recibidas" 
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900"
+                            >
+                                Recibidas
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
+
                 {/* Table */}
-                <div className="border border-gray-200 rounded-none">
+                <div className="border border-gray-200 rounded-none mx-12">
                     <table className="w-full">
                         <thead className="border-b border-gray-200">
                             <tr>
