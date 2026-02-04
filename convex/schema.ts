@@ -428,4 +428,27 @@ export default defineSchema({
     uploaded_by_name: v.string(),
   }).index("by_requisicion", { fields: ["requisicion_id"] })
     .index("by_proyecto", { fields: ["proyecto"] }),
+  
+  // Requisicion history - Tracks all changes to requisiciones
+  requisicion_history: defineTable({
+    proyecto: v.id("desarrollos"),
+    requisicion_id: v.id("requisiciones"),
+    action: v.string(), // "created" | "updated" | "status_changed" | "status_entrega_changed" | "cancelled" | "deleted" | "document_added" | "document_removed"
+    field_changed: v.optional(v.string()), // Which field changed (for updates)
+    old_value: v.optional(v.string()), // Previous value (JSON stringified)
+    new_value: v.optional(v.string()), // New value (JSON stringified)
+    changed_by_id: v.id("users"),
+    changed_by_name: v.string(),
+    created_at: v.number(),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_requisicion", { fields: ["requisicion_id"] })
+    .index("by_proyecto_created", { fields: ["proyecto", "created_at"] })
+    .index("by_changed_by", { fields: ["changed_by_id"] }),
+  
+  // Requisicion read status - Tracks when users last viewed requisicion changes per project
+  requisicion_read_status: defineTable({
+    user_id: v.id("users"),
+    proyecto: v.id("desarrollos"),
+    last_read_at: v.number(), // Timestamp of last viewed
+  }).index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
 });

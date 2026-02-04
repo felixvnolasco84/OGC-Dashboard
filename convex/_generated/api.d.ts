@@ -29,6 +29,7 @@ import type * as partida from "../partida.js";
 import type * as permissions from "../permissions.js";
 import type * as projected_transactions from "../projected_transactions.js";
 import type * as proveedores from "../proveedores.js";
+import type * as requisicion_history from "../requisicion_history.js";
 import type * as requisiciones from "../requisiciones.js";
 import type * as sale_chart_configurations from "../sale_chart_configurations.js";
 import type * as sales_documentos from "../sales_documentos.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   permissions: typeof permissions;
   projected_transactions: typeof projected_transactions;
   proveedores: typeof proveedores;
+  requisicion_history: typeof requisicion_history;
   requisiciones: typeof requisiciones;
   sale_chart_configurations: typeof sale_chart_configurations;
   sales_documentos: typeof sales_documentos;

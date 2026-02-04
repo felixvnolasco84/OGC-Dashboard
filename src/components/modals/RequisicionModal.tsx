@@ -450,6 +450,8 @@ export default function RequisicionModal() {
           fecha_entrega: fecha_entrega || undefined,
           descripcion: descripcion || undefined,
           items: flattenedItems,
+          changed_by_id: currentUser!._id,
+          changed_by_name: currentUser!.name,
         });
 
         // Upload new files if any
@@ -711,18 +713,19 @@ export default function RequisicionModal() {
                             {isViewMode ? (
                               <div className="flex items-center justify-between gap-4">
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-gray-900 uppercase">{sp.sub_partida || "-"}</p>
-                                  <p className="text-sm text-gray-500">{sp.cantidad} {sp.unidad}</p>
+                                  <p className="text-xs text-gray-900 uppercase">{sp.sub_partida || "-"}</p>
+                                  <p className="text-orange-700">{sp.cantidad} {sp.unidad}</p>
                                 </div>
                                 <div className="text-right">
+                                  
                                   {sp.monto && (
-                                    <p className="text-sm text-gray-700 whitespace-nowrap">
-                                      {formatCurrency(sp.monto)} × {sp.cantidad}
+                                    <p className="text-blue-700 whitespace-nowrap">
+                                      {formatCurrency(sp.monto * sp.cantidad * 1.16)}
                                     </p>
                                   )}
                                   {sp.monto && (
-                                    <p className="text-xs text-gray-400 whitespace-nowrap">
-                                      {formatCurrency(sp.monto * sp.cantidad * 1.16)}
+                                    <p className="text-xs text-blue-500 whitespace-nowrap">
+                                      {formatCurrency(sp.monto)} × {sp.cantidad}
                                     </p>
                                   )}
                                 </div>

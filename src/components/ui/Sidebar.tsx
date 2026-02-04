@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { Authenticated, Unauthenticated, useQuery, useConvexAuth } from "convex/react";
+import { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import LOGO from '../../../public/OGC-LOGO.svg'
@@ -88,6 +89,43 @@ const bottomSalesMenuItems = [
   { id: "sales-usuarios", label: "Acceso Usuarios", path: "/sales-usuarios", icon: User },
 ];
 
+
+// Notification dot component for requisiciones
+function RequisicionNotificationDot({ 
+  proyectoId, 
+  userId, 
+  userRole 
+}: { 
+  proyectoId: Id<"desarrollos">; 
+  userId?: Id<"users">; 
+  userRole?: string;
+}) {
+  const unreadSummary = useQuery(
+    api.requisicion_history.getUnreadSummary,
+    userId ? { user_id: userId, proyecto: proyectoId, user_role: userRole } : "skip"
+  );
+
+  if (!unreadSummary || unreadSummary.total === 0) {
+    return null;
+  }
+
+  // Green for new requisiciones (priority), blue for updates only
+  const dotColor = unreadSummary.hasNew 
+    ? "bg-green-500" 
+    : unreadSummary.hasUpdated 
+      ? "bg-blue-500" 
+      : "bg-gray-400";
+
+  return (
+    <span 
+      className={cn(
+        "w-2 h-2 rounded-full",
+        dotColor
+      )}
+      title={`${unreadSummary.total} cambio${unreadSummary.total > 1 ? 's' : ''} sin leer`}
+    />
+  );
+}
 
 export default function Sidebar() {
   const location = useLocation();
@@ -244,7 +282,16 @@ export default function Sidebar() {
                             : "text-gray-600 hover:text-gray-900 hover:bg-white"
                         )}
                       >
-                        {item.label}
+                        <span className="flex items-center justify-between">
+                          {item.label}
+                          {item.id === "requisiciones" && (
+                            <RequisicionNotificationDot 
+                              proyectoId={proyecto._id} 
+                              userId={currentUser?._id}
+                              userRole={currentUser?.role}
+                            />
+                          )}
+                        </span>
                       </Link>
                     ))}
                   </AccordionContent>

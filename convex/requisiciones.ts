@@ -199,6 +199,16 @@ export const create = mutation({
             });
         }
         
+        // Log history
+        await ctx.db.insert("requisicion_history", {
+            proyecto: args.proyecto,
+            requisicion_id: requisicionId,
+            action: "created",
+            changed_by_id: args.solicitante_id,
+            changed_by_name: args.solicitante_nombre,
+            created_at: Date.now(),
+        });
+        
         return requisicionId;
     },
 });
@@ -208,12 +218,33 @@ export const updateStatus = mutation({
     args: {
         id: v.id("requisiciones"),
         status: v.string(),
+        changed_by_id: v.id("users"),
+        changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const requisicion = await ctx.db.get(args.id);
+        if (!requisicion) throw new Error("Requisicion not found");
+        
+        const oldStatus = requisicion.status;
+        
         await ctx.db.patch(args.id, {
             status: args.status,
             updated_at: Date.now(),
         });
+        
+        // Log history
+        await ctx.db.insert("requisicion_history", {
+            proyecto: requisicion.proyecto,
+            requisicion_id: args.id,
+            action: "status_changed",
+            field_changed: "status",
+            old_value: oldStatus,
+            new_value: args.status,
+            changed_by_id: args.changed_by_id,
+            changed_by_name: args.changed_by_name,
+            created_at: Date.now(),
+        });
+        
         return { success: true };
     },
 });
@@ -223,12 +254,33 @@ export const updateStatusEntrega = mutation({
     args: {
         id: v.id("requisiciones"),
         status_entrega: v.string(),
+        changed_by_id: v.id("users"),
+        changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const requisicion = await ctx.db.get(args.id);
+        if (!requisicion) throw new Error("Requisicion not found");
+        
+        const oldStatusEntrega = requisicion.status_entrega;
+        
         await ctx.db.patch(args.id, {
             status_entrega: args.status_entrega,
             updated_at: Date.now(),
         });
+        
+        // Log history
+        await ctx.db.insert("requisicion_history", {
+            proyecto: requisicion.proyecto,
+            requisicion_id: args.id,
+            action: "status_entrega_changed",
+            field_changed: "status_entrega",
+            old_value: oldStatusEntrega,
+            new_value: args.status_entrega,
+            changed_by_id: args.changed_by_id,
+            changed_by_name: args.changed_by_name,
+            created_at: Date.now(),
+        });
+        
         return { success: true };
     },
 });
@@ -237,12 +289,33 @@ export const updateStatusEntrega = mutation({
 export const cancel = mutation({
     args: {
         id: v.id("requisiciones"),
+        changed_by_id: v.id("users"),
+        changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const requisicion = await ctx.db.get(args.id);
+        if (!requisicion) throw new Error("Requisicion not found");
+        
+        const oldStatus = requisicion.status;
+        
         await ctx.db.patch(args.id, {
             status: "Cancelado",
             updated_at: Date.now(),
         });
+        
+        // Log history
+        await ctx.db.insert("requisicion_history", {
+            proyecto: requisicion.proyecto,
+            requisicion_id: args.id,
+            action: "cancelled",
+            field_changed: "status",
+            old_value: oldStatus,
+            new_value: "Cancelado",
+            changed_by_id: args.changed_by_id,
+            changed_by_name: args.changed_by_name,
+            created_at: Date.now(),
+        });
+        
         return { success: true };
     },
 });
@@ -260,7 +333,7 @@ export const addDocument = mutation({
         uploaded_by_name: v.string(),
     },
     handler: async (ctx, args) => {
-        return await ctx.db.insert("requisicion_documentos", {
+        const docId = await ctx.db.insert("requisicion_documentos", {
             requisicion_id: args.requisicion_id,
             proyecto: args.proyecto,
             storage_id: args.storage_id,
@@ -271,6 +344,19 @@ export const addDocument = mutation({
             uploaded_by_id: args.uploaded_by_id,
             uploaded_by_name: args.uploaded_by_name,
         });
+        
+        // Log history
+        await ctx.db.insert("requisicion_history", {
+            proyecto: args.proyecto,
+            requisicion_id: args.requisicion_id,
+            action: "document_added",
+            new_value: args.nombre,
+            changed_by_id: args.uploaded_by_id,
+            changed_by_name: args.uploaded_by_name,
+            created_at: Date.now(),
+        });
+        
+        return docId;
     },
 });
 
@@ -290,9 +376,22 @@ export const update = mutation({
             unidad: v.string(),
             monto: v.optional(v.number()),
         }))),
+        changed_by_id: v.id("users"),
+        changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
-        const { id, items, ...updateData } = args;
+        const { id, items, changed_by_id, changed_by_name, ...updateData } = args;
+        
+        const requisicion = await ctx.db.get(id);
+        if (!requisicion) throw new Error("Requisicion not found");
+        
+        // Track what changed
+        const changes: string[] = [];
+        if (updateData.tipo && updateData.tipo !== requisicion.tipo) changes.push("tipo");
+        if (updateData.proveedor_id && updateData.proveedor_id !== requisicion.proveedor_id) changes.push("proveedor");
+        if (updateData.fecha_entrega && updateData.fecha_entrega !== requisicion.fecha_entrega) changes.push("fecha_entrega");
+        if (updateData.descripcion !== undefined && updateData.descripcion !== requisicion.descripcion) changes.push("descripcion");
+        if (items) changes.push("items");
         
         // Update requisicion data
         await ctx.db.patch(id, {
@@ -324,6 +423,19 @@ export const update = mutation({
             }
         }
         
+        // Log history if there were changes
+        if (changes.length > 0) {
+            await ctx.db.insert("requisicion_history", {
+                proyecto: requisicion.proyecto,
+                requisicion_id: id,
+                action: "updated",
+                field_changed: changes.join(", "),
+                changed_by_id: changed_by_id,
+                changed_by_name: changed_by_name,
+                created_at: Date.now(),
+            });
+        }
+        
         return { success: true };
     },
 });
@@ -332,8 +444,28 @@ export const update = mutation({
 export const deleteRequisicion = mutation({
     args: {
         id: v.id("requisiciones"),
+        changed_by_id: v.id("users"),
+        changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const requisicion = await ctx.db.get(args.id);
+        if (!requisicion) throw new Error("Requisicion not found");
+        
+        // Log history before deletion
+        await ctx.db.insert("requisicion_history", {
+            proyecto: requisicion.proyecto,
+            requisicion_id: args.id,
+            action: "deleted",
+            old_value: JSON.stringify({
+                tipo: requisicion.tipo,
+                status: requisicion.status,
+                solicitante_nombre: requisicion.solicitante_nombre,
+            }),
+            changed_by_id: args.changed_by_id,
+            changed_by_name: args.changed_by_name,
+            created_at: Date.now(),
+        });
+        
         // Delete all items
         const items = await ctx.db
             .query("requisicion_items")
@@ -352,6 +484,16 @@ export const deleteRequisicion = mutation({
         
         for (const doc of documentos) {
             await ctx.db.delete(doc._id);
+        }
+        
+        // Delete all history entries for this requisicion
+        const historyEntries = await ctx.db
+            .query("requisicion_history")
+            .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.id))
+            .collect();
+        
+        for (const entry of historyEntries) {
+            await ctx.db.delete(entry._id);
         }
         
         // Delete the requisicion

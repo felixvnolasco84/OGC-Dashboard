@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, FileText, ExternalLink, Building2, Loader2, Eye, Edit2, ChevronLeft, Check } from "lucide-react";
+import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, FileText, ExternalLink, Building2, Loader2, Eye, Edit2, ChevronLeft, Check, Clock } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,8 @@ import { toast } from "sonner";
 import { Popover } from "@radix-ui/react-popover";
 import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import RequisicionModal from "@/components/modals/RequisicionModal";
+import RequisicionHistoryModal from "@/components/modals/RequisicionHistoryModal";
+import { useRequisicionHistoryModal } from "@/hooks/requisicion-history-modal";
 import {
     Dialog,
     DialogContent,
@@ -96,8 +98,20 @@ export default function ProyectoRequisicionesPage() {
     // Get current user info for permission check
     const currentUser = useQuery(api.users.getCurrentUser);
     const updateProveedor = useMutation(api.proveedores.update);
+    const markAsRead = useMutation(api.requisicion_history.markAsRead);
 
     const requisicionModal = useRequisicionModal();
+    const historyModal = useRequisicionHistoryModal();
+
+    // Mark requisiciones as read when page loads
+    useEffect(() => {
+        if (currentUser?._id && proyectoId) {
+            markAsRead({ 
+                user_id: currentUser._id, 
+                proyecto: proyectoId as Id<"desarrollos"> 
+            });
+        }
+    }, [currentUser?._id, proyectoId, markAsRead]);
 
     // Parse date from DD/MM/YYYY format to comparable value
     const parseDateForSort = (dateStr: string): number => {
@@ -170,10 +184,14 @@ export default function ProyectoRequisicionesPage() {
     const hasActiveFilters = searchTerm || statusFilter !== "all" || tipoFilter !== "all";
 
     const handleDelete = async () => {
-        if (!requisicionToDelete) return;
+        if (!requisicionToDelete || !currentUser) return;
 
         try {
-            await deleteRequisicion({ id: requisicionToDelete });
+            await deleteRequisicion({ 
+                id: requisicionToDelete,
+                changed_by_id: currentUser._id,
+                changed_by_name: currentUser.name,
+            });
             toast.success("Requisición eliminada", {
                 description: "La requisición ha sido eliminada exitosamente.",
             });
@@ -193,8 +211,14 @@ export default function ProyectoRequisicionesPage() {
     };
 
     const handleStatusChange = async (requisicionId: Id<"requisiciones">, newStatus: string) => {
+        if (!currentUser) return;
         try {
-            await updateStatus({ id: requisicionId, status: newStatus });
+            await updateStatus({ 
+                id: requisicionId, 
+                status: newStatus,
+                changed_by_id: currentUser._id,
+                changed_by_name: currentUser.name,
+            });
             toast.success("Estado de pago actualizado", {
                 description: `La requisición ahora está "${newStatus}".`,
             });
@@ -207,8 +231,14 @@ export default function ProyectoRequisicionesPage() {
     };
 
     const handleStatusEntregaChange = async (requisicionId: Id<"requisiciones">, newStatus: string) => {
+        if (!currentUser) return;
         try {
-            await updateStatusEntrega({ id: requisicionId, status_entrega: newStatus });
+            await updateStatusEntrega({ 
+                id: requisicionId, 
+                status_entrega: newStatus,
+                changed_by_id: currentUser._id,
+                changed_by_name: currentUser.name,
+            });
             toast.success("Estado de entrega actualizado", {
                 description: `La entrega ahora está "${newStatus}".`,
             });
@@ -260,13 +290,15 @@ export default function ProyectoRequisicionesPage() {
 
     // Handle provider assignment
     const handleAssignProvider = async () => {
-        if (!selectedRequisicionForProvider || !selectedProviderId) return;
+        if (!selectedRequisicionForProvider || !selectedProviderId || !currentUser) return;
 
         setIsSubmittingProvider(true);
         try {
             await updateRequisicionProveedor({
                 id: selectedRequisicionForProvider,
                 proveedor_id: selectedProviderId as Id<"proveedores">,
+                changed_by_id: currentUser._id,
+                changed_by_name: currentUser.name,
             });
             toast.success("Proveedor asignado", {
                 description: "El proveedor ha sido asignado a la requisición.",
@@ -282,7 +314,7 @@ export default function ProyectoRequisicionesPage() {
 
     // Handle create new provider
     const handleCreateProvider = async () => {
-        if (!selectedRequisicionForProvider || !newProviderData.razon_social || !newProviderData.rfc) return;
+        if (!selectedRequisicionForProvider || !newProviderData.razon_social || !newProviderData.rfc || !currentUser) return;
 
         setIsSubmittingProvider(true);
         try {
@@ -290,6 +322,8 @@ export default function ProyectoRequisicionesPage() {
             await updateRequisicionProveedor({
                 id: selectedRequisicionForProvider,
                 proveedor_id: newProviderId,
+                changed_by_id: currentUser._id,
+                changed_by_name: currentUser.name,
             });
             toast.success("Proveedor creado y asignado", {
                 description: "El nuevo proveedor ha sido creado y asignado a la requisición.",
@@ -401,6 +435,16 @@ export default function ProyectoRequisicionesPage() {
                             <h1 className="text-2xl text-gray-700">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
+                            {/* History Button */}
+                            <Button
+                                onClick={() => historyModal.openAllHistory(proyectoId as Id<"desarrollos">)}
+                                variant="outline"
+                                size="lg"
+                                className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+                            >
+                                <Clock className="h-5 w-5" />
+                                Historial
+                            </Button>
                             {/* Nueva Requisición - admin, user, or contratista (contratista can create their own) */}
                             {(currentUser?.role === "admin" || currentUser?.role === "user" || currentUser?.role === "contratista") && (
                                 <Button
@@ -1198,6 +1242,9 @@ export default function ProyectoRequisicionesPage() {
 
             {/* Requisicion Modal */}
             <RequisicionModal />
+
+            {/* Requisicion History Modal */}
+            <RequisicionHistoryModal />
         </div>
     );
 }
