@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRequisicionHistoryModal } from "../../hooks/requisicion-history-modal";
-import { X, Clock, FileText, CheckCircle, AlertCircle, Trash2, Edit, Plus, Package } from "lucide-react";
+import { X, Clock, FileText, CheckCircle, AlertCircle, Trash2, Edit, Plus, Package, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
 
@@ -27,83 +27,40 @@ interface HistoryEntry {
   } | null;
 }
 
-// Action type to icon and color mapping
-const actionConfig: Record<string, { icon: React.ElementType; color: string; label: string; getDescription: (entry: HistoryEntry) => string }> = {
-  created: { 
-    icon: Plus, 
-    color: "text-green-600 bg-green-100", 
-    label: "Nueva Requisición",
-    getDescription: (entry) => entry.requisicion 
-      ? `Requisición de ${entry.requisicion.tipo} creada por ${entry.requisicion.solicitante_nombre}`
-      : "Requisición creada"
-  },
-  updated: { 
-    icon: Edit, 
-    color: "text-blue-600 bg-blue-100", 
-    label: "Requisición Actualizada",
-    getDescription: (entry) => entry.field_changed 
-      ? `Se actualizó: ${formatFieldName(entry.field_changed)}`
-      : "Se actualizaron los datos de la requisición"
-  },
-  status_changed: { 
-    icon: CheckCircle, 
-    color: "text-purple-600 bg-purple-100", 
-    label: "Estado de Pago",
-    getDescription: (entry) => entry.old_value && entry.new_value
-      ? `Cambió de "${entry.old_value}" a "${entry.new_value}"`
-      : "Se actualizó el estado de pago"
-  },
-  status_entrega_changed: { 
-    icon: Package, 
-    color: "text-indigo-600 bg-indigo-100", 
-    label: "Estado de Entrega",
-    getDescription: (entry) => entry.old_value && entry.new_value
-      ? `Cambió de "${entry.old_value}" a "${entry.new_value}"`
-      : "Se actualizó el estado de entrega"
-  },
-  cancelled: { 
-    icon: AlertCircle, 
-    color: "text-red-600 bg-red-100", 
-    label: "Requisición Cancelada",
-    getDescription: () => "La requisición fue cancelada"
-  },
-  deleted: { 
-    icon: Trash2, 
-    color: "text-red-600 bg-red-100", 
-    label: "Requisición Eliminada",
-    getDescription: () => "La requisición fue eliminada permanentemente"
-  },
-  document_added: { 
-    icon: FileText, 
-    color: "text-cyan-600 bg-cyan-100", 
-    label: "Documento Adjuntado",
-    getDescription: (entry) => entry.new_value 
-      ? `Se adjuntó: ${entry.new_value}`
-      : "Se adjuntó un documento"
-  },
-  document_removed: { 
-    icon: FileText, 
-    color: "text-orange-600 bg-orange-100", 
-    label: "Documento Eliminado",
-    getDescription: (entry) => entry.old_value
-      ? `Se eliminó: ${entry.old_value}`
-      : "Se eliminó un documento"
-  },
+// Safe JSON parse helper
+function tryParseJSON(str: string | undefined): Record<string, unknown> | null {
+  if (!str) return null;
+  try {
+    const parsed = JSON.parse(str);
+    return typeof parsed === "object" && parsed !== null ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+// Action type config
+const actionIcons: Record<string, { icon: React.ElementType; color: string; label: string }> = {
+  created: { icon: Plus, color: "text-green-600 bg-green-100", label: "Nueva Requisición" },
+  updated: { icon: Edit, color: "text-blue-600 bg-blue-100", label: "Requisición Actualizada" },
+  status_changed: { icon: CheckCircle, color: "text-purple-600 bg-purple-100", label: "Estado de Pago" },
+  status_entrega_changed: { icon: Package, color: "text-indigo-600 bg-indigo-100", label: "Estado de Entrega" },
+  cancelled: { icon: AlertCircle, color: "text-red-600 bg-red-100", label: "Requisición Cancelada" },
+  deleted: { icon: Trash2, color: "text-red-600 bg-red-100", label: "Requisición Eliminada" },
+  document_added: { icon: FileText, color: "text-cyan-600 bg-cyan-100", label: "Documento Adjuntado" },
+  document_removed: { icon: FileText, color: "text-orange-600 bg-orange-100", label: "Documento Eliminado" },
 };
 
 // Format field names for display
-function formatFieldName(field: string): string {
-  const fieldMap: Record<string, string> = {
-    tipo: "Tipo",
-    descripcion: "Descripción",
-    proveedor_id: "Proveedor",
-    fecha_entrega: "Fecha de entrega",
-    items: "Materiales/Items",
-    status: "Estado de pago",
-    status_entrega: "Estado de entrega",
-  };
-  return fieldMap[field] || field;
-}
+const FIELD_LABELS: Record<string, string> = {
+  tipo: "Tipo",
+  descripcion: "Descripción",
+  proveedor: "Proveedor",
+  proveedor_id: "Proveedor",
+  fecha_entrega: "Fecha de entrega",
+  items: "Materiales / Items",
+  status: "Estado de pago",
+  status_entrega: "Estado de entrega",
+};
 
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp);
@@ -128,6 +85,162 @@ function formatRelativeTime(timestamp: number): string {
   if (hours < 24) return `Hace ${hours} hora${hours > 1 ? "s" : ""}`;
   if (days < 7) return `Hace ${days} día${days > 1 ? "s" : ""}`;
   return formatDate(timestamp);
+}
+
+function formatMonto(val: unknown): string {
+  if (typeof val === "number") return `$${val.toLocaleString("es-MX")}`;
+  return String(val ?? "");
+}
+
+// --- Render helpers for each action type ---
+
+function CreatedDetails({ entry }: { entry: HistoryEntry }) {
+  const data = tryParseJSON(entry.new_value);
+  if (!data) return null;
+
+  const tipo = data.tipo as string | undefined;
+  const solicitante = data.solicitante as string | undefined;
+  const itemsCount = data.items_count as number | undefined;
+  const familias = data.familias as string[] | undefined;
+  const totalMonto = data.total_monto as number | undefined;
+  const descripcion = data.descripcion as string | undefined;
+  const fechaSolicitud = data.fecha_solicitud as string | undefined;
+
+  return (
+    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-2 text-left">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        {tipo && (
+          <div>
+            <span className="text-gray-400">Tipo:</span>{" "}
+            <span className={cn(
+              "px-1.5 py-0.5 rounded-sm font-medium capitalize",
+              tipo === "material" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+            )}>{tipo}</span>
+          </div>
+        )}
+        {solicitante && (
+          <div>
+            <span className="text-gray-400">Solicitante:</span>{" "}
+            <span className="text-gray-700 font-medium">{solicitante}</span>
+          </div>
+        )}
+        {fechaSolicitud && (
+          <div>
+            <span className="text-gray-400">Fecha:</span>{" "}
+            <span className="text-gray-700">{fechaSolicitud}</span>
+          </div>
+        )}
+        {itemsCount !== undefined && (
+          <div>
+            <span className="text-gray-400">Items:</span>{" "}
+            <span className="text-gray-700">{itemsCount}</span>
+          </div>
+        )}
+      </div>
+      {familias && familias.length > 0 && (
+        <div>
+          <span className="text-gray-400">Familias:</span>{" "}
+          <span className="text-gray-700">{familias.join(", ")}</span>
+        </div>
+      )}
+      {totalMonto !== undefined && totalMonto > 0 && (
+        <div>
+          <span className="text-gray-400">Monto total:</span>{" "}
+          <span className="text-gray-700 font-medium">{formatMonto(totalMonto)}</span>
+        </div>
+      )}
+      {descripcion && (
+        <div>
+          <span className="text-gray-400">Descripción:</span>{" "}
+          <span className="text-gray-700">{descripcion}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusChangeDetails({ entry }: { entry: HistoryEntry }) {
+  const oldData = tryParseJSON(entry.old_value);
+  const newData = tryParseJSON(entry.new_value);
+
+  // Extract status values
+  const statusField = entry.action === "status_entrega_changed" ? "status_entrega" : "status";
+  const oldStatus = oldData ? (oldData[statusField] as string) : entry.old_value;
+  const newStatus = newData ? (newData[statusField] as string) : entry.new_value;
+  const solicitante = (oldData?.solicitante || newData?.solicitante) as string | undefined;
+  const tipo = (oldData?.tipo || newData?.tipo) as string | undefined;
+
+  return (
+    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-2 text-left">
+      {/* Which requisicion */}
+      {(solicitante || tipo) && (
+        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+          {tipo && (
+            <span className={cn(
+              "px-1.5 py-0.5 rounded-sm font-medium capitalize",
+              tipo === "material" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+            )}>{tipo}</span>
+          )}
+          {solicitante && (
+            <span className="text-gray-600">de <span className="font-medium">{solicitante}</span></span>
+          )}
+        </div>
+      )}
+      {/* Status transition */}
+      <div className="flex items-center gap-2">
+        <span className="px-2 py-0.5 rounded-sm bg-red-50 text-red-600 line-through">{oldStatus}</span>
+        <ArrowRight className="w-3 h-3 text-gray-400" />
+        <span className="px-2 py-0.5 rounded-sm bg-green-50 text-green-700 font-medium">{newStatus}</span>
+      </div>
+    </div>
+  );
+}
+
+function UpdatedFieldDetails({ entry }: { entry: HistoryEntry }) {
+  const fieldLabel = FIELD_LABELS[entry.field_changed || ""] || entry.field_changed || "Campo";
+  const isItems = entry.field_changed === "items";
+
+  return (
+    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-2 text-left">
+      <div className="text-gray-500 font-medium mb-1">{fieldLabel}</div>
+      {isItems ? (
+        // Items: show as lists
+        <div className="space-y-2">
+          {entry.old_value && (
+            <div>
+              <span className="text-gray-400 text-[10px] uppercase tracking-wide">Antes:</span>
+              <div className="mt-1 space-y-0.5">
+                {entry.old_value.split("; ").map((item, i) => (
+                  <div key={i} className="text-red-500 line-through pl-2 border-l-2 border-red-200">{item}</div>
+                ))}
+              </div>
+            </div>
+          )}
+          {entry.new_value && (
+            <div>
+              <span className="text-gray-400 text-[10px] uppercase tracking-wide">Ahora:</span>
+              <div className="mt-1 space-y-0.5">
+                {entry.new_value.split("; ").map((item, i) => (
+                  <div key={i} className="text-green-600 font-medium pl-2 border-l-2 border-green-200">{item}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        // Simple field: inline before/after
+        <div className="flex items-center gap-2 flex-wrap">
+          {entry.old_value && (
+            <span className="px-2 py-0.5 rounded-sm bg-red-50 text-red-500 line-through">{entry.old_value}</span>
+          )}
+          <ArrowRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
+          {entry.new_value && (
+            <span className="px-2 py-0.5 rounded-sm bg-green-50 text-green-700 font-medium">{entry.new_value}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function RequisicionHistoryModal() {
@@ -186,7 +299,7 @@ export default function RequisicionHistoryModal() {
         <div className="flex-1 overflow-y-auto p-6">
           {!history ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-none h-8 w-8 border-b-2 border-gray-900" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
             </div>
           ) : history.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-500">
@@ -196,23 +309,17 @@ export default function RequisicionHistoryModal() {
           ) : (
             <div className="space-y-3">
               {history.map((entry: HistoryEntry) => {
-                const defaultConfig = {
-                  icon: Clock,
-                  color: "text-gray-600 bg-gray-100",
-                  label: entry.action,
-                  getDescription: () => "Cambio registrado",
-                };
-                const config = actionConfig[entry.action] || defaultConfig;
-                const Icon = config.icon;
-                const description = config.getDescription(entry);
+                const defaultCfg = { icon: Clock, color: "text-gray-600 bg-gray-100", label: entry.action };
+                const cfg = actionIcons[entry.action] || defaultCfg;
+                const Icon = cfg.icon;
 
                 return (
                   <div
                     key={entry._id}
-                    className="flex gap-3 p-4 bg-gray-50 rounded-none hover:bg-gray-100 transition-colors border border-gray-100"
+                    className="flex gap-3 p-4 bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100"
                   >
                     {/* Icon */}
-                    <div className={cn("p-2 rounded-none h-fit flex-shrink-0", config.color)}>
+                    <div className={cn("p-2 h-fit flex-shrink-0", cfg.color)}>
                       <Icon className="w-4 h-4" />
                     </div>
 
@@ -221,43 +328,39 @@ export default function RequisicionHistoryModal() {
                       {/* Header row */}
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-semibold text-gray-900">
-                          {config.label}
+                          {cfg.label}
+                          {entry.action === "updated" && entry.field_changed && (
+                            <span className="text-gray-400 font-normal"> — {FIELD_LABELS[entry.field_changed] || entry.field_changed}</span>
+                          )}
                         </p>
                         <span className="text-xs text-gray-400 whitespace-nowrap">
                           {formatRelativeTime(entry.created_at)}
                         </span>
                       </div>
 
-                      {/* Description */}
-                      <p className="text-sm text-gray-600 mt-1">
-                        {description}
-                      </p>
-
-                      {/* Change details for updates with old/new values */}
-                      {entry.action === "updated" && (entry.old_value || entry.new_value) && (
-                        <div className="mt-2 p-2 bg-white rounded border border-gray-200 text-xs">
-                          {entry.old_value && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-400">Antes:</span>
-                              <span className="text-red-500 line-through">{entry.old_value}</span>
-                            </div>
-                          )}
-                          {entry.new_value && (
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-gray-400">Ahora:</span>
-                              <span className="text-green-600 font-medium">{entry.new_value}</span>
-                            </div>
-                          )}
+                      {/* Action-specific details */}
+                      {entry.action === "created" && <CreatedDetails entry={entry} />}
+                      {(entry.action === "status_changed" || entry.action === "status_entrega_changed") && (
+                        <StatusChangeDetails entry={entry} />
+                      )}
+                      {entry.action === "updated" && <UpdatedFieldDetails entry={entry} />}
+                      {entry.action === "cancelled" && (
+                        <StatusChangeDetails entry={entry} />
+                      )}
+                      {entry.action === "document_added" && entry.new_value && (
+                        <div className="mt-2 p-2 bg-white border border-gray-200 text-xs flex items-center gap-2 text-left">
+                          <FileText className="w-3 h-3 text-cyan-500" />
+                          <span className="text-gray-700">{entry.new_value}</span>
                         </div>
                       )}
 
                       {/* Requisicion info card (for all history mode) */}
                       {"requisicion" in entry && entry.requisicion && (
-                        <div className="mt-3 p-2 bg-white rounded border border-gray-200">
+                        <div className="mt-3 p-2 bg-white border border-gray-200">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className={cn(
-                                "px-2 py-0.5 text-xs rounded-none font-medium capitalize",
+                                "px-2 py-0.5 text-xs font-medium capitalize",
                                 entry.requisicion.tipo === "material" 
                                   ? "bg-blue-100 text-blue-700" 
                                   : "bg-purple-100 text-purple-700"
@@ -270,7 +373,7 @@ export default function RequisicionHistoryModal() {
                             </div>
                             <div className="flex items-center gap-2">
                               <span className={cn(
-                                "px-2 py-0.5 text-xs rounded-none",
+                                "px-2 py-0.5 text-xs",
                                 entry.requisicion.status === "Pagado" 
                                   ? "bg-green-100 text-green-700" 
                                   : entry.requisicion.status === "Cancelado"
@@ -287,7 +390,7 @@ export default function RequisicionHistoryModal() {
                         </div>
                       )}
 
-                      {/* User and time footer */}
+                      {/* User footer */}
                       <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                         <span>por</span>
                         <span className="font-medium text-gray-500">{entry.changed_by_name}</span>
@@ -304,7 +407,7 @@ export default function RequisicionHistoryModal() {
         <div className="border-t border-gray-200 p-4 flex justify-end">
           <button
             onClick={close}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-none hover:bg-gray-200 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
           >
             Cerrar
           </button>

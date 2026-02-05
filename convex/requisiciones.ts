@@ -199,11 +199,22 @@ export const create = mutation({
             });
         }
         
-        // Log history
+        // Log history with detailed info
+        const familias = [...new Set(items.map(i => i.familia))];
+        const totalMonto = items.reduce((sum, i) => sum + (i.monto || 0), 0);
         await ctx.db.insert("requisicion_history", {
             proyecto: args.proyecto,
             requisicion_id: requisicionId,
             action: "created",
+            new_value: JSON.stringify({
+                tipo: args.tipo,
+                solicitante: args.solicitante_nombre,
+                fecha_solicitud: args.fecha_solicitud,
+                items_count: items.length,
+                familias,
+                total_monto: totalMonto,
+                descripcion: args.descripcion || null,
+            }),
             changed_by_id: args.solicitante_id,
             changed_by_name: args.solicitante_nombre,
             created_at: Date.now(),
@@ -232,14 +243,22 @@ export const updateStatus = mutation({
             updated_at: Date.now(),
         });
         
-        // Log history
+        // Log history with requisicion context
         await ctx.db.insert("requisicion_history", {
             proyecto: requisicion.proyecto,
             requisicion_id: args.id,
             action: "status_changed",
             field_changed: "status",
-            old_value: oldStatus,
-            new_value: args.status,
+            old_value: JSON.stringify({
+                status: oldStatus,
+                solicitante: requisicion.solicitante_nombre,
+                tipo: requisicion.tipo,
+            }),
+            new_value: JSON.stringify({
+                status: args.status,
+                solicitante: requisicion.solicitante_nombre,
+                tipo: requisicion.tipo,
+            }),
             changed_by_id: args.changed_by_id,
             changed_by_name: args.changed_by_name,
             created_at: Date.now(),
@@ -268,14 +287,22 @@ export const updateStatusEntrega = mutation({
             updated_at: Date.now(),
         });
         
-        // Log history
+        // Log history with requisicion context
         await ctx.db.insert("requisicion_history", {
             proyecto: requisicion.proyecto,
             requisicion_id: args.id,
             action: "status_entrega_changed",
             field_changed: "status_entrega",
-            old_value: oldStatusEntrega,
-            new_value: args.status_entrega,
+            old_value: JSON.stringify({
+                status_entrega: oldStatusEntrega,
+                solicitante: requisicion.solicitante_nombre,
+                tipo: requisicion.tipo,
+            }),
+            new_value: JSON.stringify({
+                status_entrega: args.status_entrega,
+                solicitante: requisicion.solicitante_nombre,
+                tipo: requisicion.tipo,
+            }),
             changed_by_id: args.changed_by_id,
             changed_by_name: args.changed_by_name,
             created_at: Date.now(),
@@ -385,13 +412,47 @@ export const update = mutation({
         const requisicion = await ctx.db.get(id);
         if (!requisicion) throw new Error("Requisicion not found");
         
-        // Track what changed
-        const changes: string[] = [];
-        if (updateData.tipo && updateData.tipo !== requisicion.tipo) changes.push("tipo");
-        if (updateData.proveedor_id && updateData.proveedor_id !== requisicion.proveedor_id) changes.push("proveedor");
-        if (updateData.fecha_entrega && updateData.fecha_entrega !== requisicion.fecha_entrega) changes.push("fecha_entrega");
-        if (updateData.descripcion !== undefined && updateData.descripcion !== requisicion.descripcion) changes.push("descripcion");
-        if (items) changes.push("items");
+        // Fetch old items for comparison
+        const oldItems = await ctx.db
+            .query("requisicion_items")
+            .withIndex("by_requisicion", (q) => q.eq("requisicion_id", id))
+            .collect();
+        
+        // Resolve old proveedor name
+        let oldProveedorName: string | null = null;
+        if (requisicion.proveedor_id) {
+            const oldProv = await ctx.db.get(requisicion.proveedor_id);
+            oldProveedorName = oldProv?.razon_social ?? null;
+        }
+        
+        // Resolve new proveedor name
+        let newProveedorName: string | null = null;
+        if (updateData.proveedor_id) {
+            const newProv = await ctx.db.get(updateData.proveedor_id);
+            newProveedorName = newProv?.razon_social ?? null;
+        }
+        
+        // Build per-field diffs
+        const fieldDiffs: { field: string; old_val: string; new_val: string }[] = [];
+        
+        if (updateData.tipo && updateData.tipo !== requisicion.tipo) {
+            fieldDiffs.push({ field: "tipo", old_val: requisicion.tipo, new_val: updateData.tipo });
+        }
+        if (updateData.proveedor_id && updateData.proveedor_id !== requisicion.proveedor_id) {
+            fieldDiffs.push({ field: "proveedor", old_val: oldProveedorName || "Sin proveedor", new_val: newProveedorName || "Sin proveedor" });
+        }
+        if (updateData.fecha_entrega && updateData.fecha_entrega !== requisicion.fecha_entrega) {
+            fieldDiffs.push({ field: "fecha_entrega", old_val: requisicion.fecha_entrega || "Sin fecha", new_val: updateData.fecha_entrega });
+        }
+        if (updateData.descripcion !== undefined && updateData.descripcion !== requisicion.descripcion) {
+            fieldDiffs.push({ field: "descripcion", old_val: requisicion.descripcion || "Sin descripción", new_val: updateData.descripcion || "Sin descripción" });
+        }
+        if (items) {
+            // Build readable items summary
+            const oldItemsSummary = oldItems.map(i => `${i.familia}${i.sub_partida ? ` > ${i.sub_partida}` : ""}: ${i.cantidad} ${i.unidad}${i.monto ? ` ($${i.monto.toLocaleString()})` : ""}`).join("; ");
+            const newItemsSummary = items.map(i => `${i.familia}${i.sub_partida ? ` > ${i.sub_partida}` : ""}: ${i.cantidad} ${i.unidad}${i.monto ? ` ($${i.monto.toLocaleString()})` : ""}`).join("; ");
+            fieldDiffs.push({ field: "items", old_val: oldItemsSummary || "Sin items", new_val: newItemsSummary });
+        }
         
         // Update requisicion data
         await ctx.db.patch(id, {
@@ -401,11 +462,6 @@ export const update = mutation({
         
         // If items provided, delete old items and create new ones
         if (items) {
-            const oldItems = await ctx.db
-                .query("requisicion_items")
-                .withIndex("by_requisicion", (q) => q.eq("requisicion_id", id))
-                .collect();
-            
             for (const item of oldItems) {
                 await ctx.db.delete(item._id);
             }
@@ -423,17 +479,21 @@ export const update = mutation({
             }
         }
         
-        // Log history if there were changes
-        if (changes.length > 0) {
-            await ctx.db.insert("requisicion_history", {
-                proyecto: requisicion.proyecto,
-                requisicion_id: id,
-                action: "updated",
-                field_changed: changes.join(", "),
-                changed_by_id: changed_by_id,
-                changed_by_name: changed_by_name,
-                created_at: Date.now(),
-            });
+        // Log one history entry per changed field
+        if (fieldDiffs.length > 0) {
+            for (const diff of fieldDiffs) {
+                await ctx.db.insert("requisicion_history", {
+                    proyecto: requisicion.proyecto,
+                    requisicion_id: id,
+                    action: "updated",
+                    field_changed: diff.field,
+                    old_value: diff.old_val,
+                    new_value: diff.new_val,
+                    changed_by_id: changed_by_id,
+                    changed_by_name: changed_by_name,
+                    created_at: Date.now(),
+                });
+            }
         }
         
         return { success: true };
