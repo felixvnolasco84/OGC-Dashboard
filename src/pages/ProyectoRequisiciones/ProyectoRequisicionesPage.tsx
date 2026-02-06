@@ -25,6 +25,8 @@ import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import RequisicionModal from "@/components/modals/RequisicionModal";
 import RequisicionHistoryModal from "@/components/modals/RequisicionHistoryModal";
 import { useRequisicionHistoryModal } from "@/hooks/requisicion-history-modal";
+import ReviewRequisicionModal from "@/components/modals/ReviewRequisicionModal";
+import { useReviewRequisicionModal } from "@/hooks/review-requisicion-modal";
 import {
     Dialog,
     DialogContent,
@@ -104,6 +106,7 @@ export default function ProyectoRequisicionesPage() {
 
     const requisicionModal = useRequisicionModal();
     const historyModal = useRequisicionHistoryModal();
+    const reviewModal = useReviewRequisicionModal();
 
     // Mark requisiciones as read when page loads
     useEffect(() => {
@@ -285,6 +288,16 @@ export default function ProyectoRequisicionesPage() {
             case "En proceso": return "bg-blue-50 text-blue-700 border border-blue-200";
             case "Parcial": return "bg-yellow-50 text-yellow-700 border border-yellow-200";
             case "Completo": return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+            default: return "bg-gray-50 text-gray-700 border border-gray-200";
+        }
+    };
+
+    const getStatusRevisionColor = (status: string | undefined) => {
+        switch (status) {
+            case "Pendiente de revisión": return "bg-amber-50 text-amber-700 border border-amber-200";
+            case "Aprobada": return "bg-green-50 text-green-700 border border-green-200";
+            case "Parcialmente Aprobada": return "bg-yellow-50 text-yellow-700 border border-yellow-200";
+            case "Rechazada": return "bg-red-50 text-red-700 border border-red-200";
             default: return "bg-gray-50 text-gray-700 border border-gray-200";
         }
     };
@@ -713,6 +726,12 @@ export default function ProyectoRequisicionesPage() {
                                         {/* Status */}
                                         <td className="px-6 py-4 border-r border-gray-200">
                                             <div className="flex flex-col gap-1.5">
+                                                {/* Review Status */}
+                                                {req.status_revision && (
+                                                    <span className={`px-2 py-1 rounded-full text-xs w-fit ${getStatusRevisionColor(req.status_revision)}`}>
+                                                        {req.status_revision}
+                                                    </span>
+                                                )}
                                                 {/* Payment Status */}
                                                 <div className="flex items-center space-x-2">
                                                     <div className={cn("rounded-full p-1", req.status === "Pagado" ? "bg-green-800 text-white" : "text-muted-foreground bg-gray-200")}>
@@ -722,9 +741,6 @@ export default function ProyectoRequisicionesPage() {
                                                     <span className={`px-2 py-1 rounded-full text-xs w-fit ${getStatusEntregaColor(req.status_entrega)}`}>
                                                         {req.status_entrega || "Pendiente"}
                                                     </span>
-                                                    {/* <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(req.status)}`}>
-                                                        {req.status}
-                                                    </span> */}
                                                 </div>
 
                                             </div>
@@ -803,6 +819,21 @@ export default function ProyectoRequisicionesPage() {
                                                                 Agregar proveedor
                                                             </Button>
                                                         )}
+
+                                                    {/* Review button - finance and admin only */}
+                                                    {(currentUser?.role === "admin" || currentUser?.role === "finance") && 
+                                                     (req.status_revision === "Pendiente de revisión") && (
+                                                        <div className="border-t border-gray-100 pt-1 mt-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="justify-start w-full text-amber-600 hover:text-amber-700"
+                                                                onClick={() => reviewModal.open(req._id)}
+                                                            >
+                                                                Revisar
+                                                            </Button>
+                                                        </div>
+                                                    )}
 
                                                     {/* Payment Status change options - role-based filtering */}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
@@ -1296,6 +1327,9 @@ export default function ProyectoRequisicionesPage() {
 
             {/* Requisicion History Modal */}
             <RequisicionHistoryModal />
+
+            {/* Review Requisicion Modal */}
+            <ReviewRequisicionModal />
         </div>
     );
 }

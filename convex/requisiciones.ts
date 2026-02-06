@@ -183,6 +183,7 @@ export const create = mutation({
             ...requisicionData,
             status: "En proceso",
             status_entrega: "Pendiente",
+            status_revision: "Pendiente de revisión",
             created_at: Date.now(),
         });
         
@@ -196,6 +197,7 @@ export const create = mutation({
                 cantidad: item.cantidad,
                 unidad: item.unidad,
                 monto: item.monto,
+                status_revision: "pendiente",
             });
         }
         
@@ -454,11 +456,25 @@ export const update = mutation({
             fieldDiffs.push({ field: "items", old_val: oldItemsSummary || "Sin items", new_val: newItemsSummary });
         }
         
+        // Check if this is a re-submission after review
+        const wasReviewed = requisicion.status_revision === "Rechazada" || requisicion.status_revision === "Parcialmente Aprobada";
+        
         // Update requisicion data
-        await ctx.db.patch(id, {
+        const patchData: Record<string, unknown> = {
             ...updateData,
             updated_at: Date.now(),
-        });
+        };
+        
+        // Reset review fields on re-submission
+        if (wasReviewed) {
+            patchData.status_revision = "Pendiente de revisión";
+            patchData.nota_revision = undefined;
+            patchData.revisado_por_id = undefined;
+            patchData.revisado_por_nombre = undefined;
+            patchData.revisado_at = undefined;
+        }
+        
+        await ctx.db.patch(id, patchData);
         
         // If items provided, delete old items and create new ones
         if (items) {
@@ -475,6 +491,16 @@ export const update = mutation({
                     cantidad: item.cantidad,
                     unidad: item.unidad,
                     monto: item.monto,
+                    status_revision: "pendiente",
+                });
+            }
+        } else if (wasReviewed) {
+            // Reset item review status even if items weren't changed
+            for (const item of oldItems) {
+                await ctx.db.patch(item._id, {
+                    status_revision: "pendiente",
+                    cantidad_aprobada: undefined,
+                    nota_item: undefined,
                 });
             }
         }
@@ -494,6 +520,29 @@ export const update = mutation({
                     created_at: Date.now(),
                 });
             }
+        }
+        
+        // Log re-submission history
+        if (wasReviewed) {
+            await ctx.db.insert("requisicion_history", {
+                proyecto: requisicion.proyecto,
+                requisicion_id: id,
+                action: "resubmitted",
+                old_value: JSON.stringify({
+                    previous_status_revision: requisicion.status_revision,
+                    nota_revision: requisicion.nota_revision,
+                    solicitante: requisicion.solicitante_nombre,
+                    tipo: requisicion.tipo,
+                }),
+                new_value: JSON.stringify({
+                    status_revision: "Pendiente de revisión",
+                    solicitante: requisicion.solicitante_nombre,
+                    tipo: requisicion.tipo,
+                }),
+                changed_by_id: changed_by_id,
+                changed_by_name: changed_by_name,
+                created_at: Date.now(),
+            });
         }
         
         return { success: true };
@@ -560,6 +609,122 @@ export const deleteRequisicion = mutation({
         await ctx.db.delete(args.id);
         
         return { success: true };
+    },
+});
+
+// Review requisicion - Finance/Admin approve, partially approve, or reject
+export const reviewRequisicion = mutation({
+    args: {
+        id: v.id("requisiciones"),
+        reviewer_id: v.id("users"),
+        reviewer_name: v.string(),
+        nota_revision: v.optional(v.string()),
+        items: v.array(v.object({
+            item_id: v.id("requisicion_items"),
+            status_revision: v.string(), // "aprobado" | "rechazado"
+            cantidad_aprobada: v.optional(v.number()),
+            nota_item: v.optional(v.string()),
+        })),
+    },
+    handler: async (ctx, args) => {
+        const requisicion = await ctx.db.get(args.id);
+        if (!requisicion) throw new Error("Requisicion not found");
+        
+        // Patch each item with review decision
+        for (const itemDecision of args.items) {
+            const item = await ctx.db.get(itemDecision.item_id);
+            if (!item) continue;
+            
+            await ctx.db.patch(itemDecision.item_id, {
+                status_revision: itemDecision.status_revision,
+                cantidad_aprobada: itemDecision.status_revision === "aprobado"
+                    ? (itemDecision.cantidad_aprobada ?? item.cantidad)
+                    : undefined,
+                nota_item: itemDecision.nota_item,
+            });
+        }
+        
+        // Compute overall status_revision
+        const approvedCount = args.items.filter(i => i.status_revision === "aprobado").length;
+        const rejectedCount = args.items.filter(i => i.status_revision === "rechazado").length;
+        const totalCount = args.items.length;
+        
+        let overallStatus: string;
+        if (approvedCount === totalCount) {
+            // Check if any quantities were modified
+            let hasModifiedQty = false;
+            for (const itemDecision of args.items) {
+                if (itemDecision.cantidad_aprobada !== undefined) {
+                    const item = await ctx.db.get(itemDecision.item_id);
+                    if (item && itemDecision.cantidad_aprobada !== item.cantidad) {
+                        hasModifiedQty = true;
+                        break;
+                    }
+                }
+            }
+            overallStatus = hasModifiedQty ? "Parcialmente Aprobada" : "Aprobada";
+        } else if (rejectedCount === totalCount) {
+            overallStatus = "Rechazada";
+        } else {
+            overallStatus = "Parcialmente Aprobada";
+        }
+        
+        // Update requisicion with review result
+        await ctx.db.patch(args.id, {
+            status_revision: overallStatus,
+            nota_revision: args.nota_revision,
+            revisado_por_id: args.reviewer_id,
+            revisado_por_nombre: args.reviewer_name,
+            revisado_at: Date.now(),
+            updated_at: Date.now(),
+        });
+        
+        // Fetch items for history details
+        const allItems = await ctx.db
+            .query("requisicion_items")
+            .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.id))
+            .collect();
+        
+        // Build detailed history
+        const itemDetails = allItems.map(item => {
+            const decision = args.items.find(d => d.item_id === item._id);
+            return {
+                familia: item.familia,
+                sub_partida: item.sub_partida,
+                cantidad_solicitada: item.cantidad,
+                cantidad_aprobada: item.cantidad_aprobada,
+                unidad: item.unidad,
+                monto: item.monto,
+                status_revision: item.status_revision,
+                nota_item: decision?.nota_item,
+            };
+        });
+        
+        await ctx.db.insert("requisicion_history", {
+            proyecto: requisicion.proyecto,
+            requisicion_id: args.id,
+            action: "reviewed",
+            new_value: JSON.stringify({
+                status_revision: overallStatus,
+                nota_revision: args.nota_revision,
+                solicitante: requisicion.solicitante_nombre,
+                tipo: requisicion.tipo,
+                items_approved: approvedCount,
+                items_rejected: rejectedCount,
+                items_total: totalCount,
+                items: itemDetails,
+            }),
+            old_value: JSON.stringify({
+                status_revision: requisicion.status_revision,
+                solicitante: requisicion.solicitante_nombre,
+                tipo: requisicion.tipo,
+            }),
+            changed_by_id: args.reviewer_id,
+            changed_by_name: args.reviewer_name,
+            created_at: Date.now(),
+        });
+        
+        return { success: true, status_revision: overallStatus };
     },
 });
 

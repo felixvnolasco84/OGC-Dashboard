@@ -394,6 +394,12 @@ export default defineSchema({
     descripcion: v.optional(v.string()), // Comments/notes
     status: v.string(), // En proceso, Pagado, Cancelado (payment status)
     status_entrega: v.optional(v.string()), // Pendiente, Parcial, Completo (delivery status)
+    // Review / approval workflow
+    status_revision: v.optional(v.string()), // "Pendiente de revisión" | "Aprobada" | "Parcialmente Aprobada" | "Rechazada"
+    nota_revision: v.optional(v.string()), // Required note for partial/reject
+    revisado_por_id: v.optional(v.id("users")),
+    revisado_por_nombre: v.optional(v.string()),
+    revisado_at: v.optional(v.number()),
     // Metadata
     created_at: v.number(),
     updated_at: v.optional(v.number()),
@@ -401,7 +407,8 @@ export default defineSchema({
     .index("by_solicitante", { fields: ["solicitante_id"] })
     .index("by_status", { fields: ["status"] })
     .index("by_proyecto_status", { fields: ["proyecto", "status"] })
-    .index("by_proyecto_status_entrega", { fields: ["proyecto", "status_entrega"] }),
+    .index("by_proyecto_status_entrega", { fields: ["proyecto", "status_entrega"] })
+    .index("by_proyecto_status_revision", { fields: ["proyecto", "status_revision"] }),
   
   // Requisicion line items - Materials/equipment requested
   requisicion_items: defineTable({
@@ -412,6 +419,10 @@ export default defineSchema({
     cantidad: v.number(),
     unidad: v.string(), // Editable unit (defaults from budget)
     monto: v.optional(v.number()), // Optional estimated amount
+    // Review fields
+    status_revision: v.optional(v.string()), // "pendiente" | "aprobado" | "rechazado"
+    cantidad_aprobada: v.optional(v.number()), // Approved qty (may differ from cantidad)
+    nota_item: v.optional(v.string()), // Optional per-item reviewer note
   }).index("by_requisicion", { fields: ["requisicion_id"] })
     .index("by_partida", { fields: ["partida_id"] }),
   

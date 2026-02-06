@@ -551,16 +551,28 @@ export default function RequisicionModal() {
                   </div>
                 </div>
                 {(mode === "edit" || mode === "view") && (
-                  <span className={`px-3 py-1 rounded-full text-xs  ${
-                    status === "En proceso" ? "bg-blue-100  border border-blue-200 text-blue-700" :
-                    status === "Cancelado" ? "bg-red-50 text-red-700 border border-red-200 " :
-                    status === "Pagado" ? "bg-green-50 text-green-700 border border-green-200" :
-                    status === "Recibido" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                    status === "Parcial" ? "bg-yellow-50 text-yellow-700 border border-yellow-200" :
-                    "bg-gray-50 text-gray-700 border border-gray-200"
-                  }`}>
-                    {status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs  ${
+                      status === "En proceso" ? "bg-blue-100  border border-blue-200 text-blue-700" :
+                      status === "Cancelado" ? "bg-red-50 text-red-700 border border-red-200 " :
+                      status === "Pagado" ? "bg-green-50 text-green-700 border border-green-200" :
+                      status === "Recibido" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                      status === "Parcial" ? "bg-yellow-50 text-yellow-700 border border-yellow-200" :
+                      "bg-gray-50 text-gray-700 border border-gray-200"
+                    }`}>
+                      {status}
+                    </span>
+                    {requisicionData?.status_revision && (
+                      <span className={`px-3 py-1 rounded-full text-xs ${
+                        requisicionData.status_revision === "Aprobada" ? "bg-green-50 text-green-700 border border-green-200" :
+                        requisicionData.status_revision === "Parcialmente Aprobada" ? "bg-yellow-50 text-yellow-700 border border-yellow-200" :
+                        requisicionData.status_revision === "Rechazada" ? "bg-red-50 text-red-700 border border-red-200" :
+                        "bg-amber-50 text-amber-700 border border-amber-200"
+                      }`}>
+                        {requisicionData.status_revision}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -711,23 +723,68 @@ export default function RequisicionModal() {
                         {item.subPartidas.map((sp, spIndex) => (
                           <div key={sp.id} className={`${isViewMode ? 'py-2 border-b border-gray-100 last:border-0' : 'bg-white border border-gray-200 p-3 rounded space-y-2'}`}>
                             {isViewMode ? (
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs text-gray-900 uppercase">{sp.sub_partida || "-"}</p>
-                                  <p className="text-orange-700">{sp.cantidad} {sp.unidad}</p>
-                                </div>
-                                <div className="text-right">
-                                  
-                                  {sp.monto && (
-                                    <p className="text-blue-700 whitespace-nowrap">
-                                      {formatCurrency(sp.monto * sp.cantidad * 1.16)}
-                                    </p>
-                                  )}
-                                  {sp.monto && (
-                                    <p className="text-xs text-blue-500 whitespace-nowrap">
-                                      {formatCurrency(sp.monto)} × {sp.cantidad}
-                                    </p>
-                                  )}
+                              <div>
+                                <div className="flex items-center justify-between gap-4">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-xs text-gray-900 uppercase">{sp.sub_partida || "-"}</p>
+                                      {/* Item review status badge */}
+                                      {(() => {
+                                        const rawItem = requisicionData?.items?.find(
+                                          (ri) => ri._id === sp.id
+                                        );
+                                        if (!rawItem?.status_revision || rawItem.status_revision === "pendiente") return null;
+                                        return (
+                                          <span className={cn(
+                                            "px-1.5 py-0.5 text-[10px] font-medium rounded-sm",
+                                            rawItem.status_revision === "aprobado"
+                                              ? "bg-green-100 text-green-700"
+                                              : "bg-red-100 text-red-700"
+                                          )}>
+                                            {rawItem.status_revision === "aprobado" ? "Aprobado" : "Rechazado"}
+                                          </span>
+                                        );
+                                      })()}
+                                    </div>
+                                    <p className="text-orange-700">{sp.cantidad} {sp.unidad}</p>
+                                    {/* Show approved qty if different */}
+                                    {(() => {
+                                      const rawItem = requisicionData?.items?.find(
+                                        (ri) => ri._id === sp.id
+                                      );
+                                      if (!rawItem?.cantidad_aprobada || rawItem.cantidad_aprobada === rawItem.cantidad) return null;
+                                      return (
+                                        <p className="text-xs text-yellow-700">
+                                          Aprobado: <span className="font-medium">{rawItem.cantidad_aprobada} {sp.unidad}</span>
+                                        </p>
+                                      );
+                                    })()}
+                                    {/* Item reviewer note */}
+                                    {(() => {
+                                      const rawItem = requisicionData?.items?.find(
+                                        (ri) => ri._id === sp.id
+                                      );
+                                      if (!rawItem?.nota_item) return null;
+                                      return (
+                                        <p className="text-xs text-gray-500 italic mt-0.5">
+                                          Nota: {rawItem.nota_item}
+                                        </p>
+                                      );
+                                    })()}
+                                  </div>
+                                  <div className="text-right">
+                                    
+                                    {sp.monto && (
+                                      <p className="text-blue-700 whitespace-nowrap">
+                                        {formatCurrency(sp.monto * sp.cantidad * 1.16)}
+                                      </p>
+                                    )}
+                                    {sp.monto && (
+                                      <p className="text-xs text-blue-500 whitespace-nowrap">
+                                        {formatCurrency(sp.monto)} × {sp.cantidad}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             ) : (
@@ -1016,6 +1073,33 @@ export default function RequisicionModal() {
                 </>
               )}
             </div>
+
+            {/* Review Info - View mode only */}
+            {isViewMode && requisicionData?.status_revision && requisicionData.status_revision !== "Pendiente de revisión" && (
+              <div className="p-4 border border-gray-200 bg-gray-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500 uppercase tracking-wide">Revisión</span>
+                  <span className={cn(
+                    "px-2 py-0.5 text-xs font-medium rounded-full",
+                    requisicionData.status_revision === "Aprobada" ? "bg-green-100 text-green-700" :
+                    requisicionData.status_revision === "Parcialmente Aprobada" ? "bg-yellow-100 text-yellow-700" :
+                    "bg-red-100 text-red-700"
+                  )}>
+                    {requisicionData.status_revision}
+                  </span>
+                </div>
+                {requisicionData.revisado_por_nombre && (
+                  <p className="text-xs text-gray-500">
+                    Revisado por <span className="font-medium text-gray-700">{requisicionData.revisado_por_nombre}</span>
+                  </p>
+                )}
+                {requisicionData.nota_revision && (
+                  <div className="p-2 bg-white border border-gray-200 text-sm text-gray-700">
+                    {requisicionData.nota_revision}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Soporte - File Upload */}
             <div>

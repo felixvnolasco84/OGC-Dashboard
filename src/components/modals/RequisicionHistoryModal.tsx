@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRequisicionHistoryModal } from "../../hooks/requisicion-history-modal";
-import { X, Clock, FileText, CheckCircle, AlertCircle, Trash2, Edit, Plus, Package, ArrowRight } from "lucide-react";
+import { X, Clock, FileText, CheckCircle, AlertCircle, Trash2, Edit, Plus, Package, ArrowRight, ClipboardCheck, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
 
@@ -48,6 +48,8 @@ const actionIcons: Record<string, { icon: React.ElementType; color: string; labe
   deleted: { icon: Trash2, color: "text-red-600 bg-red-100", label: "Requisición Eliminada" },
   document_added: { icon: FileText, color: "text-cyan-600 bg-cyan-100", label: "Documento Adjuntado" },
   document_removed: { icon: FileText, color: "text-orange-600 bg-orange-100", label: "Documento Eliminado" },
+  reviewed: { icon: ClipboardCheck, color: "text-amber-600 bg-amber-100", label: "Revisión Realizada" },
+  resubmitted: { icon: RotateCcw, color: "text-cyan-600 bg-cyan-100", label: "Re-enviada para Revisión" },
 };
 
 // Format field names for display
@@ -243,6 +245,152 @@ function UpdatedFieldDetails({ entry }: { entry: HistoryEntry }) {
   );
 }
 
+interface ReviewItemDetail {
+  familia: string;
+  sub_partida?: string;
+  cantidad_solicitada: number;
+  cantidad_aprobada?: number;
+  unidad: string;
+  monto?: number;
+  status_revision?: string;
+  nota_item?: string;
+}
+
+function ReviewedDetails({ entry }: { entry: HistoryEntry }) {
+  const data = tryParseJSON(entry.new_value);
+  if (!data) return null;
+
+  const statusRevision = data.status_revision as string | undefined;
+  const notaRevision = data.nota_revision as string | undefined;
+  const solicitante = data.solicitante as string | undefined;
+  const tipo = data.tipo as string | undefined;
+  const itemsApproved = data.items_approved as number | undefined;
+  const itemsRejected = data.items_rejected as number | undefined;
+  const itemsTotal = data.items_total as number | undefined;
+  const items = data.items as ReviewItemDetail[] | undefined;
+
+  return (
+    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-3 text-left">
+      {/* Header: who + decision */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {tipo && (
+            <span className={cn(
+              "px-1.5 py-0.5 rounded-sm font-medium capitalize",
+              tipo === "material" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+            )}>{tipo}</span>
+          )}
+          {solicitante && (
+            <span className="text-gray-600">de <span className="font-medium">{solicitante}</span></span>
+          )}
+        </div>
+        {statusRevision && (
+          <span className={cn(
+            "px-2 py-0.5 rounded-sm font-medium",
+            statusRevision === "Aprobada" ? "bg-green-100 text-green-700" :
+            statusRevision === "Parcialmente Aprobada" ? "bg-yellow-100 text-yellow-700" :
+            "bg-red-100 text-red-700"
+          )}>
+            {statusRevision}
+          </span>
+        )}
+      </div>
+
+      {/* Summary counts */}
+      {itemsTotal !== undefined && (
+        <div className="flex items-center gap-3 text-xs">
+          <span className="text-gray-500">{itemsTotal} items</span>
+          {itemsApproved !== undefined && itemsApproved > 0 && (
+            <span className="text-green-600 font-medium">✓ {itemsApproved} aprobado{itemsApproved !== 1 ? "s" : ""}</span>
+          )}
+          {itemsRejected !== undefined && itemsRejected > 0 && (
+            <span className="text-red-600 font-medium">✕ {itemsRejected} rechazado{itemsRejected !== 1 ? "s" : ""}</span>
+          )}
+        </div>
+      )}
+
+      {/* Per-item breakdown */}
+      {items && items.length > 0 && (
+        <div className="space-y-1 border-t border-gray-100 pt-2">
+          {items.map((item, i) => (
+            <div key={i} className={cn(
+              "flex items-center gap-2 py-1 px-2 rounded-sm",
+              item.status_revision === "aprobado" ? "bg-green-50/50" : 
+              item.status_revision === "rechazado" ? "bg-red-50/50" : ""
+            )}>
+              <span className={cn(
+                "text-[10px] font-medium w-16 flex-shrink-0",
+                item.status_revision === "aprobado" ? "text-green-700" :
+                item.status_revision === "rechazado" ? "text-red-700" : "text-gray-500"
+              )}>
+                {item.status_revision === "aprobado" ? "✓ Aprobado" : 
+                 item.status_revision === "rechazado" ? "✕ Rechazado" : "Pendiente"}
+              </span>
+              <span className="text-gray-700 flex-1 truncate">
+                {item.familia}{item.sub_partida ? ` > ${item.sub_partida}` : ""}
+              </span>
+              <span className="text-gray-500 whitespace-nowrap">
+                {item.cantidad_solicitada} {item.unidad}
+              </span>
+              {item.status_revision === "aprobado" && item.cantidad_aprobada !== undefined && 
+               item.cantidad_aprobada !== item.cantidad_solicitada && (
+                <span className="text-yellow-700 font-medium whitespace-nowrap">
+                  → {item.cantidad_aprobada} {item.unidad}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Revision note */}
+      {notaRevision && (
+        <div className="p-2 bg-gray-50 border border-gray-100 text-gray-700 italic">
+          "{notaRevision}"
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResubmittedDetails({ entry }: { entry: HistoryEntry }) {
+  const oldData = tryParseJSON(entry.old_value);
+  if (!oldData) return null;
+
+  const previousStatus = oldData.previous_status_revision as string | undefined;
+  const notaRevision = oldData.nota_revision as string | undefined;
+  const solicitante = oldData.solicitante as string | undefined;
+  const tipo = oldData.tipo as string | undefined;
+
+  return (
+    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-2 text-left">
+      {(solicitante || tipo) && (
+        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+          {tipo && (
+            <span className={cn(
+              "px-1.5 py-0.5 rounded-sm font-medium capitalize",
+              tipo === "material" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+            )}>{tipo}</span>
+          )}
+          {solicitante && (
+            <span className="text-gray-600">de <span className="font-medium">{solicitante}</span></span>
+          )}
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        {previousStatus && (
+          <span className="px-2 py-0.5 rounded-sm bg-red-50 text-red-600 line-through">{previousStatus}</span>
+        )}
+        <ArrowRight className="w-3 h-3 text-gray-400" />
+        <span className="px-2 py-0.5 rounded-sm bg-amber-50 text-amber-700 font-medium">Pendiente de revisión</span>
+      </div>
+      {notaRevision && (
+        <p className="text-gray-500 italic">Nota anterior: "{notaRevision}"</p>
+      )}
+    </div>
+  );
+}
+
 export default function RequisicionHistoryModal() {
   const { isOpen, proyectoId, requisicionId, mode, close } = useRequisicionHistoryModal();
 
@@ -353,6 +501,8 @@ export default function RequisicionHistoryModal() {
                           <span className="text-gray-700">{entry.new_value}</span>
                         </div>
                       )}
+                      {entry.action === "reviewed" && <ReviewedDetails entry={entry} />}
+                      {entry.action === "resubmitted" && <ResubmittedDetails entry={entry} />}
 
                       {/* Requisicion info card (for all history mode) */}
                       {"requisicion" in entry && entry.requisicion && (
