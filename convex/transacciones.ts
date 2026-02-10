@@ -36,6 +36,12 @@ export const createTransaction = mutation({
   handler: async (ctx, args) => {
     const { lineItems, ...transactionData } = args;
 
+    // Normalize fecha to DD/MM/YYYY if it arrives as YYYY-MM-DD (from HTML date input)
+    if (transactionData.fecha && transactionData.fecha.includes("-")) {
+      const [year, month, day] = transactionData.fecha.split("-");
+      transactionData.fecha = `${day}/${month}/${year}`;
+    }
+
     // Create the parent transaction
     const transaccionId = await ctx.db.insert("transacciones", transactionData);
 
@@ -775,6 +781,48 @@ export const migrateCodigoReferenciaToCategoria = mutation({
       migratedCount,
       totalTransactions: allTransactions.length,
       migrationLog,
+    };
+  },
+});
+
+// PROVISIONAL: Bulk increment fecha by one day for all transacciones of a proyecto
+// Run once from the Convex dashboard, then remove.
+export const incrementFechaByOneDay = mutation({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    const transactions = await ctx.db
+      .query("transacciones")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+
+    let updatedCount = 0;
+    const log: Array<{ id: string; oldFecha: string; newFecha: string }> = [];
+
+    for (const tx of transactions) {
+      if (!tx.fecha) continue;
+
+      // Parse DD/MM/YYYY
+      const parts = tx.fecha.split("/");
+      if (parts.length !== 3) continue;
+
+      const [day, month, year] = parts.map(Number);
+      const date = new Date(year, month - 1, day);
+      date.setDate(date.getDate() + 1);
+
+      const newFecha = `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+
+      await ctx.db.patch(tx._id, { fecha: newFecha });
+      updatedCount++;
+      log.push({ id: tx._id, oldFecha: tx.fecha, newFecha });
+    }
+
+    return {
+      success: true,
+      updatedCount,
+      totalTransactions: transactions.length,
+      log,
     };
   },
 });

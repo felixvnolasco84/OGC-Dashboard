@@ -57,6 +57,20 @@ export default function SeeSalesTransactionsDetailsModal() {
         }
     };
 
+    // Parse date from DD/MM/YYYY or YYYY-MM-DD format to comparable timestamp
+    const parseDateForSort = (dateStr?: string): number => {
+        if (!dateStr) return 0;
+        if (dateStr.includes("/")) {
+            const [day, month, year] = dateStr.split("/").map(Number);
+            return new Date(year, month - 1, day).getTime();
+        }
+        if (dateStr.includes("-")) {
+            const [year, month, day] = dateStr.split("-").map(Number);
+            return new Date(year, month - 1, day).getTime();
+        }
+        return 0;
+    };
+
     // Group payments by transaction for nivel 1 and 2
     const getGroupedTransactions = () => {
         if (!paymentContext?.payments) return [];
@@ -81,20 +95,9 @@ export default function SeeSalesTransactionsDetailsModal() {
             }
         });
         
-        return Array.from(transactionMap.values()).sort((a, b) => {
-            const parseDate = (fecha?: string): number => {
-                if (!fecha) return 0;
-                if (fecha.includes('/')) {
-                    const [day, month, year] = fecha.split('/').map(Number);
-                    return new Date(year, month - 1, day).getTime();
-                }
-                if (fecha.includes('-')) {
-                    return new Date(fecha).getTime();
-                }
-                return 0;
-            };
-            return parseDate(b.transaction.fecha) - parseDate(a.transaction.fecha);
-        });
+        return Array.from(transactionMap.values()).sort((a, b) =>
+            parseDateForSort(b.transaction.fecha) - parseDateForSort(a.transaction.fecha)
+        );
     };
     
     // Always show grouped transactions for sales (all niveles)

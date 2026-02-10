@@ -59,14 +59,18 @@ export default function SeeTransactionsDetailsModal() {
         }
     };
 
-    // Parse date from DD/MM/YYYY format to comparable value
+    // Parse date from DD/MM/YYYY or YYYY-MM-DD format to comparable timestamp
     const parseDateForSort = (dateStr: string): number => {
-        const parts = dateStr.split("/");
-        if (parts.length !== 3) return 0;
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        return new Date(year, month, day).getTime();
+        if (!dateStr) return 0;
+        if (dateStr.includes("/")) {
+            const [day, month, year] = dateStr.split("/").map(Number);
+            return new Date(year, month - 1, day).getTime();
+        }
+        if (dateStr.includes("-")) {
+            const [year, month, day] = dateStr.split("-").map(Number);
+            return new Date(year, month - 1, day).getTime();
+        }
+        return 0;
     };
 
     // Group payments by transaction for nivel 1 and 2, sorted by date (most recent first)

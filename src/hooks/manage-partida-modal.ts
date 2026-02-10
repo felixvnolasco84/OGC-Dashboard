@@ -54,7 +54,7 @@ const initialFormData: PartidaFormData = {
     tipo_pago: "efectivo",
     moneda: "MXN",
     monto: 0,
-    fecha_pago: new Date().toISOString().split('T')[0],
+    fecha_pago: (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; })(),
     factura: "",
     comprobante: "",
     presupuesto: "",
@@ -78,7 +78,7 @@ export const useManagePartidaModal = create<ManagePartidaModalStore>((set) => ({
                     familia: context.partida.familia,
                     sub_partida: context.partida.sub_partida,
                     monto: context.partida.cantidad,
-                    fecha_pago: new Date(context.partida._creationTime).toISOString().split('T')[0],
+                    fecha_pago: (() => { const n = new Date(context.partida._creationTime); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; })(),
                     factura: context.partida.archivo_origen,
                 }
             });

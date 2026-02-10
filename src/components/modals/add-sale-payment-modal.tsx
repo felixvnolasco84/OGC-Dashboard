@@ -45,7 +45,10 @@ export default function AddSalePaymentModal() {
     const [categoria, setCategoria] = useState("");
     const [tipoPago, setTipoPago] = useState("");
     const [moneda, setMoneda] = useState("MXN");
-    const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+    const [fecha, setFecha] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    });
     const [banco, setBanco] = useState("");
     const [numeroCuenta, setNumeroCuenta] = useState("");
     const [codigoReferencia, setCodigoReferencia] = useState("");
@@ -233,7 +236,10 @@ export default function AddSalePaymentModal() {
             setCategoria("");
             setTipoPago("");
             setMoneda("MXN");
-            setFecha(new Date().toISOString().split('T')[0]);
+            {
+                const now = new Date();
+                setFecha(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
+            }
             setBanco("");
             setNumeroCuenta("");
             setCodigoReferencia("");
