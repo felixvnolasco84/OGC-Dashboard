@@ -81,7 +81,20 @@ export default function SeeSalesTransactionsDetailsModal() {
             }
         });
         
-        return Array.from(transactionMap.values());
+        return Array.from(transactionMap.values()).sort((a, b) => {
+            const parseDate = (fecha?: string): number => {
+                if (!fecha) return 0;
+                if (fecha.includes('/')) {
+                    const [day, month, year] = fecha.split('/').map(Number);
+                    return new Date(year, month - 1, day).getTime();
+                }
+                if (fecha.includes('-')) {
+                    return new Date(fecha).getTime();
+                }
+                return 0;
+            };
+            return parseDate(b.transaction.fecha) - parseDate(a.transaction.fecha);
+        });
     };
     
     // Always show grouped transactions for sales (all niveles)

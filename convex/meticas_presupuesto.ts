@@ -21,13 +21,10 @@ export const getByProyecto = query({
       return null;
     }
     
-    // Add honorarios to gasto_total
-    const gasto_total_with_honorarios = (metrics.gasto_total || 0) + honorarios_monto;
-    
+    // gasto_total already includes honorarios via the HONORARIOS partida's `pagado`
+    // (set by updateHonorariosPartida in functions.ts), so do NOT add it again.
     return {
       ...metrics,
-      gasto_total: gasto_total_with_honorarios,
-      gasto_total_sin_honorarios: metrics.gasto_total || 0,
       honorarios_monto,
     };
   },
@@ -194,17 +191,13 @@ export const recalculate = mutation({
       0
     );
     
-    const gasto_total_partidas = nivel1Partidas.reduce(
+    // gasto_total from nivel 1 partidas already includes the HONORARIOS partida
+    // (its `pagado` is set by updateHonorariosPartida in functions.ts).
+    // Do NOT add honorarios_monto separately — that would double-count.
+    const gasto_total = nivel1Partidas.reduce(
       (sum, p) => sum + (p.pagado || 0),
       0
     );
-    
-    // Get honorarios_monto from the proyecto
-    const proyecto = await ctx.db.get(args.proyecto_id);
-    const honorarios_monto = proyecto?.honorarios_monto || 0;
-    
-    // Add honorarios to gasto_total
-    const gasto_total = gasto_total_partidas + honorarios_monto;
     
     const por_gastar = presupuesto_aprobado - gasto_total;
     
