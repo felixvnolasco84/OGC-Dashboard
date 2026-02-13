@@ -405,3 +405,86 @@ export const recalculateAllHonorariosMonto = mutation({
         };
     },
 });
+
+// Debug query to check HONORARIOS partida and gasto_total breakdown
+export const debugHonorariosPartida = query({
+    args: {
+        id: v.id("desarrollos"),
+    },
+    handler: async (ctx, args) => {
+        // Get the project
+        const project = await ctx.db.get(args.id);
+        if (!project) {
+            throw new Error("Project not found");
+        }
+
+        // Get all nivel 1 partidas for this project
+        const nivel1Partidas = await ctx.db
+            .query("partidas")
+            .filter((q) => 
+                q.and(
+                    q.eq(q.field("nivel"), 1),
+                    q.eq(q.field("proyecto"), args.id)
+                )
+            )
+            .collect();
+
+        // Find the HONORARIOS partida with case-insensitive matching
+        const honorariosPartida = nivel1Partidas.find((p) => 
+            p.nombre.toLowerCase() === "honorarios"
+        );
+
+        // Calculate sum of all nivel 1 partidas' pagado
+        const sumPagadoNivel1 = nivel1Partidas.reduce(
+            (sum, p) => sum + (p.pagado || 0),
+            0
+        );
+
+        // Get metrics from meticas_presupuesto table
+        const metrics = await ctx.db
+            .query("meticas_presupuesto")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .first();
+
+        // Get all transactions to calculate base gasto
+        const allTransactions = await ctx.db
+            .query("transacciones")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .collect();
+
+        const totalFromTransactions = allTransactions.reduce(
+            (sum, t) => sum + (t.monto_total || 0),
+            0
+        );
+
+        return {
+            project: {
+                id: project._id,
+                nombre: project.nombre,
+                honorarios_porcentaje: project.honorarios_porcentaje,
+                honorarios_monto: project.honorarios_monto,
+            },
+            honorariosPartida: honorariosPartida ? {
+                id: honorariosPartida._id,
+                nombre: honorariosPartida.nombre,
+                pagado: honorariosPartida.pagado,
+                presupuesto_aprobado: honorariosPartida.presupuesto_aprobado,
+                por_gastar: honorariosPartida.por_gastar,
+            } : null,
+            nivel1PartidasCount: nivel1Partidas.length,
+            sumPagadoNivel1,
+            metrics: metrics ? {
+                gasto_total: metrics.gasto_total,
+                presupuesto_aprobado: metrics.presupuesto_aprobado,
+                por_gastar: metrics.por_gastar,
+            } : null,
+            totalFromTransactions,
+            expectedGastoTotal: totalFromTransactions + (project.honorarios_monto || 0),
+            diagnosis: {
+                honorariosPartidaExists: !!honorariosPartida,
+                honorariosPartidaPagadoMatchesMonto: honorariosPartida?.pagado === project.honorarios_monto,
+                metricsGastoMatchesSumPagado: metrics?.gasto_total === sumPagadoNivel1,
+            }
+        };
+    },
+});

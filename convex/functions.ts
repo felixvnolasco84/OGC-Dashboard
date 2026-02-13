@@ -588,6 +588,7 @@ async function updateHonorariosMonto(
 }
 
 // Helper function to update the HONORARIOS partida with honorarios_monto
+// Handles different case variations: "HONORARIOS", "Honorarios", "honorarios"
 async function updateHonorariosPartida(
   ctx: { db: any },
   proyectoId: string,
@@ -596,13 +597,21 @@ async function updateHonorariosPartida(
   console.log(`Updating HONORARIOS partida for proyecto: ${proyectoId}`);
   
   try {
-    // Find the HONORARIOS partida (nivel 1) for this proyecto
-    const honorariosPartida = await ctx.db
+    // Get all nivel 1 partidas for this project and find honorarios with case-insensitive match
+    const nivel1Partidas = await ctx.db
       .query("partidas")
-      .withIndex("by_proyecto_nivel_nombre", (q: any) => 
-        q.eq("proyecto", proyectoId).eq("nivel", 1).eq("nombre", "HONORARIOS")
+      .filter((q: any) => 
+        q.and(
+          q.eq(q.field("nivel"), 1),
+          q.eq(q.field("proyecto"), proyectoId)
+        )
       )
-      .first();
+      .collect();
+    
+    // Find the honorarios partida with case-insensitive matching
+    const honorariosPartida = nivel1Partidas.find((p: any) => 
+      p.nombre.toLowerCase() === "honorarios"
+    );
     
     if (honorariosPartida) {
       // Update pagado and por_gastar for existing HONORARIOS partida
@@ -614,9 +623,9 @@ async function updateHonorariosPartida(
         por_gastar: porGastar
       });
       
-      console.log(`✅ Updated HONORARIOS partida: pagado=${honorariosMonto}, por_gastar=${porGastar}`);
+      console.log(`✅ Updated HONORARIOS partida (${honorariosPartida.nombre}): pagado=${honorariosMonto}, por_gastar=${porGastar}`);
     } else {
-      console.log("⚠️ HONORARIOS partida not found for this proyecto");
+      console.log("⚠️ HONORARIOS partida not found for this proyecto (checked case-insensitive)");
     }
   } catch (error) {
     console.error("❌ Error updating HONORARIOS partida:", error);

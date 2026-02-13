@@ -33,12 +33,6 @@ export const createSalesTransaction = mutation({
     handler: async (ctx, args) => {
         const { lineItems, ...transactionData } = args;
 
-        // Normalize fecha to DD/MM/YYYY if it arrives as YYYY-MM-DD (from HTML date input)
-        if (transactionData.fecha && transactionData.fecha.includes("-")) {
-            const [year, month, day] = transactionData.fecha.split("-");
-            transactionData.fecha = `${day}/${month}/${year}`;
-        }
-
         // Create the parent transaction
         const transactionId = await ctx.db.insert("sales_transacciones", transactionData);
 
