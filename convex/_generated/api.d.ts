@@ -27,6 +27,7 @@ import type * as migrations from "../migrations.js";
 import type * as pagos from "../pagos.js";
 import type * as partida from "../partida.js";
 import type * as permissions from "../permissions.js";
+import type * as programa_obra from "../programa_obra.js";
 import type * as projected_transactions from "../projected_transactions.js";
 import type * as proveedores from "../proveedores.js";
 import type * as requisicion_history from "../requisicion_history.js";
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   pagos: typeof pagos;
   partida: typeof partida;
   permissions: typeof permissions;
+  programa_obra: typeof programa_obra;
   projected_transactions: typeof projected_transactions;
   proveedores: typeof proveedores;
   requisicion_history: typeof requisicion_history;

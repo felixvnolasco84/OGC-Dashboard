@@ -42,7 +42,7 @@ interface ProjectMenuItem {
 const projectMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
   { id: "control", label: "Control", path: "control", disabled: false },
-  { id: "programa", label: "Programa", path: "programa", disabled: true },
+  { id: "programa", label: "Programa", path: "programa", disabled: false },
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
   { id: "bitacora", label: "Bitácora", path: "bitacora", disabled: false },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false },

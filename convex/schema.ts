@@ -462,4 +462,40 @@ export default defineSchema({
     proyecto: v.id("desarrollos"),
     last_read_at: v.number(), // Timestamp of last viewed
   }).index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
+  
+  // Programa de Obra - Scheduling data per nivel 1 partida
+  programa_obra: defineTable({
+    proyecto: v.id("desarrollos"),
+    partida_id: v.id("partidas"), // Nivel 1 partida reference
+    fecha_inicio: v.optional(v.string()), // Activity start date (DD/MM/YYYY)
+    fecha_fin: v.optional(v.string()), // Activity end date (DD/MM/YYYY)
+    anticipo_fecha: v.optional(v.string()), // Anticipo date
+    anticipo_porcentaje: v.optional(v.number()), // Anticipo %
+    suministro_fecha: v.optional(v.string()), // Material/equipment delivery date
+    finiquito_fecha: v.optional(v.string()), // Finiquito date
+    finiquito_porcentaje: v.optional(v.number()), // Finiquito %
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_partida_id", { fields: ["partida_id"] })
+    .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] }),
+  
+  // Programa de Obra - Ponderación (complexity weight) per familia/sub-partida
+  programa_obra_ponderacion: defineTable({
+    proyecto: v.id("desarrollos"),
+    partida_id: v.id("partidas"), // The nivel 2 or nivel 3 partida
+    parent_partida_nombre: v.string(), // Parent nivel 1 partida name
+    peso: v.number(), // Weight (0-100%)
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_partida_id", { fields: ["partida_id"] })
+    .index("by_proyecto_parent", { fields: ["proyecto", "parent_partida_nombre"] }),
+  
+  // Programa de Obra - Avance real per sub-partida (nivel 3)
+  avance_real: defineTable({
+    proyecto: v.id("desarrollos"),
+    partida_id: v.id("partidas"), // Nivel 3 partida reference
+    porcentaje: v.number(), // Avance real % (0-100)
+    fecha: v.optional(v.string()), // Date of the avance entry
+    updated_at: v.number(), // Timestamp
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_partida_id", { fields: ["partida_id"] })
+    .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] }),
 });
