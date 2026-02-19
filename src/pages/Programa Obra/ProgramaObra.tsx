@@ -17,6 +17,7 @@ import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
 import { Id } from "../../../convex/_generated/dataModel";
 import { type ScheduleData, type ProgramaItem } from "./programa-obra-types";
 import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
+import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 
 // ============================================================
 // Helpers
@@ -36,12 +37,46 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-/** Get month columns to render based on the year range of the data */
-function getTimelineMonths(year: number): { label: string; month: number; year: number }[] {
-  return MONTHS_ES.map((label, i) => ({ label, month: i, year }));
+/** Get month columns with week counts */
+function getTimelineMonths(year: number): { label: string; month: number; year: number; weeks: number }[] {
+  return MONTHS_ES.map((label, i) => {
+    const daysInMonth = new Date(year, i + 1, 0).getDate();
+    const weeks = Math.ceil(daysInMonth / 7);
+    return { label, month: i, year, weeks };
+  });
 }
 
-const COLUMN_WIDTH = 128; // px per month column
+const WEEK_WIDTH = 32; // px per week column
+const getMonthWidth = (weeks: number) => weeks * WEEK_WIDTH;
+
+type TMonth = { weeks: number };
+/** Convert a DD/MM/YYYY or YYYY-MM-DD string to a pixel offset for the given year */
+function dateStrToPixel(
+  dateStr: string | undefined | null,
+  year: number,
+  months: TMonth[]
+): number | null {
+  if (!dateStr) return null;
+  let d: Date;
+  if (dateStr.includes("/")) {
+    const [day, m, y] = dateStr.split("/").map(Number);
+    d = new Date(y, m - 1, day);
+  } else if (dateStr.includes("-")) {
+    const [y, m, day] = dateStr.split("-").map(Number);
+    d = new Date(y, m - 1, day);
+  } else return null;
+  if (d.getFullYear() !== year) {
+    if (d.getFullYear() < year) return 0;
+    return months.reduce((s, m) => s + m.weeks * WEEK_WIDTH, 0);
+  }
+  const month = d.getMonth();
+  const dayN = d.getDate();
+  const dim = new Date(year, month + 1, 0).getDate();
+  const frac = (dayN - 1) / dim;
+  let off = 0;
+  for (let i = 0; i < month; i++) off += months[i].weeks * WEEK_WIDTH;
+  return off + frac * months[month].weeks * WEEK_WIDTH;
+}
 
 // ============================================================
 // Component
@@ -54,6 +89,7 @@ export default function ProgramaObra() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingPartida, setEditingPartida] = useState<ProgramaItem | null>(null);
+  const [editingFamilia, setEditingFamilia] = useState<ProgramaItem | null>(null);
 
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -182,6 +218,7 @@ export default function ProgramaObra() {
 
           // Use first familia partida's DB ID for ponderacion lookups
           const firstFamPartida = familiaPartidas[0];
+          const famSchedule = firstFamPartida ? scheduleMap.get(firstFamPartida._id) || null : null;
 
           return {
             id: `fam-${p1.nombre}-${familiaName}`,
@@ -192,8 +229,10 @@ export default function ProgramaObra() {
             expanded: false,
             level: 1,
             parentPartidaNombre: p1.nombre,
+            parentPartidaDbId: p1._id,
             familiaName,
             schedule, // inherit parent schedule for bar positioning
+            familiaSchedule: famSchedule,
             ponderacion: firstFamPartida ? ponderacionMap.get(firstFamPartida._id) : undefined,
             avanceReal: Math.round(familiaAvance * 100) / 100,
             children: subItems,
@@ -284,8 +323,13 @@ export default function ProgramaObra() {
     const day = now.getDate();
     const daysInMonth = new Date(selectedYear, month + 1, 0).getDate();
     const fraction = (day - 1) / daysInMonth;
-    return month * COLUMN_WIDTH + fraction * COLUMN_WIDTH;
-  }, [selectedYear]);
+    // Sum widths of all preceding months
+    let offset = 0;
+    for (let i = 0; i < month; i++) {
+      offset += getMonthWidth(timelineMonths[i].weeks);
+    }
+    return offset + fraction * getMonthWidth(timelineMonths[month].weeks);
+  }, [selectedYear, timelineMonths]);
 
   // Inline avance real save
   const handleAvanceRealChange = useCallback(
@@ -410,12 +454,12 @@ export default function ProgramaObra() {
             {/* Header */}
             <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-20">
               <div className="w-72 border-r border-[#d2d1ce] px-4 py-3 text-left">
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
                   Partida · Familia
                 </span>
               </div>
               <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 text-right">
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
                   Presupuesto
                 </span>
               </div>
@@ -428,10 +472,10 @@ export default function ProgramaObra() {
                 <div
                   key={item.id}
                   className={cn(
-                    "flex border-b border-t border-[#d2d1ce] min-h-[64px]",
-                    item.level === 0 && "bg-white",
-                    item.level === 1 && "bg-gray-50/50",
-                    item.level === 2 && "bg-gray-50/30"
+                    "flex border-b border-[#d2d1ce] min-h-[44px] max-h-[44px] bg-white",
+                    // item.level === 0 && "bg-white",
+                    // item.level === 1 && "bg-gray-50/50",
+                    // item.level === 2 && "bg-gray-50/30"
                   )}
                 >
                   {/* Name */}
@@ -470,6 +514,16 @@ export default function ProgramaObra() {
                       {item.level === 0 && (
                         <button
                           onClick={() => setEditingPartida(item)}
+                          className="ml-auto p-1 hover:bg-gray-100 rounded shrink-0 opacity-60 hover:opacity-100"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
+                        </button>
+                      )}
+
+                      {/* Menu for nivel 1 (familia) */}
+                      {item.level === 1 && (
+                        <button
+                          onClick={() => setEditingFamilia(item)}
                           className="ml-auto p-1 hover:bg-gray-100 rounded shrink-0 opacity-60 hover:opacity-100"
                         >
                           <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
@@ -536,15 +590,30 @@ export default function ProgramaObra() {
           <div className="flex-1 overflow-x-auto" ref={scrollContainerRef}>
             {/* Month headers */}
             <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-10 min-w-max">
-              {timelineMonths.map((m, i) => (
-                <div
-                  key={i}
-                  className="text-left px-3 py-4 text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-[#d2d1ce]"
-                  style={{ width: COLUMN_WIDTH }}
-                >
-                  {m.label}
-                </div>
-              ))}
+              {timelineMonths.map((m, i) => {
+                const mw = getMonthWidth(m.weeks);
+                return (
+                  <div key={i} className="border-r border-[#d2d1ce] shrink-0 h-[48px]" style={{ width: mw }}>
+                    <div className="text-center py-1.5 text-xs font-medium text-[#777770] uppercase tracking-wider">
+                      {m.label}
+                    </div>
+                    <div className="flex">
+                      {Array.from({ length: m.weeks }).map((_, wi) => (
+                        <div
+                          key={wi}
+                          className={cn(
+                            "text-center text-[9px] text-gray-300 py-1",
+                            wi < m.weeks - 1 && "border-r border-dashed border-gray-200"
+                          )}
+                          style={{ width: WEEK_WIDTH }}
+                        >
+                          S{wi + 1}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
               <div className="px-4 py-3 text-xs font-medium text-gray-300 ml-2">
                 {selectedYear}
               </div>
@@ -555,23 +624,42 @@ export default function ProgramaObra() {
               <div
                 key={item.id}
                 className={cn(
-                  "relative border-b border-[#d2d1ce] min-h-[64px]",
-                  item.level === 0 && "bg-white",
-                  item.level === 1 && "bg-gray-50/50",
-                  item.level === 2 && "bg-gray-50/30"
+                  "relative border-b border-[#d2d1ce] min-h-[44px] max-h-[44px] bg-white",
+                  // item.level === 0 && "bg-white",
+                  // item.level === 1 && "bg-gray-50/80",
+                  // item.level === 2 && "bg-gray-50/80"
                 )}
               >
+                {/* Parent-range gray background for child items */}
+                {(item.level === 1 || item.level === 2) && item.schedule && (() => {
+                  const pStart = dateStrToPixel(item.schedule.fecha_inicio, selectedYear, timelineMonths);
+                  const pEnd = dateStrToPixel(item.schedule.fecha_fin, selectedYear, timelineMonths);
+                  if (pStart == null || pEnd == null) return null;
+                  return (
+                    <div
+                      className="absolute top-0 bottom-0 bg-[#f3f3f3f4] pointer-events-none z-[1]"
+                      style={{ left: pStart, width: Math.max(pEnd - pStart, 0) }}
+                    >
+                      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#D4D4CF]" />
+                    </div>
+                  );
+                })()}
+
                 {/* Grid lines */}
-                <div className="absolute inset-0 flex pointer-events-none">
-                  {timelineMonths.map((_, i) => (
-                    <div key={i} className="border-r border-[#d2d1ce] shrink-0" style={{ width: COLUMN_WIDTH }} />
+                <div className="absolute inset-0 flex pointer-events-none z-[2]">
+                  {timelineMonths.map((m, i) => (
+                    <div key={i} className="border-r border-[#d2d1ce] shrink-0 flex" style={{ width: getMonthWidth(m.weeks) }}>
+                      {Array.from({ length: m.weeks - 1 }).map((_, wi) => (
+                        <div key={wi} className="border-r border-dashed border-gray-200 shrink-0" style={{ width: WEEK_WIDTH }} />
+                      ))}
+                    </div>
                   ))}
                 </div>
 
                 {/* Today line */}
                 {todayPosition != null && (
                   <div
-                    className="absolute top-0 bottom-0 w-px border-l border-dashed border-gray-300 z-10 pointer-events-none"
+                    className="absolute top-0 bottom-0 w-px border-l-2 border-dashed border-[#802424] z-10 pointer-events-none"
                     style={{ left: todayPosition }}
                   />
                 )}
@@ -580,7 +668,8 @@ export default function ProgramaObra() {
                 <ProgramaObraGanttItem
                   item={item}
                   year={selectedYear}
-                  columnWidth={COLUMN_WIDTH}
+                  columnWidth={WEEK_WIDTH}
+                  timelineMonths={timelineMonths}
                 />
               </div>
             ))}
@@ -603,6 +692,18 @@ export default function ProgramaObra() {
           item={editingPartida}
           proyectoId={proyectoId as Id<"desarrollos">}
           onClose={() => setEditingPartida(null)}
+        />
+      )}
+
+      {/* Familia Editor Sheet */}
+      {editingFamilia && proyectoId && (
+        <ProgramaObraFamiliaEditor
+          item={editingFamilia}
+          parentSchedule={
+            programaData.find((p) => p.partida === editingFamilia.parentPartidaNombre)?.schedule ?? null
+          }
+          proyectoId={proyectoId as Id<"desarrollos">}
+          onClose={() => setEditingFamilia(null)}
         />
       )}
     </div>

@@ -19,6 +19,8 @@ export type ProgramaItem = {
   parentPartidaNombre?: string; // for nivel 2/3
   familiaName?: string; // for nivel 2/3
   schedule?: ScheduleData | null;
+  familiaSchedule?: ScheduleData | null; // Own schedule for familia (level 1) items
+  parentPartidaDbId?: Id<"partidas">; // Parent partida DB ID
   ponderacion?: number; // weight %
   avanceReal?: number; // avance real % (computed for 0/1, user-entered for 2)
   financiero?: number; // pagado/presupuesto % (only nivel 0)

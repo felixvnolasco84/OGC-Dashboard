@@ -7,18 +7,22 @@ import { Check } from "lucide-react";
 // Helpers
 // ============================================================
 
-/** Convert a Date to pixel position within a year timeline */
-function dateToPixel(date: Date, year: number, columnWidth: number): number {
+type TimelineMonth = { label: string; month: number; year: number; weeks: number };
+
+/** Convert a Date to pixel position within a year timeline (variable-width months) */
+function dateToPixel(date: Date, year: number, weekWidth: number, months: TimelineMonth[]): number {
+  const mw = (m: TimelineMonth) => m.weeks * weekWidth;
   if (date.getFullYear() !== year) {
-    // Clamp to year boundaries
     if (date.getFullYear() < year) return 0;
-    return 12 * columnWidth;
+    return months.reduce((s, m) => s + mw(m), 0);
   }
   const month = date.getMonth();
   const day = date.getDate();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const fraction = (day - 1) / daysInMonth;
-  return month * columnWidth + fraction * columnWidth;
+  let offset = 0;
+  for (let i = 0; i < month; i++) offset += mw(months[i]);
+  return offset + fraction * mw(months[month]);
 }
 
 // ============================================================
@@ -29,26 +33,41 @@ type Props = {
   item: ProgramaItem;
   year: number;
   columnWidth: number;
+  timelineMonths: TimelineMonth[];
 };
 
-export default function ProgramaObraGanttItem({ item, year, columnWidth }: Props) {
+export default function ProgramaObraGanttItem({ item, year, columnWidth, timelineMonths }: Props) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Only nivel 0 items have schedule data with dates
+  // Use familia's own schedule if available (level 1), otherwise parent schedule
   const schedule = item.schedule;
+  const effectiveSchedule = item.level === 1 && item.familiaSchedule
+    ? item.familiaSchedule
+    : schedule;
 
-  // Parse dates
-  const startDate = parseDate(schedule?.fecha_inicio);
-  const endDate = parseDate(schedule?.fecha_fin);
+  // Parse dates from the effective schedule
+  const rawStartDate = parseDate(effectiveSchedule?.fecha_inicio);
+  const rawEndDate = parseDate(effectiveSchedule?.fecha_fin);
   const anticipoDate = parseDate(schedule?.anticipo_fecha);
   const suministroDate = parseDate(schedule?.suministro_fecha);
+
+  // Clamp child items to parent partida's date range
+  let startDate = rawStartDate;
+  let endDate = rawEndDate;
+  if ((item.level === 1 || item.level === 2) && item.schedule) {
+    const parentStart = parseDate(item.schedule.fecha_inicio);
+    const parentEnd = parseDate(item.schedule.fecha_fin);
+    if (parentStart && startDate && startDate < parentStart) startDate = parentStart;
+    if (parentEnd && endDate && endDate > parentEnd) endDate = parentEnd;
+  }
 
   // If no schedule dates, don't render a bar
   if (!startDate || !endDate) return null;
 
-  const startPx = dateToPixel(startDate, year, columnWidth);
-  const endPx = dateToPixel(endDate, year, columnWidth);
-  const barWidth = Math.max(endPx - startPx, 20);
+  const startPx = dateToPixel(startDate, year, columnWidth, timelineMonths);
+  const endPx = dateToPixel(endDate, year, columnWidth, timelineMonths);
+  const isSameDay = startDate.getTime() === endDate.getTime();
+  const barWidth = isSameDay ? 4 : Math.max(endPx - startPx, 8);
 
   // Avance real and financiero percentages
   const avanceReal = item.avanceReal ?? 0;
@@ -63,8 +82,8 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth }: Props
     startDate < new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   // Milestone positions (relative to bar start)
-  const anticipoPx = anticipoDate ? dateToPixel(anticipoDate, year, columnWidth) : null;
-  const suministroPx = suministroDate ? dateToPixel(suministroDate, year, columnWidth) : null;
+  const anticipoPx = anticipoDate ? dateToPixel(anticipoDate, year, columnWidth, timelineMonths) : null;
+  const suministroPx = suministroDate ? dateToPixel(suministroDate, year, columnWidth, timelineMonths) : null;
 
   // For nivel 1 (familia) and nivel 2 (sub-partida), inherit parent schedule
   // They render under the parent's bar range. For now, they span the same range
@@ -72,7 +91,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth }: Props
 
   return (
     <div
-      className="absolute top-0 bottom-0 flex items-center z-10"
+      className="absolute top-0 bottom-0 flex items-start z-10"
       style={{
         left: `${startPx}px`,
         width: `${barWidth}px`,
@@ -80,10 +99,10 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth }: Props
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="w-full relative">
+      <div className="w-full relative h-full">
         {/* === Dual bar for nivel 0 (partida) === */}
         {item.level === 0 && (
-          <div className="flex flex-col gap-0">
+          <div className="flex flex-col gap-0 h-full">
             {/* Dark green - Avance Real */}
             <div className="h-2.5 w-full bg-[#bacabb] rounded-t-none overflow-hidden relative">
               <div
@@ -113,7 +132,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth }: Props
               )}
             </div>
             {/* Label */}
-            <span className="text-[11px] text-[#282822] bg-gray-100 px-2.5 py-1.5 truncate block mt-0 text-left">
+            <span className="text-[11px] text-[#282822] bg-gray-100 px-2.5 py-1.5 truncate block mt-0 text-left h-full">
               {item.partida}
             </span>
           </div>
@@ -121,7 +140,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth }: Props
 
         {/* === Single bar for nivel 1 (familia) === */}
         {item.level === 1 && (
-          <div className="flex flex-col gap-0">
+          <div className="flex flex-col gap-2">
             <div className="h-[3px] w-full bg-[#9eb9a1] rounded-none overflow-hidden relative">
               <div
                 className="h-full bg-[#417847] rounded-none transition-all"
@@ -149,8 +168,8 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth }: Props
           </div>
         )}
 
-        {/* === Milestone markers (only for nivel 0) === */}
-        {item.level === 0 && anticipoPx != null && (
+        {/* === Milestone markers (only for nivel 0, visible on hover) === */}
+        {isHovered && item.level === 0 && anticipoPx != null && (
           <div
             className="absolute -top-1 z-20"
             style={{ left: `${anticipoPx - startPx}px` }}
@@ -167,7 +186,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth }: Props
           </div>
         )}
 
-        {item.level === 0 && suministroPx != null && (
+        {isHovered && item.level === 0 && suministroPx != null && (
           <div
             className="absolute -top-1 z-20"
             style={{ left: `${suministroPx - startPx}px` }}
@@ -200,6 +219,9 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth }: Props
           </div>
         )}
       </div>
+
+
     </div>
+
   );
 }

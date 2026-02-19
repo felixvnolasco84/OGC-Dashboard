@@ -80,6 +80,78 @@ export const upsertSchedule = mutation({
   },
 });
 
+// Upsert schedule for a nivel 2 familia with parent date validation
+export const upsertFamiliaSchedule = mutation({
+  args: {
+    proyecto: v.id("desarrollos"),
+    partida_id: v.id("partidas"),
+    parent_partida_id: v.id("partidas"),
+    fecha_inicio: v.optional(v.string()),
+    fecha_fin: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const parseDateStr = (s: string): Date => {
+      if (s.includes("/")) {
+        const [d, m, y] = s.split("/").map(Number);
+        return new Date(y, m - 1, d);
+      }
+      const [y, m, d] = s.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    };
+
+    // Validate dates are within parent range
+    const parentSchedule = await ctx.db
+      .query("programa_obra")
+      .withIndex("by_proyecto_partida", (q) =>
+        q.eq("proyecto", args.proyecto).eq("partida_id", args.parent_partida_id)
+      )
+      .first();
+
+    if (parentSchedule) {
+      if (parentSchedule.fecha_inicio && args.fecha_inicio) {
+        const parentStart = parseDateStr(parentSchedule.fecha_inicio);
+        const familiaStart = parseDateStr(args.fecha_inicio);
+        if (familiaStart < parentStart) {
+          throw new Error(
+            "Fecha inicio de familia no puede ser anterior a la fecha inicio de la partida"
+          );
+        }
+      }
+      if (parentSchedule.fecha_fin && args.fecha_fin) {
+        const parentEnd = parseDateStr(parentSchedule.fecha_fin);
+        const familiaEnd = parseDateStr(args.fecha_fin);
+        if (familiaEnd > parentEnd) {
+          throw new Error(
+            "Fecha fin de familia no puede ser posterior a la fecha fin de la partida"
+          );
+        }
+      }
+    }
+
+    const existing = await ctx.db
+      .query("programa_obra")
+      .withIndex("by_proyecto_partida", (q) =>
+        q.eq("proyecto", args.proyecto).eq("partida_id", args.partida_id)
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        fecha_inicio: args.fecha_inicio,
+        fecha_fin: args.fecha_fin,
+      });
+      return existing._id;
+    } else {
+      return await ctx.db.insert("programa_obra", {
+        proyecto: args.proyecto,
+        partida_id: args.partida_id,
+        fecha_inicio: args.fecha_inicio,
+        fecha_fin: args.fecha_fin,
+      });
+    }
+  },
+});
+
 // ============================================================
 // PONDERACIÓN (programa_obra_ponderacion table)
 // ============================================================
