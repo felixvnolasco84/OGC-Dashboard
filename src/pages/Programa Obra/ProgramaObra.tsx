@@ -137,11 +137,24 @@ export default function ProgramaObra() {
   const programaData = useMemo(() => {
     if (!nivel1Partidas) return [];
 
-    return nivel1Partidas.map((p1) => {
+    // Only include partidas that have uploaded Excel data (orden is set), sorted by Excel order
+    const matched = nivel1Partidas
+      .filter((p) => {
+        const s = scheduleMap.get(p._id);
+        return s != null && s.orden != null;
+      })
+      .sort((a, b) => {
+        const oa = scheduleMap.get(a._id)!.orden!;
+        const ob = scheduleMap.get(b._id)!.orden!;
+        return oa - ob;
+      });
+
+    return matched.map((p1) => {
       const schedule = scheduleMap.get(p1._id) || null;
 
-      // Get all detalles for this partida (matched by partida name)
-      const partidaDetalles = detalles?.filter((d) => d.partida === p1.nombre) || [];
+      // Get all detalles for this partida (matched by partida name), sorted by Excel order
+      const partidaDetalles = (detalles?.filter((d) => d.partida === p1.nombre) || [])
+        .sort((a, b) => (a.orden ?? Infinity) - (b.orden ?? Infinity));
       const nivel2Detalles = partidaDetalles.filter((d) => d.nivel === 2);
       const nivel3Detalles = partidaDetalles.filter((d) => d.nivel === 3);
 
@@ -665,9 +678,9 @@ export default function ProgramaObra() {
                                   setEditingAvanceValue("");
                                 }
                               }}
-                              className="w-12 h-5 text-[10px] text-right border border-gray-300 rounded-sm px-1 focus:outline-none focus:border-green-500"
+                              className="w-12 h-5 text-[10px] text-  border border-gray-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
                             />
-                            <span className="text-[10px] text-gray-400">%</span>
+                            <span className="text-[10px] text-gray-400 ">%</span>
                           </div>
                         ) : (
                           <button

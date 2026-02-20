@@ -475,6 +475,7 @@ export default defineSchema({
     finiquito_fecha: v.optional(v.string()), // Finiquito date
     finiquito_porcentaje: v.optional(v.number()), // Finiquito %
     peso: v.optional(v.number()), // Weight (0-100%)
+    orden: v.optional(v.number()), // Row order from Excel upload
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] }),
@@ -506,6 +507,7 @@ export default defineSchema({
     finiquito_porcentaje: v.optional(v.number()),
     peso: v.optional(v.number()),
     avance_porcentaje: v.optional(v.number()), // Avance real % (0-100)
+    orden: v.optional(v.number()), // Row order from Excel upload
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_programa_obra", { fields: ["programa_obra_id"] })
     .index("by_proyecto_partida_familia", { fields: ["proyecto", "partida", "familia"] }),

@@ -425,7 +425,8 @@ export const bulkUpsertFromExcel = mutation({
     const programaObraCache = new Map<string, string>();
 
     // --- Process NIVEL 1 rows: upsert into programa_obra ---
-    for (const row of nivel1Rows) {
+    for (let i = 0; i < nivel1Rows.length; i++) {
+      const row = nivel1Rows[i];
       // Look up partida by nombre + proyecto (nivel 1)
       const partida = await ctx.db
         .query("partidas")
@@ -456,6 +457,7 @@ export const bulkUpsertFromExcel = mutation({
         finiquito_fecha: row.finiquito_fecha,
         finiquito_porcentaje: row.finiquito_porcentaje,
         peso: row.peso,
+        orden: i,
       };
 
       if (existing) {
@@ -474,7 +476,8 @@ export const bulkUpsertFromExcel = mutation({
     }
 
     // --- Process NIVEL 2/3 rows: upsert into programa_obra_detalle ---
-    for (const row of childRows) {
+    for (let i = 0; i < childRows.length; i++) {
+      const row = childRows[i];
       // Resolve parent programa_obra record
       let parentId = programaObraCache.get(row.partida);
 
@@ -535,6 +538,7 @@ export const bulkUpsertFromExcel = mutation({
         finiquito_fecha: row.finiquito_fecha,
         finiquito_porcentaje: row.finiquito_porcentaje,
         peso: row.peso,
+        orden: i,
       };
 
       if (existingDetalle) {
