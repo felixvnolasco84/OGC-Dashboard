@@ -5,6 +5,7 @@ import { Doc, Id } from "../../../convex/_generated/dataModel";
 // ============================================================
 
 export type ScheduleData = Doc<"programa_obra">;
+export type DetalleData = Doc<"programa_obra_detalle">;
 export type PonderacionData = Doc<"programa_obra_ponderacion">;
 export type AvanceRealData = Doc<"avance_real">;
 
@@ -20,6 +21,7 @@ export type ProgramaItem = {
   familiaName?: string; // for nivel 2/3
   schedule?: ScheduleData | null;
   familiaSchedule?: ScheduleData | null; // Own schedule for familia (level 1) items
+  detalleSchedule?: DetalleData | null; // Schedule from programa_obra_detalle (level 1/2)
   parentPartidaDbId?: Id<"partidas">; // Parent partida DB ID
   ponderacion?: number; // weight %
   avanceReal?: number; // avance real % (computed for 0/1, user-entered for 2)

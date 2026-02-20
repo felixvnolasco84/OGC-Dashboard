@@ -474,6 +474,7 @@ export default defineSchema({
     suministro_fecha: v.optional(v.string()), // Material/equipment delivery date
     finiquito_fecha: v.optional(v.string()), // Finiquito date
     finiquito_porcentaje: v.optional(v.number()), // Finiquito %
+    peso: v.optional(v.number()), // Weight (0-100%)
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] }),
@@ -488,6 +489,26 @@ export default defineSchema({
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_proyecto_parent", { fields: ["proyecto", "parent_partida_nombre"] }),
   
+  // Programa de Obra - Detalle (child schedule items: familia nivel 2, subpartida nivel 3)
+  programa_obra_detalle: defineTable({
+    proyecto: v.id("desarrollos"),
+    programa_obra_id: v.id("programa_obra"), // parent schedule record
+    nivel: v.number(), // 2 (familia) or 3 (subpartida)
+    partida: v.string(), // parent partida name (for lookups)
+    familia: v.string(), // familia name
+    subpartida: v.optional(v.string()), // only for nivel 3
+    fecha_inicio: v.optional(v.string()), // DD/MM/YYYY
+    fecha_fin: v.optional(v.string()),
+    anticipo_fecha: v.optional(v.string()),
+    anticipo_porcentaje: v.optional(v.number()),
+    suministro_fecha: v.optional(v.string()),
+    finiquito_fecha: v.optional(v.string()),
+    finiquito_porcentaje: v.optional(v.number()),
+    peso: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_programa_obra", { fields: ["programa_obra_id"] })
+    .index("by_proyecto_partida_familia", { fields: ["proyecto", "partida", "familia"] }),
+
   // Programa de Obra - Avance real per sub-partida (nivel 3)
   avance_real: defineTable({
     proyecto: v.id("desarrollos"),

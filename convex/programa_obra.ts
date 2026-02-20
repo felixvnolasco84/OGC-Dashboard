@@ -1,6 +1,7 @@
 import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 
 // ============================================================
 // SCHEDULING (programa_obra table) - per nivel 1 partida
@@ -334,6 +335,208 @@ export const addSubPartida = mutation({
       archivo_origen: "programa_obra",
       proyecto: args.proyecto,
     });
+  },
+});
+
+// ============================================================
+// DETALLE queries (programa_obra_detalle table)
+// ============================================================
+
+// Get all detalle records for a project
+export const getDetallesByProyecto = query({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("programa_obra_detalle")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+  },
+});
+
+// Get detalle records for a specific parent programa_obra record
+export const getDetallesByProgramaObra = query({
+  args: {
+    programa_obra_id: v.id("programa_obra"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("programa_obra_detalle")
+      .withIndex("by_programa_obra", (q) =>
+        q.eq("programa_obra_id", args.programa_obra_id)
+      )
+      .collect();
+  },
+});
+
+// ============================================================
+// BULK UPSERT FROM EXCEL
+// ============================================================
+
+const excelRowValidator = v.object({
+  nivel: v.number(),
+  partida: v.string(),
+  familia: v.optional(v.string()),
+  subpartida: v.optional(v.string()),
+  fecha_inicio: v.optional(v.string()),
+  fecha_fin: v.optional(v.string()),
+  anticipo_fecha: v.optional(v.string()),
+  anticipo_porcentaje: v.optional(v.number()),
+  suministro_fecha: v.optional(v.string()),
+  finiquito_fecha: v.optional(v.string()),
+  finiquito_porcentaje: v.optional(v.number()),
+  peso: v.optional(v.number()),
+});
+
+export const bulkUpsertFromExcel = mutation({
+  args: {
+    proyecto: v.id("desarrollos"),
+    rows: v.array(excelRowValidator),
+  },
+  handler: async (ctx, args) => {
+    let created = 0;
+    let updated = 0;
+    const errors: string[] = [];
+
+    // Group rows by partida name for efficient processing
+    const nivel1Rows = args.rows.filter((r) => r.nivel === 1);
+    const childRows = args.rows.filter((r) => r.nivel === 2 || r.nivel === 3);
+
+    // Cache: partida name → programa_obra _id
+    const programaObraCache = new Map<string, string>();
+
+    // --- Process NIVEL 1 rows: upsert into programa_obra ---
+    for (const row of nivel1Rows) {
+      // Look up partida by nombre + proyecto (nivel 1)
+      const partida = await ctx.db
+        .query("partidas")
+        .withIndex("by_proyecto_nivel_nombre", (q) =>
+          q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", row.partida)
+        )
+        .first();
+
+      if (!partida) {
+        errors.push(`Partida "${row.partida}" not found in project`);
+        continue;
+      }
+
+      // Check if programa_obra record already exists
+      const existing = await ctx.db
+        .query("programa_obra")
+        .withIndex("by_proyecto_partida", (q) =>
+          q.eq("proyecto", args.proyecto).eq("partida_id", partida._id)
+        )
+        .first();
+
+      const data = {
+        fecha_inicio: row.fecha_inicio,
+        fecha_fin: row.fecha_fin,
+        anticipo_fecha: row.anticipo_fecha,
+        anticipo_porcentaje: row.anticipo_porcentaje,
+        suministro_fecha: row.suministro_fecha,
+        finiquito_fecha: row.finiquito_fecha,
+        finiquito_porcentaje: row.finiquito_porcentaje,
+        peso: row.peso,
+      };
+
+      if (existing) {
+        await ctx.db.patch(existing._id, data);
+        programaObraCache.set(row.partida, existing._id);
+        updated++;
+      } else {
+        const id = await ctx.db.insert("programa_obra", {
+          proyecto: args.proyecto,
+          partida_id: partida._id,
+          ...data,
+        });
+        programaObraCache.set(row.partida, id);
+        created++;
+      }
+    }
+
+    // --- Process NIVEL 2/3 rows: upsert into programa_obra_detalle ---
+    for (const row of childRows) {
+      // Resolve parent programa_obra record
+      let parentId = programaObraCache.get(row.partida);
+
+      if (!parentId) {
+        // Look up partida_id first, then programa_obra
+        const partida = await ctx.db
+          .query("partidas")
+          .withIndex("by_proyecto_nivel_nombre", (q) =>
+            q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", row.partida)
+          )
+          .first();
+
+        if (partida) {
+          const parentSchedule = await ctx.db
+            .query("programa_obra")
+            .withIndex("by_proyecto_partida", (q) =>
+              q.eq("proyecto", args.proyecto).eq("partida_id", partida._id)
+            )
+            .first();
+
+          if (parentSchedule) {
+            parentId = parentSchedule._id;
+            programaObraCache.set(row.partida, parentId);
+          }
+        }
+      }
+
+      if (!parentId) {
+        errors.push(
+          `Parent programa_obra not found for partida "${row.partida}" (nivel ${row.nivel}, familia "${row.familia || ""}")`
+        );
+        continue;
+      }
+
+      // Check if detalle already exists (match by proyecto + partida + familia + subpartida + nivel)
+      const existingDetalles = await ctx.db
+        .query("programa_obra_detalle")
+        .withIndex("by_proyecto_partida_familia", (q) =>
+          q
+            .eq("proyecto", args.proyecto)
+            .eq("partida", row.partida)
+            .eq("familia", row.familia || "")
+        )
+        .collect();
+
+      const existingDetalle = existingDetalles.find(
+        (d) =>
+          d.nivel === row.nivel &&
+          (d.subpartida || "") === (row.subpartida || "")
+      );
+
+      const detalleData = {
+        fecha_inicio: row.fecha_inicio,
+        fecha_fin: row.fecha_fin,
+        anticipo_fecha: row.anticipo_fecha,
+        anticipo_porcentaje: row.anticipo_porcentaje,
+        suministro_fecha: row.suministro_fecha,
+        finiquito_fecha: row.finiquito_fecha,
+        finiquito_porcentaje: row.finiquito_porcentaje,
+        peso: row.peso,
+      };
+
+      if (existingDetalle) {
+        await ctx.db.patch(existingDetalle._id, detalleData);
+        updated++;
+      } else {
+        await ctx.db.insert("programa_obra_detalle", {
+          proyecto: args.proyecto,
+          programa_obra_id: parentId as Id<"programa_obra">,
+          nivel: row.nivel,
+          partida: row.partida,
+          familia: row.familia || "",
+          subpartida: row.subpartida,
+          ...detalleData,
+        });
+        created++;
+      }
+    }
+
+    return { created, updated, errors };
   },
 });
 

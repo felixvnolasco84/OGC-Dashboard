@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
-import { useQuery, usePaginatedQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, ChevronRight, Search, Plus, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -48,6 +48,8 @@ function getTimelineMonths(year: number): { label: string; month: number; year: 
 
 const WEEK_WIDTH = 32; // px per week column
 const getMonthWidth = (weeks: number) => weeks * WEEK_WIDTH;
+
+const API_BASE_URL = "https://ogc-excel-reader.vercel.app";
 
 type TMonth = { weeks: number };
 /** Convert a DD/MM/YYYY or YYYY-MM-DD string to a pixel offset for the given year */
@@ -94,11 +96,10 @@ export default function ProgramaObra() {
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
 
-  // Fetch all partidas for selected project with pagination
-  const { results: allPartidas, loadMore, status: partidasStatus } = usePaginatedQuery(
-    api.partida.getByProjectPaginated,
-    proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip",
-    { initialNumItems: 1000 }
+  // Fetch only nivel 1 partidas for the project
+  const nivel1Partidas = useQuery(
+    api.partida.getByNivel,
+    proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, nivel: 1 } : "skip"
   );
 
   // Fetch programa_obra schedules
@@ -107,23 +108,14 @@ export default function ProgramaObra() {
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
 
-  // Fetch ponderaciones
-  const ponderaciones = useQuery(
-    api.programa_obra.getPonderacionesByProyecto,
-    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
-  );
-
-  // Fetch avance real
-  const avanceRealEntries = useQuery(
-    api.programa_obra.getAvanceRealByProyecto,
+  // Fetch programa_obra_detalle (children: familia / subpartida)
+  const detalles = useQuery(
+    api.programa_obra.getDetallesByProyecto,
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
 
   // Mutations
-  const upsertAvanceReal = useMutation(api.programa_obra.upsertAvanceReal);
-  const upsertPonderacion = useMutation(api.programa_obra.upsertPonderacion);
-  const addFamilia = useMutation(api.programa_obra.addFamilia);
-  const addSubPartida = useMutation(api.programa_obra.addSubPartida);
+  const bulkUpsertFromExcel = useMutation(api.programa_obra.bulkUpsertFromExcel);
 
   // Build lookup maps
   const scheduleMap = useMemo(() => {
@@ -132,126 +124,58 @@ export default function ProgramaObra() {
     return map;
   }, [schedules]);
 
-  const ponderacionMap = useMemo(() => {
-    const map = new Map<string, number>();
-    ponderaciones?.forEach((p) => map.set(p.partida_id, p.peso));
-    return map;
-  }, [ponderaciones]);
-
-  const avanceRealMap = useMemo(() => {
-    const map = new Map<string, number>();
-    avanceRealEntries?.forEach((a) => map.set(a.partida_id, a.porcentaje));
-    return map;
-  }, [avanceRealEntries]);
-
   // ============================================================
-  // Build hierarchical tree from flat partidas
+  // Build hierarchical tree: nivel 1 partidas + detalle children
   // ============================================================
   const programaData = useMemo(() => {
-    if (!allPartidas) return [];
+    if (!nivel1Partidas) return [];
 
-    // Separate by nivel
-    const nivel1 = allPartidas.filter((p) => p.nivel === 1);
-    const nivel2 = allPartidas.filter((p) => p.nivel === 2);
-    const nivel3 = allPartidas.filter((p) => p.nivel === 3);
-
-    return nivel1.map((p1) => {
+    return nivel1Partidas.map((p1) => {
       const schedule = scheduleMap.get(p1._id) || null;
 
-      // Find children (nivel 2) by partida_nombre or nombre match
-      const children2 = nivel2.filter(
-        (p2) => (p2.partida_nombre || p2.nombre) === p1.nombre
-      );
+      // Get all detalles for this partida (matched by partida name)
+      const partidaDetalles = detalles?.filter((d) => d.partida === p1.nombre) || [];
+      const nivel2Detalles = partidaDetalles.filter((d) => d.nivel === 2);
+      const nivel3Detalles = partidaDetalles.filter((d) => d.nivel === 3);
 
-      // Group nivel 2 by familia
-      const familiaMap = new Map<string, typeof nivel2>();
-      children2.forEach((p2) => {
-        const key = p2.familia || p2.nombre;
-        if (!familiaMap.has(key)) familiaMap.set(key, []);
-        familiaMap.get(key)!.push(p2);
-      });
-
-      const familiaItems: ProgramaItem[] = Array.from(familiaMap.entries()).map(
-        ([familiaName, familiaPartidas]) => {
-          // Sum presupuesto and pagado for the familia
-          const famPresupuesto = familiaPartidas.reduce((s, fp) => s + (fp.presupuesto_aprobado || 0), 0);
-          const famPagado = familiaPartidas.reduce((s, fp) => s + (fp.pagado || 0), 0);
-
-          // Find nivel 3 children for this familia
-          const children3 = nivel3.filter(
-            (p3) =>
-              (p3.partida_nombre || p3.nombre) === p1.nombre &&
-              p3.familia === familiaName
-          );
-
-          const subItems: ProgramaItem[] = children3.map((p3) => {
-            const avReal = avanceRealMap.get(p3._id) ?? 0;
-            return {
-              id: `sub-${p3._id}`,
-              partidaDbId: p3._id,
-              partida: p3.sub_partida || p3.familia,
-              presupuesto: p3.presupuesto_aprobado || 0,
-              pagado: p3.pagado || 0,
-              expanded: false,
-              level: 2,
-              parentPartidaNombre: p1.nombre,
-              familiaName,
-              schedule, // inherit parent schedule for bar positioning
-              ponderacion: ponderacionMap.get(p3._id),
-              avanceReal: avReal,
-              children: [],
-            };
-          });
-
-          // Calculate weighted avance for familia from children
-          let familiaAvance = 0;
-          if (subItems.length > 0) {
-            const totalWeight = subItems.reduce((s, c) => s + (c.ponderacion ?? 1), 0);
-            familiaAvance =
-              totalWeight > 0
-                ? subItems.reduce(
-                    (s, c) => s + (c.avanceReal || 0) * (c.ponderacion ?? 1),
-                    0
-                  ) / totalWeight
-                : 0;
-          }
-
-          // Use first familia partida's DB ID for ponderacion lookups
-          const firstFamPartida = familiaPartidas[0];
-          const famSchedule = firstFamPartida ? scheduleMap.get(firstFamPartida._id) || null : null;
-
-          return {
-            id: `fam-${p1.nombre}-${familiaName}`,
-            partidaDbId: firstFamPartida?._id,
-            partida: familiaName,
-            presupuesto: famPresupuesto,
-            pagado: famPagado,
+      // Build familia (level 1) items from nivel 2 detalles
+      const familiaItems: ProgramaItem[] = nivel2Detalles.map((fam) => {
+        // Find nivel 3 children for this familia
+        const subItems: ProgramaItem[] = nivel3Detalles
+          .filter((d) => d.familia === fam.familia)
+          .map((sub) => ({
+            id: `sub-${sub._id}`,
+            partida: sub.subpartida || sub.familia,
+            presupuesto: 0,
+            pagado: 0,
             expanded: false,
-            level: 1,
+            level: 2,
             parentPartidaNombre: p1.nombre,
-            parentPartidaDbId: p1._id,
-            familiaName,
-            schedule, // inherit parent schedule for bar positioning
-            familiaSchedule: famSchedule,
-            ponderacion: firstFamPartida ? ponderacionMap.get(firstFamPartida._id) : undefined,
-            avanceReal: Math.round(familiaAvance * 100) / 100,
-            children: subItems,
-          } as ProgramaItem;
-        }
-      );
+            familiaName: fam.familia,
+            schedule, // inherit parent schedule for gray background
+            detalleSchedule: sub,
+            ponderacion: sub.peso,
+            avanceReal: 0,
+            children: [],
+          }));
 
-      // Calculate weighted avance for partida from familia children
-      let partidaAvance = 0;
-      if (familiaItems.length > 0) {
-        const totalWeight = familiaItems.reduce((s, c) => s + (c.ponderacion ?? 1), 0);
-        partidaAvance =
-          totalWeight > 0
-            ? familiaItems.reduce(
-                (s, c) => s + (c.avanceReal || 0) * (c.ponderacion ?? 1),
-                0
-              ) / totalWeight
-            : 0;
-      }
+        return {
+          id: `fam-${p1.nombre}-${fam.familia}`,
+          partida: fam.familia,
+          presupuesto: 0,
+          pagado: 0,
+          expanded: false,
+          level: 1,
+          parentPartidaNombre: p1.nombre,
+          parentPartidaDbId: p1._id,
+          familiaName: fam.familia,
+          schedule, // inherit parent schedule for gray background
+          detalleSchedule: fam,
+          ponderacion: fam.peso,
+          avanceReal: 0,
+          children: subItems,
+        } as ProgramaItem;
+      });
 
       // Financiero = pagado/presupuesto for nivel 1
       const financiero =
@@ -268,12 +192,12 @@ export default function ProgramaObra() {
         expanded: false,
         level: 0,
         schedule,
-        avanceReal: Math.round(partidaAvance * 100) / 100,
+        avanceReal: 0,
         financiero,
         children: familiaItems,
       } as ProgramaItem;
     });
-  }, [allPartidas, scheduleMap, ponderacionMap, avanceRealMap]);
+  }, [nivel1Partidas, scheduleMap, detalles]);
 
   // ============================================================
   // Expansion state management (separate from data to avoid resets)
@@ -331,62 +255,105 @@ export default function ProgramaObra() {
     return offset + fraction * getMonthWidth(timelineMonths[month].weeks);
   }, [selectedYear, timelineMonths]);
 
-  // Inline avance real save
-  const handleAvanceRealChange = useCallback(
-    async (partidaDbId: Id<"partidas">, value: number) => {
-      if (!proyectoId) return;
-      await upsertAvanceReal({
-        proyecto: proyectoId as Id<"desarrollos">,
-        partida_id: partidaDbId,
-        porcentaje: value,
-      });
-    },
-    [proyectoId, upsertAvanceReal]
-  );
+  // Excel upload state
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Inline ponderacion save (used in familia/sub-partida rows)
-  const handlePonderacionChange = useCallback(
-    async (partidaDbId: Id<"partidas">, parentNombre: string, value: number) => {
+  const handleExcelUpload = useCallback(
+    async (file: File) => {
       if (!proyectoId) return;
-      await upsertPonderacion({
-        proyecto: proyectoId as Id<"desarrollos">,
-        partida_id: partidaDbId,
-        parent_partida_nombre: parentNombre,
-        peso: value,
-      });
-    },
-    [proyectoId, upsertPonderacion]
-  );
+      setUploading(true);
+      setUploadResult(null);
 
-  // Add familia
-  const handleAddFamilia = useCallback(
-    async (partidaNombre: string) => {
-      if (!proyectoId) return;
-      const name = prompt("Nombre de la nueva familia:");
-      if (!name || !name.trim()) return;
-      await addFamilia({
-        proyecto: proyectoId as Id<"desarrollos">,
-        partida_nombre: partidaNombre,
-        familia: name.trim(),
-      });
-    },
-    [proyectoId, addFamilia]
-  );
+      try {
+        // 1. Send file to backend API for parsing
+        const formData = new FormData();
+        formData.append("file", file);
 
-  // Add sub-partida
-  const handleAddSubPartida = useCallback(
-    async (partidaNombre: string, familiaName: string) => {
-      if (!proyectoId) return;
-      const name = prompt("Nombre de la nueva sub-partida:");
-      if (!name || !name.trim()) return;
-      await addSubPartida({
-        proyecto: proyectoId as Id<"desarrollos">,
-        partida_nombre: partidaNombre,
-        familia: familiaName,
-        sub_partida: name.trim(),
-      });
+        const res = await fetch(`${API_BASE_URL}/upload/programa-obra`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Error parsing Excel file");
+        }
+
+        const data = await res.json();
+
+        // 2. Transform API response into rows for bulkUpsert
+        // The API returns { partidas: [...] } with nested children
+        const rows: {
+          nivel: number;
+          partida: string;
+          familia?: string;
+          subpartida?: string;
+          fecha_inicio?: string;
+          fecha_fin?: string;
+          anticipo_fecha?: string;
+          anticipo_porcentaje?: number;
+          suministro_fecha?: string;
+          finiquito_fecha?: string;
+          finiquito_porcentaje?: number;
+          peso?: number;
+        }[] = [];
+
+        if (data.partidas) {
+          for (const p of data.partidas) {
+            // NIVEL 1 row
+            rows.push({
+              nivel: 1,
+              partida: p.partida,
+              fecha_inicio: p.fecha_inicio || undefined,
+              fecha_fin: p.fecha_fin || undefined,
+              anticipo_fecha: p.anticipo_fecha || undefined,
+              anticipo_porcentaje: p.anticipo_porcentaje || undefined,
+              suministro_fecha: p.suministro_fecha || undefined,
+              finiquito_fecha: p.finiquito_fecha || undefined,
+              finiquito_porcentaje: p.finiquito_porcentaje || undefined,
+              peso: p.peso || undefined,
+            });
+            // Children (nivel 2 & 3)
+            if (p.children) {
+              for (const child of p.children) {
+                rows.push({
+                  nivel: child.nivel,
+                  partida: p.partida,
+                  familia: child.familia || undefined,
+                  subpartida: child.subpartida || undefined,
+                  fecha_inicio: child.fecha_inicio || undefined,
+                  fecha_fin: child.fecha_fin || undefined,
+                  anticipo_fecha: child.anticipo_fecha || undefined,
+                  anticipo_porcentaje: child.anticipo_porcentaje || undefined,
+                  suministro_fecha: child.suministro_fecha || undefined,
+                  finiquito_fecha: child.finiquito_fecha || undefined,
+                  finiquito_porcentaje: child.finiquito_porcentaje || undefined,
+                  peso: child.peso || undefined,
+                });
+              }
+            }
+          }
+        }
+
+        // 3. Call Convex mutation to upsert
+        const result = await bulkUpsertFromExcel({
+          proyecto: proyectoId as Id<"desarrollos">,
+          rows,
+        });
+
+        setUploadResult(result);
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : "Unknown error";
+        setUploadResult({ created: 0, updated: 0, errors: [msg] });
+      } finally {
+        setUploading(false);
+        // Reset file input
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
     },
-    [proyectoId, addSubPartida]
+    [proyectoId, bulkUpsertFromExcel]
   );
 
   // Scroll to today on mount
@@ -398,7 +365,7 @@ export default function ProgramaObra() {
   }, [todayPosition]);
 
   // Loading state
-  if (!proyecto || partidasStatus === "LoadingFirstPage") {
+  if (!proyecto || !nivel1Partidas) {
     return (
       <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -419,6 +386,30 @@ export default function ProgramaObra() {
             <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
           </div>
           <div className="flex items-center gap-3">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleExcelUpload(f);
+              }}
+            />
+            <Button
+              variant="outline"
+              className="rounded-none gap-2"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {uploading ? "Procesando..." : "Cargar Excel"}
+            </Button>
             <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
               <SelectTrigger className="w-28 rounded-none">
                 <SelectValue />
@@ -431,6 +422,35 @@ export default function ProgramaObra() {
             </Select>
           </div>
         </div>
+
+        {/* Upload result feedback */}
+        {uploadResult && (
+          <div className={cn(
+            "mt-3 px-4 py-2.5 text-sm rounded-none border",
+            uploadResult.errors.length > 0
+              ? "bg-red-50 border-red-200 text-red-700"
+              : "bg-green-50 border-green-200 text-green-700"
+          )}>
+            <span className="font-medium">
+              {uploadResult.created + uploadResult.updated > 0
+                ? `✓ ${uploadResult.created} creados, ${uploadResult.updated} actualizados`
+                : "Sin cambios"}
+            </span>
+            {uploadResult.errors.length > 0 && (
+              <span className="ml-2">
+                · {uploadResult.errors.length} error{uploadResult.errors.length > 1 ? "es" : ""}:
+                {" "}{uploadResult.errors.slice(0, 3).join("; ")}
+                {uploadResult.errors.length > 3 && ` (+${uploadResult.errors.length - 3} más)`}
+              </span>
+            )}
+            <button
+              className="ml-3 text-xs underline opacity-60 hover:opacity-100"
+              onClick={() => setUploadResult(null)}
+            >
+              Cerrar
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Search */}
@@ -529,56 +549,19 @@ export default function ProgramaObra() {
                           <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
                         </button>
                       )}
-
-                      {/* Add child button for nivel 0 and 1 */}
-                      {item.level === 0 && isExpanded && (
-                        <button
-                          onClick={() => handleAddFamilia(item.partida)}
-                          className="p-1 hover:bg-gray-100 rounded shrink-0 opacity-40 hover:opacity-100"
-                          title="Agregar familia"
-                        >
-                          <Plus className="h-3 w-3 text-gray-400" />
-                        </button>
-                      )}
-                      {item.level === 1 && isExpanded && (
-                        <button
-                          onClick={() => handleAddSubPartida(item.parentPartidaNombre!, item.familiaName!)}
-                          className="p-1 hover:bg-gray-100 rounded shrink-0 opacity-40 hover:opacity-100"
-                          title="Agregar sub-partida"
-                        >
-                          <Plus className="h-3 w-3 text-gray-400" />
-                        </button>
-                      )}
                     </div>
                   </div>
 
-                  {/* Presupuesto / Avance / Ponderación */}
+                  {/* Presupuesto / Peso */}
                   <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 flex items-center justify-end">
                     {item.level === 0 ? (
                       <span className="text-sm text-gray-700 font-medium">
                         {formatCurrency(item.presupuesto)}
                       </span>
-                    ) : item.level === 1 ? (
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-[15px] text-[#A0A09A]">
-                          {item.avanceReal != null ? `${Math.round(item.avanceReal)}%` : ""}
-                        </span>
-                        {item.partidaDbId && item.parentPartidaNombre && (
-                          <PonderacionInput
-                            value={item.ponderacion}
-                            onChange={(v) =>
-                              handlePonderacionChange(item.partidaDbId!, item.parentPartidaNombre!, v)
-                            }
-                          />
-                        )}
-                      </div>
                     ) : (
-                      <AvanceInput
-                        value={item.avanceReal ?? 0}
-                        onChange={(v) =>
-                          item.partidaDbId && handleAvanceRealChange(item.partidaDbId, v)
-                        }
-                      />
+                      <span className="text-xs text-gray-400">
+                        {item.ponderacion != null ? `${item.ponderacion}%` : ""}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -677,15 +660,6 @@ export default function ProgramaObra() {
         </div>
       </div>
 
-      {/* Load more */}
-      {partidasStatus === "CanLoadMore" && (
-        <div className="flex justify-start px-12">
-          <Button className="rounded-none" variant="outline" onClick={() => loadMore(500)}>
-            Cargar más
-          </Button>
-        </div>
-      )}
-
       {/* Partida Editor Sheet */}
       {editingPartida && proyectoId && (
         <ProgramaObraPartidaEditor
@@ -706,76 +680,7 @@ export default function ProgramaObra() {
           onClose={() => setEditingFamilia(null)}
         />
       )}
-    </div>
-  );
-}
 
-// ============================================================
-// Inline avance real input component (nivel 3 sub-partidas)
-// ============================================================
-function AvanceInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [localValue, setLocalValue] = useState(String(value));
-
-  useEffect(() => {
-    setLocalValue(String(value));
-  }, [value]);
-
-  const handleBlur = () => {
-    const num = parseFloat(localValue);
-    if (!isNaN(num) && num >= 0 && num <= 100 && num !== value) {
-      onChange(num);
-    } else {
-      setLocalValue(String(value));
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-0.5">
-      <input
-        type="text"
-        className="w-10 text-xs text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-gray-400 focus:outline-none py-0.5 text-gray-500"
-        value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
-        onBlur={handleBlur}
-        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-      />
-      <span className="text-xs text-gray-400">%</span>
-    </div>
-  );
-}
-
-// ============================================================
-// Inline ponderación (weight) input component (nivel 1 familias)
-// ============================================================
-function PonderacionInput({ value, onChange }: { value: number | undefined; onChange: (v: number) => void }) {
-  const [localValue, setLocalValue] = useState(value != null ? String(value) : "");
-
-  useEffect(() => {
-    setLocalValue(value != null ? String(value) : "");
-  }, [value]);
-
-  const handleBlur = () => {
-    const num = parseFloat(localValue);
-    if (!isNaN(num) && num >= 0 && num <= 100 && num !== value) {
-      onChange(num);
-    } else {
-      setLocalValue(value != null ? String(value) : "");
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-0.5">
-      <span className="text-[9px] text-gray-300">peso:</span>
-      <input
-        type="text"
-        placeholder="—"
-        className="w-8 text-[10px] text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-gray-400 focus:outline-none py-0 text-gray-400"
-        value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
-        onBlur={handleBlur}
-        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-      />
-      <span className="text-[9px] text-gray-300">%</span>
     </div>
   );
 }

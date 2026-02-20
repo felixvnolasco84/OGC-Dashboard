@@ -39,11 +39,14 @@ type Props = {
 export default function ProgramaObraGanttItem({ item, year, columnWidth, timelineMonths }: Props) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Use familia's own schedule if available (level 1), otherwise parent schedule
+  // Use detalle schedule if available (from Excel upload), then familia schedule, then parent
   const schedule = item.schedule;
-  const effectiveSchedule = item.level === 1 && item.familiaSchedule
-    ? item.familiaSchedule
-    : schedule;
+  const effectiveSchedule =
+    (item.level === 1 || item.level === 2) && item.detalleSchedule
+      ? item.detalleSchedule
+      : item.level === 1 && item.familiaSchedule
+        ? item.familiaSchedule
+        : schedule;
 
   // Parse dates from the effective schedule
   const rawStartDate = parseDate(effectiveSchedule?.fecha_inicio);
