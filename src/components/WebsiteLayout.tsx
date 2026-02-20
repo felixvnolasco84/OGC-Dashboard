@@ -10,6 +10,7 @@ import {
 import { Toaster } from "sonner";
 import { ModalProvider } from "./providers/modal-provider";
 import { useConvexAuth } from "convex/react";
+import { TooltipProvider } from "./ui/tooltip";
 
 const queryClient = new QueryClient()
 function WebsiteLayout() {
@@ -17,16 +18,18 @@ function WebsiteLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StoreUserEffect />
-      <div className="flex h-screen bg-white overflow-x-hidden">
-        <Sidebar />
-        <main className={`flex-1 h-screen overflow-auto ${isAuthenticated && !isLoading ? 'ml-64' : ''}`}>
-          <Outlet />
-        </main>
+      <TooltipProvider>
+        <StoreUserEffect />
+        <div className="flex h-screen bg-white overflow-x-hidden">
+          <Sidebar />
+          <main className={`flex-1 h-screen overflow-auto ${isAuthenticated && !isLoading ? 'ml-64' : ''}`}>
+            <Outlet />
+          </main>
 
-        <ModalProvider />
-        <Toaster />
-      </div>
+          <ModalProvider />
+          <Toaster />
+        </div>
+      </TooltipProvider>
     </QueryClientProvider>);
 }
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { type ProgramaItem, parseDate } from "./programa-obra-types";
 import { Check } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ============================================================
 // Helpers
@@ -150,9 +151,16 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                 style={{ width: `${Math.min(avanceReal, 100)}%` }}
               />
             </div>
-            <span className="text-[10px] text-gray-400 px-1 truncate block text-left">
-              {item.partida}
-            </span>
+            <Tooltip>
+              <TooltipTrigger>
+                <span className="text-[10px] text-[#5A5A50] px-1 truncate block text-left font-light">
+                  {item.partida}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">
+                {item.partida}
+              </TooltipContent>
+            </Tooltip>
           </div>
         )}
 
@@ -165,9 +173,16 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                 style={{ width: `${Math.min(avanceReal, 100)}%` }}
               />
             </div>
-            <span className="text-[9px] text-gray-300 px-1 truncate block">
-              {item.partida}
-            </span>
+            <Tooltip>
+              <TooltipTrigger>
+                <span className="text-[9px] text-gray-300 px-1 truncate block">
+                  {item.partida}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">
+                {item.partida}
+              </TooltipContent>
+            </Tooltip>
           </div>
         )}
 
