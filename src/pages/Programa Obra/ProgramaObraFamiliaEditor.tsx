@@ -38,7 +38,7 @@ function toStorageDate(dateStr: string): string {
 }
 
 export default function ProgramaObraFamiliaEditor({ item, parentSchedule, proyectoId, onClose }: Props) {
-  const familiaSchedule = item.familiaSchedule;
+  const familiaSchedule = item.detalleSchedule ?? item.familiaSchedule;
 
   const [fechaInicio, setFechaInicio] = useState(toInputDate(familiaSchedule?.fecha_inicio));
   const [fechaFin, setFechaFin] = useState(toInputDate(familiaSchedule?.fecha_fin));

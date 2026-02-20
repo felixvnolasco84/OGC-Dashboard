@@ -150,6 +150,11 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                 className="h-full bg-[#417847] rounded-none transition-all"
                 style={{ width: `${Math.min(avanceReal, 100)}%` }}
               />
+              {avanceReal > 0 && (
+                <span className="absolute -right-8 top-[-3px] text-[9px] text-green-700 font-medium leading-[10px]">
+                  {Math.round(avanceReal)}%
+                </span>
+              )}
             </div>
             <Tooltip>
               <TooltipTrigger>
@@ -158,7 +163,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                 </span>
               </TooltipTrigger>
               <TooltipContent className="text-xs">
-                {item.partida}
+                {item.partida} — Avance: {Math.round(avanceReal)}%
               </TooltipContent>
             </Tooltip>
           </div>

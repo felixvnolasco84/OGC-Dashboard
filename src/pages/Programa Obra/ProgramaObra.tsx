@@ -116,6 +116,13 @@ export default function ProgramaObra() {
 
   // Mutations
   const bulkUpsertFromExcel = useMutation(api.programa_obra.bulkUpsertFromExcel);
+  const updateDetalleAvance = useMutation(api.programa_obra.updateDetalleAvance);
+
+  // Avance editing state
+  const [editingAvanceId, setEditingAvanceId] = useState<string | null>(null);
+  const [editingAvanceValue, setEditingAvanceValue] = useState("");
+  const editingAvanceValueRef = useRef("");
+  const editingItemRef = useRef<ProgramaItem | null>(null);
 
   // Build lookup maps
   const scheduleMap = useMemo(() => {
@@ -155,9 +162,24 @@ export default function ProgramaObra() {
             schedule, // inherit parent schedule for gray background
             detalleSchedule: sub,
             ponderacion: sub.peso,
-            avanceReal: 0,
+            avanceReal: sub.avance_porcentaje ?? 0,
             children: [],
           }));
+
+        // Compute familia avance as weighted average of children
+        let familiaAvance = 0;
+        if (subItems.length > 0) {
+          const totalWeight = subItems.reduce((s, c) => s + (c.ponderacion || 0), 0);
+          if (totalWeight > 0) {
+            familiaAvance = subItems.reduce(
+              (s, c) => s + (c.avanceReal ?? 0) * (c.ponderacion || 0),
+              0
+            ) / totalWeight;
+          } else {
+            // Simple average if no weights
+            familiaAvance = subItems.reduce((s, c) => s + (c.avanceReal ?? 0), 0) / subItems.length;
+          }
+        }
 
         return {
           id: `fam-${p1.nombre}-${fam.familia}`,
@@ -172,7 +194,7 @@ export default function ProgramaObra() {
           schedule, // inherit parent schedule for gray background
           detalleSchedule: fam,
           ponderacion: fam.peso,
-          avanceReal: 0,
+          avanceReal: Math.round(familiaAvance * 100) / 100,
           children: subItems,
         } as ProgramaItem;
       });
@@ -183,6 +205,20 @@ export default function ProgramaObra() {
           ? Math.round((p1.pagado / p1.presupuesto_aprobado) * 100)
           : 0;
 
+      // Compute partida-level avance as weighted average of familias
+      let partidaAvance = 0;
+      if (familiaItems.length > 0) {
+        const totalWeight = familiaItems.reduce((s, c) => s + (c.ponderacion || 0), 0);
+        if (totalWeight > 0) {
+          partidaAvance = familiaItems.reduce(
+            (s, c) => s + (c.avanceReal ?? 0) * (c.ponderacion || 0),
+            0
+          ) / totalWeight;
+        } else {
+          partidaAvance = familiaItems.reduce((s, c) => s + (c.avanceReal ?? 0), 0) / familiaItems.length;
+        }
+      }
+
       return {
         id: `partida-${p1._id}`,
         partidaDbId: p1._id,
@@ -192,7 +228,7 @@ export default function ProgramaObra() {
         expanded: false,
         level: 0,
         schedule,
-        avanceReal: 0,
+        avanceReal: Math.round(partidaAvance * 100) / 100,
         financiero,
         children: familiaItems,
       } as ProgramaItem;
@@ -212,6 +248,40 @@ export default function ProgramaObra() {
       return next;
     });
   }, []);
+
+  // Save avance real for a sub-partida item (uses refs to avoid stale closures)
+  const handleSaveAvance = useCallback(
+    async () => {
+      const item = editingItemRef.current;
+      const rawValue = editingAvanceValueRef.current;
+      const detalleId = item?.detalleSchedule?._id;
+      if (!detalleId) {
+        editingItemRef.current = null;
+        setEditingAvanceId(null);
+        setEditingAvanceValue("");
+        return;
+      }
+      const value = parseFloat(rawValue);
+      if (isNaN(value) || value < 0 || value > 100) {
+        editingItemRef.current = null;
+        setEditingAvanceId(null);
+        setEditingAvanceValue("");
+        return;
+      }
+      try {
+        await updateDetalleAvance({
+          detalle_id: detalleId,
+          avance_porcentaje: value,
+        });
+      } catch (err) {
+        console.error("Error saving avance:", err);
+      }
+      editingItemRef.current = null;
+      setEditingAvanceId(null);
+      setEditingAvanceValue("");
+    },
+    [updateDetalleAvance]
+  );
 
   // Flatten tree respecting expanded state
   const flattenedData = useMemo(() => {
@@ -552,17 +622,74 @@ export default function ProgramaObra() {
                     </div>
                   </div>
 
-                  {/* Presupuesto / Peso */}
+                  {/* Presupuesto / Peso / Avance */}
                   <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 flex items-center justify-end">
                     {item.level === 0 ? (
                       <span className="text-sm text-gray-700 font-medium">
                         {formatCurrency(item.presupuesto)}
                       </span>
-                    ) : (
-                      <span className="text-xs text-gray-400">
-                        {item.ponderacion != null ? `${item.ponderacion}%` : ""}
-                      </span>
-                    )}
+                    ) : item.level === 1 ? (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-[9px] text-gray-400">
+                          {item.ponderacion != null ? `${item.ponderacion}%` : ""}
+                        </span>
+                        {(item.avanceReal ?? 0) > 0 && (
+                          <span className="text-[10px] text-green-700 font-medium">
+                            {Math.round(item.avanceReal ?? 0)}% avance
+                          </span>
+                        )}
+                      </div>
+                    ) : item.level === 2 ? (
+                      <div className="flex items-center gap-1">
+                        {editingAvanceId === item.id ? (
+                          <div className="flex items-center gap-0.5">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              autoFocus
+                              value={editingAvanceValue}
+                              onChange={(e) => {
+                                setEditingAvanceValue(e.target.value);
+                                editingAvanceValueRef.current = e.target.value;
+                              }}
+                              onBlur={() => handleSaveAvance()}
+                              onKeyDown={(e: React.KeyboardEvent) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  (e.target as HTMLInputElement).blur();
+                                }
+                                if (e.key === "Escape") {
+                                  editingItemRef.current = null;
+                                  setEditingAvanceId(null);
+                                  setEditingAvanceValue("");
+                                }
+                              }}
+                              className="w-12 h-5 text-[10px] text-right border border-gray-300 rounded-sm px-1 focus:outline-none focus:border-green-500"
+                            />
+                            <span className="text-[10px] text-gray-400">%</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              editingItemRef.current = item;
+                              editingAvanceValueRef.current = String(item.avanceReal ?? 0);
+                              setEditingAvanceId(item.id);
+                              setEditingAvanceValue(String(item.avanceReal ?? 0));
+                            }}
+                            className={cn(
+                              "text-[10px] px-1.5 py-0.5 rounded-sm border transition-colors",
+                              (item.avanceReal ?? 0) > 0
+                                ? "text-green-700 bg-green-50 border-green-200 hover:bg-green-100"
+                                : "text-gray-400 bg-gray-50 border-gray-200 hover:bg-gray-100"
+                            )}
+                            title="Editar avance real"
+                          >
+                            {Math.round(item.avanceReal ?? 0)}%
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );

@@ -339,6 +339,24 @@ export const addSubPartida = mutation({
 });
 
 // ============================================================
+// AVANCE on DETALLE (programa_obra_detalle.avance_porcentaje)
+// ============================================================
+
+// Update avance_porcentaje on a programa_obra_detalle record
+export const updateDetalleAvance = mutation({
+  args: {
+    detalle_id: v.id("programa_obra_detalle"),
+    avance_porcentaje: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.detalle_id, {
+      avance_porcentaje: args.avance_porcentaje,
+    });
+    return { success: true };
+  },
+});
+
+// ============================================================
 // DETALLE queries (programa_obra_detalle table)
 // ============================================================
 
