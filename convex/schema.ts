@@ -508,6 +508,8 @@ export default defineSchema({
     peso: v.optional(v.number()),
     avance_porcentaje: v.optional(v.number()), // Avance real % (0-100)
     orden: v.optional(v.number()), // Row order from Excel upload
+    tiempo_extra_cantidad: v.optional(v.number()), // Extension amount
+    tiempo_extra_unidad: v.optional(v.string()), // "dias" | "semanas" | "meses"
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_programa_obra", { fields: ["programa_obra_id"] })
     .index("by_proyecto_partida_familia", { fields: ["proyecto", "partida", "familia"] }),

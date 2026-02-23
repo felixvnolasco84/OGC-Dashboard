@@ -356,6 +356,50 @@ export const updateDetalleAvance = mutation({
   },
 });
 
+// Update peso on a programa_obra record (level 0 partida)
+export const updateSchedulePeso = mutation({
+  args: {
+    schedule_id: v.id("programa_obra"),
+    peso: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.schedule_id, { peso: args.peso });
+    return { success: true };
+  },
+});
+
+// Update peso on a programa_obra_detalle record (level 1 familia)
+export const updateDetallePeso = mutation({
+  args: {
+    detalle_id: v.id("programa_obra_detalle"),
+    peso: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.detalle_id, { peso: args.peso });
+    return { success: true };
+  },
+});
+
+// Update dates + time extension on a programa_obra_detalle record
+export const updateDetalleSchedule = mutation({
+  args: {
+    detalle_id: v.id("programa_obra_detalle"),
+    fecha_inicio: v.optional(v.string()),
+    fecha_fin: v.optional(v.string()),
+    tiempo_extra_cantidad: v.optional(v.number()),
+    tiempo_extra_unidad: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.detalle_id, {
+      fecha_inicio: args.fecha_inicio,
+      fecha_fin: args.fecha_fin,
+      tiempo_extra_cantidad: args.tiempo_extra_cantidad,
+      tiempo_extra_unidad: args.tiempo_extra_unidad,
+    });
+    return { success: true };
+  },
+});
+
 // ============================================================
 // DETALLE queries (programa_obra_detalle table)
 // ============================================================

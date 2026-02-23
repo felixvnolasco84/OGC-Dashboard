@@ -26,6 +26,7 @@ export type ProgramaItem = {
   ponderacion?: number; // weight %
   avanceReal?: number; // avance real % (computed for 0/1, user-entered for 2)
   financiero?: number; // pagado/presupuesto % (only nivel 0)
+  maxChildEndDate?: string; // farthest familia end date (only nivel 0, for red extension)
   children: ProgramaItem[];
 };
 

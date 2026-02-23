@@ -15,7 +15,7 @@ import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2 } fr
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
 import { Id } from "../../../convex/_generated/dataModel";
-import { type ScheduleData, type ProgramaItem } from "./programa-obra-types";
+import { type ScheduleData, type ProgramaItem, parseDate } from "./programa-obra-types";
 import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
 import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 
@@ -117,12 +117,20 @@ export default function ProgramaObra() {
   // Mutations
   const bulkUpsertFromExcel = useMutation(api.programa_obra.bulkUpsertFromExcel);
   const updateDetalleAvance = useMutation(api.programa_obra.updateDetalleAvance);
+  const updateSchedulePeso = useMutation(api.programa_obra.updateSchedulePeso);
+  const updateDetallePeso = useMutation(api.programa_obra.updateDetallePeso);
 
   // Avance editing state
   const [editingAvanceId, setEditingAvanceId] = useState<string | null>(null);
   const [editingAvanceValue, setEditingAvanceValue] = useState("");
   const editingAvanceValueRef = useRef("");
   const editingItemRef = useRef<ProgramaItem | null>(null);
+
+  // Peso editing state
+  const [editingPesoId, setEditingPesoId] = useState<string | null>(null);
+  const [editingPesoValue, setEditingPesoValue] = useState("");
+  const editingPesoValueRef = useRef("");
+  const editingPesoItemRef = useRef<ProgramaItem | null>(null);
 
   // Build lookup maps
   const scheduleMap = useMemo(() => {
@@ -152,65 +160,27 @@ export default function ProgramaObra() {
     return matched.map((p1) => {
       const schedule = scheduleMap.get(p1._id) || null;
 
-      // Get all detalles for this partida (matched by partida name), sorted by Excel order
-      const partidaDetalles = (detalles?.filter((d) => d.partida === p1.nombre) || [])
+      // Get nivel 2 detalles for this partida (familia items only), sorted by Excel order
+      const familiaDetalles = (detalles?.filter((d) => d.partida === p1.nombre && d.nivel === 2) || [])
         .sort((a, b) => (a.orden ?? Infinity) - (b.orden ?? Infinity));
-      const nivel2Detalles = partidaDetalles.filter((d) => d.nivel === 2);
-      const nivel3Detalles = partidaDetalles.filter((d) => d.nivel === 3);
 
       // Build familia (level 1) items from nivel 2 detalles
-      const familiaItems: ProgramaItem[] = nivel2Detalles.map((fam) => {
-        // Find nivel 3 children for this familia
-        const subItems: ProgramaItem[] = nivel3Detalles
-          .filter((d) => d.familia === fam.familia)
-          .map((sub) => ({
-            id: `sub-${sub._id}`,
-            partida: sub.subpartida || sub.familia,
-            presupuesto: 0,
-            pagado: 0,
-            expanded: false,
-            level: 2,
-            parentPartidaNombre: p1.nombre,
-            familiaName: fam.familia,
-            schedule, // inherit parent schedule for gray background
-            detalleSchedule: sub,
-            ponderacion: sub.peso,
-            avanceReal: sub.avance_porcentaje ?? 0,
-            children: [],
-          }));
-
-        // Compute familia avance as weighted average of children
-        let familiaAvance = 0;
-        if (subItems.length > 0) {
-          const totalWeight = subItems.reduce((s, c) => s + (c.ponderacion || 0), 0);
-          if (totalWeight > 0) {
-            familiaAvance = subItems.reduce(
-              (s, c) => s + (c.avanceReal ?? 0) * (c.ponderacion || 0),
-              0
-            ) / totalWeight;
-          } else {
-            // Simple average if no weights
-            familiaAvance = subItems.reduce((s, c) => s + (c.avanceReal ?? 0), 0) / subItems.length;
-          }
-        }
-
-        return {
-          id: `fam-${p1.nombre}-${fam.familia}`,
-          partida: fam.familia,
-          presupuesto: 0,
-          pagado: 0,
-          expanded: false,
-          level: 1,
-          parentPartidaNombre: p1.nombre,
-          parentPartidaDbId: p1._id,
-          familiaName: fam.familia,
-          schedule, // inherit parent schedule for gray background
-          detalleSchedule: fam,
-          ponderacion: fam.peso,
-          avanceReal: Math.round(familiaAvance * 100) / 100,
-          children: subItems,
-        } as ProgramaItem;
-      });
+      const familiaItems: ProgramaItem[] = familiaDetalles.map((fam) => ({
+        id: `fam-${p1.nombre}-${fam.familia}`,
+        partida: fam.familia,
+        presupuesto: 0,
+        pagado: 0,
+        expanded: false,
+        level: 1,
+        parentPartidaNombre: p1.nombre,
+        parentPartidaDbId: p1._id,
+        familiaName: fam.familia,
+        schedule, // inherit parent schedule for gray background
+        detalleSchedule: fam,
+        ponderacion: fam.peso,
+        avanceReal: fam.avance_porcentaje ?? 0,
+        children: [],
+      } as ProgramaItem));
 
       // Financiero = pagado/presupuesto for nivel 1
       const financiero =
@@ -232,6 +202,19 @@ export default function ProgramaObra() {
         }
       }
 
+      // Find the farthest familia end date that extends beyond the partida's end
+      const parentEnd = parseDate(schedule?.fecha_fin);
+      let maxChildEnd: Date | null = null;
+      for (const fam of familiaDetalles) {
+        const famEnd = parseDate(fam.fecha_fin);
+        if (famEnd && parentEnd && famEnd > parentEnd) {
+          if (!maxChildEnd || famEnd > maxChildEnd) maxChildEnd = famEnd;
+        }
+      }
+      const maxChildEndDate = maxChildEnd
+        ? `${maxChildEnd.getDate().toString().padStart(2, "0")}/${(maxChildEnd.getMonth() + 1).toString().padStart(2, "0")}/${maxChildEnd.getFullYear()}`
+        : undefined;
+
       return {
         id: `partida-${p1._id}`,
         partidaDbId: p1._id,
@@ -241,8 +224,10 @@ export default function ProgramaObra() {
         expanded: false,
         level: 0,
         schedule,
+        ponderacion: schedule?.peso,
         avanceReal: Math.round(partidaAvance * 100) / 100,
         financiero,
+        maxChildEndDate,
         children: familiaItems,
       } as ProgramaItem;
     });
@@ -262,7 +247,51 @@ export default function ProgramaObra() {
     });
   }, []);
 
-  // Save avance real for a sub-partida item (uses refs to avoid stale closures)
+  // Compute overall weighted progress from level 0 items
+  const overallProgress = useMemo(() => {
+    if (programaData.length === 0) return 0;
+    const totalWeight = programaData.reduce((s, p) => s + (p.ponderacion || 0), 0);
+    if (totalWeight > 0) {
+      const weighted = programaData.reduce(
+        (s, p) => s + (p.avanceReal ?? 0) * (p.ponderacion || 0), 0
+      ) / totalWeight;
+      return Math.round(weighted * 100) / 100;
+    }
+    // Simple average if no weights
+    return Math.round(
+      (programaData.reduce((s, p) => s + (p.avanceReal ?? 0), 0) / programaData.length) * 100
+    ) / 100;
+  }, [programaData]);
+
+  // Save peso for a level 0 or level 1 item
+  const handleSavePeso = useCallback(
+    async () => {
+      const item = editingPesoItemRef.current;
+      const rawValue = editingPesoValueRef.current;
+      const value = parseFloat(rawValue);
+      if (isNaN(value) || value < 0 || value > 100) {
+        editingPesoItemRef.current = null;
+        setEditingPesoId(null);
+        setEditingPesoValue("");
+        return;
+      }
+      try {
+        if (item?.level === 0 && item.schedule?._id) {
+          await updateSchedulePeso({ schedule_id: item.schedule._id, peso: value });
+        } else if (item?.level === 1 && item.detalleSchedule?._id) {
+          await updateDetallePeso({ detalle_id: item.detalleSchedule._id, peso: value });
+        }
+      } catch (err) {
+        console.error("Error saving peso:", err);
+      }
+      editingPesoItemRef.current = null;
+      setEditingPesoId(null);
+      setEditingPesoValue("");
+    },
+    [updateSchedulePeso, updateDetallePeso]
+  );
+
+  // Save avance real for a familia item (uses refs to avoid stale closures)
   const handleSaveAvance = useCallback(
     async () => {
       const item = editingItemRef.current;
@@ -536,6 +565,7 @@ export default function ProgramaObra() {
         )}
       </div>
 
+
       {/* Search */}
       <div className="px-12">
         <div className="flex items-center space-x-3 text-left max-w-sm">
@@ -548,6 +578,20 @@ export default function ProgramaObra() {
           />
         </div>
       </div>
+
+      <div>
+              {/* General progress bar */}
+      <div className="">
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-2 bg-gray-100 overflow-hidden">
+            <div
+              className="h-full bg-green-500 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(overallProgress, 100)}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
 
       {/* Gantt Chart */}
       <div className="overflow-hidden bg-white">
@@ -605,8 +649,7 @@ export default function ProgramaObra() {
                         className={cn(
                           "text-sm truncate",
                           item.level === 0 && "font-medium text-gray-900",
-                          item.level === 1 && "text-gray-600",
-                          item.level === 2 && "text-gray-400"
+                          item.level === 1 && "text-gray-600"
                         )}
                         title={item.partida}
                       >
@@ -638,22 +681,100 @@ export default function ProgramaObra() {
                   {/* Presupuesto / Peso / Avance */}
                   <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 flex items-center justify-end">
                     {item.level === 0 ? (
-                      <span className="text-sm text-gray-700 font-medium">
-                        {formatCurrency(item.presupuesto)}
-                      </span>
-                    ) : item.level === 1 ? (
                       <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-[9px] text-gray-400">
-                          {item.ponderacion != null ? `${item.ponderacion}%` : ""}
+                        <span className="text-sm text-gray-700 font-medium">
+                          {formatCurrency(item.presupuesto)}
                         </span>
-                        {(item.avanceReal ?? 0) > 0 && (
-                          <span className="text-[10px] text-green-700 font-medium">
-                            {Math.round(item.avanceReal ?? 0)}% avance
-                          </span>
+                        {/* Editable peso for level 0 */}
+                        {editingPesoId === item.id ? (
+                          <div className="flex items-center gap-0.5">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              autoFocus
+                              value={editingPesoValue}
+                              onChange={(e) => {
+                                setEditingPesoValue(e.target.value);
+                                editingPesoValueRef.current = e.target.value;
+                              }}
+                              onBlur={() => handleSavePeso()}
+                              onKeyDown={(e: React.KeyboardEvent) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  (e.target as HTMLInputElement).blur();
+                                }
+                                if (e.key === "Escape") {
+                                  editingPesoItemRef.current = null;
+                                  setEditingPesoId(null);
+                                  setEditingPesoValue("");
+                                }
+                              }}
+                              className="w-16 h-4 text-[9px] text-right border border-gray-300 rounded-sm px-1 focus:outline-none focus:border-blue-500 bg-white"
+                            />
+                            <span className="text-[9px] text-gray-400">%</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              editingPesoItemRef.current = item;
+                              editingPesoValueRef.current = String(item.ponderacion ?? "");
+                              setEditingPesoId(item.id);
+                              setEditingPesoValue(String(item.ponderacion ?? ""));
+                            }}
+                            className="text-[9px] text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Editar peso"
+                          >
+                            {item.ponderacion != null ? `peso: ${item.ponderacion}%` : "peso: —"}
+                          </button>
                         )}
                       </div>
-                    ) : item.level === 2 ? (
-                      <div className="flex items-center gap-1">
+                    ) : item.level === 1 ? (
+                      <div className="flex flex-col items-end gap-0.5">
+                        {/* Editable peso for level 1 */}
+                        {editingPesoId === item.id ? (
+                          <div className="flex items-center gap-0.5">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              autoFocus
+                              value={editingPesoValue}
+                              onChange={(e) => {
+                                setEditingPesoValue(e.target.value);
+                                editingPesoValueRef.current = e.target.value;
+                              }}
+                              onBlur={() => handleSavePeso()}
+                              onKeyDown={(e: React.KeyboardEvent) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  (e.target as HTMLInputElement).blur();
+                                }
+                                if (e.key === "Escape") {
+                                  editingPesoItemRef.current = null;
+                                  setEditingPesoId(null);
+                                  setEditingPesoValue("");
+                                }
+                              }}
+                              className="w-16 h-4 text-[9px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
+                            />
+                            <span className="text-[9px] text-gray-400">%</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              editingPesoItemRef.current = item;
+                              editingPesoValueRef.current = String(item.ponderacion ?? "");
+                              setEditingPesoId(item.id);
+                              setEditingPesoValue(String(item.ponderacion ?? ""));
+                            }}
+                            className="text-[9px] text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Editar peso"
+                          >
+                            {item.ponderacion != null ? `peso: ${item.ponderacion}%` : "peso: —"}
+                          </button>
+                        )}
+                        {/* Editable avance for level 1 */}
                         {editingAvanceId === item.id ? (
                           <div className="flex items-center gap-0.5">
                             <input
@@ -678,9 +799,9 @@ export default function ProgramaObra() {
                                   setEditingAvanceValue("");
                                 }
                               }}
-                              className="w-12 h-5 text-[10px] text-  border border-gray-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
+                              className="w-16 h-5 text-[10px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
                             />
-                            <span className="text-[10px] text-gray-400 ">%</span>
+                            <span className="text-[10px] text-gray-400">%</span>
                           </div>
                         ) : (
                           <button
@@ -754,7 +875,7 @@ export default function ProgramaObra() {
                 )}
               >
                 {/* Parent-range gray background for child items */}
-                {(item.level === 1 || item.level === 2) && item.schedule && (() => {
+                {item.level === 1 && item.schedule && (() => {
                   const pStart = dateStrToPixel(item.schedule.fecha_inicio, selectedYear, timelineMonths);
                   const pEnd = dateStrToPixel(item.schedule.fecha_fin, selectedYear, timelineMonths);
                   if (pStart == null || pEnd == null) return null;
@@ -799,6 +920,9 @@ export default function ProgramaObra() {
           </div>
         </div>
       </div>
+      </div>
+
+
 
       {/* Partida Editor Sheet */}
       {editingPartida && proyectoId && (
@@ -816,7 +940,6 @@ export default function ProgramaObra() {
           parentSchedule={
             programaData.find((p) => p.partida === editingFamilia.parentPartidaNombre)?.schedule ?? null
           }
-          proyectoId={proyectoId as Id<"desarrollos">}
           onClose={() => setEditingFamilia(null)}
         />
       )}

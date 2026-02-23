@@ -55,15 +55,23 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
   const anticipoDate = parseDate(schedule?.anticipo_fecha);
   const suministroDate = parseDate(schedule?.suministro_fecha);
 
-  // Clamp child items to parent partida's date range
+  // Clamp child items' start to parent start, but allow end to extend (tracked for red bar)
   let startDate = rawStartDate;
   let endDate = rawEndDate;
+  let extensionEndDate: Date | null = null; // end date beyond parent's range
   if ((item.level === 1 || item.level === 2) && item.schedule) {
     const parentStart = parseDate(item.schedule.fecha_inicio);
     const parentEnd = parseDate(item.schedule.fecha_fin);
     if (parentStart && startDate && startDate < parentStart) startDate = parentStart;
-    if (parentEnd && endDate && endDate > parentEnd) endDate = parentEnd;
+    if (parentEnd && endDate && endDate > parentEnd) {
+      extensionEndDate = endDate;
+      endDate = parentEnd; // clamp bar to parent end, red extension covers the rest
+    }
   }
+
+  // For level 0, check if any child extends beyond (maxChildEndDate)
+  const maxChildEnd = item.level === 0 ? parseDate(item.maxChildEndDate) : null;
+  const parentEndForExtension = item.level === 0 ? parseDate(item.schedule?.fecha_fin) : null;
 
   // If no schedule dates, don't render a bar
   if (!startDate || !endDate) return null;
@@ -72,6 +80,13 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
   const endPx = dateToPixel(endDate, year, columnWidth, timelineMonths);
   const isSameDay = startDate.getTime() === endDate.getTime();
   const barWidth = isSameDay ? 4 : Math.max(endPx - startPx, 8);
+
+  // Red extension pixels
+  const extensionEndPx = extensionEndDate ? dateToPixel(extensionEndDate, year, columnWidth, timelineMonths) : null;
+  const extensionWidth = extensionEndPx ? Math.max(extensionEndPx - endPx, 0) : 0;
+  const parentEndPx0 = parentEndForExtension ? dateToPixel(parentEndForExtension, year, columnWidth, timelineMonths) : null;
+  const maxChildEndPx = maxChildEnd ? dateToPixel(maxChildEnd, year, columnWidth, timelineMonths) : null;
+  const level0ExtensionWidth = parentEndPx0 != null && maxChildEndPx != null ? Math.max(maxChildEndPx - parentEndPx0, 0) : 0;
 
   // Avance real and financiero percentages
   const avanceReal = item.avanceReal ?? 0;
@@ -112,7 +127,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
               <div
                 className={cn(
                   "h-full rounded-t-none transition-all",
-                  isLateStart ? "bg-red-500" : "bg-green-700"
+                  isLateStart ? "bg-[#f0e4e4]" : "bg-green-700"
                 )}
                 style={{ width: `${Math.min(avanceReal, 100)}%` }}
               />
@@ -142,6 +157,14 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
           </div>
         )}
 
+        {/* === Red extension bar for nivel 0 (partida) === */}
+        {item.level === 0 && level0ExtensionWidth > 0 && (
+          <div
+            className="absolute top-0 h-2.5 bg-[#802424] z-[5]"
+            style={{ left: `${barWidth}px`, width: `${level0ExtensionWidth}px` }}
+          />
+        )}
+
         {/* === Single bar for nivel 1 (familia) === */}
         {item.level === 1 && (
           <div className="flex flex-col gap-2">
@@ -167,6 +190,14 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
               </TooltipContent>
             </Tooltip>
           </div>
+        )}
+
+        {/* === Red extension bar for nivel 1 (familia) === */}
+        {item.level === 1 && extensionWidth > 0 && (
+          <div
+            className="absolute top-0 h-[3px] bg-[#802424] z-[5]"
+            style={{ left: `${barWidth}px`, width: `${extensionWidth}px` }}
+          />
         )}
 
         {/* === Single bar for nivel 2 (sub-partida) — lighter === */}
