@@ -580,346 +580,354 @@ export default function ProgramaObra() {
       </div>
 
       <div>
-              {/* General progress bar */}
-      <div className="">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 h-2 bg-gray-100 overflow-hidden">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(overallProgress, 100)}%` }}
-            />
+        {/* General progress bar */}
+        <div className="">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-2 bg-gray-100 overflow-hidden">
+              <div
+                className="h-full bg-green-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(overallProgress, 100)}%` }}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
 
-      {/* Gantt Chart */}
-      <div className="overflow-hidden bg-white">
-        <div className="flex">
-          {/* Fixed left columns */}
-          <div className="shrink-0">
-            {/* Header */}
-            <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-20">
-              <div className="w-72 border-r border-[#d2d1ce] px-4 py-3 text-left">
-                <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
-                  Partida · Familia
-                </span>
-              </div>
-              <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 text-right">
-                <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
-                  Presupuesto
-                </span>
-              </div>
-            </div>
-
-            {/* Rows */}
-            {filteredData.map((item) => {
-              const isExpanded = expandedIds.has(item.id);
-              return (
-                <div
-                  key={item.id}
-                  className={cn(
-                    "flex border-b border-[#d2d1ce] min-h-[44px] max-h-[44px] bg-white",
-                    // item.level === 0 && "bg-white",
-                    // item.level === 1 && "bg-gray-50/50",
-                    // item.level === 2 && "bg-gray-50/30"
-                  )}
-                >
-                  {/* Name */}
-                  <div className="w-72 border-r border-[#d2d1ce] px-2 py-3 flex items-center text-left">
-                    <div
-                      className="flex items-center gap-1.5 flex-1 min-w-0"
-                      style={{ paddingLeft: `${item.level * 16}px` }}
-                    >
-                      {item.children.length > 0 ? (
-                        <button
-                          onClick={() => toggleExpanded(item.id)}
-                          className="p-0.5 hover:bg-gray-100 rounded shrink-0"
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
-                          ) : (
-                            <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-                          )}
-                        </button>
-                      ) : (
-                        <div className="w-4.5 shrink-0" />
-                      )}
-                      <span
-                        className={cn(
-                          "text-sm truncate",
-                          item.level === 0 && "font-medium text-gray-900",
-                          item.level === 1 && "text-gray-600"
-                        )}
-                        title={item.partida}
-                      >
-                        {item.partida}
-                      </span>
-
-                      {/* Menu for nivel 0 */}
-                      {item.level === 0 && (
-                        <button
-                          onClick={() => setEditingPartida(item)}
-                          className="ml-auto p-1 hover:bg-gray-100 rounded shrink-0 opacity-60 hover:opacity-100"
-                        >
-                          <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
-                        </button>
-                      )}
-
-                      {/* Menu for nivel 1 (familia) */}
-                      {item.level === 1 && (
-                        <button
-                          onClick={() => setEditingFamilia(item)}
-                          className="ml-auto p-1 hover:bg-gray-100 rounded shrink-0 opacity-60 hover:opacity-100"
-                        >
-                          <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Presupuesto / Peso / Avance */}
-                  <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 flex items-center justify-end">
-                    {item.level === 0 ? (
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-sm text-gray-700 font-medium">
-                          {formatCurrency(item.presupuesto)}
-                        </span>
-                        {/* Editable peso for level 0 */}
-                        {editingPesoId === item.id ? (
-                          <div className="flex items-center gap-0.5">
-                            <input
-                              type="number"
-                              min={0}
-                              max={100}
-                              autoFocus
-                              value={editingPesoValue}
-                              onChange={(e) => {
-                                setEditingPesoValue(e.target.value);
-                                editingPesoValueRef.current = e.target.value;
-                              }}
-                              onBlur={() => handleSavePeso()}
-                              onKeyDown={(e: React.KeyboardEvent) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  (e.target as HTMLInputElement).blur();
-                                }
-                                if (e.key === "Escape") {
-                                  editingPesoItemRef.current = null;
-                                  setEditingPesoId(null);
-                                  setEditingPesoValue("");
-                                }
-                              }}
-                              className="w-16 h-4 text-[9px] text-right border border-gray-300 rounded-sm px-1 focus:outline-none focus:border-blue-500 bg-white"
-                            />
-                            <span className="text-[9px] text-gray-400">%</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              editingPesoItemRef.current = item;
-                              editingPesoValueRef.current = String(item.ponderacion ?? "");
-                              setEditingPesoId(item.id);
-                              setEditingPesoValue(String(item.ponderacion ?? ""));
-                            }}
-                            className="text-[9px] text-gray-400 hover:text-gray-600 transition-colors"
-                            title="Editar peso"
-                          >
-                            {item.ponderacion != null ? `peso: ${item.ponderacion}%` : "peso: —"}
-                          </button>
-                        )}
-                      </div>
-                    ) : item.level === 1 ? (
-                      <div className="flex flex-col items-end gap-0.5">
-                        {/* Editable peso for level 1 */}
-                        {editingPesoId === item.id ? (
-                          <div className="flex items-center gap-0.5">
-                            <input
-                              type="number"
-                              min={0}
-                              max={100}
-                              autoFocus
-                              value={editingPesoValue}
-                              onChange={(e) => {
-                                setEditingPesoValue(e.target.value);
-                                editingPesoValueRef.current = e.target.value;
-                              }}
-                              onBlur={() => handleSavePeso()}
-                              onKeyDown={(e: React.KeyboardEvent) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  (e.target as HTMLInputElement).blur();
-                                }
-                                if (e.key === "Escape") {
-                                  editingPesoItemRef.current = null;
-                                  setEditingPesoId(null);
-                                  setEditingPesoValue("");
-                                }
-                              }}
-                              className="w-16 h-4 text-[9px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
-                            />
-                            <span className="text-[9px] text-gray-400">%</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              editingPesoItemRef.current = item;
-                              editingPesoValueRef.current = String(item.ponderacion ?? "");
-                              setEditingPesoId(item.id);
-                              setEditingPesoValue(String(item.ponderacion ?? ""));
-                            }}
-                            className="text-[9px] text-gray-400 hover:text-gray-600 transition-colors"
-                            title="Editar peso"
-                          >
-                            {item.ponderacion != null ? `peso: ${item.ponderacion}%` : "peso: —"}
-                          </button>
-                        )}
-                        {/* Editable avance for level 1 */}
-                        {editingAvanceId === item.id ? (
-                          <div className="flex items-center gap-0.5">
-                            <input
-                              type="number"
-                              min={0}
-                              max={100}
-                              autoFocus
-                              value={editingAvanceValue}
-                              onChange={(e) => {
-                                setEditingAvanceValue(e.target.value);
-                                editingAvanceValueRef.current = e.target.value;
-                              }}
-                              onBlur={() => handleSaveAvance()}
-                              onKeyDown={(e: React.KeyboardEvent) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  (e.target as HTMLInputElement).blur();
-                                }
-                                if (e.key === "Escape") {
-                                  editingItemRef.current = null;
-                                  setEditingAvanceId(null);
-                                  setEditingAvanceValue("");
-                                }
-                              }}
-                              className="w-16 h-5 text-[10px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
-                            />
-                            <span className="text-[10px] text-gray-400">%</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              editingItemRef.current = item;
-                              editingAvanceValueRef.current = String(item.avanceReal ?? 0);
-                              setEditingAvanceId(item.id);
-                              setEditingAvanceValue(String(item.avanceReal ?? 0));
-                            }}
-                            className={cn(
-                              "text-[10px] px-1.5 py-0.5 rounded-sm border transition-colors",
-                              (item.avanceReal ?? 0) > 0
-                                ? "text-green-700 bg-green-50 border-green-200 hover:bg-green-100"
-                                : "text-gray-400 bg-gray-50 border-gray-200 hover:bg-gray-100"
-                            )}
-                            title="Editar avance real"
-                          >
-                            {Math.round(item.avanceReal ?? 0)}%
-                          </button>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
+        {/* Gantt Chart */}
+        <div className="overflow-hidden bg-white">
+          <div className="flex">
+            {/* Fixed left columns */}
+            <div className="shrink-0">
+              {/* Header */}
+              <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-20">
+                <div className="w-72 border-r border-[#d2d1ce] px-4 py-3 text-left">
+                  <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
+                    Partida · Familia
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 text-right">
+                  <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
+                    Presupuesto
+                  </span>
+                </div>
+              </div>
 
-          {/* Scrollable timeline */}
-          <div className="flex-1 overflow-x-auto" ref={scrollContainerRef}>
-            {/* Month headers */}
-            <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-10 min-w-max">
-              {timelineMonths.map((m, i) => {
-                const mw = getMonthWidth(m.weeks);
+              {/* Rows */}
+              {filteredData.map((item) => {
+                const isExpanded = expandedIds.has(item.id);
                 return (
-                  <div key={i} className="border-r border-[#d2d1ce] shrink-0 h-[48px]" style={{ width: mw }}>
-                    <div className="text-center py-1.5 text-xs font-medium text-[#777770] uppercase tracking-wider">
-                      {m.label}
-                    </div>
-                    <div className="flex">
-                      {Array.from({ length: m.weeks }).map((_, wi) => (
-                        <div
-                          key={wi}
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "flex border-b border-[#d2d1ce] min-h-[44px] max-h-[44px] bg-white",
+                      // item.level === 0 && "bg-white",
+                      // item.level === 1 && "bg-gray-50/50",
+                      // item.level === 2 && "bg-gray-50/30"
+                    )}
+                  >
+                    {/* Name */}
+                    <div className="w-72 border-r border-[#d2d1ce] px-2 py-3 flex items-center text-left">
+                      <div
+                        className="flex items-center gap-1.5 flex-1 min-w-0"
+                        style={{ paddingLeft: `${item.level * 16}px` }}
+                      >
+                        {item.children.length > 0 ? (
+                          <button
+                            onClick={() => toggleExpanded(item.id)}
+                            className="p-0.5 hover:bg-gray-100 rounded shrink-0"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+                            )}
+                          </button>
+                        ) : (
+                          <div className="w-4.5 shrink-0" />
+                        )}
+                        <span
                           className={cn(
-                            "text-center text-[9px] text-gray-300 py-1",
-                            wi < m.weeks - 1 && "border-r border-dashed border-gray-200"
+                            "text-sm truncate",
+                            item.level === 0 && "font-medium text-gray-900",
+                            item.level === 1 && "text-gray-600"
                           )}
-                          style={{ width: WEEK_WIDTH }}
+                          title={item.partida}
                         >
-                          S{wi + 1}
+                          {item.partida}
+                        </span>
+
+                        {/* Menu for nivel 0 */}
+                        {item.level === 0 && (
+                          <button
+                            onClick={() => setEditingPartida(item)}
+                            className="ml-auto p-1 hover:bg-gray-100 rounded shrink-0 opacity-60 hover:opacity-100"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
+                          </button>
+                        )}
+
+                        {/* Menu for nivel 1 (familia) */}
+                        {item.level === 1 && (
+                          <button
+                            onClick={() => setEditingFamilia(item)}
+                            className="ml-auto p-1 hover:bg-gray-100 rounded shrink-0 opacity-60 hover:opacity-100"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Presupuesto / Peso / Avance */}
+                    <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 flex items-center justify-end">
+                      {item.level === 0 ? (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="text-sm text-gray-700 font-medium">
+                            {formatCurrency(item.presupuesto)}
+                          </span>
+                          {/* Editable peso for level 0 */}
+                          {editingPesoId === item.id ? (
+                            <div className="flex items-center gap-0.5">
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                autoFocus
+                                value={editingPesoValue}
+                                onChange={(e) => {
+                                  setEditingPesoValue(e.target.value);
+                                  editingPesoValueRef.current = e.target.value;
+                                }}
+                                onBlur={() => handleSavePeso()}
+                                onKeyDown={(e: React.KeyboardEvent) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    (e.target as HTMLInputElement).blur();
+                                  }
+                                  if (e.key === "Escape") {
+                                    editingPesoItemRef.current = null;
+                                    setEditingPesoId(null);
+                                    setEditingPesoValue("");
+                                  }
+                                }}
+                                className="w-16 h-4 text-[9px] text-right border border-gray-300 rounded-sm px-1 focus:outline-none focus:border-blue-500 bg-white"
+                              />
+                              <span className="text-[9px] text-gray-400">%</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                editingPesoItemRef.current = item;
+                                editingPesoValueRef.current = String(item.ponderacion ?? "");
+                                setEditingPesoId(item.id);
+                                setEditingPesoValue(String(item.ponderacion ?? ""));
+                              }}
+                              className="text-[9px] text-gray-400 hover:text-gray-600 transition-colors"
+                              title="Editar peso"
+                            >
+                              {item.ponderacion != null ? `peso: ${(item.ponderacion).toFixed(2)}%` : "peso: —"}
+                            </button>
+                          )}
                         </div>
-                      ))}
+                      ) : item.level === 1 ? (
+                        <div className="flex flex-col items-end gap-0.5">
+
+
+                {/* Editable avance for level 1 */}
+                          {editingAvanceId === item.id ? (
+                            <div className="flex items-center gap-0.5">
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                autoFocus
+                                value={editingAvanceValue}
+                                onChange={(e) => {
+                                  setEditingAvanceValue(e.target.value);
+                                  editingAvanceValueRef.current = e.target.value;
+                                }}
+                                onBlur={() => handleSaveAvance()}
+                                onKeyDown={(e: React.KeyboardEvent) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    (e.target as HTMLInputElement).blur();
+                                  }
+                                  if (e.key === "Escape") {
+                                    editingItemRef.current = null;
+                                    setEditingAvanceId(null);
+                                    setEditingAvanceValue("");
+                                  }
+                                }}
+                                className="w-16 h-5 text-[10px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
+                              />
+                              <span className="text-[10px] text-gray-400">%</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-0.5">
+                              <span className="text-[10px] text-black">Avance: </span>
+                              <button
+                                onClick={() => {
+                                  editingItemRef.current = item;
+                                  editingAvanceValueRef.current = String(item.avanceReal ?? 0);
+                                  setEditingAvanceId(item.id);
+                                  setEditingAvanceValue(String(item.avanceReal ?? 0));
+                                }}
+                                className={cn(
+                                  "text-[10px] rounded-sm border-none transition-colors",
+                                  (item.avanceReal ?? 0) > 0
+                                    ? ""
+                                    : "text-gray-400 bg-gray-50 border-gray-200 hover:bg-gray-100"
+                                )}
+                                title="Editar avance real"
+                              >
+                                {Math.round(item.avanceReal ?? 0)}%
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Editable peso for level 1 */}
+                          {editingPesoId === item.id ? (
+                            <div className="flex items-center gap-0.5">
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                autoFocus
+                                value={editingPesoValue}
+                                onChange={(e) => {
+                                  setEditingPesoValue(e.target.value);
+                                  editingPesoValueRef.current = e.target.value;
+                                }}
+                                onBlur={() => handleSavePeso()}
+                                onKeyDown={(e: React.KeyboardEvent) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    (e.target as HTMLInputElement).blur();
+                                  }
+                                  if (e.key === "Escape") {
+                                    editingPesoItemRef.current = null;
+                                    setEditingPesoId(null);
+                                    setEditingPesoValue("");
+                                  }
+                                }}
+                                className="w-16 h-4 text-[9px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
+                              />
+                              <span className="text-[9px] text-gray-400">%</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                editingPesoItemRef.current = item;
+                                editingPesoValueRef.current = String(item.ponderacion ?? "");
+                                setEditingPesoId(item.id);
+                                setEditingPesoValue(String(item.ponderacion ?? ""));
+                              }}
+                              className="text-[9px] text-gray-400 hover:text-gray-600 transition-colors"
+                              title="Editar peso"
+                            >
+                              {item.ponderacion != null ? `${(item.ponderacion).toFixed(2)}%` : "—"}
+                            </button>
+
+                          )}
+          
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 );
               })}
-              <div className="px-4 py-3 text-xs font-medium text-gray-300 ml-2">
-                {selectedYear}
-              </div>
             </div>
 
-            {/* Timeline rows */}
-            {filteredData.map((item) => (
-              <div
-                key={item.id}
-                className={cn(
-                  "relative border-b border-[#d2d1ce] min-h-[44px] max-h-[44px] bg-white",
-                  // item.level === 0 && "bg-white",
-                  // item.level === 1 && "bg-gray-50/80",
-                  // item.level === 2 && "bg-gray-50/80"
-                )}
-              >
-                {/* Parent-range gray background for child items */}
-                {item.level === 1 && item.schedule && (() => {
-                  const pStart = dateStrToPixel(item.schedule.fecha_inicio, selectedYear, timelineMonths);
-                  const pEnd = dateStrToPixel(item.schedule.fecha_fin, selectedYear, timelineMonths);
-                  if (pStart == null || pEnd == null) return null;
+            {/* Scrollable timeline */}
+            <div className="flex-1 overflow-x-auto" ref={scrollContainerRef}>
+              {/* Month headers */}
+              <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-10 min-w-max">
+                {timelineMonths.map((m, i) => {
+                  const mw = getMonthWidth(m.weeks);
                   return (
-                    <div
-                      className="absolute top-0 bottom-0 bg-[#f3f3f3f4] pointer-events-none z-[1]"
-                      style={{ left: pStart, width: Math.max(pEnd - pStart, 0) }}
-                    >
-                      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#D4D4CF]" />
+                    <div key={i} className="border-r border-[#d2d1ce] shrink-0 h-[48px]" style={{ width: mw }}>
+                      <div className="text-center py-1.5 text-xs font-medium text-[#777770] uppercase tracking-wider">
+                        {m.label}
+                      </div>
+                      <div className="flex">
+                        {Array.from({ length: m.weeks }).map((_, wi) => (
+                          <div
+                            key={wi}
+                            className={cn(
+                              "text-center text-[9px] text-gray-300 py-1",
+                              wi < m.weeks - 1 && "border-r border-dashed border-gray-200"
+                            )}
+                            style={{ width: WEEK_WIDTH }}
+                          >
+                            S{wi + 1}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   );
-                })()}
-
-                {/* Grid lines */}
-                <div className="absolute inset-0 flex pointer-events-none z-[2]">
-                  {timelineMonths.map((m, i) => (
-                    <div key={i} className="border-r border-[#d2d1ce] shrink-0 flex" style={{ width: getMonthWidth(m.weeks) }}>
-                      {Array.from({ length: m.weeks - 1 }).map((_, wi) => (
-                        <div key={wi} className="border-r border-dashed border-gray-200 shrink-0" style={{ width: WEEK_WIDTH }} />
-                      ))}
-                    </div>
-                  ))}
+                })}
+                <div className="px-4 py-3 text-xs font-medium text-gray-300 ml-2">
+                  {selectedYear}
                 </div>
-
-                {/* Today line */}
-                {todayPosition != null && (
-                  <div
-                    className="absolute top-0 bottom-0 w-px border-l-2 border-dashed border-[#802424] z-10 pointer-events-none"
-                    style={{ left: todayPosition }}
-                  />
-                )}
-
-                {/* Gantt bar */}
-                <ProgramaObraGanttItem
-                  item={item}
-                  year={selectedYear}
-                  columnWidth={WEEK_WIDTH}
-                  timelineMonths={timelineMonths}
-                />
               </div>
-            ))}
+
+              {/* Timeline rows */}
+              {filteredData.map((item) => (
+                <div
+                  key={item.id}
+                  className={cn(
+                    "relative border-b border-[#d2d1ce] min-h-[44px] max-h-[44px] bg-white",
+                    // item.level === 0 && "bg-white",
+                    // item.level === 1 && "bg-gray-50/80",
+                    // item.level === 2 && "bg-gray-50/80"
+                  )}
+                >
+                  {/* Parent-range gray background for child items */}
+                  {item.level === 1 && item.schedule && (() => {
+                    const pStart = dateStrToPixel(item.schedule.fecha_inicio, selectedYear, timelineMonths);
+                    const pEnd = dateStrToPixel(item.schedule.fecha_fin, selectedYear, timelineMonths);
+                    if (pStart == null || pEnd == null) return null;
+                    return (
+                      <div
+                        className="absolute top-0 bottom-0 bg-[#f3f3f3f4] pointer-events-none z-[1]"
+                        style={{ left: pStart, width: Math.max(pEnd - pStart, 0) }}
+                      >
+                        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#D4D4CF]" />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Grid lines */}
+                  <div className="absolute inset-0 flex pointer-events-none z-[2]">
+                    {timelineMonths.map((m, i) => (
+                      <div key={i} className="border-r border-[#d2d1ce] shrink-0 flex" style={{ width: getMonthWidth(m.weeks) }}>
+                        {Array.from({ length: m.weeks - 1 }).map((_, wi) => (
+                          <div key={wi} className="border-r border-dashed border-gray-200 shrink-0" style={{ width: WEEK_WIDTH }} />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Today line */}
+                  {todayPosition != null && (
+                    <div
+                      className="absolute top-0 bottom-0 w-px border-l-2 border-dashed border-[#802424] z-10 pointer-events-none"
+                      style={{ left: todayPosition }}
+                    />
+                  )}
+
+                  {/* Gantt bar */}
+                  <ProgramaObraGanttItem
+                    item={item}
+                    year={selectedYear}
+                    columnWidth={WEEK_WIDTH}
+                    timelineMonths={timelineMonths}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
       </div>
 
 

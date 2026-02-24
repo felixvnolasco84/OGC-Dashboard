@@ -195,7 +195,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
         {/* === Red extension bar for nivel 1 (familia) === */}
         {item.level === 1 && extensionWidth > 0 && (
           <div
-            className="absolute top-0 h-[3px] bg-[#802424] z-[5]"
+            className="absolute top-0 h-[2px] bg-[#802424] z-[5]"
             style={{ left: `${barWidth}px`, width: `${extensionWidth}px` }}
           />
         )}
