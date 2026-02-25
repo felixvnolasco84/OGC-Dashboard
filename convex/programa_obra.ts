@@ -624,6 +624,90 @@ export const bulkUpsertFromExcel = mutation({
 });
 
 // ============================================================
+// COMENTARIOS (programa_obra_comentarios table)
+// ============================================================
+
+// Get all comentarios for a project
+export const getComentariosByProyecto = query({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("programa_obra_comentarios")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+  },
+});
+
+// Add a comentario to a partida (level 0) or familia (level 1)
+export const addComentario = mutation({
+  args: {
+    proyecto: v.id("desarrollos"),
+    parent_type: v.string(), // "partida" | "familia"
+    parent_id: v.string(),
+    comentario: v.string(),
+    fecha_inicio: v.string(), // DD/MM/YYYY
+    fecha_fin: v.string(), // DD/MM/YYYY
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+    let userId: Id<"users"> | undefined;
+    let userName: string | undefined;
+    if (user) {
+      const dbUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", user.subject))
+        .first();
+      if (dbUser) {
+        userId = dbUser._id;
+        userName = dbUser.name;
+      }
+    }
+    return await ctx.db.insert("programa_obra_comentarios", {
+      proyecto: args.proyecto,
+      parent_type: args.parent_type,
+      parent_id: args.parent_id,
+      comentario: args.comentario,
+      fecha_inicio: args.fecha_inicio,
+      fecha_fin: args.fecha_fin,
+      created_by_id: userId,
+      created_by_name: userName,
+      created_at: Date.now(),
+    });
+  },
+});
+
+// Update a comentario (text and/or dates)
+export const updateComentario = mutation({
+  args: {
+    comentario_id: v.id("programa_obra_comentarios"),
+    comentario: v.optional(v.string()),
+    fecha_inicio: v.optional(v.string()),
+    fecha_fin: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const updates: Record<string, string> = {};
+    if (args.comentario !== undefined) updates.comentario = args.comentario;
+    if (args.fecha_inicio !== undefined) updates.fecha_inicio = args.fecha_inicio;
+    if (args.fecha_fin !== undefined) updates.fecha_fin = args.fecha_fin;
+    await ctx.db.patch(args.comentario_id, updates);
+    return { success: true };
+  },
+});
+
+// Delete a comentario
+export const deleteComentario = mutation({
+  args: {
+    comentario_id: v.id("programa_obra_comentarios"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.comentario_id);
+    return { success: true };
+  },
+});
+
+// ============================================================
 // PAYMENT DISTRIBUTION (Phase 5)
 // ============================================================
 

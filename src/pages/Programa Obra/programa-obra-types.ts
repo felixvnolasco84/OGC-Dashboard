@@ -8,6 +8,7 @@ export type ScheduleData = Doc<"programa_obra">;
 export type DetalleData = Doc<"programa_obra_detalle">;
 export type PonderacionData = Doc<"programa_obra_ponderacion">;
 export type AvanceRealData = Doc<"avance_real">;
+export type ComentarioData = Doc<"programa_obra_comentarios">;
 
 export type ProgramaItem = {
   id: string;
@@ -27,6 +28,7 @@ export type ProgramaItem = {
   avanceReal?: number; // avance real % (computed for 0/1, user-entered for 2)
   financiero?: number; // pagado/presupuesto % (only nivel 0)
   maxChildEndDate?: string; // farthest familia end date (only nivel 0, for red extension)
+  comentarios?: ComentarioData[];
   children: ProgramaItem[];
 };
 

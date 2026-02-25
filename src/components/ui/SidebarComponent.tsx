@@ -1,15 +1,17 @@
-import { useState } from "react";
-import { Link, useLocation, useParams } from "react-router";
-import { Authenticated, Unauthenticated, useQuery, useConvexAuth } from "convex/react";
+import { Link, useLocation, useParams, useNavigate } from "react-router";
+import { Unauthenticated, useQuery, useConvexAuth } from "convex/react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import LOGO from '../../../public/OGC-LOGO.svg'
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Sidebar,
   SidebarContent,
@@ -21,14 +23,10 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
   SidebarSeparator,
   SidebarRail,
 } from "@/components/ui/Sidebar"
 import {
-  Search,
   Folder,
   // CreditCard,
   // Users,
@@ -38,11 +36,24 @@ import {
   // FileText,
   Tag,
   TrendingUp,
-  ChevronRight,
+  ChevronsUpDown,
+  TagIcon,
+  LucideProps,
+  ChartBar,
+  ChartArea,
+  ChartGantt,
+  BookCheck,
+  BookDashed,
+  File,
+  LogOut,
+  Home,
+  Upload,
+  Users,
   // Settings,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { UserButton, SignInButton } from "@clerk/clerk-react";
+import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
+import { ForwardRefExoticComponent, RefAttributes } from "react";
+
 
 
 
@@ -51,38 +62,39 @@ interface ProjectMenuItem {
   label: string;
   path: string;
   disabled: boolean;
+  icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
 }
 
 
 const projectMenuItems: ProjectMenuItem[] = [
-  { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
-  { id: "control", label: "Control", path: "control", disabled: false },
-  { id: "programa", label: "Programa", path: "programa", disabled: false },
+  { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
+  { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
+  { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
-  { id: "bitacora", label: "Bitácora", path: "bitacora", disabled: false },
-  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false },
-  { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
-  { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
+  { id: "bitacora", label: "Bitácora", path: "bitacora", disabled: false, icon: BookCheck },
+  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: BookDashed },
+  { id: "documentos", label: "Documentos", path: "documentos", disabled: false, icon: File },
+  { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false, icon: BookDashed },
   // { id: "proveedores", label: "Proveedores", path: "proveedores", disabled: false },
 ];
 
 // Restricted menu items for contratista role (Bitacora + Requisiciones)
 const contratistaMenuItems: ProjectMenuItem[] = [
-  { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false },
-  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false },
+  { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: Bookmark },
+  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
 ];
 
 // Restricted menu items for finance role (only Requisiciones)
 const financeMenuItems: ProjectMenuItem[] = [
-  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false },
+  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
 ];
 
 const salesProjectMenuItems: ProjectMenuItem[] = [
-  { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false },
-  { id: "control", label: "Control", path: "control", disabled: false },
+  { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: TagIcon },
+  { id: "control", label: "Control", path: "control", disabled: false, icon: Folder },
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
-  { id: "documentos", label: "Documentos", path: "documentos", disabled: false },
-  { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false },
+  { id: "documentos", label: "Documentos", path: "documentos", disabled: false, icon: Bookmark },
+  { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false, icon: Bookmark },
 ];
 
 const bottomProjectMenuItems = [
@@ -106,13 +118,13 @@ const bottomSalesMenuItems = [
 
 
 // Notification dot component for requisiciones
-function RequisicionNotificationDot({ 
-  proyectoId, 
-  userId, 
-  userRole 
-}: { 
-  proyectoId: Id<"desarrollos">; 
-  userId?: Id<"users">; 
+function RequisicionNotificationDot({
+  proyectoId,
+  userId,
+  userRole
+}: {
+  proyectoId: Id<"desarrollos">;
+  userId?: Id<"users">;
   userRole?: string;
 }) {
   const unreadSummary = useQuery(
@@ -125,20 +137,134 @@ function RequisicionNotificationDot({
   }
 
   // Green for new requisiciones (priority), blue for updates only
-  const dotColor = unreadSummary.hasNew 
-    ? "bg-green-500" 
-    : unreadSummary.hasUpdated 
-      ? "bg-blue-500" 
+  const dotColor = unreadSummary.hasNew
+    ? "bg-green-500"
+    : unreadSummary.hasUpdated
+      ? "bg-blue-500"
       : "bg-gray-400";
 
   return (
-    <span 
+    <span
       className={cn(
         "w-2 h-2 rounded-full",
         dotColor
       )}
       title={`${unreadSummary.total} cambio${unreadSummary.total > 1 ? 's' : ''} sin leer`}
     />
+  );
+}
+
+function SidebarUserCard({ role }: { role?: string }) {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const navigate = useNavigate();
+  const isAdmin = role === "admin";
+
+  const displayName = user?.fullName || user?.firstName || "Usuario";
+  const email = user?.primaryEmailAddress?.emailAddress || "";
+  const avatarUrl = user?.imageUrl;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <SidebarMenuButton
+          size="lg"
+          className="w-full data-[state=open]:bg-gray-100"
+        >
+          <div className="h-8 w-8 rounded-lg bg-gray-200 overflow-hidden shrink-0">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-xs font-medium text-gray-600">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-0.5 leading-none text-left">
+            <span className="font-semibold text-sm truncate">{displayName}</span>
+            <span className="text-xs text-gray-500 truncate">{email}</span>
+          </div>
+          {/* <ChevronsUpDown className="ml-auto w-4 h-4 text-gray-400" /> */}
+        </SidebarMenuButton>
+      </DropdownMenuTrigger>
+      {/* Dropdown menu user profile */}
+      <DropdownMenuContent
+        className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
+        side="top"
+        align="start"
+        sideOffset={4}
+      >
+        <DropdownMenuLabel className="p-0 font-normal">
+          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+            <div className="h-8 w-8 rounded-lg bg-gray-200 overflow-hidden shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-xs font-medium text-gray-600">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-0.5 leading-none">
+              <span className="font-semibold text-sm">{displayName}</span>
+              <span className="text-xs text-gray-500">{email}</span>
+            </div>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem onClick={() => navigate("/")} className="gap-2">
+          <Home className="w-4 h-4" />
+          Inicio
+        </DropdownMenuItem>
+
+        {isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs">
+              Proyectos de Obra
+            </DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigate("/proyectos")} className="gap-2">
+              <Bookmark className="w-4 h-4" />
+              Ver proyectos
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/admin/flujo")} className="gap-2">
+              <Upload className="w-4 h-4" />
+              Cargar flujo
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/admin/flujo")} className="gap-2">
+              <Users className="w-4 h-4" />
+              Gestionar usuarios
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs">
+              Proyectos de Ventas
+            </DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigate("/sales-proyectos")} className="gap-2">
+              <Bookmark className="w-4 h-4" />
+              Ver proyectos
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/admin/sales-flujo")} className="gap-2">
+              <Upload className="w-4 h-4" />
+              Cargar flujo
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/sales-usuarios")} className="gap-2">
+              <Users className="w-4 h-4" />
+              Gestionar usuarios
+            </DropdownMenuItem>
+          </>
+        )}
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => signOut({ redirectUrl: "/" })}
+          className="gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          Cerrar Sesión
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -150,51 +276,60 @@ export default function SidebarComponent() {
   const salesProjects = useQuery(api.sales_projects.getAll);
   const currentUser = useQuery(api.users.getCurrentUser);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
 
-  // Filter projects based on search query and user access
+  // Filter projects based on user access
   const filteredProjects = (desarrollos || []).filter((proyecto) => {
-    const matchesSearch = proyecto.nombre.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Admins can see all projects
-    if (currentUser?.role === "admin") {
-      return matchesSearch;
-    }
-    
-    // Users, contratistas, and finance: only projects explicitly allowed
+    if (currentUser?.role === "admin") return true;
     if (currentUser?.role === "user" || currentUser?.role === "contratista" || currentUser?.role === "finance") {
-      const allowedProjects = currentUser?.allowed_desarrollos || [];
-      const hasAccess = allowedProjects.includes(proyecto._id);
-      return matchesSearch && hasAccess;
+      return (currentUser?.allowed_desarrollos || []).includes(proyecto._id);
     }
-    
-    // Viewers: only projects explicitly allowed
     if (currentUser?.role === "viewer") {
-      const allowedProjects = currentUser?.allowed_desarrollos || [];
-      const hasAccess = allowedProjects.includes(proyecto._id);
-      return matchesSearch && hasAccess;
+      return (currentUser?.allowed_desarrollos || []).includes(proyecto._id);
     }
-    
-    return matchesSearch;
+    return true;
   });
 
-  // Filter sales projects based on user access and search query
+  // Filter sales projects based on user access
   const filteredSalesProjects = (salesProjects || []).filter((proyecto) => {
-    const matchesSearch = proyecto.nombre
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-
-    // Admins can see all sales projects
-    if (currentUser?.role === "admin") {
-      return matchesSearch;
-    }
-
-    // Non-admin users: only projects explicitly allowed
-    const allowedSalesProjects = currentUser?.allowed_sales_projects || [];
-    const hasAccess = allowedSalesProjects.includes(proyecto._id);
-
-    return matchesSearch && hasAccess;
+    if (currentUser?.role === "admin") return true;
+    return (currentUser?.allowed_sales_projects || []).includes(proyecto._id);
   });
+
+  // Derive current project from URL params
+  const currentProject = filteredProjects.find(p => p._id === proyectoId);
+  const currentSalesProject = filteredSalesProjects.find(p => p._id === salesProyectoId);
+  const activeProject = currentProject || currentSalesProject;
+  const activeProjectType: "proyecto" | "sales" | null = currentProject
+    ? "proyecto"
+    : currentSalesProject
+      ? "sales"
+      : null;
+
+  // Get role-appropriate menu items for regular projects
+  const currentProjectMenuItems = currentUser?.role === "contratista"
+    ? contratistaMenuItems
+    : currentUser?.role === "finance"
+      ? financeMenuItems
+      : projectMenuItems;
+
+  const getFirstMenuItem = (type: "proyecto" | "sales") => {
+    if (type === "proyecto") {
+      if (currentUser?.role === "contratista") return "bitacora";
+      if (currentUser?.role === "finance") return "requisiciones";
+      return "presupuesto";
+    }
+    return "presupuesto";
+  };
+
+  const handleProjectSelect = (id: string, type: "proyecto" | "sales") => {
+    const firstItem = getFirstMenuItem(type);
+    if (type === "proyecto") {
+      navigate(`/proyecto/${id}/${firstItem}`);
+    } else {
+      navigate(`/sales-proyecto/${id}/${firstItem}`);
+    }
+  };
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -211,158 +346,161 @@ export default function SidebarComponent() {
   return (
     <Sidebar collapsible="icon" className="bg-white border-r border-gray-200">
       {/* Header */}
-      <SidebarHeader className="p-4 flex-row items-center justify-between group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
-        <Link to="/">
-          <img src={LOGO} alt="Logo" className="w-8" />
-        </Link>
-        <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-          <Authenticated>
-            <UserButton />
-          </Authenticated>
-          <Unauthenticated>
-            <SignInButton mode="modal" />
-          </Unauthenticated>
-        </div>
+      <SidebarHeader className="p-4 gap-3 group-data-[collapsible=icon]:p-2">
+
+      <div className="flex space-x-2">
+
+        {/* LOGO */}
+        <img src={LOGO} className="w-4" alt="Logo" />
+
+        {/* MENU */}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="w-full data-[state=open]:bg-gray-100"
+                >
+                  {activeProjectType === "sales" ? (
+                    <Tag className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  ) : (
+                    <Folder className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  )}
+                  <div className="flex flex-col gap-0.5 leading-none text-left">
+                    <span className="font-semibold truncate text-sm">
+                      {activeProject?.nombre || "Seleccionar Proyecto"}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {activeProjectType === "sales"
+                        ? "Ventas"
+                        : activeProjectType === "proyecto"
+                          ? "Proyecto"
+                          : ""}
+                    </span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto w-4 h-4 text-gray-400" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
+                side="bottom"
+                align="start"
+                sideOffset={4}
+              >
+                {filteredProjects.length > 0 && (
+                  <>
+                    <DropdownMenuLabel>Proyectos</DropdownMenuLabel>
+                    {filteredProjects.map((p) => (
+                      <DropdownMenuItem
+                        key={p._id}
+                        onClick={() => handleProjectSelect(p._id, "proyecto")}
+                        className="gap-2 p-2"
+                      >
+                        <Folder className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{p.nombre}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+                {filteredSalesProjects.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Proyectos de Ventas</DropdownMenuLabel>
+                    {filteredSalesProjects.map((p) => (
+                      <DropdownMenuItem
+                        key={p._id}
+                        onClick={() => handleProjectSelect(p._id, "sales")}
+                        className="gap-2 p-2"
+                      >
+                        <Tag className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{p.nombre}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </div>
+        {/* Project Selector */}
+        
       </SidebarHeader>
 
-      {/* Search Bar */}
-      <div className="px-4 pb-4 group-data-[collapsible=icon]:hidden">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Buscar"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 text-sm h-10 focus-visible:ring-0 border-none shadow-none"
-          />
-        </div>
-      </div>
-
-      {/* Projects List */}
+      {/* Current Project Menu Items */}
       <SidebarContent>
-        {/* Regular Projects Section */}
-        {filteredProjects.length > 0 && (
+        {currentProject && (
           <SidebarGroup className="text-left">
-            <SidebarGroupLabel className="text-xs font-medium text-gray-400 px-3">PROYECTOS</SidebarGroupLabel>
+            {/* <SidebarGroupLabel className="text-xs font-medium text-gray-400 px-3">
+              {currentProject.nombre.toUpperCase()}
+            </SidebarGroupLabel> */}
             <SidebarGroupContent>
               <SidebarMenu>
-                {filteredProjects.map((proyecto) => {
-                  const isCurrentProject = proyectoId === proyecto._id;
-                  return (
-                    <Collapsible key={proyecto._id} asChild defaultOpen={isCurrentProject} className="group/collapsible">
-                      <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton
-                            tooltip={proyecto.nombre}
-                            className={cn(
-                              "w-full px-3 py-2 rounded-lg text-sm text-gray-900",
-                              isCurrentProject ? "bg-gray-100" : "hover:bg-gray-50"
-                            )}
-                          >
-                            <Folder className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                            <span className="truncate">{proyecto.nombre}</span>
-                            <ChevronRight className="ml-auto w-4 h-4 text-gray-400 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
+                {currentProjectMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip={item.label}
+                      className={cn(
+                        "px-3 py-2 text-sm transition-colors",
+                        item.disabled ? "text-gray-400 cursor-not-allowed" : "",
+                        isActive(`/proyecto/${currentProject._id}/${item.path}`)
+                          ? "text-gray-900 bg-gray-100 font-medium"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      )}
+                    >
+                      <Link to={`/proyecto/${currentProject._id}/${item.path}`}>
+                        <item.icon className="w-4 h-4" />
+                        <span className="flex items-center justify-between w-full">
+                          {item.label}
+                          {item.id === "requisiciones" && (
+                            <RequisicionNotificationDot
+                              proyectoId={currentProject._id}
+                              userId={currentUser?._id}
+                              userRole={currentUser?.role}
+                            />
+                          )}
+                        </span>
 
-                        {/* Project Sub-menu */}
-                        <CollapsibleContent>
-                          <SidebarMenuSub className="bg-gray-50 rounded-lg py-1 mx-0 border-l-0 px-0">
-                            {(currentUser?.role === "contratista"
-                              ? contratistaMenuItems
-                              : currentUser?.role === "finance"
-                                ? financeMenuItems
-                                : projectMenuItems
-                            ).map((item) => (
-                              <SidebarMenuSubItem key={item.id}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  className={cn(
-                                    "px-3 py-2 text-sm rounded transition-colors m-1",
-                                    item.disabled ? "text-gray-400 cursor-not-allowed" : "",
-                                    isActive(`/proyecto/${proyecto._id}/${item.path}`)
-                                      ? "text-gray-900 bg-white font-medium"
-                                      : "text-gray-600 hover:text-gray-900 hover:bg-white"
-                                  )}
-                                >
-                                  <Link to={`/proyecto/${proyecto._id}/${item.path}`}>
-                                    <span className="flex items-center justify-between w-full">
-                                      {item.label}
-                                      {item.id === "requisiciones" && (
-                                        <RequisicionNotificationDot
-                                          proyectoId={proyecto._id}
-                                          userId={currentUser?._id}
-                                          userRole={currentUser?.role}
-                                        />
-                                      )}
-                                    </span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
-                    </Collapsible>
-                  );
-                })}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
 
-        {/* Sales Projects Section */}
-        {filteredSalesProjects.length > 0 && (
+        {currentSalesProject && (
           <SidebarGroup className="text-left">
-            <SidebarGroupLabel className="text-xs font-medium text-gray-400 px-3">PROYECTOS DE VENTAS</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-xs font-medium text-gray-400 px-3">
+              {currentSalesProject.nombre.toUpperCase()}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {filteredSalesProjects.map((salesProyecto) => {
-                  const isCurrentSalesProject = salesProyectoId === salesProyecto._id;
-                  return (
-                    <Collapsible key={salesProyecto._id} asChild defaultOpen={isCurrentSalesProject} className="group/collapsible">
-                      <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton
-                            tooltip={salesProyecto.nombre}
-                            className={cn(
-                              "w-full px-3 py-2 rounded-lg text-sm text-gray-900",
-                              isCurrentSalesProject ? "bg-gray-100" : "hover:bg-gray-50"
-                            )}
-                          >
-                            <Tag className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                            <span className="truncate">{salesProyecto.nombre}</span>
-                            <ChevronRight className="ml-auto w-4 h-4 text-gray-400 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
-
-                        <CollapsibleContent>
-                          <SidebarMenuSub className="bg-gray-50 rounded-lg py-1 mx-0 border-l-0 px-0">
-                            {salesProjectMenuItems.map((item) => (
-                              <SidebarMenuSubItem key={item.id}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  className={cn(
-                                    "px-3 py-2 text-sm rounded transition-colors m-1",
-                                    item.disabled ? "text-gray-400 cursor-not-allowed" : "",
-                                    isActive(`/sales-proyecto/${salesProyecto._id}/${item.path}`)
-                                      ? "text-gray-900 bg-white font-medium"
-                                      : "text-gray-600 hover:text-gray-900 hover:bg-white"
-                                  )}
-                                >
-                                  <Link to={`/sales-proyecto/${salesProyecto._id}/${item.path}`}>
-                                    {item.label}
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
-                    </Collapsible>
-                  );
-                })}
+                {salesProjectMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip={item.label}
+                      className={cn(
+                        "px-3 py-2 text-sm transition-colors",
+                        item.disabled ? "text-gray-400 cursor-not-allowed" : "",
+                        isActive(`/sales-proyecto/${currentSalesProject._id}/${item.path}`)
+                          ? "text-gray-900 bg-gray-100 font-medium"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      )}
+                    >
+                      <Link to={`/sales-proyecto/${currentSalesProject._id}/${item.path}`}>
+                        <item.icon className="w-4 h-4" />
+                        <span className="flex items-center justify-between w-full">
+                          {item.label}
+                        </span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -372,7 +510,7 @@ export default function SidebarComponent() {
       {/* Bottom Menu - Only show for authenticated admin users */}
       {isAuthenticated && !authLoading && currentUser?.role === "admin" && (
         <SidebarFooter className="border-t border-gray-200 p-2 mt-6">
-          <SidebarMenu className="space-y-1">
+          {/* <SidebarMenu className="space-y-1">
             {bottomProjectMenuItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -421,6 +559,35 @@ export default function SidebarComponent() {
               );
             })}
           </SidebarMenu>
+
+          <SidebarSeparator /> */}
+
+          {/* User card with dropdown */}
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarUserCard role={currentUser?.role} />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
+
+      {/* Footer for non-admin authenticated users — just user card */}
+      {isAuthenticated && !authLoading && currentUser?.role !== "admin" && (
+        <SidebarFooter className="border-t border-gray-200 p-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarUserCard role={currentUser?.role} />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
+
+      {/* Unauthenticated footer */}
+      {!isAuthenticated && !authLoading && (
+        <SidebarFooter className="border-t border-gray-200 p-4">
+          <Unauthenticated>
+            <SignInButton mode="modal" />
+          </Unauthenticated>
         </SidebarFooter>
       )}
       <SidebarRail />

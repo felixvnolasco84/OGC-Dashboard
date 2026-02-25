@@ -11,13 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
 import { Id } from "../../../convex/_generated/dataModel";
 import { type ScheduleData, type ProgramaItem, parseDate } from "./programa-obra-types";
 import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
 import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
+import ProgramaObraComentarios from "./ProgramaObraComentarios";
 
 // ============================================================
 // Helpers
@@ -92,6 +93,7 @@ export default function ProgramaObra() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingPartida, setEditingPartida] = useState<ProgramaItem | null>(null);
   const [editingFamilia, setEditingFamilia] = useState<ProgramaItem | null>(null);
+  const [comentariosItem, setComentariosItem] = useState<ProgramaItem | null>(null);
 
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -111,6 +113,12 @@ export default function ProgramaObra() {
   // Fetch programa_obra_detalle (children: familia / subpartida)
   const detalles = useQuery(
     api.programa_obra.getDetallesByProyecto,
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  );
+
+  // Fetch comentarios
+  const comentarios = useQuery(
+    api.programa_obra.getComentariosByProyecto,
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
 
@@ -233,6 +241,23 @@ export default function ProgramaObra() {
     });
   }, [nivel1Partidas, scheduleMap, detalles]);
 
+  // Attach comentarios to items
+  const programaDataWithComentarios = useMemo(() => {
+    if (!comentarios || comentarios.length === 0) return programaData;
+    return programaData.map((item) => {
+      const itemComentarios = comentarios.filter(
+        (c) => c.parent_type === "partida" && c.parent_id === (item.schedule?._id ?? "")
+      );
+      const childrenWithComentarios = item.children.map((child) => {
+        const childComentarios = comentarios.filter(
+          (c) => c.parent_type === "familia" && c.parent_id === (child.detalleSchedule?._id ?? "")
+        );
+        return { ...child, comentarios: childComentarios };
+      });
+      return { ...item, comentarios: itemComentarios, children: childrenWithComentarios };
+    });
+  }, [programaData, comentarios]);
+
   // ============================================================
   // Expansion state management (separate from data to avoid resets)
   // ============================================================
@@ -249,19 +274,19 @@ export default function ProgramaObra() {
 
   // Compute overall weighted progress from level 0 items
   const overallProgress = useMemo(() => {
-    if (programaData.length === 0) return 0;
-    const totalWeight = programaData.reduce((s, p) => s + (p.ponderacion || 0), 0);
+    if (programaDataWithComentarios.length === 0) return 0;
+    const totalWeight = programaDataWithComentarios.reduce((s, p) => s + (p.ponderacion || 0), 0);
     if (totalWeight > 0) {
-      const weighted = programaData.reduce(
+      const weighted = programaDataWithComentarios.reduce(
         (s, p) => s + (p.avanceReal ?? 0) * (p.ponderacion || 0), 0
       ) / totalWeight;
       return Math.round(weighted * 100) / 100;
     }
     // Simple average if no weights
     return Math.round(
-      (programaData.reduce((s, p) => s + (p.avanceReal ?? 0), 0) / programaData.length) * 100
+      (programaDataWithComentarios.reduce((s, p) => s + (p.avanceReal ?? 0), 0) / programaDataWithComentarios.length) * 100
     ) / 100;
-  }, [programaData]);
+  }, [programaDataWithComentarios]);
 
   // Save peso for a level 0 or level 1 item
   const handleSavePeso = useCallback(
@@ -336,9 +361,9 @@ export default function ProgramaObra() {
         }
       });
     };
-    walk(programaData);
+    walk(programaDataWithComentarios);
     return result;
-  }, [programaData, expandedIds]);
+  }, [programaDataWithComentarios, expandedIds]);
 
   // Filter
   const filteredData = useMemo(() => {
@@ -580,12 +605,15 @@ export default function ProgramaObra() {
       </div>
 
       <div>
-        {/* General progress bar */}
-        <div className="">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 h-2 bg-gray-100 overflow-hidden">
+        {/* General progress bar — aligned to timeline columns, only visible width */}
+        <div className="flex">
+          {/* Spacer matching fixed left columns (w-72 + w-28 = 400px) */}
+          <div className="shrink-0 w-[400px]" />
+          {/* Progress bar fills only the remaining visible viewport width */}
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="h-2 bg-gray-100">
               <div
-                className="h-full bg-green-500 rounded-full transition-all duration-500"
+                className="h-full bg-green-500 rounded-none transition-all duration-500"
                 style={{ width: `${Math.min(overallProgress, 100)}%` }}
               />
             </div>
@@ -658,22 +686,40 @@ export default function ProgramaObra() {
 
                         {/* Menu for nivel 0 */}
                         {item.level === 0 && (
-                          <button
-                            onClick={() => setEditingPartida(item)}
-                            className="ml-auto p-1 hover:bg-gray-100 rounded shrink-0 opacity-60 hover:opacity-100"
-                          >
-                            <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
-                          </button>
+                          <div className="ml-auto flex items-center gap-0.5 shrink-0">
+                            <button
+                              onClick={() => setComentariosItem(item)}
+                              className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
+                              title="Comentarios"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5 text-gray-400" />
+                            </button>
+                            <button
+                              onClick={() => setEditingPartida(item)}
+                              className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
+                            </button>
+                          </div>
                         )}
 
                         {/* Menu for nivel 1 (familia) */}
                         {item.level === 1 && (
-                          <button
-                            onClick={() => setEditingFamilia(item)}
-                            className="ml-auto p-1 hover:bg-gray-100 rounded shrink-0 opacity-60 hover:opacity-100"
-                          >
-                            <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
-                          </button>
+                          <div className="ml-auto flex items-center gap-0.5 shrink-0">
+                            <button
+                              onClick={() => setComentariosItem(item)}
+                              className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
+                              title="Comentarios"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5 text-gray-400" />
+                            </button>
+                            <button
+                              onClick={() => setEditingFamilia(item)}
+                              className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -946,9 +992,18 @@ export default function ProgramaObra() {
         <ProgramaObraFamiliaEditor
           item={editingFamilia}
           parentSchedule={
-            programaData.find((p) => p.partida === editingFamilia.parentPartidaNombre)?.schedule ?? null
+            programaDataWithComentarios.find((p) => p.partida === editingFamilia.parentPartidaNombre)?.schedule ?? null
           }
           onClose={() => setEditingFamilia(null)}
+        />
+      )}
+
+      {/* Comentarios Sheet */}
+      {comentariosItem && proyectoId && (
+        <ProgramaObraComentarios
+          item={comentariosItem}
+          proyectoId={proyectoId as Id<"desarrollos">}
+          onClose={() => setComentariosItem(null)}
         />
       )}
 

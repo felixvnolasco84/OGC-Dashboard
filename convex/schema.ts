@@ -514,6 +514,22 @@ export default defineSchema({
     .index("by_programa_obra", { fields: ["programa_obra_id"] })
     .index("by_proyecto_partida_familia", { fields: ["proyecto", "partida", "familia"] }),
 
+  // Programa de Obra - Comentarios per partida/familia with date ranges
+  programa_obra_comentarios: defineTable({
+    proyecto: v.id("desarrollos"),
+    // Reference: either a programa_obra (level 0) or programa_obra_detalle (level 1)
+    parent_type: v.string(), // "partida" | "familia"
+    parent_id: v.string(), // _id of programa_obra or programa_obra_detalle
+    comentario: v.string(),
+    fecha_inicio: v.string(), // DD/MM/YYYY
+    fecha_fin: v.string(), // DD/MM/YYYY
+    created_by_id: v.optional(v.id("users")),
+    created_by_name: v.optional(v.string()),
+    created_at: v.number(),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_parent", { fields: ["parent_type", "parent_id"] })
+    .index("by_proyecto_parent", { fields: ["proyecto", "parent_type", "parent_id"] }),
+
   // Programa de Obra - Avance real per sub-partida (nivel 3)
   avance_real: defineTable({
     proyecto: v.id("desarrollos"),

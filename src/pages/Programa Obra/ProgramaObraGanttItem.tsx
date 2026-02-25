@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { type ProgramaItem, parseDate } from "./programa-obra-types";
-import { Check } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Check, MessageSquare } from "lucide-react";
 
 // ============================================================
 // Helpers
@@ -151,7 +150,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
               )}
             </div>
             {/* Label */}
-            <span className="text-[11px] text-[#282822] bg-gray-100 px-2.5 py-1.5 truncate block mt-0 text-left h-full">
+            <span className="text-[11px] text-[#282822] bg-gray-100 px-2.5 py-1.5 block mt-0 text-left h-full whitespace-nowrap">
               {item.partida}
             </span>
           </div>
@@ -179,16 +178,13 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                 </span>
               )}
             </div>
-            <Tooltip>
-              <TooltipTrigger>
-                <span className="text-[10px] text-[#5A5A50] px-1 truncate block text-left font-light">
-                  {item.partida}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">
-                {item.partida} — Avance: {Math.round(avanceReal)}%
-              </TooltipContent>
-            </Tooltip>
+
+
+            <span className="text-[10px] text-[#5A5A50] px-1 block text-left font-light whitespace-nowrap">
+              {item.partida}
+            </span>
+
+
           </div>
         )}
 
@@ -209,22 +205,17 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                 style={{ width: `${Math.min(avanceReal, 100)}%` }}
               />
             </div>
-            <Tooltip>
-              <TooltipTrigger>
-                <span className="text-[9px] text-gray-300 px-1 truncate block">
-                  {item.partida}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">
-                {item.partida}
-              </TooltipContent>
-            </Tooltip>
+
+            <span className="text-[9px] text-gray-300 px-1 block whitespace-nowrap">
+              {item.partida}
+            </span>
+
+
           </div>
         )}
 
-        {/* === Milestone markers (only for nivel 0, visible on hover) === */}
+        {/* === Milestone markers (only for nivel 0) === */}
         {item.level === 0 && anticipoPx != null && (
-
           <div
             className="absolute -top-1 z-20 h-full"
             style={{ left: `${anticipoPx - startPx}px` }}
@@ -232,17 +223,14 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
             <div className="flex space-x-0.5 h-full">
               <div
                 className={cn(
-                  "px-0.5 py-0.5 text-[11px]   shadow-sm cursor-default whitespace-nowrap h-full",
+                  "px-0.5 py-0.5 text-[11px] shadow-sm cursor-default whitespace-nowrap h-full",
                   "bg-[#AFAEA2] text-white flex flex-row gap-0.5 items-center"
                 )}
               >
-
               </div>
               <div className="flex flex-col">
                 <div className="flex bg-[#AFAEA2] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex-row gap-0.5 items-center h-1/2">
-                  <span>
-                    Anticipo
-                  </span>
+                  <span>Anticipo</span>
                   <Check className="inline text-white" size={12} />
                 </div>
                 <div className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50] h-1/2">
@@ -250,9 +238,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                 </div>
               </div>
             </div>
-
           </div>
-
         )}
 
         {item.level === 0 && suministroPx != null && (
@@ -263,7 +249,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
             <div className="flex space-x-0.5 h-full">
               <div
                 className={cn(
-                  "px-0.5 py-0.5 text-[11px]   shadow-sm cursor-default whitespace-nowrap h-full",
+                  "px-0.5 py-0.5 text-[11px] shadow-sm cursor-default whitespace-nowrap h-full",
                   "bg-[#C46B34B3] text-white flex flex-row gap-0.5 items-center"
                 )}
               >
@@ -273,7 +259,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                   "flex flex-col space-y-0.5 h-full",
                 )}
               >
-                <div className="bg-[#C46B34B3] px-1.5 py-0.5 text-[11px]  cursor-default whitespace-nowrap text-white flex flex-row gap-0.5 items-center">
+                <div className="bg-[#C46B34B3] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex flex-row gap-0.5 items-center">
                   Suministro
                   <Check className="inline" size={12} />
                 </div>
@@ -282,8 +268,47 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                 </div>
               </div>
             </div>
-
           </div>
+        )}
+
+        {/* === Comentario bars (blue) for nivel 0 and nivel 1 === */}
+        {(item.level === 0 || item.level === 1) && item.comentarios && item.comentarios.length > 0 && (
+          <>
+            {item.comentarios.map((c) => {
+              const cStart = parseDate(c.fecha_inicio);
+              const cEnd = parseDate(c.fecha_fin);
+              if (!cStart || !cEnd) return null;
+              const cStartPx = dateToPixel(cStart, year, columnWidth, timelineMonths) - startPx;
+              const cEndPx = dateToPixel(cEnd, year, columnWidth, timelineMonths) - startPx;
+              const cWidth = Math.max(cEndPx - cStartPx, 6);
+              return (
+                <div
+                  key={c._id}
+                  className="absolute z-20 h-full top-0 bottom-0"
+                  style={{
+                    left: `${cStartPx}px`,
+                    top: item.level === 0 ? '0px' : '4px',
+                  }}
+                >
+                  <div className="flex space-x-0.5 h-full">
+                    <div className="px-0.5 py-0.5 bg-[#3B82F6] h-full" />
+                    <div className="flex flex-col">
+                      <div
+                        className="bg-[#3B82F6] px-1.5 py-0.5 text-[10px] cursor-default whitespace-nowrap text-white flex items-center gap-0.5"
+                        style={{ minWidth: `${cWidth}px` }}
+                      >
+                        <MessageSquare className="inline" size={10} />
+                        <span className="truncate max-w-[120px]">{c.comentario}</span>
+                      </div>
+                      <div className="text-[9px] bg-[#EFF6FF] px-1 py-0.5 text-[#3B82F6] whitespace-nowrap h-full flex items-center">
+                        {c.fecha_inicio} → {c.fecha_fin}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
         )}
 
         {/* Hover tooltip */}
@@ -298,9 +323,6 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
           </div>
         )}
       </div>
-
-
     </div>
-
   );
 }
