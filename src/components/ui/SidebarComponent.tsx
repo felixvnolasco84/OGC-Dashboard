@@ -6,13 +6,27 @@ import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import LOGO from '../../../public/OGC-LOGO.svg'
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-
-
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
+  SidebarSeparator,
+  SidebarRail,
+} from "@/components/ui/Sidebar"
 import {
   Search,
   Folder,
@@ -24,6 +38,7 @@ import {
   // FileText,
   Tag,
   TrendingUp,
+  ChevronRight,
   // Settings,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -136,7 +151,6 @@ export default function SidebarComponent() {
   const currentUser = useQuery(api.users.getCurrentUser);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
 
   // Filter projects based on search query and user access
   const filteredProjects = (desarrollos || []).filter((proyecto) => {
@@ -182,17 +196,6 @@ export default function SidebarComponent() {
     return matchesSearch && hasAccess;
   });
 
-  // Toggle project expansion
-  const toggleProject = (projectId: string) => {
-    const newExpanded = new Set(expandedProjects);
-    if (newExpanded.has(projectId)) {
-      newExpanded.delete(projectId);
-    } else {
-      newExpanded.add(projectId);
-    }
-    setExpandedProjects(newExpanded);
-  };
-
   const isActive = (path: string) => {
     if (path === "/") {
       return location.pathname === "/";
@@ -206,24 +209,24 @@ export default function SidebarComponent() {
   }
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 z-10 flex flex-col">
+    <Sidebar collapsible="icon" className="bg-white border-r border-gray-200">
       {/* Header */}
-      <div className="p-4 flex items-center justify-between">
+      <SidebarHeader className="p-4 flex-row items-center justify-between group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
         <Link to="/">
           <img src={LOGO} alt="Logo" className="w-8" />
         </Link>
-        <Authenticated>
-          <UserButton />
-        </Authenticated>
-        <Unauthenticated>
-          <SignInButton mode="modal" />
-        </Unauthenticated>
-      </div>
-
-
+        <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
+          <Authenticated>
+            <UserButton />
+          </Authenticated>
+          <Unauthenticated>
+            <SignInButton mode="modal" />
+          </Unauthenticated>
+        </div>
+      </SidebarHeader>
 
       {/* Search Bar */}
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 group-data-[collapsible=icon]:hidden">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -231,176 +234,196 @@ export default function SidebarComponent() {
             placeholder="Buscar"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 text-sm h-10 focus-visible:ring-0 border-none shadow-none "
+            className="pl-10 text-sm h-10 focus-visible:ring-0 border-none shadow-none"
           />
         </div>
       </div>
 
       {/* Projects List */}
-      <Accordion type="multiple" className="overflow-y-auto px-4 space-y-2">
+      <SidebarContent>
         {/* Regular Projects Section */}
         {filteredProjects.length > 0 && (
-          <div className="mb-4 text-left">
-            <p className="text-xs font-medium text-gray-400 px-3 mb-2">PROYECTOS</p>
-            {filteredProjects.map((proyecto) => {
-              const isCurrentProject = proyectoId === proyecto._id;
-              return (
-                <AccordionItem value={proyecto._id} key={proyecto._id} className="space-y-1 border-b-0">
-                  {/* Project Header */}
-                  <AccordionTrigger
-                    disabled={!isAuthenticated}
-                    onClick={() => toggleProject(proyecto._id)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
-                      isCurrentProject ? "bg-gray-100" : "hover:bg-gray-50"
-                    )}
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Folder className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                      <span className="text-sm text-gray-900 truncate">
-                        {proyecto.nombre}
-                      </span>
-                    </div>
-                  </AccordionTrigger>
+          <SidebarGroup className="text-left">
+            <SidebarGroupLabel className="text-xs font-medium text-gray-400 px-3">PROYECTOS</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredProjects.map((proyecto) => {
+                  const isCurrentProject = proyectoId === proyecto._id;
+                  return (
+                    <Collapsible key={proyecto._id} asChild defaultOpen={isCurrentProject} className="group/collapsible">
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            tooltip={proyecto.nombre}
+                            className={cn(
+                              "w-full px-3 py-2 rounded-lg text-sm text-gray-900",
+                              isCurrentProject ? "bg-gray-100" : "hover:bg-gray-50"
+                            )}
+                          >
+                            <Folder className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                            <span className="truncate">{proyecto.nombre}</span>
+                            <ChevronRight className="ml-auto w-4 h-4 text-gray-400 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
 
-                  {/* Project Sub-menu */}
-                  <AccordionContent className="space-y-0.5 bg-gray-50 rounded-lg py-2 text-left">
-                    {(currentUser?.role === "contratista" 
-                        ? contratistaMenuItems 
-                        : currentUser?.role === "finance" 
-                          ? financeMenuItems 
-                          : projectMenuItems
-                      ).map((item) => (
-                      <Link
-                        key={item.id}
-                        to={`/proyecto/${proyecto._id}/${item.path}`}
-                        className={cn(
-                          "block px-3 py-2 text-sm rounded transition-colors m-1",
-                          item.disabled ? "text-gray-400 cursor-not-allowed" : "",
-                          isActive(`/proyecto/${proyecto._id}/${item.path}`)
-                            ? "text-gray-900 bg-white font-medium"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-white"
-                        )}
-                      >
-                        <span className="flex items-center justify-between">
-                          {item.label}
-                          {item.id === "requisiciones" && (
-                            <RequisicionNotificationDot 
-                              proyectoId={proyecto._id} 
-                              userId={currentUser?._id}
-                              userRole={currentUser?.role}
-                            />
-                          )}
-                        </span>
-                      </Link>
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </div>
+                        {/* Project Sub-menu */}
+                        <CollapsibleContent>
+                          <SidebarMenuSub className="bg-gray-50 rounded-lg py-1 mx-0 border-l-0 px-0">
+                            {(currentUser?.role === "contratista"
+                              ? contratistaMenuItems
+                              : currentUser?.role === "finance"
+                                ? financeMenuItems
+                                : projectMenuItems
+                            ).map((item) => (
+                              <SidebarMenuSubItem key={item.id}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  className={cn(
+                                    "px-3 py-2 text-sm rounded transition-colors m-1",
+                                    item.disabled ? "text-gray-400 cursor-not-allowed" : "",
+                                    isActive(`/proyecto/${proyecto._id}/${item.path}`)
+                                      ? "text-gray-900 bg-white font-medium"
+                                      : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                                  )}
+                                >
+                                  <Link to={`/proyecto/${proyecto._id}/${item.path}`}>
+                                    <span className="flex items-center justify-between w-full">
+                                      {item.label}
+                                      {item.id === "requisiciones" && (
+                                        <RequisicionNotificationDot
+                                          proyectoId={proyecto._id}
+                                          userId={currentUser?._id}
+                                          userRole={currentUser?.role}
+                                        />
+                                      )}
+                                    </span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
         {/* Sales Projects Section */}
         {filteredSalesProjects.length > 0 && (
-          <div className="text-left">
-            <p className="text-xs font-medium text-gray-400 px-3 mb-2">PROYECTOS DE VENTAS</p>
-            {filteredSalesProjects.map((salesProyecto) => {
-              const isCurrentSalesProject = salesProyectoId === salesProyecto._id;
-              return (
-                <AccordionItem value={salesProyecto._id} key={salesProyecto._id} className="space-y-1 border-b-0">
-                  <AccordionTrigger
-                    disabled={!isAuthenticated}
-                    onClick={() => toggleProject(salesProyecto._id)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
-                      isCurrentSalesProject ? "bg-gray-100" : "hover:bg-gray-50"
-                    )}
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Tag className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                      <span className="text-sm text-gray-900 truncate">
-                        {salesProyecto.nombre}
-                      </span>
-                    </div>
-                  </AccordionTrigger>
+          <SidebarGroup className="text-left">
+            <SidebarGroupLabel className="text-xs font-medium text-gray-400 px-3">PROYECTOS DE VENTAS</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredSalesProjects.map((salesProyecto) => {
+                  const isCurrentSalesProject = salesProyectoId === salesProyecto._id;
+                  return (
+                    <Collapsible key={salesProyecto._id} asChild defaultOpen={isCurrentSalesProject} className="group/collapsible">
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            tooltip={salesProyecto.nombre}
+                            className={cn(
+                              "w-full px-3 py-2 rounded-lg text-sm text-gray-900",
+                              isCurrentSalesProject ? "bg-gray-100" : "hover:bg-gray-50"
+                            )}
+                          >
+                            <Tag className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                            <span className="truncate">{salesProyecto.nombre}</span>
+                            <ChevronRight className="ml-auto w-4 h-4 text-gray-400 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
 
-                  <AccordionContent className="space-y-0.5 bg-gray-50 rounded-lg py-2 text-left">
-                    {salesProjectMenuItems.map((item) => (
-                      <Link
-                        key={item.id}
-                        to={`/sales-proyecto/${salesProyecto._id}/${item.path}`}
-                        className={cn(
-                          "block px-3 py-2 text-sm rounded transition-colors m-1",
-                          item.disabled ? "text-gray-400 cursor-not-allowed" : "",
-                          isActive(`/sales-proyecto/${salesProyecto._id}/${item.path}`)
-                            ? "text-gray-900 bg-white font-medium"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-white"
-                        )}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </div>
+                        <CollapsibleContent>
+                          <SidebarMenuSub className="bg-gray-50 rounded-lg py-1 mx-0 border-l-0 px-0">
+                            {salesProjectMenuItems.map((item) => (
+                              <SidebarMenuSubItem key={item.id}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  className={cn(
+                                    "px-3 py-2 text-sm rounded transition-colors m-1",
+                                    item.disabled ? "text-gray-400 cursor-not-allowed" : "",
+                                    isActive(`/sales-proyecto/${salesProyecto._id}/${item.path}`)
+                                      ? "text-gray-900 bg-white font-medium"
+                                      : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                                  )}
+                                >
+                                  <Link to={`/sales-proyecto/${salesProyecto._id}/${item.path}`}>
+                                    {item.label}
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
-      </Accordion>
+      </SidebarContent>
 
       {/* Bottom Menu - Only show for authenticated admin users */}
       {isAuthenticated && !authLoading && currentUser?.role === "admin" && (
-        <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
-          {(
-            bottomProjectMenuItems.map((item) => {
+        <SidebarFooter className="border-t border-gray-200 p-2 mt-6">
+          <SidebarMenu className="space-y-1">
+            {bottomProjectMenuItems.map((item) => {
               const Icon = item.icon;
               return (
-                <Link
-                  key={item.id}
-                  to={item.path}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors",
-                    isActive(item.path)
-                      ? "text-gray-900 bg-gray-100 font-medium"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })
-          )}
-        </div>
-      )}
-
-      {
-        isAuthenticated && !authLoading && currentUser?.role === "admin" && (
-          <div className="border-t border-gray-200 p-4 space-y-1 mt-6">
-            {(
-              bottomSalesMenuItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.path}
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.label}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors",
+                      "px-3 py-2 text-sm rounded-lg transition-colors",
                       isActive(item.path)
                         ? "text-gray-900 bg-gray-100 font-medium"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })
-            )}
-          </div>
-        )
-      }
-    </div>
+                    <Link to={item.path}>
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+          <SidebarSeparator />
+          <SidebarMenu className="space-y-1">
+            {bottomSalesMenuItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.label}
+                    className={cn(
+                      "px-3 py-2 text-sm rounded-lg transition-colors",
+                      isActive(item.path)
+                        ? "text-gray-900 bg-gray-100 font-medium"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    <Link to={item.path}>
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
+      <SidebarRail />
+    </Sidebar>
   );
 }

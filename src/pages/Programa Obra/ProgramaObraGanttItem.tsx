@@ -174,7 +174,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
                 style={{ width: `${Math.min(avanceReal, 100)}%` }}
               />
               {avanceReal > 0 && (
-                <span className="absolute -right-8 top-[-3px] text-[9px] text-green-700 font-medium leading-[10px]">
+                <span className="absolute -right-8 top-[-3px] text-[9px] text-green-700  leading-[10px]">
                   {Math.round(avanceReal)}%
                 </span>
               )}
@@ -223,41 +223,66 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
         )}
 
         {/* === Milestone markers (only for nivel 0, visible on hover) === */}
-        {isHovered && item.level === 0 && anticipoPx != null && (
+        {item.level === 0 && anticipoPx != null && (
+
           <div
-            className="absolute -top-1 z-20"
+            className="absolute -top-1 z-20 h-full"
             style={{ left: `${anticipoPx - startPx}px` }}
           >
-            <div
-              className={cn(
-                "px-1.5 py-0.5 text-[11px] font-medium rounded-sm shadow-sm cursor-default whitespace-nowrap",
-                "bg-[#AFAEA2] text-white flex flex-row gap-0.5 items-center"
-              )}
-            >
-              Anticipo {schedule?.anticipo_porcentaje ? `${schedule.anticipo_porcentaje}%` : ""}
-              <Check className="inline text-[#C3C2B9]" size={12} />
+            <div className="flex space-x-0.5 h-full">
+              <div
+                className={cn(
+                  "px-0.5 py-0.5 text-[11px]   shadow-sm cursor-default whitespace-nowrap h-full",
+                  "bg-[#AFAEA2] text-white flex flex-row gap-0.5 items-center"
+                )}
+              >
+
+              </div>
+              <div className="flex flex-col">
+                <div className="flex bg-[#AFAEA2] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex-row gap-0.5 items-center h-1/2">
+                  <span>
+                    Anticipo
+                  </span>
+                  <Check className="inline text-white" size={12} />
+                </div>
+                <div className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50] h-1/2">
+                  {schedule?.anticipo_porcentaje}% - { }
+                </div>
+              </div>
             </div>
+
           </div>
+
         )}
 
-        {isHovered && item.level === 0 && suministroPx != null && (
+        {item.level === 0 && suministroPx != null && (
           <div
-            className="absolute -top-1 z-20"
+            className="absolute -top-1 z-20 h-full"
             style={{ left: `${suministroPx - startPx}px` }}
           >
-            <div
-              className={cn(
-                "flex flex-col space-y-0.5",
-              )}
-            >
-              <div className="bg-[#C46B34B3] px-1.5 py-0.5 text-[11px] font-medium cursor-default whitespace-nowrap text-white flex flex-row gap-0.5 items-center rounded-sm">
-                Suministro
-                <Check className="inline" size={12} />
+            <div className="flex space-x-0.5 h-full">
+              <div
+                className={cn(
+                  "px-0.5 py-0.5 text-[11px]   shadow-sm cursor-default whitespace-nowrap h-full",
+                  "bg-[#C46B34B3] text-white flex flex-row gap-0.5 items-center"
+                )}
+              >
               </div>
-              <span className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50] rounded-sm">
-                {schedule?.suministro_fecha}
-              </span>
+              <div
+                className={cn(
+                  "flex flex-col space-y-0.5 h-full",
+                )}
+              >
+                <div className="bg-[#C46B34B3] px-1.5 py-0.5 text-[11px]  cursor-default whitespace-nowrap text-white flex flex-row gap-0.5 items-center">
+                  Suministro
+                  <Check className="inline" size={12} />
+                </div>
+                <div className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50]">
+                  {schedule?.suministro_fecha}
+                </div>
+              </div>
             </div>
+
           </div>
         )}
 

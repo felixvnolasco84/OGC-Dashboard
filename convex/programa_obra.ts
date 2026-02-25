@@ -465,6 +465,23 @@ export const bulkUpsertFromExcel = mutation({
     const nivel1Rows = args.rows.filter((r) => r.nivel === 1);
     const childRows = args.rows.filter((r) => r.nivel === 2 || r.nivel === 3);
 
+    // Reset orden on all existing records so only items in this upload are shown
+    const existingSchedules = await ctx.db
+      .query("programa_obra")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
+      .collect();
+    for (const s of existingSchedules) {
+      await ctx.db.patch(s._id, { orden: undefined });
+    }
+
+    const existingDetalles = await ctx.db
+      .query("programa_obra_detalle")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
+      .collect();
+    for (const d of existingDetalles) {
+      await ctx.db.patch(d._id, { orden: undefined });
+    }
+
     // Cache: partida name → programa_obra _id
     const programaObraCache = new Map<string, string>();
 

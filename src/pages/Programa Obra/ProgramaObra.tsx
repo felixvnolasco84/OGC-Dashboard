@@ -160,8 +160,8 @@ export default function ProgramaObra() {
     return matched.map((p1) => {
       const schedule = scheduleMap.get(p1._id) || null;
 
-      // Get nivel 2 detalles for this partida (familia items only), sorted by Excel order
-      const familiaDetalles = (detalles?.filter((d) => d.partida === p1.nombre && d.nivel === 2) || [])
+      // Get nivel 2 detalles for this partida (familia items only, with orden set from Excel), sorted by Excel order
+      const familiaDetalles = (detalles?.filter((d) => d.partida === p1.nombre && d.nivel === 2 && d.orden != null) || [])
         .sort((a, b) => (a.orden ?? Infinity) - (b.orden ?? Infinity));
 
       // Build familia (level 1) items from nivel 2 detalles
