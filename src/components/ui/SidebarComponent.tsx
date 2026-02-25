@@ -23,7 +23,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarSeparator,
   SidebarRail,
 } from "@/components/ui/Sidebar"
 import {
@@ -32,10 +31,10 @@ import {
   // Users,
   Bookmark,
   // LockKeyhole,
-  User,
+  // User,
   // FileText,
   Tag,
-  TrendingUp,
+  // TrendingUp,
   ChevronsUpDown,
   TagIcon,
   LucideProps,
@@ -97,24 +96,24 @@ const salesProjectMenuItems: ProjectMenuItem[] = [
   { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false, icon: Bookmark },
 ];
 
-const bottomProjectMenuItems = [
-  { id: "proyectos", label: "Proyectos", path: "/proyectos", icon: Bookmark },
-  // { id: "transacciones", label: "Transacciones", path: "/transacciones", icon: CreditCard },
-  // { id: "proveedores", label: "Proveedores", path: "/proveedores", icon: Users },
-  { id: "flujo", label: "Flujo", path: "/admin/flujo", icon: TrendingUp },
-  // { id: "documentos", label: "Documentos", path: "/documentos", icon: FileText },
-  // { id: "admin", label: "Admin", path: "/admin", icon: LockKeyhole },
-  { id: "usuarios", label: "Usuarios", path: "/usuarios", icon: User },
-];
+// const bottomProjectMenuItems = [
+//   { id: "proyectos", label: "Proyectos", path: "/proyectos", icon: Bookmark },
+//   // { id: "transacciones", label: "Transacciones", path: "/transacciones", icon: CreditCard },
+//   // { id: "proveedores", label: "Proveedores", path: "/proveedores", icon: Users },
+//   { id: "flujo", label: "Flujo", path: "/admin/flujo", icon: TrendingUp },
+//   // { id: "documentos", label: "Documentos", path: "/documentos", icon: FileText },
+//   // { id: "admin", label: "Admin", path: "/admin", icon: LockKeyhole },
+//   { id: "usuarios", label: "Usuarios", path: "/usuarios", icon: User },
+// ];
 
-const bottomSalesMenuItems = [
-  { id: "sales-proyectos", label: "Proyectos Ventas", path: "/sales-proyectos", icon: Bookmark },
-  // { id: "sales-transacciones", label: "Transacciones", path: "/sales-transacciones", icon: CreditCard },
-  { id: "sales-flujo", label: "Flujo ", path: "/admin/sales-flujo", icon: TrendingUp },
-  // { id: "sales-documentos", label: "Documentos", path: "/sales-documentos", icon: FileText },
-  // { id: "sales-gestion", label: "Gestión Proyectos", path: "/sales-gestion", icon: Settings },
-  { id: "sales-usuarios", label: "Acceso Usuarios", path: "/sales-usuarios", icon: User },
-];
+// const bottomSalesMenuItems = [
+//   { id: "sales-proyectos", label: "Proyectos Ventas", path: "/sales-proyectos", icon: Bookmark },
+//   // { id: "sales-transacciones", label: "Transacciones", path: "/sales-transacciones", icon: CreditCard },
+//   { id: "sales-flujo", label: "Flujo ", path: "/admin/sales-flujo", icon: TrendingUp },
+//   // { id: "sales-documentos", label: "Documentos", path: "/sales-documentos", icon: FileText },
+//   // { id: "sales-gestion", label: "Gestión Proyectos", path: "/sales-gestion", icon: Settings },
+//   { id: "sales-usuarios", label: "Acceso Usuarios", path: "/sales-usuarios", icon: User },
+// ];
 
 
 // Notification dot component for requisiciones
