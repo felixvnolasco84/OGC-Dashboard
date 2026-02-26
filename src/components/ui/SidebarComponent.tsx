@@ -347,7 +347,7 @@ export default function SidebarComponent() {
       {/* Header */}
       <SidebarHeader className="p-4 gap-3 group-data-[collapsible=icon]:p-2">
 
-      <div className="flex space-x-2">
+      <div className="flex space-x-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:space-x-0 group-data-[collapsible=icon]:space-y-2 group-data-[collapsible=icon]:items-center">
 
         {/* LOGO */}
         <img src={LOGO} className="w-4" alt="Logo" />
@@ -362,12 +362,12 @@ export default function SidebarComponent() {
                   className="w-full data-[state=open]:bg-gray-100"
                 >
                   {activeProjectType === "sales" ? (
-                    <Tag className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <Tag className="w-4 h-4 text-gray-500 flex-shrink-0 group-data-[collapsible=icon]:w-full" />
                   ) : (
-                    <Folder className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <Folder className="w-4 h-4 text-gray-500 flex-shrink-0 group-data-[collapsible=icon]:w-full" />
                   )}
-                  <div className="flex flex-col gap-0.5 leading-none text-left">
-                    <span className="font-semibold truncate text-sm">
+                  <div className="flex flex-col gap-0.5 leading-none text-left group-data-[collapsible=icon]:hidden">
+                    <span className="font-semibold truncate text-sm ">
                       {activeProject?.nombre || "Seleccionar Proyecto"}
                     </span>
                     <span className="text-xs text-gray-500">
@@ -378,7 +378,7 @@ export default function SidebarComponent() {
                           : ""}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto w-4 h-4 text-gray-400" />
+                  <ChevronsUpDown className="ml-auto w-4 h-4 text-gray-400 group-data-[collapsible=icon]:hidden" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent

@@ -38,6 +38,9 @@ type Props = {
 
 export default function ProgramaObraGanttItem({ item, year, columnWidth, timelineMonths }: Props) {
   const [isHovered, setIsHovered] = useState(false);
+  const [showAnticipo, setShowAnticipo] = useState(false);
+  const [showSuministro, setShowSuministro] = useState(false);
+  const [expandedComentarios, setExpandedComentarios] = useState<Set<string>>(new Set());
 
   // Use detalle schedule if available (from Excel upload), then familia schedule, then parent
   const schedule = item.schedule;
@@ -217,56 +220,62 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
         {/* === Milestone markers (only for nivel 0) === */}
         {item.level === 0 && anticipoPx != null && (
           <div
-            className="absolute -top-1 z-20 h-full"
+            className="absolute -top-1 z-20 h-full cursor-pointer"
             style={{ left: `${anticipoPx - startPx}px` }}
+            onClick={(e) => { e.stopPropagation(); setShowAnticipo(!showAnticipo); }}
           >
             <div className="flex space-x-0.5 h-full">
               <div
                 className={cn(
-                  "px-0.5 py-0.5 text-[11px] shadow-sm cursor-default whitespace-nowrap h-full",
+                  "px-0.5 py-0.5 text-[11px] shadow-sm cursor-pointer whitespace-nowrap h-full",
                   "bg-[#AFAEA2] text-white flex flex-row gap-0.5 items-center"
                 )}
               >
               </div>
-              <div className="flex flex-col">
-                <div className="flex bg-[#AFAEA2] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex-row gap-0.5 items-center h-1/2">
-                  <span>Anticipo</span>
-                  <Check className="inline text-white" size={12} />
+              {showAnticipo && (
+                <div className="flex flex-col">
+                  <div className="flex bg-[#AFAEA2] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex-row gap-0.5 items-center h-1/2">
+                    <span>Anticipo</span>
+                    <Check className="inline text-white" size={12} />
+                  </div>
+                  <div className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50] h-1/2">
+                    {schedule?.anticipo_porcentaje}% - { }
+                  </div>
                 </div>
-                <div className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50] h-1/2">
-                  {schedule?.anticipo_porcentaje}% - { }
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
 
         {item.level === 0 && suministroPx != null && (
           <div
-            className="absolute -top-1 z-20 h-full"
+            className="absolute -top-1 z-20 h-full cursor-pointer"
             style={{ left: `${suministroPx - startPx}px` }}
+            onClick={(e) => { e.stopPropagation(); setShowSuministro(!showSuministro); }}
           >
             <div className="flex space-x-0.5 h-full">
               <div
                 className={cn(
-                  "px-0.5 py-0.5 text-[11px] shadow-sm cursor-default whitespace-nowrap h-full",
+                  "px-0.5 py-0.5 text-[11px] shadow-sm cursor-pointer whitespace-nowrap h-full",
                   "bg-[#C46B34B3] text-white flex flex-row gap-0.5 items-center"
                 )}
               >
               </div>
-              <div
-                className={cn(
-                  "flex flex-col space-y-0.5 h-full",
-                )}
-              >
-                <div className="bg-[#C46B34B3] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex flex-row gap-0.5 items-center">
-                  Suministro
-                  <Check className="inline" size={12} />
+              {showSuministro && (
+                <div
+                  className={cn(
+                    "flex flex-col space-y-0.5 h-full",
+                  )}
+                >
+                  <div className="bg-[#C46B34B3] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex flex-row gap-0.5 items-center">
+                    Suministro
+                    <Check className="inline" size={12} />
+                  </div>
+                  <div className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50]">
+                    {schedule?.suministro_fecha}
+                  </div>
                 </div>
-                <div className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50]">
-                  {schedule?.suministro_fecha}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -284,26 +293,40 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
               return (
                 <div
                   key={c._id}
-                  className="absolute z-20 h-full top-0 bottom-0"
+                  className="absolute z-20 h-full top-0 bottom-0 cursor-pointer"
                   style={{
                     left: `${cStartPx}px`,
                     top: item.level === 0 ? '0px' : '4px',
                   }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedComentarios((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(c._id)) next.delete(c._id);
+                      else next.add(c._id);
+                      return next;
+                    });
+                  }}
                 >
+                  {/* BAR */}
                   <div className="flex space-x-0.5 h-full">
+                    {/* BAR COLOR */}
                     <div className="px-0.5 py-0.5 bg-[#3B82F6] h-full" />
-                    <div className="flex flex-col">
-                      <div
-                        className="bg-[#3B82F6] px-1.5 py-0.5 text-[10px] cursor-default whitespace-nowrap text-white flex items-center gap-0.5"
-                        style={{ minWidth: `${cWidth}px` }}
-                      >
-                        <MessageSquare className="inline" size={10} />
-                        <span className="truncate max-w-[120px]">{c.comentario}</span>
+                    {/* BAR TEXT (SHOW ONLY ON CLICK) */}
+                    {expandedComentarios.has(c._id) && (
+                      <div className="flex flex-col">
+                        <div
+                          className="bg-[#3B82F6] px-1.5 py-0.5 text-[10px] cursor-default whitespace-nowrap text-white flex items-center gap-0.5"
+                          style={{ minWidth: `${cWidth}px` }}
+                        >
+                          <MessageSquare className="inline" size={10} />
+                          <span className="truncate max-w-[120px]">{c.comentario}</span>
+                        </div>
+                        <div className="text-[9px] bg-[#EFF6FF] px-1 py-0.5 text-[#3B82F6] whitespace-nowrap h-full flex items-center">
+                          {c.fecha_inicio} → {c.fecha_fin}
+                        </div>
                       </div>
-                      <div className="text-[9px] bg-[#EFF6FF] px-1 py-0.5 text-[#3B82F6] whitespace-nowrap h-full flex items-center">
-                        {c.fecha_inicio} → {c.fecha_fin}
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               );

@@ -376,6 +376,12 @@ export default function ProgramaObra() {
   // Timeline months for the selected year
   const timelineMonths = useMemo(() => getTimelineMonths(selectedYear), [selectedYear]);
 
+  // Total timeline width (sum of all month columns)
+  const totalTimelineWidth = useMemo(
+    () => timelineMonths.reduce((sum, m) => sum + getMonthWidth(m.weeks), 0),
+    [timelineMonths]
+  );
+
   // Today line position
   const todayPosition = useMemo(() => {
     const now = new Date();
@@ -927,6 +933,7 @@ export default function ProgramaObra() {
                     // item.level === 1 && "bg-gray-50/80",
                     // item.level === 2 && "bg-gray-50/80"
                   )}
+                  style={{ minWidth: totalTimelineWidth }}
                 >
                   {/* Parent-range gray background for child items */}
                   {item.level === 1 && item.schedule && (() => {
