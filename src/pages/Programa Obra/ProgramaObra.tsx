@@ -4,13 +4,6 @@ import { api } from "../../../convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
@@ -38,8 +31,10 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-/** Get month columns with week counts */
-function getTimelineMonths(year: number): { label: string; month: number; year: number; weeks: number }[] {
+type TimelineMonth = { label: string; month: number; year: number; weeks: number };
+
+/** Get month columns with week counts for a single year */
+function getTimelineMonths(year: number): TimelineMonth[] {
   return MONTHS_ES.map((label, i) => {
     const daysInMonth = new Date(year, i + 1, 0).getDate();
     const weeks = Math.ceil(daysInMonth / 7);
@@ -47,17 +42,43 @@ function getTimelineMonths(year: number): { label: string; month: number; year: 
   });
 }
 
+/** Get month columns spanning multiple years */
+function getMultiYearTimelineMonths(startYear: number, endYear: number): TimelineMonth[] {
+  const result: TimelineMonth[] = [];
+  for (let y = startYear; y <= endYear; y++) {
+    result.push(...getTimelineMonths(y));
+  }
+  return result;
+}
+
 const WEEK_WIDTH = 32; // px per week column
 const getMonthWidth = (weeks: number) => weeks * WEEK_WIDTH;
 
 const API_BASE_URL = "https://ogc-excel-reader.vercel.app";
 
-type TMonth = { weeks: number };
-/** Convert a DD/MM/YYYY or YYYY-MM-DD string to a pixel offset for the given year */
+/** Convert a Date object to a pixel offset within a multi-year timeline */
+function dateToPx(date: Date, months: TimelineMonth[]): number {
+  const dy = date.getFullYear();
+  const dm = date.getMonth();
+  let offset = 0;
+  for (let i = 0; i < months.length; i++) {
+    if (months[i].year === dy && months[i].month === dm) {
+      const day = date.getDate();
+      const dim = new Date(dy, dm + 1, 0).getDate();
+      const frac = (day - 1) / dim;
+      return offset + frac * getMonthWidth(months[i].weeks);
+    }
+    offset += getMonthWidth(months[i].weeks);
+  }
+  // Before timeline start
+  if (months.length > 0 && (dy < months[0].year || (dy === months[0].year && dm < months[0].month))) return 0;
+  return offset; // After timeline end
+}
+
+/** Convert a DD/MM/YYYY or YYYY-MM-DD string to a pixel offset within a multi-year timeline */
 function dateStrToPixel(
   dateStr: string | undefined | null,
-  year: number,
-  months: TMonth[]
+  months: TimelineMonth[]
 ): number | null {
   if (!dateStr) return null;
   let d: Date;
@@ -68,17 +89,7 @@ function dateStrToPixel(
     const [y, m, day] = dateStr.split("-").map(Number);
     d = new Date(y, m - 1, day);
   } else return null;
-  if (d.getFullYear() !== year) {
-    if (d.getFullYear() < year) return 0;
-    return months.reduce((s, m) => s + m.weeks * WEEK_WIDTH, 0);
-  }
-  const month = d.getMonth();
-  const dayN = d.getDate();
-  const dim = new Date(year, month + 1, 0).getDate();
-  const frac = (dayN - 1) / dim;
-  let off = 0;
-  for (let i = 0; i < month; i++) off += months[i].weeks * WEEK_WIDTH;
-  return off + frac * months[month].weeks * WEEK_WIDTH;
+  return dateToPx(d, months);
 }
 
 // ============================================================
@@ -90,7 +101,6 @@ export default function ProgramaObra() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingPartida, setEditingPartida] = useState<ProgramaItem | null>(null);
   const [editingFamilia, setEditingFamilia] = useState<ProgramaItem | null>(null);
   const [comentariosItem, setComentariosItem] = useState<ProgramaItem | null>(null);
@@ -373,8 +383,28 @@ export default function ProgramaObra() {
     });
   }, [flattenedData, searchTerm]);
 
-  // Timeline months for the selected year
-  const timelineMonths = useMemo(() => getTimelineMonths(selectedYear), [selectedYear]);
+  // Compute year range from all data dates
+  const yearRange = useMemo(() => {
+    const years: number[] = [];
+    const extractYear = (dateStr: string | undefined | null) => {
+      const d = parseDate(dateStr);
+      if (d) years.push(d.getFullYear());
+    };
+    schedules?.forEach((s) => { extractYear(s.fecha_inicio); extractYear(s.fecha_fin); extractYear(s.anticipo_fecha); extractYear(s.suministro_fecha); });
+    detalles?.forEach((d) => { extractYear(d.fecha_inicio); extractYear(d.fecha_fin); });
+    comentarios?.forEach((c) => { extractYear(c.fecha_inicio); extractYear(c.fecha_fin); });
+    if (years.length === 0) {
+      const cy = new Date().getFullYear();
+      return { startYear: cy, endYear: cy };
+    }
+    return { startYear: Math.min(...years), endYear: Math.max(...years) };
+  }, [schedules, detalles, comentarios]);
+
+  // Timeline months spanning the full data range
+  const timelineMonths = useMemo(
+    () => getMultiYearTimelineMonths(yearRange.startYear, yearRange.endYear),
+    [yearRange]
+  );
 
   // Total timeline width (sum of all month columns)
   const totalTimelineWidth = useMemo(
@@ -385,18 +415,10 @@ export default function ProgramaObra() {
   // Today line position
   const todayPosition = useMemo(() => {
     const now = new Date();
-    if (now.getFullYear() !== selectedYear) return null;
-    const month = now.getMonth();
-    const day = now.getDate();
-    const daysInMonth = new Date(selectedYear, month + 1, 0).getDate();
-    const fraction = (day - 1) / daysInMonth;
-    // Sum widths of all preceding months
-    let offset = 0;
-    for (let i = 0; i < month; i++) {
-      offset += getMonthWidth(timelineMonths[i].weeks);
-    }
-    return offset + fraction * getMonthWidth(timelineMonths[month].weeks);
-  }, [selectedYear, timelineMonths]);
+    const cy = now.getFullYear();
+    if (cy < yearRange.startYear || cy > yearRange.endYear) return null;
+    return dateToPx(now, timelineMonths);
+  }, [yearRange, timelineMonths]);
 
   // Excel upload state
   const [uploading, setUploading] = useState(false);
@@ -553,16 +575,6 @@ export default function ProgramaObra() {
               )}
               {uploading ? "Procesando..." : "Cargar Excel"}
             </Button>
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-              <SelectTrigger className="w-28 rounded-none">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[2024, 2025, 2026, 2027].map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
@@ -892,34 +904,51 @@ export default function ProgramaObra() {
 
             {/* Scrollable timeline */}
             <div className="flex-1 overflow-x-auto" ref={scrollContainerRef}>
-              {/* Month headers */}
-              <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-10 min-w-max">
-                {timelineMonths.map((m, i) => {
-                  const mw = getMonthWidth(m.weeks);
-                  return (
-                    <div key={i} className="border-r border-[#d2d1ce] shrink-0 h-[48px]" style={{ width: mw }}>
-                      <div className="text-center py-1.5 text-xs font-medium text-[#777770] uppercase tracking-wider">
-                        {m.label}
+              {/* Year + Month headers */}
+              <div className="sticky top-0 z-10 min-w-max bg-white">
+                {/* Year labels row */}
+                <div className="flex border-t border-[#d2d1ce]">
+                  {Array.from({ length: yearRange.endYear - yearRange.startYear + 1 }).map((_, yi) => {
+                    const y = yearRange.startYear + yi;
+                    const yearMonths = timelineMonths.filter((m) => m.year === y);
+                    const yearWidth = yearMonths.reduce((s, m) => s + getMonthWidth(m.weeks), 0);
+                    return (
+                      <div
+                        key={y}
+                        className="text-left text-xs font-medium text-[#777770] py-1.5 pl-2 border-r border-[#d2d1ce] shrink-0"
+                        style={{ width: yearWidth }}
+                      >
+                        {y}
                       </div>
-                      <div className="flex">
-                        {Array.from({ length: m.weeks }).map((_, wi) => (
-                          <div
-                            key={wi}
-                            className={cn(
-                              "text-center text-[9px] text-gray-300 py-1",
-                              wi < m.weeks - 1 && "border-r border-dashed border-gray-200"
-                            )}
-                            style={{ width: WEEK_WIDTH }}
-                          >
-                            S{wi + 1}
-                          </div>
-                        ))}
+                    );
+                  })}
+                </div>
+                {/* Month labels + week sub-headers row */}
+                <div className="flex border-b border-[#d2d1ce]">
+                  {timelineMonths.map((m, i) => {
+                    const mw = getMonthWidth(m.weeks);
+                    return (
+                      <div key={i} className="border-r border-[#d2d1ce] shrink-0 h-[36px]" style={{ width: mw }}>
+                        <div className="text-center py-1 text-[11px] font-medium text-[#777770] tracking-wider">
+                          {m.label}
+                        </div>
+                        <div className="flex">
+                          {Array.from({ length: m.weeks }).map((_, wi) => (
+                            <div
+                              key={wi}
+                              className={cn(
+                                "text-center text-[8px] text-gray-300 py-0.5",
+                                wi < m.weeks - 1 && "border-r border-dashed border-gray-200"
+                              )}
+                              style={{ width: WEEK_WIDTH }}
+                            >
+                              S{wi + 1}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-                <div className="px-4 py-3 text-xs font-medium text-gray-300 ml-2">
-                  {selectedYear}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -937,8 +966,8 @@ export default function ProgramaObra() {
                 >
                   {/* Parent-range gray background for child items */}
                   {item.level === 1 && item.schedule && (() => {
-                    const pStart = dateStrToPixel(item.schedule.fecha_inicio, selectedYear, timelineMonths);
-                    const pEnd = dateStrToPixel(item.schedule.fecha_fin, selectedYear, timelineMonths);
+                    const pStart = dateStrToPixel(item.schedule.fecha_inicio, timelineMonths);
+                    const pEnd = dateStrToPixel(item.schedule.fecha_fin, timelineMonths);
                     if (pStart == null || pEnd == null) return null;
                     return (
                       <div
@@ -972,7 +1001,6 @@ export default function ProgramaObra() {
                   {/* Gantt bar */}
                   <ProgramaObraGanttItem
                     item={item}
-                    year={selectedYear}
                     columnWidth={WEEK_WIDTH}
                     timelineMonths={timelineMonths}
                   />

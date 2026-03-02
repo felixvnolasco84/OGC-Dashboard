@@ -9,20 +9,23 @@ import { Check, MessageSquare } from "lucide-react";
 
 type TimelineMonth = { label: string; month: number; year: number; weeks: number };
 
-/** Convert a Date to pixel position within a year timeline (variable-width months) */
-function dateToPixel(date: Date, year: number, weekWidth: number, months: TimelineMonth[]): number {
+/** Convert a Date to pixel position within a multi-year timeline */
+function dateToPixel(date: Date, weekWidth: number, months: TimelineMonth[]): number {
   const mw = (m: TimelineMonth) => m.weeks * weekWidth;
-  if (date.getFullYear() !== year) {
-    if (date.getFullYear() < year) return 0;
-    return months.reduce((s, m) => s + mw(m), 0);
-  }
-  const month = date.getMonth();
-  const day = date.getDate();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const fraction = (day - 1) / daysInMonth;
+  const dy = date.getFullYear();
+  const dm = date.getMonth();
   let offset = 0;
-  for (let i = 0; i < month; i++) offset += mw(months[i]);
-  return offset + fraction * mw(months[month]);
+  for (let i = 0; i < months.length; i++) {
+    if (months[i].year === dy && months[i].month === dm) {
+      const day = date.getDate();
+      const daysInMonth = new Date(dy, dm + 1, 0).getDate();
+      const fraction = (day - 1) / daysInMonth;
+      return offset + fraction * mw(months[i]);
+    }
+    offset += mw(months[i]);
+  }
+  if (months.length > 0 && (dy < months[0].year || (dy === months[0].year && dm < months[0].month))) return 0;
+  return offset;
 }
 
 // ============================================================
@@ -31,12 +34,11 @@ function dateToPixel(date: Date, year: number, weekWidth: number, months: Timeli
 
 type Props = {
   item: ProgramaItem;
-  year: number;
   columnWidth: number;
   timelineMonths: TimelineMonth[];
 };
 
-export default function ProgramaObraGanttItem({ item, year, columnWidth, timelineMonths }: Props) {
+export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonths }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const [showAnticipo, setShowAnticipo] = useState(false);
   const [showSuministro, setShowSuministro] = useState(false);
@@ -78,16 +80,16 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
   // If no schedule dates, don't render a bar
   if (!startDate || !endDate) return null;
 
-  const startPx = dateToPixel(startDate, year, columnWidth, timelineMonths);
-  const endPx = dateToPixel(endDate, year, columnWidth, timelineMonths);
+  const startPx = dateToPixel(startDate, columnWidth, timelineMonths);
+  const endPx = dateToPixel(endDate, columnWidth, timelineMonths);
   const isSameDay = startDate.getTime() === endDate.getTime();
   const barWidth = isSameDay ? 4 : Math.max(endPx - startPx, 8);
 
   // Red extension pixels
-  const extensionEndPx = extensionEndDate ? dateToPixel(extensionEndDate, year, columnWidth, timelineMonths) : null;
+  const extensionEndPx = extensionEndDate ? dateToPixel(extensionEndDate, columnWidth, timelineMonths) : null;
   const extensionWidth = extensionEndPx ? Math.max(extensionEndPx - endPx, 0) : 0;
-  const parentEndPx0 = parentEndForExtension ? dateToPixel(parentEndForExtension, year, columnWidth, timelineMonths) : null;
-  const maxChildEndPx = maxChildEnd ? dateToPixel(maxChildEnd, year, columnWidth, timelineMonths) : null;
+  const parentEndPx0 = parentEndForExtension ? dateToPixel(parentEndForExtension, columnWidth, timelineMonths) : null;
+  const maxChildEndPx = maxChildEnd ? dateToPixel(maxChildEnd, columnWidth, timelineMonths) : null;
   const level0ExtensionWidth = parentEndPx0 != null && maxChildEndPx != null ? Math.max(maxChildEndPx - parentEndPx0, 0) : 0;
 
   // Avance real and financiero percentages
@@ -103,8 +105,8 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
     startDate < new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   // Milestone positions (relative to bar start)
-  const anticipoPx = anticipoDate ? dateToPixel(anticipoDate, year, columnWidth, timelineMonths) : null;
-  const suministroPx = suministroDate ? dateToPixel(suministroDate, year, columnWidth, timelineMonths) : null;
+  const anticipoPx = anticipoDate ? dateToPixel(anticipoDate, columnWidth, timelineMonths) : null;
+  const suministroPx = suministroDate ? dateToPixel(suministroDate, columnWidth, timelineMonths) : null;
 
   // For nivel 1 (familia) and nivel 2 (sub-partida), inherit parent schedule
   // They render under the parent's bar range. For now, they span the same range
@@ -220,7 +222,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
         {/* === Milestone markers (only for nivel 0) === */}
         {item.level === 0 && anticipoPx != null && (
           <div
-            className="absolute -top-1 z-20 h-full cursor-pointer"
+            className="absolute top-0 z-20 h-full cursor-pointer"
             style={{ left: `${anticipoPx - startPx}px` }}
             onClick={(e) => { e.stopPropagation(); setShowAnticipo(!showAnticipo); }}
           >
@@ -249,7 +251,7 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
 
         {item.level === 0 && suministroPx != null && (
           <div
-            className="absolute -top-1 z-20 h-full cursor-pointer"
+            className="absolute top-0 z-20 h-full cursor-pointer"
             style={{ left: `${suministroPx - startPx}px` }}
             onClick={(e) => { e.stopPropagation(); setShowSuministro(!showSuministro); }}
           >
@@ -287,8 +289,8 @@ export default function ProgramaObraGanttItem({ item, year, columnWidth, timelin
               const cStart = parseDate(c.fecha_inicio);
               const cEnd = parseDate(c.fecha_fin);
               if (!cStart || !cEnd) return null;
-              const cStartPx = dateToPixel(cStart, year, columnWidth, timelineMonths) - startPx;
-              const cEndPx = dateToPixel(cEnd, year, columnWidth, timelineMonths) - startPx;
+              const cStartPx = dateToPixel(cStart, columnWidth, timelineMonths) - startPx;
+              const cEndPx = dateToPixel(cEnd, columnWidth, timelineMonths) - startPx;
               const cWidth = Math.max(cEndPx - cStartPx, 6);
               return (
                 <div
