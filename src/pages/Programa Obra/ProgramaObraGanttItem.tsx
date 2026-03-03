@@ -298,7 +298,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                   className="absolute z-20 h-full top-0 bottom-0 cursor-pointer"
                   style={{
                     left: `${cStartPx}px`,
-                    top: item.level === 0 ? '0px' : '4px',
+                    top: item.level === 0 ? '0px' : '0px',
                   }}
                   onClick={(e) => {
                     e.stopPropagation();

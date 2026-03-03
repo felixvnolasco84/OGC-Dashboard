@@ -283,20 +283,20 @@ export default function ProgramaObra() {
   }, []);
 
   // Compute overall weighted progress from level 0 items
-  const overallProgress = useMemo(() => {
-    if (programaDataWithComentarios.length === 0) return 0;
-    const totalWeight = programaDataWithComentarios.reduce((s, p) => s + (p.ponderacion || 0), 0);
-    if (totalWeight > 0) {
-      const weighted = programaDataWithComentarios.reduce(
-        (s, p) => s + (p.avanceReal ?? 0) * (p.ponderacion || 0), 0
-      ) / totalWeight;
-      return Math.round(weighted * 100) / 100;
-    }
-    // Simple average if no weights
-    return Math.round(
-      (programaDataWithComentarios.reduce((s, p) => s + (p.avanceReal ?? 0), 0) / programaDataWithComentarios.length) * 100
-    ) / 100;
-  }, [programaDataWithComentarios]);
+  // const overallProgress = useMemo(() => {
+  //   if (programaDataWithComentarios.length === 0) return 0;
+  //   const totalWeight = programaDataWithComentarios.reduce((s, p) => s + (p.ponderacion || 0), 0);
+  //   if (totalWeight > 0) {
+  //     const weighted = programaDataWithComentarios.reduce(
+  //       (s, p) => s + (p.avanceReal ?? 0) * (p.ponderacion || 0), 0
+  //     ) / totalWeight;
+  //     return Math.round(weighted * 100) / 100;
+  //   }
+  //   // Simple average if no weights
+  //   return Math.round(
+  //     (programaDataWithComentarios.reduce((s, p) => s + (p.avanceReal ?? 0), 0) / programaDataWithComentarios.length) * 100
+  //   ) / 100;
+  // }, [programaDataWithComentarios]);
 
   // Save peso for a level 0 or level 1 item
   const handleSavePeso = useCallback(
@@ -624,19 +624,19 @@ export default function ProgramaObra() {
 
       <div>
         {/* General progress bar — aligned to timeline columns, only visible width */}
-        <div className="flex">
+        {/* <div className="flex"> */}
           {/* Spacer matching fixed left columns (w-72 + w-28 = 400px) */}
-          <div className="shrink-0 w-[400px]" />
+          {/* <div className="shrink-0 w-[400px]" />/ */}
           {/* Progress bar fills only the remaining visible viewport width */}
-          <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="h-2 bg-gray-100">
-              <div
-                className="h-full bg-green-500 rounded-none transition-all duration-500"
-                style={{ width: `${Math.min(overallProgress, 100)}%` }}
-              />
-            </div>
-          </div>
-        </div>
+          {/* <div className="flex-1 min-w-0 overflow-hidden"> */}
+            {/* <div className="h-2 bg-gray-100"> */}
+              {/* <div */}
+                {/* className="h-full bg-green-500 rounded-none transition-all duration-500" */}
+                {/* style={{ width: `${Math.min(overallProgress, 100)}%` }} */}
+              {/* /> */}
+            {/* </div> */}
+          {/* </div> */}
+        {/* </div> */}
 
 
         {/* Gantt Chart */}
