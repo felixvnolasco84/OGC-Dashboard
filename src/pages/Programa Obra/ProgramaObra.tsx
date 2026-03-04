@@ -848,7 +848,7 @@ export default function ProgramaObra() {
                               className="text-[9px] text-gray-400 hover:text-gray-600 transition-colors"
                               title="Editar peso"
                             >
-                              {item.ponderacion != null ? `peso: ${(item.ponderacion).toFixed(2)}%` : "peso: —"}
+                              {item.ponderacion != null ? `${(item.ponderacion).toFixed(2)}%` : "—"}
                             </button>
                           )}
                         </div>
