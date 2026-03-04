@@ -12,6 +12,7 @@ import { type ScheduleData, type ProgramaItem, parseDate } from "./programa-obra
 import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
 import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 import ProgramaObraComentarios from "./ProgramaObraComentarios";
+import ProgramaObraExcelPreview, { type ExcelPartida, type ExcelRow } from "./ProgramaObraExcelPreview";
 
 // ============================================================
 // Helpers
@@ -422,17 +423,22 @@ export default function ProgramaObra() {
 
   // Excel upload state
   const [uploading, setUploading] = useState(false);
+  const [parsing, setParsing] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleExcelUpload = useCallback(
+  // Preview state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<ExcelPartida[]>([]);
+
+  // Step 1: Parse the Excel and open the preview dialog
+  const handleExcelParse = useCallback(
     async (file: File) => {
       if (!proyectoId) return;
-      setUploading(true);
+      setParsing(true);
       setUploadResult(null);
 
       try {
-        // 1. Send file to backend API for parsing
         const formData = new FormData();
         formData.append("file", file);
 
@@ -448,78 +454,52 @@ export default function ProgramaObra() {
 
         const data = await res.json();
 
-        // 2. Transform API response into rows for bulkUpsert
-        // The API returns { partidas: [...] } with nested children
-        const rows: {
-          nivel: number;
-          partida: string;
-          familia?: string;
-          subpartida?: string;
-          fecha_inicio?: string;
-          fecha_fin?: string;
-          anticipo_fecha?: string;
-          anticipo_porcentaje?: number;
-          suministro_fecha?: string;
-          finiquito_fecha?: string;
-          finiquito_porcentaje?: number;
-          peso?: number;
-        }[] = [];
-
-        if (data.partidas) {
-          for (const p of data.partidas) {
-            // NIVEL 1 row
-            rows.push({
-              nivel: 1,
-              partida: p.partida,
-              fecha_inicio: p.fecha_inicio || undefined,
-              fecha_fin: p.fecha_fin || undefined,
-              anticipo_fecha: p.anticipo_fecha || undefined,
-              anticipo_porcentaje: p.anticipo_porcentaje || undefined,
-              suministro_fecha: p.suministro_fecha || undefined,
-              finiquito_fecha: p.finiquito_fecha || undefined,
-              finiquito_porcentaje: p.finiquito_porcentaje || undefined,
-              peso: p.peso || undefined,
-            });
-            // Children (nivel 2 & 3)
-            if (p.children) {
-              for (const child of p.children) {
-                rows.push({
-                  nivel: child.nivel,
-                  partida: p.partida,
-                  familia: child.familia || undefined,
-                  subpartida: child.subpartida || undefined,
-                  fecha_inicio: child.fecha_inicio || undefined,
-                  fecha_fin: child.fecha_fin || undefined,
-                  anticipo_fecha: child.anticipo_fecha || undefined,
-                  anticipo_porcentaje: child.anticipo_porcentaje || undefined,
-                  suministro_fecha: child.suministro_fecha || undefined,
-                  finiquito_fecha: child.finiquito_fecha || undefined,
-                  finiquito_porcentaje: child.finiquito_porcentaje || undefined,
-                  peso: child.peso || undefined,
-                });
-              }
-            }
-          }
+        if (data.partidas && data.partidas.length > 0) {
+          setPreviewData(data.partidas as ExcelPartida[]);
+          setPreviewOpen(true);
+        } else {
+          setUploadResult({ created: 0, updated: 0, errors: ["No se encontraron partidas en el archivo."] });
         }
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : "Unknown error";
+        setUploadResult({ created: 0, updated: 0, errors: [msg] });
+      } finally {
+        setParsing(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    },
+    [proyectoId]
+  );
 
-        // 3. Call Convex mutation to upsert
+  // Step 2: User confirmed preview — upload rows to Convex
+  const handlePreviewConfirm = useCallback(
+    async (rows: ExcelRow[]) => {
+      if (!proyectoId) return;
+      setUploading(true);
+
+      try {
         const result = await bulkUpsertFromExcel({
           proyecto: proyectoId as Id<"desarrollos">,
           rows,
         });
 
         setUploadResult(result);
+        setPreviewOpen(false);
+        setPreviewData([]);
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";
         setUploadResult({ created: 0, updated: 0, errors: [msg] });
       } finally {
         setUploading(false);
-        // Reset file input
-        if (fileInputRef.current) fileInputRef.current.value = "";
       }
     },
     [proyectoId, bulkUpsertFromExcel]
   );
+
+  const handlePreviewCancel = useCallback(() => {
+    setPreviewOpen(false);
+    setPreviewData([]);
+  }, []);
 
   // Scroll to today on mount
   useEffect(() => {
@@ -559,21 +539,21 @@ export default function ProgramaObra() {
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) handleExcelUpload(f);
+                if (f) handleExcelParse(f);
               }}
             />
             <Button
               variant="outline"
               className="rounded-none gap-2"
-              disabled={uploading}
+              disabled={uploading || parsing}
               onClick={() => fileInputRef.current?.click()}
             >
-              {uploading ? (
+              {parsing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Upload className="h-4 w-4" />
               )}
-              {uploading ? "Procesando..." : "Cargar Excel"}
+              {parsing ? "Leyendo archivo..." : "Cargar Excel"}
             </Button>
           </div>
         </div>
@@ -644,14 +624,14 @@ export default function ProgramaObra() {
           <div className="flex">
             {/* Fixed left columns */}
             <div className="shrink-0">
-              {/* Header */}
-              <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-20">
-                <div className="w-72 border-r border-[#d2d1ce] px-4 py-3 text-left">
+              {/* Header — mt-[8px] accounts for year label that overflows above the border */}
+              <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-20 mt-[8px]">
+                <div className="w-72 border-r border-[#d2d1ce] px-4 h-[36px] flex items-center text-left">
                   <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
                     Partida · Familia
                   </span>
                 </div>
-                <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 text-right">
+                <div className="w-28 border-r border-[#d2d1ce] px-3 h-[36px] flex items-center justify-end text-right">
                   <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
                     Presupuesto
                   </span>
@@ -906,25 +886,27 @@ export default function ProgramaObra() {
             <div className="flex-1 overflow-x-auto" ref={scrollContainerRef}>
               {/* Year + Month headers */}
               <div className="sticky top-0 z-10 min-w-max bg-white">
-                {/* Year labels row */}
-                <div className="flex border-t border-[#d2d1ce]">
-                  {Array.from({ length: yearRange.endYear - yearRange.startYear + 1 }).map((_, yi) => {
-                    const y = yearRange.startYear + yi;
-                    const yearMonths = timelineMonths.filter((m) => m.year === y);
-                    const yearWidth = yearMonths.reduce((s, m) => s + getMonthWidth(m.weeks), 0);
-                    return (
-                      <div
-                        key={y}
-                        className="text-left text-xs font-medium text-[#777770] py-1.5 pl-2 border-r border-[#d2d1ce] shrink-0"
-                        style={{ width: yearWidth }}
-                      >
-                        {y}
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Month labels + week sub-headers row */}
-                <div className="flex border-b border-[#d2d1ce]">
+                {/* Year labels + Month headers — relative wrapper for absolute year labels */}
+                <div className="relative pt-[8px]">
+                  {/* Year labels — absolutely positioned to straddle the border-t */}
+                  <div className="absolute top-[8px] left-0 right-0 flex -translate-y-1/2 z-20 pointer-events-none">
+                    {Array.from({ length: yearRange.endYear - yearRange.startYear + 1 }).map((_, yi) => {
+                      const y = yearRange.startYear + yi;
+                      const yearMonths = timelineMonths.filter((m) => m.year === y);
+                      const yearWidth = yearMonths.reduce((s, m) => s + getMonthWidth(m.weeks), 0);
+                      return (
+                        <div
+                          key={y}
+                          className="text-left pl-2 shrink-0"
+                          style={{ width: yearWidth }}
+                        >
+                          <span className="text-xs font-medium text-[#777770] leading-none bg-white px-1">{y}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Month labels + week sub-headers row */}
+                  <div className="flex border-t border-b border-[#d2d1ce]">
                   {timelineMonths.map((m, i) => {
                     const mw = getMonthWidth(m.weeks);
                     return (
@@ -949,6 +931,7 @@ export default function ProgramaObra() {
                       </div>
                     );
                   })}
+                </div>
                 </div>
               </div>
 
@@ -1039,6 +1022,17 @@ export default function ProgramaObra() {
           item={comentariosItem}
           proyectoId={proyectoId as Id<"desarrollos">}
           onClose={() => setComentariosItem(null)}
+        />
+      )}
+
+      {/* Excel Preview Dialog */}
+      {previewOpen && (
+        <ProgramaObraExcelPreview
+          open={previewOpen}
+          parsedData={previewData}
+          onConfirm={handlePreviewConfirm}
+          onCancel={handlePreviewCancel}
+          uploading={uploading}
         />
       )}
 
