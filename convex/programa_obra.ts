@@ -492,17 +492,41 @@ export const bulkUpsertFromExcel = mutation({
 
     // Cache: partida name → programa_obra _id
     const programaObraCache = new Map<string, string>();
+    // Map: raw Excel name → canonical DB partida name (for consistent storage)
+    const nameToCanonical = new Map<string, string>();
+
+    // Helper: normalize a string for fuzzy comparison (trim, collapse spaces, NFC normalize, uppercase)
+    const normalize = (s: string) =>
+      s.normalize("NFC").trim().replace(/\s+/g, " ").toUpperCase();
+
+    // Pre-fetch all nivel 1 partidas for this project (used as fallback for fuzzy matching)
+    const allNivel1Partidas = await ctx.db
+      .query("partidas")
+      .withIndex("by_nivel_proyecto", (q) =>
+        q.eq("nivel", 1).eq("proyecto", args.proyecto)
+      )
+      .collect();
 
     // --- Process NIVEL 1 rows: upsert into programa_obra ---
     for (let i = 0; i < nivel1Rows.length; i++) {
       const row = nivel1Rows[i];
-      // Look up partida by nombre + proyecto (nivel 1)
-      const partida = await ctx.db
+      const trimmedName = row.partida.trim();
+
+      // 1. Try exact index match first (fast path)
+      let partida = await ctx.db
         .query("partidas")
         .withIndex("by_proyecto_nivel_nombre", (q) =>
-          q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", row.partida)
+          q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", trimmedName)
         )
         .first();
+
+      // 2. Fallback: normalized comparison (handles Unicode, extra spaces, case)
+      if (!partida) {
+        const normalizedInput = normalize(trimmedName);
+        partida = allNivel1Partidas.find(
+          (p) => normalize(p.nombre) === normalizedInput
+        ) ?? null;
+      }
 
       if (!partida) {
         errors.push(`Partida "${row.partida}" not found in project`);
@@ -530,9 +554,13 @@ export const bulkUpsertFromExcel = mutation({
         orden: i,
       };
 
+      // Map Excel name to canonical DB name for consistent storage
+      nameToCanonical.set(row.partida, partida.nombre);
+      nameToCanonical.set(trimmedName, partida.nombre);
+
       if (existing) {
         await ctx.db.patch(existing._id, data);
-        programaObraCache.set(row.partida, existing._id);
+        programaObraCache.set(partida.nombre, existing._id);
         updated++;
         partidasUpdated++;
       } else {
@@ -541,7 +569,7 @@ export const bulkUpsertFromExcel = mutation({
           partida_id: partida._id,
           ...data,
         });
-        programaObraCache.set(row.partida, id);
+        programaObraCache.set(partida.nombre, id);
         created++;
         partidasCreated++;
       }
@@ -550,17 +578,27 @@ export const bulkUpsertFromExcel = mutation({
     // --- Process NIVEL 2/3 rows: upsert into programa_obra_detalle ---
     for (let i = 0; i < childRows.length; i++) {
       const row = childRows[i];
-      // Resolve parent programa_obra record
-      let parentId = programaObraCache.get(row.partida);
+      const trimmedChildPartida = row.partida.trim();
+      // Resolve canonical name, then look up in cache
+      const canonicalPartida = nameToCanonical.get(row.partida) ?? nameToCanonical.get(trimmedChildPartida);
+      let parentId = canonicalPartida ? programaObraCache.get(canonicalPartida) : undefined;
 
       if (!parentId) {
-        // Look up partida_id first, then programa_obra
-        const partida = await ctx.db
+        // 1. Exact index match
+        let partida = await ctx.db
           .query("partidas")
           .withIndex("by_proyecto_nivel_nombre", (q) =>
-            q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", row.partida)
+            q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", trimmedChildPartida)
           )
           .first();
+
+        // 2. Fallback: normalized comparison
+        if (!partida) {
+          const normalizedInput = normalize(trimmedChildPartida);
+          partida = allNivel1Partidas.find(
+            (p) => normalize(p.nombre) === normalizedInput
+          ) ?? null;
+        }
 
         if (partida) {
           const parentSchedule = await ctx.db
@@ -572,7 +610,10 @@ export const bulkUpsertFromExcel = mutation({
 
           if (parentSchedule) {
             parentId = parentSchedule._id;
-            programaObraCache.set(row.partida, parentId);
+            // Store with canonical name
+            nameToCanonical.set(row.partida, partida.nombre);
+            nameToCanonical.set(trimmedChildPartida, partida.nombre);
+            programaObraCache.set(partida.nombre, parentId);
           }
         }
       }
@@ -585,16 +626,32 @@ export const bulkUpsertFromExcel = mutation({
         continue;
       }
 
+      // Use canonical partida name for consistent storage and lookup
+      const resolvedPartida = nameToCanonical.get(row.partida) ?? nameToCanonical.get(trimmedChildPartida) ?? trimmedChildPartida;
+
       // Check if detalle already exists (match by proyecto + partida + familia + subpartida + nivel)
-      const existingDetalles = await ctx.db
+      let existingDetalles = await ctx.db
         .query("programa_obra_detalle")
         .withIndex("by_proyecto_partida_familia", (q) =>
           q
             .eq("proyecto", args.proyecto)
-            .eq("partida", row.partida)
-            .eq("familia", row.familia || "")
+            .eq("partida", resolvedPartida)
+            .eq("familia", row.familia?.trim() || "")
         )
         .collect();
+
+      // Fallback: try raw Excel name in case old records were stored with it
+      if (existingDetalles.length === 0 && resolvedPartida !== row.partida) {
+        existingDetalles = await ctx.db
+          .query("programa_obra_detalle")
+          .withIndex("by_proyecto_partida_familia", (q) =>
+            q
+              .eq("proyecto", args.proyecto)
+              .eq("partida", row.partida)
+              .eq("familia", row.familia?.trim() || "")
+          )
+          .collect();
+      }
 
       const existingDetalle = existingDetalles.find(
         (d) =>
@@ -615,7 +672,11 @@ export const bulkUpsertFromExcel = mutation({
       };
 
       if (existingDetalle) {
-        await ctx.db.patch(existingDetalle._id, detalleData);
+        await ctx.db.patch(existingDetalle._id, {
+          ...detalleData,
+          partida: resolvedPartida,
+          familia: row.familia?.trim() || "",
+        });
         updated++;
         familiasUpdated++;
       } else {
@@ -623,9 +684,9 @@ export const bulkUpsertFromExcel = mutation({
           proyecto: args.proyecto,
           programa_obra_id: parentId as Id<"programa_obra">,
           nivel: row.nivel,
-          partida: row.partida,
-          familia: row.familia || "",
-          subpartida: row.subpartida,
+          partida: resolvedPartida,
+          familia: row.familia?.trim() || "",
+          subpartida: row.subpartida?.trim(),
           ...detalleData,
         });
         created++;
