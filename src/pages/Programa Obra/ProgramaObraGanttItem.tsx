@@ -59,17 +59,59 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
   const anticipoDate = parseDate(schedule?.anticipo_fecha);
   const suministroDate = parseDate(schedule?.suministro_fecha);
 
-  // Clamp child items' start to parent start, but allow end to extend (tracked for red bar)
+  // Clamp child items' start to parent start
   let startDate = rawStartDate;
   let endDate = rawEndDate;
-  let extensionEndDate: Date | null = null; // end date beyond parent's range
   if ((item.level === 1 || item.level === 2) && item.schedule) {
     const parentStart = parseDate(item.schedule.fecha_inicio);
-    const parentEnd = parseDate(item.schedule.fecha_fin);
     if (parentStart && startDate && startDate < parentStart) startDate = parentStart;
-    if (parentEnd && endDate && endDate > parentEnd) {
-      extensionEndDate = endDate;
-      endDate = parentEnd; // clamp bar to parent end, red extension covers the rest
+  }
+
+  // Compute extension end date from tiempo_extra fields on detalleSchedule.
+  // The base fecha_fin is the green bar end; red extension goes from base to base + tiempo_extra.
+  //
+  // Backward-compat: old records stored fecha_fin = base + extension (baked in).
+  // Detection: if tiempo_extra exists AND fecha_fin > parent end, the stored fecha_fin
+  // likely already includes the extension. In that case, subtract to get the base.
+  let extensionEndDate: Date | null = null;
+  if (
+    (item.level === 1 || item.level === 2) &&
+    item.detalleSchedule &&
+    item.detalleSchedule.tiempo_extra_cantidad &&
+    item.detalleSchedule.tiempo_extra_cantidad > 0 &&
+    endDate
+  ) {
+    const cant = item.detalleSchedule.tiempo_extra_cantidad;
+    const unidad = item.detalleSchedule.tiempo_extra_unidad ?? "dias";
+    const parentEnd = item.schedule ? parseDate(item.schedule.fecha_fin) : null;
+
+    // Check if this is an old record (fecha_fin already includes extension)
+    const isOldRecord = parentEnd && endDate.getTime() > parentEnd.getTime();
+
+    if (isOldRecord) {
+      // Old logic: fecha_fin = base + extension. Use stored fecha_fin as the extension end.
+      extensionEndDate = new Date(endDate);
+      // Subtract extension to recover the base date for the green bar.
+      const base = new Date(endDate);
+      if (unidad === "dias") {
+        base.setDate(base.getDate() - cant);
+      } else if (unidad === "semanas") {
+        base.setDate(base.getDate() - cant * 7);
+      } else if (unidad === "meses") {
+        base.setMonth(base.getMonth() - cant);
+      }
+      endDate = base;
+    } else {
+      // New logic: fecha_fin is the base. Add extension for the red bar.
+      const ext = new Date(endDate);
+      if (unidad === "dias") {
+        ext.setDate(ext.getDate() + cant);
+      } else if (unidad === "semanas") {
+        ext.setDate(ext.getDate() + cant * 7);
+      } else if (unidad === "meses") {
+        ext.setMonth(ext.getMonth() + cant);
+      }
+      extensionEndDate = ext;
     }
   }
 
@@ -196,7 +238,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         {/* === Red extension bar for nivel 1 (familia) === */}
         {item.level === 1 && extensionWidth > 0 && (
           <div
-            className="absolute top-0 h-[2px] bg-[#802424] z-[5]"
+            className="absolute top-0 h-[3px] bg-[#802424] z-[5]"
             style={{ left: `${barWidth}px`, width: `${extensionWidth}px` }}
           />
         )}

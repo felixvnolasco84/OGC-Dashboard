@@ -221,13 +221,34 @@ export default function ProgramaObra() {
         }
       }
 
-      // Find the farthest familia end date that extends beyond the partida's end
+      // Find the farthest familia effective end date that extends beyond the partida's end.
+      // Must account for tiempo_extra: for new records fecha_fin is the base (add extension),
+      // for old records fecha_fin already includes the extension.
       const parentEnd = parseDate(schedule?.fecha_fin);
       let maxChildEnd: Date | null = null;
       for (const fam of familiaDetalles) {
         const famEnd = parseDate(fam.fecha_fin);
-        if (famEnd && parentEnd && famEnd > parentEnd) {
-          if (!maxChildEnd || famEnd > maxChildEnd) maxChildEnd = famEnd;
+        if (!famEnd || !parentEnd) continue;
+
+        let effectiveEnd = famEnd;
+        const cant = fam.tiempo_extra_cantidad ?? 0;
+        const unidad = fam.tiempo_extra_unidad ?? "dias";
+        if (cant > 0) {
+          if (famEnd.getTime() > parentEnd.getTime()) {
+            // Old record: fecha_fin already includes extension — use as-is
+            effectiveEnd = famEnd;
+          } else {
+            // New record: fecha_fin is the base — add extension
+            const ext = new Date(famEnd);
+            if (unidad === "dias") ext.setDate(ext.getDate() + cant);
+            else if (unidad === "semanas") ext.setDate(ext.getDate() + cant * 7);
+            else if (unidad === "meses") ext.setMonth(ext.getMonth() + cant);
+            effectiveEnd = ext;
+          }
+        }
+
+        if (effectiveEnd > parentEnd) {
+          if (!maxChildEnd || effectiveEnd > maxChildEnd) maxChildEnd = effectiveEnd;
         }
       }
       const maxChildEndDate = maxChildEnd
@@ -424,7 +445,13 @@ export default function ProgramaObra() {
   // Excel upload state
   const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
+  const [uploadResult, setUploadResult] = useState<{
+    created: number;
+    updated: number;
+    errors: string[];
+    partidas?: { created: number; updated: number; skipped: number; total: number };
+    familias?: { created: number; updated: number; skipped: number; total: number };
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Preview state
@@ -458,11 +485,11 @@ export default function ProgramaObra() {
           setPreviewData(data.partidas as ExcelPartida[]);
           setPreviewOpen(true);
         } else {
-          setUploadResult({ created: 0, updated: 0, errors: ["No se encontraron partidas en el archivo."] });
+          setUploadResult({ created: 0, updated: 0, errors: ["No se encontraron partidas en el archivo."], partidas: { created: 0, updated: 0, skipped: 0, total: 0 }, familias: { created: 0, updated: 0, skipped: 0, total: 0 } });
         }
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";
-        setUploadResult({ created: 0, updated: 0, errors: [msg] });
+        setUploadResult({ created: 0, updated: 0, errors: [msg], partidas: { created: 0, updated: 0, skipped: 0, total: 0 }, familias: { created: 0, updated: 0, skipped: 0, total: 0 } });
       } finally {
         setParsing(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -488,7 +515,7 @@ export default function ProgramaObra() {
         setPreviewData([]);
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";
-        setUploadResult({ created: 0, updated: 0, errors: [msg] });
+        setUploadResult({ created: 0, updated: 0, errors: [msg], partidas: { created: 0, updated: 0, skipped: 0, total: 0 }, familias: { created: 0, updated: 0, skipped: 0, total: 0 } });
       } finally {
         setUploading(false);
       }
@@ -559,33 +586,85 @@ export default function ProgramaObra() {
         </div>
 
         {/* Upload result feedback */}
-        {uploadResult && (
-          <div className={cn(
-            "mt-3 px-4 py-2.5 text-sm rounded-none border",
-            uploadResult.errors.length > 0
-              ? "bg-red-50 border-red-200 text-red-700"
-              : "bg-green-50 border-green-200 text-green-700"
-          )}>
-            <span className="font-medium">
-              {uploadResult.created + uploadResult.updated > 0
-                ? `✓ ${uploadResult.created} creados, ${uploadResult.updated} actualizados`
-                : "Sin cambios"}
-            </span>
-            {uploadResult.errors.length > 0 && (
-              <span className="ml-2">
-                · {uploadResult.errors.length} error{uploadResult.errors.length > 1 ? "es" : ""}:
-                {" "}{uploadResult.errors.slice(0, 3).join("; ")}
-                {uploadResult.errors.length > 3 && ` (+${uploadResult.errors.length - 3} más)`}
-              </span>
-            )}
-            <button
-              className="ml-3 text-xs underline opacity-60 hover:opacity-100"
-              onClick={() => setUploadResult(null)}
-            >
-              Cerrar
-            </button>
-          </div>
-        )}
+        {uploadResult && (() => {
+          const hasErrors = uploadResult.errors.length > 0;
+          const hasSuccess = uploadResult.created + uploadResult.updated > 0;
+          const p = uploadResult.partidas;
+          const f = uploadResult.familias;
+          return (
+            <div className={cn(
+              "mt-3 rounded-none border text-sm",
+              hasErrors && !hasSuccess
+                ? "bg-red-50 border-red-200"
+                : hasErrors
+                  ? "bg-amber-50 border-amber-200"
+                  : "bg-green-50 border-green-200"
+            )}>
+              {/* Header row */}
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <span className={cn("font-semibold", hasErrors && !hasSuccess ? "text-red-700" : hasErrors ? "text-amber-700" : "text-green-700")}>
+                    {hasErrors && !hasSuccess ? "Error en la carga" : hasSuccess ? "Carga completada" : "Sin cambios"}
+                  </span>
+                  {hasSuccess && (
+                    <span className="text-gray-600">
+                      {uploadResult.created + uploadResult.updated} registro{uploadResult.created + uploadResult.updated !== 1 ? "s" : ""} procesado{uploadResult.created + uploadResult.updated !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+                <button
+                  className="text-xs text-gray-400 hover:text-gray-600 underline"
+                  onClick={() => setUploadResult(null)}
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              {/* Detail breakdown */}
+              {(p || f) && (
+                <div className="border-t border-inherit px-4 py-2 flex gap-6 text-xs text-gray-600">
+                  {p && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-gray-700">Partidas</span>
+                      <span className="text-gray-400">({p.total} en archivo)</span>
+                      {p.created > 0 && <span className="bg-green-100 text-green-700 px-1.5 py-0.5">{p.created} nueva{p.created !== 1 ? "s" : ""}</span>}
+                      {p.updated > 0 && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5">{p.updated} actualizada{p.updated !== 1 ? "s" : ""}</span>}
+                      {p.skipped > 0 && <span className="bg-red-100 text-red-700 px-1.5 py-0.5">{p.skipped} omitida{p.skipped !== 1 ? "s" : ""}</span>}
+                    </div>
+                  )}
+                  {f && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-gray-700">Familias</span>
+                      <span className="text-gray-400">({f.total} en archivo)</span>
+                      {f.created > 0 && <span className="bg-green-100 text-green-700 px-1.5 py-0.5">{f.created} nueva{f.created !== 1 ? "s" : ""}</span>}
+                      {f.updated > 0 && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5">{f.updated} actualizada{f.updated !== 1 ? "s" : ""}</span>}
+                      {f.skipped > 0 && <span className="bg-red-100 text-red-700 px-1.5 py-0.5">{f.skipped} omitida{f.skipped !== 1 ? "s" : ""}</span>}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Errors section */}
+              {hasErrors && (
+                <div className="border-t border-inherit px-4 py-2">
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium text-red-700 select-none">
+                      {uploadResult.errors.length} error{uploadResult.errors.length !== 1 ? "es" : ""}
+                    </summary>
+                    <ul className="mt-1.5 space-y-0.5 text-red-600 max-h-[120px] overflow-y-auto">
+                      {uploadResult.errors.map((err, i) => (
+                        <li key={i} className="flex gap-1">
+                          <span className="text-red-400 shrink-0">•</span>
+                          <span>{err}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
 

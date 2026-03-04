@@ -42,6 +42,14 @@ function toStorageDate(dateStr: string): string {
   return `${d}/${m}/${y}`;
 }
 
+/** Convert DD/MM/YYYY to YYYY-MM-DD (inverse of toStorageDate) */
+function toInputDateFromStorage(dateStr: string): string {
+  if (!dateStr) return "";
+  if (dateStr.includes("-")) return dateStr;
+  const [d, m, y] = dateStr.split("/");
+  return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
 /** Add extension to a date string (YYYY-MM-DD) and return DD/MM/YYYY */
 function addExtension(baseDateStr: string, cantidad: number, unidad: string): string {
   if (!baseDateStr || cantidad <= 0) return toStorageDate(baseDateStr);
@@ -57,11 +65,61 @@ function addExtension(baseDateStr: string, cantidad: number, unidad: string): st
   return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`;
 }
 
+/** Subtract extension from a DD/MM/YYYY or YYYY-MM-DD date and return YYYY-MM-DD.
+ *  Used for backward-compat: old records stored fecha_fin = base + extension. */
+function subtractExtension(dateStr: string | undefined | null, cantidad: number, unidad: string): string {
+  if (!dateStr || cantidad <= 0) return toInputDate(dateStr);
+  // Parse to Date
+  let date: Date;
+  if (dateStr.includes("/")) {
+    const [d, m, y] = dateStr.split("/").map(Number);
+    date = new Date(y, m - 1, d);
+  } else {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    date = new Date(y, m - 1, d);
+  }
+  if (unidad === "dias") {
+    date.setDate(date.getDate() - cantidad);
+  } else if (unidad === "semanas") {
+    date.setDate(date.getDate() - cantidad * 7);
+  } else if (unidad === "meses") {
+    date.setMonth(date.getMonth() - cantidad);
+  }
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
+}
+
 export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClose }: Props) {
   const detalle = item.detalleSchedule;
 
   const [fechaInicio, setFechaInicio] = useState(toInputDate(detalle?.fecha_inicio));
-  const [fechaFin, setFechaFin] = useState(toInputDate(detalle?.fecha_fin));
+
+  // Backward-compat: if the record has tiempo_extra and the stored fecha_fin
+  // already includes the extension (old save logic), subtract it to get the base date.
+  // We detect this by checking if subtracting the extension yields a date <= parent end,
+  // while the raw fecha_fin > parent end. If so, the record was saved with old logic.
+  const [fechaFin, setFechaFin] = useState(() => {
+    const rawFin = toInputDate(detalle?.fecha_fin);
+    const cant = detalle?.tiempo_extra_cantidad ?? 0;
+    const uni = detalle?.tiempo_extra_unidad ?? "dias";
+    if (cant > 0 && rawFin) {
+      const parentMax = toInputDate(parentSchedule?.fecha_fin);
+      const baseFin = subtractExtension(detalle?.fecha_fin, cant, uni);
+      // If raw fecha_fin exceeds parent end but the subtracted base doesn't,
+      // this was saved with the old logic (extension baked into fecha_fin).
+      if (parentMax && rawFin > parentMax && baseFin <= parentMax) {
+        return baseFin;
+      }
+      // Also handle case where there's no parent constraint but extension was baked in:
+      // If adding the extension to the subtracted date equals the stored fecha_fin, it was baked in.
+      const recomputed = addExtension(baseFin, cant, uni);
+      const recomputedInput = toInputDateFromStorage(recomputed);
+      if (recomputedInput === rawFin) {
+        return baseFin;
+      }
+    }
+    return rawFin;
+  });
+
   const [hasExtraTime, setHasExtraTime] = useState(
     (detalle?.tiempo_extra_cantidad ?? 0) > 0
   );
@@ -94,24 +152,51 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
       setError("No se encontró el registro de detalle para esta familia");
       return;
     }
+
+    // --- Edge case validations ---
+    if (!fechaInicio) {
+      setError("La fecha de inicio es obligatoria.");
+      return;
+    }
+    if (!fechaFin) {
+      setError("La fecha de fin es obligatoria.");
+      return;
+    }
+    if (fechaInicio > fechaFin) {
+      setError("La fecha de inicio no puede ser posterior a la fecha de fin.");
+      return;
+    }
+
+    const cant = hasExtraTime ? parseInt(extraCantidad) : 0;
+    const hasTiempoExtra = hasExtraTime && !isNaN(cant) && cant > 0;
+
+    // Validate against parent date bounds
+    if (minDate && fechaInicio < minDate) {
+      setError(`La fecha de inicio no puede ser anterior al inicio de la partida (${parentSchedule?.fecha_inicio}).`);
+      return;
+    }
+    if (maxDate && fechaFin > maxDate && !hasTiempoExtra) {
+      setError(`La fecha de fin excede el fin de la partida (${parentSchedule?.fecha_fin}). Usa "Tiempo extra" para extender.`);
+      return;
+    }
+
+    // If extension pushes beyond parent, warn but allow (it will show red bar)
+    if (hasTiempoExtra && extendedEndDate) {
+      const extInputDate = toInputDateFromStorage(extendedEndDate);
+      if (maxDate && extInputDate > maxDate) {
+        // This is allowed — red extension bar will be shown
+      }
+    }
+
     setIsSaving(true);
     setError(null);
     try {
-      const cant = hasExtraTime ? parseInt(extraCantidad) : 0;
-      const hasTiempoExtra = hasExtraTime && !isNaN(cant) && cant > 0;
-
-      // Compute effective fecha_fin: base end + extension
-      let effectiveFechaFin: string | undefined;
-      if (fechaFin) {
-        effectiveFechaFin = hasTiempoExtra
-          ? addExtension(fechaFin, cant, extraUnidad)
-          : toStorageDate(fechaFin);
-      }
-
+      // Save the BASE fecha_fin (without extension).
+      // The red extension bar is derived from tiempo_extra fields.
       await updateDetalleSchedule({
         detalle_id: detalleId,
         fecha_inicio: fechaInicio ? toStorageDate(fechaInicio) : undefined,
-        fecha_fin: effectiveFechaFin,
+        fecha_fin: fechaFin ? toStorageDate(fechaFin) : undefined,
         tiempo_extra_cantidad: hasTiempoExtra ? cant : undefined,
         tiempo_extra_unidad: hasTiempoExtra ? extraUnidad : undefined,
       });

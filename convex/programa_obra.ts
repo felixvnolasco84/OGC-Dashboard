@@ -461,6 +461,14 @@ export const bulkUpsertFromExcel = mutation({
     let updated = 0;
     const errors: string[] = [];
 
+    // Granular tracking
+    let partidasCreated = 0;
+    let partidasUpdated = 0;
+    let partidasSkipped = 0;
+    let familiasCreated = 0;
+    let familiasUpdated = 0;
+    let familiasSkipped = 0;
+
     // Group rows by partida name for efficient processing
     const nivel1Rows = args.rows.filter((r) => r.nivel === 1);
     const childRows = args.rows.filter((r) => r.nivel === 2 || r.nivel === 3);
@@ -498,6 +506,7 @@ export const bulkUpsertFromExcel = mutation({
 
       if (!partida) {
         errors.push(`Partida "${row.partida}" not found in project`);
+        partidasSkipped++;
         continue;
       }
 
@@ -525,6 +534,7 @@ export const bulkUpsertFromExcel = mutation({
         await ctx.db.patch(existing._id, data);
         programaObraCache.set(row.partida, existing._id);
         updated++;
+        partidasUpdated++;
       } else {
         const id = await ctx.db.insert("programa_obra", {
           proyecto: args.proyecto,
@@ -533,6 +543,7 @@ export const bulkUpsertFromExcel = mutation({
         });
         programaObraCache.set(row.partida, id);
         created++;
+        partidasCreated++;
       }
     }
 
@@ -570,6 +581,7 @@ export const bulkUpsertFromExcel = mutation({
         errors.push(
           `Parent programa_obra not found for partida "${row.partida}" (nivel ${row.nivel}, familia "${row.familia || ""}")`
         );
+        familiasSkipped++;
         continue;
       }
 
@@ -605,6 +617,7 @@ export const bulkUpsertFromExcel = mutation({
       if (existingDetalle) {
         await ctx.db.patch(existingDetalle._id, detalleData);
         updated++;
+        familiasUpdated++;
       } else {
         await ctx.db.insert("programa_obra_detalle", {
           proyecto: args.proyecto,
@@ -616,10 +629,17 @@ export const bulkUpsertFromExcel = mutation({
           ...detalleData,
         });
         created++;
+        familiasCreated++;
       }
     }
 
-    return { created, updated, errors };
+    return {
+      created,
+      updated,
+      errors,
+      partidas: { created: partidasCreated, updated: partidasUpdated, skipped: partidasSkipped, total: nivel1Rows.length },
+      familias: { created: familiasCreated, updated: familiasUpdated, skipped: familiasSkipped, total: childRows.length },
+    };
   },
 });
 
