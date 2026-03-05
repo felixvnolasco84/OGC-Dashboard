@@ -31,42 +31,6 @@ import IngresosModal from "@/components/modals/ingresos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { cn, formatCurrencyCompact } from "@/lib/utils";
 
-// Mock data for the presupuesto page
-const mockData = {
-  project: {
-    name: "Larena - Torre G",
-    breadcrumb: "Presupuesto"
-  },
-  metrics: {
-    presupuestoOriginal: {
-      amount: 104225001.10,
-      label: "Presupuesto Original"
-    },
-    presupuestoAprobado: {
-      amount: 96563399.05,
-      percentage: -4,
-      label: "Presupuesto aprobado",
-      badge: "Reducción 4%"
-    },
-    gastoTotal: {
-      amount: 22759332.05,
-      percentage: 23,
-      label: "Gasto total",
-      badge: "Avance 23%"
-    },
-    porGastar: {
-      amount: 83495599.05,
-      percentage: 77,
-      label: "Por gastar",
-      badge: "Pendiente 77%"
-    }
-  },
-  filters: {
-    partidas: ["Partida", "Cimentación", "Acero", "Cimbra"],
-    familias: ["Familia", "Estructural", "Acabados", "Instalaciones"],
-    fechas: ["Semana", "Mes", "Trimestre"]
-  }
-};
 
 export default function PresupuestoPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
