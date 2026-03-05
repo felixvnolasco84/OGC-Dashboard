@@ -314,6 +314,61 @@ export const getLastWeekPaymentsByProject = query({
   },
 });
 
+// Get payments grouped by partida_id for a date range
+// Dates should be in YYYY-MM-DD format. If both are empty, returns all payments (total).
+export const getPaymentsByDateRange = query({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+    start_date: v.optional(v.string()),
+    end_date: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Get all transactions for this project
+    const transactions = await ctx.db
+      .query("transacciones")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+
+    // Helper: normalize fecha to YYYY-MM-DD for comparison
+    const toISO = (fecha: string): string => {
+      if (fecha.includes("/")) {
+        const [d, m, y] = fecha.split("/");
+        return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+      }
+      return fecha;
+    };
+
+    // Filter transactions by date range (if provided)
+    const filtered = (args.start_date || args.end_date)
+      ? transactions.filter((tx) => {
+          const txDate = toISO(tx.fecha);
+          if (args.start_date && txDate < args.start_date) return false;
+          if (args.end_date && txDate > args.end_date) return false;
+          return true;
+        })
+      : transactions;
+
+    // Aggregate pagos by partida_id
+    const paymentsByPartida: Record<string, number> = {};
+    let total = 0;
+
+    for (const transaction of filtered) {
+      const pagos = await ctx.db
+        .query("pagos")
+        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
+        .collect();
+
+      for (const pago of pagos) {
+        const partidaId = pago.partida_id as string;
+        paymentsByPartida[partidaId] = (paymentsByPartida[partidaId] || 0) + pago.monto;
+        total += pago.monto;
+      }
+    }
+
+    return { paymentsByPartida, total };
+  },
+});
+
 // Update a pago (line item) amount
 export const updatePago = mutation({
   args: {

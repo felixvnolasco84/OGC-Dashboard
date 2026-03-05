@@ -35,8 +35,6 @@ type PartidaRow = Omit<Partial<Doc<"partidas">>, 'pagado' | 'total' | 'aprobado'
   unidad?: string;
   cantidad?: number;
   precioUnitario?: number;
-  // Last week payment (calculated from lastWeekPayments prop)
-  pagadoSemanaAnterior?: number;
 };
 
 type HierarchicalGroup = PartidaRow & {
@@ -68,12 +66,12 @@ interface PresupuestoTableProps {
   data: Doc<"partidas">[];
   status: "CanLoadMore" | "LoadingFirstPage" | "LoadingMore" | "Exhausted";
   showPrecioUnitario: boolean;
-  showPagadoSemanaAnterior: boolean;
-  lastWeekPayments?: Record<string, number>;
+  filteredPayments?: Record<string, number>;
+  dateFilterLabel?: string;
   loadMore: (numItems: number) => void;
 }
 
-export default function PresupuestoTable({ data, status, showPrecioUnitario, showPagadoSemanaAnterior, lastWeekPayments, loadMore }: PresupuestoTableProps) {
+export default function PresupuestoTable({ data, status, showPrecioUnitario, filteredPayments, dateFilterLabel, loadMore }: PresupuestoTableProps) {
   // Get project's default currency based on transaction history
   const projectId = data.length > 0 ? data[0].proyecto : undefined;
   const currencyInfo = useQuery(
@@ -128,7 +126,6 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
         unidad: item.unidad,
         cantidad: item.cantidad,
         precioUnitario: item.precio_unitario,
-        pagadoSemanaAnterior: lastWeekPayments?.[item._id] || 0
       };
     });
 
@@ -165,7 +162,6 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
           unidad: item.unidad,
           cantidad: item.cantidad,
           precioUnitario: item.precio_unitario,
-          pagadoSemanaAnterior: lastWeekPayments?.[item._id] || 0
         };
         partida.familias[familiaKey] = familiaGroup;
         partida.children.push(familiaGroup);
@@ -202,20 +198,16 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
           unidad: item.unidad,
           cantidad: item.cantidad,
           precioUnitario: item.precio_unitario,
-          pagadoSemanaAnterior: lastWeekPayments?.[item._id] || 0
         });
       }
     });
 
-    // Calculate avance and aggregate pagadoSemanaAnterior for all levels
+    // Calculate avance for all levels
     const result = Object.values(grouped).map((partidaGroup) => {
       // Calculate avance for partida level (pagado already set from database)
       partidaGroup.avance = partidaGroup.presupuestoAprobado > 0
         ? Math.round((partidaGroup.pagado / partidaGroup.presupuestoAprobado) * 100)
         : 0;
-
-      // Track total pagadoSemanaAnterior for partida level
-      let partidaTotalSemanaAnterior = partidaGroup.pagadoSemanaAnterior || 0;
 
       partidaGroup.children.forEach((familia: PartidaRow) => {
         // Calculate avance for familia level (pagado already set from database)
@@ -223,33 +215,18 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
           ? Math.round((familia.pagado / familia.presupuestoAprobado) * 100)
           : 0;
 
-        // Track total pagadoSemanaAnterior for familia level
-        let familiaTotalSemanaAnterior = familia.pagadoSemanaAnterior || 0;
-
         // Calculate avance for sub-partida level (pagado already set from database)
         familia.children.forEach((subPartida: PartidaRow) => {
           subPartida.avance = subPartida.presupuestoAprobado > 0
             ? Math.round((subPartida.pagado / subPartida.presupuestoAprobado) * 100)
             : 0;
-          
-          // Aggregate sub-partida payments to familia
-          familiaTotalSemanaAnterior += subPartida.pagadoSemanaAnterior || 0;
         });
-
-        // Set aggregated pagadoSemanaAnterior for familia (sum of its own + children)
-        familia.pagadoSemanaAnterior = familiaTotalSemanaAnterior;
-        
-        // Aggregate familia payments to partida
-        partidaTotalSemanaAnterior += familiaTotalSemanaAnterior;
 
         // If familia has no children, clear children array
         if (familia.children.length === 0) {
           familia.children = [];
         }
       });
-
-      // Set aggregated pagadoSemanaAnterior for partida (sum of all familias)
-      partidaGroup.pagadoSemanaAnterior = partidaTotalSemanaAnterior;
 
       // Return without familias object
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -258,7 +235,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
     });
 
     return result;
-  }, [data, lastWeekPayments]);
+  }, [data]);
 
   const [budgetData, setBudgetData] = useState<PartidaRow[]>([]);
   // const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
@@ -302,6 +279,16 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
 
   const flattenedData = flattenData(budgetData);
 
+  // Compute filtered pagado for an item (recursively aggregates children)
+  const getFilteredPagado = (item: PartidaRow): number => {
+    if (!filteredPayments) return item.pagado;
+    const directPayment = filteredPayments[item.originalDoc?._id || ""] || 0;
+    if (!item.children || item.children.length === 0) {
+      return directPayment;
+    }
+    return directPayment + item.children.reduce((sum, child) => sum + getFilteredPagado(child), 0);
+  };
+
   return (
     <div className="space-y-4">
       <div className="bg-white border border-gray-200 overflow-hidden">
@@ -341,16 +328,11 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
                 Presupuesto aprobado
               </TableHead>
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                Pagado
+                {dateFilterLabel ? `Pagado (${dateFilterLabel})` : "Pagado"}
               </TableHead>
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                 Avance
               </TableHead>
-              {showPagadoSemanaAnterior && (
-                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
-                  Pagado semana anterior
-                </TableHead>
-              )}
               <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
               </TableHead>
             </TableRow>
@@ -360,6 +342,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
             {flattenedData.map((item) => {
               // Calculate differences for each column
               const approvedDiff = getApprovedVsOriginal(item.presupuestoOriginal, item.presupuestoAprobado);
+              const displayPagado = getFilteredPagado(item);
               const porGastarBadge = getPorGastarBadge(item.porGastar);
 
               return (
@@ -431,12 +414,12 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
                     <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
                       <div className="flex flex-col gap-2 text-left">
                         {/* For Honorarios level 0 items, show honorarios_monto from proyecto in pagado column */}
-                        {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_monto !== undefined ? (
+                        {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_monto !== undefined && !filteredPayments ? (
                           <span>{formatCurrency(proyecto.honorarios_monto, defaultCurrency)}</span>
                         ) : (
-                          <span>{formatCurrency(item.pagado, defaultCurrency)}</span>
+                          <span>{formatCurrency(displayPagado, defaultCurrency)}</span>
                         )}
-                        {!porGastarBadge.isEqual && (
+                        {!filteredPayments && !porGastarBadge.isEqual && (
                           <Badge
                             className={cn(
                               "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
@@ -458,11 +441,6 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, sho
                         <span>{item.avance}%</span>
                       )}
                     </TableCell>
-                    {showPagadoSemanaAnterior && (
-                      <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0 font-light">
-                        {item.pagadoSemanaAnterior ? formatCurrency(item.pagadoSemanaAnterior, defaultCurrency) : '-'}
-                      </TableCell>
-                    )}
                     <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0">
                       <DropdownMenuComponentPartida
                         partida={item.originalDoc!}

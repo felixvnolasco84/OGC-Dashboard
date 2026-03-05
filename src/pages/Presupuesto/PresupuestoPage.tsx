@@ -20,7 +20,10 @@ import {
   X, Plus,
   ChevronRight,
   RefreshCw,
+  CalendarIcon,
 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { useIngresosModal } from "@/hooks/ingresos-modal";
@@ -70,13 +73,14 @@ export default function PresupuestoPage() {
 
   const [selectedPartidas, setSelectedPartidas] = useState<string[]>([]);
   const [selectedFamilias, setSelectedFamilias] = useState<string[]>([]);
-  const [selectedFecha, setSelectedFecha] = useState("Semana");
+  const [dateFilter, setDateFilter] = useState<"total" | "ultima_semana" | "este_mes" | "mes_pasado" | "rango">("total");
+  const [calendarRange, setCalendarRange] = useState<DateRange | undefined>(undefined);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [partidaSearchTerm, setPartidaSearchTerm] = useState("");
   const [familiaSearchTerm, setFamiliaSearchTerm] = useState("");
   const [isPartidaOpen, setIsPartidaOpen] = useState(false);
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
   const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
-  const [showPagadoSemanaAnterior, setShowPagadoSemanaAnterior] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Modals
@@ -127,10 +131,38 @@ export default function PresupuestoPage() {
     setShowPrecioUnitario(!showPrecioUnitario);
   };
 
-  // Function to toggle pagado semana anterior columns visibility
-  const togglePagadoSemanaAnterior = () => {
-    setShowPagadoSemanaAnterior(!showPagadoSemanaAnterior);
-  };
+  // Compute date range from selected filter
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+
+    switch (dateFilter) {
+      case "total":
+        return { start: undefined, end: undefined };
+      case "ultima_semana": {
+        const end = new Date(today);
+        const start = new Date(today);
+        start.setDate(today.getDate() - 7);
+        return { start: fmt(start), end: fmt(end) };
+      }
+      case "este_mes": {
+        const start = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { start: fmt(start), end: fmt(today) };
+      }
+      case "mes_pasado": {
+        const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const end = new Date(today.getFullYear(), today.getMonth(), 0);
+        return { start: fmt(start), end: fmt(end) };
+      }
+      case "rango": {
+        const fmtFrom = calendarRange?.from ? fmt(calendarRange.from) : undefined;
+        const fmtTo = calendarRange?.to ? fmt(calendarRange.to) : undefined;
+        return { start: fmtFrom, end: fmtTo };
+      }
+      default:
+        return { start: undefined, end: undefined };
+    }
+  }, [dateFilter, calendarRange]);
 
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -142,10 +174,16 @@ export default function PresupuestoPage() {
   );
   const moneda = currencyInfo?.defaultCurrency || "MXN";
 
-  // Get last week's payments by partida
-  const lastWeekPayments = useQuery(
-    api.pagos.getLastWeekPaymentsByProject,
-    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  // Get payments filtered by date range
+  const filteredPayments = useQuery(
+    api.pagos.getPaymentsByDateRange,
+    proyectoId
+      ? {
+          proyecto_id: proyectoId as Id<"desarrollos">,
+          start_date: dateRange.start,
+          end_date: dateRange.end,
+        }
+      : "skip"
   );
 
 
@@ -391,10 +429,17 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none ">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Gasto Total</p>
+                <p className="text-sm text-gray-500">
+                  {dateFilter === "total" ? "Gasto Total" : `Pagado (${dateFilter === "ultima_semana" ? "Últ. 7 días" : dateFilter === "este_mes" ? "Este mes" : dateFilter === "mes_pasado" ? "Mes pasado" : "Rango"})`}
+                </p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-3xl 2xl:text-4xl font-normal text-gray-900">
-                    {formatCurrencyCompact(metrics?.gasto_total || 0, moneda)}
+                    {formatCurrencyCompact(
+                      dateFilter === "total"
+                        ? (metrics?.gasto_total || 0)
+                        : (filteredPayments?.total || 0),
+                      moneda
+                    )}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
@@ -620,18 +665,54 @@ export default function PresupuestoPage() {
             {/* Fecha Filter */}
             <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
               <span className="text-sm text-gray-500">Fecha</span>
-              <Select value={selectedFecha} onValueChange={setSelectedFecha}>
+              <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as typeof dateFilter)}>
                 <SelectTrigger className="border-none shadow-none px-0 h-auto font-normal text-gray-900 focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.filters.fechas.map((fecha) => (
-                    <SelectItem key={fecha} value={fecha}>
-                      {fecha}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="total">Hoy (total)</SelectItem>
+                  <SelectItem value="ultima_semana">Última semana</SelectItem>
+                  <SelectItem value="este_mes">Este mes</SelectItem>
+                  <SelectItem value="mes_pasado">Mes pasado</SelectItem>
+                  <SelectItem value="rango">Rango de fechas</SelectItem>
                 </SelectContent>
               </Select>
+              {dateFilter === "rango" && (
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "mt-1 h-8 justify-start text-left text-sm font-normal rounded-none",
+                        !calendarRange?.from && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5 text-gray-400" />
+                      {calendarRange?.from ? (
+                        calendarRange.to ? (
+                          <>
+                            {calendarRange.from.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}
+                            {" — "}
+                            {calendarRange.to.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}
+                          </>
+                        ) : (
+                          calendarRange.from.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })
+                        )
+                      ) : (
+                        <span>Seleccionar rango</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      selected={calendarRange}
+                      onSelect={setCalendarRange}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           </div>
         </div>
@@ -658,17 +739,6 @@ export default function PresupuestoPage() {
             </Button>
           </div>
 
-          <div onClick={togglePagadoSemanaAnterior} className="flex items-center space-x-2 w-fit text-gray-900 cursor-pointer">
-            <small>Pagado semana anterior</small>
-            <Button
-              className="text-left text-base font-medium text-muted-foreground rounded-full"
-              onClick={togglePagadoSemanaAnterior}
-              size={"icon"}
-              variant={"ghost"}
-            >
-              <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPagadoSemanaAnterior && "rotate-90")} />
-            </Button>
-          </div>
         </div>
 
         
@@ -679,8 +749,8 @@ export default function PresupuestoPage() {
           status={partidasStatus}
           loadMore={loadMore}
           showPrecioUnitario={showPrecioUnitario}
-          showPagadoSemanaAnterior={showPagadoSemanaAnterior}
-          lastWeekPayments={lastWeekPayments?.paymentsByPartida}
+          filteredPayments={dateFilter !== "total" ? filteredPayments?.paymentsByPartida : undefined}
+          dateFilterLabel={dateFilter === "total" ? undefined : dateFilter === "ultima_semana" ? "Últ. 7 días" : dateFilter === "este_mes" ? "Este mes" : dateFilter === "mes_pasado" ? "Mes pasado" : "Rango"}
         />
       </div>
 
