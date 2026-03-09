@@ -231,7 +231,7 @@ function SidebarUserCard({ role }: { role?: string }) {
               <Upload className="w-4 h-4" />
               Cargar flujo
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/admin/flujo")} className="gap-2">
+            <DropdownMenuItem onClick={() => navigate("/usuarios")} className="gap-2">
               <Users className="w-4 h-4" />
               Gestionar usuarios
             </DropdownMenuItem>
