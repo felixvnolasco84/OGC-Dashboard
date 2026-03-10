@@ -36,9 +36,10 @@ type Props = {
   item: ProgramaItem;
   columnWidth: number;
   timelineMonths: TimelineMonth[];
+  forceShowMilestones?: boolean;
 };
 
-export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonths }: Props) {
+export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonths, forceShowMilestones }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const [showAnticipo, setShowAnticipo] = useState(false);
   const [showSuministro, setShowSuministro] = useState(false);
@@ -276,7 +277,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                 )}
               >
               </div>
-              {showAnticipo && (
+              {(showAnticipo || forceShowMilestones) && (
                 <div className="flex flex-col">
                   <div className="flex bg-[#AFAEA2] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex-row gap-0.5 items-center h-1/2">
                     <span>Anticipo</span>
@@ -305,7 +306,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                 )}
               >
               </div>
-              {showSuministro && (
+              {(showSuministro || forceShowMilestones) && (
                 <div
                   className={cn(
                     "flex flex-col space-y-0.5 h-full",

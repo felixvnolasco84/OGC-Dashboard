@@ -188,7 +188,7 @@ export default function UserManagementPage() {
                         <SelectItem value="contratista">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-orange-600" />
-                            Contratista (bitácora y requisiciones)
+                            Contratista (bitácora, requisiciones y programa de obra)
                           </div>
                         </SelectItem>
                         <SelectItem value="finance">

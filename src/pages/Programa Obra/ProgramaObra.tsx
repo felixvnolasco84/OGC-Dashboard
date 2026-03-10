@@ -4,7 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2, MessageSquare } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2, MessageSquare, FileDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -13,6 +13,7 @@ import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
 import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 import ProgramaObraComentarios from "./ProgramaObraComentarios";
 import ProgramaObraExcelPreview, { type ExcelPartida, type ExcelRow } from "./ProgramaObraExcelPreview";
+import { exportProgramaObraPdf } from "./ProgramaObraPdfExport";
 
 // ============================================================
 // Helpers
@@ -100,11 +101,13 @@ function dateStrToPixel(
 export default function ProgramaObra() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const leftColumnsRef = useRef<HTMLDivElement>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPartida, setEditingPartida] = useState<ProgramaItem | null>(null);
   const [editingFamilia, setEditingFamilia] = useState<ProgramaItem | null>(null);
   const [comentariosItem, setComentariosItem] = useState<ProgramaItem | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -528,6 +531,32 @@ export default function ProgramaObra() {
     setPreviewData([]);
   }, []);
 
+  // PDF Export handler
+  const handleExportPdf = useCallback(async () => {
+    if (!leftColumnsRef.current || !scrollContainerRef.current || !proyecto) return;
+    setExporting(true);
+    try {
+      await exportProgramaObraPdf({
+        leftColumnsEl: leftColumnsRef.current,
+        timelineEl: scrollContainerRef.current,
+        projectName: proyecto.nombre,
+        collapseAll: () => {
+          const prev = new Set(expandedIds);
+          setExpandedIds(new Set());
+          return prev;
+        },
+        restoreExpanded: (ids: Set<string>) => {
+          setExpandedIds(ids);
+        },
+        programaData: programaDataWithComentarios,
+      });
+    } catch (err) {
+      console.error("PDF export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [proyecto, expandedIds, programaDataWithComentarios]);
+
   // Scroll to today on mount
   useEffect(() => {
     if (todayPosition && scrollContainerRef.current) {
@@ -569,6 +598,19 @@ export default function ProgramaObra() {
                 if (f) handleExcelParse(f);
               }}
             />
+            <Button
+              variant="outline"
+              className="rounded-none gap-2"
+              disabled={exporting}
+              onClick={handleExportPdf}
+            >
+              {exporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4" />
+              )}
+              {exporting ? "Exportando..." : "Exportar PDF"}
+            </Button>
             <Button
               variant="outline"
               className="rounded-none gap-2"
@@ -702,7 +744,7 @@ export default function ProgramaObra() {
         <div className="overflow-hidden bg-white">
           <div className="flex">
             {/* Fixed left columns */}
-            <div className="shrink-0">
+            <div className="shrink-0" ref={leftColumnsRef}>
               {/* Header — mt-[8px] accounts for year label that overflows above the border */}
               <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-20 mt-[8px]">
                 <div className="w-72 border-r border-[#d2d1ce] px-4 h-[36px] flex items-center text-left">
@@ -1065,6 +1107,7 @@ export default function ProgramaObra() {
                     item={item}
                     columnWidth={WEEK_WIDTH}
                     timelineMonths={timelineMonths}
+                    forceShowMilestones={exporting}
                   />
                 </div>
               ))}

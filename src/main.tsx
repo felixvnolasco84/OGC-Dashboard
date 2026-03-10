@@ -117,8 +117,9 @@ createRoot(document.getElementById("root")!).render(
                     <ControlPage />
                   </ProtectedRoute>
                 } />
+                
                 <Route path="/proyecto/:proyectoId/programa" element={
-                  <ProtectedRoute requiredRole="user">
+                  <ProtectedRoute requiredRole="contratista">
                     <ProgramaObra />
                   </ProtectedRoute>
                 } />
