@@ -35,20 +35,17 @@ const formatCurrency = (amount: number) => {
 
 type TimelineMonth = { label: string; month: number; year: number; weeks: number };
 
-/** Get month columns with week counts for a single year */
-function getTimelineMonths(year: number): TimelineMonth[] {
-  return MONTHS_ES.map((label, i) => {
-    const daysInMonth = new Date(year, i + 1, 0).getDate();
-    const weeks = Math.ceil(daysInMonth / 7);
-    return { label, month: i, year, weeks };
-  });
-}
-
-/** Get month columns spanning multiple years */
-function getMultiYearTimelineMonths(startYear: number, endYear: number): TimelineMonth[] {
+/** Get month columns spanning multiple years, trimmed to actual data range */
+function getMultiYearTimelineMonths(startYear: number, endYear: number, startMonth = 0, endMonth = 11): TimelineMonth[] {
   const result: TimelineMonth[] = [];
   for (let y = startYear; y <= endYear; y++) {
-    result.push(...getTimelineMonths(y));
+    const mStart = y === startYear ? startMonth : 0;
+    const mEnd = y === endYear ? endMonth : 11;
+    for (let m = mStart; m <= mEnd; m++) {
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const weeks = Math.ceil(daysInMonth / 7);
+      result.push({ label: MONTHS_ES[m], month: m, year: y, weeks });
+    }
   }
   return result;
 }
@@ -408,26 +405,37 @@ export default function ProgramaObra() {
     });
   }, [flattenedData, searchTerm]);
 
-  // Compute year range from all data dates
+  // Compute date range (year + month) from all data dates
   const yearRange = useMemo(() => {
-    const years: number[] = [];
-    const extractYear = (dateStr: string | undefined | null) => {
+    const dates: Date[] = [];
+    const extractDate = (dateStr: string | undefined | null) => {
       const d = parseDate(dateStr);
-      if (d) years.push(d.getFullYear());
+      if (d) dates.push(d);
     };
-    schedules?.forEach((s) => { extractYear(s.fecha_inicio); extractYear(s.fecha_fin); extractYear(s.anticipo_fecha); extractYear(s.suministro_fecha); });
-    detalles?.forEach((d) => { extractYear(d.fecha_inicio); extractYear(d.fecha_fin); });
-    comentarios?.forEach((c) => { extractYear(c.fecha_inicio); extractYear(c.fecha_fin); });
-    if (years.length === 0) {
+    schedules?.forEach((s) => { extractDate(s.fecha_inicio); extractDate(s.fecha_fin); extractDate(s.anticipo_fecha); extractDate(s.suministro_fecha); });
+    detalles?.forEach((d) => { extractDate(d.fecha_inicio); extractDate(d.fecha_fin); });
+    comentarios?.forEach((c) => { extractDate(c.fecha_inicio); extractDate(c.fecha_fin); });
+    if (dates.length === 0) {
       const cy = new Date().getFullYear();
-      return { startYear: cy, endYear: cy };
+      return { startYear: cy, endYear: cy, startMonth: 0, endMonth: 11 };
     }
-    return { startYear: Math.min(...years), endYear: Math.max(...years) };
+    let minDate = dates[0];
+    let maxDate = dates[0];
+    for (const d of dates) {
+      if (d < minDate) minDate = d;
+      if (d > maxDate) maxDate = d;
+    }
+    return {
+      startYear: minDate.getFullYear(),
+      endYear: maxDate.getFullYear(),
+      startMonth: minDate.getMonth(),
+      endMonth: maxDate.getMonth(),
+    };
   }, [schedules, detalles, comentarios]);
 
   // Timeline months spanning the full data range
   const timelineMonths = useMemo(
-    () => getMultiYearTimelineMonths(yearRange.startYear, yearRange.endYear),
+    () => getMultiYearTimelineMonths(yearRange.startYear, yearRange.endYear, yearRange.startMonth, yearRange.endMonth),
     [yearRange]
   );
 
@@ -441,7 +449,10 @@ export default function ProgramaObra() {
   const todayPosition = useMemo(() => {
     const now = new Date();
     const cy = now.getFullYear();
+    const cm = now.getMonth();
     if (cy < yearRange.startYear || cy > yearRange.endYear) return null;
+    if (cy === yearRange.startYear && cm < yearRange.startMonth) return null;
+    if (cy === yearRange.endYear && cm > yearRange.endMonth) return null;
     return dateToPx(now, timelineMonths);
   }, [yearRange, timelineMonths]);
 
