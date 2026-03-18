@@ -42,8 +42,13 @@ const PDF_EXPORT_CSS = `
     text-overflow: unset !important;
     white-space: nowrap !important;
   }
+  [data-pdf-export-active] .min-h-\\[44px\\] {
+    min-height: 44px !important;
+    height: 44px !important;
+  }
   [data-pdf-export-active] .max-h-\\[44px\\] {
-    max-height: none !important;
+    max-height: 44px !important;
+    height: 44px !important;
   }
   [data-pdf-export-active] .overflow-hidden {
     overflow: visible !important;
