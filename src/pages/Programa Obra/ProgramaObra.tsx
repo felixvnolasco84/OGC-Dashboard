@@ -99,6 +99,7 @@ export default function ProgramaObra() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const leftColumnsRef = useRef<HTMLDivElement>(null);
+  const ganttContainerRef = useRef<HTMLDivElement>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPartida, setEditingPartida] = useState<ProgramaItem | null>(null);
@@ -570,9 +571,9 @@ export default function ProgramaObra() {
 
   // Scroll to today on mount
   useEffect(() => {
-    if (todayPosition && scrollContainerRef.current) {
-      const offset = todayPosition - scrollContainerRef.current.clientWidth / 2;
-      scrollContainerRef.current.scrollLeft = Math.max(0, offset);
+    if (todayPosition && ganttContainerRef.current) {
+      const offset = todayPosition - ganttContainerRef.current.clientWidth / 2;
+      ganttContainerRef.current.scrollLeft = Math.max(0, offset);
     }
   }, [todayPosition]);
 
@@ -752,21 +753,23 @@ export default function ProgramaObra() {
 
 
         {/* Gantt Chart */}
-        <div className="overflow-hidden bg-white">
+        <div className="overflow-auto bg-white max-h-[calc(100vh-280px)]" ref={ganttContainerRef}>
           <div className="flex">
             {/* Fixed left columns */}
-            <div className="shrink-0" ref={leftColumnsRef}>
-              {/* Header — mt-[8px] accounts for year label that overflows above the border */}
-              <div className="flex border-b border-t border-[#d2d1ce] bg-white sticky top-0 z-20 mt-[8px]">
-                <div className="w-72 border-r border-[#d2d1ce] px-4 h-[36px] flex items-center text-left">
-                  <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
-                    Partida · Familia
-                  </span>
-                </div>
-                <div className="w-28 border-r border-[#d2d1ce] px-3 h-[36px] flex items-center justify-end text-right">
-                  <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
-                    Presupuesto
-                  </span>
+            <div className="shrink-0 sticky left-0 z-30 bg-white" ref={leftColumnsRef}>
+              {/* Header — pt-[8px] accounts for year label that overflows above the border */}
+              <div className="sticky top-0 z-40 bg-white pt-[8px]">
+                <div className="flex border-b border-t border-[#d2d1ce] bg-white">
+                  <div className="w-72 border-r border-[#d2d1ce] px-4 h-[36px] flex items-center text-left">
+                    <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
+                      Partida · Familia
+                    </span>
+                  </div>
+                  <div className="w-28 border-r border-[#d2d1ce] px-3 h-[36px] flex items-center justify-end text-right">
+                    <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
+                      Presupuesto
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1015,9 +1018,9 @@ export default function ProgramaObra() {
             </div>
 
             {/* Scrollable timeline */}
-            <div className="flex-1 overflow-x-auto" ref={scrollContainerRef}>
+            <div className="shrink-0" ref={scrollContainerRef} style={{ width: totalTimelineWidth }}>
               {/* Year + Month headers */}
-              <div className="sticky top-0 z-10 min-w-max bg-white">
+              <div className="sticky top-0 z-20 min-w-max bg-white">
                 {/* Year labels + Month headers — relative wrapper for absolute year labels */}
                 <div className="relative pt-[8px]">
                   {/* Year labels — absolutely positioned to straddle the border-t */}
