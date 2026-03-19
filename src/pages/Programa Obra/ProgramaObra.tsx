@@ -590,7 +590,7 @@ export default function ProgramaObra() {
   }
 
   return (
-    <div className="bg-white py-6 space-y-6">
+    <div className="bg-white pt-6 space-y-6">
       {/* Header */}
       <div className="px-12">
         <div className="flex items-end justify-between py-6 border-b border-[#d2d1ce] pb-8">
@@ -753,7 +753,7 @@ export default function ProgramaObra() {
 
 
         {/* Gantt Chart */}
-        <div className="overflow-auto bg-white max-h-[calc(100vh-280px)]" ref={ganttContainerRef}>
+        <div className="overflow-auto bg-white h-screen" ref={ganttContainerRef}>
           <div className="flex">
             {/* Fixed left columns */}
             <div className="shrink-0 sticky left-0 z-30 bg-white" ref={leftColumnsRef}>
