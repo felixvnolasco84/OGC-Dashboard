@@ -580,7 +580,6 @@ function TramitesSection({
   section,
   tramites,
   users,
-  proyectoId,
   onUpdateStatus,
   onUpdateResponsable,
   onCreateTramite,
