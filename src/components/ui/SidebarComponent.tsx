@@ -72,6 +72,7 @@ const projectMenuItems: ProjectMenuItem[] = [
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
   { id: "bitacora", label: "Bitácora", path: "bitacora", disabled: false, icon: BookCheck },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: BookDashed },
+  { id: "autorizaciones", label: "Autorizaciones", path: "autorizaciones", disabled: false, icon: BookCheck },
   { id: "documentos", label: "Documentos", path: "documentos", disabled: false, icon: File },
   { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false, icon: BookDashed },
   // { id: "proveedores", label: "Proveedores", path: "proveedores", disabled: false },

@@ -540,4 +540,57 @@ export default defineSchema({
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] }),
+
+  // Autorizaciones de Obra - Section records (licencia, poliza, plan_seguridad, tramites)
+  autorizaciones_obra: defineTable({
+    proyecto: v.id("desarrollos"),
+    seccion: v.string(), // "licencia" | "poliza" | "plan_seguridad" | "tramites"
+    status_manual: v.optional(v.string()), // "activo" | "inactivo"
+    responsable_id: v.optional(v.id("users")),
+    // Licencia fields
+    numero_licencia: v.optional(v.string()),
+    fecha_emision: v.optional(v.string()), // DD/MM/YYYY
+    fecha_vencimiento: v.optional(v.string()), // DD/MM/YYYY
+    // Póliza fields
+    suma_asegurada: v.optional(v.number()),
+    vigencia: v.optional(v.string()), // DD/MM/YYYY
+    // Document attachment (single file per section)
+    documento_storage_id: v.optional(v.id("_storage")),
+    documento_nombre: v.optional(v.string()),
+    documento_size: v.optional(v.number()),
+    documento_type: v.optional(v.string()),
+    documento_uploaded_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proyecto_seccion", { fields: ["proyecto", "seccion"] }),
+
+  // Autorizaciones de Obra - Trámites (CFE / agua potable items)
+  autorizaciones_obra_tramites: defineTable({
+    proyecto: v.id("desarrollos"),
+    autorizacion_id: v.id("autorizaciones_obra"), // parent tramites section
+    servicio: v.string(), // Free text (e.g., "CFE", "OOMSPAAS")
+    tramite: v.string(), // Free text (e.g., "Solicitud de suministro")
+    estado: v.string(), // "Pendiente" | "Activo"
+    // Comprobante attachment
+    documento_storage_id: v.optional(v.id("_storage")),
+    documento_nombre: v.optional(v.string()),
+    documento_size: v.optional(v.number()),
+    documento_type: v.optional(v.string()),
+    documento_uploaded_at: v.optional(v.number()),
+  }).index("by_autorizacion", { fields: ["autorizacion_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] }),
+
+  // Autorizaciones de Obra - File replacement history
+  autorizaciones_obra_historial: defineTable({
+    proyecto: v.id("desarrollos"),
+    parent_type: v.string(), // "autorizacion" | "tramite"
+    parent_id: v.string(), // _id of autorizaciones_obra or autorizaciones_obra_tramites
+    documento_storage_id: v.id("_storage"),
+    documento_nombre: v.string(),
+    documento_size: v.number(),
+    documento_type: v.string(),
+    replaced_at: v.number(),
+    replaced_by_id: v.optional(v.id("users")),
+    replaced_by_name: v.optional(v.string()),
+  }).index("by_parent", { fields: ["parent_type", "parent_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] }),
 });

@@ -43,6 +43,7 @@ import SalesProjectManagementPage from "./pages/SalesProjectManagement/SalesProj
 import SalesUserManagementPage from "./pages/SalesUserManagement/SalesUserManagementPage.tsx";
 import BitacoraPage from "./pages/Bitacora/BitacoraPage.tsx";
 import ProyectoRequisicionesPage from "./pages/ProyectoRequisiciones/ProyectoRequisicionesPage.tsx";
+import AutorizacionesObraPage from "./pages/AutorizacionesObra/AutorizacionesObraPage.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -156,6 +157,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/proyecto/:proyectoId/requisiciones" element={
                   <ProtectedRoute requiredRole="contratista">
                     <ProyectoRequisicionesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/autorizaciones" element={
+                  <ProtectedRoute requiredRole="user">
+                    <AutorizacionesObraPage />
                   </ProtectedRoute>
                 } />
 
