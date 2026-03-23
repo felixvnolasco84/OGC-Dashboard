@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge";
 // import { Button } from "@/components/ui/button";
 import ProgressChart from "@/components/Charts/ProgressChart";
 import FamiliaChart from "@/components/Charts/FamiliaChart";
-import { DashboardTable } from "../Dashboard/DashboardTable";
+import AutorizacionesObraPage from "../AutorizacionesObra/AutorizacionesObraPage";
+import { cn } from "@/lib/utils";
 import ChartConfigModal from "@/components/Charts/ChartConfigModal";
 import { useChartConfig } from "@/hooks/useChartConfig";
 // import { Plus } from "lucide-react";
@@ -41,6 +42,9 @@ const formatNumber = (amount: number) => {
 
 export default function ControlPage() {
     const { proyectoId } = useParams<{ proyectoId: string }>();
+
+    // Tab state
+    const [activeTab, setActiveTab] = useState<"permisos" | "presupuestos" | "imss">("permisos");
 
     // Progress chart filters    
     const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");
@@ -388,8 +392,51 @@ export default function ControlPage() {
                         )}
                     </div>
 
-                    <div className="col-span-4 py-12">
-                        <DashboardTable proyectoId={proyectoId as Id<"desarrollos">} />
+                    {/* Tabs Section */}
+                    <div className="col-span-4 pt-12">
+                        {/* Tab Headers */}
+                        <div className="flex items-center gap-8 border-b border-gray-200">
+                            {[
+                                { key: "permisos" as const, label: "Permisos y legal" },
+                                { key: "presupuestos" as const, label: "Presupuestos y contratos" },
+                                { key: "imss" as const, label: "IMSS y SIROC" },
+                            ].map((tab) => (
+                                <button
+                                    key={tab.key}
+                                    onClick={() => setActiveTab(tab.key)}
+                                    className={cn(
+                                        "pb-3 text-sm transition-colors relative",
+                                        activeTab === tab.key
+                                            ? "text-gray-900 font-medium"
+                                            : "text-gray-400 hover:text-gray-600"
+                                    )}
+                                >
+                                    {tab.label}
+                                    {activeTab === tab.key && (
+                                        <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Tab Content */}
+                        <div className="mt-12 px-12">
+                            {activeTab === "permisos" && (
+                                <AutorizacionesObraPage embedded />
+                            )}
+                            {activeTab === "presupuestos" && (
+                                <div className="py-12 text-center text-gray-400">
+                                    <p className="text-lg">Presupuestos y contratos</p>
+                                    <p className="text-sm mt-1">Próximamente</p>
+                                </div>
+                            )}
+                            {activeTab === "imss" && (
+                                <div className="py-12 text-center text-gray-400">
+                                    <p className="text-lg">IMSS y SIROC</p>
+                                    <p className="text-sm mt-1">Próximamente</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -901,7 +901,7 @@ function PlanSeguridadSection({
 // Main Page Component
 // ============================================================
 
-export default function AutorizacionesObraPage() {
+export default function AutorizacionesObraPage({ embedded = false }: { embedded?: boolean }) {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const { user } = useUser();
 
@@ -1151,19 +1151,18 @@ export default function AutorizacionesObraPage() {
   const users = allUsers || [];
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className={cn("bg-white", !embedded && "min-h-screen")}>
       {/* Header */}
-      <div className="px-12 pt-6">
-        <div className="flex flex-col text-left py-6 border-b border-[#d2d1ce] pb-8">
-          <p className="text-base text-gray-500 mb-1">
+      <div className={cn(!embedded && "px-12", "pt-6")}>
+        <div className="flex flex-col text-left border-[#d2d1ce]">
+          <p className="text-base">
             Autorizaciones municipales, estatales y obligaciones legales de la obra
-          </p>
-          <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
+          </p>          
         </div>
       </div>
 
       {/* Sections */}
-      <div className="px-12 py-8 space-y-6">
+      <div className={cn(!embedded && "px-12", "py-2 space-y-6")}>
         <LicenciaSection
           section={sectionMap["licencia"]}
           users={users}
