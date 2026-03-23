@@ -133,7 +133,7 @@ function StatusDot({
       className={cn(
         "w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors border-2",
         isActive
-          ? "bg-green-500 border-green-500 text-white"
+          ? "bg-[#1A5D21] border-[#1A5D21] text-white"
           : "bg-white border-gray-300 text-gray-300 hover:border-gray-400"
       )}
       title={isActive ? "Activo — clic para desactivar" : "Inactivo — clic para activar"}
@@ -409,7 +409,7 @@ function LicenciaSection({
     <div className="border border-gray-200 rounded-sm bg-white">
       {/* Header */}
       <div
-        className="flex items-center justify-between px-6 py-4 cursor-pointer"
+        className="flex items-center justify-between px-6 py-6 cursor-pointer border-b"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -419,7 +419,7 @@ function LicenciaSection({
               onUpdateStatus("licencia", section?._id);
             }}
           />
-          <h3 className="text-base font-medium text-gray-900">
+          <h3 className="text-base  text-gray-900">
             Licencia de construcción vigente
           </h3>
         </div>
@@ -437,7 +437,7 @@ function LicenciaSection({
 
       {/* Content */}
       {expanded && (
-        <div className="px-6 pb-6 pt-2 grid grid-cols-3 gap-6">
+        <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
           {/* Número de Licencia + Document */}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-gray-500">Número de Licencia</span>
@@ -506,7 +506,7 @@ function PolizaSection({
   return (
     <div className="border border-gray-200 rounded-sm bg-white">
       <div
-        className="flex items-center justify-between px-6 py-4 cursor-pointer"
+        className="flex items-center justify-between px-6 py-6 cursor-pointer border-b"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -514,7 +514,7 @@ function PolizaSection({
             status={section?.status_manual}
             onToggle={() => onUpdateStatus("poliza", section?._id)}
           />
-          <h3 className="text-base font-medium text-gray-900">
+          <h3 className="text-base  text-gray-900">
             Poliza de seguro de obra activa
           </h3>
         </div>
@@ -531,7 +531,7 @@ function PolizaSection({
       </div>
 
       {expanded && (
-        <div className="px-6 pb-6 pt-2 grid grid-cols-3 gap-6">
+        <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
           {/* Póliza de seguro */}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-gray-500">Póliza de seguro</span>
@@ -605,7 +605,7 @@ function TramitesSection({
   return (
     <div className="border border-gray-200 rounded-sm bg-white">
       <div
-        className="flex items-center justify-between px-6 py-4 cursor-pointer"
+        className="flex items-center justify-between px-6 py-6 border-b cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -613,7 +613,7 @@ function TramitesSection({
             status={section?.status_manual}
             onToggle={() => onUpdateStatus("tramites", section?._id)}
           />
-          <h3 className="text-base font-medium text-gray-900">
+          <h3 className="text-base  text-gray-900">
             Trámites de conexión CFE y agua potable
           </h3>
         </div>
@@ -639,7 +639,7 @@ function TramitesSection({
       </div>
 
       {expanded && (
-        <div className="px-6 pb-6 pt-2">
+        <div className="px-6 pb-6 pt-6">
           {/* Table header */}
           <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 text-xs text-gray-500 font-medium pb-2 border-b border-gray-100">
             <span>Servicio</span>
@@ -837,7 +837,7 @@ function PlanSeguridadSection({
   return (
     <div className="border border-gray-200 rounded-sm bg-white">
       <div
-        className="flex items-center justify-between px-6 py-4 cursor-pointer"
+        className="flex items-center justify-between px-6 py-6 border-b cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -845,7 +845,7 @@ function PlanSeguridadSection({
             status={section?.status_manual}
             onToggle={() => onUpdateStatus("plan_seguridad", section?._id)}
           />
-          <h3 className="text-base font-medium text-gray-900">
+          <h3 className="text-base  text-gray-900">
             Plan de seguridad e higiene en obra
           </h3>
         </div>
@@ -862,7 +862,7 @@ function PlanSeguridadSection({
       </div>
 
       {expanded && (
-        <div className="px-6 pb-6 pt-2 grid grid-cols-3 gap-6">
+        <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
           {/* Plan de seguridad */}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-gray-500">Plan de seguridad</span>
@@ -1026,7 +1026,7 @@ export default function AutorizacionesObraPage() {
   );
 
   const handleUploadDocument = useCallback(
-    async (seccion: SeccionType, file: File, _replace: boolean) => {
+    async (seccion: SeccionType, file: File) => {
       if (!proyectoId) return;
       setUploadingSection(seccion);
       try {
