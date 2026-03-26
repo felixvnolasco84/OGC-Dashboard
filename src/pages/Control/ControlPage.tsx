@@ -17,7 +17,6 @@ import { Badge } from "@/components/ui/badge";
 import ProgressChart from "@/components/Charts/ProgressChart";
 import FamiliaChart from "@/components/Charts/FamiliaChart";
 import AutorizacionesObraPage from "../AutorizacionesObra/AutorizacionesObraPage";
-import { cn } from "@/lib/utils";
 import ChartConfigModal from "@/components/Charts/ChartConfigModal";
 import { useChartConfig } from "@/hooks/useChartConfig";
 // import { Plus } from "lucide-react";
@@ -44,7 +43,7 @@ export default function ControlPage() {
     const { proyectoId } = useParams<{ proyectoId: string }>();
 
     // Tab state
-    const [activeTab, setActiveTab] = useState<"permisos" | "presupuestos" | "imss">("permisos");
+    const [activeTab] = useState<"permisos" | "presupuestos" | "imss">("permisos");
 
     // Progress chart filters    
     const [selectedPeriodo, setSelectedPeriodo] = useState("Diario");

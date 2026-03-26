@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { useUser } from "@clerk/clerk-react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Input } from "@/components/ui/input";
@@ -460,7 +459,6 @@ function SubcontratistaImssRow({
 // ============================================================
 
 export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
-  const { user } = useUser();
   const [uploadingPagoId, setUploadingPagoId] = useState<string | null>(null);
   const [uploadingField, setUploadingField] = useState<"comprobante" | "soporte" | null>(null);
   const [uploadingSirocId, setUploadingSirocId] = useState<string | null>(null);

@@ -6,8 +6,6 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PermisosYLegalTab from "./PermisosYLegalTab";
 import PresupuestosContratosTab from "./PresupuestosContratosTab";
-import ImssYSirocTab from "./ImssYSirocTab";
-
 export default function AutorizacionesObraPage({ embedded = false }: { embedded?: boolean }) {
   const { proyectoId } = useParams<{ proyectoId: string }>();
 
