@@ -593,4 +593,84 @@ export default defineSchema({
     replaced_by_name: v.optional(v.string()),
   }).index("by_parent", { fields: ["parent_type", "parent_id"] })
     .index("by_proyecto", { fields: ["proyecto"] }),
+
+  // Contratistas Generales - Main contractors per project (for IMSS/SIROC future use)
+  contratistas_generales: defineTable({
+    proyecto: v.id("desarrollos"),
+    nombre: v.string(), // Company name (e.g., "OGC DEVELOPMENTS SA DE CV")
+    responsable_id: v.optional(v.id("users")),
+    status_manual: v.optional(v.string()), // "activo" | "inactivo"
+    // Contrato (for future IMSS tab)
+    contrato_storage_id: v.optional(v.id("_storage")),
+    contrato_nombre: v.optional(v.string()),
+    contrato_size: v.optional(v.number()),
+    contrato_type: v.optional(v.string()),
+    contrato_uploaded_at: v.optional(v.number()),
+    // SIROC document
+    siroc_numero: v.optional(v.string()), // e.g., "C1049546"
+    siroc_storage_id: v.optional(v.id("_storage")),
+    siroc_nombre: v.optional(v.string()),
+    siroc_size: v.optional(v.number()),
+    siroc_type: v.optional(v.string()),
+    siroc_uploaded_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] }),
+
+  // Subcontratistas - Sub-contractors linked to a contratista general
+  subcontratistas: defineTable({
+    proyecto: v.id("desarrollos"),
+    contratista_general_id: v.optional(v.id("contratistas_generales")),
+    nombre: v.string(), // Person/company name
+    partida_id: v.optional(v.id("partidas")), // Nivel 1 partida reference
+    partida_nombre: v.optional(v.string()), // Denormalized for display
+    monto: v.optional(v.number()),
+    status_manual: v.optional(v.string()), // "activo" | "inactivo"
+    // Presupuesto file
+    presupuesto_storage_id: v.optional(v.id("_storage")),
+    presupuesto_nombre: v.optional(v.string()),
+    presupuesto_size: v.optional(v.number()),
+    presupuesto_type: v.optional(v.string()),
+    presupuesto_uploaded_at: v.optional(v.number()),
+    // Contrato file
+    contrato_storage_id: v.optional(v.id("_storage")),
+    contrato_nombre: v.optional(v.string()),
+    contrato_size: v.optional(v.number()),
+    contrato_type: v.optional(v.string()),
+    contrato_uploaded_at: v.optional(v.number()),
+    // SIROC document
+    siroc_numero: v.optional(v.string()), // e.g., "A5653203"
+    siroc_storage_id: v.optional(v.id("_storage")),
+    siroc_nombre: v.optional(v.string()),
+    siroc_size: v.optional(v.number()),
+    siroc_type: v.optional(v.string()),
+    siroc_uploaded_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_contratista_general", { fields: ["contratista_general_id"] }),
+
+  // IMSS configuration per project (manual input)
+  imss_configuracion: defineTable({
+    proyecto: v.id("desarrollos"),
+    costo_total_imss: v.number(), // Base total registrada ante IMSS
+  }).index("by_proyecto", { fields: ["proyecto"] }),
+
+  // IMSS pagos de cuota (simplified payment model)
+  imss_pagos_cuota: defineTable({
+    proyecto: v.id("desarrollos"),
+    parent_type: v.string(), // "contratista_general" | "subcontratista"
+    parent_id: v.string(), // _id of contratista_general or subcontratista
+    cuota_tipo: v.optional(v.string()), // "Mano de Obra" | "Material"
+    monto: v.number(),
+    // Comprobante file
+    comprobante_storage_id: v.optional(v.id("_storage")),
+    comprobante_nombre: v.optional(v.string()),
+    comprobante_size: v.optional(v.number()),
+    comprobante_type: v.optional(v.string()),
+    comprobante_uploaded_at: v.optional(v.number()),
+    // Soporte file
+    soporte_storage_id: v.optional(v.id("_storage")),
+    soporte_nombre: v.optional(v.string()),
+    soporte_size: v.optional(v.number()),
+    soporte_type: v.optional(v.string()),
+    soporte_uploaded_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_parent", { fields: ["parent_type", "parent_id"] }),
 });
