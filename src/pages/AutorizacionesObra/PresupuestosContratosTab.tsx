@@ -426,7 +426,7 @@ function SubcontratistaTableRow({
 
 export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: string }) {
   const { user } = useUser();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [uploadingSubId, setUploadingSubId] = useState<string | null>(null);
   const [uploadingField, setUploadingField] = useState<"presupuesto" | "contrato" | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
