@@ -245,6 +245,38 @@ export const attachContrato = mutation({
   },
 });
 
+// Remove presupuesto file from subcontratista
+export const removePresupuesto = mutation({
+  args: { id: v.id("subcontratistas") },
+  handler: async (ctx, args) => {
+    const sub = await ctx.db.get(args.id);
+    if (!sub) throw new Error("Subcontratista not found");
+    await ctx.db.patch(args.id, {
+      presupuesto_storage_id: undefined,
+      presupuesto_nombre: undefined,
+      presupuesto_size: undefined,
+      presupuesto_type: undefined,
+      presupuesto_uploaded_at: undefined,
+    });
+  },
+});
+
+// Remove contrato file from subcontratista
+export const removeContrato = mutation({
+  args: { id: v.id("subcontratistas") },
+  handler: async (ctx, args) => {
+    const sub = await ctx.db.get(args.id);
+    if (!sub) throw new Error("Subcontratista not found");
+    await ctx.db.patch(args.id, {
+      contrato_storage_id: undefined,
+      contrato_nombre: undefined,
+      contrato_size: undefined,
+      contrato_type: undefined,
+      contrato_uploaded_at: undefined,
+    });
+  },
+});
+
 // ============================================
 // MUTATIONS - Contratistas Generales
 // ============================================

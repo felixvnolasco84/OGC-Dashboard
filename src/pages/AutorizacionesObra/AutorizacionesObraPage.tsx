@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PermisosYLegalTab from "./PermisosYLegalTab";
 import PresupuestosContratosTab from "./PresupuestosContratosTab";
+import ImssYSirocTab from "./ImssYSirocTab";
+
 export default function AutorizacionesObraPage({ embedded = false }: { embedded?: boolean }) {
   const { proyectoId } = useParams<{ proyectoId: string }>();
 
@@ -59,7 +61,7 @@ export default function AutorizacionesObraPage({ embedded = false }: { embedded?
           </TabsContent>
 
           <TabsContent value="imss">
-            {/* <ImssYSirocTab proyectoId={proyectoId!} /> */}
+            <ImssYSirocTab proyectoId={proyectoId!} />
           </TabsContent>
         </Tabs>
       </div>
