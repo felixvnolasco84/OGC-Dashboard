@@ -100,6 +100,8 @@ export default function ProgramaObra() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const leftColumnsRef = useRef<HTMLDivElement>(null);
   const ganttContainerRef = useRef<HTMLDivElement>(null);
+  const leftScrollRef = useRef<HTMLDivElement>(null);
+  const isSyncingScroll = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPartida, setEditingPartida] = useState<ProgramaItem | null>(null);
@@ -569,6 +571,25 @@ export default function ProgramaObra() {
     }
   }, [proyecto, expandedIds, programaDataWithComentarios]);
 
+  // Synchronized vertical scroll between left columns and timeline
+  const handleLeftScroll = useCallback(() => {
+    if (isSyncingScroll.current) return;
+    isSyncingScroll.current = true;
+    if (leftScrollRef.current && ganttContainerRef.current) {
+      ganttContainerRef.current.scrollTop = leftScrollRef.current.scrollTop;
+    }
+    isSyncingScroll.current = false;
+  }, []);
+
+  const handleRightScroll = useCallback(() => {
+    if (isSyncingScroll.current) return;
+    isSyncingScroll.current = true;
+    if (leftScrollRef.current && ganttContainerRef.current) {
+      leftScrollRef.current.scrollTop = ganttContainerRef.current.scrollTop;
+    }
+    isSyncingScroll.current = false;
+  }, []);
+
   // Scroll to today on mount
   useEffect(() => {
     if (todayPosition && ganttContainerRef.current) {
@@ -753,10 +774,14 @@ export default function ProgramaObra() {
 
 
         {/* Gantt Chart */}
-        <div className="overflow-auto bg-white h-screen" ref={ganttContainerRef}>
-          <div className="flex">
-            {/* Fixed left columns */}
-            <div className="shrink-0 sticky left-0 z-30 bg-white" ref={leftColumnsRef}>
+        <div className="flex bg-white h-screen">
+          {/* Fixed left columns — separate scroll container, only vertical */}
+          <div
+            className="shrink-0 w-[400px] bg-white z-30 overflow-y-auto overflow-x-hidden shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            ref={leftScrollRef}
+            onScroll={handleLeftScroll}
+          >
+            <div ref={leftColumnsRef}>
               {/* Header — pt-[8px] accounts for year label that overflows above the border */}
               <div className="sticky top-0 z-40 bg-white pt-[8px]">
                 <div className="flex border-b border-t border-[#d2d1ce] bg-white">
@@ -1016,8 +1041,14 @@ export default function ProgramaObra() {
                 );
               })}
             </div>
+          </div>
 
-            {/* Scrollable timeline */}
+          {/* Scrollable timeline — scrolls both horizontally and vertically */}
+          <div
+            className="flex-1 overflow-auto bg-white"
+            ref={ganttContainerRef}
+            onScroll={handleRightScroll}
+          >
             <div className="shrink-0" ref={scrollContainerRef} style={{ width: totalTimelineWidth }}>
               {/* Year + Month headers */}
               <div className="sticky top-0 z-20 min-w-max bg-white">

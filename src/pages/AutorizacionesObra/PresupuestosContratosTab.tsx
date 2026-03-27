@@ -5,6 +5,14 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -29,6 +37,7 @@ import {
   Trash2,
   RefreshCw,
   History,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StatusDot, ResponsableSelector } from "./PermisosYLegalTab";
@@ -93,12 +102,13 @@ function formatCurrencyMXN(amount?: number): string {
 // Sub-components
 // ============================================================
 
-/** File cell for presupuesto or contrato columns — with replace & history */
+/** File cell for presupuesto or contrato columns — with replace, delete & history */
 function FileCell({
   nombre,
   uploadedAt,
   url,
   onUpload,
+  onDelete,
   uploading,
   placeholder,
   parentType,
@@ -108,6 +118,7 @@ function FileCell({
   uploadedAt?: number;
   url?: string | null;
   onUpload: (file: File) => void;
+  onDelete?: () => void;
   uploading: boolean;
   placeholder?: string;
   parentType: string;
@@ -175,6 +186,15 @@ function FileCell({
                 title="Ver historial de archivos"
               >
                 <History className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                className="text-gray-400 hover:text-red-500 p-0.5"
+                onClick={onDelete}
+                title="Eliminar archivo"
+              >
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -288,6 +308,8 @@ function SubcontratistaTableRow({
   onDelete,
   onUploadPresupuesto,
   onUploadContrato,
+  onDeletePresupuesto,
+  onDeleteContrato,
   uploadingField,
 }: {
   sub: SubcontratistaRow;
@@ -296,6 +318,8 @@ function SubcontratistaTableRow({
   onDelete: () => void;
   onUploadPresupuesto: (file: File) => void;
   onUploadContrato: (file: File) => void;
+  onDeletePresupuesto: () => void;
+  onDeleteContrato: () => void;
   uploadingField: "presupuesto" | "contrato" | null;
 }) {
   const [editNombre, setEditNombre] = useState(sub.nombre);
@@ -356,6 +380,7 @@ function SubcontratistaTableRow({
         uploadedAt={sub.presupuesto_uploaded_at}
         url={sub.presupuesto_url}
         onUpload={onUploadPresupuesto}
+        onDelete={sub.presupuesto_nombre ? onDeletePresupuesto : undefined}
         uploading={uploadingField === "presupuesto"}
         parentType="subcontratista_presupuesto"
         parentId={sub._id}
@@ -367,6 +392,7 @@ function SubcontratistaTableRow({
         uploadedAt={sub.contrato_uploaded_at}
         url={sub.contrato_url}
         onUpload={onUploadContrato}
+        onDelete={sub.contrato_nombre ? onDeleteContrato : undefined}
         uploading={uploadingField === "contrato"}
         parentType="subcontratista_contrato"
         parentId={sub._id}
@@ -405,9 +431,21 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
   const [uploadingField, setUploadingField] = useState<"presupuesto" | "contrato" | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  // Modal state for adding new subcontratista
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [modalNombre, setModalNombre] = useState("");
+  const [modalCgId, setModalCgId] = useState<string>("");
+  const [modalNewCgName, setModalNewCgName] = useState("");
+  const [modalCreating, setModalCreating] = useState(false);
+  const [showNewCgInput, setShowNewCgInput] = useState(false);
+
   // Queries
   const subcontratistas = useQuery(
     api.subcontratistas.getByProyecto,
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  );
+  const contratistasGenerales = useQuery(
+    api.subcontratistas.getContratistasGeneralesByProyecto,
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
   const allUsers = useQuery(api.autorizaciones_obra.getAllUsers);
@@ -431,13 +469,17 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
   const deleteSub = useMutation(api.subcontratistas.deleteSubcontratista);
   const attachPresupuesto = useMutation(api.subcontratistas.attachPresupuesto);
   const attachContrato = useMutation(api.subcontratistas.attachContrato);
+  const removePresupuesto = useMutation(api.subcontratistas.removePresupuesto);
+  const removeContrato = useMutation(api.subcontratistas.removeContrato);
   const generateUploadUrl = useMutation(api.subcontratistas.generateUploadUrl);
+  const createCg = useMutation(api.subcontratistas.createContratistaGeneral);
   const ensureSeccion = useMutation(api.autorizaciones_obra.ensureSeccion);
   const updateStatus = useMutation(api.autorizaciones_obra.updateStatus);
   const updateResponsable = useMutation(api.autorizaciones_obra.updateResponsable);
 
   // Derived data
   const subs = (subcontratistas || []) as SubcontratistaRow[];
+  const cgs = contratistasGenerales || [];
   const users = allUsers || [];
   const partidas: PartidaNivel1[] = useMemo(() => {
     if (!allPartidas) return [];
@@ -499,18 +541,45 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
     [ensureSectionHeader, updateResponsable]
   );
 
-  const handleCreateSubcontratista = useCallback(async () => {
+  const openAddModal = useCallback(() => {
+    setModalNombre("");
+    setModalCgId("");
+    setModalNewCgName("");
+    setShowNewCgInput(false);
+    setShowAddModal(true);
+  }, []);
+
+  const handleModalCreate = useCallback(async () => {
     if (!proyectoId) return;
+    setModalCreating(true);
     try {
+      let cgId: Id<"contratistas_generales"> | undefined;
+
+      // Create new CG if user chose to
+      if (showNewCgInput && modalNewCgName.trim()) {
+        cgId = await createCg({
+          proyecto: proyectoId as Id<"desarrollos">,
+          nombre: modalNewCgName.trim(),
+        });
+        toast.success(`Contratista general "${modalNewCgName.trim()}" creado`);
+      } else if (modalCgId) {
+        cgId = modalCgId as Id<"contratistas_generales">;
+      }
+
       await createSub({
         proyecto: proyectoId as Id<"desarrollos">,
-        nombre: "",
+        nombre: modalNombre.trim(),
+        contratista_general_id: cgId,
       });
+      toast.success("Subcontratista creado");
+      setShowAddModal(false);
     } catch (err) {
       console.error("Error creating subcontratista:", err);
       toast.error("Error al crear subcontratista");
+    } finally {
+      setModalCreating(false);
     }
-  }, [proyectoId, createSub]);
+  }, [proyectoId, modalNombre, modalCgId, showNewCgInput, modalNewCgName, createSub, createCg]);
 
   const handleUpdateSubcontratista = useCallback(
     async (id: Id<"subcontratistas">, fields: Record<string, unknown>) => {
@@ -543,6 +612,23 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
       }
     },
     [deleteSub]
+  );
+
+  const handleDeleteFile = useCallback(
+    async (subId: Id<"subcontratistas">, field: "presupuesto" | "contrato") => {
+      try {
+        if (field === "presupuesto") {
+          await removePresupuesto({ id: subId });
+        } else {
+          await removeContrato({ id: subId });
+        }
+        toast.success("Documento eliminado");
+      } catch (err) {
+        console.error("Error removing file:", err);
+        toast.error("Error al eliminar documento");
+      }
+    },
+    [removePresupuesto, removeContrato]
   );
 
   const handleUploadFile = useCallback(
@@ -636,7 +722,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                   className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-2 py-1"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCreateSubcontratista();
+                    openAddModal();
                   }}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -676,7 +762,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
 
 
               {/* Table header */}
-              <div className="grid grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-[#777770]  pb-2 border-b border-gray-200 text-left">
+              <div className="grid grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-[#777770]  pb-2 border-gray-200 text-left">
                 <span className="w-14" />
                 <span>Subcontratista</span>
                 <span>Partida</span>
@@ -701,6 +787,12 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                     }
                     onUploadContrato={(file) =>
                       handleUploadFile(sub._id, file, "contrato")
+                    }
+                    onDeletePresupuesto={() =>
+                      handleDeleteFile(sub._id, "presupuesto")
+                    }
+                    onDeleteContrato={() =>
+                      handleDeleteFile(sub._id, "contrato")
                     }
                     uploadingField={
                       uploadingSubId === sub._id ? uploadingField : null
@@ -738,7 +830,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
               {/* Add button */}
               <button
                 className="mt-3 w-full flex items-start justify-start gap-2 text-sm text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 px-3 py-3 hover:border-gray-400 transition-colors"
-                onClick={handleCreateSubcontratista}
+                onClick={openAddModal}
               >
                 <Plus className="w-4 h-4" />
                 Agregar Subcontratista
@@ -747,6 +839,118 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
           )}
         </div>
       </div>
+
+      {/* =============== Add Subcontratista Modal =============== */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Agregar Subcontratista</DialogTitle>
+            <DialogDescription>
+              Ingresa los datos del subcontratista y asócialo a un contratista general.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Nombre */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Nombre del subcontratista
+              </label>
+              <Input
+                value={modalNombre}
+                onChange={(e) => setModalNombre(e.target.value)}
+                placeholder="Ej. Alberto Sánchez de Haro"
+                className="text-sm"
+              />
+            </div>
+
+            {/* Contratista General */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Contratista General
+              </label>
+              {!showNewCgInput ? (
+                <div className="space-y-2">
+                  <Select
+                    value={modalCgId}
+                    onValueChange={(val) => setModalCgId(val)}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Seleccionar contratista general">
+                        {cgs.find((c) => c._id === modalCgId)?.nombre || "Seleccionar contratista general"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cgs.map((cg) => (
+                        <SelectItem key={cg._id} value={cg._id}>
+                          {cg.nombre}
+                        </SelectItem>
+                      ))}
+                      {cgs.length === 0 && (
+                        <div className="px-2 py-1.5 text-xs text-gray-400">
+                          No hay contratistas generales
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+                    onClick={() => {
+                      setShowNewCgInput(true);
+                      setModalCgId("");
+                    }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Crear nuevo contratista general
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    value={modalNewCgName}
+                    onChange={(e) => setModalNewCgName(e.target.value)}
+                    placeholder="Nombre del nuevo contratista general"
+                    className="text-sm"
+                  />
+                  <button
+                    type="button"
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                    onClick={() => {
+                      setShowNewCgInput(false);
+                      setModalNewCgName("");
+                    }}
+                  >
+                    Seleccionar uno existente
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <button
+              type="button"
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              onClick={() => setShowAddModal(false)}
+              disabled={modalCreating}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 text-sm bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 rounded-sm"
+              onClick={handleModalCreate}
+              disabled={modalCreating || (!modalNombre.trim())}
+            >
+              {modalCreating ? (
+                <Loader2 className="w-4 h-4 animate-spin inline mr-1" />
+              ) : null}
+              Crear Subcontratista
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
