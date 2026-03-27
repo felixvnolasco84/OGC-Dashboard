@@ -402,7 +402,7 @@ function LicenciaSection({
   onUploadDocument: (seccion: SeccionType, file: File, replace: boolean) => void;
   uploading: boolean;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="border border-gray-200 rounded-sm bg-white">
@@ -489,7 +489,7 @@ function PolizaSection({
   onUploadDocument: (seccion: SeccionType, file: File, replace: boolean) => void;
   uploading: boolean;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [sumaInput, setSumaInput] = useState("");
 
   const handleSumaBlur = () => {
@@ -599,7 +599,7 @@ function TramitesSection({
   onUploadTramiteDocument: (tramiteId: Id<"autorizaciones_obra_tramites">, file: File) => void;
   uploadingTramiteId: string | null;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="border border-gray-200 rounded-sm bg-white">
@@ -831,7 +831,7 @@ function PlanSeguridadSection({
   onUploadDocument: (seccion: SeccionType, file: File, replace: boolean) => void;
   uploading: boolean;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="border border-gray-200 rounded-sm bg-white">
