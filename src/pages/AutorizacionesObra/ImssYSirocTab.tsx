@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { useUser } from "@clerk/clerk-react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,9 @@ import {
   Loader2,
   MoreHorizontal,
   Trash2,
-  Upload,
+  RefreshCw,
+  History,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StatusDot, ResponsableSelector } from "./PermisosYLegalTab";
@@ -81,6 +84,21 @@ interface PagoCuotaRow {
   soporte_url?: string | null;
 }
 
+interface PartidaNivel1 {
+  _id: Id<"partidas">;
+  nombre: string;
+}
+
+interface HistorialEntry {
+  _id: string;
+  documento_nombre: string;
+  documento_type: string;
+  documento_size: number;
+  replaced_at: number;
+  replaced_by_name?: string;
+  url?: string | null;
+}
+
 // ============================================================
 // Helpers
 // ============================================================
@@ -103,23 +121,36 @@ function formatFileDate(timestamp?: number): string {
 // Sub-components
 // ============================================================
 
-/** File upload cell */
-function FileUploadCell({
+/** File cell with replace, delete & history support */
+function FileCell({
   nombre,
   uploadedAt,
   url,
   onUpload,
+  onDelete,
   uploading,
   placeholder,
+  parentType,
+  parentId,
 }: {
   nombre?: string;
   uploadedAt?: number;
   url?: string | null;
   onUpload: (file: File) => void;
+  onDelete?: () => void;
   uploading: boolean;
   placeholder?: string;
+  parentType: string;
+  parentId: string;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const historial = useQuery(
+    api.autorizaciones_obra.getHistorial,
+    parentId ? { parent_type: parentType, parent_id: parentId } : "skip"
+  );
 
   return (
     <div>
@@ -133,35 +164,100 @@ function FileUploadCell({
           if (fileInputRef.current) fileInputRef.current.value = "";
         }}
       />
+      <input
+        ref={replaceInputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUpload(f);
+          if (replaceInputRef.current) replaceInputRef.current.value = "";
+        }}
+      />
       {nombre ? (
         <div className="flex flex-col">
-          <a
-            href={url || "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-600"
-          >
-            <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-            <span className="font-medium truncate max-w-[180px]">{nombre}</span>
-          </a>
+          <div className="flex items-center gap-1">
+            <a
+              href={url || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-600"
+            >
+              <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+              <span className="font-normal truncate max-w-[150px]">{nombre}</span>
+            </a>
+            <button
+              className="text-gray-400 hover:text-gray-600 p-0.5"
+              onClick={() => replaceInputRef.current?.click()}
+              disabled={uploading}
+              title="Reemplazar archivo"
+            >
+              {uploading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
+            </button>
+            {historial && historial.length > 0 && (
+              <button
+                className="text-gray-400 hover:text-gray-600 p-0.5"
+                onClick={() => setShowHistory(!showHistory)}
+                title="Ver historial de archivos"
+              >
+                <History className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                className="text-gray-400 hover:text-red-500 p-0.5"
+                onClick={onDelete}
+                title="Eliminar archivo"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
           {uploadedAt && (
-            <span className="text-xs text-[#C5C5C3] mt-0.5 ml-5.5">
+            <span className="text-xs text-[#C5C5C3] mt-0.5 ml-5.5 font-light text-left">
               {formatFileDate(uploadedAt)}
             </span>
+          )}
+          {showHistory && historial && historial.length > 0 && (
+            <div className="mt-2 border border-gray-100 rounded p-2 bg-gray-50">
+              <div className="text-xs font-normal text-gray-500 mb-1">Historial de archivos</div>
+              {historial.map((h: HistorialEntry) => (
+                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-gray-500">
+                  <FileText className="w-3 h-3 shrink-0" />
+                  <a
+                    href={h.url || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline truncate max-w-[120px]"
+                  >
+                    {h.documento_nombre}
+                  </a>
+                  <span className="shrink-0 text-gray-400">
+                    {new Date(h.replaced_at).toLocaleDateString("es-MX")}
+                  </span>
+                  {h.replaced_by_name && (
+                    <span className="shrink-0 text-gray-400">por {h.replaced_by_name}</span>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       ) : (
         <button
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600"
+          className="text-sm text-gray-400 hover:text-gray-600"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
           {uploading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <Upload className="w-4 h-4" />
+            placeholder || "Por confirmar"
           )}
-          {placeholder || "Agregar archivo"}
         </button>
       )}
     </div>
@@ -173,18 +269,24 @@ function PagoCuotaTableRow({
   pago,
   onUploadComprobante,
   onUploadSoporte,
+  onDeleteComprobante,
+  onDeleteSoporte,
   onUpdate,
   onDelete,
   uploadingField,
   showCuotaTipo,
+  partidas,
 }: {
   pago: PagoCuotaRow;
   onUploadComprobante: (file: File) => void;
   onUploadSoporte: (file: File) => void;
+  onDeleteComprobante: () => void;
+  onDeleteSoporte: () => void;
   onUpdate: (fields: { cuota_tipo?: string; monto?: number }) => void;
   onDelete: () => void;
   uploadingField: "comprobante" | "soporte" | null;
   showCuotaTipo: boolean;
+  partidas: PartidaNivel1[];
 }) {
   const [editMonto, setEditMonto] = useState("");
 
@@ -193,25 +295,31 @@ function PagoCuotaTableRow({
     : "grid-cols-[1.2fr_1.2fr_1fr_auto]";
 
   return (
-    <div className={`grid ${cols} gap-4 items-center py-3 border-b border-gray-50`}>
+    <div className={`grid ${cols} gap-4 items-center bg-[#FBFBFB] p-3 border-b  mt-2 border border-[#EAEAEA] rounded-sm`}>
       {/* Comprobante */}
-      <FileUploadCell
+      <FileCell
         nombre={pago.comprobante_nombre}
         uploadedAt={pago.comprobante_uploaded_at}
         url={pago.comprobante_url}
         onUpload={onUploadComprobante}
+        onDelete={pago.comprobante_nombre ? onDeleteComprobante : undefined}
         uploading={uploadingField === "comprobante"}
         placeholder="Agregar comprobante"
+        parentType="imss_comprobante"
+        parentId={pago._id}
       />
 
       {/* Soporte */}
-      <FileUploadCell
+      <FileCell
         nombre={pago.soporte_nombre}
         uploadedAt={pago.soporte_uploaded_at}
         url={pago.soporte_url}
         onUpload={onUploadSoporte}
+        onDelete={pago.soporte_nombre ? onDeleteSoporte : undefined}
         uploading={uploadingField === "soporte"}
         placeholder="Agregar soporte"
+        parentType="imss_soporte"
+        parentId={pago._id}
       />
 
       {/* Cuota tipo (only for CG section) */}
@@ -226,8 +334,11 @@ function PagoCuotaTableRow({
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Mano de Obra">Mano de Obra</SelectItem>
-            <SelectItem value="Material">Material</SelectItem>
+            {partidas.map((p) => (
+              <SelectItem key={p._id} value={p.nombre}>
+                {p.nombre}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       )}
@@ -267,18 +378,22 @@ function PagosCuotaSection({
   onUpdatePago,
   onDeletePago,
   onUploadFile,
+  onDeleteFile,
   uploadingPagoId,
   uploadingField,
   showCuotaTipo,
+  partidas,
 }: {
   pagos: PagoCuotaRow[];
   onCreatePago: () => void;
   onUpdatePago: (id: Id<"imss_pagos_cuota">, fields: { cuota_tipo?: string; monto?: number }) => void;
   onDeletePago: (id: Id<"imss_pagos_cuota">) => void;
   onUploadFile: (pagoId: Id<"imss_pagos_cuota">, file: File, field: "comprobante" | "soporte") => void;
+  onDeleteFile: (pagoId: Id<"imss_pagos_cuota">, field: "comprobante" | "soporte") => void;
   uploadingPagoId: string | null;
   uploadingField: "comprobante" | "soporte" | null;
   showCuotaTipo: boolean;
+  partidas: PartidaNivel1[];
 }) {
   const headerCols = showCuotaTipo
     ? "grid-cols-[1.2fr_1.2fr_1fr_1fr_auto]"
@@ -287,7 +402,7 @@ function PagosCuotaSection({
   return (
     <div className="mt-4">
       {/* Header */}
-      <div className={`grid ${headerCols} gap-4 text-xs text-gray-500 font-medium pb-2 border-b border-gray-200`}>
+      <div className={`grid ${headerCols} gap-4 text-xs text-[#777770] font-normal pb-2 text-left`}>
         <span>Comprobante</span>
         <span>Soporte</span>
         {showCuotaTipo && <span>Cuota</span>}
@@ -302,10 +417,13 @@ function PagosCuotaSection({
           pago={p}
           onUploadComprobante={(file) => onUploadFile(p._id, file, "comprobante")}
           onUploadSoporte={(file) => onUploadFile(p._id, file, "soporte")}
+          onDeleteComprobante={() => onDeleteFile(p._id, "comprobante")}
+          onDeleteSoporte={() => onDeleteFile(p._id, "soporte")}
           onUpdate={(fields) => onUpdatePago(p._id, fields)}
           onDelete={() => onDeletePago(p._id)}
           uploadingField={uploadingPagoId === p._id ? uploadingField : null}
           showCuotaTipo={showCuotaTipo}
+          partidas={partidas}
         />
       ))}
 
@@ -336,11 +454,13 @@ function SubcontratistaImssRow({
   onUpdatePago,
   onDeletePago,
   onUploadPagoFile,
+  onDeletePagoFile,
   onUploadSirocFile,
   onUpdateSirocNumero,
   uploadingPagoId,
   uploadingField,
   uploadingSirocId,
+  partidas,
 }: {
   sub: SubcontratistaRow;
   pagos: PagoCuotaRow[];
@@ -349,11 +469,13 @@ function SubcontratistaImssRow({
   onUpdatePago: (id: Id<"imss_pagos_cuota">, fields: { cuota_tipo?: string; monto?: number }) => void;
   onDeletePago: (id: Id<"imss_pagos_cuota">) => void;
   onUploadPagoFile: (pagoId: Id<"imss_pagos_cuota">, file: File, field: "comprobante" | "soporte") => void;
+  onDeletePagoFile: (pagoId: Id<"imss_pagos_cuota">, field: "comprobante" | "soporte") => void;
   onUploadSirocFile: (file: File) => void;
   onUpdateSirocNumero: (numero: string) => void;
   uploadingPagoId: string | null;
   uploadingField: "comprobante" | "soporte" | null;
   uploadingSirocId: string | null;
+  partidas: PartidaNivel1[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editSiroc, setEditSiroc] = useState(sub.siroc_numero || "");
@@ -366,12 +488,12 @@ function SubcontratistaImssRow({
     <div>
       {/* Row */}
       <div
-        className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 items-center py-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50"
+        className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 items-center p-3 border border-[#EAEAEA] cursor-pointer bg-[#FBFBFB] mt-2 rounded-sm"
         onClick={() => setExpanded(!expanded)}
       >
         <span className="text-sm text-gray-900">{sub.nombre || "Sin nombre"}</span>
         <span className="text-sm text-gray-500">{sub.partida_nombre || "—"}</span>
-        <span className="text-sm text-gray-700 font-medium">{sub.siroc_numero || "—"}</span>
+        <span className="text-sm text-gray-700 font-normal">{sub.siroc_numero || "—"}</span>
         {/* Progress bar */}
         <div className="flex items-center gap-2">
           <div className="flex-1 h-2 bg-gray-100 overflow-hidden">
@@ -390,7 +512,7 @@ function SubcontratistaImssRow({
 
       {/* Expanded content */}
       {expanded && (
-        <div className="px-4 py-4 bg-gray-50 border-b border-gray-100">
+        <div className="px-4 py-4 bg-gray-50 border border-[#EAEAEA]">
           <div className="flex gap-8">
             {/* Left: SIROC + Contrato */}
             <div className="w-48 shrink-0 space-y-4">
@@ -407,13 +529,15 @@ function SubcontratistaImssRow({
                   }}
                   placeholder="Número SIROC"
                 />
-                <FileUploadCell
+                <FileCell
                   nombre={sub.siroc_nombre}
                   uploadedAt={sub.siroc_uploaded_at}
                   url={sub.siroc_url}
                   onUpload={onUploadSirocFile}
                   uploading={uploadingSirocId === sub._id}
                   placeholder="Agregar SIROC"
+                  parentType="imss_siroc_sub"
+                  parentId={sub._id}
                 />
               </div>
               <div>
@@ -426,7 +550,7 @@ function SubcontratistaImssRow({
                     className="flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-600"
                   >
                     <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                    <span className="font-medium truncate max-w-[140px]">{sub.contrato_nombre}</span>
+                    <span className="font-normal truncate max-w-[140px]">{sub.contrato_nombre}</span>
                   </a>
                 ) : (
                   <span className="text-sm text-gray-400">Sin contrato</span>
@@ -442,9 +566,11 @@ function SubcontratistaImssRow({
                 onUpdatePago={onUpdatePago}
                 onDeletePago={onDeletePago}
                 onUploadFile={onUploadPagoFile}
+                onDeleteFile={onDeletePagoFile}
                 uploadingPagoId={uploadingPagoId}
                 uploadingField={uploadingField}
                 showCuotaTipo={false}
+                partidas={partidas}
               />
             </div>
           </div>
@@ -459,11 +585,13 @@ function SubcontratistaImssRow({
 // ============================================================
 
 export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
+  const { user } = useUser();
   const [uploadingPagoId, setUploadingPagoId] = useState<string | null>(null);
   const [uploadingField, setUploadingField] = useState<"comprobante" | "soporte" | null>(null);
   const [uploadingSirocId, setUploadingSirocId] = useState<string | null>(null);
   const [uploadingContratoId, setUploadingContratoId] = useState<string | null>(null);
   const [costoInput, setCostoInput] = useState("");
+  const [isEditingCostoTotal, setIsEditingCostoTotal] = useState(false);
 
   // ============================================================
   // Queries
@@ -485,6 +613,10 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
   const allUsers = useQuery(api.autorizaciones_obra.getAllUsers);
+  const allPartidas = useQuery(
+    api.partida.getByNivel,
+    proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, nivel: 1 } : "skip"
+  );
 
   // ============================================================
   // Mutations
@@ -495,6 +627,8 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
   const deletePago = useMutation(api.imss_siroc.deletePagoCuota);
   const attachComprobante = useMutation(api.imss_siroc.attachComprobante);
   const attachSoporte = useMutation(api.imss_siroc.attachSoporte);
+  const removeComprobante = useMutation(api.imss_siroc.removeComprobante);
+  const removeSoporte = useMutation(api.imss_siroc.removeSoporte);
   const generateUploadUrl = useMutation(api.imss_siroc.generateUploadUrl);
   const updateCG = useMutation(api.subcontratistas.updateContratistaGeneral);
   const attachCGContrato = useMutation(api.subcontratistas.attachContratistaGeneralContrato);
@@ -509,6 +643,17 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
   const subs = (subcontratistas || []) as SubcontratistaRow[];
   const pagos = (allPagos || []) as PagoCuotaRow[];
   const users = allUsers || [];
+  const partidas: PartidaNivel1[] = useMemo(() => {
+    if (!allPartidas) return [];
+    const seen = new Set<string>();
+    return allPartidas
+      .filter((p) => {
+        if (seen.has(p.nombre)) return false;
+        seen.add(p.nombre);
+        return true;
+      })
+      .map((p) => ({ _id: p._id, nombre: p.nombre }));
+  }, [allPartidas]);
 
   const costoTotal = imssConfig?.costo_total_imss || 0;
   const montoCG = costoTotal * 0.2;
@@ -569,6 +714,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
   // ============================================================
 
   const handleSaveCostoTotal = useCallback(async () => {
+    setIsEditingCostoTotal(false);
     const num = parseFloat(costoInput.replace(/[^0-9.]/g, ""));
     if (!isNaN(num)) {
       try {
@@ -647,6 +793,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             nombre: file.name,
             size: file.size,
             type: file.type,
+            clerk_id: user?.id,
           });
         } else {
           await attachSoporte({
@@ -655,6 +802,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             nombre: file.name,
             size: file.size,
             type: file.type,
+            clerk_id: user?.id,
           });
         }
         toast.success("Archivo adjuntado");
@@ -666,7 +814,24 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
         setUploadingField(null);
       }
     },
-    [generateUploadUrl, attachComprobante, attachSoporte]
+    [generateUploadUrl, attachComprobante, attachSoporte, user]
+  );
+
+  const handleDeletePagoFile = useCallback(
+    async (pagoId: Id<"imss_pagos_cuota">, field: "comprobante" | "soporte") => {
+      try {
+        if (field === "comprobante") {
+          await removeComprobante({ id: pagoId });
+        } else {
+          await removeSoporte({ id: pagoId });
+        }
+        toast.success("Documento eliminado");
+      } catch (err) {
+        console.error("Error removing file:", err);
+        toast.error("Error al eliminar documento");
+      }
+    },
+    [removeComprobante, removeSoporte]
   );
 
   const handleUploadCGContrato = useCallback(
@@ -759,6 +924,10 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
     [generateUploadUrl, attachSubSiroc]
   );
 
+  const handleEditCostoTotal = () => {
+    setIsEditingCostoTotal(true);
+  };
+
   // ============================================================
   // Render
   // ============================================================
@@ -775,14 +944,22 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
         <div className="grid grid-cols-3 gap-6">
           <div>
             <p className="text-xs text-gray-500 mb-1">Costo Total Obra IMSS</p>
-            <Input
-              className="text-3xl font-light h-auto py-1 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300"
-              value={costoInput || (costoTotal ? formatCurrencyMXN(costoTotal) : "")}
-              onFocus={() => setCostoInput(costoTotal?.toString() || "")}
-              onChange={(e) => setCostoInput(e.target.value)}
-              onBlur={handleSaveCostoTotal}
-              placeholder="$0.00"
-            />
+            {
+              !isEditingCostoTotal ? (
+                <p className="text-3xl font-light text-gray-900 cursor-pointer" onClick={handleEditCostoTotal}>{formatCurrencyMXN(costoTotal)}</p>
+              ) : (
+                <Input
+                  autoFocus
+                  className="text-3xl font-light h-auto py-1 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300"
+                  value={costoInput}
+                  onFocus={() => setCostoInput(costoTotal?.toString() || "")}
+                  onChange={(e) => setCostoInput(e.target.value)}
+                  onBlur={handleSaveCostoTotal}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setIsEditingCostoTotal(false); setCostoInput(""); } }}
+                  placeholder="$0.00"
+                />
+              )
+            }
             <p className="text-xs text-gray-400 mt-1">Base total registrada ante IMSS</p>
           </div>
           <div>
@@ -843,7 +1020,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
 
         <div className="px-6 pb-6 pt-4">
           {/* CG Table */}
-          <div className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 text-xs text-gray-500 font-medium pb-2 border-b border-gray-200">
+          <div className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 text-xs  font-normal pb-2 border-b border-gray-200 text-[#777770] text-left">
             <span className="w-6" />
             <span>Contratista</span>
             <span>Contrato</span>
@@ -858,7 +1035,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             return (
               <div
                 key={cg._id}
-                className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 items-center py-4 border-b border-gray-100"
+                className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 items-center py-4 border-b border-gray-100 text-left"
               >
                 <StatusDot
                   status={cg.status_manual}
@@ -874,13 +1051,15 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                   }}
                 />
                 <span className="text-sm text-gray-900">{cg.nombre}</span>
-                <FileUploadCell
+                <FileCell
                   nombre={cg.contrato_nombre}
                   uploadedAt={cg.contrato_uploaded_at}
                   url={cg.contrato_url}
                   onUpload={(file) => handleUploadCGContrato(cg._id, file)}
                   uploading={uploadingContratoId === cg._id}
                   placeholder="Agregar contrato"
+                  parentType="imss_cg_contrato"
+                  parentId={cg._id}
                 />
                 <span className="text-sm text-gray-900 text-right">{formatCurrencyMXN(cgTotal)}</span>
                 <Popover>
@@ -915,22 +1094,24 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
 
           {/* SIROC sub-section (for CG) */}
           {mainCG && (
-            <div className="mt-6 border border-gray-200 rounded-sm p-6">
-              <div className="flex items-start gap-8">
+            <div className="mt-6 border border-[#ECECEC] rounded-sm p-6">
+              <div className="flex items-start gap-8 border-b border-[#ECECEC] pb-4">
                 {/* Left: SIROC info */}
                 <div className="shrink-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-normal text-gray-900">
                       SIROC: {mainCG.siroc_numero || "Sin número"}
                     </span>
                   </div>
-                  <FileUploadCell
+                  <FileCell
                     nombre={mainCG.siroc_nombre}
                     uploadedAt={mainCG.siroc_uploaded_at}
                     url={mainCG.siroc_url}
                     onUpload={(file) => handleUploadCGSiroc(mainCG._id, file)}
                     uploading={uploadingSirocId === mainCG._id}
                     placeholder="Agregar archivo SIROC"
+                    parentType="imss_cg_siroc"
+                    parentId={mainCG._id}
                   />
                 </div>
 
@@ -939,19 +1120,19 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                   <div className="grid grid-cols-4 gap-4 mb-4">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Contratista General</p>
-                      <p className="text-lg font-medium text-gray-900">{formatCurrencyMXN(montoCG)}</p>
+                      <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(montoCG)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Avance Mano de Obra</p>
-                      <p className="text-lg font-medium text-gray-900">{formatCurrencyMXN(avanceManoObraCG)}</p>
+                      <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(avanceManoObraCG)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Avance Material</p>
-                      <p className="text-lg font-medium text-gray-900">{formatCurrencyMXN(avanceMaterialCG)}</p>
+                      <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(avanceMaterialCG)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Avance Total</p>
-                      <p className="text-lg font-medium text-gray-900">{formatCurrencyMXN(avanceTotalCG)}</p>
+                      <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(avanceTotalCG)}</p>
                     </div>
                   </div>
 
@@ -975,9 +1156,11 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 onUpdatePago={handleUpdatePago}
                 onDeletePago={handleDeletePago}
                 onUploadFile={handleUploadPagoFile}
+                onDeleteFile={handleDeletePagoFile}
                 uploadingPagoId={uploadingPagoId}
                 uploadingField={uploadingField}
                 showCuotaTipo={true}
+                partidas={partidas}
               />
             </div>
           )}
@@ -1013,7 +1196,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             <div className="flex items-start gap-8">
               <div className="shrink-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-normal text-gray-900">
                     SIROC: {mainCG?.siroc_numero || "Sin número"}
                   </span>
                 </div>
@@ -1025,7 +1208,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                     className="flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-600"
                   >
                     <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                    <span className="font-medium">{mainCG.siroc_nombre}</span>
+                    <span className="font-normal">{mainCG.siroc_nombre}</span>
                   </a>
                 )}
               </div>
@@ -1034,11 +1217,11 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Subcontratistas</p>
-                    <p className="text-lg font-medium text-gray-900">{formatCurrencyMXN(montoSubs)}</p>
+                    <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(montoSubs)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-gray-500 mb-1">Avance Total</p>
-                    <p className="text-lg font-medium text-gray-900">{formatCurrencyMXN(totalPagosSubs)}</p>
+                    <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(totalPagosSubs)}</p>
                   </div>
                 </div>
                 <div className="w-full h-2 bg-[#C9EEDA] overflow-hidden">
@@ -1055,7 +1238,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           </div>
 
           {/* Subcontratistas table */}
-          <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 text-xs text-gray-500 font-medium pb-2 border-b border-gray-200">
+          <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 text-xs text-gray-500 font-normal pb-2 border-b border-gray-200">
             <span>Subcontratista</span>
             <span>Partida</span>
             <span>SIROC</span>
@@ -1079,6 +1262,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 onUpdatePago={handleUpdatePago}
                 onDeletePago={handleDeletePago}
                 onUploadPagoFile={handleUploadPagoFile}
+                onDeletePagoFile={handleDeletePagoFile}
                 onUploadSirocFile={(file) => handleUploadSubSiroc(sub._id, file)}
                 onUpdateSirocNumero={async (numero) => {
                   try {
@@ -1091,6 +1275,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 uploadingPagoId={uploadingPagoId}
                 uploadingField={uploadingField}
                 uploadingSirocId={uploadingSirocId}
+                partidas={partidas}
               />
             );
           })}

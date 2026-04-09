@@ -155,7 +155,7 @@ export const deletePagoCuota = mutation({
   },
 });
 
-// Attach comprobante file to a pago
+// Attach comprobante file to a pago (with history support)
 export const attachComprobante = mutation({
   args: {
     id: v.id("imss_pagos_cuota"),
@@ -163,8 +163,35 @@ export const attachComprobante = mutation({
     nombre: v.string(),
     size: v.number(),
     type: v.string(),
+    clerk_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const pago = await ctx.db.get(args.id);
+    if (!pago) throw new Error("Pago not found");
+
+    // Move existing to history
+    if (pago.comprobante_storage_id && pago.comprobante_nombre) {
+      let replacedByUser = null;
+      if (args.clerk_id) {
+        replacedByUser = await ctx.db
+          .query("users")
+          .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id!))
+          .first();
+      }
+      await ctx.db.insert("autorizaciones_obra_historial", {
+        proyecto: pago.proyecto,
+        parent_type: "imss_comprobante",
+        parent_id: pago._id,
+        documento_storage_id: pago.comprobante_storage_id,
+        documento_nombre: pago.comprobante_nombre,
+        documento_size: pago.comprobante_size ?? 0,
+        documento_type: pago.comprobante_type ?? "",
+        replaced_at: Date.now(),
+        replaced_by_id: replacedByUser?._id,
+        replaced_by_name: replacedByUser?.name,
+      });
+    }
+
     await ctx.db.patch(args.id, {
       comprobante_storage_id: args.storage_id,
       comprobante_nombre: args.nombre,
@@ -175,7 +202,7 @@ export const attachComprobante = mutation({
   },
 });
 
-// Attach soporte file to a pago
+// Attach soporte file to a pago (with history support)
 export const attachSoporte = mutation({
   args: {
     id: v.id("imss_pagos_cuota"),
@@ -183,14 +210,73 @@ export const attachSoporte = mutation({
     nombre: v.string(),
     size: v.number(),
     type: v.string(),
+    clerk_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const pago = await ctx.db.get(args.id);
+    if (!pago) throw new Error("Pago not found");
+
+    // Move existing to history
+    if (pago.soporte_storage_id && pago.soporte_nombre) {
+      let replacedByUser = null;
+      if (args.clerk_id) {
+        replacedByUser = await ctx.db
+          .query("users")
+          .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id!))
+          .first();
+      }
+      await ctx.db.insert("autorizaciones_obra_historial", {
+        proyecto: pago.proyecto,
+        parent_type: "imss_soporte",
+        parent_id: pago._id,
+        documento_storage_id: pago.soporte_storage_id,
+        documento_nombre: pago.soporte_nombre,
+        documento_size: pago.soporte_size ?? 0,
+        documento_type: pago.soporte_type ?? "",
+        replaced_at: Date.now(),
+        replaced_by_id: replacedByUser?._id,
+        replaced_by_name: replacedByUser?.name,
+      });
+    }
+
     await ctx.db.patch(args.id, {
       soporte_storage_id: args.storage_id,
       soporte_nombre: args.nombre,
       soporte_size: args.size,
       soporte_type: args.type,
       soporte_uploaded_at: Date.now(),
+    });
+  },
+});
+
+// Remove comprobante file from a pago
+export const removeComprobante = mutation({
+  args: { id: v.id("imss_pagos_cuota") },
+  handler: async (ctx, args) => {
+    const pago = await ctx.db.get(args.id);
+    if (!pago) throw new Error("Pago not found");
+    await ctx.db.patch(args.id, {
+      comprobante_storage_id: undefined,
+      comprobante_nombre: undefined,
+      comprobante_size: undefined,
+      comprobante_type: undefined,
+      comprobante_uploaded_at: undefined,
+    });
+  },
+});
+
+// Remove soporte file from a pago
+export const removeSoporte = mutation({
+  args: { id: v.id("imss_pagos_cuota") },
+  handler: async (ctx, args) => {
+    const pago = await ctx.db.get(args.id);
+    if (!pago) throw new Error("Pago not found");
+    await ctx.db.patch(args.id, {
+      soporte_storage_id: undefined,
+      soporte_nombre: undefined,
+      soporte_size: undefined,
+      soporte_type: undefined,
+      soporte_uploaded_at: undefined,
     });
   },
 });
