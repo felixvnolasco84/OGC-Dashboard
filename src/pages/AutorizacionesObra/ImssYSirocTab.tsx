@@ -445,6 +445,128 @@ function PagosCuotaSection({
   );
 }
 
+/** Single row for SubPagosCuotaSection */
+function SubPagoCuotaRow({
+  pago,
+  onUploadFile,
+  onDeleteFile,
+  onUpdateMonto,
+  uploadingComprobante,
+  uploadingSoporte,
+}: {
+  pago: PagoCuotaRow;
+  onUploadFile: (file: File, field: "comprobante" | "soporte") => void;
+  onDeleteFile: (field: "comprobante" | "soporte") => void;
+  onUpdateMonto: (monto: number) => void;
+  uploadingComprobante: boolean;
+  uploadingSoporte: boolean;
+}) {
+  const [editMonto, setEditMonto] = useState("");
+
+  return (
+    <div className="grid grid-cols-[1.2fr_1.2fr_1fr] gap-4 items-center px-5 py-4 border-b border-[#EAEAEA] last:border-b-0">
+      <FileCell
+        nombre={pago.comprobante_nombre}
+        uploadedAt={pago.comprobante_uploaded_at}
+        url={pago.comprobante_url}
+        onUpload={(file) => onUploadFile(file, "comprobante")}
+        onDelete={pago.comprobante_nombre ? () => onDeleteFile("comprobante") : undefined}
+        uploading={uploadingComprobante}
+        placeholder="Agregar comprobante"
+        parentType="imss_comprobante"
+        parentId={pago._id}
+      />
+      <FileCell
+        nombre={pago.soporte_nombre}
+        uploadedAt={pago.soporte_uploaded_at}
+        url={pago.soporte_url}
+        onUpload={(file) => onUploadFile(file, "soporte")}
+        onDelete={pago.soporte_nombre ? () => onDeleteFile("soporte") : undefined}
+        uploading={uploadingSoporte}
+        placeholder="Agregar soporte"
+        parentType="imss_soporte"
+        parentId={pago._id}
+      />
+      <Input
+        className="h-8 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300 text-sm text-right"
+        value={editMonto || (pago.monto ? formatCurrencyMXN(pago.monto) : "")}
+        onFocus={() => setEditMonto(pago.monto?.toString() || "")}
+        onChange={(e) => setEditMonto(e.target.value)}
+        onBlur={() => {
+          const num = parseFloat(editMonto.replace(/[^0-9.]/g, ""));
+          if (!isNaN(num) && num !== pago.monto) {
+            onUpdateMonto(num);
+          }
+          setEditMonto("");
+        }}
+        placeholder="$0.00"
+      />
+    </div>
+  );
+}
+
+/** Pagos de Cuota section for Subcontratistas (different styling) */
+function SubPagosCuotaSection({
+  pagos,
+  onCreatePago,
+  onUpdatePago,
+  onUploadFile,
+  onDeleteFile,
+  uploadingPagoId,
+  uploadingField,
+}: {
+  pagos: PagoCuotaRow[];
+  onCreatePago: () => void;
+  onUpdatePago: (id: Id<"imss_pagos_cuota">, fields: { cuota_tipo?: string; monto?: number }) => void;
+  onUploadFile: (pagoId: Id<"imss_pagos_cuota">, file: File, field: "comprobante" | "soporte") => void;
+  onDeleteFile: (pagoId: Id<"imss_pagos_cuota">, field: "comprobante" | "soporte") => void;
+  uploadingPagoId: string | null;
+  uploadingField: "comprobante" | "soporte" | null;
+}) {
+  return (
+    <div className="border border-[#E8E8E7] rounded-sm">
+      {/* Header */}
+      <div className="grid grid-cols-[1.2fr_1.2fr_1fr] gap-4 text-xs text-[#777770] font-normal px-5 py-3 border-b border-[#EAEAEA]">
+        <span>Comprobante</span>
+        <span>Soporte</span>
+        <span className="text-right">Monto</span>
+      </div>
+
+      {/* Scrollable rows */}
+      <div className="max-h-[120px] overflow-y-auto">
+        {pagos.map((p) => (
+          <SubPagoCuotaRow
+            key={p._id}
+            pago={p}
+            onUploadFile={(file, field) => onUploadFile(p._id, file, field)}
+            onDeleteFile={(field) => onDeleteFile(p._id, field)}
+            onUpdateMonto={(monto) => onUpdatePago(p._id, { monto })}
+            uploadingComprobante={uploadingPagoId === p._id && uploadingField === "comprobante"}
+            uploadingSoporte={uploadingPagoId === p._id && uploadingField === "soporte"}
+          />
+        ))}
+
+        {pagos.length === 0 && (
+          <div className="py-6 text-center text-sm text-gray-400">
+            No hay pagos de cuota registrados
+          </div>
+        )}
+      </div>
+
+      {/* Add button */}
+      <div className="px-5 py-3 border-t border-[#EAEAEA]">
+        <button
+          className="w-full flex items-center justify-center gap-2 text-sm text-[#B9B9B7] hover:text-gray-600 border border-dashed border-[#D4D4D2] px-3 py-2.5 hover:border-gray-400 transition-colors rounded-sm"
+          onClick={onCreatePago}
+        >
+          <Plus className="w-4 h-4" />
+          Agregar Pago de Cuota
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Expandable Subcontratista Row for IMSS section */
 function SubcontratistaImssRow({
   sub,
@@ -452,7 +574,6 @@ function SubcontratistaImssRow({
   totalSubsMonto,
   onCreatePago,
   onUpdatePago,
-  onDeletePago,
   onUploadPagoFile,
   onDeletePagoFile,
   onUploadSirocFile,
@@ -460,7 +581,6 @@ function SubcontratistaImssRow({
   uploadingPagoId,
   uploadingField,
   uploadingSirocId,
-  partidas,
 }: {
   sub: SubcontratistaRow;
   pagos: PagoCuotaRow[];
@@ -559,18 +679,15 @@ function SubcontratistaImssRow({
             </div>
 
             {/* Right: Pagos */}
-            <div className="flex-1 border border-gray-200 rounded p-4">
-              <PagosCuotaSection
+            <div className="flex-1">
+              <SubPagosCuotaSection
                 pagos={pagos}
                 onCreatePago={onCreatePago}
                 onUpdatePago={onUpdatePago}
-                onDeletePago={onDeletePago}
                 onUploadFile={onUploadPagoFile}
                 onDeleteFile={onDeletePagoFile}
                 uploadingPagoId={uploadingPagoId}
                 uploadingField={uploadingField}
-                showCuotaTipo={false}
-                partidas={partidas}
               />
             </div>
           </div>
@@ -939,7 +1056,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
         <p className="text-base text-left text-[#282822]">Avance global IMSS</p>
       </div>
 
-      <div className="border border-gray-200 rounded-sm bg-white px-12 py-6 space-y-6">
+      <div className="border border-gray-200 rounded-sm  px-12 py-6 space-y-6">
         {/* Three metric cards */}
         <div className="grid grid-cols-3 gap-6 text-left">
           <div>
@@ -998,7 +1115,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       </div>
 
       {/* ====== SECTION 2: Contratista General ====== */}
-      <div className="mt-8 border border-gray-200 rounded-sm bg-white">
+      <div className="mt-8 border border-gray-200 rounded-sm ">
         {/* Header */}
         <div className="flex items-center justify-between px-12 py-6 border-b">
           <h3 className="text-base text-gray-900">Contratista General</h3>
@@ -1170,7 +1287,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       </div>
 
       {/* ====== SECTION 3: Subcontratistas ====== */}
-      <div className="mt-8 border border-gray-200 rounded-sm bg-white">
+      <div className="mt-8 border border-gray-200 rounded-sm ">
         {/* Header */}
         <div className="flex items-center justify-between px-12 py-6 border-b">
           <h3 className="text-base text-gray-900">Contratista General</h3>
