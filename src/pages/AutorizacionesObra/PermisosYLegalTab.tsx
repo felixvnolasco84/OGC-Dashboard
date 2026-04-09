@@ -130,7 +130,7 @@ export function StatusDot({
     <button
       onClick={onToggle}
       className={cn(
-        "w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors border-2",
+        "w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors border-2",
         isActive
           ? "bg-[#1A5D21] border-[#1A5D21] text-white"
           : "bg-white border-gray-300 text-gray-300 hover:border-gray-400"

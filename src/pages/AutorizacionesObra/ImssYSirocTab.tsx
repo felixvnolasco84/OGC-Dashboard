@@ -224,9 +224,9 @@ function FileCell({
           )}
           {showHistory && historial && historial.length > 0 && (
             <div className="mt-2 border border-gray-100 rounded p-2 bg-gray-50">
-              <div className="text-xs font-normal text-gray-500 mb-1">Historial de archivos</div>
+              <div className="text-xs font-normal text-[#5A5A50] mb-1">Historial de archivos</div>
               {historial.map((h: HistorialEntry) => (
-                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-gray-500">
+                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-[#5A5A50]">
                   <FileText className="w-3 h-3 shrink-0" />
                   <a
                     href={h.url || "#"}
@@ -328,7 +328,7 @@ function PagoCuotaTableRow({
           value={pago.cuota_tipo || ""}
           onValueChange={(val) => onUpdate({ cuota_tipo: val })}
         >
-          <SelectTrigger className="h-8 rounded-none border-gray-200 text-sm">
+          <SelectTrigger className="h-12 rounded-none border-gray-200 text-sm text-[#C2C2BF]">
             <SelectValue placeholder="Tipo">
               {pago.cuota_tipo || "Tipo"}
             </SelectValue>
@@ -400,7 +400,7 @@ function PagosCuotaSection({
     : "grid-cols-[1.2fr_1.2fr_1fr_auto]";
 
   return (
-    <div className="mt-4">
+    <div className="mt-8">
       {/* Header */}
       <div className={`grid ${headerCols} gap-4 text-xs text-[#777770] font-normal pb-2 text-left`}>
         <span>Comprobante</span>
@@ -485,14 +485,14 @@ function SubcontratistaImssRow({
   const barColor = progressPercent > 50 ? "bg-[#4CC684]" : progressPercent > 25 ? "bg-yellow-400" : "bg-orange-400";
 
   return (
-    <div>
+    <div className="text-left">
       {/* Row */}
       <div
-        className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 items-center p-3 border border-[#EAEAEA] cursor-pointer bg-[#FBFBFB] mt-2 rounded-sm"
+        className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 items-center px-4 py-6 border border-[#EAEAEA] cursor-pointer bg-[#FBFBFB] mt-2 rounded-sm"
         onClick={() => setExpanded(!expanded)}
       >
         <span className="text-sm text-gray-900">{sub.nombre || "Sin nombre"}</span>
-        <span className="text-sm text-gray-500">{sub.partida_nombre || "—"}</span>
+        <span className="text-sm text-[#5A5A50]">{sub.partida_nombre || "—"}</span>
         <span className="text-sm text-gray-700 font-normal">{sub.siroc_numero || "—"}</span>
         {/* Progress bar */}
         <div className="flex items-center gap-2">
@@ -515,11 +515,11 @@ function SubcontratistaImssRow({
         <div className="px-4 py-4 bg-gray-50 border border-[#EAEAEA]">
           <div className="flex gap-8">
             {/* Left: SIROC + Contrato */}
-            <div className="w-48 shrink-0 space-y-4">
+            <div className="w-48 shrink-0 space-y-4 p-4">
               <div>
-                <div className="text-xs text-gray-500 mb-1">SIROC</div>
+                <div className="text-xs text-[#5A5A50] mb-4">SIROC</div>
                 <Input
-                  className="h-7 rounded-none text-sm mb-1"
+                  className="h-7 rounded-none text-sm mb-4"
                   value={editSiroc}
                   onChange={(e) => setEditSiroc(e.target.value)}
                   onBlur={() => {
@@ -540,8 +540,8 @@ function SubcontratistaImssRow({
                   parentId={sub._id}
                 />
               </div>
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Contrato</div>
+              <div className="mt-4">
+                <div className="text-xs text-[#5A5A50] mb-1">Contrato</div>
                 {sub.contrato_nombre ? (
                   <a
                     href={sub.contrato_url || "#"}
@@ -559,7 +559,7 @@ function SubcontratistaImssRow({
             </div>
 
             {/* Right: Pagos */}
-            <div className="flex-1 border border-gray-200 rounded bg-white p-4">
+            <div className="flex-1 border border-gray-200 rounded p-4">
               <PagosCuotaSection
                 pagos={pagos}
                 onCreatePago={onCreatePago}
@@ -933,24 +933,24 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
   // ============================================================
 
   return (
-    <div>
+    <div className="px-16">
       {/* ====== SECTION 1: Avance global IMSS ====== */}
       <div className="pt-6 pb-4">
-        <p className="text-base text-left">Avance global IMSS</p>
+        <p className="text-base text-left text-[#282822]">Avance global IMSS</p>
       </div>
 
-      <div className="border border-gray-200 rounded-sm bg-white p-6 space-y-6">
+      <div className="border border-gray-200 rounded-sm bg-white px-12 py-6 space-y-6">
         {/* Three metric cards */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-6 text-left">
           <div>
-            <p className="text-xs text-gray-500 mb-1">Costo Total Obra IMSS</p>
+            <p className="text-xs text-[#5A5A50] mb-1">Costo Total Obra IMSS</p>
             {
               !isEditingCostoTotal ? (
-                <p className="text-3xl font-light text-gray-900 cursor-pointer" onClick={handleEditCostoTotal}>{formatCurrencyMXN(costoTotal)}</p>
+                <p className="text-3xl font-light text-gray-900 cursor-pointer mt-2" onClick={handleEditCostoTotal}>{formatCurrencyMXN(costoTotal)}</p>
               ) : (
                 <Input
                   autoFocus
-                  className="text-3xl font-light h-auto py-1 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300"
+                  className="text-3xl font-light h-auto py-1 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300 mt-2"
                   value={costoInput}
                   onFocus={() => setCostoInput(costoTotal?.toString() || "")}
                   onChange={(e) => setCostoInput(e.target.value)}
@@ -960,17 +960,17 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 />
               )
             }
-            <p className="text-xs text-gray-400 mt-1">Base total registrada ante IMSS</p>
+            <p className="text-xs text-[#5A5A50] mt-1">Base total registrada ante IMSS</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">Contratista General</p>
-            <p className="text-3xl font-light text-gray-900">{formatCurrencyMXN(montoCG)}</p>
-            <p className="text-xs text-gray-400 mt-1">~20% del costo de obra ejecutado directamente</p>
+            <p className="text-xs text-[#5A5A50] mb-1">Contratista General</p>
+            <p className="text-3xl font-light text-gray-900 mt-2">{formatCurrencyMXN(montoCG)}</p>
+            <p className="text-xs text-[#5A5A50] mt-1">~20% del costo de obra ejecutado directamente</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">Subcontratistas</p>
-            <p className="text-3xl font-light text-gray-900">{formatCurrencyMXN(montoSubs)}</p>
-            <p className="text-xs text-gray-400 mt-1">~80% participación de subcontratistas</p>
+            <p className="text-xs text-[#5A5A50] mb-1">Subcontratistas</p>
+            <p className="text-3xl font-light text-gray-900 mt-2">{formatCurrencyMXN(montoSubs)}</p>
+            <p className="text-xs text-[#5A5A50] mt-1">~80% participación de subcontratistas</p>
           </div>
         </div>
 
@@ -982,23 +982,25 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
               style={{ width: `${liquidadoPercent}%` }}
             />
           </div>
-          <div className="flex justify-between mt-2 text-xs text-gray-500">
+          <div className="flex justify-between mt-2 text-xs text-[#5A5A50]">
             <span>{Math.round(liquidadoPercent)}% liquidado</span>
             <span>Pendiente: {formatCurrencyMXN(pendiente)}</span>
           </div>
         </div>
 
         {/* Info banner */}
-        <div className="bg-orange-50 border border-orange-100 px-4 py-3 text-sm text-gray-700">
-          Las cuotas IMSS se estiman en función de la base de obra registrada y los salarios reportados.
-          Incluyen aportaciones obrero-patronales, INFONAVIT y SAR, y se determinan mediante el SUA.
+        <div className="bg-[#FBFAF2] border px-4 py-3 text-sm text-[#282822] rounded-md border-none  flex items-center gap-2">          
+          <span className="text-left">
+            Las cuotas IMSS se estiman en función de la base de obra registrada y los salarios reportados.
+            Incluyen aportaciones obrero-patronales, INFONAVIT y SAR, y se determinan mediante el SUA.
+          </span>
         </div>
       </div>
 
       {/* ====== SECTION 2: Contratista General ====== */}
       <div className="mt-8 border border-gray-200 rounded-sm bg-white">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-6 border-b">
+        <div className="flex items-center justify-between px-12 py-6 border-b">
           <h3 className="text-base text-gray-900">Contratista General</h3>
           <div className="flex items-center gap-3">
             {mainCG && (
@@ -1018,9 +1020,9 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           </div>
         </div>
 
-        <div className="px-6 pb-6 pt-4">
+        <div className="px-12 pb-6 pt-4">
           {/* CG Table */}
-          <div className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 text-xs  font-normal pb-2 border-b border-gray-200 text-[#777770] text-left">
+          <div className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 text-xs  font-normal pb-2  text-[#777770] text-left">
             <span className="w-6" />
             <span>Contratista</span>
             <span>Contrato</span>
@@ -1035,7 +1037,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             return (
               <div
                 key={cg._id}
-                className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 items-center py-4 border-b border-gray-100 text-left"
+                className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 items-center p-4 border bg-[#FBFBFB] border-[#E9E9E9] text-left rounded-sm"
               >
                 <StatusDot
                   status={cg.status_manual}
@@ -1095,7 +1097,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           {/* SIROC sub-section (for CG) */}
           {mainCG && (
             <div className="mt-6 border border-[#ECECEC] rounded-sm p-6">
-              <div className="flex items-start gap-8 border-b border-[#ECECEC] pb-4">
+              <div className="flex items-start gap-12 border-b border-[#ECECEC] pb-4">
                 {/* Left: SIROC info */}
                 <div className="shrink-0">
                   <div className="flex items-center gap-2 mb-2">
@@ -1117,22 +1119,22 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
 
                 {/* Right: Metrics */}
                 <div className="flex-1">
-                  <div className="grid grid-cols-4 gap-4 mb-4">
+                  <div className="grid grid-cols-4 gap-4 mb-4 text-left font-normal">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Contratista General</p>
-                      <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(montoCG)}</p>
+                      <p className="text-xs text-[#5A5A50] mb-1">Contratista General</p>
+                      <p className="text-lg  text-gray-900">{formatCurrencyMXN(montoCG)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Avance Mano de Obra</p>
-                      <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(avanceManoObraCG)}</p>
+                    <div className="text-right">
+                      <p className="text-xs text-[#D4D4D2] mb-1">Avance Mano de Obra</p>
+                      <p className="text-lg  text-[#B9B9B7]">{formatCurrencyMXN(avanceManoObraCG)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Avance Material</p>
-                      <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(avanceMaterialCG)}</p>
+                    <div className="text-right">
+                      <p className="text-xs text-[#D4D4D2] mb-1">Avance Material</p>
+                      <p className="text-lg  text-[#B9B9B7]">{formatCurrencyMXN(avanceMaterialCG)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Avance Total</p>
-                      <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(avanceTotalCG)}</p>
+                    <div className="text-right">
+                      <p className="text-xs text-[#5A5A50] mb-1">Avance Total</p>
+                      <p className="text-lg  text-gray-900">{formatCurrencyMXN(avanceTotalCG)}</p>
                     </div>
                   </div>
 
@@ -1170,7 +1172,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       {/* ====== SECTION 3: Subcontratistas ====== */}
       <div className="mt-8 border border-gray-200 rounded-sm bg-white">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-6 border-b">
+        <div className="flex items-center justify-between px-12 py-6 border-b">
           <h3 className="text-base text-gray-900">Contratista General</h3>
           <div className="flex items-center gap-3">
             {mainCG && (
@@ -1190,9 +1192,9 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           </div>
         </div>
 
-        <div className="px-6 pb-6 pt-4">
+        <div className="px-12 pb-6 pt-4">
           {/* SIROC sub-section for Subs */}
-          <div className="border border-gray-200 rounded-sm p-6 mb-6">
+          <div className="border border-gray-200 rounded-sm p-6 mb-12">
             <div className="flex items-start gap-8">
               <div className="shrink-0">
                 <div className="flex items-center gap-2 mb-2">
@@ -1216,11 +1218,11 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
               <div className="flex-1">
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Subcontratistas</p>
+                    <p className="text-xs text-[#5A5A50] mb-1">Subcontratistas</p>
                     <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(montoSubs)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-500 mb-1">Avance Total</p>
+                    <p className="text-xs text-[#5A5A50] mb-1">Avance Total</p>
                     <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(totalPagosSubs)}</p>
                   </div>
                 </div>
@@ -1238,7 +1240,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           </div>
 
           {/* Subcontratistas table */}
-          <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 text-xs text-gray-500 font-normal pb-2 border-b border-gray-200">
+          <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 text-xs text-[#5A5A50] font-normal pb-2 border-b border-gray-200 text-left">
             <span>Subcontratista</span>
             <span>Partida</span>
             <span>SIROC</span>
