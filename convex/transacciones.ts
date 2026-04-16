@@ -1,5 +1,5 @@
-import { query } from "./_generated/server";
-import { mutation } from "./functions";
+import { query, mutation as baseMutation } from "./_generated/server";
+import { mutation, updatePagadoForHierarchy, updateMeticasPresupuesto, updateHonorariosMonto, updateProyectoMonedaPrincipal } from "./functions";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
@@ -78,6 +78,96 @@ export const createTransaction = mutation({
       transaccionId,
       pagoIds,
     };
+  },
+});
+
+// Bulk version of createTransaction that bypasses per-item triggers.
+// Inserts all records first, then runs hierarchy/metrics updates once.
+// Use this for bulk uploads to avoid exceeding the 32K document read limit.
+export const createTransactionBulk = baseMutation({
+  args: {
+    proyecto: v.id("desarrollos"),
+    monto_total: v.number(),
+    fecha: v.string(),
+    tipo_pago: v.string(),
+    moneda: v.string(),
+    tipo_cambio: v.string(),
+    status: v.string(),
+    categoria: v.optional(v.string()),
+    banco: v.optional(v.string()),
+    tarjeta: v.optional(v.string()),
+    numero_cuenta: v.optional(v.string()),
+    numero_transferencia: v.optional(v.string()),
+    codigo_referencia: v.optional(v.string()),
+    factura: v.optional(v.string()),
+    comprobante: v.optional(v.string()),
+    presupuesto_archivo: v.optional(v.string()),
+    lineItems: v.array(
+      v.object({
+        partida_id: v.id("partidas"),
+        partida: v.string(),
+        familia: v.string(),
+        sub_partida: v.string(),
+        monto: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { lineItems, ...transactionData } = args;
+
+    // Normalize fecha to DD/MM/YYYY if it arrives as YYYY-MM-DD
+    let normalizedFecha = transactionData.fecha;
+    if (normalizedFecha.includes("-")) {
+      const [year, month, day] = normalizedFecha.split("-");
+      normalizedFecha = `${day}/${month}/${year}`;
+    }
+
+    // Insert transaction (raw DB, no trigger)
+    const transaccionId = await ctx.db.insert("transacciones", {
+      ...transactionData,
+      fecha: normalizedFecha,
+    });
+
+    // Insert all line items (raw DB, no triggers)
+    const pagoIds = [];
+    for (const item of lineItems) {
+      const pagoId = await ctx.db.insert("pagos", {
+        transaccion_id: transaccionId,
+        partida_id: item.partida_id,
+        monto: item.monto,
+      });
+      pagoIds.push(pagoId);
+    }
+
+    // Collect unique hierarchies to avoid redundant updates
+    const uniqueHierarchies = new Map<string, { partida: string; familia: string; sub_partida: string; nivel: number }>();
+    for (const item of lineItems) {
+      const hierarchyKey = `${item.partida}|${item.familia}|${item.sub_partida}`;
+      if (!uniqueHierarchies.has(hierarchyKey)) {
+        const partidaDoc = await ctx.db.get(item.partida_id);
+        uniqueHierarchies.set(hierarchyKey, {
+          partida: item.partida,
+          familia: item.familia,
+          sub_partida: item.sub_partida,
+          nivel: partidaDoc?.nivel ?? 3,
+        });
+      }
+    }
+
+    // Run hierarchy updates ONCE per unique partida/familia/sub_partida combo
+    const proyectoStr = args.proyecto as string;
+    for (const [, hierarchy] of uniqueHierarchies) {
+      await updatePagadoForHierarchy(ctx, { ...hierarchy, proyecto: proyectoStr });
+    }
+
+    // Run aggregate updates ONCE (not per line item)
+    await updateMeticasPresupuesto(ctx, proyectoStr);
+    await updateHonorariosMonto(ctx, proyectoStr);
+    await updateProyectoMonedaPrincipal(ctx, proyectoStr);
+
+    console.log(`[Bulk] Created transaction with ${pagoIds.length} line items, updated ${uniqueHierarchies.size} hierarchies`);
+
+    return { transaccionId, pagoIds };
   },
 });
 

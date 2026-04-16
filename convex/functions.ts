@@ -532,17 +532,19 @@ async function updateHonorariosMonto(
       
       console.log(`Excluding ${excludedNivel1Partidas.length} nivel 1 partidas and ${allExcludedPartidas.length - excludedNivel1Partidas.length} child partidas (total: ${allExcludedPartidas.length})`);
       
-      // Get transaction IDs for this project
-      const transactionIds = allTransactions.map((t: any) => t._id);
+      // Get all pagos from this project's transactions using indexed queries
+      const allPagosArrays = await Promise.all(
+        allTransactions.map((t: any) =>
+          ctx.db
+            .query("pagos")
+            .withIndex("by_transaccion", (q: any) => q.eq("transaccion_id", t._id))
+            .collect()
+        )
+      );
+      const allProjectPagos = allPagosArrays.flat();
       
-      // Get all pagos (line items) from this project's transactions
-      const allPagos = await ctx.db.query("pagos").collect();
-      
-      // Filter pagos that:
-      // 1. Belong to this project's transactions
-      // 2. Reference the excluded partidas (including children)
-      const excludedPagos = allPagos.filter((pago: any) => 
-        transactionIds.includes(pago.transaccion_id) &&
+      // Filter pagos that reference the excluded partidas (including children)
+      const excludedPagos = allProjectPagos.filter((pago: any) => 
         allExcludedPartidasIds.includes(pago.partida_id)
       );
       
@@ -914,3 +916,6 @@ async function updateIngresosTotalsInternal(
 // The wrappers override `ctx` so that `ctx.db.insert`, `ctx.db.patch`, etc. run registered trigger functions
 export const mutation = customMutation(rawMutation, customCtx(triggers.wrapDB));
 export const internalMutation = customMutation(rawInternalMutation, customCtx(triggers.wrapDB));
+
+// Export helper functions for bulk operations that bypass per-item triggers
+export { updatePagadoForHierarchy, updateMeticasPresupuesto, updateHonorariosMonto, updateProyectoMonedaPrincipal };

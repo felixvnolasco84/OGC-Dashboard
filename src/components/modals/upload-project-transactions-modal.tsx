@@ -138,7 +138,7 @@ export default function UploadProjectTransactionsModal() {
   const [currentStep, setCurrentStep] = useState<ModalStep>("upload");
 
   // Queries and mutations
-  const createTransaction = useMutation(api.transacciones.createTransaction);  
+  const createTransaction = useMutation(api.transacciones.createTransactionBulk);  
   const partidasForProject = useQuery(
     api.partida.getByProject,
     proyectoId ? { projectId: proyectoId } : "skip"
