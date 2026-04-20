@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, FileText, ExternalLink, Building2, Loader2, Eye, Edit2, ChevronLeft, Check, Clock } from "lucide-react";
+import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Check, Clock, ChevronDown, ChevronUp, XCircle, CheckCircle, Minus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +50,8 @@ export default function ProyectoRequisicionesPage() {
     const [sortField, setSortField] = useState<"fecha_solicitud" | "tipo">("fecha_solicitud");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [showFilters, setShowFilters] = useState(false);
-    const [activeTab, setActiveTab] = useState<"solicitudes" | "pagadas" | "parcial" | "recibidas">("solicitudes");
+    const [activeTab, setActiveTab] = useState<"por_revisar" | "aprobadas" | "pagadas" | "recibidas">("por_revisar");
+    const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
     // Fetch project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -62,6 +63,7 @@ export default function ProyectoRequisicionesPage() {
     const updateStatus = useMutation(api.requisiciones.updateStatus);
     const updateStatusEntrega = useMutation(api.requisiciones.updateStatusEntrega);
     const updateRequisicionProveedor = useMutation(api.requisiciones.update);
+    const reviewMutation = useMutation(api.requisiciones.reviewRequisicion);
     const createProveedor = useMutation(api.proveedores.create);
 
     // Fetch all proveedores
@@ -111,9 +113,9 @@ export default function ProyectoRequisicionesPage() {
     // Mark requisiciones as read when page loads
     useEffect(() => {
         if (currentUser?._id && proyectoId) {
-            markAsRead({ 
-                user_id: currentUser._id, 
-                proyecto: proyectoId as Id<"desarrollos"> 
+            markAsRead({
+                user_id: currentUser._id,
+                proyecto: proyectoId as Id<"desarrollos">
             });
         }
     }, [currentUser?._id, proyectoId, markAsRead]);
@@ -136,14 +138,14 @@ export default function ProyectoRequisicionesPage() {
             // Tab filter
             let matchesTab = true;
             switch (activeTab) {
-                case "solicitudes":
-                    matchesTab = true; // Show all
+                case "por_revisar":
+                    matchesTab = req.status_revision === "Pendiente de revisión";
+                    break;
+                case "aprobadas":
+                    matchesTab = req.status_revision === "Aprobada" || req.status_revision === "Parcialmente Aprobada";
                     break;
                 case "pagadas":
                     matchesTab = req.status === "Pagado";
-                    break;
-                case "parcial":
-                    matchesTab = req.status_entrega === "Parcial";
                     break;
                 case "recibidas":
                     matchesTab = req.status_entrega === "Completo";
@@ -205,11 +207,70 @@ export default function ProyectoRequisicionesPage() {
     // Check if any filter is active
     const hasActiveFilters = searchTerm || statusFilter !== "all" || tipoFilter !== "all";
 
+    // Tab counts
+    const tabCounts = useMemo(() => {
+        if (!requisiciones) return { por_revisar: 0, aprobadas: 0, pagadas: 0, recibidas: 0 };
+        return {
+            por_revisar: requisiciones.filter(r => r.status_revision === "Pendiente de revisión").length,
+            aprobadas: requisiciones.filter(r => r.status_revision === "Aprobada" || r.status_revision === "Parcialmente Aprobada").length,
+            pagadas: requisiciones.filter(r => r.status === "Pagado").length,
+            recibidas: requisiciones.filter(r => r.status_entrega === "Completo").length,
+        };
+    }, [requisiciones]);
+
+    // Monto total across all requisiciones
+    const montoTotal = useMemo(() => {
+        if (!requisiciones) return 0;
+        return requisiciones.reduce((sum, req) => {
+            const reqTotal = req.items?.reduce((s, item) => s + (item.monto || 0), 0) || 0;
+            return sum + reqTotal;
+        }, 0);
+    }, [requisiciones]);
+
+    // Toggle card expansion
+    const toggleCard = (id: string) => {
+        setExpandedCards(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    // Get status badge config
+    const getStatusBadge = (req: NonNullable<typeof requisiciones>[number]) => {
+        if (req.status === "Cancelado") return { label: "Cancelado", color: "border-red-200  text-red-700", icon: <XCircle className="w-4 h-4" /> };
+        if (req.status_revision === "Aprobada") return { label: "Aprobado", color: "border-[#7EC18E]  text-[#5FB473]", icon: <Check className="w-4 h-4 rounded-full p-0.5 text-white bg-[#50AC66]" /> };
+        if (req.status_revision === "Parcialmente Aprobada") return { label: "Aprobado", color: "border-[#7EC18E]  text-[#5FB473]", icon: <Check className="w-4 h-4 rounded-full p-0.5 text-white bg-[#50AC66]" /> };
+        if (req.status_revision === "Rechazada") return { label: "Rechazado", color: "border-red-200  text-red-700", icon: <XCircle className="w-4 h-4" /> };
+        if (req.status === "Pagado") return { label: "Pagado", color: "border-[#7EC18E]  text-[#5FB473]", icon: <Check className="w-4 h-4 rounded-full p-0.5 text-white bg-[#50AC66]" /> };
+        if (req.status_entrega === "Completo") return { label: "Recibido", color: "border-[#7EC18E]  text-[#5FB473]", icon: <Check className="w-4 h-4 rounded-full p-0.5 text-white bg-[#50AC66]" /> };
+        return { label: "Por revisar", color: "border-[#D0D0D0]  text-[#75756D]", icon: <Minus className="w-4 h-4 bg-[#D1D1D1] rounded-full p-0.5 text-white" /> };
+    };
+
+    // Get approved items count for partial badge
+    const getApprovedItemsCount = (req: NonNullable<typeof requisiciones>[number]) => {
+        if (!req.items) return { approved: 0, total: 0 };
+        const approved = req.items.filter(i => i.status_revision === "aprobado").length;
+        return { approved, total: req.items.length };
+    };
+
+    // Format date from DD/MM/YYYY to readable
+    const formatDate = (dateStr: string) => {
+        const parts = dateStr.split("/");
+        if (parts.length !== 3) return dateStr;
+        const months = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return `${day} de ${months[month]} del ${year}`;
+    };
+
     const handleDelete = async () => {
         if (!requisicionToDelete || !currentUser) return;
 
         try {
-            await deleteRequisicion({ 
+            await deleteRequisicion({
                 id: requisicionToDelete,
                 changed_by_id: currentUser._id,
                 changed_by_name: currentUser.name,
@@ -235,8 +296,8 @@ export default function ProyectoRequisicionesPage() {
     const handleStatusChange = async (requisicionId: Id<"requisiciones">, newStatus: string) => {
         if (!currentUser) return;
         try {
-            await updateStatus({ 
-                id: requisicionId, 
+            await updateStatus({
+                id: requisicionId,
                 status: newStatus,
                 changed_by_id: currentUser._id,
                 changed_by_name: currentUser.name,
@@ -255,8 +316,8 @@ export default function ProyectoRequisicionesPage() {
     const handleStatusEntregaChange = async (requisicionId: Id<"requisiciones">, newStatus: string) => {
         if (!currentUser) return;
         try {
-            await updateStatusEntrega({ 
-                id: requisicionId, 
+            await updateStatusEntrega({
+                id: requisicionId,
                 status_entrega: newStatus,
                 changed_by_id: currentUser._id,
                 changed_by_name: currentUser.name,
@@ -276,29 +337,19 @@ export default function ProyectoRequisicionesPage() {
     //     switch (status) {
     //         case "En proceso": return "bg-blue-50 text-blue-700 border border-blue-200";
     //         case "Cancelado": return "bg-red-50 text-red-700 border border-red-200";
-    //         case "Pagado": return "bg-green-50 text-green-700 border border-green-200";
-    //         default: return "bg-gray-50 text-gray-700 border border-gray-200";
+    //         case "Pagado": return "bg-green-50 text-[#5FB473] border border-[#7EC18E]";
+    //         default: return " text-gray-700 border border-gray-200";
     //     }
     // };
 
     const getStatusEntregaColor = (status: string | undefined) => {
         switch (status) {
-            case "Pendiente": return "bg-gray-50 text-gray-700 border border-gray-200";
-            case "Cancelado": return "bg-red-50 text-red-700 border border-red-200";
-            case "En proceso": return "bg-blue-50 text-blue-700 border border-blue-200";
-            case "Parcial": return "bg-yellow-50 text-yellow-700 border border-yellow-200";
-            case "Completo": return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-            default: return "bg-gray-50 text-gray-700 border border-gray-200";
-        }
-    };
-
-    const getStatusRevisionColor = (status: string | undefined) => {
-        switch (status) {
-            case "Pendiente de revisión": return "bg-amber-50 text-amber-700 border border-amber-200";
-            case "Aprobada": return "bg-green-50 text-green-700 border border-green-200";
-            case "Parcialmente Aprobada": return "bg-yellow-50 text-yellow-700 border border-yellow-200";
-            case "Rechazada": return "bg-red-50 text-red-700 border border-red-200";
-            default: return "bg-gray-50 text-gray-700 border border-gray-200";
+            case "Pendiente": return " text-gray-700 border border-gray-200";
+            case "Cancelado": return " text-red-700 border border-red-200";
+            case "En proceso": return " text-blue-700 border border-blue-200";
+            case "Parcial": return " text-yellow-700 border border-yellow-200";
+            case "Completo": return " text-emerald-700 border border-emerald-200";
+            default: return " text-gray-700 border border-gray-200";
         }
     };
 
@@ -494,6 +545,11 @@ export default function ProyectoRequisicionesPage() {
                                     Total: {requisiciones?.length || 0}
                                 </span>
                             </Badge>
+                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
+                                <span className="text-sm font-normal">
+                                    Monto total: ${montoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </Badge>
                         </div>
                     </div>
 
@@ -533,7 +589,7 @@ export default function ProyectoRequisicionesPage() {
 
                     {/* Advanced Filters Panel */}
                     {showFilters && (
-                        <div className="mb-6 p-4 border border-gray-200 bg-gray-50 space-y-4">
+                        <div className="mb-6 p-4 border border-gray-200  space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 {/* Status Filter */}
                                 <div className="space-y-2">
@@ -606,171 +662,129 @@ export default function ProyectoRequisicionesPage() {
                 <div className="px-12 mb-4">
                     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
                         <TabsList className="bg-transparent h-auto p-0 gap-0 border-b border-gray-200 w-full justify-start rounded-none">
-                            <TabsTrigger 
-                                value="solicitudes" 
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900"
+                            <TabsTrigger
+                                value="por_revisar"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900 gap-2"
                             >
-                                Solicitudes
+                                Por revisar
+                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-gray-100">{tabCounts.por_revisar}</Badge>
                             </TabsTrigger>
-                            <TabsTrigger 
-                                value="pagadas" 
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900"
+                            <TabsTrigger
+                                value="aprobadas"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900 gap-2"
+                            >
+                                Aprobadas
+                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-gray-100">{tabCounts.aprobadas}</Badge>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="pagadas"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900 gap-2"
                             >
                                 Pagadas
+                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-gray-100">{tabCounts.pagadas}</Badge>
                             </TabsTrigger>
-                            <TabsTrigger 
-                                value="parcial" 
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900"
-                            >
-                                Parcial
-                            </TabsTrigger>
-                            <TabsTrigger 
-                                value="recibidas" 
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900"
+                            <TabsTrigger
+                                value="recibidas"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900 gap-2"
                             >
                                 Recibidas
+                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-gray-100">{tabCounts.recibidas}</Badge>
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
                 </div>
 
-                {/* Table */}
-                <div className="border border-gray-200 rounded-none mx-12">
-                    <table className="w-full">
-                        <thead className="border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
-                                    Solicitante
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
-                                    Tipo
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
-                                    Fecha Solicitud
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
-                                    Materiales
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
-                                    Estado
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
-                                    Proveedor
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
-                                    Documento
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {!requisiciones ? (
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                                        Cargando requisiciones...
-                                    </td>
-                                </tr>
-                            ) : filteredRequisiciones && filteredRequisiciones.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                                        No se encontraron requisiciones
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredRequisiciones?.map((req) => (
-                                    <tr
-                                        key={req._id}
-                                        className="hover:bg-gray-50 transition-colors"
-                                    >
-                                        {/* Solicitante */}
-                                        <td className="px-6 py-4 border-r border-gray-200">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-7 w-7 rounded-full bg-[#dddcd8] flex items-center justify-center text-xs text-gray-700">
-                                                    {req.solicitante_nombre?.charAt(0).toUpperCase() || "?"}
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm text-gray-700 ">
-                                                        {req.solicitante_nombre || "-"}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        {/* Tipo */}
-                                        <td className="px-6 py-4 text-sm border-r border-gray-200">
-                                            <Badge variant="outline" className={`capitalize font-normal ${req.tipo === "material" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-purple-50 text-purple-700 border-purple-200"
-                                                }`}>
-                                                {req.tipo}
-                                            </Badge>
-                                        </td>
-                                        {/* Fecha */}
-                                        <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                                            <span className="text-gray-700">{req.fecha_solicitud || "-"}</span>
-                                        </td>
-                                        {/* Materiales */}
-                                        <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                                            <div className="flex flex-col">
-                                                {req.items && req.items.length > 0 ? (
-                                                    <>
-                                                        <span className="text-gray-900 uppercase">
-                                                            {req.items[0]?.familia || 'SIN FAMILIA'}
-                                                        </span>
-                                                        <span className="text-xs text-gray-500 uppercase truncate max-w-[150px]">
-                                                            {[...new Set(req.items.map(item => item.sub_partida).filter(Boolean))].join(', ') || '-'}
-                                                        </span>
-                                                    </>
-                                                ) : (
-                                                    <span className="text-gray-400">Sin materiales</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        {/* Status */}
-                                        <td className="px-6 py-4 border-r border-gray-200">
-                                            <div className="flex flex-col gap-1.5">
-                                                {/* Review Status */}
-                                                {req.status_revision && (
-                                                    <span className={`px-2 py-1 rounded-full text-xs w-fit ${getStatusRevisionColor(req.status_revision)}`}>
-                                                        {req.status_revision}
-                                                    </span>
-                                                )}
-                                                {/* Payment Status */}
-                                                <div className="flex items-center space-x-2">
-                                                    <div className={cn("rounded-full p-1", req.status === "Pagado" ? "bg-green-800 text-white" : "text-muted-foreground bg-gray-200")}>
-                                                        <Check className="w-3 h-3" />
-                                                    </div>
-                                                    {/* Delivery Status */}
-                                                    <span className={`px-2 py-1 rounded-full text-xs w-fit ${getStatusEntregaColor(req.status_entrega)}`}>
-                                                        {req.status_entrega || "Pendiente"}
-                                                    </span>
-                                                </div>
+                {/* Cards List */}
+                <div className="px-12 space-y-4">
+                    {!requisiciones ? (
+                        <div className="py-12 text-center text-gray-500">
+                            Cargando requisiciones...
+                        </div>
+                    ) : filteredRequisiciones.length === 0 ? (
+                        <div className="py-12 text-center text-gray-500">
+                            No se encontraron requisiciones
+                        </div>
+                    ) : (
+                        filteredRequisiciones.map((req) => {
+                            const isExpanded = expandedCards.has(req._id);
+                            const statusBadge = getStatusBadge(req);
+                            const itemCounts = getApprovedItemsCount(req);
+                            const reqMontoTotal = req.items?.reduce((s, i) => s + (i.monto || 0), 0) || 0;
+                            const familias = [...new Set(req.items?.map(i => i.familia) || [])];
+                            const subPartidas = [...new Set(req.items?.map(i => i.sub_partida).filter(Boolean) || [])];
+                            const categoryLabel = familias.length > 0
+                                ? `${familias[0]?.toUpperCase()}${subPartidas.length > 0 ? ` — ${subPartidas.join(', ').toUpperCase()}` : ''}`
+                                : 'SIN CATEGORÍA';
+                            const isPartial = req.status_revision === "Parcialmente Aprobada";
+                            const materialsBadgeText = isPartial
+                                ? `${itemCounts.approved} de ${itemCounts.total} materiales`
+                                : `${itemCounts.total} materiales`;
 
+                            return (
+                                <div key={req._id} className="border border-[#EEEEEE] rounded-md">
+                                    {/* Card Header - Collapsed View */}
+                                    <div
+                                        className="flex items-center gap-6 py-6 px-4 cursor-pointer hover:/50 transition-colors border-b"
+                                        onClick={() => toggleCard(req._id)}
+                                    >
+                                        {/* Avatar + Solicitante */}
+                                        <div className="flex items-center gap-3 min-w-[200px]">
+                                            <div className="h-10 w-10 rounded-full bg-[#e8e7e4] flex items-center justify-center text-sm  text-gray-600 flex-shrink-0">
+                                                {req.solicitante_nombre?.charAt(0).toUpperCase() || "?"}
                                             </div>
-                                        </td>
-                                        {/* Proveedor */}
-                                        <td className="px-6 py-4 text-sm text-gray-700 border-r border-gray-200">
-                                            {req.proveedor?.razon_social || "-"}
-                                        </td>
-                                        {/* Documento */}
-                                        <td className="px-6 py-4 text-sm border-r border-gray-200">
-                                            {req.documentos && req.documentos.length > 0 ? (
-                                                <div
-                                                    className="flex items-center gap-2 cursor-pointer hover:text-gray-600 group"
-                                                    onClick={() => req.documentos[0]?.url && window.open(req.documentos[0].url, '_blank')}
-                                                >
-                                                    <FileText className="w-4 h-4 text-gray-500 group-hover:text-gray-600" />
-                                                    <span className="text-sm text-gray-700 group-hover:text-gray-600 truncate max-w-[100px]">
-                                                        {req.documentos[0]?.nombre || "Documento"}
-                                                    </span>
-                                                    <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-gray-600" />
-                                                    {req.documentos.length > 1 && (
-                                                        <span className="text-sm text-gray-400">+{req.documentos.length - 1}</span>
-                                                    )}
-                                                </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm text-[#777770]">
+                                                    {req.solicitante_nombre || "-"}
+                                                </span>
+                                                <span className="text-xs text-[#ADADA9]">
+                                                    Solicitado el {formatDate(req.fecha_solicitud)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Category + Materials Count */}
+                                        <div className="flex flex-col flex-1 min-w-0">
+                                            <span className="text-sm text-[#777770] uppercase tracking-wide truncate">
+                                                {categoryLabel}
+                                            </span>
+                                            <Badge variant="outline" className="w-fit h-fit mt-1 text-[9px] font-normal rounded-sm  text-[#B2B2AF] border-[#F4F4F4] bg-[#F4F4F4]">
+                                                {materialsBadgeText}
+                                            </Badge>
+                                        </div>
+
+                                        {/* Fecha Entrega */}
+                                        <div className="flex flex-col items-start min-w-[100px]">
+                                            {req.fecha_entrega ? (
+                                                <>
+                                                    <span className="text-sm text-[#777770]">{req.fecha_entrega}</span>
+                                                    <span className="text-xs text-[#ADADA9]">Fecha de entrega</span>
+                                                </>
                                             ) : (
-                                                <span className="text-gray-400">-</span>
+                                                <span className="text-xs text-[#ADADA9]">Sin fecha de entrega</span>
                                             )}
-                                        </td>
-                                        {/* Actions */}
-                                        <td className="px-6 py-4">
+                                        </div>
+
+                                        {/* Monto Total */}
+                                        <div className="flex flex-col items-end min-w-[140px]">
+                                            <span className="text-xs text-gray-400">Monto Total</span>
+                                            <span className="text-black">
+                                                ${reqMontoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+
+                                        {/* Status Badge */}
+                                        <div className="min-w-[120px] flex justify-end">
+                                            <span className={cn(
+                                                "inline-flex items-center gap-1.5 px-3 py-2.5 text-xs  border rounded-sm",
+                                                statusBadge.color
+                                            )}>
+                                                {statusBadge.icon}
+                                                {statusBadge.label}
+                                            </span>
+                                        </div>
+
+                                        {/* Actions Menu */}
+                                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -778,7 +792,6 @@ export default function ProyectoRequisicionesPage() {
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="flex flex-col space-y-1 w-56 p-2" align="end">
-                                                    {/* View details - available to all roles */}
                                                     <Button
                                                         variant="ghost"
                                                         className="justify-start"
@@ -790,8 +803,6 @@ export default function ProyectoRequisicionesPage() {
                                                     >
                                                         Ver detalles
                                                     </Button>
-
-                                                    {/* Edit - admin, user, or contratista (own requisiciones only) */}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <Button
@@ -806,8 +817,6 @@ export default function ProyectoRequisicionesPage() {
                                                                 Editar
                                                             </Button>
                                                         )}
-
-                                                    {/* Add provider - admin, user, or contratista (own requisiciones only) */}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <Button
@@ -819,23 +828,19 @@ export default function ProyectoRequisicionesPage() {
                                                                 Agregar proveedor
                                                             </Button>
                                                         )}
-
-                                                    {/* Review button - finance and admin only */}
-                                                    {(currentUser?.role === "admin" || currentUser?.role === "finance") && 
-                                                     (req.status_revision === "Pendiente de revisión") && (
-                                                        <div className="border-t border-gray-100 pt-1 mt-1">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="justify-start w-full text-amber-600 hover:text-amber-700"
-                                                                onClick={() => reviewModal.open(req._id)}
-                                                            >
-                                                                Revisar
-                                                            </Button>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Payment Status change options - role-based filtering */}
+                                                    {(currentUser?.role === "admin" || currentUser?.role === "finance") &&
+                                                        (req.status_revision === "Pendiente de revisión") && (
+                                                            <div className="border-t border-gray-100 pt-1 mt-1">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="justify-start w-full text-amber-600 hover:text-amber-700"
+                                                                    onClick={() => reviewModal.open(req._id)}
+                                                                >
+                                                                    Revisar
+                                                                </Button>
+                                                            </div>
+                                                        )}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
                                                         <div className="border-t border-gray-100 pt-1 mt-1">
                                                             <p className="text-xs text-gray-500 px-2 py-1">Estado de pago:</p>
@@ -857,35 +862,29 @@ export default function ProyectoRequisicionesPage() {
                                                                     )
                                                                 ))}
                                                             </div>
-
                                                         </div>
                                                     )}
-
-                                                    {/* Delivery Status change options */}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <div className="border-t border-gray-100 pt-1 mt-1">
                                                                 <p className="text-xs text-gray-500 px-2 py-1">Estado de entrega:</p>
                                                                 <div className="space-y-1 flex flex-col">
-                                                                                       {["Pendiente", "Parcial", "Completo"].map(s => (
-                                                                    s !== (req.status_entrega || "Pendiente") && (
-                                                                        <Button
-                                                                            key={s}
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            className={cn("justify-start w-fit text-[10px] rounded-full", getStatusEntregaColor(s))}
-                                                                            onClick={() => handleStatusEntregaChange(req._id, s)}
-                                                                        >
-                                                                            {s}
-                                                                        </Button>
-                                                                    )
-                                                                ))}
+                                                                    {["Pendiente", "Parcial", "Completo"].map(s => (
+                                                                        s !== (req.status_entrega || "Pendiente") && (
+                                                                            <Button
+                                                                                key={s}
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className={cn("justify-start w-fit text-[10px] rounded-full", getStatusEntregaColor(s))}
+                                                                                onClick={() => handleStatusEntregaChange(req._id, s)}
+                                                                            >
+                                                                                {s}
+                                                                            </Button>
+                                                                        )
+                                                                    ))}
                                                                 </div>
-                                             
                                                             </div>
                                                         )}
-
-                                                    {/* Delete - admin or contratista (own requisiciones only) */}
                                                     {(currentUser?.role === "admin" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <div className="border-t border-gray-100 pt-1 mt-1">
@@ -901,12 +900,169 @@ export default function ProyectoRequisicionesPage() {
                                                         )}
                                                 </PopoverContent>
                                             </Popover>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                            <button
+                                                onClick={() => toggleCard(req._id)}
+                                                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                                            >
+                                                {isExpanded ? (
+                                                    <ChevronUp className="h-4 w-4 text-gray-400" />
+                                                ) : (
+                                                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Expanded Content */}
+                                    {isExpanded && (
+                                        <div className="px-4 pb-6 pt-6">
+                                            {/* Items Table */}
+                                            <div className="rounded-sm overflow-hidden">
+                                                <table className="w-full border-separate border-spacing-y-2">
+                                                    <thead>
+                                                        <tr className="">
+                                                            <th className="px-4 py-3 text-left text-xs font-normal text-gray-500">Partida / Subpartida</th>
+                                                            <th className="px-4 py-3 text-left text-xs font-normal text-gray-500">Unidad</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Cantidad</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Precio Unitario</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Ejercido</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-gray-500">Solicitado</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-gray-500">Aprobado</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Monto</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-gray-500 w-[100px]"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className=" text-[#282822]">
+                                                        {req.items?.map((item) => {
+                                                            const isRejected = item.status_revision === "rechazado";
+                                                            const isItemApproved = item.status_revision === "aprobado";
+                                                            const precioUnitario = item.precio_unitario ?? 0;
+                                                            const presupuestoAprobado = item.presupuesto_aprobado ?? 0;
+                                                            const pagado = item.pagado ?? 0;
+                                                            const ejercido = presupuestoAprobado > 0
+                                                                ? Math.round((pagado / presupuestoAprobado) * 100)
+                                                                : 0;
+
+                                                            return (
+                                                                <tr key={item._id} className={cn(
+                                                                    "transition-colors rounded-lg overflow-hidden bg-[#FBFBFB] border border-[#ECECEC]",
+                                                                    isRejected && "opacity-40 bg-[#CD56364A] border-[#FBE8E0]"
+                                                                )}>
+                                                                    <td className="px-4 py-3">
+                                                                        <span className="text-sm  text-gray-900 uppercase">
+                                                                            {item.sub_partida || item.familia}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-sm text-gray-600">{item.unidad}</td>
+                                                                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                                                                        {item.cantidad.toLocaleString("es-MX")}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                                                                        ${precioUnitario.toLocaleString("es-MX")}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                                                                        {ejercido}%
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-center">
+                                                                        <span className="text-sm text-gray-700">
+                                                                            {item.cantidad} {item.unidad}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-center">
+                                                                        <span className={cn(
+                                                                            "inline-flex items-center px-2.5 py-1 text-sm border rounded-sm",
+                                                                            isItemApproved ? "border-gray-300 text-gray-900 bg-white" : "border-gray-200 text-gray-400 "
+                                                                        )}>
+                                                                            {item.cantidad_aprobada ?? item.cantidad} {item.unidad}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-sm  text-gray-900 text-right">
+                                                                        ${(item.monto || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                    </td>
+                                                                    <td className="px-4 py-3">
+                                                                        {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
+                                                                            <div className="flex items-center justify-center gap-1">
+                                                                                <button
+                                                                                    className={cn(
+                                                                                        "p-1.5 rounded-full transition-colors",
+                                                                                        isItemApproved
+                                                                                            ? "bg-green-500 text-white"
+                                                                                            : "text-gray-400 hover:bg-green-50 hover:text-green-500"
+                                                                                    )}
+                                                                                    title="Aprobar"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        if (!currentUser || isItemApproved) return;
+                                                                                        reviewMutation({
+                                                                                            id: req._id,
+                                                                                            reviewer_id: currentUser._id,
+                                                                                            reviewer_name: currentUser.name,
+                                                                                            items: req.items?.map(i => ({
+                                                                                                item_id: i._id,
+                                                                                                status_revision: i._id === item._id ? "aprobado" : (i.status_revision === "aprobado" || i.status_revision === "rechazado" ? i.status_revision : "pendiente"),
+                                                                                                cantidad_aprobada: i._id === item._id ? item.cantidad : (i.cantidad_aprobada ?? i.cantidad),
+                                                                                            })) || [],
+                                                                                        }).then(() => {
+                                                                                            toast.success("Item aprobado");
+                                                                                        }).catch(() => {
+                                                                                            toast.error("Error al aprobar item");
+                                                                                        });
+                                                                                    }}
+                                                                                >
+                                                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                                                </button>
+                                                                                <button
+                                                                                    className={cn(
+                                                                                        "p-1.5 rounded-full transition-colors",
+                                                                                        isRejected
+                                                                                            ? "bg-red-500 text-white"
+                                                                                            : "text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                                                                    )}
+                                                                                    title="Rechazar"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        if (!currentUser || isRejected) return;
+                                                                                        reviewMutation({
+                                                                                            id: req._id,
+                                                                                            reviewer_id: currentUser._id,
+                                                                                            reviewer_name: currentUser.name,
+                                                                                            items: req.items?.map(i => ({
+                                                                                                item_id: i._id,
+                                                                                                status_revision: i._id === item._id ? "rechazado" : (i.status_revision === "aprobado" || i.status_revision === "rechazado" ? i.status_revision : "pendiente"),
+                                                                                                cantidad_aprobada: i._id === item._id ? undefined : (i.cantidad_aprobada ?? i.cantidad),
+                                                                                            })) || [],
+                                                                                        }).then(() => {
+                                                                                            toast.success("Item rechazado");
+                                                                                        }).catch(() => {
+                                                                                            toast.error("Error al rechazar item");
+                                                                                        });
+                                                                                    }}
+                                                                                >
+                                                                                    <XCircle className="w-3.5 h-3.5" />
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {/* Nota General */}
+                                            <div className="ml-12 mt-4 border-l-2 border-gray-200 pl-4">
+                                                <p className="text-xs text-gray-400 mb-1">Nota General:</p>
+                                                <p className="text-sm text-gray-600">
+                                                    {req.descripcion || <span className="text-gray-300 italic">Sin notas</span>}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
             </div>
 
@@ -1048,11 +1204,11 @@ export default function ProyectoRequisicionesPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <Label className="text-xs text-gray-500">Razón Social</Label>
-                                            <p className="font-medium">{viewingProvider.razon_social}</p>
+                                            <p className="">{viewingProvider.razon_social}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <Label className="text-xs text-gray-500">RFC</Label>
-                                            <p className="font-medium">{viewingProvider.rfc}</p>
+                                            <p className="">{viewingProvider.rfc}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-1">
@@ -1176,12 +1332,12 @@ export default function ProyectoRequisicionesPage() {
                                                 {filteredProviders.map((proveedor) => (
                                                     <div
                                                         key={proveedor._id}
-                                                        className={`p-3 hover:bg-gray-50 cursor-pointer flex items-center justify-between ${selectedProviderId === proveedor._id ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
+                                                        className={`p-3 hover: cursor-pointer flex items-center justify-between ${selectedProviderId === proveedor._id ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
                                                             }`}
                                                         onClick={() => setSelectedProviderId(proveedor._id)}
                                                     >
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-gray-900 truncate">{proveedor.razon_social}</p>
+                                                            <p className=" text-gray-900 truncate">{proveedor.razon_social}</p>
                                                             <p className="text-sm text-gray-500">{proveedor.rfc}</p>
                                                             {proveedor.nombre_contacto && (
                                                                 <p className="text-xs text-gray-400">{proveedor.nombre_contacto}</p>

@@ -43,10 +43,23 @@ export const getByProyecto = query({
         // Enrich with items, proveedor, and documents data
         const enriched = await Promise.all(
             requisiciones.map(async (req) => {
-                const items = await ctx.db
+                const rawItems = await ctx.db
                     .query("requisicion_items")
                     .withIndex("by_requisicion", (q) => q.eq("requisicion_id", req._id))
                     .collect();
+                
+                // Enrich items with partida budget data
+                const items = await Promise.all(
+                    rawItems.map(async (item) => {
+                        const partida = await ctx.db.get(item.partida_id);
+                        return {
+                            ...item,
+                            precio_unitario: partida?.precio_unitario ?? 0,
+                            presupuesto_aprobado: partida?.presupuesto_aprobado ?? 0,
+                            pagado: partida?.pagado ?? 0,
+                        };
+                    })
+                );
                 
                 const proveedor = req.proveedor_id 
                     ? await ctx.db.get(req.proveedor_id)
