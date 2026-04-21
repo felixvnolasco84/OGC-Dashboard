@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import { useParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Check, Clock, ChevronDown, ChevronUp, XCircle, CheckCircle, Minus } from "lucide-react";
+import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Check, Clock, ChevronDown, ChevronUp, XCircle, CheckCircle, Minus, AlertTriangle, MessageSquare } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +25,6 @@ import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import RequisicionModal from "@/components/modals/RequisicionModal";
 import RequisicionHistoryModal from "@/components/modals/RequisicionHistoryModal";
 import { useRequisicionHistoryModal } from "@/hooks/requisicion-history-modal";
-import ReviewRequisicionModal from "@/components/modals/ReviewRequisicionModal";
-import { useReviewRequisicionModal } from "@/hooks/review-requisicion-modal";
 import {
     Dialog,
     DialogContent,
@@ -52,6 +50,19 @@ export default function ProyectoRequisicionesPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [activeTab, setActiveTab] = useState<"por_revisar" | "aprobadas" | "pagadas" | "recibidas">("por_revisar");
     const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+    // Review mode state
+    const [reviewingReqId, setReviewingReqId] = useState<Id<"requisiciones"> | null>(null);
+    const [reviewItemDecisions, setReviewItemDecisions] = useState<{
+        item_id: Id<"requisicion_items">;
+        status_revision: "aprobado" | "rechazado";
+        cantidad_aprobada: number;
+        nota_item: string;
+        cantidad_original: number;
+    }[]>([]);
+    const [reviewNote, setReviewNote] = useState("");
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+    const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
 
     // Fetch project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -108,7 +119,6 @@ export default function ProyectoRequisicionesPage() {
 
     const requisicionModal = useRequisicionModal();
     const historyModal = useRequisicionHistoryModal();
-    const reviewModal = useReviewRequisicionModal();
 
     // Mark requisiciones as read when page loads
     useEffect(() => {
@@ -264,6 +274,132 @@ export default function ProyectoRequisicionesPage() {
         const month = parseInt(parts[1], 10) - 1;
         const year = parseInt(parts[2], 10);
         return `${day} de ${months[month]} del ${year}`;
+    };
+
+    // --- Review mode helpers ---
+    const isReviewUser = currentUser?.role === "admin" || currentUser?.role === "finance";
+
+    const startReview = (reqId: Id<"requisiciones">, items: NonNullable<typeof requisiciones>[number]["items"]) => {
+        if (!items) return;
+        setReviewingReqId(reqId);
+        setReviewItemDecisions(
+            items.map(item => ({
+                item_id: item._id,
+                status_revision: "aprobado" as const,
+                cantidad_aprobada: item.cantidad,
+                nota_item: "",
+                cantidad_original: item.cantidad,
+            }))
+        );
+        setReviewNote("");
+        setExpandedNotes(new Set());
+        if (!expandedCards.has(reqId)) {
+            toggleCard(reqId);
+        }
+    };
+
+    const cancelReview = () => {
+        setReviewingReqId(null);
+        setReviewItemDecisions([]);
+        setReviewNote("");
+        setExpandedNotes(new Set());
+    };
+
+    const toggleReviewItem = (index: number) => {
+        setReviewItemDecisions(prev =>
+            prev.map((d, i) =>
+                i === index
+                    ? {
+                          ...d,
+                          status_revision: d.status_revision === "aprobado" ? "rechazado" as const : "aprobado" as const,
+                          cantidad_aprobada: d.cantidad_original,
+                      }
+                    : d
+            )
+        );
+    };
+
+    const updateReviewQty = (index: number, qty: number) => {
+        setReviewItemDecisions(prev =>
+            prev.map((d, i) => i === index ? { ...d, cantidad_aprobada: qty } : d)
+        );
+    };
+
+    const updateReviewItemNote = (index: number, note: string) => {
+        setReviewItemDecisions(prev =>
+            prev.map((d, i) => i === index ? { ...d, nota_item: note } : d)
+        );
+    };
+
+    const approveAllReview = () => {
+        setReviewItemDecisions(prev =>
+            prev.map(d => ({ ...d, status_revision: "aprobado" as const, cantidad_aprobada: d.cantidad_original }))
+        );
+    };
+
+    const rejectAllReview = () => {
+        setReviewItemDecisions(prev =>
+            prev.map(d => ({ ...d, status_revision: "rechazado" as const }))
+        );
+    };
+
+    const toggleNoteVisibility = (itemId: string) => {
+        setExpandedNotes(prev => {
+            const next = new Set(prev);
+            if (next.has(itemId)) next.delete(itemId);
+            else next.add(itemId);
+            return next;
+        });
+    };
+
+    const reviewApprovedCount = reviewItemDecisions.filter(d => d.status_revision === "aprobado").length;
+    const reviewRejectedCount = reviewItemDecisions.filter(d => d.status_revision === "rechazado").length;
+    const reviewTotalCount = reviewItemDecisions.length;
+    const reviewHasModifiedQty = reviewItemDecisions.some(
+        d => d.status_revision === "aprobado" && d.cantidad_aprobada !== d.cantidad_original
+    );
+    const reviewIsPartial = reviewRejectedCount > 0 || reviewHasModifiedQty;
+    const reviewIsAllRejected = reviewRejectedCount === reviewTotalCount && reviewTotalCount > 0;
+    const reviewNoteRequired = reviewIsPartial || reviewIsAllRejected;
+    const reviewCanSubmit =
+        reviewTotalCount > 0 &&
+        (!reviewNoteRequired || reviewNote.trim().length > 0) &&
+        reviewItemDecisions.every(d => d.status_revision === "rechazado" || d.cantidad_aprobada > 0);
+
+    const submitReview = async () => {
+        if (!currentUser || !reviewingReqId || !reviewCanSubmit) return;
+        setIsSubmittingReview(true);
+        try {
+            const result = await reviewMutation({
+                id: reviewingReqId,
+                reviewer_id: currentUser._id,
+                reviewer_name: currentUser.name,
+                nota_revision: reviewNote.trim() || undefined,
+                items: reviewItemDecisions.map(d => ({
+                    item_id: d.item_id,
+                    status_revision: d.status_revision,
+                    cantidad_aprobada: d.status_revision === "aprobado" ? d.cantidad_aprobada : undefined,
+                    nota_item: d.nota_item.trim() || undefined,
+                })),
+            });
+            const statusMsg =
+                result.status_revision === "Aprobada"
+                    ? "Requisición aprobada"
+                    : result.status_revision === "Rechazada"
+                        ? "Requisición rechazada"
+                        : "Requisición parcialmente aprobada";
+            toast.success(statusMsg, {
+                description: `${reviewApprovedCount} de ${reviewTotalCount} items aprobados.`,
+            });
+            cancelReview();
+        } catch (error) {
+            console.error("Error reviewing requisicion:", error);
+            toast.error("Error al revisar", {
+                description: error instanceof Error ? error.message : "No se pudo enviar la revisión.",
+            });
+        } finally {
+            setIsSubmittingReview(false);
+        }
     };
 
     const handleDelete = async () => {
@@ -719,6 +855,7 @@ export default function ProyectoRequisicionesPage() {
                             const materialsBadgeText = isPartial
                                 ? `${itemCounts.approved} de ${itemCounts.total} materiales`
                                 : `${itemCounts.total} materiales`;
+                            const isInReviewMode = reviewingReqId === req._id && isReviewUser;
 
                             return (
                                 <div key={req._id} className="border border-[#EEEEEE] rounded-md">
@@ -828,14 +965,14 @@ export default function ProyectoRequisicionesPage() {
                                                                 Agregar proveedor
                                                             </Button>
                                                         )}
-                                                    {(currentUser?.role === "admin" || currentUser?.role === "finance") &&
+                                                    {isReviewUser &&
                                                         (req.status_revision === "Pendiente de revisión") && (
                                                             <div className="border-t border-gray-100 pt-1 mt-1">
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
                                                                     className="justify-start w-full text-amber-600 hover:text-amber-700"
-                                                                    onClick={() => reviewModal.open(req._id)}
+                                                                    onClick={() => startReview(req._id, req.items)}
                                                                 >
                                                                     Revisar
                                                                 </Button>
@@ -916,11 +1053,46 @@ export default function ProyectoRequisicionesPage() {
                                     {/* Expanded Content */}
                                     {isExpanded && (
                                         <div className="px-4 pb-6 pt-6">
+                                            {/* Review Summary Bar */}
+                                            {isInReviewMode && (
+                                                <div className="flex items-center justify-between p-3 bg-white border border-gray-200 mb-4 rounded-sm">
+                                                    <div className="flex items-center gap-4 text-sm">
+                                                        <span className="text-gray-500">
+                                                            {reviewTotalCount} item{reviewTotalCount !== 1 ? "s" : ""}
+                                                        </span>
+                                                        <span className="text-green-600 font-medium flex items-center gap-1">
+                                                            <CheckCircle className="w-3.5 h-3.5" />
+                                                            {reviewApprovedCount} aprobado{reviewApprovedCount !== 1 ? "s" : ""}
+                                                        </span>
+                                                        {reviewRejectedCount > 0 && (
+                                                            <span className="text-red-600 font-medium flex items-center gap-1">
+                                                                <XCircle className="w-3.5 h-3.5" />
+                                                                {reviewRejectedCount} rechazado{reviewRejectedCount !== 1 ? "s" : ""}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={approveAllReview}
+                                                            className="px-3 py-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-sm transition-colors"
+                                                        >
+                                                            Aprobar todos
+                                                        </button>
+                                                        <button
+                                                            onClick={rejectAllReview}
+                                                            className="px-3 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-sm transition-colors"
+                                                        >
+                                                            Rechazar todos
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Items Table */}
                                             <div className="rounded-sm overflow-hidden">
                                                 <table className="w-full border-separate border-spacing-y-2">
                                                     <thead>
-                                                        <tr className="">
+                                                        <tr>
                                                             <th className="px-4 py-3 text-left text-xs font-normal text-gray-500">Partida / Subpartida</th>
                                                             <th className="px-4 py-3 text-left text-xs font-normal text-gray-500">Unidad</th>
                                                             <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Cantidad</th>
@@ -929,134 +1101,217 @@ export default function ProyectoRequisicionesPage() {
                                                             <th className="px-4 py-3 text-center text-xs font-normal text-gray-500">Solicitado</th>
                                                             <th className="px-4 py-3 text-center text-xs font-normal text-gray-500">Aprobado</th>
                                                             <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Monto</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-gray-500 w-[100px]"></th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-gray-500 w-[120px]"></th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody className=" text-[#282822]">
+                                                    <tbody className="text-[#282822]">
                                                         {req.items?.map((item) => {
-                                                            const isRejected = item.status_revision === "rechazado";
-                                                            const isItemApproved = item.status_revision === "aprobado";
+                                                            const decision = isInReviewMode
+                                                                ? reviewItemDecisions.find(d => d.item_id === item._id)
+                                                                : undefined;
+                                                            const decisionIndex = decision
+                                                                ? reviewItemDecisions.findIndex(d => d.item_id === item._id)
+                                                                : -1;
+                                                            const effectiveStatus = decision ? decision.status_revision : item.status_revision;
+                                                            const isRejected = effectiveStatus === "rechazado";
+                                                            const isItemApproved = effectiveStatus === "aprobado";
                                                             const precioUnitario = item.precio_unitario ?? 0;
                                                             const presupuestoAprobado = item.presupuesto_aprobado ?? 0;
                                                             const pagado = item.pagado ?? 0;
                                                             const ejercido = presupuestoAprobado > 0
                                                                 ? Math.round((pagado / presupuestoAprobado) * 100)
                                                                 : 0;
+                                                            const noteExpanded = expandedNotes.has(item._id);
 
                                                             return (
-                                                                <tr key={item._id} className={cn(
-                                                                    "transition-colors rounded-lg overflow-hidden bg-[#FBFBFB] border border-[#ECECEC]",
-                                                                    isRejected && "opacity-40 bg-[#CD56364A] border-[#FBE8E0]"
-                                                                )}>
-                                                                    <td className="px-4 py-3">
-                                                                        <span className="text-sm  text-gray-900 uppercase">
-                                                                            {item.sub_partida || item.familia}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-sm text-gray-600">{item.unidad}</td>
-                                                                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
-                                                                        {item.cantidad.toLocaleString("es-MX")}
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
-                                                                        ${precioUnitario.toLocaleString("es-MX")}
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
-                                                                        {ejercido}%
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-center">
-                                                                        <span className="text-sm text-gray-700">
-                                                                            {item.cantidad} {item.unidad}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-center">
-                                                                        <span className={cn(
-                                                                            "inline-flex items-center px-2.5 py-1 text-sm border rounded-sm",
-                                                                            isItemApproved ? "border-gray-300 text-gray-900 bg-white" : "border-gray-200 text-gray-400 "
-                                                                        )}>
-                                                                            {item.cantidad_aprobada ?? item.cantidad} {item.unidad}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-sm  text-gray-900 text-right">
-                                                                        ${(item.monto || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                    </td>
-                                                                    <td className="px-4 py-3">
-                                                                        {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
-                                                                            <div className="flex items-center justify-center gap-1">
-                                                                                <button
-                                                                                    className={cn(
-                                                                                        "p-1.5 rounded-full transition-colors",
-                                                                                        isItemApproved
-                                                                                            ? "bg-green-500 text-white"
-                                                                                            : "text-gray-400 hover:bg-green-50 hover:text-green-500"
+                                                                <Fragment key={item._id}>
+                                                                    <tr className={cn(
+                                                                        "transition-colors rounded-lg overflow-hidden bg-[#FBFBFB] border border-[#ECECEC]",
+                                                                        decision && isRejected && "opacity-50 bg-red-50/30 border-red-200",
+                                                                        decision && isItemApproved && "border-green-200",
+                                                                        !decision && isRejected && "opacity-40 bg-[#CD56364A] border-[#FBE8E0]"
+                                                                    )}>
+                                                                        <td className="px-4 py-3">
+                                                                            <span className="text-sm text-gray-900 uppercase">
+                                                                                {item.sub_partida || item.familia}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-sm text-gray-600">{item.unidad}</td>
+                                                                        <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                                                                            {item.cantidad.toLocaleString("es-MX")}
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                                                                            ${precioUnitario.toLocaleString("es-MX")}
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                                                                            {ejercido}%
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-center">
+                                                                            <span className="text-sm text-gray-700">
+                                                                                {item.cantidad} {item.unidad}
+                                                                            </span>
+                                                                        </td>
+                                                                        {/* Aprobado column - editable in review mode */}
+                                                                        <td className="px-4 py-3 text-center">
+                                                                            {decision && decision.status_revision === "aprobado" ? (
+                                                                                <div className="flex items-center justify-center gap-1">
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        min={1}
+                                                                                        value={decision.cantidad_aprobada}
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                        onChange={(e) => updateReviewQty(decisionIndex, Number(e.target.value))}
+                                                                                        className={cn(
+                                                                                            "w-16 px-2 py-1 text-sm border text-center rounded-sm",
+                                                                                            decision.cantidad_aprobada !== decision.cantidad_original
+                                                                                                ? "border-yellow-400 bg-yellow-50 text-yellow-800 font-medium"
+                                                                                                : "border-gray-300 text-gray-700 bg-white"
+                                                                                        )}
+                                                                                    />
+                                                                                    <span className="text-xs text-gray-400">{item.unidad}</span>
+                                                                                    {decision.cantidad_aprobada !== decision.cantidad_original && (
+                                                                                        <span className="text-yellow-600 text-[10px] font-medium">(mod)</span>
                                                                                     )}
-                                                                                    title="Aprobar"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        if (!currentUser || isItemApproved) return;
-                                                                                        reviewMutation({
-                                                                                            id: req._id,
-                                                                                            reviewer_id: currentUser._id,
-                                                                                            reviewer_name: currentUser.name,
-                                                                                            items: req.items?.map(i => ({
-                                                                                                item_id: i._id,
-                                                                                                status_revision: i._id === item._id ? "aprobado" : (i.status_revision === "aprobado" || i.status_revision === "rechazado" ? i.status_revision : "pendiente"),
-                                                                                                cantidad_aprobada: i._id === item._id ? item.cantidad : (i.cantidad_aprobada ?? i.cantidad),
-                                                                                            })) || [],
-                                                                                        }).then(() => {
-                                                                                            toast.success("Item aprobado");
-                                                                                        }).catch(() => {
-                                                                                            toast.error("Error al aprobar item");
-                                                                                        });
-                                                                                    }}
-                                                                                >
-                                                                                    <CheckCircle className="w-3.5 h-3.5" />
-                                                                                </button>
-                                                                                <button
-                                                                                    className={cn(
-                                                                                        "p-1.5 rounded-full transition-colors",
-                                                                                        isRejected
-                                                                                            ? "bg-red-500 text-white"
-                                                                                            : "text-gray-400 hover:bg-red-50 hover:text-red-500"
-                                                                                    )}
-                                                                                    title="Rechazar"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        if (!currentUser || isRejected) return;
-                                                                                        reviewMutation({
-                                                                                            id: req._id,
-                                                                                            reviewer_id: currentUser._id,
-                                                                                            reviewer_name: currentUser.name,
-                                                                                            items: req.items?.map(i => ({
-                                                                                                item_id: i._id,
-                                                                                                status_revision: i._id === item._id ? "rechazado" : (i.status_revision === "aprobado" || i.status_revision === "rechazado" ? i.status_revision : "pendiente"),
-                                                                                                cantidad_aprobada: i._id === item._id ? undefined : (i.cantidad_aprobada ?? i.cantidad),
-                                                                                            })) || [],
-                                                                                        }).then(() => {
-                                                                                            toast.success("Item rechazado");
-                                                                                        }).catch(() => {
-                                                                                            toast.error("Error al rechazar item");
-                                                                                        });
-                                                                                    }}
-                                                                                >
-                                                                                    <XCircle className="w-3.5 h-3.5" />
-                                                                                </button>
-                                                                            </div>
-                                                                        )}
-                                                                    </td>
-                                                                </tr>
+                                                                                </div>
+                                                                            ) : decision && decision.status_revision === "rechazado" ? (
+                                                                                <span className="text-xs text-red-400 italic">Rechazado</span>
+                                                                            ) : (
+                                                                                <span className={cn(
+                                                                                    "inline-flex items-center px-2.5 py-1 text-sm border rounded-sm",
+                                                                                    isItemApproved ? "border-gray-300 text-gray-900 bg-white" : "border-gray-200 text-gray-400"
+                                                                                )}>
+                                                                                    {item.cantidad_aprobada ?? item.cantidad} {item.unidad}
+                                                                                </span>
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                                                                            ${(item.monto || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                        </td>
+                                                                        {/* Actions column */}
+                                                                        <td className="px-4 py-3">
+                                                                            {decision ? (
+                                                                                <div className="flex items-center justify-center gap-1">
+                                                                                    <button
+                                                                                        onClick={(e) => { e.stopPropagation(); toggleReviewItem(decisionIndex); }}
+                                                                                        className={cn(
+                                                                                            "p-1.5 rounded-sm transition-colors",
+                                                                                            decision.status_revision === "aprobado"
+                                                                                                ? "bg-green-600 text-white hover:bg-green-700"
+                                                                                                : "bg-red-500 text-white hover:bg-red-600"
+                                                                                        )}
+                                                                                        title={decision.status_revision === "aprobado" ? "Cambiar a rechazado" : "Cambiar a aprobado"}
+                                                                                    >
+                                                                                        {decision.status_revision === "aprobado" ? (
+                                                                                            <Check className="w-3.5 h-3.5" />
+                                                                                        ) : (
+                                                                                            <X className="w-3.5 h-3.5" />
+                                                                                        )}
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={(e) => { e.stopPropagation(); toggleNoteVisibility(item._id); }}
+                                                                                        className={cn(
+                                                                                            "p-1.5 rounded-sm transition-colors",
+                                                                                            decision.nota_item
+                                                                                                ? "text-amber-600 bg-amber-50"
+                                                                                                : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                                                                                        )}
+                                                                                        title="Agregar nota"
+                                                                                    >
+                                                                                        <MessageSquare className="w-3.5 h-3.5" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            ) : null}
+                                                                        </td>
+                                                                    </tr>
+                                                                    {/* Per-item note row */}
+                                                                    {decision && noteExpanded && (
+                                                                        <tr>
+                                                                            <td colSpan={9} className="px-4 pt-0 pb-1">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    placeholder="Nota para este item..."
+                                                                                    value={decision.nota_item}
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                    onChange={(e) => updateReviewItemNote(decisionIndex, e.target.value)}
+                                                                                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-sm text-gray-700 placeholder:text-gray-400 bg-white"
+                                                                                />
+                                                                            </td>
+                                                                        </tr>
+                                                                    )}
+                                                                </Fragment>
                                                             );
                                                         })}
                                                     </tbody>
                                                 </table>
                                             </div>
 
-                                            {/* Nota General */}
-                                            <div className="ml-12 mt-4 border-l-2 border-gray-200 pl-4">
-                                                <p className="text-xs text-gray-400 mb-1">Nota General:</p>
-                                                <p className="text-sm text-gray-600">
-                                                    {req.descripcion || <span className="text-gray-300 italic">Sin notas</span>}
-                                                </p>
-                                            </div>
+                                            {/* Review footer - general note + submit/cancel */}
+                                            {isInReviewMode && (
+                                                <div className="mt-4 space-y-4">
+                                                    <div>
+                                                        <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
+                                                            Nota de revisión
+                                                            {reviewNoteRequired && (
+                                                                <span className="text-xs text-red-500 flex items-center gap-1">
+                                                                    <AlertTriangle className="w-3 h-3" />
+                                                                    Requerida
+                                                                </span>
+                                                            )}
+                                                        </label>
+                                                        <textarea
+                                                            placeholder={reviewNoteRequired
+                                                                ? "Explica las razones de los cambios realizados..."
+                                                                : "Nota opcional..."}
+                                                            value={reviewNote}
+                                                            onChange={(e) => setReviewNote(e.target.value)}
+                                                            rows={2}
+                                                            className={cn(
+                                                                "w-full px-3 py-2 text-sm border rounded-sm resize-none bg-white",
+                                                                reviewNoteRequired && !reviewNote.trim()
+                                                                    ? "border-red-300 bg-red-50/50"
+                                                                    : "border-gray-200"
+                                                            )}
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <button
+                                                            onClick={cancelReview}
+                                                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-sm transition-colors"
+                                                        >
+                                                            Cancelar
+                                                        </button>
+                                                        <button
+                                                            onClick={submitReview}
+                                                            disabled={!reviewCanSubmit || isSubmittingReview}
+                                                            className={cn(
+                                                                "px-6 py-2 text-sm font-medium text-white rounded-sm transition-colors flex items-center gap-2",
+                                                                reviewIsAllRejected
+                                                                    ? "bg-red-600 hover:bg-red-700 disabled:bg-red-300"
+                                                                    : reviewIsPartial
+                                                                        ? "bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-300"
+                                                                        : "bg-green-600 hover:bg-green-700 disabled:bg-green-300"
+                                                            )}
+                                                        >
+                                                            {isSubmittingReview && <Loader2 className="w-4 h-4 animate-spin" />}
+                                                            {reviewIsAllRejected
+                                                                ? "Rechazar Requisición"
+                                                                : reviewIsPartial
+                                                                    ? "Aprobar Parcialmente"
+                                                                    : "Aprobar Requisición"}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Nota General - only when NOT reviewing */}
+                                            {!isInReviewMode && (
+                                                <div className="ml-12 mt-4 border-l-2 border-gray-200 pl-4">
+                                                    <p className="text-xs text-gray-400 mb-1">Nota General:</p>
+                                                    <p className="text-sm text-gray-600">
+                                                        {req.descripcion || <span className="text-gray-300 italic">Sin notas</span>}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -1484,8 +1739,6 @@ export default function ProyectoRequisicionesPage() {
             {/* Requisicion History Modal */}
             <RequisicionHistoryModal />
 
-            {/* Review Requisicion Modal */}
-            <ReviewRequisicionModal />
         </div>
     );
 }
