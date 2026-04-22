@@ -1290,7 +1290,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       <div className="mt-8 border border-gray-200 rounded-sm ">
         {/* Header */}
         <div className="flex items-center justify-between px-12 py-6 border-b">
-          <h3 className="text-base text-gray-900">Contratista General</h3>
+          <h3 className="text-base text-gray-900">Subcontratistas</h3>
           <div className="flex items-center gap-3">
             {mainCG && (
               <ResponsableSelector

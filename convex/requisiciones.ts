@@ -741,6 +741,101 @@ export const reviewRequisicion = mutation({
     },
 });
 
+// Review a single item immediately (inline review)
+export const reviewSingleItem = mutation({
+    args: {
+        item_id: v.id("requisicion_items"),
+        status_revision: v.string(), // "aprobado" | "rechazado"
+        cantidad_aprobada: v.optional(v.number()),
+        reviewer_id: v.id("users"),
+        reviewer_name: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const item = await ctx.db.get(args.item_id);
+        if (!item) throw new Error("Item not found");
+        
+        // Update this item
+        await ctx.db.patch(args.item_id, {
+            status_revision: args.status_revision,
+            cantidad_aprobada: args.status_revision === "aprobado"
+                ? (args.cantidad_aprobada ?? item.cantidad)
+                : undefined,
+        });
+        
+        // Check if ALL items for this requisicion have been reviewed
+        const allItems = await ctx.db
+            .query("requisicion_items")
+            .withIndex("by_requisicion", (q) => q.eq("requisicion_id", item.requisicion_id))
+            .collect();
+        
+        const allReviewed = allItems.every(i => {
+            if (i._id === args.item_id) return true;
+            return i.status_revision === "aprobado" || i.status_revision === "rechazado";
+        });
+        
+        if (!allReviewed) return { allReviewed: false };
+        
+        // All items reviewed - compute overall status
+        const approvedCount = allItems.filter(i =>
+            i._id === args.item_id
+                ? args.status_revision === "aprobado"
+                : i.status_revision === "aprobado"
+        ).length;
+        const totalCount = allItems.length;
+        
+        // If at least one item approved → "Aprobada", all rejected → "Rechazada"
+        const overallStatus = approvedCount > 0 ? "Aprobada" : "Rechazada";
+        
+        const requisicion = await ctx.db.get(item.requisicion_id);
+        
+        await ctx.db.patch(item.requisicion_id, {
+            status_revision: overallStatus,
+            revisado_por_id: args.reviewer_id,
+            revisado_por_nombre: args.reviewer_name,
+            revisado_at: Date.now(),
+            updated_at: Date.now(),
+        });
+        
+        // Build history
+        if (requisicion) {
+            const itemDetails = allItems.map(i => ({
+                familia: i.familia,
+                sub_partida: i.sub_partida,
+                cantidad_solicitada: i.cantidad,
+                cantidad_aprobada: i._id === args.item_id
+                    ? (args.status_revision === "aprobado" ? (args.cantidad_aprobada ?? i.cantidad) : undefined)
+                    : i.cantidad_aprobada,
+                unidad: i.unidad,
+                monto: i.monto,
+                status_revision: i._id === args.item_id ? args.status_revision : i.status_revision,
+            }));
+            
+            await ctx.db.insert("requisicion_history", {
+                proyecto: requisicion.proyecto,
+                requisicion_id: item.requisicion_id,
+                action: "reviewed",
+                new_value: JSON.stringify({
+                    status_revision: overallStatus,
+                    solicitante: requisicion.solicitante_nombre,
+                    tipo: requisicion.tipo,
+                    items_approved: approvedCount,
+                    items_rejected: totalCount - approvedCount,
+                    items_total: totalCount,
+                    items: itemDetails,
+                }),
+                old_value: JSON.stringify({
+                    status_revision: requisicion.status_revision,
+                }),
+                changed_by_id: args.reviewer_id,
+                changed_by_name: args.reviewer_name,
+                created_at: Date.now(),
+            });
+        }
+        
+        return { allReviewed: true, status_revision: overallStatus };
+    },
+});
+
 // Get budget remaining for a partida/familia/sub_partida selection
 export const getBudgetRemaining = query({
     args: {
