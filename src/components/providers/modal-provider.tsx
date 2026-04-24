@@ -27,9 +27,12 @@ import SaleTransactionDocumentosModal from "../modals/sale-transaction-documento
 import SeeSalesTransactionsDetailsModal from "../modals/see-sales-transactions-details-modal";
 import AddSalePaymentModal from "../modals/add-sale-payment-modal";
 import BitacoraModal from "../Bitacora/BitacoraModal";
+import ModalErrorBoundary from "../ui/ModalErrorBoundary";
+import { useBitacoraModal } from "@/hooks/use-bitacora-modal";
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
+  const closeBitacoraModal = useBitacoraModal((state) => state.onClose);
 
   useEffect(() => {
     setIsMounted(true);
@@ -65,6 +68,8 @@ export const ModalProvider = () => {
     <EditSalesProjectModal />
     <UploadSalesProjectTransactionsModal />
     <UploadSalesProyectoDocumentsModal />
-    <BitacoraModal />
+    <ModalErrorBoundary modalName="BitacoraModal" onClose={closeBitacoraModal}>
+      <BitacoraModal />
+    </ModalErrorBoundary>
   </>;
 };

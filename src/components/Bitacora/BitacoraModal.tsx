@@ -92,67 +92,106 @@ export default function BitacoraModal() {
   // Calendar popover state
   const [calendarOpen, setCalendarOpen] = useState(false);
 
+  // Track whether the form has been initialized for the current modal opening
+  // to avoid resetting the user's selections when async queries (currentUser,
+  // fullLogEntry) later resolve and change their reference identity.
+  const hasInitializedRef = useRef(false);
+  const hasHydratedResponsableRef = useRef(false);
+  const hasHydratedFromFullLogRef = useRef(false);
+
   // Fetch log entry with photos for view/edit mode
   const fullLogEntry = useQuery(
     api.bitacora.getLogEntryById,
     logEntry?._id ? { logId: logEntry._id } : "skip"
   );
 
-  // Update local state when logEntry changes or modal opens
+  // Reset the init flags whenever the modal closes so that next time it opens
+  // it re-initializes cleanly.
   useEffect(() => {
-    if (isOpen) {
-        // Use store values for auto-populate, fallback to logEntry values for edit/view
-        setCategoria(logEntry?.categoria || storeCategoria || "");
-        setSelectedPartidaId(logEntry?.partida_id || "");
-        setSelectedFamiliasTags(logEntry?.familias_tags || []);
-        // Auto-populate responsable from current user if creating new
-        setResponsable(logEntry?.responsable || currentUser?.name || "");
-        // Use store fecha for auto-populate from calendar, fallback to logEntry or today
-        setFecha(logEntry?.fecha || storeFecha || new Date().toLocaleDateString("es-MX"));
-        setAvanceDia(logEntry?.avance_dia || "");
-        setComentarios(logEntry?.comentarios || "");
-        setStatus(logEntry?.status || "Sin problemas");
-        // Reset photo management state
-        setPhotosToDelete([]);
-        setNewFiles([]);
-        setGalleryIndex(0);
-        
-        // Load existing photos into managed state
-        if (fullLogEntry?.fotos) {
-          const existingManaged: ManagedPhoto[] = fullLogEntry.fotos
-            .filter(f => f.url)
-            .map(f => ({
-              id: f._id,
-              type: "existing" as const,
-              url: f.url!,
-              description: f.descripcion || f.nombre || "", // Use existing description
-            }));
-          setManagedPhotos(existingManaged);
-        } else {
-          setManagedPhotos([]);
-        }
-        
-        // Reset document management state
-        setDocumentsToDelete([]);
-        setNewDocFiles([]);
-        
-        // Load existing documents into managed state
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const logEntryWithDocs = fullLogEntry as any;
-        if (logEntryWithDocs?.documentos) {
-          const existingDocs: ManagedDocument[] = logEntryWithDocs.documentos
-            .map((d: { _id: string; nombre: string; url?: string }) => ({
-              id: d._id,
-              type: "existing" as const,
-              name: d.nombre,
-              url: d.url || undefined,
-            }));
-          setManagedDocuments(existingDocs);
-        } else {
-          setManagedDocuments([]);
-        }
+    if (!isOpen) {
+      hasInitializedRef.current = false;
+      hasHydratedResponsableRef.current = false;
+      hasHydratedFromFullLogRef.current = false;
     }
-  }, [isOpen, logEntry, currentUser, fullLogEntry, storeCategoria, storeFecha]);
+  }, [isOpen]);
+
+  // Initialize form state ONCE per modal opening. This prevents the form from
+  // being reset when async dependencies (currentUser, fullLogEntry) resolve
+  // after the user already started interacting with the form.
+  useEffect(() => {
+    if (!isOpen || hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+
+    setCategoria(logEntry?.categoria || storeCategoria || "");
+    setSelectedPartidaId(logEntry?.partida_id || "");
+    setSelectedFamiliasTags(logEntry?.familias_tags || []);
+    setResponsable(logEntry?.responsable || currentUser?.name || "");
+    setFecha(logEntry?.fecha || storeFecha || new Date().toLocaleDateString("es-MX"));
+    setAvanceDia(logEntry?.avance_dia || "");
+    setComentarios(logEntry?.comentarios || "");
+    setStatus(logEntry?.status || "Sin problemas");
+    setPhotosToDelete([]);
+    setNewFiles([]);
+    setGalleryIndex(0);
+    setManagedPhotos([]);
+    setDocumentsToDelete([]);
+    setNewDocFiles([]);
+    setManagedDocuments([]);
+
+    // If currentUser was already loaded at init time, mark responsable as hydrated.
+    if (currentUser?.name || logEntry?.responsable) {
+      hasHydratedResponsableRef.current = true;
+    }
+  }, [isOpen, logEntry, currentUser, storeCategoria, storeFecha]);
+
+  // Hydrate `responsable` once when currentUser becomes available (only if the
+  // user hasn't typed anything yet and it's a create flow).
+  useEffect(() => {
+    if (!isOpen) return;
+    if (hasHydratedResponsableRef.current) return;
+    if (logEntry?.responsable) {
+      hasHydratedResponsableRef.current = true;
+      return;
+    }
+    if (currentUser?.name) {
+      setResponsable(currentUser.name);
+      hasHydratedResponsableRef.current = true;
+    }
+  }, [isOpen, currentUser, logEntry]);
+
+  // Hydrate photos / documents once when fullLogEntry resolves (edit/view modes).
+  useEffect(() => {
+    if (!isOpen) return;
+    if (hasHydratedFromFullLogRef.current) return;
+    if (!fullLogEntry) return;
+    hasHydratedFromFullLogRef.current = true;
+
+    if (fullLogEntry.fotos) {
+      const existingManaged: ManagedPhoto[] = fullLogEntry.fotos
+        .filter((f) => f.url)
+        .map((f) => ({
+          id: f._id,
+          type: "existing" as const,
+          url: f.url!,
+          description: f.descripcion || f.nombre || "",
+        }));
+      setManagedPhotos(existingManaged);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const logEntryWithDocs = fullLogEntry as any;
+    if (logEntryWithDocs?.documentos) {
+      const existingDocs: ManagedDocument[] = logEntryWithDocs.documentos.map(
+        (d: { _id: string; nombre: string; url?: string }) => ({
+          id: d._id,
+          type: "existing" as const,
+          name: d.nombre,
+          url: d.url || undefined,
+        })
+      );
+      setManagedDocuments(existingDocs);
+    }
+  }, [isOpen, fullLogEntry]);
   
   // Listen for fullscreen changes
   useEffect(() => {

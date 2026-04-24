@@ -127,6 +127,57 @@ export const updateUserPermissions = mutation({
   },
 });
 
+// Diagnostic query to inspect a user's record by email (admin only).
+// Use from the Convex dashboard or a temporary debug page to verify
+// that a user has a valid `name`, `role`, and `allowed_desarrollos`
+// array in the database.
+export const getUserByEmail = query({
+  args: {
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!currentUser || currentUser.role !== "admin") {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (!user) {
+      return { found: false, diagnostics: { email: args.email } };
+    }
+
+    return {
+      found: true,
+      diagnostics: {
+        _id: user._id,
+        clerkId: user.clerkId,
+        email: user.email,
+        name: user.name,
+        name_is_empty: !user.name || user.name.trim() === "",
+        name_length: user.name?.length ?? 0,
+        role: user.role,
+        allowed_desarrollos_count: user.allowed_desarrollos?.length ?? 0,
+        allowed_desarrollos: user.allowed_desarrollos,
+        created_at: user.created_at,
+        last_login: user.last_login,
+      },
+    };
+  },
+});
+
 // Helper to check if user has access to a desarrollo
 export const hasAccessToDesarrollo = query({
   args: {

@@ -200,7 +200,9 @@ export const getLogEntryById = query({
 
     const log = await ctx.db.get(args.logId);
     if (!log) {
-      throw new Error("Log entry not found");
+      // Return null instead of throwing so the client doesn't crash when a log
+      // was deleted or the user lost access.
+      return null;
     }
 
     // Get partida info
