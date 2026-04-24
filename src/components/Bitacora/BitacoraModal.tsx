@@ -476,19 +476,39 @@ export default function BitacoraModal() {
 
   const isViewMode = mode === "view";
 
+  // Single-source title to avoid adjacent `{cond && "text"}` text-nodes which
+  // can break React reconciliation when a browser translation extension
+  // (e.g. Chrome Translate) mutates the DOM.
+  const modalTitle =
+    mode === "create"
+      ? "Nueva Entrada de Bitácora"
+      : mode === "edit"
+        ? "Editar Entrada"
+        : "Detalle de Entrada";
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    // translate="no" and the `notranslate` class tell Chrome/Google Translate
+    // NOT to mutate the contents of this modal. Translation extensions wrap
+    // text nodes in `<font>` elements which makes React throw
+    // "Failed to execute 'removeChild' on 'Node'" when it tries to update
+    // those nodes later.
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 notranslate"
+      translate="no"
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              {mode === "create" && "Nueva Entrada de Bitácora"}
-              {mode === "edit" && "Editar Entrada"}
-              {mode === "view" && "Detalle de Entrada"}
+              <span>{modalTitle}</span>
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              {mode === "view" ? "Visualización de registro" : "Registro diario de avance"}
+              <span>
+                {mode === "view"
+                  ? "Visualización de registro"
+                  : "Registro diario de avance"}
+              </span>
             </p>
           </div>
           <button

@@ -1,18 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="es" translate="no">
 
 <head>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <meta charset="UTF-8" />
+  <!--
+    Prevent Chrome / Google Translate from mutating the DOM. Translation
+    extensions wrap text nodes in `<font>` elements which makes React throw
+    "Failed to execute 'removeChild' on 'Node'" during reconciliation.
+  -->
+  <meta name="google" content="notranslate" />
   <link rel="icon" type="image/svg+xml" href="/" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title></title>
   <meta name="description" content="">
 </head>
 
-<body>
+<body class="notranslate" translate="no">
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
