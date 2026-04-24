@@ -312,6 +312,16 @@ export default function RequisicionModal() {
     }).format(value);
   };
 
+  // Resolve the effective sub_partida name for a row: when the user picked
+  // "OTRO" we persist the custom description typed into `descripcion_otro`
+  // as the actual sub-partida name so it is not lost on save.
+  const resolveSubPartidaName = (sp: { sub_partida: string; descripcion_otro?: string }): string => {
+    if (sp.sub_partida === "OTRO") {
+      return (sp.descripcion_otro || "").trim();
+    }
+    return sp.sub_partida;
+  };
+
   // Check if form is valid
   const isFormValid = () => {
     if (!selectedPartida.nombre) return false;
@@ -319,7 +329,14 @@ export default function RequisicionModal() {
     return items.every(item =>
       item.familia &&
       item.subPartidas.length > 0 &&
-      item.subPartidas.every(sp => sp.cantidad > 0 && sp.unidad)
+      item.subPartidas.every(sp => {
+        if (!(sp.cantidad > 0) || !sp.unidad) return false;
+        // When OTRO is selected, the custom description is required.
+        if (sp.sub_partida === "OTRO" && !(sp.descripcion_otro && sp.descripcion_otro.trim())) {
+          return false;
+        }
+        return true;
+      })
     );
   };
 
@@ -389,7 +406,7 @@ export default function RequisicionModal() {
           item.subPartidas.map(sp => ({
             partida_id: (sp.partida_id || item.partida_id || selectedPartida.id) as Id<"partidas">,
             familia: item.familia,
-            sub_partida: sp.sub_partida || undefined,
+            sub_partida: resolveSubPartidaName(sp) || undefined,
             cantidad: sp.cantidad,
             unidad: sp.unidad,
             monto: sp.monto,
@@ -436,7 +453,7 @@ export default function RequisicionModal() {
           item.subPartidas.map(sp => ({
             partida_id: (sp.partida_id || item.partida_id || selectedPartida.id) as Id<"partidas">,
             familia: item.familia,
-            sub_partida: sp.sub_partida || undefined,
+            sub_partida: resolveSubPartidaName(sp) || undefined,
             cantidad: sp.cantidad,
             unidad: sp.unidad,
             monto: sp.monto,
@@ -808,51 +825,71 @@ export default function RequisicionModal() {
                                 {/* Sub-partida select or custom input */}
                                 {(subPartidasQuery && subPartidasQuery.length > 0) || getSubPartidasForFamilia(selectedPartida.nombre, item.familia).length > 0 ? (
                                   <div className="space-y-2">
-                                    <Select
-                                      value={sp.sub_partida}
-                                      onValueChange={(value) => handleSubPartidaChange(item.id, sp.id, item.familia, value)}
-                                      onOpenChange={(open) => {
-                                        if (open) {
-                                          setCurrentFamiliaForSubPartidas({
-                                            partida: selectedPartida.nombre,
-                                            familia: item.familia,
-                                          });
-                                        }
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-full bg-white">
-                                        <SelectValue placeholder="Selecciona Sub-partida" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {(currentFamiliaForSubPartidas?.partida === selectedPartida.nombre &&
-                                          currentFamiliaForSubPartidas?.familia === item.familia &&
-                                          subPartidasQuery
-                                        ) ? (
-                                          subPartidasQuery.map((subPartida) => (
-                                            <SelectItem key={subPartida} value={subPartida}>
-                                              {subPartida}
-                                            </SelectItem>
-                                          ))
-                                        ) : (
-                                          getSubPartidasForFamilia(selectedPartida.nombre, item.familia).map((spOption) => (
-                                            <SelectItem key={spOption._id} value={spOption.sub_partida}>
-                                              {spOption.sub_partida}
-                                            </SelectItem>
-                                          ))
-                                        )}
-                                        <SelectItem value="OTRO">OTRO</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-
-                                    {/* Custom description when OTRO selected */}
-                                    {sp.sub_partida === "OTRO" && (
-                                      <Input
-                                        type="text"
-                                        value={sp.descripcion_otro || ""}
-                                        onChange={(e) => updateSubPartida(item.id, sp.id, { descripcion_otro: e.target.value })}
-                                        className="bg-white"
-                                        placeholder="Descripción del material..."
-                                      />
+                                    {sp.sub_partida === "OTRO" ? (
+                                      // When OTRO is selected, replace the Select with the
+                                      // custom-description Input directly so the user only
+                                      // sees a single field to type the material name.
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          type="text"
+                                          value={sp.descripcion_otro || ""}
+                                          onChange={(e) => updateSubPartida(item.id, sp.id, { descripcion_otro: e.target.value })}
+                                          className="bg-white flex-1"
+                                          placeholder="Escribe el nombre del material..."
+                                          autoFocus
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() =>
+                                            updateSubPartida(item.id, sp.id, {
+                                              sub_partida: "",
+                                              descripcion_otro: "",
+                                            })
+                                          }
+                                          className="text-gray-500 hover:text-gray-700 h-9 px-2"
+                                          title="Volver a seleccionar sub-partida"
+                                        >
+                                          Cambiar
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Select
+                                        value={sp.sub_partida}
+                                        onValueChange={(value) => handleSubPartidaChange(item.id, sp.id, item.familia, value)}
+                                        onOpenChange={(open) => {
+                                          if (open) {
+                                            setCurrentFamiliaForSubPartidas({
+                                              partida: selectedPartida.nombre,
+                                              familia: item.familia,
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-full bg-white">
+                                          <SelectValue placeholder="Selecciona Sub-partida" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {(currentFamiliaForSubPartidas?.partida === selectedPartida.nombre &&
+                                            currentFamiliaForSubPartidas?.familia === item.familia &&
+                                            subPartidasQuery
+                                          ) ? (
+                                            subPartidasQuery.map((subPartida) => (
+                                              <SelectItem key={subPartida} value={subPartida}>
+                                                {subPartida}
+                                              </SelectItem>
+                                            ))
+                                          ) : (
+                                            getSubPartidasForFamilia(selectedPartida.nombre, item.familia).map((spOption) => (
+                                              <SelectItem key={spOption._id} value={spOption.sub_partida}>
+                                                {spOption.sub_partida}
+                                              </SelectItem>
+                                            ))
+                                          )}
+                                          <SelectItem value="OTRO">OTRO</SelectItem>
+                                        </SelectContent>
+                                      </Select>
                                     )}
                                   </div>
                                 ) : (
