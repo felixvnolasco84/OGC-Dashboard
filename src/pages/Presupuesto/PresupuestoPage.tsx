@@ -26,6 +26,7 @@ import { Calendar } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 import PresupuestoTable from "@/components/Tables/PresupuestoTable";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
+import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useIngresosModal } from "@/hooks/ingresos-modal";
 import IngresosModal from "@/components/modals/ingresos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -49,6 +50,7 @@ export default function PresupuestoPage() {
 
   // Modals
   const addPaymentModal = useAddPaymentModal();
+  const addPartidaModal = useAddPartidaModal();
   const ingresosModal = useIngresosModal();
 
   // Sync mutation
@@ -143,10 +145,10 @@ export default function PresupuestoPage() {
     api.pagos.getPaymentsByDateRange,
     proyectoId
       ? {
-          proyecto_id: proyectoId as Id<"desarrollos">,
-          start_date: dateRange.start,
-          end_date: dateRange.end,
-        }
+        proyecto_id: proyectoId as Id<"desarrollos">,
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+      }
       : "skip"
   );
 
@@ -289,19 +291,7 @@ export default function PresupuestoPage() {
                 Reporte
                 <Download className="h-6 w-6 rounded-full shadow-none" />
               </Button> */}
-              {/* <Button
-                onClick={() => proyecto && addPartidaModal.onOpen({
-                  proyecto: proyecto._id,
-                  projectName: proyecto.nombre
-                })}
-                variant={"outline"}
-                size={"lg"}
-                disabled={!proyecto}
-                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
-              >
-                Agregar Partida
-                <Plus className="h-6 w-6 rounded-full shadow-none" />
-              </Button> */}
+
 
               {/* Total Ingresos - Based on image reference */}
               <Card className="bg-transparent shadow-none border-none col-span-1 md:col-span-2 lg:col-span-1 mr-4">
@@ -346,6 +336,20 @@ export default function PresupuestoPage() {
                 className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
               >
                 Nuevo pago
+                <Plus className="h-6 w-6 rounded-full shadow-none" />
+              </Button>
+
+              <Button
+                onClick={() => proyecto && addPartidaModal.onOpen({
+                  proyecto: proyecto._id,
+                  projectName: proyecto.nombre
+                })}
+                variant={"outline"}
+                size={"lg"}
+                disabled={!proyecto}
+                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
+              >
+                Agregar Partida
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
               </Button>
             </div>
@@ -705,7 +709,7 @@ export default function PresupuestoPage() {
 
         </div>
 
-        
+
 
         {/* Budget Table Component */}
         <PresupuestoTable

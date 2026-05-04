@@ -136,6 +136,15 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
 
       if (partida) {
         const familiaKey = item.familia;
+
+        // Skip duplicates: if a familia with the same key already exists under
+        // this partida, do not push another entry to children. This prevents
+        // duplicate React keys and the sub-partida replication bug when the
+        // same familia appears more than once for the same partida.
+        if (partida.familias[familiaKey]) {
+          return;
+        }
+
         const presupuestoAprobado = item.presupuesto_aprobado || 0;
         const pagado = item.pagado || 0;
         // Use por_gastar from DB if available, otherwise calculate it
@@ -169,11 +178,19 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
     });
 
     // Third pass: Add nivel 3 (sub-partida) items to their parent familia
+    const seenSubPartidaIds = new Set<string>();
     data.filter(item => item.nivel === 3).forEach(item => {
       const partidaKey = item.partida_nombre;
       const familiaKey = item.familia;
 
       if (partidaKey && grouped[partidaKey] && grouped[partidaKey].familias[familiaKey]) {
+        // Defensively dedupe sub-partidas by their database id to avoid
+        // duplicate rows if the source data contains repeats.
+        if (seenSubPartidaIds.has(item._id)) {
+          return;
+        }
+        seenSubPartidaIds.add(item._id);
+
         const familiaGroup = grouped[partidaKey].familias[familiaKey];
         const presupuestoAprobado = item.presupuesto_aprobado || 0;
         const pagado = item.pagado || 0;
@@ -237,47 +254,42 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
     return result;
   }, [data]);
 
-  const [budgetData, setBudgetData] = useState<PartidaRow[]>([]);
-  // const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
-
-  // Update budgetData when hierarchicalData changes
-  useMemo(() => {
-    setBudgetData(hierarchicalData);
-  }, [hierarchicalData]);
+  // Track expanded items by uniqueId. Decoupling UI state from the derived
+  // hierarchical data avoids cloning the entire tree on every toggle and
+  // prevents losing expansion when Convex re-publishes the underlying data.
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // Function to toggle expanded state of an item using uniqueId
   const toggleExpanded = (uniqueId: string) => {
-    const updateExpanded = (items: PartidaRow[]): PartidaRow[] => {
-      return items.map(item => {
-        if (item.uniqueId === uniqueId) {
-          return { ...item, expanded: !item.expanded };
-        }
-        if (item.children && item.children.length > 0) {
-          return { ...item, children: updateExpanded(item.children) };
-        }
-        return item;
-      });
-    };
-    setBudgetData(updateExpanded(budgetData));
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(uniqueId)) {
+        next.delete(uniqueId);
+      } else {
+        next.add(uniqueId);
+      }
+      return next;
+    });
   };
 
-  // Function to toggle precio unitario columns visibility
-  // const togglePrecioUnitario = () => {
-  //   setShowPrecioUnitario(!showPrecioUnitario);
-  // };
-
-  // Function to flatten the hierarchical data for rendering
-  const flattenData = (items: PartidaRow[], result: PartidaRow[] = []): PartidaRow[] => {
+  // Function to flatten the hierarchical data for rendering. The expanded
+  // flag is computed on the fly from `expandedIds` so children are only
+  // included when their ancestor is currently expanded.
+  const flattenData = (
+    items: PartidaRow[],
+    result: PartidaRow[] = []
+  ): PartidaRow[] => {
     items.forEach(item => {
-      result.push(item);
-      if (item.expanded && item.children && item.children.length > 0) {
+      const isExpanded = expandedIds.has(item.uniqueId);
+      result.push({ ...item, expanded: isExpanded });
+      if (isExpanded && item.children && item.children.length > 0) {
         flattenData(item.children, result);
       }
     });
     return result;
   };
 
-  const flattenedData = flattenData(budgetData);
+  const flattenedData = flattenData(hierarchicalData);
 
   // Compute filtered pagado for an item (recursively aggregates children)
   const getFilteredPagado = (item: PartidaRow): number => {

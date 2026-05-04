@@ -228,7 +228,28 @@ export const createPartida = mutation({
     proyecto: v.optional(v.id("desarrollos")),
   },
   handler: async (ctx, args) => {
-    const partida = await ctx.db.insert("partidas", {
+    // Validate hierarchy: nivel 2/3 require partida_nombre referencing an existing nivel 1
+    if (args.nivel === 2 || args.nivel === 3) {
+      if (!args.partida_nombre || args.partida_nombre.trim() === "") {
+        throw new Error("partida_nombre es requerido para niveles 2 y 3");
+      }
+      if (args.proyecto) {
+        const parent = await ctx.db
+          .query("partidas")
+          .withIndex("by_proyecto_nivel_nombre", (q) =>
+            q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", args.partida_nombre!)
+          )
+          .first();
+        if (!parent) {
+          throw new Error(`No existe la partida padre "${args.partida_nombre}" en este proyecto`);
+        }
+      }
+    }
+
+    // Calculate por_gastar to keep table in sync without requiring manual sync
+    const porGastar = (args.presupuesto_aprobado || 0) - (args.pagado || 0);
+
+    const partidaId = await ctx.db.insert("partidas", {
       nivel: args.nivel,
       nombre: args.nombre,
       familia: args.familia,
@@ -240,10 +261,39 @@ export const createPartida = mutation({
       presupuesto_original: args.presupuesto_original,
       presupuesto_aprobado: args.presupuesto_aprobado,
       pagado: args.pagado,
+      por_gastar: porGastar,
       archivo_origen: args.archivo_origen,
       proyecto: args.proyecto,
     });
-    return partida;
+
+    // Update meticas_presupuesto only when adding a nivel 1 partida (matches syncProjectData logic)
+    if (args.nivel === 1 && args.proyecto) {
+      const existingMetrics = await ctx.db
+        .query("meticas_presupuesto")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto!))
+        .first();
+
+      if (existingMetrics) {
+        await ctx.db.patch(existingMetrics._id, {
+          presupuesto_original:
+            (existingMetrics.presupuesto_original || 0) + (args.presupuesto_original || 0),
+          presupuesto_aprobado:
+            (existingMetrics.presupuesto_aprobado || 0) + (args.presupuesto_aprobado || 0),
+          gasto_total: (existingMetrics.gasto_total || 0) + (args.pagado || 0),
+          por_gastar: (existingMetrics.por_gastar || 0) + porGastar,
+        });
+      } else {
+        await ctx.db.insert("meticas_presupuesto", {
+          proyecto: args.proyecto,
+          presupuesto_original: args.presupuesto_original || 0,
+          presupuesto_aprobado: args.presupuesto_aprobado || 0,
+          gasto_total: args.pagado || 0,
+          por_gastar: porGastar,
+        });
+      }
+    }
+
+    return partidaId;
   },
 });
 
