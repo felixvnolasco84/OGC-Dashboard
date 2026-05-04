@@ -21,10 +21,29 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 type Nivel = 1 | 2 | 3;
+
+type PartidaFormFields = {
+    nivel: number;
+    nombre: string;
+    familia: string;
+    sub_partida: string;
+    unidad: string;
+    partida_nombre: string;
+    cantidad: number;
+    precio_unitario: number;
+    presupuesto_original: number;
+    presupuesto_aprobado: number;
+    pagado: number;
+    archivo_origen: string;
+};
+
+type DraftItem = PartidaFormFields & { _draftId: string };
 
 export default function AddPartidaModal() {
     const partidaContext = useAddPartidaModal((state) => state.partidaContext);
@@ -36,6 +55,8 @@ export default function AddPartidaModal() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Track when the user has manually overridden the auto-calculated approved budget
     const [aprobadoOverridden, setAprobadoOverridden] = useState(false);
+    // Items the user has staged to be created in batch when submitting
+    const [drafts, setDrafts] = useState<DraftItem[]>([]);
 
     const createPartida = useMutation(api.partida.createPartida);
 
@@ -58,14 +79,24 @@ export default function AddPartidaModal() {
 
     const nivel = formData.nivel as Nivel;
 
-    const parentOptions = useMemo(
-        () =>
-            (nivel1Partidas || [])
-                .map((p) => p.nombre)
-                .filter((n, i, arr) => n && arr.indexOf(n) === i)
-                .sort(),
-        [nivel1Partidas]
-    );
+    const parentOptions = useMemo(() => {
+        const dbNames = (nivel1Partidas || []).map((p) => p.nombre);
+        const draftNames = drafts.filter((d) => d.nivel === 1).map((d) => d.nombre);
+        return Array.from(new Set([...dbNames, ...draftNames]))
+            .filter((n) => n && n.trim() !== "")
+            .sort();
+    }, [nivel1Partidas, drafts]);
+
+    // For nivel 3, available familias = DB familias under selected parent + draft nivel-2 familias under same parent
+    const familiaOptions = useMemo(() => {
+        const dbFamilias = distinctFamilias || [];
+        const draftFamilias = drafts
+            .filter((d) => d.nivel === 2 && d.partida_nombre === formData.partida_nombre)
+            .map((d) => d.familia);
+        return Array.from(new Set([...dbFamilias, ...draftFamilias]))
+            .filter((f) => f && f.trim() !== "")
+            .sort();
+    }, [distinctFamilias, drafts, formData.partida_nombre]);
 
     const handleInputChange = (field: string, value: string) => {
         const numericFields = [
@@ -87,9 +118,12 @@ export default function AddPartidaModal() {
         }
     };
 
-    // Reset override flag whenever the modal is reopened
+    // Reset override flag and drafts whenever the modal is opened/closed
     useEffect(() => {
-        if (isOpen) setAprobadoOverridden(false);
+        if (isOpen) {
+            setAprobadoOverridden(false);
+            setDrafts([]);
+        }
     }, [isOpen]);
 
     // Reset hierarchy-dependent fields when nivel changes
@@ -130,74 +164,130 @@ export default function AddPartidaModal() {
         }).format(numAmount);
     };
 
-    const buildPayload = () => {
+    const buildPayloadFor = (data: PartidaFormFields) => {
         // Normalize fields based on nivel to keep DB consistent with sync logic
-        if (nivel === 1) {
+        if (data.nivel === 1) {
             return {
-                ...formData,
+                ...data,
                 familia: "",
                 sub_partida: "",
                 partida_nombre: "",
             };
         }
-        if (nivel === 2) {
+        if (data.nivel === 2) {
             return {
-                ...formData,
+                ...data,
                 // For nivel 2, nombre mirrors the parent partida name (matches sync convention)
-                nombre: formData.partida_nombre,
+                nombre: data.partida_nombre,
                 sub_partida: "",
             };
         }
         // nivel === 3
         return {
-            ...formData,
-            nombre: formData.partida_nombre,
+            ...data,
+            nombre: data.partida_nombre,
         };
+    };
+
+    const isFormValidFor = (data: PartidaFormFields) => {
+        const baseValid =
+            data.unidad &&
+            data.cantidad > 0 &&
+            data.precio_unitario > 0 &&
+            data.presupuesto_aprobado > 0;
+
+        if (!baseValid) return false;
+
+        if (data.nivel === 1) {
+            return Boolean(data.nombre.trim());
+        }
+        if (data.nivel === 2) {
+            return Boolean(data.partida_nombre.trim() && data.familia.trim());
+        }
+        // nivel === 3
+        return Boolean(
+            data.partida_nombre.trim() &&
+                data.familia.trim() &&
+                data.sub_partida.trim()
+        );
+    };
+
+    const isFormValid = () => isFormValidFor(formData);
+
+    const handleAddToList = () => {
+        if (!isFormValid()) return;
+        const draft: DraftItem = { ...formData, _draftId: crypto.randomUUID() };
+        setDrafts((prev) => [...prev, draft]);
+        // Reset item-specific fields, but preserve nivel + parent selections so
+        // the user can quickly add several items of the same kind.
+        updateFormData({
+            nombre: nivel === 1 ? "" : formData.nombre,
+            familia: nivel === 3 ? formData.familia : "",
+            sub_partida: "",
+            unidad: "",
+            cantidad: 0,
+            precio_unitario: 0,
+            presupuesto_original: 0,
+            presupuesto_aprobado: 0,
+            pagado: 0,
+        });
+        setAprobadoOverridden(false);
+        toast.success("Agregado a la lista");
+    };
+
+    const handleRemoveDraft = (id: string) => {
+        setDrafts((prev) => prev.filter((d) => d._draftId !== id));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!partidaContext) return;
 
+        // Collect all items to create: staged drafts + current form (if valid).
+        // Strip the local-only _draftId field before sending to the backend.
+        const items: PartidaFormFields[] = drafts.map((d) => {
+            const copy: Partial<DraftItem> = { ...d };
+            delete copy._draftId;
+            return copy as PartidaFormFields;
+        });
+        if (isFormValid()) {
+            items.push({ ...formData });
+        }
+
+        if (items.length === 0) {
+            toast.error("Agrega al menos un elemento válido");
+            return;
+        }
+
+        // Sort by nivel ascending so parent partidas (nivel 1) are created before
+        // their children (nivel 2/3); the backend validates parent existence.
+        items.sort((a, b) => a.nivel - b.nivel);
+
         setIsSubmitting(true);
+        let succeeded = 0;
         try {
-            const payload = buildPayload();
-            await createPartida({
-                ...payload,
-                proyecto: partidaContext.proyecto,
-            });
-            toast.success("Partida creada correctamente");
+            for (const data of items) {
+                const payload = buildPayloadFor(data);
+                await createPartida({
+                    ...payload,
+                    proyecto: partidaContext.proyecto,
+                });
+                succeeded++;
+            }
+            toast.success(
+                `${succeeded} elemento${succeeded === 1 ? "" : "s"} creado${succeeded === 1 ? "" : "s"} correctamente`
+            );
+            setDrafts([]);
             onClose();
         } catch (error) {
             const message = error instanceof Error ? error.message : "Error desconocido";
-            console.error("Error creating partida:", error);
-            toast.error(`No se pudo crear la partida: ${message}`);
+            console.error("Error creating partidas:", error);
+            toast.error(
+                `Se crearon ${succeeded} de ${items.length}. Error: ${message}`
+            );
         } finally {
             setIsSubmitting(false);
         }
-    };
-
-    const isFormValid = () => {
-        const baseValid =
-            formData.unidad &&
-            formData.cantidad > 0 &&
-            formData.precio_unitario > 0 &&
-            formData.presupuesto_aprobado > 0;
-
-        if (!baseValid) return false;
-
-        if (nivel === 1) {
-            return Boolean(formData.nombre.trim());
-        }
-        if (nivel === 2) {
-            return Boolean(formData.partida_nombre.trim() && formData.familia.trim());
-        }
-        // nivel === 3
-        return Boolean(
-            formData.partida_nombre.trim() &&
-                formData.familia.trim() &&
-                formData.sub_partida.trim()
-        );
     };
 
     if (!partidaContext) return null;
@@ -208,10 +298,10 @@ export default function AddPartidaModal() {
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[700px] sm:max-w-[700px] overflow-y-auto">
                 <SheetHeader>
-                    <SheetTitle>Agregar Nueva {nivelLabel}</SheetTitle>
+                    <SheetTitle>Agregar Elementos al Presupuesto</SheetTitle>
                     <SheetDescription>
-                        Registra una nueva {nivelLabel.toLowerCase()} para el proyecto{" "}
-                        {partidaContext.projectName}
+                        Agrega una o varias partidas, familias y sub-partidas al proyecto{" "}
+                        {partidaContext.projectName}. Usa &ldquo;Agregar a la lista&rdquo; para apilar varios elementos antes de guardar.
                     </SheetDescription>
                 </SheetHeader>
 
@@ -232,6 +322,65 @@ export default function AddPartidaModal() {
                 </Card>
 
                 <Separator className="my-4" />
+
+                {drafts.length > 0 && (
+                    <Card className="mb-4">
+                        <CardHeader>
+                            <CardTitle className="text-lg">
+                                Items por agregar ({drafts.length})
+                            </CardTitle>
+                            <CardDescription>
+                                Estos elementos se crearán al guardar
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            {drafts.map((d) => {
+                                const tipo =
+                                    d.nivel === 1
+                                        ? "Partida"
+                                        : d.nivel === 2
+                                          ? "Familia"
+                                          : "Sub-partida";
+                                const label =
+                                    d.nivel === 1
+                                        ? d.nombre
+                                        : d.nivel === 2
+                                          ? `${d.partida_nombre} / ${d.familia}`
+                                          : `${d.partida_nombre} / ${d.familia} / ${d.sub_partida}`;
+                                return (
+                                    <div
+                                        key={d._draftId}
+                                        className="flex items-center justify-between rounded-md border px-3 py-2 gap-3"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <Badge variant="secondary" className="shrink-0">
+                                                {tipo}
+                                            </Badge>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-medium truncate">
+                                                    {label}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {d.cantidad} {d.unidad} ·{" "}
+                                                    {formatCurrency(d.presupuesto_aprobado)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleRemoveDraft(d._draftId)}
+                                            aria-label="Quitar de la lista"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                );
+                            })}
+                        </CardContent>
+                    </Card>
+                )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Hierarchy */}
@@ -349,12 +498,12 @@ export default function AddPartidaModal() {
                                                 <SelectValue placeholder="Selecciona la familia" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {(distinctFamilias || []).length === 0 ? (
+                                                {familiaOptions.length === 0 ? (
                                                     <div className="px-2 py-1.5 text-sm text-muted-foreground">
                                                         Sin familias registradas
                                                     </div>
                                                 ) : (
-                                                    (distinctFamilias || []).map((f) => (
+                                                    familiaOptions.map((f) => (
                                                         <SelectItem key={f} value={f}>
                                                             {f}
                                                         </SelectItem>
@@ -561,12 +710,31 @@ export default function AddPartidaModal() {
                     </Card>
 
                     {/* Form Actions */}
-                    <div className="flex justify-end space-x-2 pt-4 pb-6">
+                    <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-4 pb-6">
                         <Button type="button" variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>
-                        <Button type="submit" disabled={!isFormValid() || isSubmitting}>
-                            {isSubmitting ? "Guardando..." : `Guardar ${nivelLabel}`}
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleAddToList}
+                            disabled={!isFormValid() || isSubmitting}
+                        >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Agregar a la lista
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={(drafts.length === 0 && !isFormValid()) || isSubmitting}
+                        >
+                            {isSubmitting
+                                ? "Guardando..."
+                                : (() => {
+                                      const total =
+                                          drafts.length + (isFormValid() ? 1 : 0);
+                                      if (total <= 1) return `Guardar ${nivelLabel}`;
+                                      return `Guardar ${total} elementos`;
+                                  })()}
                         </Button>
                     </div>
                 </form>
