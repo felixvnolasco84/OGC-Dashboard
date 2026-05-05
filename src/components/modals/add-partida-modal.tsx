@@ -142,6 +142,58 @@ const effectiveAprobado = (m: Metrics) => m.presupuesto_aprobado || calcTotal(m)
 const isMetricsValid = (m: Metrics) =>
     Boolean(m.unidad.trim()) && (m.cantidad || 0) > 0 && (m.precio_unitario || 0) > 0;
 
+// ---- Rollup (aggregate metrics from children) -----------------------------
+//
+// A node is a "rollup parent" when it has at least one child; in that case
+// its numeric metrics are derived from the sum of its children instead of
+// being entered manually. A node with no children is a "leaf" and keeps the
+// manual-entry behavior.
+
+type RollupTotals = {
+    original: number;
+    aprobado: number;
+    pagado: number;
+};
+
+const rollupFamiliaMetrics = (f: DraftFamilia): RollupTotals => {
+    if (f.subPartidas.length === 0) {
+        return {
+            original: calcTotal(f),
+            aprobado: effectiveAprobado(f),
+            pagado: f.pagado || 0,
+        };
+    }
+    let original = 0;
+    let aprobado = 0;
+    let pagado = 0;
+    for (const sp of f.subPartidas) {
+        original += calcTotal(sp);
+        aprobado += effectiveAprobado(sp);
+        pagado += sp.pagado || 0;
+    }
+    return { original, aprobado, pagado };
+};
+
+const rollupPartidaMetrics = (p: DraftPartida): RollupTotals => {
+    if (p.familias.length === 0) {
+        return {
+            original: calcTotal(p),
+            aprobado: effectiveAprobado(p),
+            pagado: p.pagado || 0,
+        };
+    }
+    let original = 0;
+    let aprobado = 0;
+    let pagado = 0;
+    for (const f of p.familias) {
+        const r = rollupFamiliaMetrics(f);
+        original += r.original;
+        aprobado += r.aprobado;
+        pagado += r.pagado;
+    }
+    return { original, aprobado, pagado };
+};
+
 // ---- Reusable inline cell input -------------------------------------------
 
 type CellProps = {
@@ -253,6 +305,55 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                 </span>
                 <p className="text-sm font-semibold text-blue-600">
                     {formatCurrency(effectiveAprobado(metrics))}
+                </p>
+            </div>
+        </div>
+    );
+}
+
+// ---- Read-only rollup summary (shown on parents with children) -----------
+
+function RollupSummaryRow({ totals }: { totals: RollupTotals }) {
+    const porEjercer = totals.aprobado - totals.pagado;
+    return (
+        <div className="grid grid-cols-12 gap-2 items-end rounded-md bg-muted/40 px-3 py-2 border border-dashed">
+            <div className="col-span-12 text-[10px] uppercase tracking-wide text-muted-foreground">
+                Totales calculados automáticamente desde los hijos
+            </div>
+            <div className="col-span-3 space-y-0.5">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Aprobado
+                </span>
+                <p className="text-sm font-semibold text-blue-600">
+                    {formatCurrency(totals.aprobado)}
+                </p>
+            </div>
+            <div className="col-span-3 space-y-0.5">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Pagado
+                </span>
+                <p className="text-sm font-semibold">
+                    {formatCurrency(totals.pagado)}
+                </p>
+            </div>
+            <div className="col-span-3 space-y-0.5">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Por ejercer
+                </span>
+                <p
+                    className={`text-sm font-semibold ${
+                        porEjercer < 0 ? "text-red-600" : "text-orange-600"
+                    }`}
+                >
+                    {formatCurrency(porEjercer)}
+                </p>
+            </div>
+            <div className="col-span-3 space-y-0.5 text-right">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Presupuesto original
+                </span>
+                <p className="text-sm font-semibold text-muted-foreground">
+                    {formatCurrency(totals.original)}
                 </p>
             </div>
         </div>
@@ -456,20 +557,14 @@ export default function AddPartidaModal() {
         let count = 0;
         let total = 0;
         for (const p of partidas) {
-            if (!p.isExisting) {
-                count += 1;
-                total += effectiveAprobado(p);
-            }
+            if (!p.isExisting) count += 1;
             for (const f of p.familias) {
-                if (!f.isExisting) {
-                    count += 1;
-                    total += effectiveAprobado(f);
-                }
-                for (const sp of f.subPartidas) {
-                    count += 1;
-                    total += effectiveAprobado(sp);
-                }
+                if (!f.isExisting) count += 1;
+                count += f.subPartidas.length;
             }
+            // Using the rollup avoids double-counting: a parent's aprobado
+            // already equals the sum of its children when it has any.
+            total += rollupPartidaMetrics(p).aprobado;
         }
         return { itemsToCreate: count, grandTotal: total };
     }, [partidas]);
@@ -482,13 +577,15 @@ export default function AddPartidaModal() {
         for (const p of partidas) {
             if (!p.nombre.trim()) return false;
             if (!p.isExisting) {
-                if (!isMetricsValid(p)) return false;
+                // Leaf partidas require manual metrics; rollup partidas
+                // derive them from their children.
+                if (p.familias.length === 0 && !isMetricsValid(p)) return false;
                 toCreate += 1;
             }
             for (const f of p.familias) {
                 if (!f.familia.trim()) return false;
                 if (!f.isExisting) {
-                    if (!isMetricsValid(f)) return false;
+                    if (f.subPartidas.length === 0 && !isMetricsValid(f)) return false;
                     toCreate += 1;
                 }
                 for (const sp of f.subPartidas) {
@@ -511,7 +608,8 @@ export default function AddPartidaModal() {
 
         const proyecto = partidaContext.proyecto;
 
-        const buildMetricsPayload = (m: Metrics) => {
+        // Leaf items use the user-entered metrics as-is.
+        const buildLeafPayload = (m: Metrics) => {
             const cantidad = m.cantidad || 0;
             const precio = m.precio_unitario || 0;
             const original = cantidad * precio;
@@ -526,11 +624,28 @@ export default function AddPartidaModal() {
             };
         };
 
+        // Rollup parents derive their numeric fields from the children.
+        // `cantidad`/`precio_unitario` are collapsed to a lump sum (1 x total)
+        // since summing heterogeneous units is not meaningful at the parent
+        // level. We keep any manually-entered `unidad`, defaulting to "LOTE".
+        const buildRollupPayload = (m: Metrics, r: RollupTotals) => ({
+            unidad: m.unidad && m.unidad.trim() ? m.unidad : "LOTE",
+            cantidad: 1,
+            precio_unitario: r.aprobado,
+            presupuesto_original: r.original || r.aprobado,
+            presupuesto_aprobado: r.aprobado,
+            pagado: r.pagado,
+        });
+
         type Item = { nivel: number; payload: Record<string, unknown> };
         const items: Item[] = [];
 
         for (const p of partidas) {
             if (!p.isExisting) {
+                const partidaPayload =
+                    p.familias.length === 0
+                        ? buildLeafPayload(p)
+                        : buildRollupPayload(p, rollupPartidaMetrics(p));
                 items.push({
                     nivel: 1,
                     payload: {
@@ -539,12 +654,16 @@ export default function AddPartidaModal() {
                         familia: "",
                         sub_partida: "",
                         archivo_origen: "",
-                        ...buildMetricsPayload(p),
+                        ...partidaPayload,
                     },
                 });
             }
             for (const f of p.familias) {
                 if (!f.isExisting) {
+                    const familiaPayload =
+                        f.subPartidas.length === 0
+                            ? buildLeafPayload(f)
+                            : buildRollupPayload(f, rollupFamiliaMetrics(f));
                     items.push({
                         nivel: 2,
                         payload: {
@@ -554,7 +673,7 @@ export default function AddPartidaModal() {
                             familia: f.familia,
                             sub_partida: "",
                             archivo_origen: "",
-                            ...buildMetricsPayload(f),
+                            ...familiaPayload,
                         },
                     });
                 }
@@ -568,7 +687,7 @@ export default function AddPartidaModal() {
                             familia: f.familia,
                             sub_partida: sp.sub_partida,
                             archivo_origen: "",
-                            ...buildMetricsPayload(sp),
+                            ...buildLeafPayload(sp),
                         },
                     });
                 }
@@ -817,10 +936,16 @@ function PartidaCard({
                 </div>
                 {!partida.isExisting && partida.isExpanded && (
                     <div className="mt-3">
-                        <MetricsRow
-                            metrics={partida}
-                            onChange={(patch) => onPatch(patch)}
-                        />
+                        {partida.familias.length === 0 ? (
+                            <MetricsRow
+                                metrics={partida}
+                                onChange={(patch) => onPatch(patch)}
+                            />
+                        ) : (
+                            <RollupSummaryRow
+                                totals={rollupPartidaMetrics(partida)}
+                            />
+                        )}
                     </div>
                 )}
             </div>
@@ -953,10 +1078,16 @@ function FamiliaCard({
                 </div>
                 {!familia.isExisting && familia.isExpanded && (
                     <div className="mt-3">
-                        <MetricsRow
-                            metrics={familia}
-                            onChange={(patch) => onPatch(patch)}
-                        />
+                        {familia.subPartidas.length === 0 ? (
+                            <MetricsRow
+                                metrics={familia}
+                                onChange={(patch) => onPatch(patch)}
+                            />
+                        ) : (
+                            <RollupSummaryRow
+                                totals={rollupFamiliaMetrics(familia)}
+                            />
+                        )}
                     </div>
                 )}
             </div>
