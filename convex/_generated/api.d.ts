@@ -54,7 +54,6 @@ import type * as transacciones from "../transacciones.js";
 import type * as users from "../users.js";
 import type * as weekly_avance_real from "../weekly_avance_real.js";
 import type * as weekly_projected_totals from "../weekly_projected_totals.js";
-import type * as welcome_email from "../welcome_email.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -106,7 +105,6 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   weekly_avance_real: typeof weekly_avance_real;
   weekly_projected_totals: typeof weekly_projected_totals;
-  welcome_email: typeof welcome_email;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

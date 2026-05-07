@@ -1,8 +1,6 @@
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import { v } from "convex/values";
-import { render } from "@react-email/render";
-import { WelcomeViewerEmail } from "./welcome_email";
 
 // Get or create user from Clerk
 export const getCurrentUser = query({
@@ -168,9 +166,10 @@ export const inviteUser = action({
 
     const normalizedEmail = args.email.trim().toLowerCase();
     const firstProjectId = args.allowed_desarrollos[0];
-    const redirectUrl = firstProjectId
-      ? `${appUrl}/proyecto/${firstProjectId}/presupuesto`
-      : appUrl;
+    const finalRedirectPath = firstProjectId
+      ? `/proyecto/${firstProjectId}/presupuesto`
+      : "/";
+    const redirectUrl = `${appUrl}/accept-invitation?redirect_url=${encodeURIComponent(finalRedirectPath)}`;
 
     const invitationResponse = await fetch("https://api.clerk.com/v1/invitations", {
       method: "POST",
@@ -204,11 +203,11 @@ export const inviteUser = action({
       invitation_url: invitationUrl,
     });
 
-    const html = await render(WelcomeViewerEmail({
+    const html = renderWelcomeEmail({
       name: args.name || normalizedEmail,
       loginUrl: invitationUrl,
       projectCount: args.allowed_desarrollos.length,
-    }));
+    });
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -418,3 +417,65 @@ export const hasAccessToSalesProject = query({
     return allowedSales.includes(args.salesProyectoId);
   },
 });
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function renderWelcomeEmail({
+  name,
+  loginUrl,
+  projectCount,
+}: {
+  name: string;
+  loginUrl: string;
+  projectCount: number;
+}) {
+  const safeName = escapeHtml(name);
+  const safeUrl = escapeHtml(loginUrl);
+  const projectText = projectCount === 1
+    ? "Tienes 1 proyecto asignado."
+    : `Tienes ${projectCount} proyectos asignados.`;
+
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bienvenido a OGC Dashboard</title>
+  </head>
+  <body style="margin:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7f9;padding:48px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;">
+            <tr>
+              <td style="padding:40px 40px 20px;">
+                <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;">OGC Dashboard</div>
+                <h1 style="margin:28px 0 12px;font-size:28px;line-height:1.2;font-weight:600;color:#111827;">Bienvenido, ${safeName}</h1>
+                <p style="margin:0;color:#4b5563;font-size:16px;line-height:1.6;">Tu acceso ya fue configurado. ${escapeHtml(projectText)} Usa el botón para crear o entrar a tu cuenta y abrir directamente tu dashboard.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 40px 28px;">
+                <a href="${safeUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;padding:13px 20px;font-size:15px;font-weight:700;">Entrar a mi cuenta</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 36px;">
+                <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.6;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                <p style="margin:8px 0 0;color:#374151;font-size:13px;line-height:1.6;word-break:break-all;">${safeUrl}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}

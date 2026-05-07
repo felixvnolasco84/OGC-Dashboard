@@ -40,6 +40,7 @@ import SalesTransaccionesTablePage from "./pages/TransaccionesTable/SalesTransac
 import SalesDocumentosPage from "./pages/Documentos/SalesDocumentosPage.tsx";
 import SignInPage from "./pages/SignIn/SignInPage.tsx";
 import SignUpPage from "./pages/SignUp/SignUpPage.tsx";
+import AcceptInvitationPage from "./pages/AcceptInvitation/AcceptInvitationPage.tsx";
 import SalesProjectManagementPage from "./pages/SalesProjectManagement/SalesProjectManagementPage.tsx";
 import SalesUserManagementPage from "./pages/SalesUserManagement/SalesUserManagementPage.tsx";
 import BitacoraPage from "./pages/Bitacora/BitacoraPage.tsx";
@@ -66,6 +67,7 @@ createRoot(document.getElementById("root")!).render(
               {/* Public Authentication Routes - No Sidebar */}
               <Route path="/sign-in/*" element={<SignInPage />} />
               <Route path="/sign-up/*" element={<SignUpPage />} />
+              <Route path="/accept-invitation/*" element={<AcceptInvitationPage />} />
               
               {/* Protected Routes with Sidebar */}
               <Route element={<WebsiteLayout />}>
