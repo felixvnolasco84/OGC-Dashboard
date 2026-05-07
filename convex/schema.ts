@@ -6,9 +6,13 @@ export default defineSchema({
     clerkId: v.string(), // Clerk user ID
     email: v.string(),
     name: v.string(),
-    role: v.string(), // "admin", "user", "viewer", "contratista"
+    role: v.string(), // "admin", "user", "viewer", "contratista", "finance"
     allowed_desarrollos: v.array(v.id("desarrollos")), // Projects user can access
     allowed_sales_projects: v.optional(v.array(v.id("sales_projects"))), // Sales projects user can access
+    invitation_status: v.optional(v.string()), // pending, sent, accepted
+    invited_at: v.optional(v.number()),
+    invitation_url: v.optional(v.string()),
+    invited_by: v.optional(v.id("users")),
     created_at: v.number(),
     last_login: v.optional(v.number()),
   }).index("by_clerk_id", { fields: ["clerkId"] })

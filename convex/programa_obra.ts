@@ -2,6 +2,7 @@ import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { assertCanWrite } from "./permissions";
 
 // ============================================================
 // SCHEDULING (programa_obra table) - per nivel 1 partida
@@ -47,6 +48,8 @@ export const upsertSchedule = mutation({
     finiquito_porcentaje: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     const existing = await ctx.db
       .query("programa_obra")
       .withIndex("by_proyecto_partida", (q) =>
@@ -91,6 +94,8 @@ export const upsertFamiliaSchedule = mutation({
     fecha_fin: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     const parseDateStr = (s: string): Date => {
       if (s.includes("/")) {
         const [d, m, y] = s.split("/").map(Number);
@@ -195,6 +200,8 @@ export const upsertPonderacion = mutation({
     peso: v.number(),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     const existing = await ctx.db
       .query("programa_obra_ponderacion")
       .withIndex("by_partida_id", (q) => q.eq("partida_id", args.partida_id))
@@ -253,6 +260,8 @@ export const upsertAvanceReal = mutation({
     fecha: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     const existing = await ctx.db
       .query("avance_real")
       .withIndex("by_proyecto_partida", (q) =>
@@ -291,6 +300,8 @@ export const addFamilia = mutation({
     familia: v.string(), // New familia name
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     return await ctx.db.insert("partidas", {
       nivel: 2,
       nombre: args.partida_nombre,
@@ -319,6 +330,8 @@ export const addSubPartida = mutation({
     sub_partida: v.string(), // New sub-partida name
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     return await ctx.db.insert("partidas", {
       nivel: 3,
       nombre: args.partida_nombre,
@@ -349,6 +362,8 @@ export const updateDetalleAvance = mutation({
     avance_porcentaje: v.number(),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     await ctx.db.patch(args.detalle_id, {
       avance_porcentaje: args.avance_porcentaje,
     });
@@ -363,6 +378,8 @@ export const updateSchedulePeso = mutation({
     peso: v.number(),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     await ctx.db.patch(args.schedule_id, { peso: args.peso });
     return { success: true };
   },
@@ -375,6 +392,8 @@ export const updateDetallePeso = mutation({
     peso: v.number(),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     await ctx.db.patch(args.detalle_id, { peso: args.peso });
     return { success: true };
   },
@@ -390,6 +409,8 @@ export const updateDetalleSchedule = mutation({
     tiempo_extra_unidad: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     await ctx.db.patch(args.detalle_id, {
       fecha_inicio: args.fecha_inicio,
       fecha_fin: args.fecha_fin,
@@ -457,6 +478,8 @@ export const bulkUpsertFromExcel = mutation({
     rows: v.array(excelRowValidator),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     let created = 0;
     let updated = 0;
     const errors: string[] = [];
@@ -732,6 +755,8 @@ export const addComentario = mutation({
     fecha_fin: v.string(), // DD/MM/YYYY
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     const user = await ctx.auth.getUserIdentity();
     let userId: Id<"users"> | undefined;
     let userName: string | undefined;
@@ -768,6 +793,8 @@ export const updateComentario = mutation({
     fecha_fin: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     const updates: Record<string, string> = {};
     if (args.comentario !== undefined) updates.comentario = args.comentario;
     if (args.fecha_inicio !== undefined) updates.fecha_inicio = args.fecha_inicio;
@@ -783,6 +810,8 @@ export const deleteComentario = mutation({
     comentario_id: v.id("programa_obra_comentarios"),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     await ctx.db.delete(args.comentario_id);
     return { success: true };
   },

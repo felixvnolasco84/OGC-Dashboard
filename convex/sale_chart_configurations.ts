@@ -22,6 +22,9 @@ export const getUserChartConfigs = query({
     if (!user) {
       throw new Error("User not found");
     }
+    if (user.role === "viewer") {
+      throw new Error("Unauthorized: Viewer role is read-only");
+    }
 
     // Get all chart configs for this user and project
     const configs = await ctx.db
@@ -99,6 +102,9 @@ export const saveChartConfig = mutation({
     if (!user) {
       throw new Error("User not found");
     }
+    if (user.role === "viewer") {
+      throw new Error("Unauthorized: Viewer role is read-only");
+    }
 
     // Check if config already exists
     const existingConfig = await ctx.db
@@ -175,6 +181,9 @@ export const deleteChartConfig = mutation({
     if (!user) {
       throw new Error("User not found");
     }
+    if (user.role === "viewer") {
+      throw new Error("Unauthorized: Viewer role is read-only");
+    }
 
     // Get the config to verify ownership
     const config = await ctx.db.get(args.config_id);
@@ -216,6 +225,9 @@ export const resetChartConfig = mutation({
 
     if (!user) {
       throw new Error("User not found");
+    }
+    if (user.role === "viewer") {
+      throw new Error("Unauthorized: Viewer role is read-only");
     }
 
     // Find and delete the config

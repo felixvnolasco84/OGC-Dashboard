@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { assertCanWrite } from "./permissions";
 
 // Get all weekly avance real values for a project
 export const getByProyecto = query({
@@ -43,6 +44,8 @@ export const saveWeeklyAvance = mutation({
     avance_real: v.number(),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     // Check if record already exists
     const existing = await ctx.db
       .query("weekly_avance_real")
@@ -86,6 +89,8 @@ export const saveMultipleWeeklyAvance = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     const results = [];
 
     for (const weekData of args.avanceData) {
@@ -132,6 +137,8 @@ export const deleteWeeklyAvance = mutation({
     id: v.id("weekly_avance_real"),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     await ctx.db.delete(args.id);
     return { success: true };
   },
@@ -143,6 +150,8 @@ export const deleteAllForProyecto = mutation({
     proyecto: v.id("desarrollos"),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     const records = await ctx.db
       .query("weekly_avance_real")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))

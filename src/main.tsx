@@ -28,6 +28,7 @@ import AdminFlujoPage from "./pages/AdminFlujo/AdminFlujoPage.tsx";
 import AdminSalesFlujoPage from "./pages/AdminSalesFlujo/AdminSalesFlujoPage.tsx";
 import ProyectoFlujoPage from "./pages/ProyectoFlujo/ProyectoFlujoPage.tsx";
 import UserManagementPage from "./pages/UserManagement/UserManagementPage.tsx";
+import NewUserPage from "./pages/UserManagement/NewUserPage.tsx";
 import ProtectedRoute from "./components/Auth/ProtectedRoute.tsx";
 import SalesProyectosTablePage from "./pages/SalesProyectosTable/SalesProyectosTablePage.tsx";
 import SalesProyectoDocumentosPage from "./pages/SalesProyectoDocumentos/SalesProyectoDocumentosPage.tsx";
@@ -109,12 +110,12 @@ createRoot(document.getElementById("root")!).render(
 
                 {/* Project-specific routes */}
                 <Route path="/proyecto/:proyectoId/presupuesto" element={
-                  <ProtectedRoute requiredRole="user">
+                  <ProtectedRoute requiredRole="viewer">
                     <PresupuestoPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/proyecto/:proyectoId/control" element={
-                  <ProtectedRoute requiredRole="user">
+                  <ProtectedRoute requiredRole="viewer">
                     <ControlPage />
                   </ProtectedRoute>
                 } />
@@ -212,6 +213,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/usuarios" element={
                   <ProtectedRoute requiredRole="admin">
                     <UserManagementPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/usuarios/nuevo" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <NewUserPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/sales-gestion" element={

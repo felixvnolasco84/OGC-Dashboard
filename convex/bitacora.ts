@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Auth } from "convex/server";
 import { Id } from "./_generated/dataModel";
+import { assertCanWrite } from "./permissions";
 
 // Helper to check authentication
 async function getUserIdentity(ctx: { auth: Auth }) {
@@ -30,7 +31,7 @@ export const createLogEntry = mutation({
     documentosNombres: v.optional(v.array(v.string())), // Names for each document (same order as documentos)
   },
   handler: async (ctx, args) => {
-    await getUserIdentity(ctx);
+    await assertCanWrite(ctx);
 
     // Create main bitacora entry
     const logId = await ctx.db.insert("bitacora", {
@@ -306,7 +307,7 @@ export const updateLogEntry = mutation({
     documentosNombres: v.optional(v.array(v.string())), // Names for each new document
   },
   handler: async (ctx, args) => {
-    await getUserIdentity(ctx);
+    await assertCanWrite(ctx);
 
     const log = await ctx.db.get(args.logId);
     if (!log) {
@@ -400,7 +401,7 @@ export const deleteLogEntry = mutation({
     logId: v.id("bitacora"),
   },
   handler: async (ctx, args) => {
-    await getUserIdentity(ctx);
+    await assertCanWrite(ctx);
 
     const log = await ctx.db.get(args.logId);
     if (!log) {
@@ -430,7 +431,7 @@ export const deletePhoto = mutation({
     photoId: v.id("documentos"),
   },
   handler: async (ctx, args) => {
-    await getUserIdentity(ctx);
+    await assertCanWrite(ctx);
 
     const photo = await ctx.db.get(args.photoId);
     if (!photo) {
@@ -456,7 +457,7 @@ export const updatePhotoComment = mutation({
     comment: v.string(),
   },
   handler: async (ctx, args) => {
-    await getUserIdentity(ctx);
+    await assertCanWrite(ctx);
 
     const photo = await ctx.db.get(args.photoId);
     if (!photo) {
@@ -485,9 +486,12 @@ export const addPhotoComment = mutation({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
-    
+
     if (!user) {
       throw new Error("User not found");
+    }
+    if (user.role === "viewer") {
+      throw new Error("Unauthorized: Viewer role is read-only");
     }
 
     const photo = await ctx.db.get(args.photoId);
@@ -543,6 +547,14 @@ export const deletePhotoComment = mutation({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
+
+    if (user?.role === "viewer") {
+      throw new Error("Unauthorized: Viewer role is read-only");
+    }
+
+    if (user?.role === "viewer") {
+      throw new Error("Unauthorized: Viewer role is read-only");
+    }
     
     // Only allow deletion by comment owner or admin
     if (user && (comment.user_id === user._id || user.role === "admin")) {
@@ -630,7 +642,7 @@ export const uploadBitacoraPhoto = mutation({
     storage_id: v.id("_storage"),
   },
   handler: async (ctx, args) => {
-    await getUserIdentity(ctx);
+    await assertCanWrite(ctx);
 
     const bitacora = await ctx.db.get(args.bitacora_id);
     if (!bitacora) {

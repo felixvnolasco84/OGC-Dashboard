@@ -3,6 +3,7 @@ import { Doc, Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
+import { assertCanWrite } from "./permissions";
 
 
 //TODO: IMPLEMENT PAGINATION IN THE REST OF THE APP WHERE IT MAKES SENSE
@@ -228,6 +229,8 @@ export const createPartida = mutation({
     proyecto: v.optional(v.id("desarrollos")),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     // Validate hierarchy: nivel 2/3 require partida_nombre referencing an existing nivel 1
     if (args.nivel === 2 || args.nivel === 3) {
       if (!args.partida_nombre || args.partida_nombre.trim() === "") {
@@ -315,6 +318,7 @@ export const update = mutation({
     proyecto: v.optional(v.id("desarrollos")),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
 
     const { id, ...rest } = args;
     const existingPartida = await ctx.db.get(id);
@@ -543,6 +547,8 @@ export const syncPorGastarForAllPartidas = mutation({
     projectId: v.optional(v.id("desarrollos")), // Optional: sync only for specific project
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     console.log("🔄 Starting por_gastar sync for all partidas...");
 
     try {
@@ -611,6 +617,8 @@ export const syncGastadoForAllPartidas = mutation({
     projectId: v.optional(v.id("desarrollos")), // Optional: sync only for specific project
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     console.log("🔄 Starting gastado sync for all partidas...");
 
     try {
@@ -685,6 +693,8 @@ export const syncProjectData = mutation({
     projectId: v.id("desarrollos"),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     console.log(`🔄 Starting comprehensive sync for project: ${args.projectId}`);
 
     try {
@@ -1007,6 +1017,8 @@ export const updatePorGastarByFilters = mutation({
     familia: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
     console.log(`🔄 Updating por_gastar for: ${args.nombre} / ${args.familia}`);
 
     // Find all partidas matching the filters

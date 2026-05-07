@@ -89,6 +89,13 @@ const financeMenuItems: ProjectMenuItem[] = [
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
 ];
 
+const viewerMenuItems: ProjectMenuItem[] = [
+  { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
+  { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
+  { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
+  { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: BookCheck },
+];
+
 const salesProjectMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: TagIcon },
   { id: "control", label: "Control", path: "control", disabled: false, icon: Folder },
@@ -293,6 +300,7 @@ export default function SidebarComponent() {
   // Filter sales projects based on user access
   const filteredSalesProjects = (salesProjects || []).filter((proyecto) => {
     if (currentUser?.role === "admin") return true;
+    if (currentUser?.role === "viewer") return false;
     return (currentUser?.allowed_sales_projects || []).includes(proyecto._id);
   });
 
@@ -311,7 +319,9 @@ export default function SidebarComponent() {
     ? contratistaMenuItems
     : currentUser?.role === "finance"
       ? financeMenuItems
-      : projectMenuItems;
+      : currentUser?.role === "viewer"
+        ? viewerMenuItems
+        : projectMenuItems;
 
   const getFirstMenuItem = (type: "proyecto" | "sales") => {
     if (type === "proyecto") {

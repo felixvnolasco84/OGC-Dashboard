@@ -1,5 +1,8 @@
-import { mutation, query } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 import { v } from "convex/values";
+import { render } from "@react-email/render";
+import { WelcomeViewerEmail } from "./welcome_email";
 
 // Get or create user from Clerk
 export const getCurrentUser = query({
@@ -42,11 +45,34 @@ export const storeUser = mutation({
       return existingUser._id;
     }
 
+    const email = identity.email ?? "";
+    const name = identity.name ?? "";
+
+    // If an admin invited the email before Clerk had a user id, claim that
+    // pending record instead of creating a duplicate permissions row.
+    const pendingUser = email
+      ? await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .filter((q) => q.eq(q.field("invitation_status"), "pending"))
+        .first()
+      : null;
+
+    if (pendingUser) {
+      await ctx.db.patch(pendingUser._id, {
+        clerkId: identity.subject,
+        name: pendingUser.name || name,
+        invitation_status: "accepted",
+        last_login: Date.now(),
+      });
+      return pendingUser._id;
+    }
+
     // Create new user with default role and no project access
     const userId = await ctx.db.insert("users", {
       clerkId: identity.subject,
-      email: identity.email ?? "",
-      name: identity.name ?? "",
+      email,
+      name,
       role: "viewer", // Default role
       allowed_desarrollos: [], // No cost projects access by default
       allowed_sales_projects: [], // No sales projects access by default
@@ -55,6 +81,159 @@ export const storeUser = mutation({
     });
 
     return userId;
+  },
+});
+
+export const createOrUpdateInvitedUser = mutation({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    role: v.string(),
+    allowed_desarrollos: v.array(v.id("desarrollos")),
+    invitation_url: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!currentUser || currentUser.role !== "admin") {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    const normalizedEmail = args.email.trim().toLowerCase();
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .first();
+
+    const data = {
+      email: normalizedEmail,
+      name: args.name.trim() || normalizedEmail,
+      role: args.role,
+      allowed_desarrollos: args.allowed_desarrollos,
+      allowed_sales_projects: [] as [],
+      invitation_status: "pending",
+      invited_at: Date.now(),
+      invitation_url: args.invitation_url,
+      invited_by: currentUser._id,
+    };
+
+    if (existingUser) {
+      await ctx.db.patch(existingUser._id, data);
+      return existingUser._id;
+    }
+
+    return await ctx.db.insert("users", {
+      clerkId: `pending:${normalizedEmail}`,
+      ...data,
+      created_at: Date.now(),
+    });
+  },
+});
+
+export const inviteUser = action({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    role: v.string(),
+    allowed_desarrollos: v.array(v.id("desarrollos")),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await ctx.runQuery(api.users.getCurrentUser);
+    if (!currentUser || currentUser.role !== "admin") {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL;
+    const appUrl = (process.env.APP_URL || process.env.SITE_URL || "").replace(/\/$/, "");
+
+    if (!clerkSecretKey) {
+      throw new Error("Missing CLERK_SECRET_KEY Convex environment variable");
+    }
+    if (!resendApiKey || !resendFromEmail) {
+      throw new Error("Missing RESEND_API_KEY or RESEND_FROM_EMAIL Convex environment variable");
+    }
+    if (!appUrl) {
+      throw new Error("Missing APP_URL Convex environment variable");
+    }
+
+    const normalizedEmail = args.email.trim().toLowerCase();
+    const firstProjectId = args.allowed_desarrollos[0];
+    const redirectUrl = firstProjectId
+      ? `${appUrl}/proyecto/${firstProjectId}/presupuesto`
+      : appUrl;
+
+    const invitationResponse = await fetch("https://api.clerk.com/v1/invitations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clerkSecretKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email_address: normalizedEmail,
+        redirect_url: redirectUrl,
+        notify: false,
+        ignore_existing: true,
+        public_metadata: {
+          role: args.role,
+          allowed_desarrollos: args.allowed_desarrollos,
+        },
+      }),
+    });
+
+    const invitation = await invitationResponse.json();
+    if (!invitationResponse.ok) {
+      throw new Error(invitation?.errors?.[0]?.message || "Unable to create Clerk invitation");
+    }
+
+    const invitationUrl = invitation.url || redirectUrl;
+    await ctx.runMutation(api.users.createOrUpdateInvitedUser, {
+      email: normalizedEmail,
+      name: args.name,
+      role: args.role,
+      allowed_desarrollos: args.allowed_desarrollos,
+      invitation_url: invitationUrl,
+    });
+
+    const html = await render(WelcomeViewerEmail({
+      name: args.name || normalizedEmail,
+      loginUrl: invitationUrl,
+      projectCount: args.allowed_desarrollos.length,
+    }));
+
+    const emailResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: resendFromEmail,
+        to: [normalizedEmail],
+        subject: "Bienvenido a OGC Dashboard",
+        html,
+      }),
+    });
+
+    const emailResult = await emailResponse.json();
+    if (!emailResponse.ok) {
+      throw new Error(emailResult?.message || "Unable to send welcome email");
+    }
+
+    return {
+      success: true,
+      emailId: emailResult.id,
+      invitationUrl,
+    };
   },
 });
 

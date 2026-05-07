@@ -1,4 +1,4 @@
-import { QueryCtx, MutationCtx } from "./_generated/server";
+import { ActionCtx, QueryCtx, MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
 // Get current user or throw error
@@ -92,4 +92,36 @@ export async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
     .first();
 
   return user?.role === "admin";
+}
+
+export async function assertAdmin(ctx: QueryCtx | MutationCtx | ActionCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Not authenticated");
+  }
+
+  if (!("db" in ctx)) {
+    return identity;
+  }
+
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .first();
+
+  if (!user || user.role !== "admin") {
+    throw new Error("Unauthorized: Admin access required");
+  }
+
+  return user;
+}
+
+export async function assertCanWrite(ctx: MutationCtx) {
+  const user = await getCurrentUserOrThrow(ctx);
+
+  if (user.role === "viewer") {
+    throw new Error("Unauthorized: Viewer role is read-only");
+  }
+
+  return user;
 }

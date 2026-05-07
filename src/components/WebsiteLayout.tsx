@@ -1,5 +1,7 @@
 import { Outlet } from "react-router";
 import AppSidebar from "./ui/SidebarComponent";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 import { StoreUserEffect } from "./Auth/StoreUserEffect";
 
@@ -14,6 +16,9 @@ import { SidebarProvider, SidebarTrigger } from "./ui/Sidebar";
 
 const queryClient = new QueryClient()
 function WebsiteLayout() {
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const isViewer = currentUser?.role === "viewer";
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -24,7 +29,9 @@ function WebsiteLayout() {
             <div className="sticky top-0 z-10 flex items-center h-10 px-2 bg-white border-b border-gray-200">
               <SidebarTrigger />
             </div>
-            <Outlet />
+            <div data-viewer-readonly={isViewer ? "true" : undefined}>
+              <Outlet />
+            </div>
           </main>
           <ModalProvider />
           <Toaster />

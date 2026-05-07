@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,7 +14,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Shield, User, Eye, DollarSign } from "lucide-react";
+import { Loader2, Shield, User, Eye, DollarSign, UserPlus } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
 
 export default function UserManagementPage() {
@@ -100,13 +101,21 @@ export default function UserManagementPage() {
     <div className="bg-white min-h-screen">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
           <h1 className="text-3xl font-normal text-gray-900 mb-2">
             Gestión de Usuarios
           </h1>
           <p className="text-gray-600">
             Administra roles y permisos de acceso a proyectos
           </p>
+          </div>
+          <Button asChild className="gap-2">
+            <Link to="/usuarios/nuevo">
+              <UserPlus className="h-4 w-4" />
+              Agregar Usuario
+            </Link>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
