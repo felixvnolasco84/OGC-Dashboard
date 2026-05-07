@@ -2,9 +2,7 @@ import { Outlet } from "react-router";
 import AppSidebar from "./ui/SidebarComponent";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-
 import { StoreUserEffect } from "./Auth/StoreUserEffect";
-
 import {
   QueryClient,
   QueryClientProvider,
