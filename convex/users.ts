@@ -2,6 +2,8 @@ import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import { v } from "convex/values";
 
+const TEMPLATE_DOWNLOAD_URL = "https://we.tl/t-6xrK2ZqduAcJ7ckF";
+
 // Get or create user from Clerk
 export const getCurrentUser = query({
   handler: async (ctx) => {
@@ -305,6 +307,41 @@ export const updateUserPermissions = mutation({
   },
 });
 
+// Remove a user from the dashboard access list (admin only)
+export const removeUser = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!currentUser || currentUser.role !== "admin") {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    if (currentUser._id === args.userId) {
+      throw new Error("No puedes quitar tu propio usuario");
+    }
+
+    const userToRemove = await ctx.db.get(args.userId);
+    if (!userToRemove) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    await ctx.db.delete(args.userId);
+
+    return { success: true };
+  },
+});
+
 // Diagnostic query to inspect a user's record by email (admin only).
 // Use from the Convex dashboard or a temporary debug page to verify
 // that a user has a valid `name`, `role`, and `allowed_desarrollos`
@@ -438,38 +475,87 @@ function renderWelcomeEmail({
 }) {
   const safeName = escapeHtml(name);
   const safeUrl = escapeHtml(loginUrl);
-  const projectText = projectCount === 1
-    ? "Tienes 1 proyecto asignado."
-    : `Tienes ${projectCount} proyectos asignados.`;
+  const safeTemplateUrl = escapeHtml(TEMPLATE_DOWNLOAD_URL);
+  const projectCopy = projectCount === 1
+    ? "el proyecto que ya cargamos a tu cuenta"
+    : "los proyectos que ya cargamos a tu cuenta";
 
   return `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bienvenido a OGC Dashboard</title>
+    <title>Tu acceso a OGC Dashboard ya está listo</title>
   </head>
-  <body style="margin:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7f9;padding:48px 16px;">
+  <body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#242424;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;padding:56px 16px 40px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;">
             <tr>
-              <td style="padding:40px 40px 20px;">
-                <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;">OGC Dashboard</div>
-                <h1 style="margin:28px 0 12px;font-size:28px;line-height:1.2;font-weight:600;color:#111827;">Bienvenido, ${safeName}</h1>
-                <p style="margin:0;color:#4b5563;font-size:16px;line-height:1.6;">Tu acceso ya fue configurado. ${escapeHtml(projectText)} Usa el botón para crear o entrar a tu cuenta y abrir directamente tu dashboard.</p>
+              <td style="padding:0 38px 70px;">
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="font-size:42px;line-height:38px;font-weight:700;color:#252525;padding-right:18px;">↱</td>
+                    <td style="font-size:22px;line-height:1.2;font-weight:500;color:#242424;">Build smarter. Spend better.</td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:12px 40px 28px;">
-                <a href="${safeUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;padding:13px 20px;font-size:15px;font-weight:700;">Entrar a mi cuenta</a>
+              <td style="padding:0 38px;">
+                <h1 style="margin:0 0 22px;font-size:31px;line-height:1.2;font-weight:500;color:#242424;letter-spacing:-.2px;">Tu acceso<br />ya está listo.</h1>
+                <p style="margin:0 0 56px;color:#3f3f3f;font-size:18px;line-height:1.45;font-weight:400;">Hola ${safeName}, configuramos tu cuenta en la plataforma. Desde hoy puedes monitorear presupuesto, avance de obra y documentos de proyecto, todo en un solo lugar.</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 44px;">
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">01</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Inicia sesión</strong> y revisa ${escapeHtml(projectCopy)}.</td>
+                  </tr>
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">02</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Dime si algo no cuadra</strong>: partidas, etapas, nombres de proyecto o permisos. Lo ajustamos de inmediato.</td>
+                  </tr>
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0;">03</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0;"><strong style="color:#242424;font-weight:700;">Agendamos 30 minutos</strong> para resolver dudas y afinar el setup antes de que empieces a operar.</td>
+                  </tr>
+                </table>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td align="center" style="padding:0 0 48px;">
+                      <a href="${safeUrl}" style="display:inline-block;width:260px;max-width:100%;background:#dfff00;color:#242424;text-decoration:none;border-radius:6px;padding:15px 20px;font-size:13px;font-weight:700;text-align:center;">Entrar a mi cuenta</a>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 40px 36px;">
-                <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.6;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
-                <p style="margin:8px 0 0;color:#374151;font-size:13px;line-height:1.6;word-break:break-all;">${safeUrl}</p>
+              <td style="padding:0 0 10px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e8e8e8;border-radius:7px;background:#fbfbfb;">
+                  <tr>
+                    <td style="padding:48px 56px 56px;">
+                      <p style="margin:0 0 20px;color:#3f3f3f;font-size:17px;line-height:1.45;">Para que la plataforma funcione desde el primer día, necesitamos que cargues tu información en los formatos correctos. Preparamos dos templates listos para llenar:</p>
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td align="center" style="padding:4px 0 58px;">
+                            <a href="${safeTemplateUrl}" style="display:inline-block;width:260px;max-width:100%;background:#ffffff;color:#8b8b8b;text-decoration:none;border:1px solid #cfcfcf;border-radius:6px;padding:13px 18px;font-size:13px;font-weight:700;text-align:center;">Descargar templates</a>
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="margin:0 0 4px;color:#242424;font-size:16px;line-height:1.45;font-weight:700;">Template 1 — Presupuesto de obra</p>
+                      <p style="margin:0 0 28px;color:#3f3f3f;font-size:16px;line-height:1.45;">Captura tus partidas, subpartidas y montos aprobados por proyecto. Este archivo es la base del control financiero; sin él, no hay presupuesto contra qué comparar.</p>
+                      <p style="margin:0 0 4px;color:#242424;font-size:16px;line-height:1.45;font-weight:700;">Template 2 — Carga de transacciones</p>
+                      <p style="margin:0 0 28px;color:#3f3f3f;font-size:16px;line-height:1.45;">Registra tus gastos, pagos a proveedores y movimientos de obra. Puedes exportar directo de tu sistema contable o llenarlo manualmente.</p>
+                      <p style="margin:0;color:#3f3f3f;font-size:16px;line-height:1.45;">Si tienes dudas sobre cómo llenar algún campo, escríbeme antes de nuestra llamada y lo resolvemos juntos.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 38px 0;">
+                <p style="margin:0;color:#8b8b8b;font-size:12px;line-height:1.5;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                <p style="margin:6px 0 0;color:#6f6f6f;font-size:12px;line-height:1.5;word-break:break-all;">${safeUrl}</p>
               </td>
             </tr>
           </table>

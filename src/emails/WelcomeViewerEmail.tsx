@@ -10,6 +10,8 @@ import {
   Text,
 } from "@react-email/components";
 
+const TEMPLATE_DOWNLOAD_URL = "https://we.tl/t-6xrK2ZqduAcJ7ckF";
+
 interface WelcomeViewerEmailProps {
   name: string;
   loginUrl: string;
@@ -21,9 +23,9 @@ export default function WelcomeViewerEmail({
   loginUrl,
   projectCount,
 }: WelcomeViewerEmailProps) {
-  const projectText = projectCount === 1
-    ? "Tienes 1 proyecto asignado."
-    : `Tienes ${projectCount} proyectos asignados.`;
+  const projectCopy = projectCount === 1
+    ? "el proyecto que ya cargamos a tu cuenta"
+    : "los proyectos que ya cargamos a tu cuenta";
 
   return (
     <Html>
@@ -32,11 +34,37 @@ export default function WelcomeViewerEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={eyebrow}>OGC Dashboard</Text>
-            <Heading style={heading}>Bienvenido, {name}</Heading>
+            <Text style={brandMark}>↱</Text>
+            <Text style={brandText}>Build smarter. Spend better.</Text>
+          </Section>
+
+          <Section style={intro}>
+            <Heading style={heading}>
+              Tu acceso
+              <br />
+              ya está listo.
+            </Heading>
             <Text style={paragraph}>
-              Tu acceso ya fue configurado. {projectText} Usa el botón para
-              crear o entrar a tu cuenta y abrir directamente tu dashboard.
+              Hola {name}, configuramos tu cuenta en la plataforma. Desde hoy
+              puedes monitorear presupuesto, avance de obra y documentos de
+              proyecto, todo en un solo lugar.
+            </Text>
+          </Section>
+
+          <Section style={steps}>
+            <Text style={stepText}>
+              <span style={stepNumber}>01</span>
+              <strong>Inicia sesión</strong> y revisa {projectCopy}.
+            </Text>
+            <Text style={stepText}>
+              <span style={stepNumber}>02</span>
+              <strong>Dime si algo no cuadra</strong>: partidas, etapas,
+              nombres de proyecto o permisos. Lo ajustamos de inmediato.
+            </Text>
+            <Text style={stepTextLast}>
+              <span style={stepNumber}>03</span>
+              <strong>Agendamos 30 minutos</strong> para resolver dudas y
+              afinar el setup antes de que empieces a operar.
             </Text>
           </Section>
 
@@ -44,6 +72,35 @@ export default function WelcomeViewerEmail({
             <Button href={loginUrl} style={button}>
               Entrar a mi cuenta
             </Button>
+          </Section>
+
+          <Section style={templatesCard}>
+            <Text style={templatesIntro}>
+              Para que la plataforma funcione desde el primer día, necesitamos
+              que cargues tu información en los formatos correctos. Preparamos
+              dos templates listos para llenar:
+            </Text>
+            <Section style={templateButtonSection}>
+              <Button href={TEMPLATE_DOWNLOAD_URL} style={secondaryButton}>
+                Descargar templates
+              </Button>
+            </Section>
+            <Text style={templateTitle}>Template 1 — Presupuesto de obra</Text>
+            <Text style={templateCopy}>
+              Captura tus partidas, subpartidas y montos aprobados por
+              proyecto. Este archivo es la base del control financiero; sin él,
+              no hay presupuesto contra qué comparar.
+            </Text>
+            <Text style={templateTitle}>Template 2 — Carga de transacciones</Text>
+            <Text style={templateCopy}>
+              Registra tus gastos, pagos a proveedores y movimientos de obra.
+              Puedes exportar directo de tu sistema contable o llenarlo
+              manualmente.
+            </Text>
+            <Text style={templateCopyLast}>
+              Si tienes dudas sobre cómo llenar algún campo, escríbeme antes de
+              nuestra llamada y lo resolvemos juntos.
+            </Text>
           </Section>
 
           <Section style={footer}>
@@ -60,76 +117,166 @@ export default function WelcomeViewerEmail({
 
 const main = {
   margin: "0",
-  backgroundColor: "#f6f7f9",
-  color: "#111827",
+  backgroundColor: "#ffffff",
+  color: "#242424",
   fontFamily: "Arial, Helvetica, sans-serif",
 };
 
 const container = {
-  maxWidth: "560px",
-  margin: "48px auto",
+  maxWidth: "660px",
+  margin: "56px auto 40px",
   backgroundColor: "#ffffff",
-  border: "1px solid #e5e7eb",
-  borderRadius: "8px",
 };
 
 const header = {
-  padding: "40px 40px 20px",
+  padding: "0 38px 70px",
 };
 
-const eyebrow = {
-  margin: "0",
-  color: "#6b7280",
-  fontSize: "13px",
+const brandMark = {
+  display: "inline-block",
+  margin: "0 18px 0 0",
+  color: "#252525",
+  fontSize: "42px",
   fontWeight: "700",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase" as const,
+  lineHeight: "38px",
+};
+
+const brandText = {
+  display: "inline-block",
+  margin: "0",
+  color: "#242424",
+  fontSize: "22px",
+  fontWeight: "500",
+  lineHeight: "1.2",
+};
+
+const intro = {
+  padding: "0 38px",
 };
 
 const heading = {
-  margin: "28px 0 12px",
-  color: "#111827",
-  fontSize: "28px",
-  fontWeight: "600",
+  margin: "0 0 22px",
+  color: "#242424",
+  fontSize: "31px",
+  fontWeight: "500",
   lineHeight: "1.2",
 };
 
 const paragraph = {
+  margin: "0 0 56px",
+  color: "#3f3f3f",
+  fontSize: "18px",
+  lineHeight: "1.45",
+};
+
+const steps = {
+  padding: "0 38px 44px",
+};
+
+const stepNumber = {
+  display: "inline-block",
+  width: "36px",
+  color: "#b7b7b7",
+  fontSize: "18px",
+};
+
+const stepText = {
+  margin: "0 0 32px",
+  color: "#3f3f3f",
+  fontSize: "15px",
+  lineHeight: "1.55",
+};
+
+const stepTextLast = {
+  ...stepText,
   margin: "0",
-  color: "#4b5563",
-  fontSize: "16px",
-  lineHeight: "1.6",
 };
 
 const buttonSection = {
-  padding: "12px 40px 28px",
+  padding: "0 38px 48px",
+  textAlign: "center" as const,
 };
 
 const button = {
-  backgroundColor: "#111827",
+  width: "260px",
+  backgroundColor: "#dfff00",
   borderRadius: "6px",
-  color: "#ffffff",
-  fontSize: "15px",
+  color: "#242424",
+  fontSize: "13px",
   fontWeight: "700",
-  padding: "13px 20px",
+  padding: "15px 20px",
+  textDecoration: "none",
+  textAlign: "center" as const,
+};
+
+const templatesCard = {
+  margin: "0",
+  padding: "48px 56px 56px",
+  backgroundColor: "#fbfbfb",
+  border: "1px solid #e8e8e8",
+  borderRadius: "7px",
+};
+
+const templatesIntro = {
+  margin: "0 0 20px",
+  color: "#3f3f3f",
+  fontSize: "17px",
+  lineHeight: "1.45",
+};
+
+const templateButtonSection = {
+  padding: "4px 0 58px",
+  textAlign: "center" as const,
+};
+
+const secondaryButton = {
+  width: "260px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #cfcfcf",
+  borderRadius: "6px",
+  color: "#8b8b8b",
+  fontSize: "13px",
+  fontWeight: "700",
+  padding: "13px 18px",
+  textAlign: "center" as const,
   textDecoration: "none",
 };
 
+const templateTitle = {
+  margin: "0 0 4px",
+  color: "#242424",
+  fontSize: "16px",
+  fontWeight: "700",
+  lineHeight: "1.45",
+};
+
+const templateCopy = {
+  margin: "0 0 28px",
+  color: "#3f3f3f",
+  fontSize: "16px",
+  lineHeight: "1.45",
+};
+
+const templateCopyLast = {
+  ...templateCopy,
+  margin: "0",
+};
+
 const footer = {
-  padding: "0 40px 36px",
+  padding: "24px 38px 0",
 };
 
 const muted = {
   margin: "0",
-  color: "#6b7280",
-  fontSize: "13px",
-  lineHeight: "1.6",
+  color: "#8b8b8b",
+  fontSize: "12px",
+  lineHeight: "1.5",
 };
 
 const linkText = {
-  margin: "8px 0 0",
-  color: "#374151",
-  fontSize: "13px",
-  lineHeight: "1.6",
+  margin: "6px 0 0",
+  color: "#6f6f6f",
+  fontSize: "12px",
+  lineHeight: "1.5",
   wordBreak: "break-all" as const,
 };

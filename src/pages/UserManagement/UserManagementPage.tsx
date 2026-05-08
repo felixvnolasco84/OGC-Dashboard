@@ -13,21 +13,36 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, Shield, User, Eye, DollarSign, UserPlus } from "lucide-react";
+import { Loader2, Shield, User, Eye, DollarSign, UserPlus, Trash2 } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
 
 export default function UserManagementPage() {
   const users = useQuery(api.users.getAllUsers);
+  const adminUser = useQuery(api.users.getCurrentUser);
   const desarrollos = useQuery(api.desarrollos.getAll);
   const updatePermissions = useMutation(api.users.updateUserPermissions);
+  const removeUser = useMutation(api.users.removeUser);
 
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("viewer");
   const [selectedDesarrollos, setSelectedDesarrollos] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const currentUser = users?.find((u) => u._id === selectedUser);
+  const selectedUserRecord = users?.find((u) => u._id === selectedUser);
+  const isSelectedAdminUser = adminUser?._id === selectedUser;
 
   // Update form when user selection changes
   const handleUserSelect = (userId: string) => {
@@ -69,6 +84,32 @@ export default function UserManagementPage() {
       toast.error("Error al actualizar permisos");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleRemoveUser = async () => {
+    if (!selectedUser) {
+      toast.error("Por favor selecciona un usuario");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await removeUser({
+        userId: selectedUser as Id<"users">,
+      });
+
+      setSelectedUser(null);
+      setSelectedRole("viewer");
+      setSelectedDesarrollos(new Set());
+      toast.success("Usuario quitado correctamente");
+    } catch (error) {
+      console.error("Error removing user:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Error al quitar usuario"
+      );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -163,12 +204,58 @@ export default function UserManagementPage() {
           {/* Permission Editor */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>
-                {currentUser ? `Editar: ${currentUser.name}` : "Selecciona un usuario"}
-              </CardTitle>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <CardTitle>
+                  {selectedUserRecord ? `Editar: ${selectedUserRecord.name}` : "Selecciona un usuario"}
+                </CardTitle>
+                {selectedUserRecord && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        disabled={isDeleting || isSelectedAdminUser}
+                        className="gap-2"
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        Quitar usuario
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Quitar usuario</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción quitará a {selectedUserRecord.name} de la lista de usuarios y revocará sus permisos guardados en el dashboard. No se puede deshacer.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleRemoveUser}
+                          disabled={isDeleting}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Quitar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+              {isSelectedAdminUser && (
+                <p className="text-xs font-normal text-gray-500">
+                  No puedes quitar tu propio usuario desde esta pantalla.
+                </p>
+              )}
             </CardHeader>
             <CardContent>
-              {!currentUser ? (
+              {!selectedUserRecord ? (
                 <div className="text-center py-12 text-gray-500">
                   Selecciona un usuario de la lista para editar sus permisos
                 </div>
