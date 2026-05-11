@@ -5,6 +5,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
   Section,
   Text,
@@ -34,8 +35,11 @@ export default function WelcomeAdminEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={brandMark}>↱</Text>
-            <Text style={brandText}>Build smarter. Spend better.</Text>
+            <Img
+              src="https://www.ogc.mx/Logo.svg"
+              alt="OGC"
+              style={logo}
+            />
           </Section>
 
           <Section style={intro}>
@@ -132,22 +136,10 @@ const header = {
   padding: "0 38px 70px",
 };
 
-const brandMark = {
-  display: "inline-block",
-  margin: "0 18px 0 0",
-  color: "#252525",
-  fontSize: "42px",
-  fontWeight: "700",
-  lineHeight: "38px",
-};
-
-const brandText = {
-  display: "inline-block",
-  margin: "0",
-  color: "#242424",
-  fontSize: "22px",
-  fontWeight: "500",
-  lineHeight: "1.2",
+const logo = {
+  height: "32px",
+  width: "auto",
+  display: "block",
 };
 
 const intro = {
