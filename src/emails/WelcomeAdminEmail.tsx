@@ -10,20 +10,22 @@ import {
   Text,
 } from "@react-email/components";
 
-interface WelcomeViewerEmailProps {
+const TEMPLATE_DOWNLOAD_URL = "https://drive.google.com/drive/folders/1uzn_nHnoryv2M_syMDVjPqWabc-SyzQK?usp=sharing";
+
+interface WelcomeAdminEmailProps {
   name: string;
   loginUrl: string;
   projectCount: number;
 }
 
-export default function WelcomeViewerEmail({
+export default function WelcomeAdminEmail({
   name,
   loginUrl,
   projectCount,
-}: WelcomeViewerEmailProps) {
+}: WelcomeAdminEmailProps) {
   const projectCopy = projectCount === 1
-    ? "el proyecto asignado a tu cuenta"
-    : "los proyectos asignados a tu cuenta";
+    ? "el proyecto que ya cargamos a tu cuenta"
+    : "los proyectos que ya cargamos a tu cuenta";
 
   return (
     <Html>
@@ -44,25 +46,25 @@ export default function WelcomeViewerEmail({
             </Heading>
             <Text style={paragraph}>
               Hola {name}, configuramos tu cuenta en la plataforma. Desde hoy
-              puedes consultar la información de {projectCopy}: presupuesto,
-              avance de obra, documentos y bitácora, todo en un solo lugar.
+              puedes monitorear presupuesto, avance de obra y documentos de
+              proyecto, todo en un solo lugar.
             </Text>
           </Section>
 
           <Section style={steps}>
             <Text style={stepText}>
               <span style={stepNumber}>01</span>
-              <strong>Inicia sesión</strong> con el botón de este correo.
+              <strong>Inicia sesión</strong> y revisa {projectCopy}.
             </Text>
             <Text style={stepText}>
               <span style={stepNumber}>02</span>
-              <strong>Explora tus proyectos</strong> y consulta la información
-              disponible en modo de solo lectura.
+              <strong>Dime si algo no cuadra</strong>: partidas, etapas,
+              nombres de proyecto o permisos. Lo ajustamos de inmediato.
             </Text>
             <Text style={stepTextLast}>
               <span style={stepNumber}>03</span>
-              <strong>Reporta cualquier duda</strong> con tu administrador si
-              necesitas acceso a otro proyecto o notas algún dato pendiente.
+              <strong>Agendamos 30 minutos</strong> para resolver dudas y
+              afinar el setup antes de que empieces a operar.
             </Text>
           </Section>
 
@@ -72,22 +74,32 @@ export default function WelcomeViewerEmail({
             </Button>
           </Section>
 
-          <Section style={viewerCard}>
-            <Text style={viewerCardTitle}>Tu acceso es de consulta</Text>
-            <Text style={viewerCopy}>
-              Tu perfil viewer está pensado para revisar información sin
-              modificarla. Podrás navegar por los proyectos asignados y ver el
-              avance actualizado que el equipo administrador cargue en la
-              plataforma.
+          <Section style={templatesCard}>
+            <Text style={templatesIntro}>
+              Para que la plataforma funcione desde el primer día, necesitamos
+              que cargues tu información en los formatos correctos. Preparamos
+              dos templates listos para llenar:
             </Text>
-            <Text style={viewerCardTitle}>Qué puedes revisar</Text>
-            <Text style={viewerCopy}>
-              Presupuesto, control financiero, programa de obra, bitácora y
-              documentos del proyecto, según los permisos asignados a tu cuenta.
+            <Section style={templateButtonSection}>
+              <Button href={TEMPLATE_DOWNLOAD_URL} style={secondaryButton}>
+                Descargar templates
+              </Button>
+            </Section>
+            <Text style={templateTitle}>Template 1 — Presupuesto de obra</Text>
+            <Text style={templateCopy}>
+              Captura tus partidas, subpartidas y montos aprobados por
+              proyecto. Este archivo es la base del control financiero; sin él,
+              no hay presupuesto contra qué comparar.
             </Text>
-            <Text style={viewerCopyLast}>
-              Si algo no aparece como esperabas, responde este correo o contacta
-              a tu administrador para revisar tus permisos.
+            <Text style={templateTitle}>Template 2 — Carga de transacciones</Text>
+            <Text style={templateCopy}>
+              Registra tus gastos, pagos a proveedores y movimientos de obra.
+              Puedes exportar directo de tu sistema contable o llenarlo
+              manualmente.
+            </Text>
+            <Text style={templateCopyLast}>
+              Si tienes dudas sobre cómo llenar algún campo, escríbeme antes de
+              nuestra llamada y lo resolvemos juntos.
             </Text>
           </Section>
 
@@ -197,7 +209,7 @@ const button = {
   textAlign: "center" as const,
 };
 
-const viewerCard = {
+const templatesCard = {
   margin: "0",
   padding: "48px 56px 56px",
   backgroundColor: "#fbfbfb",
@@ -205,7 +217,32 @@ const viewerCard = {
   borderRadius: "7px",
 };
 
-const viewerCardTitle = {
+const templatesIntro = {
+  margin: "0 0 20px",
+  color: "#3f3f3f",
+  fontSize: "17px",
+  lineHeight: "1.45",
+};
+
+const templateButtonSection = {
+  padding: "4px 0 58px",
+  textAlign: "center" as const,
+};
+
+const secondaryButton = {
+  width: "260px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #cfcfcf",
+  borderRadius: "6px",
+  color: "#8b8b8b",
+  fontSize: "13px",
+  fontWeight: "700",
+  padding: "13px 18px",
+  textAlign: "center" as const,
+  textDecoration: "none",
+};
+
+const templateTitle = {
   margin: "0 0 4px",
   color: "#242424",
   fontSize: "16px",
@@ -213,15 +250,15 @@ const viewerCardTitle = {
   lineHeight: "1.45",
 };
 
-const viewerCopy = {
+const templateCopy = {
   margin: "0 0 28px",
   color: "#3f3f3f",
   fontSize: "16px",
   lineHeight: "1.45",
 };
 
-const viewerCopyLast = {
-  ...viewerCopy,
+const templateCopyLast = {
+  ...templateCopy,
   margin: "0",
 };
 

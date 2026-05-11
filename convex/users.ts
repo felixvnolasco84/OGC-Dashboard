@@ -205,7 +205,11 @@ export const inviteUser = action({
       invitation_url: invitationUrl,
     });
 
-    const html = renderWelcomeEmail({
+    const html = args.role === "viewer" ? renderWelcomeViewerEmail({
+      name: args.name || normalizedEmail,
+      loginUrl: invitationUrl,
+      projectCount: args.allowed_desarrollos.length,
+    }) : renderWelcomeAdminEmail({
       name: args.name || normalizedEmail,
       loginUrl: invitationUrl,
       projectCount: args.allowed_desarrollos.length,
@@ -464,7 +468,7 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;");
 }
 
-function renderWelcomeEmail({
+function renderWelcomeAdminEmail({
   name,
   loginUrl,
   projectCount,
@@ -547,6 +551,99 @@ function renderWelcomeEmail({
                       <p style="margin:0 0 4px;color:#242424;font-size:16px;line-height:1.45;font-weight:700;">Template 2 — Carga de transacciones</p>
                       <p style="margin:0 0 28px;color:#3f3f3f;font-size:16px;line-height:1.45;">Registra tus gastos, pagos a proveedores y movimientos de obra. Puedes exportar directo de tu sistema contable o llenarlo manualmente.</p>
                       <p style="margin:0;color:#3f3f3f;font-size:16px;line-height:1.45;">Si tienes dudas sobre cómo llenar algún campo, escríbeme antes de nuestra llamada y lo resolvemos juntos.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 38px 0;">
+                <p style="margin:0;color:#8b8b8b;font-size:12px;line-height:1.5;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                <p style="margin:6px 0 0;color:#6f6f6f;font-size:12px;line-height:1.5;word-break:break-all;">${safeUrl}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+	  </body>
+	</html>`;
+}
+
+function renderWelcomeViewerEmail({
+  name,
+  loginUrl,
+  projectCount,
+}: {
+  name: string;
+  loginUrl: string;
+  projectCount: number;
+}) {
+  const safeName = escapeHtml(name);
+  const safeUrl = escapeHtml(loginUrl);
+  const projectCopy = projectCount === 1
+    ? "el proyecto asignado a tu cuenta"
+    : "los proyectos asignados a tu cuenta";
+
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tu acceso a OGC Dashboard ya está listo</title>
+  </head>
+  <body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#242424;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;padding:56px 16px 40px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;">
+            <tr>
+              <td style="padding:0 38px 70px;">
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="font-size:42px;line-height:38px;font-weight:700;color:#252525;padding-right:18px;">↱</td>
+                    <td style="font-size:22px;line-height:1.2;font-weight:500;color:#242424;">Build smarter. Spend better.</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 38px;">
+                <h1 style="margin:0 0 22px;font-size:31px;line-height:1.2;font-weight:500;color:#242424;letter-spacing:-.2px;">Tu acceso<br />ya está listo.</h1>
+                <p style="margin:0 0 56px;color:#3f3f3f;font-size:18px;line-height:1.45;font-weight:400;">Hola ${safeName}, configuramos tu cuenta en la plataforma. Desde hoy puedes consultar la información de ${escapeHtml(projectCopy)}: presupuesto, avance de obra, documentos y bitácora, todo en un solo lugar.</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 44px;">
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">01</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Inicia sesión</strong> con el botón de este correo.</td>
+                  </tr>
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">02</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Explora tus proyectos</strong> y consulta la información disponible en modo de solo lectura.</td>
+                  </tr>
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0;">03</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0;"><strong style="color:#242424;font-weight:700;">Reporta cualquier duda</strong> con tu administrador si necesitas acceso a otro proyecto o notas algún dato pendiente.</td>
+                  </tr>
+                </table>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td align="center" style="padding:0 0 48px;">
+                      <a href="${safeUrl}" style="display:inline-block;width:260px;max-width:100%;background:#dfff00;color:#242424;text-decoration:none;border-radius:6px;padding:15px 20px;font-size:13px;font-weight:700;text-align:center;">Entrar a mi cuenta</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 0 10px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e8e8e8;border-radius:7px;background:#fbfbfb;">
+                  <tr>
+                    <td style="padding:48px 56px 56px;">
+                      <p style="margin:0 0 4px;color:#242424;font-size:16px;line-height:1.45;font-weight:700;">Tu acceso es de consulta</p>
+                      <p style="margin:0 0 28px;color:#3f3f3f;font-size:16px;line-height:1.45;">Tu perfil viewer está pensado para revisar información sin modificarla. Podrás navegar por los proyectos asignados y ver el avance actualizado que el equipo administrador cargue en la plataforma.</p>
+                      <p style="margin:0 0 4px;color:#242424;font-size:16px;line-height:1.45;font-weight:700;">Qué puedes revisar</p>
+                      <p style="margin:0 0 28px;color:#3f3f3f;font-size:16px;line-height:1.45;">Presupuesto, control financiero, programa de obra, bitácora y documentos del proyecto, según los permisos asignados a tu cuenta.</p>
+                      <p style="margin:0;color:#3f3f3f;font-size:16px;line-height:1.45;">Si algo no aparece como esperabas, responde este correo o contacta a tu administrador para revisar tus permisos.</p>
                     </td>
                   </tr>
                 </table>
