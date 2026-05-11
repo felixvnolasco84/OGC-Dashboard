@@ -10,7 +10,7 @@ import {
   Text,
 } from "@react-email/components";
 
-const TEMPLATE_DOWNLOAD_URL = "https://we.tl/t-6xrK2ZqduAcJ7ckF";
+const TEMPLATE_DOWNLOAD_URL = "https://drive.google.com/drive/folders/1uzn_nHnoryv2M_syMDVjPqWabc-SyzQK?usp=sharing";
 
 interface WelcomeViewerEmailProps {
   name: string;

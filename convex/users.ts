@@ -2,7 +2,7 @@ import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import { v } from "convex/values";
 
-const TEMPLATE_DOWNLOAD_URL = "https://we.tl/t-6xrK2ZqduAcJ7ckF";
+const TEMPLATE_DOWNLOAD_URL = "https://drive.google.com/drive/folders/1uzn_nHnoryv2M_syMDVjPqWabc-SyzQK?usp=sharing";
 
 // Get or create user from Clerk
 export const getCurrentUser = query({
