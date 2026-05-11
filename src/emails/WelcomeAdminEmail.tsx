@@ -16,18 +16,12 @@ const TEMPLATE_DOWNLOAD_URL = "https://drive.google.com/drive/folders/1uzn_nHnor
 interface WelcomeAdminEmailProps {
   name: string;
   loginUrl: string;
-  projectCount: number;
 }
 
 export default function WelcomeAdminEmail({
   name,
   loginUrl,
-  projectCount,
 }: WelcomeAdminEmailProps) {
-  const projectCopy = projectCount === 1
-    ? "el proyecto que ya cargamos a tu cuenta"
-    : "los proyectos que ya cargamos a tu cuenta";
-
   return (
     <Html>
       <Head />
@@ -50,25 +44,27 @@ export default function WelcomeAdminEmail({
             </Heading>
             <Text style={paragraph}>
               Hola {name}, configuramos tu cuenta en la plataforma. Desde hoy
-              puedes monitorear presupuesto, avance de obra y documentos de
-              proyecto, todo en un solo lugar.
+              puedes administrar los proyectos de tu organización: presupuesto,
+              avance de obra, documentos y permisos de usuarios, todo en un
+              solo lugar.
             </Text>
           </Section>
 
           <Section style={steps}>
             <Text style={stepText}>
               <span style={stepNumber}>01</span>
-              <strong>Inicia sesión</strong> y revisa {projectCopy}.
+              <strong>Inicia sesión</strong> y crea o carga los proyectos de tu
+              organización.
             </Text>
             <Text style={stepText}>
               <span style={stepNumber}>02</span>
-              <strong>Dime si algo no cuadra</strong>: partidas, etapas,
-              nombres de proyecto o permisos. Lo ajustamos de inmediato.
+              <strong>Invita a tu equipo</strong> con el rol que corresponda
+              para que cada usuario vea solo la información que necesita.
             </Text>
             <Text style={stepTextLast}>
               <span style={stepNumber}>03</span>
-              <strong>Agendamos 30 minutos</strong> para resolver dudas y
-              afinar el setup antes de que empieces a operar.
+              <strong>Trabaja por organización</strong>: tus usuarios solo
+              verán los proyectos creados dentro de este espacio.
             </Text>
           </Section>
 
@@ -81,8 +77,8 @@ export default function WelcomeAdminEmail({
           <Section style={templatesCard}>
             <Text style={templatesIntro}>
               Para que la plataforma funcione desde el primer día, necesitamos
-              que cargues tu información en los formatos correctos. Preparamos
-              dos templates listos para llenar:
+              que cargues la información de tu organización en los formatos
+              correctos. Preparamos dos templates listos para llenar:
             </Text>
             <Section style={templateButtonSection}>
               <Button href={TEMPLATE_DOWNLOAD_URL} style={secondaryButton}>

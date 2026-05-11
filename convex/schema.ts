@@ -7,6 +7,7 @@ export default defineSchema({
     email: v.string(),
     name: v.string(),
     role: v.string(), // "admin", "user", "viewer", "contratista", "finance"
+    organization_id: v.optional(v.string()),
     allowed_desarrollos: v.array(v.id("desarrollos")), // Projects user can access
     allowed_sales_projects: v.optional(v.array(v.id("sales_projects"))), // Sales projects user can access
     invitation_status: v.optional(v.string()), // pending, sent, accepted
@@ -16,7 +17,8 @@ export default defineSchema({
     created_at: v.number(),
     last_login: v.optional(v.number()),
   }).index("by_clerk_id", { fields: ["clerkId"] })
-    .index("by_email", { fields: ["email"] }),
+    .index("by_email", { fields: ["email"] })
+    .index("by_organization", { fields: ["organization_id"] }),
   partidas: defineTable({
     nivel: v.number(),
     nombre: v.string(),
@@ -51,7 +53,8 @@ export default defineSchema({
     honorarios_monto: v.optional(v.number()), // Auto-calculated amount based on percentage
     excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
     moneda_principal: v.optional(v.string()), // Primary currency for project (MXN, USD, EUR) - auto-updated from transactions
-  }),
+    organization_id: v.optional(v.string()),
+  }).index("by_organization", { fields: ["organization_id"] }),
   sales_projects: defineTable({
     nombre: v.string(),
     descripcion: v.string(),
@@ -61,7 +64,8 @@ export default defineSchema({
     comision_porcentaje: v.optional(v.number()), // Commission percentage for sales
     comision_monto: v.optional(v.number()), // Auto-calculated commission amount
     moneda_principal: v.optional(v.string()), // Primary currency for sales project (MXN, USD, EUR) - auto-updated from transactions
-  }),
+    organization_id: v.optional(v.string()),
+  }).index("by_organization", { fields: ["organization_id"] }),
   // Sales project line items (similar to partidas but for sales)
   sales_partidas: defineTable({
     nivel: v.number(),

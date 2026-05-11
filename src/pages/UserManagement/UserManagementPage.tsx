@@ -303,7 +303,7 @@ export default function UserManagementPage() {
                     </Select>
                     {selectedRole === "admin" && (
                       <p className="text-xs text-gray-500">
-                        Los administradores tienen acceso a todos los proyectos y pueden gestionar usuarios
+                        Los administradores gestionan usuarios y proyectos dentro de su organización
                       </p>
                     )}
                     {selectedRole === "contratista" && (

@@ -191,7 +191,7 @@ export default function SalesUserManagementPage() {
                     </Select>
                     {selectedRole === "admin" && (
                       <p className="text-xs text-gray-500">
-                        Los administradores tienen acceso a todos los proyectos de ventas
+                        Los administradores tienen acceso a los proyectos de ventas de su organización
                       </p>
                     )}
                   </div>

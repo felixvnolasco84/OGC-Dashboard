@@ -113,10 +113,15 @@ export const createOrUpdateInvitedUser = mutation({
       .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .first();
 
+    const organizationId = args.role === "admin"
+      ? currentUser.organization_id || `org:${normalizedEmail}`
+      : currentUser.organization_id;
+
     const data = {
       email: normalizedEmail,
       name: args.name.trim() || normalizedEmail,
       role: args.role,
+      organization_id: organizationId,
       allowed_desarrollos: args.allowed_desarrollos,
       allowed_sales_projects: [] as [],
       invitation_status: "pending",
@@ -212,7 +217,6 @@ export const inviteUser = action({
     }) : renderWelcomeAdminEmail({
       name: args.name || normalizedEmail,
       loginUrl: invitationUrl,
-      projectCount: args.allowed_desarrollos.length,
     });
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -260,7 +264,14 @@ export const getAllUsers = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    return await ctx.db.query("users").collect();
+    if (!currentUser.organization_id) {
+      return await ctx.db.query("users").collect();
+    }
+
+    return await ctx.db
+      .query("users")
+      .withIndex("by_organization", (q) => q.eq("organization_id", currentUser.organization_id))
+      .collect();
   },
 });
 
@@ -288,14 +299,33 @@ export const updateUserPermissions = mutation({
       throw new Error("Unauthorized: Admin access required");
     }
 
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    if (
+      currentUser.organization_id &&
+      targetUser.organization_id !== currentUser.organization_id
+    ) {
+      throw new Error("Unauthorized: User belongs to another organization");
+    }
+
     // Build update object with only provided fields
     const updateData: {
       role: string;
+      organization_id?: string;
       allowed_desarrollos?: typeof args.allowed_desarrollos;
       allowed_sales_projects?: typeof args.allowed_sales_projects;
     } = {
       role: args.role,
     };
+
+    if (args.role === "admin" && !targetUser.organization_id) {
+      updateData.organization_id = currentUser.organization_id || `org:${targetUser.email}`;
+    } else if (currentUser.organization_id && !targetUser.organization_id) {
+      updateData.organization_id = currentUser.organization_id;
+    }
     
     if (args.allowed_desarrollos !== undefined) {
       updateData.allowed_desarrollos = args.allowed_desarrollos;
@@ -338,6 +368,13 @@ export const removeUser = mutation({
     const userToRemove = await ctx.db.get(args.userId);
     if (!userToRemove) {
       throw new Error("Usuario no encontrado");
+    }
+
+    if (
+      currentUser.organization_id &&
+      userToRemove.organization_id !== currentUser.organization_id
+    ) {
+      throw new Error("Unauthorized: User belongs to another organization");
     }
 
     await ctx.db.delete(args.userId);
@@ -417,9 +454,14 @@ export const hasAccessToDesarrollo = query({
       return false;
     }
 
-    // Admins have access to everything
     if (user.role === "admin") {
-      return true;
+      if (!user.organization_id) {
+        return true;
+      }
+
+      const desarrollo = await ctx.db.get(args.desarrolloId);
+      return desarrollo?.organization_id === user.organization_id ||
+        user.allowed_desarrollos.includes(args.desarrolloId);
     }
 
     // Check if desarrollo is in allowed list
@@ -447,9 +489,13 @@ export const hasAccessToSalesProject = query({
       return false;
     }
 
-    // Admins have access to everything
     if (user.role === "admin") {
-      return true;
+      if (!user.organization_id) {
+        return true;
+      }
+
+      const salesProject = await ctx.db.get(args.salesProyectoId);
+      return salesProject?.organization_id === user.organization_id;
     }
 
     const allowedSales = user.allowed_sales_projects || [];
@@ -471,19 +517,13 @@ function escapeHtml(value: string) {
 function renderWelcomeAdminEmail({
   name,
   loginUrl,
-  projectCount,
 }: {
   name: string;
   loginUrl: string;
-  projectCount: number;
 }) {
   const safeName = escapeHtml(name);
   const safeUrl = escapeHtml(loginUrl);
   const safeTemplateUrl = escapeHtml(TEMPLATE_DOWNLOAD_URL);
-  const projectCopy = projectCount === 1
-    ? "el proyecto que ya cargamos a tu cuenta"
-    : "los proyectos que ya cargamos a tu cuenta";
-
   return `<!doctype html>
 <html>
   <head>
@@ -509,19 +549,19 @@ function renderWelcomeAdminEmail({
             <tr>
               <td style="padding:0 38px;">
                 <h1 style="margin:0 0 22px;font-size:31px;line-height:1.2;font-weight:500;color:#242424;letter-spacing:-.2px;">Tu acceso<br />ya está listo.</h1>
-                <p style="margin:0 0 56px;color:#3f3f3f;font-size:18px;line-height:1.45;font-weight:400;">Hola ${safeName}, configuramos tu cuenta en la plataforma. Desde hoy puedes monitorear presupuesto, avance de obra y documentos de proyecto, todo en un solo lugar.</p>
+                <p style="margin:0 0 56px;color:#3f3f3f;font-size:18px;line-height:1.45;font-weight:400;">Hola ${safeName}, configuramos tu cuenta en la plataforma. Desde hoy puedes administrar los proyectos de tu organización: presupuesto, avance de obra, documentos y permisos de usuarios, todo en un solo lugar.</p>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 44px;">
                   <tr>
                     <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">01</td>
-                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Inicia sesión</strong> y revisa ${escapeHtml(projectCopy)}.</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Inicia sesión</strong> y crea o carga los proyectos de tu organización.</td>
                   </tr>
                   <tr>
                     <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">02</td>
-                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Dime si algo no cuadra</strong>: partidas, etapas, nombres de proyecto o permisos. Lo ajustamos de inmediato.</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Invita a tu equipo</strong> con el rol que corresponda para que cada usuario vea solo la información que necesita.</td>
                   </tr>
                   <tr>
                     <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0;">03</td>
-                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0;"><strong style="color:#242424;font-weight:700;">Agendamos 30 minutos</strong> para resolver dudas y afinar el setup antes de que empieces a operar.</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0;"><strong style="color:#242424;font-weight:700;">Trabaja por organización</strong>: tus usuarios solo verán los proyectos creados dentro de este espacio.</td>
                   </tr>
                 </table>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
@@ -538,7 +578,7 @@ function renderWelcomeAdminEmail({
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e8e8e8;border-radius:7px;background:#fbfbfb;">
                   <tr>
                     <td style="padding:48px 56px 56px;">
-                      <p style="margin:0 0 20px;color:#3f3f3f;font-size:17px;line-height:1.45;">Para que la plataforma funcione desde el primer día, necesitamos que cargues tu información en los formatos correctos. Preparamos dos templates listos para llenar:</p>
+                      <p style="margin:0 0 20px;color:#3f3f3f;font-size:17px;line-height:1.45;">Para que la plataforma funcione desde el primer día, necesitamos que cargues la información de tu organización en los formatos correctos. Preparamos dos templates listos para llenar:</p>
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                         <tr>
                           <td align="center" style="padding:4px 0 58px;">

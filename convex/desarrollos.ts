@@ -1,7 +1,7 @@
 import { query, mutation as rawMutation } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
-import { getUserDesarrollos } from "./permissions";
+import { checkDesarrolloAccess, getCurrentUserOrThrow, getUserDesarrollos } from "./permissions";
 
 // Get all projects (filtered by user permissions)
 export const getAll = query(async (ctx) => {
@@ -17,7 +17,7 @@ export const getAll = query(async (ctx) => {
 
 // Get all projects with their metrics
 export const getAllWithMetrics = query(async (ctx) => {
-    const proyectos = await ctx.db.query("desarrollos").collect();
+    const proyectos = await getUserDesarrollos(ctx);
     
     const proyectosWithMetrics = await Promise.all(
         proyectos.map(async (proyecto) => {
@@ -51,6 +51,11 @@ export const getById = query({
         id: v.id("desarrollos"),
     },
     handler: async (ctx, args) => {
+        const hasAccess = await checkDesarrolloAccess(ctx, args.id);
+        if (!hasAccess) {
+            return null;
+        }
+
         return await ctx.db.get(args.id);
     },
 });
@@ -66,6 +71,8 @@ export const create = mutation({
         honorarios_porcentaje: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
+        const currentUser = await getCurrentUserOrThrow(ctx);
+        const organizationId = currentUser.organization_id;
         const project = await ctx.db.insert("desarrollos", {
             nombre: args.nombre,
             descripcion: args.descripcion,
@@ -78,7 +85,15 @@ export const create = mutation({
             }),
             honorarios_porcentaje: args.honorarios_porcentaje || 0,
             honorarios_monto: 0, // Initial value, will be calculated by triggers
+            ...(organizationId ? { organization_id: organizationId } : {}),
         });
+
+        if (organizationId && !currentUser.allowed_desarrollos.includes(project)) {
+            await ctx.db.patch(currentUser._id, {
+                allowed_desarrollos: [...currentUser.allowed_desarrollos, project],
+            });
+        }
+
         return project;
     },
 });
@@ -97,6 +112,11 @@ export const update = mutation({
     },
     handler: async (ctx, args) => {
         const { id, ...rest } = args;
+        const hasAccess = await checkDesarrolloAccess(ctx, id);
+        if (!hasAccess) {
+            throw new Error("Unauthorized: Project belongs to another organization");
+        }
+
         // Filter out undefined valuese
         const updateData = Object.fromEntries(
             Object.entries(rest).filter(([, value]) => value !== undefined)
@@ -116,6 +136,11 @@ export const deleteProject = rawMutation({
         id: v.id("desarrollos"),
     },
     handler: async (ctx, args) => {
+        const hasAccess = await checkDesarrolloAccess(ctx, args.id);
+        if (!hasAccess) {
+            throw new Error("Unauthorized: Project belongs to another organization");
+        }
+
         // Verify the project exists
         const project = await ctx.db.get(args.id);
         if (!project) {

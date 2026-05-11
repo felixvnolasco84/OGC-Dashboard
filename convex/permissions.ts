@@ -41,9 +41,14 @@ export async function checkDesarrolloAccess(
     return false;
   }
 
-  // Admins have access to everything
   if (user.role === "admin") {
-    return true;
+    if (!user.organization_id) {
+      return true;
+    }
+
+    const desarrollo = await ctx.db.get(desarrolloId);
+    return desarrollo?.organization_id === user.organization_id ||
+      user.allowed_desarrollos.includes(desarrolloId);
   }
 
   // Check if desarrollo is in allowed list
@@ -66,9 +71,26 @@ export async function getUserDesarrollos(ctx: QueryCtx | MutationCtx) {
     return [];
   }
 
-  // Admins have access to all
   if (user.role === "admin") {
-    return await ctx.db.query("desarrollos").collect();
+    if (!user.organization_id) {
+      return await ctx.db.query("desarrollos").collect();
+    }
+
+    const organizationProjects = await ctx.db
+      .query("desarrollos")
+      .withIndex("by_organization", (q) => q.eq("organization_id", user.organization_id))
+      .collect();
+
+    const allowedProjects = await Promise.all(
+      user.allowed_desarrollos.map((id) => ctx.db.get(id))
+    );
+
+    const projectsById = new Map(
+      [...organizationProjects, ...allowedProjects.filter((d) => d !== null)]
+        .map((project) => [project._id, project])
+    );
+
+    return Array.from(projectsById.values());
   }
 
   // Return only allowed desarrollos

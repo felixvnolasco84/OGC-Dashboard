@@ -30,7 +30,7 @@ export default function NewUserPage() {
 
   const selectedCount = selectedDesarrollos.size;
   const roleDescription = useMemo(() => {
-    if (role === "admin") return "Acceso completo a proyectos y administración.";
+    if (role === "admin") return "Puede administrar usuarios y proyectos dentro de su organización.";
     if (role === "user") return "Puede trabajar en los proyectos asignados.";
     return "Solo puede consultar Presupuesto, Control, Programa y Bitácora.";
   }, [role]);
