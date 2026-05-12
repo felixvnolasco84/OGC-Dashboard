@@ -538,12 +538,7 @@ function renderWelcomeAdminEmail({
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;">
             <tr>
               <td style="padding:0 38px 70px;">
-                <table role="presentation" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td style="font-size:42px;line-height:38px;font-weight:700;color:#252525;padding-right:18px;">↱</td>
-                    <td style="font-size:22px;line-height:1.2;font-weight:500;color:#242424;">Build smarter. Spend better.</td>
-                  </tr>
-                </table>
+                <img src="https://www.ogc.mx/Logo.svg" alt="OGC" height="32" style="display:block;height:32px;width:auto;" />
               </td>
             </tr>
             <tr>
@@ -639,12 +634,7 @@ function renderWelcomeViewerEmail({
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;">
             <tr>
               <td style="padding:0 38px 70px;">
-                <table role="presentation" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td style="font-size:42px;line-height:38px;font-weight:700;color:#252525;padding-right:18px;">↱</td>
-                    <td style="font-size:22px;line-height:1.2;font-weight:500;color:#242424;">Build smarter. Spend better.</td>
-                  </tr>
-                </table>
+                <img src="https://www.ogc.mx/Logo.svg" alt="OGC" height="32" style="display:block;height:32px;width:auto;" />
               </td>
             </tr>
             <tr>
