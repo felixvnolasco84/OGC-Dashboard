@@ -1,7 +1,12 @@
 import { query, mutation as rawMutation } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
-import { getCurrentUserOrThrow } from "./permissions";
+import {
+    getCurrentUserOrThrow,
+    getScopedOrganizationId,
+    hasAdminAccess,
+    hasGlobalAdminAccess,
+} from "./permissions";
 
 // Get all sales projects
 export const getAll = query(async (ctx) => {
@@ -19,8 +24,8 @@ export const getAll = query(async (ctx) => {
         return [];
     }
 
-    if (user.role === "admin") {
-        if (!user.organization_id) {
+    if (hasAdminAccess(user)) {
+        if (hasGlobalAdminAccess(user)) {
             return await ctx.db.query("sales_projects").collect();
         }
 
@@ -51,13 +56,13 @@ export const getAllWithMetrics = query(async (ctx) => {
         return [];
     }
 
-    const salesProjects = user.role === "admin"
-        ? user.organization_id
-            ? await ctx.db
+    const salesProjects = hasAdminAccess(user)
+        ? hasGlobalAdminAccess(user)
+            ? await ctx.db.query("sales_projects").collect()
+            : await ctx.db
                 .query("sales_projects")
                 .withIndex("by_organization", (q) => q.eq("organization_id", user.organization_id))
                 .collect()
-            : await ctx.db.query("sales_projects").collect()
         : (await Promise.all((user.allowed_sales_projects || []).map((id) => ctx.db.get(id))))
             .filter((project) => project !== null);
     
@@ -86,11 +91,19 @@ export const getById = query({
             return null;
         }
 
-        if (!currentUser.organization_id || currentUser.role !== "admin") {
+        if (hasAdminAccess(currentUser)) {
+            if (hasGlobalAdminAccess(currentUser)) {
+                return project;
+            }
+
+            return project.organization_id === currentUser.organization_id ? project : null;
+        }
+
+        if ((currentUser.allowed_sales_projects || []).includes(args.id)) {
             return project;
         }
 
-        return project.organization_id === currentUser.organization_id ? project : null;
+        return null;
     },
 });
 
@@ -106,7 +119,11 @@ export const create = mutation({
     },
     handler: async (ctx, args) => {
         const currentUser = await getCurrentUserOrThrow(ctx);
-        const organizationId = currentUser.organization_id;
+        if (!hasAdminAccess(currentUser)) {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
+        const organizationId = getScopedOrganizationId(currentUser);
         const projectId = await ctx.db.insert("sales_projects", {
             nombre: args.nombre,
             descripcion: args.descripcion,
@@ -158,12 +175,17 @@ export const update = mutation({
     handler: async (ctx, args) => {
         const { id, ...rest } = args;
         const currentUser = await getCurrentUserOrThrow(ctx);
+        if (!hasAdminAccess(currentUser)) {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
         const project = await ctx.db.get(id);
         if (!project) {
             throw new Error("Sales project not found");
         }
 
         if (
+            !hasGlobalAdminAccess(currentUser) &&
             currentUser.organization_id &&
             project.organization_id !== currentUser.organization_id
         ) {
@@ -185,6 +207,10 @@ export const deleteProject = rawMutation({
     },
     handler: async (ctx, args) => {
         const currentUser = await getCurrentUserOrThrow(ctx);
+        if (!hasAdminAccess(currentUser)) {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
         // Verify the project exists
         const project = await ctx.db.get(args.id);
         if (!project) {
@@ -192,6 +218,7 @@ export const deleteProject = rawMutation({
         }
 
         if (
+            !hasGlobalAdminAccess(currentUser) &&
             currentUser.organization_id &&
             project.organization_id !== currentUser.organization_id
         ) {

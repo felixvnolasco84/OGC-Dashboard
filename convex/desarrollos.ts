@@ -1,7 +1,13 @@
 import { query, mutation as rawMutation } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
-import { checkDesarrolloAccess, getCurrentUserOrThrow, getUserDesarrollos } from "./permissions";
+import {
+    checkDesarrolloAccess,
+    getCurrentUserOrThrow,
+    getScopedOrganizationId,
+    getUserDesarrollos,
+    hasAdminAccess,
+} from "./permissions";
 
 // Get all projects (filtered by user permissions)
 export const getAll = query(async (ctx) => {
@@ -72,7 +78,11 @@ export const create = mutation({
     },
     handler: async (ctx, args) => {
         const currentUser = await getCurrentUserOrThrow(ctx);
-        const organizationId = currentUser.organization_id;
+        if (!hasAdminAccess(currentUser)) {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
+        const organizationId = getScopedOrganizationId(currentUser);
         const project = await ctx.db.insert("desarrollos", {
             nombre: args.nombre,
             descripcion: args.descripcion,
@@ -112,6 +122,11 @@ export const update = mutation({
     },
     handler: async (ctx, args) => {
         const { id, ...rest } = args;
+        const currentUser = await getCurrentUserOrThrow(ctx);
+        if (!hasAdminAccess(currentUser)) {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
         const hasAccess = await checkDesarrolloAccess(ctx, id);
         if (!hasAccess) {
             throw new Error("Unauthorized: Project belongs to another organization");
@@ -136,6 +151,11 @@ export const deleteProject = rawMutation({
         id: v.id("desarrollos"),
     },
     handler: async (ctx, args) => {
+        const currentUser = await getCurrentUserOrThrow(ctx);
+        if (!hasAdminAccess(currentUser)) {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
         const hasAccess = await checkDesarrolloAccess(ctx, args.id);
         if (!hasAccess) {
             throw new Error("Unauthorized: Project belongs to another organization");

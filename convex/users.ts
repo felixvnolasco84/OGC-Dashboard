@@ -1,6 +1,15 @@
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  getScopedOrganizationId,
+  hasAdminAccess,
+  hasGlobalAdminAccess,
+  isSuperAdminEmail,
+  withComputedPermissions,
+} from "./permissions";
 
 const TEMPLATE_DOWNLOAD_URL = "https://drive.google.com/drive/folders/1uzn_nHnoryv2M_syMDVjPqWabc-SyzQK?usp=sharing";
 
@@ -18,7 +27,7 @@ export const getCurrentUser = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
     
-    return user;
+    return user ? withComputedPermissions(user) : null;
   },
 });
 
@@ -31,6 +40,9 @@ export const storeUser = mutation({
       throw new Error("Not authenticated");
     }
 
+    const email = identity.email ?? "";
+    const name = identity.name ?? "";
+
     // Check if user already exists
     const existingUser = await ctx.db
       .query("users")
@@ -38,15 +50,14 @@ export const storeUser = mutation({
       .first();
 
     if (existingUser) {
+      const isSuperAdmin = isSuperAdminEmail(existingUser.email || email);
       // Update last login
       await ctx.db.patch(existingUser._id, {
+        ...(isSuperAdmin ? { role: "admin" } : {}),
         last_login: Date.now(),
       });
       return existingUser._id;
     }
-
-    const email = identity.email ?? "";
-    const name = identity.name ?? "";
 
     // If an admin invited the email before Clerk had a user id, claim that
     // pending record instead of creating a duplicate permissions row.
@@ -59,9 +70,11 @@ export const storeUser = mutation({
       : null;
 
     if (pendingUser) {
+      const isSuperAdmin = isSuperAdminEmail(pendingUser.email || email);
       await ctx.db.patch(pendingUser._id, {
         clerkId: identity.subject,
         name: pendingUser.name || name,
+        ...(isSuperAdmin ? { role: "admin" } : {}),
         invitation_status: "accepted",
         last_login: Date.now(),
       });
@@ -73,7 +86,7 @@ export const storeUser = mutation({
       clerkId: identity.subject,
       email,
       name,
-      role: "viewer", // Default role
+      role: isSuperAdminEmail(email) ? "admin" : "viewer", // Default role
       allowed_desarrollos: [], // No cost projects access by default
       allowed_sales_projects: [], // No sales projects access by default
       created_at: Date.now(),
@@ -103,7 +116,7 @@ export const createOrUpdateInvitedUser = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
@@ -113,9 +126,12 @@ export const createOrUpdateInvitedUser = mutation({
       .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .first();
 
+    const scopedOrganizationId = getScopedOrganizationId(currentUser);
     const organizationId = args.role === "admin"
-      ? currentUser.organization_id || `org:${normalizedEmail}`
-      : currentUser.organization_id;
+      ? scopedOrganizationId || `org:${normalizedEmail}`
+      : scopedOrganizationId;
+
+    await assertDesarrollosInAdminScope(ctx, currentUser, args.allowed_desarrollos);
 
     const data = {
       email: normalizedEmail,
@@ -152,7 +168,7 @@ export const inviteUser = action({
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.runQuery(api.users.getCurrentUser);
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
@@ -260,11 +276,11 @@ export const getAllUsers = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
-    if (!currentUser.organization_id) {
+    if (hasGlobalAdminAccess(currentUser)) {
       return await ctx.db.query("users").collect();
     }
 
@@ -295,7 +311,7 @@ export const updateUserPermissions = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
@@ -305,10 +321,19 @@ export const updateUserPermissions = mutation({
     }
 
     if (
+      !hasGlobalAdminAccess(currentUser) &&
       currentUser.organization_id &&
       targetUser.organization_id !== currentUser.organization_id
     ) {
       throw new Error("Unauthorized: User belongs to another organization");
+    }
+
+    if (args.allowed_desarrollos !== undefined) {
+      await assertDesarrollosInAdminScope(ctx, currentUser, args.allowed_desarrollos);
+    }
+
+    if (args.allowed_sales_projects !== undefined) {
+      await assertSalesProjectsInAdminScope(ctx, currentUser, args.allowed_sales_projects);
     }
 
     // Build update object with only provided fields
@@ -321,10 +346,11 @@ export const updateUserPermissions = mutation({
       role: args.role,
     };
 
+    const scopedOrganizationId = getScopedOrganizationId(currentUser);
     if (args.role === "admin" && !targetUser.organization_id) {
-      updateData.organization_id = currentUser.organization_id || `org:${targetUser.email}`;
-    } else if (currentUser.organization_id && !targetUser.organization_id) {
-      updateData.organization_id = currentUser.organization_id;
+      updateData.organization_id = scopedOrganizationId || `org:${targetUser.email}`;
+    } else if (scopedOrganizationId && !targetUser.organization_id) {
+      updateData.organization_id = scopedOrganizationId;
     }
     
     if (args.allowed_desarrollos !== undefined) {
@@ -357,7 +383,7 @@ export const removeUser = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
@@ -371,6 +397,7 @@ export const removeUser = mutation({
     }
 
     if (
+      !hasGlobalAdminAccess(currentUser) &&
       currentUser.organization_id &&
       userToRemove.organization_id !== currentUser.organization_id
     ) {
@@ -402,7 +429,7 @@ export const getUserByEmail = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
@@ -454,8 +481,8 @@ export const hasAccessToDesarrollo = query({
       return false;
     }
 
-    if (user.role === "admin") {
-      if (!user.organization_id) {
+    if (hasAdminAccess(user)) {
+      if (hasGlobalAdminAccess(user)) {
         return true;
       }
 
@@ -489,8 +516,8 @@ export const hasAccessToSalesProject = query({
       return false;
     }
 
-    if (user.role === "admin") {
-      if (!user.organization_id) {
+    if (hasAdminAccess(user)) {
+      if (hasGlobalAdminAccess(user)) {
         return true;
       }
 
@@ -512,6 +539,40 @@ function escapeHtml(value: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+async function assertDesarrollosInAdminScope(
+  ctx: MutationCtx,
+  currentUser: { role: string; email: string; organization_id?: string },
+  desarrolloIds: Id<"desarrollos">[]
+) {
+  if (hasGlobalAdminAccess(currentUser)) {
+    return;
+  }
+
+  for (const desarrolloId of desarrolloIds) {
+    const desarrollo = await ctx.db.get(desarrolloId);
+    if (!desarrollo || desarrollo.organization_id !== currentUser.organization_id) {
+      throw new Error("Unauthorized: Project belongs to another organization");
+    }
+  }
+}
+
+async function assertSalesProjectsInAdminScope(
+  ctx: MutationCtx,
+  currentUser: { role: string; email: string; organization_id?: string },
+  salesProjectIds: Id<"sales_projects">[]
+) {
+  if (hasGlobalAdminAccess(currentUser)) {
+    return;
+  }
+
+  for (const salesProjectId of salesProjectIds) {
+    const salesProject = await ctx.db.get(salesProjectId);
+    if (!salesProject || salesProject.organization_id !== currentUser.organization_id) {
+      throw new Error("Unauthorized: Sales project belongs to another organization");
+    }
+  }
 }
 
 function renderWelcomeAdminEmail({
