@@ -50,6 +50,7 @@ import type * as sales_transacciones_queries from "../sales_transacciones_querie
 import type * as seed_last_week_payments from "../seed_last_week_payments.js";
 import type * as subcontratistas from "../subcontratistas.js";
 import type * as sync from "../sync.js";
+import type * as tareas from "../tareas.js";
 import type * as transacciones from "../transacciones.js";
 import type * as users from "../users.js";
 import type * as weekly_avance_real from "../weekly_avance_real.js";
@@ -101,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   seed_last_week_payments: typeof seed_last_week_payments;
   subcontratistas: typeof subcontratistas;
   sync: typeof sync;
+  tareas: typeof tareas;
   transacciones: typeof transacciones;
   users: typeof users;
   weekly_avance_real: typeof weekly_avance_real;

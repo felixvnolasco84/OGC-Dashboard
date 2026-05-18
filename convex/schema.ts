@@ -13,6 +13,7 @@ export default defineSchema({
     invited_at: v.optional(v.number()),
     invitation_url: v.optional(v.string()),
     invited_by: v.optional(v.id("users")),
+    organization_id: v.optional(v.string()),
     created_at: v.number(),
     last_login: v.optional(v.number()),
   }).index("by_clerk_id", { fields: ["clerkId"] })
@@ -51,6 +52,7 @@ export default defineSchema({
     honorarios_monto: v.optional(v.number()), // Auto-calculated amount based on percentage
     excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
     moneda_principal: v.optional(v.string()), // Primary currency for project (MXN, USD, EUR) - auto-updated from transactions
+    organization_id: v.optional(v.string()),
   }),
   sales_projects: defineTable({
     nombre: v.string(),
@@ -466,6 +468,25 @@ export default defineSchema({
     proyecto: v.id("desarrollos"),
     last_read_at: v.number(), // Timestamp of last viewed
   }).index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
+
+  // Tareas - Project task assignment and follow-up
+  tareas: defineTable({
+    proyecto: v.id("desarrollos"),
+    titulo: v.string(),
+    descripcion: v.optional(v.string()),
+    asignados: v.array(v.id("users")),
+    created_by_id: v.id("users"),
+    created_by_name: v.string(),
+    status: v.string(), // Pendiente, En progreso, Bloqueada, Completada, Cancelada
+    prioridad: v.string(), // Baja, Media, Alta, Urgente
+    fecha_limite: v.optional(v.string()), // YYYY-MM-DD
+    categoria: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+    completed_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_status", { fields: ["status"] })
+    .index("by_created_by", { fields: ["created_by_id"] }),
   
   // Programa de Obra - Scheduling data per nivel 1 partida
   programa_obra: defineTable({
