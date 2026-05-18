@@ -13,8 +13,7 @@ export default defineSchema({
     invitation_status: v.optional(v.string()), // pending, sent, accepted
     invited_at: v.optional(v.number()),
     invitation_url: v.optional(v.string()),
-    invited_by: v.optional(v.id("users")),
-    organization_id: v.optional(v.string()),
+    invited_by: v.optional(v.id("users")),    
     created_at: v.number(),
     last_login: v.optional(v.number()),
   }).index("by_clerk_id", { fields: ["clerkId"] })
