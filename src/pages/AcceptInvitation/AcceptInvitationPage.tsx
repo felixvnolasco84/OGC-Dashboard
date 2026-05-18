@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSignIn, useSignUp } from "@clerk/clerk-react";
 import { Loader2 } from "lucide-react";
 import LOGO from "../../../public/OGC-LOGO.svg";
@@ -6,8 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-function getSafeRedirectUrl() {
+type InvitationStatus = "complete" | "sign_in" | "sign_up" | null;
+type ClerkFlow = "sign_in" | "sign_up";
+
+const INVALID_TICKET_MESSAGE =
+  "Este enlace de invitación ya expiró, ya fue usado o fue generado con otra instancia de Clerk. Genera una invitación nueva e intenta de nuevo.";
+
+function getUrlParams() {
   const params = new URLSearchParams(window.location.search);
+
+  if (window.location.hash.includes("?")) {
+    const hashQuery = window.location.hash.slice(window.location.hash.indexOf("?") + 1);
+    const hashParams = new URLSearchParams(hashQuery);
+    hashParams.forEach((value, key) => {
+      if (!params.has(key)) {
+        params.set(key, value);
+      }
+    });
+  }
+
+  return params;
+}
+
+function getSafeRedirectUrl() {
+  const params = getUrlParams();
   const redirectUrl = params.get("redirect_url") || "/";
 
   if (!redirectUrl.startsWith("/") || redirectUrl.startsWith("//")) {
@@ -18,7 +40,34 @@ function getSafeRedirectUrl() {
 }
 
 function getTicket() {
-  return new URLSearchParams(window.location.search).get("__clerk_ticket");
+  return getUrlParams().get("__clerk_ticket");
+}
+
+function getInvitationStatus(): InvitationStatus {
+  const status = getUrlParams().get("__clerk_status");
+
+  if (status === "complete" || status === "sign_in" || status === "sign_up") {
+    return status;
+  }
+
+  return null;
+}
+
+function getClerkErrorMessage(error: unknown) {
+  if (typeof error !== "object" || error === null) {
+    return "";
+  }
+
+  const clerkError = error as {
+    message?: string;
+    errors?: Array<{ message?: string; code?: string }>;
+  };
+
+  return clerkError.errors?.[0]?.message || clerkError.errors?.[0]?.code || clerkError.message || "";
+}
+
+function isInvalidTicketError(error: unknown) {
+  return getClerkErrorMessage(error).toLowerCase().includes("ticket is invalid");
 }
 
 export default function AcceptInvitationPage() {
@@ -27,6 +76,7 @@ export default function AcceptInvitationPage() {
 
   const redirectUrl = useMemo(() => getSafeRedirectUrl(), []);
   const ticket = useMemo(() => getTicket(), []);
+  const invitationStatus = useMemo(() => getInvitationStatus(), []);
   const startedRef = useRef(false);
 
   const [status, setStatus] = useState<"loading" | "needs_details" | "error">("loading");
@@ -37,7 +87,7 @@ export default function AcceptInvitationPage() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const completeSession = async (
+  const completeSession = useCallback(async (
     createdSessionId: string | null,
     setActive: typeof setActiveSignUp
   ) => {
@@ -48,7 +98,7 @@ export default function AcceptInvitationPage() {
 
     await setActive({ session: createdSessionId });
     window.location.assign(redirectUrl);
-  };
+  }, [redirectUrl]);
 
   useEffect(() => {
     if (!ticket) {
@@ -63,49 +113,83 @@ export default function AcceptInvitationPage() {
 
     startedRef.current = true;
 
+    if (invitationStatus === "complete") {
+      window.location.assign(redirectUrl);
+      return;
+    }
+
+    const runSignUp = async () => {
+      const signUpAttempt = await signUp.create({
+        strategy: "ticket",
+        ticket,
+      });
+
+      if (signUpAttempt.status === "complete") {
+        await completeSession(signUpAttempt.createdSessionId, setActiveSignUp);
+        return;
+      }
+
+      setMissingFields(signUpAttempt.missingFields || []);
+      setFirstName(signUpAttempt.firstName || "");
+      setLastName(signUpAttempt.lastName || "");
+      setStatus("needs_details");
+    };
+
+    const runSignIn = async () => {
+      const signInAttempt = await signIn.create({
+        strategy: "ticket",
+        ticket,
+      });
+
+      if (signInAttempt.status === "complete") {
+        await completeSession(signInAttempt.createdSessionId, setActiveSignIn);
+        return;
+      }
+
+      setStatus("error");
+      setErrorMessage("La invitación requiere pasos adicionales de inicio de sesión.");
+    };
+
     const acceptInvitation = async () => {
-      try {
-        const signUpAttempt = await signUp.create({
-          strategy: "ticket",
-          ticket,
-        });
+      const preferredFlows: ClerkFlow[] =
+        invitationStatus === "sign_in" ? ["sign_in", "sign_up"] : ["sign_up", "sign_in"];
+      const errors: unknown[] = [];
 
-        if (signUpAttempt.status === "complete") {
-          await completeSession(signUpAttempt.createdSessionId, setActiveSignUp);
-          return;
-        }
-
-        setMissingFields(signUpAttempt.missingFields || []);
-        setFirstName(signUpAttempt.firstName || "");
-        setLastName(signUpAttempt.lastName || "");
-        setStatus("needs_details");
-      } catch (signUpError) {
+      for (const flow of preferredFlows) {
         try {
-          const signInAttempt = await signIn.create({
-            strategy: "ticket",
-            ticket,
-          });
-
-          if (signInAttempt.status === "complete") {
-            await completeSession(signInAttempt.createdSessionId, setActiveSignIn);
-            return;
+          if (flow === "sign_in") {
+            await runSignIn();
+          } else {
+            await runSignUp();
           }
+          return;
+        } catch (error) {
+          errors.push(error);
 
-          setStatus("error");
-          setErrorMessage("La invitación requiere pasos adicionales de inicio de sesión.");
-        } catch (signInError) {
-          console.error("Invitation sign-up error:", signUpError);
-          console.error("Invitation sign-in error:", signInError);
-          setStatus("error");
-          setErrorMessage(
-            "Este enlace de invitación no se pudo activar. Genera una invitación nueva e intenta de nuevo."
-          );
+          if (isInvalidTicketError(error)) {
+            break;
+          }
         }
       }
+
+      console.error("Invitation acceptance errors:", errors);
+      setStatus("error");
+      setErrorMessage(INVALID_TICKET_MESSAGE);
     };
 
     void acceptInvitation();
-  }, [ticket, signUpLoaded, signInLoaded, signUp, signIn, setActiveSignUp, setActiveSignIn, redirectUrl]);
+  }, [
+    ticket,
+    invitationStatus,
+    signUpLoaded,
+    signInLoaded,
+    signUp,
+    signIn,
+    setActiveSignUp,
+    setActiveSignIn,
+    redirectUrl,
+    completeSession,
+  ]);
 
   const requiresFirstName = missingFields.includes("first_name") || missingFields.includes("firstName");
   const requiresLastName = missingFields.includes("last_name") || missingFields.includes("lastName");

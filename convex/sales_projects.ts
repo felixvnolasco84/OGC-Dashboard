@@ -1,15 +1,70 @@
 import { query, mutation as rawMutation } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
+import {
+    getCurrentUserOrThrow,
+    getScopedOrganizationId,
+    hasAdminAccess,
+    hasGlobalAdminAccess,
+} from "./permissions";
 
 // Get all sales projects
 export const getAll = query(async (ctx) => {
-    return await ctx.db.query("sales_projects").collect();
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+        return await ctx.db.query("sales_projects").collect();
+    }
+
+    const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .first();
+
+    if (!user) {
+        return [];
+    }
+
+    if (hasAdminAccess(user)) {
+        if (hasGlobalAdminAccess(user)) {
+            return await ctx.db.query("sales_projects").collect();
+        }
+
+        return await ctx.db
+            .query("sales_projects")
+            .withIndex("by_organization", (q) => q.eq("organization_id", user.organization_id))
+            .collect();
+    }
+
+    const allowedSales = user.allowed_sales_projects || [];
+    const projects = await Promise.all(allowedSales.map((id) => ctx.db.get(id)));
+    return projects.filter((project) => project !== null);
 });
 
 // Get all sales projects with their metrics
 export const getAllWithMetrics = query(async (ctx) => {
-    const salesProjects = await ctx.db.query("sales_projects").collect();
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+        return [];
+    }
+
+    const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .first();
+
+    if (!user) {
+        return [];
+    }
+
+    const salesProjects = hasAdminAccess(user)
+        ? hasGlobalAdminAccess(user)
+            ? await ctx.db.query("sales_projects").collect()
+            : await ctx.db
+                .query("sales_projects")
+                .withIndex("by_organization", (q) => q.eq("organization_id", user.organization_id))
+                .collect()
+        : (await Promise.all((user.allowed_sales_projects || []).map((id) => ctx.db.get(id))))
+            .filter((project) => project !== null);
     
     // For now, return projects without metrics since we don't have sales-specific metrics table yet
     // This can be extended later to include sales metrics
@@ -30,7 +85,25 @@ export const getById = query({
         id: v.id("sales_projects"),
     },
     handler: async (ctx, args) => {
-        return await ctx.db.get(args.id);
+        const currentUser = await getCurrentUserOrThrow(ctx);
+        const project = await ctx.db.get(args.id);
+        if (!project) {
+            return null;
+        }
+
+        if (hasAdminAccess(currentUser)) {
+            if (hasGlobalAdminAccess(currentUser)) {
+                return project;
+            }
+
+            return project.organization_id === currentUser.organization_id ? project : null;
+        }
+
+        if ((currentUser.allowed_sales_projects || []).includes(args.id)) {
+            return project;
+        }
+
+        return null;
     },
 });
 
@@ -45,6 +118,12 @@ export const create = mutation({
         comision_porcentaje: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
+        const currentUser = await getCurrentUserOrThrow(ctx);
+        if (!hasAdminAccess(currentUser)) {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
+        const organizationId = getScopedOrganizationId(currentUser);
         const projectId = await ctx.db.insert("sales_projects", {
             nombre: args.nombre,
             descripcion: args.descripcion,
@@ -57,7 +136,17 @@ export const create = mutation({
             }),
             comision_porcentaje: args.comision_porcentaje || 0,
             comision_monto: 0, // Initial value
+            ...(organizationId ? { organization_id: organizationId } : {}),
         });
+
+        if (organizationId) {
+            const allowedSales = currentUser.allowed_sales_projects || [];
+            if (!allowedSales.includes(projectId)) {
+                await ctx.db.patch(currentUser._id, {
+                    allowed_sales_projects: [...allowedSales, projectId],
+                });
+            }
+        }
 
         // Automatically create sales_meticas_presupuesto record with initial values
         await ctx.db.insert("sales_meticas_presupuesto", {
@@ -85,6 +174,24 @@ export const update = mutation({
     },
     handler: async (ctx, args) => {
         const { id, ...rest } = args;
+        const currentUser = await getCurrentUserOrThrow(ctx);
+        if (!hasAdminAccess(currentUser)) {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
+        const project = await ctx.db.get(id);
+        if (!project) {
+            throw new Error("Sales project not found");
+        }
+
+        if (
+            !hasGlobalAdminAccess(currentUser) &&
+            currentUser.organization_id &&
+            project.organization_id !== currentUser.organization_id
+        ) {
+            throw new Error("Unauthorized: Project belongs to another organization");
+        }
+
         // Filter out undefined values
         const updateData = Object.fromEntries(
             Object.entries(rest).filter(([, value]) => value !== undefined)
@@ -99,10 +206,23 @@ export const deleteProject = rawMutation({
         id: v.id("sales_projects"),
     },
     handler: async (ctx, args) => {
+        const currentUser = await getCurrentUserOrThrow(ctx);
+        if (!hasAdminAccess(currentUser)) {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
         // Verify the project exists
         const project = await ctx.db.get(args.id);
         if (!project) {
             throw new Error("Sales project not found");
+        }
+
+        if (
+            !hasGlobalAdminAccess(currentUser) &&
+            currentUser.organization_id &&
+            project.organization_id !== currentUser.organization_id
+        ) {
+            throw new Error("Unauthorized: Project belongs to another organization");
         }
 
         // Delete associated sales_meticas_presupuesto record

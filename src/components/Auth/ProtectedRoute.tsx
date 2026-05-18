@@ -87,8 +87,9 @@ export default function ProtectedRoute({
     );
   }
 
-  // Project-level access checks for non-admin users
-  if (currentUser && currentUser.role !== "admin") {
+  // Project-level access checks are enforced for every role. Global admins pass
+  // through the Convex permission helpers; organization admins are scoped.
+  if (currentUser) {
     // Regular proyectos
     if (proyectoId && hasDesarrolloAccess === false) {
       return (

@@ -1,6 +1,17 @@
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  getScopedOrganizationId,
+  hasAdminAccess,
+  hasGlobalAdminAccess,
+  isSuperAdminEmail,
+  withComputedPermissions,
+} from "./permissions";
+
+const TEMPLATE_DOWNLOAD_URL = "https://drive.google.com/drive/folders/1uzn_nHnoryv2M_syMDVjPqWabc-SyzQK?usp=sharing";
 
 // Get or create user from Clerk
 export const getCurrentUser = query({
@@ -16,7 +27,7 @@ export const getCurrentUser = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
     
-    return user;
+    return user ? withComputedPermissions(user) : null;
   },
 });
 
@@ -29,6 +40,9 @@ export const storeUser = mutation({
       throw new Error("Not authenticated");
     }
 
+    const email = identity.email ?? "";
+    const name = identity.name ?? "";
+
     // Check if user already exists
     const existingUser = await ctx.db
       .query("users")
@@ -36,15 +50,14 @@ export const storeUser = mutation({
       .first();
 
     if (existingUser) {
+      const isSuperAdmin = isSuperAdminEmail(existingUser.email || email);
       // Update last login
       await ctx.db.patch(existingUser._id, {
+        ...(isSuperAdmin ? { role: "admin" } : {}),
         last_login: Date.now(),
       });
       return existingUser._id;
     }
-
-    const email = identity.email ?? "";
-    const name = identity.name ?? "";
 
     // If an admin invited the email before Clerk had a user id, claim that
     // pending record instead of creating a duplicate permissions row.
@@ -57,9 +70,11 @@ export const storeUser = mutation({
       : null;
 
     if (pendingUser) {
+      const isSuperAdmin = isSuperAdminEmail(pendingUser.email || email);
       await ctx.db.patch(pendingUser._id, {
         clerkId: identity.subject,
         name: pendingUser.name || name,
+        ...(isSuperAdmin ? { role: "admin" } : {}),
         invitation_status: "accepted",
         last_login: Date.now(),
       });
@@ -71,7 +86,7 @@ export const storeUser = mutation({
       clerkId: identity.subject,
       email,
       name,
-      role: "viewer", // Default role
+      role: isSuperAdminEmail(email) ? "admin" : "viewer", // Default role
       allowed_desarrollos: [], // No cost projects access by default
       allowed_sales_projects: [], // No sales projects access by default
       created_at: Date.now(),
@@ -101,7 +116,7 @@ export const createOrUpdateInvitedUser = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
@@ -111,10 +126,18 @@ export const createOrUpdateInvitedUser = mutation({
       .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .first();
 
+    const scopedOrganizationId = getScopedOrganizationId(currentUser);
+    const organizationId = args.role === "admin"
+      ? scopedOrganizationId || `org:${normalizedEmail}`
+      : scopedOrganizationId;
+
+    await assertDesarrollosInAdminScope(ctx, currentUser, args.allowed_desarrollos);
+
     const data = {
       email: normalizedEmail,
       name: args.name.trim() || normalizedEmail,
       role: args.role,
+      organization_id: organizationId,
       allowed_desarrollos: args.allowed_desarrollos,
       allowed_sales_projects: [] as [],
       invitation_status: "pending",
@@ -145,7 +168,7 @@ export const inviteUser = action({
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.runQuery(api.users.getCurrentUser);
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
@@ -203,10 +226,13 @@ export const inviteUser = action({
       invitation_url: invitationUrl,
     });
 
-    const html = renderWelcomeEmail({
+    const html = args.role === "viewer" ? renderWelcomeViewerEmail({
       name: args.name || normalizedEmail,
       loginUrl: invitationUrl,
       projectCount: args.allowed_desarrollos.length,
+    }) : renderWelcomeAdminEmail({
+      name: args.name || normalizedEmail,
+      loginUrl: invitationUrl,
     });
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -250,11 +276,18 @@ export const getAllUsers = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
-    return await ctx.db.query("users").collect();
+    if (hasGlobalAdminAccess(currentUser)) {
+      return await ctx.db.query("users").collect();
+    }
+
+    return await ctx.db
+      .query("users")
+      .withIndex("by_organization", (q) => q.eq("organization_id", currentUser.organization_id))
+      .collect();
   },
 });
 
@@ -278,18 +311,47 @@ export const updateUserPermissions = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
+    }
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    if (
+      !hasGlobalAdminAccess(currentUser) &&
+      currentUser.organization_id &&
+      targetUser.organization_id !== currentUser.organization_id
+    ) {
+      throw new Error("Unauthorized: User belongs to another organization");
+    }
+
+    if (args.allowed_desarrollos !== undefined) {
+      await assertDesarrollosInAdminScope(ctx, currentUser, args.allowed_desarrollos);
+    }
+
+    if (args.allowed_sales_projects !== undefined) {
+      await assertSalesProjectsInAdminScope(ctx, currentUser, args.allowed_sales_projects);
     }
 
     // Build update object with only provided fields
     const updateData: {
       role: string;
+      organization_id?: string;
       allowed_desarrollos?: typeof args.allowed_desarrollos;
       allowed_sales_projects?: typeof args.allowed_sales_projects;
     } = {
       role: args.role,
     };
+
+    const scopedOrganizationId = getScopedOrganizationId(currentUser);
+    if (args.role === "admin" && !targetUser.organization_id) {
+      updateData.organization_id = scopedOrganizationId || `org:${targetUser.email}`;
+    } else if (scopedOrganizationId && !targetUser.organization_id) {
+      updateData.organization_id = scopedOrganizationId;
+    }
     
     if (args.allowed_desarrollos !== undefined) {
       updateData.allowed_desarrollos = args.allowed_desarrollos;
@@ -300,6 +362,49 @@ export const updateUserPermissions = mutation({
     }
 
     await ctx.db.patch(args.userId, updateData);
+
+    return { success: true };
+  },
+});
+
+// Remove a user from the dashboard access list (admin only)
+export const removeUser = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!currentUser || !hasAdminAccess(currentUser)) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    if (currentUser._id === args.userId) {
+      throw new Error("No puedes quitar tu propio usuario");
+    }
+
+    const userToRemove = await ctx.db.get(args.userId);
+    if (!userToRemove) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    if (
+      !hasGlobalAdminAccess(currentUser) &&
+      currentUser.organization_id &&
+      userToRemove.organization_id !== currentUser.organization_id
+    ) {
+      throw new Error("Unauthorized: User belongs to another organization");
+    }
+
+    await ctx.db.delete(args.userId);
 
     return { success: true };
   },
@@ -324,7 +429,7 @@ export const getUserByEmail = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !hasAdminAccess(currentUser)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
@@ -376,9 +481,14 @@ export const hasAccessToDesarrollo = query({
       return false;
     }
 
-    // Admins have access to everything
-    if (user.role === "admin") {
-      return true;
+    if (hasAdminAccess(user)) {
+      if (hasGlobalAdminAccess(user)) {
+        return true;
+      }
+
+      const desarrollo = await ctx.db.get(args.desarrolloId);
+      return desarrollo?.organization_id === user.organization_id ||
+        user.allowed_desarrollos.includes(args.desarrolloId);
     }
 
     // Check if desarrollo is in allowed list
@@ -406,9 +516,13 @@ export const hasAccessToSalesProject = query({
       return false;
     }
 
-    // Admins have access to everything
-    if (user.role === "admin") {
-      return true;
+    if (hasAdminAccess(user)) {
+      if (hasGlobalAdminAccess(user)) {
+        return true;
+      }
+
+      const salesProject = await ctx.db.get(args.salesProyectoId);
+      return salesProject?.organization_id === user.organization_id;
     }
 
     const allowedSales = user.allowed_sales_projects || [];
@@ -427,7 +541,137 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;");
 }
 
-function renderWelcomeEmail({
+async function assertDesarrollosInAdminScope(
+  ctx: MutationCtx,
+  currentUser: { role: string; email: string; organization_id?: string },
+  desarrolloIds: Id<"desarrollos">[]
+) {
+  if (hasGlobalAdminAccess(currentUser)) {
+    return;
+  }
+
+  for (const desarrolloId of desarrolloIds) {
+    const desarrollo = await ctx.db.get(desarrolloId);
+    if (!desarrollo || desarrollo.organization_id !== currentUser.organization_id) {
+      throw new Error("Unauthorized: Project belongs to another organization");
+    }
+  }
+}
+
+async function assertSalesProjectsInAdminScope(
+  ctx: MutationCtx,
+  currentUser: { role: string; email: string; organization_id?: string },
+  salesProjectIds: Id<"sales_projects">[]
+) {
+  if (hasGlobalAdminAccess(currentUser)) {
+    return;
+  }
+
+  for (const salesProjectId of salesProjectIds) {
+    const salesProject = await ctx.db.get(salesProjectId);
+    if (!salesProject || salesProject.organization_id !== currentUser.organization_id) {
+      throw new Error("Unauthorized: Sales project belongs to another organization");
+    }
+  }
+}
+
+function renderWelcomeAdminEmail({
+  name,
+  loginUrl,
+}: {
+  name: string;
+  loginUrl: string;
+}) {
+  const safeName = escapeHtml(name);
+  const safeUrl = escapeHtml(loginUrl);
+  const safeTemplateUrl = escapeHtml(TEMPLATE_DOWNLOAD_URL);
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tu acceso a OGC Dashboard ya está listo</title>
+  </head>
+  <body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#242424;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;padding:56px 16px 40px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;">
+            <tr>
+              <td style="padding:0 38px 70px;">
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding-right:16px;vertical-align:middle;"><img src="https://www.ogc.mx/Logo.svg" alt="OGC" height="40" style="display:block;height:40px;width:auto;" /></td>
+                    <td style="font-size:22px;line-height:1.2;font-weight:500;color:#242424;vertical-align:middle;">Build smarter. Spend better.</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 38px;">
+                <h1 style="margin:0 0 22px;font-size:31px;line-height:1.2;font-weight:500;color:#242424;letter-spacing:-.2px;">Tu acceso<br />ya está listo.</h1>
+                <p style="margin:0 0 56px;color:#3f3f3f;font-size:18px;line-height:1.45;font-weight:400;">Hola ${safeName}, configuramos tu cuenta en la plataforma. Desde hoy puedes administrar los proyectos de tu organización: presupuesto, avance de obra, documentos y permisos de usuarios, todo en un solo lugar.</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 44px;">
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">01</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Inicia sesión</strong> y crea o carga los proyectos de tu organización.</td>
+                  </tr>
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">02</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Invita a tu equipo</strong> con el rol que corresponda para que cada usuario vea solo la información que necesita.</td>
+                  </tr>
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0;">03</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0;"><strong style="color:#242424;font-weight:700;">Trabaja por organización</strong>: tus usuarios solo verán los proyectos creados dentro de este espacio.</td>
+                  </tr>
+                </table>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td align="center" style="padding:0 0 48px;">
+                      <a href="${safeUrl}" style="display:inline-block;width:260px;max-width:100%;background:#dfff00;color:#242424;text-decoration:none;border-radius:6px;padding:15px 20px;font-size:13px;font-weight:700;text-align:center;">Entrar a mi cuenta</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 0 10px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e8e8e8;border-radius:7px;background:#fbfbfb;">
+                  <tr>
+                    <td style="padding:48px 56px 56px;">
+                      <p style="margin:0 0 20px;color:#3f3f3f;font-size:17px;line-height:1.45;">Para que la plataforma funcione desde el primer día, necesitamos que cargues la información de tu organización en los formatos correctos. Preparamos dos templates listos para llenar:</p>
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td align="center" style="padding:4px 0 58px;">
+                            <a href="${safeTemplateUrl}" style="display:inline-block;width:260px;max-width:100%;background:#ffffff;color:#8b8b8b;text-decoration:none;border:1px solid #cfcfcf;border-radius:6px;padding:13px 18px;font-size:13px;font-weight:700;text-align:center;">Descargar templates</a>
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="margin:0 0 4px;color:#242424;font-size:16px;line-height:1.45;font-weight:700;">Template 1 — Presupuesto de obra</p>
+                      <p style="margin:0 0 28px;color:#3f3f3f;font-size:16px;line-height:1.45;">Captura tus partidas, subpartidas y montos aprobados por proyecto. Este archivo es la base del control financiero; sin él, no hay presupuesto contra qué comparar.</p>
+                      <p style="margin:0 0 4px;color:#242424;font-size:16px;line-height:1.45;font-weight:700;">Template 2 — Carga de transacciones</p>
+                      <p style="margin:0 0 28px;color:#3f3f3f;font-size:16px;line-height:1.45;">Registra tus gastos, pagos a proveedores y movimientos de obra. Puedes exportar directo de tu sistema contable o llenarlo manualmente.</p>
+                      <p style="margin:0;color:#3f3f3f;font-size:16px;line-height:1.45;">Si tienes dudas sobre cómo llenar algún campo, escríbeme antes de nuestra llamada y lo resolvemos juntos.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 38px 0;">
+                <p style="margin:0;color:#8b8b8b;font-size:12px;line-height:1.5;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                <p style="margin:6px 0 0;color:#6f6f6f;font-size:12px;line-height:1.5;word-break:break-all;">${safeUrl}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+	  </body>
+	</html>`;
+}
+
+function renderWelcomeViewerEmail({
   name,
   loginUrl,
   projectCount,
@@ -438,38 +682,78 @@ function renderWelcomeEmail({
 }) {
   const safeName = escapeHtml(name);
   const safeUrl = escapeHtml(loginUrl);
-  const projectText = projectCount === 1
-    ? "Tienes 1 proyecto asignado."
-    : `Tienes ${projectCount} proyectos asignados.`;
+  const projectCopy = projectCount === 1
+    ? "el proyecto asignado a tu cuenta"
+    : "los proyectos asignados a tu cuenta";
 
   return `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bienvenido a OGC Dashboard</title>
+    <title>Tu acceso a OGC Dashboard ya está listo</title>
   </head>
-  <body style="margin:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7f9;padding:48px 16px;">
+  <body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#242424;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;padding:56px 16px 40px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;">
             <tr>
-              <td style="padding:40px 40px 20px;">
-                <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;">OGC Dashboard</div>
-                <h1 style="margin:28px 0 12px;font-size:28px;line-height:1.2;font-weight:600;color:#111827;">Bienvenido, ${safeName}</h1>
-                <p style="margin:0;color:#4b5563;font-size:16px;line-height:1.6;">Tu acceso ya fue configurado. ${escapeHtml(projectText)} Usa el botón para crear o entrar a tu cuenta y abrir directamente tu dashboard.</p>
+              <td style="padding:0 38px 70px;">
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding-right:16px;vertical-align:middle;"><img src="https://www.ogc.mx/Logo.svg" alt="OGC" height="40" style="display:block;height:40px;width:auto;" /></td>
+                    <td style="font-size:22px;line-height:1.2;font-weight:500;color:#242424;vertical-align:middle;">Build smarter. Spend better.</td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:12px 40px 28px;">
-                <a href="${safeUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;padding:13px 20px;font-size:15px;font-weight:700;">Entrar a mi cuenta</a>
+              <td style="padding:0 38px;">
+                <h1 style="margin:0 0 22px;font-size:31px;line-height:1.2;font-weight:500;color:#242424;letter-spacing:-.2px;">Tu acceso<br />ya está listo.</h1>
+                <p style="margin:0 0 56px;color:#3f3f3f;font-size:18px;line-height:1.45;font-weight:400;">Hola ${safeName}, configuramos tu cuenta en la plataforma. Desde hoy puedes consultar la información de ${escapeHtml(projectCopy)}: presupuesto, avance de obra, documentos y bitácora, todo en un solo lugar.</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 44px;">
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">01</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Inicia sesión</strong> con el botón de este correo.</td>
+                  </tr>
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0 0 32px;">02</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0 0 32px;"><strong style="color:#242424;font-weight:700;">Explora tus proyectos</strong> y consulta la información disponible en modo de solo lectura.</td>
+                  </tr>
+                  <tr>
+                    <td valign="top" width="36" style="color:#b7b7b7;font-size:18px;line-height:1.5;padding:0;">03</td>
+                    <td style="color:#3f3f3f;font-size:15px;line-height:1.55;padding:0;"><strong style="color:#242424;font-weight:700;">Reporta cualquier duda</strong> con tu administrador si necesitas acceso a otro proyecto o notas algún dato pendiente.</td>
+                  </tr>
+                </table>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td align="center" style="padding:0 0 48px;">
+                      <a href="${safeUrl}" style="display:inline-block;width:260px;max-width:100%;background:#dfff00;color:#242424;text-decoration:none;border-radius:6px;padding:15px 20px;font-size:13px;font-weight:700;text-align:center;">Entrar a mi cuenta</a>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 40px 36px;">
-                <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.6;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
-                <p style="margin:8px 0 0;color:#374151;font-size:13px;line-height:1.6;word-break:break-all;">${safeUrl}</p>
+              <td style="padding:0 0 10px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e8e8e8;border-radius:7px;background:#fbfbfb;">
+                  <tr>
+                    <td style="padding:48px 56px 56px;">
+                      <p style="margin:0 0 4px;color:#242424;font-size:16px;line-height:1.45;font-weight:700;">Tu acceso es de consulta</p>
+                      <p style="margin:0 0 28px;color:#3f3f3f;font-size:16px;line-height:1.45;">Tu perfil viewer está pensado para revisar información sin modificarla. Podrás navegar por los proyectos asignados y ver el avance actualizado que el equipo administrador cargue en la plataforma.</p>
+                      <p style="margin:0 0 4px;color:#242424;font-size:16px;line-height:1.45;font-weight:700;">Qué puedes revisar</p>
+                      <p style="margin:0 0 28px;color:#3f3f3f;font-size:16px;line-height:1.45;">Presupuesto, control financiero, programa de obra, bitácora y documentos del proyecto, según los permisos asignados a tu cuenta.</p>
+                      <p style="margin:0;color:#3f3f3f;font-size:16px;line-height:1.45;">Si algo no aparece como esperabas, responde este correo o contacta a tu administrador para revisar tus permisos.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 38px 0;">
+                <p style="margin:0;color:#8b8b8b;font-size:12px;line-height:1.5;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                <p style="margin:6px 0 0;color:#6f6f6f;font-size:12px;line-height:1.5;word-break:break-all;">${safeUrl}</p>
               </td>
             </tr>
           </table>
