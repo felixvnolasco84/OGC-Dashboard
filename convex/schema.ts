@@ -54,7 +54,7 @@ export default defineSchema({
     excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
     moneda_principal: v.optional(v.string()), // Primary currency for project (MXN, USD, EUR) - auto-updated from transactions
     organization_id: v.optional(v.string()),
-  }),
+  }).index("by_organization", { fields: ["organization_id"] }),
   sales_projects: defineTable({
     nombre: v.string(),
     descripcion: v.string(),
