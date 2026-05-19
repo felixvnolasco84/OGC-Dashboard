@@ -1,7 +1,7 @@
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
-import { getCurrentUserOrThrow, hasGlobalAdminAccess } from "./permissions";
+import { getCurrentUserOrThrow, getUserDesarrollos, hasGlobalAdminAccess } from "./permissions";
 
 const WRITE_ROLES = new Set(["admin", "user", "contratista", "finance"]);
 
@@ -64,9 +64,11 @@ async function insertHistory(
 async function enrichTask(ctx: QueryCtx | MutationCtx, task: Doc<"tareas">) {
   const assignedUsers = await Promise.all(task.asignados.map((id) => ctx.db.get(id)));
   const creator = await ctx.db.get(task.created_by_id);
+  const proyecto = await ctx.db.get(task.proyecto);
 
   return {
     ...task,
+    proyecto_nombre: proyecto?.nombre || "Proyecto no encontrado",
     assigned_users: assignedUsers
       .filter((user) => user !== null)
       .map((user) => ({
@@ -83,6 +85,15 @@ async function enrichTask(ctx: QueryCtx | MutationCtx, task: Doc<"tareas">) {
       }
       : null,
   };
+}
+
+function sortTasks<T extends { status: string; updated_at?: number; created_at: number }>(tasks: T[]) {
+  return tasks.sort((a, b) => {
+    const aCompleted = a.status === "Completada" ? 1 : 0;
+    const bCompleted = b.status === "Completada" ? 1 : 0;
+    if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+    return (b.updated_at || b.created_at) - (a.updated_at || a.created_at);
+  });
 }
 
 function canSeeTaskHistory(user: Doc<"users">, task: Doc<"tareas">) {
@@ -183,12 +194,26 @@ export const getByProyecto = query({
       .collect();
 
     const enriched = await Promise.all(tasks.map((task) => enrichTask(ctx, task)));
-    return enriched.sort((a, b) => {
-      const aCompleted = a.status === "Completada" ? 1 : 0;
-      const bCompleted = b.status === "Completada" ? 1 : 0;
-      if (aCompleted !== bCompleted) return aCompleted - bCompleted;
-      return (b.updated_at || b.created_at) - (a.updated_at || a.created_at);
-    });
+    return sortTasks(enriched);
+  },
+});
+
+export const getAllAccessible = query({
+  args: {},
+  handler: async (ctx) => {
+    const proyectos = await getUserDesarrollos(ctx);
+    const tasksByProject = await Promise.all(
+      proyectos.map((proyecto) =>
+        ctx.db
+          .query("tareas")
+          .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
+          .collect()
+      )
+    );
+
+    const tasks = tasksByProject.flat();
+    const enriched = await Promise.all(tasks.map((task) => enrichTask(ctx, task)));
+    return sortTasks(enriched);
   },
 });
 
@@ -247,6 +272,45 @@ export const getNotifications = query({
   },
 });
 
+export const getAllNotifications = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    const proyectos = await getUserDesarrollos(ctx);
+    const limitPerProject = Math.max(args.limit ?? 60, 20);
+
+    const notificationsByProject = await Promise.all(
+      proyectos.map(async (proyecto) => {
+        const readStatus = await ctx.db
+          .query("tarea_read_status")
+          .withIndex("by_user_proyecto", (q) =>
+            q.eq("user_id", user._id).eq("proyecto", proyecto._id)
+          )
+          .first();
+
+        const items = await getTaskNotificationItems(ctx, {
+          proyecto: proyecto._id,
+          user,
+          lastReadAt: readStatus?.last_read_at ?? 0,
+          limit: limitPerProject,
+        });
+
+        return items.map((item) => ({
+          ...item,
+          proyecto_nombre: proyecto.nombre,
+        }));
+      })
+    );
+
+    return notificationsByProject
+      .flat()
+      .sort((a, b) => b.created_at - a.created_at)
+      .slice(0, args.limit ?? 60);
+  },
+});
+
 export const getUnreadSummary = query({
   args: {
     proyecto: v.id("desarrollos"),
@@ -277,27 +341,69 @@ export const getUnreadSummary = query({
   },
 });
 
+export const getAllUnreadSummary = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    const proyectos = await getUserDesarrollos(ctx);
+    const unreadByProject = await Promise.all(
+      proyectos.map(async (proyecto) => {
+        const readStatus = await ctx.db
+          .query("tarea_read_status")
+          .withIndex("by_user_proyecto", (q) =>
+            q.eq("user_id", user._id).eq("proyecto", proyecto._id)
+          )
+          .first();
+
+        return await getTaskNotificationItems(ctx, {
+          proyecto: proyecto._id,
+          user,
+          lastReadAt: readStatus?.last_read_at ?? 0,
+          limit: 100,
+          unreadOnly: true,
+        });
+      })
+    );
+
+    const unreadItems = unreadByProject.flat();
+    return {
+      total: unreadItems.length,
+      hasAssignments: unreadItems.some((item) => item.notification_type === "assignment"),
+      hasMentions: unreadItems.some((item) => item.notification_type === "mention"),
+      hasUpdates: unreadItems.some((item) => item.notification_type === "update"),
+    };
+  },
+});
+
 export const markNotificationsAsRead = mutation({
   args: {
-    proyecto: v.id("desarrollos"),
+    proyecto: v.optional(v.id("desarrollos")),
   },
   handler: async (ctx, args) => {
-    const user = await ensureProjectAccess(ctx, args.proyecto);
-    const existing = await ctx.db
-      .query("tarea_read_status")
-      .withIndex("by_user_proyecto", (q) =>
-        q.eq("user_id", user._id).eq("proyecto", args.proyecto)
-      )
-      .first();
+    const user = args.proyecto
+      ? await ensureProjectAccess(ctx, args.proyecto)
+      : await getCurrentUserOrThrow(ctx);
+    const proyectos = args.proyecto
+      ? [{ _id: args.proyecto }]
+      : await getUserDesarrollos(ctx);
 
-    if (existing) {
-      await ctx.db.patch(existing._id, { last_read_at: Date.now() });
-    } else {
-      await ctx.db.insert("tarea_read_status", {
-        user_id: user._id,
-        proyecto: args.proyecto,
-        last_read_at: Date.now(),
-      });
+    for (const proyecto of proyectos) {
+      const existing = await ctx.db
+        .query("tarea_read_status")
+        .withIndex("by_user_proyecto", (q) =>
+          q.eq("user_id", user._id).eq("proyecto", proyecto._id)
+        )
+        .first();
+
+      if (existing) {
+        await ctx.db.patch(existing._id, { last_read_at: Date.now() });
+      } else {
+        await ctx.db.insert("tarea_read_status", {
+          user_id: user._id,
+          proyecto: proyecto._id,
+          last_read_at: Date.now(),
+        });
+      }
     }
 
     return { success: true };
@@ -389,6 +495,7 @@ export const create = mutation({
 export const update = mutation({
   args: {
     id: v.id("tareas"),
+    proyecto: v.optional(v.id("desarrollos")),
     titulo: v.string(),
     descripcion: v.optional(v.string()),
     asignados: v.array(v.id("users")),
@@ -404,6 +511,9 @@ export const update = mutation({
     }
 
     const user = await ensureProjectAccess(ctx, task.proyecto);
+    if (args.proyecto && args.proyecto !== task.proyecto) {
+      await ensureProjectAccess(ctx, args.proyecto);
+    }
     if (!canWrite(user.role)) {
       throw new Error("Unauthorized: Viewer role is read-only");
     }
@@ -415,6 +525,7 @@ export const update = mutation({
 
     const now = Date.now();
     const nextTask = {
+      proyecto: args.proyecto || task.proyecto,
       titulo,
       descripcion: args.descripcion?.trim() || undefined,
       asignados: args.asignados,
@@ -430,7 +541,28 @@ export const update = mutation({
 
     await ctx.db.patch(args.id, nextTask);
 
+    if (args.proyecto && args.proyecto !== task.proyecto) {
+      const [comments, history] = await Promise.all([
+        ctx.db
+          .query("tarea_comments")
+          .withIndex("by_tarea", (q) => q.eq("tarea_id", args.id))
+          .collect(),
+        ctx.db
+          .query("tarea_history")
+          .withIndex("by_tarea", (q) => q.eq("tarea_id", args.id))
+          .collect(),
+      ]);
+
+      for (const comment of comments) {
+        await ctx.db.patch(comment._id, { proyecto: args.proyecto });
+      }
+      for (const item of history) {
+        await ctx.db.patch(item._id, { proyecto: args.proyecto });
+      }
+    }
+
     const trackedFields: Array<keyof typeof nextTask> = [
+      "proyecto",
       "titulo",
       "descripcion",
       "asignados",
@@ -440,12 +572,13 @@ export const update = mutation({
       "categoria",
     ];
 
+    const historyTask = { _id: task._id, proyecto: nextTask.proyecto };
     for (const field of trackedFields) {
       const previous = task[field as keyof Doc<"tareas">];
       const next = nextTask[field];
       if (JSON.stringify(previous ?? null) !== JSON.stringify(next ?? null)) {
         await insertHistory(ctx, {
-          task,
+          task: historyTask,
           action: field === "status" ? "status_changed" : "updated",
           field_changed: field,
           old_value: previous,

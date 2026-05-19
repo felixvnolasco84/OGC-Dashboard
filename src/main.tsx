@@ -110,6 +110,11 @@ createRoot(document.getElementById("root")!).render(
                     <SalesDocumentosPage />
                   </ProtectedRoute>
                 } />
+                <Route path="/tareas" element={
+                  <ProtectedRoute requiredRole="contratista">
+                    <TareasPage />
+                  </ProtectedRoute>
+                } />
 
                 {/* Project-specific routes */}
                 <Route path="/proyecto/:proyectoId/presupuesto" element={

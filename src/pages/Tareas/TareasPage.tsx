@@ -84,6 +84,8 @@ type UserSummary = {
 
 type Task = {
   _id: Id<"tareas">;
+  proyecto: Id<"desarrollos">;
+  proyecto_nombre?: string;
   titulo: string;
   descripcion?: string;
   asignados: Id<"users">[];
@@ -118,6 +120,7 @@ type TaskHistory = {
 };
 
 type TaskNotification = TaskHistory & {
+  proyecto_nombre?: string;
   is_unread: boolean;
   notification_type: "assignment" | "mention" | "update";
   task: {
@@ -132,8 +135,14 @@ type TaskNotification = TaskHistory & {
   };
 };
 
+type ProjectOption = {
+  _id: Id<"desarrollos">;
+  nombre: string;
+};
+
 function emptyForm() {
   return {
+    proyecto: "",
     titulo: "",
     descripcion: "",
     prioridad: "Media",
@@ -259,26 +268,53 @@ function relativeTime(timestamp: number) {
 
 export default function TareasPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
+  const isProjectScoped = Boolean(proyectoId);
   const proyecto = useQuery(
     api.desarrollos.getById,
     proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip"
   );
-  const tareas = useQuery(
+  const proyectos = useQuery(api.desarrollos.getAll) as ProjectOption[] | undefined;
+  const projectTasks = useQuery(
     api.tareas.getByProyecto,
     proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
   ) as Task[] | undefined;
+  const globalTasks = useQuery(
+    api.tareas.getAllAccessible,
+    proyectoId ? "skip" : {}
+  ) as Task[] | undefined;
+  const tareas = isProjectScoped ? projectTasks : globalTasks;
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<Id<"tareas"> | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const selectedFormProjectId = proyectoId || form.proyecto;
   const assignableUsers = useQuery(
     api.tareas.getAssignableUsers,
-    proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
+    selectedFormProjectId ? { proyecto: selectedFormProjectId as Id<"desarrollos"> } : "skip"
   );
-  const taskNotifications = useQuery(
+  const projectNotifications = useQuery(
     api.tareas.getNotifications,
     proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, limit: 60 } : "skip"
   ) as TaskNotification[] | undefined;
-  const taskNotificationSummary = useQuery(
+  const globalNotifications = useQuery(
+    api.tareas.getAllNotifications,
+    proyectoId ? "skip" : { limit: 60 }
+  ) as TaskNotification[] | undefined;
+  const taskNotifications = isProjectScoped ? projectNotifications : globalNotifications;
+  const projectNotificationSummary = useQuery(
     api.tareas.getUnreadSummary,
     proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
   );
+  const globalNotificationSummary = useQuery(
+    api.tareas.getAllUnreadSummary,
+    proyectoId ? "skip" : {}
+  );
+  const taskNotificationSummary = isProjectScoped ? projectNotificationSummary : globalNotificationSummary;
   const currentUser = useQuery(api.users.getCurrentUser);
 
   const createTask = useMutation(api.tareas.create);
@@ -289,14 +325,6 @@ export default function TareasPage() {
   const removeComment = useMutation(api.tareas.removeComment);
   const markNotificationsAsRead = useMutation(api.tareas.markNotificationsAsRead);
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [assigneeFilter, setAssigneeFilter] = useState("all");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<Id<"tareas"> | null>(null);
-  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-  const [form, setForm] = useState(emptyForm);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
@@ -315,11 +343,22 @@ export default function TareasPage() {
   const canCreate = currentUser?.role && currentUser.role !== "viewer";
   const canComment = canCreate && selectedTask;
   const unreadNotificationCount = taskNotificationSummary?.total || 0;
+  const assigneeFilterOptions = useMemo(() => {
+    const users = new Map<string, UserSummary>();
+    for (const task of tareas || []) {
+      for (const user of task.assigned_users || []) {
+        users.set(user._id, user);
+      }
+    }
+    return Array.from(users.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [tareas]);
 
   useEffect(() => {
-    if (!notificationsOpen || !proyectoId) return;
+    if (!notificationsOpen) return;
 
-    void markNotificationsAsRead({ proyecto: proyectoId as Id<"desarrollos"> });
+    void markNotificationsAsRead(
+      proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : {}
+    );
   }, [markNotificationsAsRead, notificationsOpen, proyectoId]);
 
   const stats = useMemo(() => {
@@ -339,12 +378,14 @@ export default function TareasPage() {
         !term ||
         task.titulo.toLowerCase().includes(term) ||
         task.descripcion?.toLowerCase().includes(term) ||
+        task.proyecto_nombre?.toLowerCase().includes(term) ||
         task.assigned_users?.some((user) => user.name.toLowerCase().includes(term));
       const matchesStatus = statusFilter === "all" || task.status === statusFilter;
       const matchesAssignee = assigneeFilter === "all" || task.asignados.includes(assigneeFilter as Id<"users">);
-      return matchesSearch && matchesStatus && matchesAssignee;
+      const matchesProject = projectFilter === "all" || task.proyecto === projectFilter;
+      return matchesSearch && matchesStatus && matchesAssignee && matchesProject;
     });
-  }, [assigneeFilter, search, statusFilter, tareas]);
+  }, [assigneeFilter, projectFilter, search, statusFilter, tareas]);
 
   const filteredNotifications = useMemo(() => {
     const term = notificationSearch.trim().toLowerCase();
@@ -357,6 +398,7 @@ export default function TareasPage() {
       const matchesSearch =
         !term ||
         item.task.titulo.toLowerCase().includes(term) ||
+        item.proyecto_nombre?.toLowerCase().includes(term) ||
         item.changed_by_name.toLowerCase().includes(term) ||
         notificationLabel(item).toLowerCase().includes(term);
 
@@ -366,13 +408,17 @@ export default function TareasPage() {
 
   const openCreateDialog = () => {
     setEditingTask(null);
-    setForm(emptyForm());
+    setForm({
+      ...emptyForm(),
+      proyecto: proyectoId || "",
+    });
     setDialogOpen(true);
   };
 
   const openEditDialog = (task: Task) => {
     setEditingTask(task);
     setForm({
+      proyecto: task.proyecto,
       titulo: task.titulo,
       descripcion: task.descripcion || "",
       prioridad: task.prioridad,
@@ -397,7 +443,11 @@ export default function TareasPage() {
   };
 
   const handleSubmit = async () => {
-    if (!proyectoId) return;
+    const targetProjectId = proyectoId || form.proyecto;
+    if (!targetProjectId) {
+      toast.error("Selecciona un proyecto para la tarea");
+      return;
+    }
     if (!form.titulo.trim()) {
       toast.error("Agrega un titulo para la tarea");
       return;
@@ -421,13 +471,14 @@ export default function TareasPage() {
       if (editingTask) {
         await updateTask({
           id: editingTask._id,
+          proyecto: targetProjectId as Id<"desarrollos">,
           ...payload,
           status: form.status,
         });
         toast.success("Tarea actualizada");
       } else {
         const taskId = await createTask({
-          proyecto: proyectoId as Id<"desarrollos">,
+          proyecto: targetProjectId as Id<"desarrollos">,
           ...payload,
         });
         setSelectedTaskId(taskId);
@@ -493,7 +544,7 @@ export default function TareasPage() {
     }
   };
 
-  if (!proyecto || !tareas || !assignableUsers) {
+  if ((isProjectScoped && !proyecto) || !tareas || !proyectos) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -506,9 +557,9 @@ export default function TareasPage() {
       <div className="border-b border-gray-200 px-6 py-8 lg:px-16">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm text-gray-500">Proyecto</p>
+            <p className="text-sm text-gray-500">{isProjectScoped ? "Proyecto" : "General"}</p>
             <h1 className="mt-1 text-3xl font-normal text-gray-900">
-              Tareas {proyecto.nombre}
+              {isProjectScoped ? `Tareas ${proyecto?.nombre}` : "Tareas"}
             </h1>
           </div>
           <div className="flex gap-2 self-start lg:self-auto">
@@ -596,13 +647,28 @@ export default function TareasPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los usuarios</SelectItem>
-              {assignableUsers.map((user) => (
+              {assigneeFilterOptions.map((user) => (
                 <SelectItem key={user._id} value={user._id}>
                   {user.name || user.email}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {!isProjectScoped && (
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger className="w-full lg:w-56">
+                <SelectValue placeholder="Proyecto" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los proyectos</SelectItem>
+                {proyectos.map((project) => (
+                  <SelectItem key={project._id} value={project._id}>
+                    {project.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="border border-gray-200">
@@ -637,6 +703,7 @@ export default function TareasPage() {
                           <p className="mt-1 line-clamp-1 text-sm text-gray-500">{task.descripcion}</p>
                         )}
                         <p className="mt-1 text-xs text-gray-400">
+                          {!isProjectScoped && `${task.proyecto_nombre || "Sin proyecto"} · `}
                           {task.categoria || "General"} · Creada por {task.created_by_name}
                         </p>
                       </button>
@@ -723,14 +790,16 @@ export default function TareasPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => proyectoId && markNotificationsAsRead({ proyecto: proyectoId as Id<"desarrollos"> })}
+                onClick={() => markNotificationsAsRead(proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : {})}
                 className="text-gray-500 hover:bg-gray-100 hover:text-gray-900"
               >
                 Marcar leidas
               </Button>
             </div>
             <SheetDescription className="text-left text-gray-600">
-              Actividad reciente de tareas en este proyecto.
+              {isProjectScoped
+                ? "Actividad reciente de tareas en este proyecto."
+                : "Actividad reciente de tareas en todos tus proyectos."}
             </SheetDescription>
           </SheetHeader>
 
@@ -783,7 +852,7 @@ export default function TareasPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-900">Seguimiento de tareas activo</p>
                   <p className="mt-1 text-sm leading-5 text-gray-600">
-                    Recibe avisos cuando te asignen, mencionen o actualicen tareas del proyecto.
+                    Recibe avisos cuando te asignen, mencionen o actualicen tareas.
                   </p>
                 </div>
               </div>
@@ -839,6 +908,7 @@ export default function TareasPage() {
                           <span className="shrink-0 text-xs text-gray-400">{relativeTime(item.created_at)}</span>
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                          {!isProjectScoped && item.proyecto_nombre && <span>{item.proyecto_nombre}</span>}
                           <span>{item.task.status}</span>
                           <span>Prioridad {item.task.prioridad}</span>
                           {item.task.fecha_limite && <span>Limite {formatDate(item.task.fecha_limite)}</span>}
@@ -878,6 +948,7 @@ export default function TareasPage() {
                 </div>
                 <SheetTitle className="text-left text-2xl font-normal">{selectedTask.titulo}</SheetTitle>
                 <SheetDescription className="text-left">
+                  {!isProjectScoped && `${selectedTask.proyecto_nombre || "Sin proyecto"} · `}
                   {selectedTask.categoria || "General"} · Creada por {selectedTask.created_by_name} · {formatDateTime(selectedTask.created_at)}
                 </SheetDescription>
                 <div className="flex flex-wrap gap-2 pt-2">
@@ -1038,6 +1109,32 @@ export default function TareasPage() {
 
           <div className="grid gap-5">
             <div className="space-y-2">
+              <Label>Proyecto</Label>
+              <Select
+                value={selectedFormProjectId}
+                disabled={isProjectScoped}
+                onValueChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
+                    proyecto: value,
+                    asignados: new Set(),
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona el proyecto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {proyectos.map((project) => (
+                    <SelectItem key={project._id} value={project._id}>
+                      {project.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="task-title">Titulo</Label>
               <Input
                 id="task-title"
@@ -1130,7 +1227,17 @@ export default function TareasPage() {
             <div className="space-y-2">
               <Label>Asignados</Label>
               <div className="max-h-52 overflow-y-auto border border-gray-200 p-3">
-                {assignableUsers.map((user) => (
+                {!selectedFormProjectId && (
+                  <div className="py-4 text-center text-sm text-gray-500">
+                    Selecciona un proyecto para ver usuarios disponibles.
+                  </div>
+                )}
+                {selectedFormProjectId && !assignableUsers && (
+                  <div className="flex h-20 items-center justify-center text-gray-500">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                )}
+                {(assignableUsers || []).map((user) => (
                   <label
                     key={user._id}
                     className="flex cursor-pointer items-center gap-3 border-b border-gray-100 py-2 last:border-b-0"

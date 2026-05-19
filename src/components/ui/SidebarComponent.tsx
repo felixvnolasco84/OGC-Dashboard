@@ -245,7 +245,6 @@ const projectMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
-  { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
   { id: "bitacora", label: "Bitácora", path: "bitacora", disabled: false, icon: BookCheck },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: BookDashed },
@@ -257,14 +256,12 @@ const projectMenuItems: ProjectMenuItem[] = [
 
 // Restricted menu items for contratista role (Bitacora + Requisiciones)
 const contratistaMenuItems: ProjectMenuItem[] = [
-  { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: Bookmark },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
 ];
 
 // Restricted menu items for finance role (only Requisiciones)
 const financeMenuItems: ProjectMenuItem[] = [
-  { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
 ];
 
@@ -272,7 +269,6 @@ const viewerMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
-  { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: BookCheck },
 ];
 
@@ -341,8 +337,8 @@ function RequisicionNotificationDot({
   );
 }
 
-function TareaNotificationDot({ proyectoId }: { proyectoId: Id<"desarrollos"> }) {
-  const unreadSummary = useQuery(api.tareas.getUnreadSummary, { proyecto: proyectoId });
+function GlobalTareaNotificationDot() {
+  const unreadSummary = useQuery(api.tareas.getAllUnreadSummary, {});
 
   if (!unreadSummary || unreadSummary.total === 0) {
     return null;
@@ -698,9 +694,6 @@ export default function SidebarComponent() {
                         <item.icon className="w-4 h-4" />
                         <span className="flex items-center justify-between w-full">
                           {item.label}
-                          {item.id === "tareas" && (
-                            <TareaNotificationDot proyectoId={currentProject._id} />
-                          )}
                           {item.id === "requisiciones" && (
                             <RequisicionNotificationDot
                               proyectoId={currentProject._id}
@@ -753,6 +746,35 @@ export default function SidebarComponent() {
           </SidebarGroup>
         )}
       </SidebarContent>
+
+      {isAuthenticated && !authLoading && (
+        <SidebarGroup className="mt-auto border-t border-gray-200 pt-2 text-left">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Tareas"
+                  className={cn(
+                    "px-3 py-2 text-sm transition-colors",
+                    isActive("/tareas")
+                      ? "text-gray-900 bg-gray-100 font-medium"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                >
+                  <Link to="/tareas">
+                    <ListTodo className="w-4 h-4" />
+                    <span className="flex items-center justify-between w-full">
+                      Tareas
+                      <GlobalTareaNotificationDot />
+                    </span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      )}
 
       {/* Bottom Menu - Only show for authenticated admin users */}
       {isAuthenticated && !authLoading && currentUser?.role === "admin" && (
