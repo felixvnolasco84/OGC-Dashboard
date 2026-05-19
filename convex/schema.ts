@@ -515,6 +515,12 @@ export default defineSchema({
   }).index("by_tarea", { fields: ["tarea_id"] })
     .index("by_proyecto", { fields: ["proyecto"] })
     .index("by_changed_by", { fields: ["changed_by_id"] }),
+
+  tarea_read_status: defineTable({
+    user_id: v.id("users"),
+    proyecto: v.id("desarrollos"),
+    last_read_at: v.number(),
+  }).index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
   
   // Programa de Obra - Scheduling data per nivel 1 partida
   programa_obra: defineTable({

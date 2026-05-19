@@ -1,14 +1,23 @@
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
-import { getCurrentUserOrThrow } from "./permissions";
+import { getCurrentUserOrThrow, hasGlobalAdminAccess } from "./permissions";
 
 const WRITE_ROLES = new Set(["admin", "user", "contratista", "finance"]);
 
 async function ensureProjectAccess(ctx: QueryCtx | MutationCtx, proyecto: Id<"desarrollos">) {
   const user = await getCurrentUserOrThrow(ctx);
 
-  if (user.role === "admin") {
+  if (hasGlobalAdminAccess(user)) {
+    return user;
+  }
+
+  const project = await ctx.db.get(proyecto);
+  if (!project) {
+    throw new Error("Project not found");
+  }
+
+  if (user.role === "admin" && project.organization_id === user.organization_id) {
     return user;
   }
 
@@ -76,6 +85,91 @@ async function enrichTask(ctx: QueryCtx | MutationCtx, task: Doc<"tareas">) {
   };
 }
 
+function canSeeTaskHistory(user: Doc<"users">, task: Doc<"tareas">) {
+  if (user.role === "admin") return true;
+  return task.created_by_id === user._id || task.asignados.includes(user._id);
+}
+
+function hasMention(value: string | undefined, user: Doc<"users">) {
+  if (!value) return false;
+
+  const text = value.toLowerCase();
+  const name = user.name.trim().toLowerCase();
+  const email = user.email.trim().toLowerCase();
+
+  return Boolean(
+    (name && (text.includes(`@${name}`) || text.includes(name))) ||
+    (email && (text.includes(`@${email}`) || text.includes(email)))
+  );
+}
+
+function getNotificationType(item: Doc<"tarea_history">, task: Doc<"tareas">, user: Doc<"users">) {
+  if (item.action === "comment_added" && hasMention(item.new_value, user)) {
+    return "mention";
+  }
+
+  if (
+    item.field_changed === "asignados" ||
+    (item.action === "created" && task.asignados.includes(user._id))
+  ) {
+    return "assignment";
+  }
+
+  return "update";
+}
+
+async function getTaskNotificationItems(
+  ctx: QueryCtx,
+  args: {
+    proyecto: Id<"desarrollos">;
+    user: Doc<"users">;
+    lastReadAt: number;
+    limit?: number;
+    unreadOnly?: boolean;
+  }
+) {
+  const takeLimit = Math.max((args.limit ?? 40) * 4, 80);
+  let history = await ctx.db
+    .query("tarea_history")
+    .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
+    .order("desc")
+    .take(takeLimit);
+
+  if (args.unreadOnly) {
+    history = history.filter((item) => item.created_at > args.lastReadAt);
+  }
+
+  const enriched = [];
+  for (const item of history) {
+    const task = await ctx.db.get(item.tarea_id);
+    if (!task || !canSeeTaskHistory(args.user, task)) {
+      continue;
+    }
+
+    enriched.push({
+      ...item,
+      is_unread: item.created_at > args.lastReadAt,
+      notification_type: getNotificationType(item, task, args.user),
+      task: {
+        _id: task._id,
+        titulo: task.titulo,
+        status: task.status,
+        prioridad: task.prioridad,
+        fecha_limite: task.fecha_limite,
+        asignados: task.asignados,
+        created_by_id: task.created_by_id,
+        created_by_name: task.created_by_name,
+      },
+    });
+
+    if (enriched.length >= (args.limit ?? 40)) {
+      break;
+    }
+  }
+
+  return enriched;
+}
+
 export const getByProyecto = query({
   args: {
     proyecto: v.id("desarrollos"),
@@ -130,16 +224,111 @@ export const getDetail = query({
   },
 });
 
+export const getNotifications = query({
+  args: {
+    proyecto: v.id("desarrollos"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ensureProjectAccess(ctx, args.proyecto);
+    const readStatus = await ctx.db
+      .query("tarea_read_status")
+      .withIndex("by_user_proyecto", (q) =>
+        q.eq("user_id", user._id).eq("proyecto", args.proyecto)
+      )
+      .first();
+
+    return await getTaskNotificationItems(ctx, {
+      proyecto: args.proyecto,
+      user,
+      lastReadAt: readStatus?.last_read_at ?? 0,
+      limit: args.limit ?? 40,
+    });
+  },
+});
+
+export const getUnreadSummary = query({
+  args: {
+    proyecto: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ensureProjectAccess(ctx, args.proyecto);
+    const readStatus = await ctx.db
+      .query("tarea_read_status")
+      .withIndex("by_user_proyecto", (q) =>
+        q.eq("user_id", user._id).eq("proyecto", args.proyecto)
+      )
+      .first();
+
+    const unreadItems = await getTaskNotificationItems(ctx, {
+      proyecto: args.proyecto,
+      user,
+      lastReadAt: readStatus?.last_read_at ?? 0,
+      limit: 100,
+      unreadOnly: true,
+    });
+
+    return {
+      total: unreadItems.length,
+      hasAssignments: unreadItems.some((item) => item.notification_type === "assignment"),
+      hasMentions: unreadItems.some((item) => item.notification_type === "mention"),
+      hasUpdates: unreadItems.some((item) => item.notification_type === "update"),
+    };
+  },
+});
+
+export const markNotificationsAsRead = mutation({
+  args: {
+    proyecto: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ensureProjectAccess(ctx, args.proyecto);
+    const existing = await ctx.db
+      .query("tarea_read_status")
+      .withIndex("by_user_proyecto", (q) =>
+        q.eq("user_id", user._id).eq("proyecto", args.proyecto)
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { last_read_at: Date.now() });
+    } else {
+      await ctx.db.insert("tarea_read_status", {
+        user_id: user._id,
+        proyecto: args.proyecto,
+        last_read_at: Date.now(),
+      });
+    }
+
+    return { success: true };
+  },
+});
+
 export const getAssignableUsers = query({
   args: {
     proyecto: v.id("desarrollos"),
   },
   handler: async (ctx, args) => {
-    await ensureProjectAccess(ctx, args.proyecto);
+    const currentUser = await ensureProjectAccess(ctx, args.proyecto);
+    const proyecto = await ctx.db.get(args.proyecto);
+    if (!proyecto) {
+      throw new Error("Project not found");
+    }
 
     const users = await ctx.db.query("users").collect();
     return users
-      .filter((user) => user.role === "admin" || user.allowed_desarrollos.includes(args.proyecto))
+      .filter((user) => {
+        if (hasGlobalAdminAccess(currentUser)) {
+          return true;
+        }
+
+        const hasProjectAccess = user.allowed_desarrollos.includes(args.proyecto);
+        const belongsToProjectOrganization =
+          Boolean(proyecto.organization_id) &&
+          user.organization_id === proyecto.organization_id;
+
+        return hasProjectAccess || belongsToProjectOrganization;
+      })
       .map((user) => ({
         _id: user._id,
         name: user.name,

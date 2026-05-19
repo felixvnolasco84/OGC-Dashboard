@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -53,6 +53,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   CalendarClock,
+  Bell,
   CheckCircle2,
   CircleAlert,
   Clock3,
@@ -114,6 +115,21 @@ type TaskHistory = {
   new_value?: string;
   changed_by_name: string;
   created_at: number;
+};
+
+type TaskNotification = TaskHistory & {
+  is_unread: boolean;
+  notification_type: "assignment" | "mention" | "update";
+  task: {
+    _id: Id<"tareas">;
+    titulo: string;
+    status: string;
+    prioridad: string;
+    fecha_limite?: string;
+    asignados: Id<"users">[];
+    created_by_id: Id<"users">;
+    created_by_name: string;
+  };
 };
 
 function emptyForm() {
@@ -205,6 +221,42 @@ function historyLabel(item: TaskHistory) {
   return "Actualizo la tarea";
 }
 
+function notificationLabel(item: TaskNotification) {
+  if (item.notification_type === "mention") {
+    return "Te menciono en un comentario";
+  }
+  if (item.notification_type === "assignment") {
+    return item.action === "created" ? "Te asigno una nueva tarea" : "Actualizo los asignados";
+  }
+  if (item.action === "created") return "Creo una tarea";
+  if (item.action === "comment_added") return "Agrego un comentario";
+  if (item.action === "status_changed") {
+    return `Cambio el estado a ${formatHistoryValue(item.new_value)}`;
+  }
+  if (item.field_changed) return `Actualizo ${item.field_changed.replace("_", " ")}`;
+  return "Actualizo una tarea";
+}
+
+function relativeTime(timestamp: number) {
+  const diff = Date.now() - timestamp;
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diff < minute) return "Ahora";
+  if (diff < hour) {
+    const value = Math.floor(diff / minute);
+    return `${value} min`;
+  }
+  if (diff < day) {
+    const value = Math.floor(diff / hour);
+    return `${value} h`;
+  }
+
+  const value = Math.floor(diff / day);
+  return `${value} dia${value === 1 ? "" : "s"}`;
+}
+
 export default function TareasPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const proyecto = useQuery(
@@ -219,6 +271,14 @@ export default function TareasPage() {
     api.tareas.getAssignableUsers,
     proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
   );
+  const taskNotifications = useQuery(
+    api.tareas.getNotifications,
+    proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, limit: 60 } : "skip"
+  ) as TaskNotification[] | undefined;
+  const taskNotificationSummary = useQuery(
+    api.tareas.getUnreadSummary,
+    proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
+  );
   const currentUser = useQuery(api.users.getCurrentUser);
 
   const createTask = useMutation(api.tareas.create);
@@ -227,6 +287,7 @@ export default function TareasPage() {
   const removeTask = useMutation(api.tareas.remove);
   const addComment = useMutation(api.tareas.addComment);
   const removeComment = useMutation(api.tareas.removeComment);
+  const markNotificationsAsRead = useMutation(api.tareas.markNotificationsAsRead);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -240,6 +301,10 @@ export default function TareasPage() {
   const [submitting, setSubmitting] = useState(false);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationTab, setNotificationTab] = useState<"all" | "mentions" | "assignments">("all");
+  const [notificationSearch, setNotificationSearch] = useState("");
+  const [onlyUnreadNotifications, setOnlyUnreadNotifications] = useState(false);
 
   const taskDetail = useQuery(
     api.tareas.getDetail,
@@ -249,6 +314,13 @@ export default function TareasPage() {
   const selectedTask = taskDetail?.task || tareas?.find((task) => task._id === selectedTaskId);
   const canCreate = currentUser?.role && currentUser.role !== "viewer";
   const canComment = canCreate && selectedTask;
+  const unreadNotificationCount = taskNotificationSummary?.total || 0;
+
+  useEffect(() => {
+    if (!notificationsOpen || !proyectoId) return;
+
+    void markNotificationsAsRead({ proyecto: proyectoId as Id<"desarrollos"> });
+  }, [markNotificationsAsRead, notificationsOpen, proyectoId]);
 
   const stats = useMemo(() => {
     const list = tareas || [];
@@ -273,6 +345,24 @@ export default function TareasPage() {
       return matchesSearch && matchesStatus && matchesAssignee;
     });
   }, [assigneeFilter, search, statusFilter, tareas]);
+
+  const filteredNotifications = useMemo(() => {
+    const term = notificationSearch.trim().toLowerCase();
+    return (taskNotifications || []).filter((item) => {
+      const matchesTab =
+        notificationTab === "all" ||
+        (notificationTab === "mentions" && item.notification_type === "mention") ||
+        (notificationTab === "assignments" && item.notification_type === "assignment");
+      const matchesUnread = !onlyUnreadNotifications || item.is_unread;
+      const matchesSearch =
+        !term ||
+        item.task.titulo.toLowerCase().includes(term) ||
+        item.changed_by_name.toLowerCase().includes(term) ||
+        notificationLabel(item).toLowerCase().includes(term);
+
+      return matchesTab && matchesUnread && matchesSearch;
+    });
+  }, [notificationSearch, notificationTab, onlyUnreadNotifications, taskNotifications]);
 
   const openCreateDialog = () => {
     setEditingTask(null);
@@ -421,12 +511,27 @@ export default function TareasPage() {
               Tareas {proyecto.nombre}
             </h1>
           </div>
-          {canCreate && (
-            <Button onClick={openCreateDialog} className="gap-2 self-start lg:self-auto">
-              <Plus className="h-4 w-4" />
-              Nueva tarea
+          <div className="flex gap-2 self-start lg:self-auto">
+            <Button
+              variant="outline"
+              onClick={() => setNotificationsOpen(true)}
+              className="relative gap-2"
+            >
+              <Bell className="h-4 w-4" />
+              Notificaciones
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[11px] font-medium ">
+                  {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+                </span>
+              )}
             </Button>
-          )}
+            {canCreate && (
+              <Button onClick={openCreateDialog} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nueva tarea
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -609,6 +714,149 @@ export default function TareasPage() {
           </Table>
         </div>
       </div>
+
+      <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto border-l border-gray-200 bg-white p-0 text-gray-900 sm:max-w-xl">
+          <SheetHeader className="border-b border-gray-200 p-6 text-left">
+            <div className="flex items-center justify-between gap-3">
+              <SheetTitle className="text-left text-2xl font-normal text-gray-900">Notificaciones</SheetTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => proyectoId && markNotificationsAsRead({ proyecto: proyectoId as Id<"desarrollos"> })}
+                className="text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              >
+                Marcar leidas
+              </Button>
+            </div>
+            <SheetDescription className="text-left text-gray-600">
+              Actividad reciente de tareas en este proyecto.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-5 p-6">
+            <Tabs value={notificationTab} onValueChange={(value) => setNotificationTab(value as typeof notificationTab)}>
+              <TabsList className="grid w-full grid-cols-3 bg-gray-100 rounded-none">
+                <TabsTrigger className="rounded-none" value="all">Todas</TabsTrigger>
+                <TabsTrigger className="rounded-none" value="mentions">Menciones</TabsTrigger>
+                <TabsTrigger className="rounded-none" value="assignments">Asignaciones</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  value={notificationSearch}
+                  onChange={(event) => setNotificationSearch(event.target.value)}
+                  placeholder="Busca notificaciones por personas o tareas"
+                  className="border-gray-200 bg-white pl-9 text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setOnlyUnreadNotifications((current) => !current)}
+                className="flex items-center gap-2 text-sm text-gray-700"
+              >
+                <span
+                  className={cn(
+                    "flex h-5 w-9 items-center rounded-full border border-gray-300 p-0.5 transition",
+                    onlyUnreadNotifications ? "bg-blue-600" : "bg-gray-200"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "h-4 w-4 rounded-full bg-white shadow-sm transition",
+                      onlyUnreadNotifications && "translate-x-4"
+                    )}
+                  />
+                </span>
+                Solo no leidas
+              </button>
+            </div>
+
+            <div className="rounded-none border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-blue-50 text-blue-600">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Seguimiento de tareas activo</p>
+                  <p className="mt-1 text-sm leading-5 text-gray-600">
+                    Recibe avisos cuando te asignen, mencionen o actualicen tareas del proyecto.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-700">Ultimos movimientos</h3>
+                {unreadNotificationCount > 0 && (
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">
+                    {unreadNotificationCount} sin leer
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {!taskNotifications ? (
+                  <div className="flex h-24 items-center justify-center text-gray-600">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                ) : filteredNotifications.length ? (
+                  filteredNotifications.map((item) => (
+                    <button
+                      key={item._id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTaskId(item.task._id);
+                        setNotificationsOpen(false);
+                      }}
+                      className={cn(
+                        "flex w-full gap-3 rounded-none border p-3 text-left transition hover:bg-gray-50",
+                        item.is_unread
+                          ? "border-blue-200 bg-blue-50"
+                          : "border-gray-200 bg-white"
+                      )}
+                    >
+                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600">
+                        {item.notification_type === "assignment" ? (
+                          <ListChecks className="h-4 w-4" />
+                        ) : item.notification_type === "mention" ? (
+                          <MessageSquare className="h-4 w-4" />
+                        ) : (
+                          <Clock3 className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm leading-5 text-gray-700">
+                            <span className="font-medium text-gray-900">{item.changed_by_name}</span>{" "}
+                            {notificationLabel(item).toLowerCase()}{" "}
+                            <span className="font-medium text-gray-900">"{item.task.titulo}"</span>
+                          </p>
+                          <span className="shrink-0 text-xs text-gray-400">{relativeTime(item.created_at)}</span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                          <span>{item.task.status}</span>
+                          <span>Prioridad {item.task.prioridad}</span>
+                          {item.task.fecha_limite && <span>Limite {formatDate(item.task.fecha_limite)}</span>}
+                        </div>
+                      </div>
+                      {item.is_unread && <span className="mt-3 h-2 w-2 shrink-0 rounded-full bg-blue-400" />}
+                    </button>
+                  ))
+                ) : (
+                  <div className="rounded-none border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+                    No hay notificaciones con los filtros actuales.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Sheet open={Boolean(selectedTaskId)} onOpenChange={(open) => !open && setSelectedTaskId(null)}>
         <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-2xl">
@@ -924,7 +1172,7 @@ export default function TareasPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setTaskToDelete(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600  hover:bg-red-700">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>

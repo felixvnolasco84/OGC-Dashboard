@@ -341,6 +341,29 @@ function RequisicionNotificationDot({
   );
 }
 
+function TareaNotificationDot({ proyectoId }: { proyectoId: Id<"desarrollos"> }) {
+  const unreadSummary = useQuery(api.tareas.getUnreadSummary, { proyecto: proyectoId });
+
+  if (!unreadSummary || unreadSummary.total === 0) {
+    return null;
+  }
+
+  const dotColor = unreadSummary.hasAssignments
+    ? "bg-blue-500"
+    : unreadSummary.hasMentions
+      ? "bg-violet-500"
+      : unreadSummary.hasUpdates
+        ? "bg-amber-500"
+        : "bg-gray-400";
+
+  return (
+    <span
+      className={cn("w-2 h-2 rounded-full", dotColor)}
+      title={`${unreadSummary.total} notificaci${unreadSummary.total > 1 ? "ones" : "on"} sin leer`}
+    />
+  );
+}
+
 function SidebarUserCard({ role }: { role?: string }) {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -675,6 +698,9 @@ export default function SidebarComponent() {
                         <item.icon className="w-4 h-4" />
                         <span className="flex items-center justify-between w-full">
                           {item.label}
+                          {item.id === "tareas" && (
+                            <TareaNotificationDot proyectoId={currentProject._id} />
+                          )}
                           {item.id === "requisiciones" && (
                             <RequisicionNotificationDot
                               proyectoId={currentProject._id}
