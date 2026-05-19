@@ -489,6 +489,32 @@ export default defineSchema({
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_status", { fields: ["status"] })
     .index("by_created_by", { fields: ["created_by_id"] }),
+
+  tarea_comments: defineTable({
+    tarea_id: v.id("tareas"),
+    proyecto: v.id("desarrollos"),
+    user_id: v.id("users"),
+    user_name: v.string(),
+    comment: v.string(),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  }).index("by_tarea", { fields: ["tarea_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_user", { fields: ["user_id"] }),
+
+  tarea_history: defineTable({
+    tarea_id: v.id("tareas"),
+    proyecto: v.id("desarrollos"),
+    action: v.string(),
+    field_changed: v.optional(v.string()),
+    old_value: v.optional(v.string()),
+    new_value: v.optional(v.string()),
+    changed_by_id: v.id("users"),
+    changed_by_name: v.string(),
+    created_at: v.number(),
+  }).index("by_tarea", { fields: ["tarea_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_changed_by", { fields: ["changed_by_id"] }),
   
   // Programa de Obra - Scheduling data per nivel 1 partida
   programa_obra: defineTable({

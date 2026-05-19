@@ -1,11 +1,11 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { getCurrentUserOrThrow } from "./permissions";
 
 const WRITE_ROLES = new Set(["admin", "user", "contratista", "finance"]);
 
-async function ensureProjectAccess(ctx: Parameters<typeof getCurrentUserOrThrow>[0], proyecto: Id<"desarrollos">) {
+async function ensureProjectAccess(ctx: QueryCtx | MutationCtx, proyecto: Id<"desarrollos">) {
   const user = await getCurrentUserOrThrow(ctx);
 
   if (user.role === "admin") {
@@ -23,7 +23,36 @@ function canWrite(role: string) {
   return WRITE_ROLES.has(role);
 }
 
-async function enrichTask(ctx: Parameters<typeof getCurrentUserOrThrow>[0], task: Doc<"tareas">) {
+function stringifyValue(value: unknown) {
+  if (value === undefined || value === null || value === "") return undefined;
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+async function insertHistory(
+  ctx: MutationCtx,
+  args: {
+    task: Doc<"tareas"> | { _id: Id<"tareas">; proyecto: Id<"desarrollos"> };
+    action: string;
+    user: Doc<"users">;
+    field_changed?: string;
+    old_value?: unknown;
+    new_value?: unknown;
+  }
+) {
+  await ctx.db.insert("tarea_history", {
+    tarea_id: args.task._id,
+    proyecto: args.task.proyecto,
+    action: args.action,
+    field_changed: args.field_changed,
+    old_value: stringifyValue(args.old_value),
+    new_value: stringifyValue(args.new_value),
+    changed_by_id: args.user._id,
+    changed_by_name: args.user.name,
+    created_at: Date.now(),
+  });
+}
+
+async function enrichTask(ctx: QueryCtx | MutationCtx, task: Doc<"tareas">) {
   const assignedUsers = await Promise.all(task.asignados.map((id) => ctx.db.get(id)));
   const creator = await ctx.db.get(task.created_by_id);
 
@@ -69,6 +98,38 @@ export const getByProyecto = query({
   },
 });
 
+export const getDetail = query({
+  args: {
+    id: v.id("tareas"),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.id);
+    if (!task) {
+      throw new Error("Task not found");
+    }
+
+    await ensureProjectAccess(ctx, task.proyecto);
+
+    const [enrichedTask, comments, history] = await Promise.all([
+      enrichTask(ctx, task),
+      ctx.db
+        .query("tarea_comments")
+        .withIndex("by_tarea", (q) => q.eq("tarea_id", args.id))
+        .collect(),
+      ctx.db
+        .query("tarea_history")
+        .withIndex("by_tarea", (q) => q.eq("tarea_id", args.id))
+        .collect(),
+    ]);
+
+    return {
+      task: enrichedTask,
+      comments: comments.sort((a, b) => a.created_at - b.created_at),
+      history: history.sort((a, b) => b.created_at - a.created_at),
+    };
+  },
+});
+
 export const getAssignableUsers = query({
   args: {
     proyecto: v.id("desarrollos"),
@@ -110,6 +171,7 @@ export const create = mutation({
       throw new Error("El titulo es obligatorio");
     }
 
+    const now = Date.now();
     const taskId = await ctx.db.insert("tareas", {
       proyecto: args.proyecto,
       titulo,
@@ -121,7 +183,14 @@ export const create = mutation({
       prioridad: args.prioridad,
       fecha_limite: args.fecha_limite,
       categoria: args.categoria,
-      created_at: Date.now(),
+      created_at: now,
+    });
+
+    await insertHistory(ctx, {
+      task: { _id: taskId, proyecto: args.proyecto },
+      action: "created",
+      user,
+      new_value: titulo,
     });
 
     return taskId;
@@ -155,7 +224,8 @@ export const update = mutation({
       throw new Error("El titulo es obligatorio");
     }
 
-    await ctx.db.patch(args.id, {
+    const now = Date.now();
+    const nextTask = {
       titulo,
       descripcion: args.descripcion?.trim() || undefined,
       asignados: args.asignados,
@@ -163,11 +233,38 @@ export const update = mutation({
       prioridad: args.prioridad,
       fecha_limite: args.fecha_limite,
       categoria: args.categoria,
-      updated_at: Date.now(),
+      updated_at: now,
       completed_at: args.status === "Completada"
-        ? (task.completed_at || Date.now())
+        ? (task.completed_at || now)
         : undefined,
-    });
+    };
+
+    await ctx.db.patch(args.id, nextTask);
+
+    const trackedFields: Array<keyof typeof nextTask> = [
+      "titulo",
+      "descripcion",
+      "asignados",
+      "status",
+      "prioridad",
+      "fecha_limite",
+      "categoria",
+    ];
+
+    for (const field of trackedFields) {
+      const previous = task[field as keyof Doc<"tareas">];
+      const next = nextTask[field];
+      if (JSON.stringify(previous ?? null) !== JSON.stringify(next ?? null)) {
+        await insertHistory(ctx, {
+          task,
+          action: field === "status" ? "status_changed" : "updated",
+          field_changed: field,
+          old_value: previous,
+          new_value: next,
+          user,
+        });
+      }
+    }
 
     return { success: true };
   },
@@ -190,14 +287,88 @@ export const updateStatus = mutation({
       throw new Error("Unauthorized: Only assigned users or creators can update status");
     }
 
+    const now = Date.now();
     await ctx.db.patch(args.id, {
       status: args.status,
-      updated_at: Date.now(),
+      updated_at: now,
       completed_at: args.status === "Completada"
-        ? (task.completed_at || Date.now())
+        ? (task.completed_at || now)
         : undefined,
     });
 
+    if (task.status !== args.status) {
+      await insertHistory(ctx, {
+        task,
+        action: "status_changed",
+        field_changed: "status",
+        old_value: task.status,
+        new_value: args.status,
+        user,
+      });
+    }
+
+    return { success: true };
+  },
+});
+
+export const addComment = mutation({
+  args: {
+    id: v.id("tareas"),
+    comment: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.id);
+    if (!task) {
+      throw new Error("Task not found");
+    }
+
+    const user = await ensureProjectAccess(ctx, task.proyecto);
+    if (!canWrite(user.role)) {
+      throw new Error("Unauthorized: Viewer role is read-only");
+    }
+
+    const comment = args.comment.trim();
+    if (!comment) {
+      throw new Error("El comentario es obligatorio");
+    }
+
+    const commentId = await ctx.db.insert("tarea_comments", {
+      tarea_id: args.id,
+      proyecto: task.proyecto,
+      user_id: user._id,
+      user_name: user.name,
+      comment,
+      created_at: Date.now(),
+    });
+
+    await insertHistory(ctx, {
+      task,
+      action: "comment_added",
+      field_changed: "comment",
+      new_value: comment,
+      user,
+    });
+
+    return commentId;
+  },
+});
+
+export const removeComment = mutation({
+  args: {
+    id: v.id("tarea_comments"),
+  },
+  handler: async (ctx, args) => {
+    const comment = await ctx.db.get(args.id);
+    if (!comment) {
+      throw new Error("Comment not found");
+    }
+
+    const user = await ensureProjectAccess(ctx, comment.proyecto);
+    if (user.role !== "admin" && comment.user_id !== user._id) {
+      throw new Error("Unauthorized: Only admins or comment authors can delete comments");
+    }
+
+    await ctx.db.delete(args.id);
     return { success: true };
   },
 });
@@ -215,6 +386,24 @@ export const remove = mutation({
     const user = await ensureProjectAccess(ctx, task.proyecto);
     if (user.role !== "admin" && task.created_by_id !== user._id) {
       throw new Error("Unauthorized: Only admins or creators can delete tasks");
+    }
+
+    const [comments, history] = await Promise.all([
+      ctx.db
+        .query("tarea_comments")
+        .withIndex("by_tarea", (q) => q.eq("tarea_id", args.id))
+        .collect(),
+      ctx.db
+        .query("tarea_history")
+        .withIndex("by_tarea", (q) => q.eq("tarea_id", args.id))
+        .collect(),
+    ]);
+
+    for (const comment of comments) {
+      await ctx.db.delete(comment._id);
+    }
+    for (const item of history) {
+      await ctx.db.delete(item._id);
     }
 
     await ctx.db.delete(args.id);

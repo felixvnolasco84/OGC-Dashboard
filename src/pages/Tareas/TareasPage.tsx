@@ -3,6 +3,16 @@ import { useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,6 +34,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -31,16 +48,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   CalendarClock,
   CheckCircle2,
   CircleAlert,
+  Clock3,
+  Eye,
+  History,
   ListChecks,
   Loader2,
+  MessageSquare,
+  Pencil,
   Plus,
   Search,
+  Send,
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
@@ -49,6 +73,13 @@ import { toast } from "sonner";
 const STATUS_OPTIONS = ["Pendiente", "En progreso", "Bloqueada", "Completada", "Cancelada"];
 const PRIORITY_OPTIONS = ["Baja", "Media", "Alta", "Urgente"];
 const CATEGORY_OPTIONS = ["General", "Obra", "Finanzas", "Documentos", "Requisicion", "Bitacora"];
+
+type UserSummary = {
+  _id: Id<"users">;
+  name: string;
+  email: string;
+  role: string;
+};
 
 type Task = {
   _id: Id<"tareas">;
@@ -63,12 +94,26 @@ type Task = {
   created_by_name: string;
   created_at: number;
   updated_at?: number;
-  assigned_users?: Array<{
-    _id: Id<"users">;
-    name: string;
-    email: string;
-    role: string;
-  }>;
+  completed_at?: number;
+  assigned_users?: UserSummary[];
+};
+
+type TaskComment = {
+  _id: Id<"tarea_comments">;
+  user_id: Id<"users">;
+  user_name: string;
+  comment: string;
+  created_at: number;
+};
+
+type TaskHistory = {
+  _id: Id<"tarea_history">;
+  action: string;
+  field_changed?: string;
+  old_value?: string;
+  new_value?: string;
+  changed_by_name: string;
+  created_at: number;
 };
 
 function emptyForm() {
@@ -99,6 +144,17 @@ function formatDate(date?: string) {
   }).format(new Date(`${date}T00:00:00`));
 }
 
+function formatDateTime(timestamp?: number) {
+  if (!timestamp) return "-";
+  return new Intl.DateTimeFormat("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
+
 function statusClass(status: string) {
   switch (status) {
     case "Completada":
@@ -127,6 +183,28 @@ function priorityClass(priority: string) {
   }
 }
 
+function formatHistoryValue(value?: string) {
+  if (!value) return "Sin valor";
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return `${parsed.length} asignado${parsed.length === 1 ? "" : "s"}`;
+    return String(parsed);
+  } catch {
+    return value;
+  }
+}
+
+function historyLabel(item: TaskHistory) {
+  if (item.action === "created") return "Creo la tarea";
+  if (item.action === "comment_added") return "Agrego un comentario";
+  if (item.action === "status_changed") {
+    return `Cambio el estado de ${formatHistoryValue(item.old_value)} a ${formatHistoryValue(item.new_value)}`;
+  }
+  if (item.field_changed === "asignados") return "Actualizo los asignados";
+  if (item.field_changed) return `Actualizo ${item.field_changed.replace("_", " ")}`;
+  return "Actualizo la tarea";
+}
+
 export default function TareasPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const proyecto = useQuery(
@@ -147,17 +225,30 @@ export default function TareasPage() {
   const updateTask = useMutation(api.tareas.update);
   const updateStatus = useMutation(api.tareas.updateStatus);
   const removeTask = useMutation(api.tareas.remove);
+  const addComment = useMutation(api.tareas.addComment);
+  const removeComment = useMutation(api.tareas.removeComment);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<Id<"tareas"> | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
+  const taskDetail = useQuery(
+    api.tareas.getDetail,
+    selectedTaskId ? { id: selectedTaskId } : "skip"
+  ) as { task: Task; comments: TaskComment[]; history: TaskHistory[] } | undefined;
+
+  const selectedTask = taskDetail?.task || tareas?.find((task) => task._id === selectedTaskId);
   const canCreate = currentUser?.role && currentUser.role !== "viewer";
+  const canComment = canCreate && selectedTask;
 
   const stats = useMemo(() => {
     const list = tareas || [];
@@ -245,10 +336,11 @@ export default function TareasPage() {
         });
         toast.success("Tarea actualizada");
       } else {
-        await createTask({
+        const taskId = await createTask({
           proyecto: proyectoId as Id<"desarrollos">,
           ...payload,
         });
+        setSelectedTaskId(taskId);
         toast.success("Tarea creada");
       }
       setDialogOpen(false);
@@ -273,14 +365,41 @@ export default function TareasPage() {
     }
   };
 
-  const handleDelete = async (task: Task) => {
-    if (!window.confirm(`Eliminar la tarea "${task.titulo}"?`)) return;
+  const handleDelete = async () => {
+    if (!taskToDelete) return;
     try {
-      await removeTask({ id: task._id });
+      await removeTask({ id: taskToDelete._id });
+      if (selectedTaskId === taskToDelete._id) setSelectedTaskId(null);
+      setTaskToDelete(null);
       toast.success("Tarea eliminada");
     } catch (error) {
       console.error("Error deleting task:", error);
       toast.error("No se pudo eliminar la tarea");
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!selectedTask || !commentText.trim()) return;
+    setCommentSubmitting(true);
+    try {
+      await addComment({ id: selectedTask._id, comment: commentText });
+      setCommentText("");
+      toast.success("Comentario agregado");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast.error("No se pudo agregar el comentario");
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  const handleRemoveComment = async (commentId: Id<"tarea_comments">) => {
+    try {
+      await removeComment({ id: commentId });
+      toast.success("Comentario eliminado");
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error("No se pudo eliminar el comentario");
     }
   };
 
@@ -390,7 +509,7 @@ export default function TareasPage() {
                 <TableHead>Fecha limite</TableHead>
                 <TableHead>Prioridad</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead className="w-24 text-right">Acciones</TableHead>
+                <TableHead className="w-28 text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -402,7 +521,7 @@ export default function TareasPage() {
                     <TableCell className="px-4">
                       <button
                         type="button"
-                        onClick={() => openEditDialog(task)}
+                        onClick={() => setSelectedTaskId(task._id)}
                         className="block w-full text-left"
                       >
                         <div className="flex items-center gap-2">
@@ -458,14 +577,17 @@ export default function TareasPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)}>
-                          Editar
+                        <Button variant="ghost" size="icon" onClick={() => setSelectedTaskId(task._id)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(task)}>
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         {canDelete && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(task)}
+                            onClick={() => setTaskToDelete(task)}
                             className="h-8 w-8 text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -487,6 +609,175 @@ export default function TareasPage() {
           </Table>
         </div>
       </div>
+
+      <Sheet open={Boolean(selectedTaskId)} onOpenChange={(open) => !open && setSelectedTaskId(null)}>
+        <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-2xl">
+          {selectedTask ? (
+            <>
+              <SheetHeader className="border-b border-gray-200 p-6 text-left">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className={cn("border", priorityClass(selectedTask.prioridad))}>
+                    {selectedTask.prioridad}
+                  </Badge>
+                  <Badge variant="outline" className={cn("border", statusClass(selectedTask.status))}>
+                    {selectedTask.status}
+                  </Badge>
+                  {isOverdue(selectedTask) && (
+                    <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
+                      Vencida
+                    </Badge>
+                  )}
+                </div>
+                <SheetTitle className="text-left text-2xl font-normal">{selectedTask.titulo}</SheetTitle>
+                <SheetDescription className="text-left">
+                  {selectedTask.categoria || "General"} · Creada por {selectedTask.created_by_name} · {formatDateTime(selectedTask.created_at)}
+                </SheetDescription>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button variant="outline" size="sm" onClick={() => openEditDialog(selectedTask)} className="gap-2">
+                    <Pencil className="h-4 w-4" />
+                    Editar
+                  </Button>
+                  {(currentUser?.role === "admin" || currentUser?._id === selectedTask.created_by_id) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTaskToDelete(selectedTask)}
+                      className="gap-2 text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar
+                    </Button>
+                  )}
+                </div>
+              </SheetHeader>
+
+              <div className="space-y-6 p-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="border border-gray-200 p-3">
+                    <p className="text-xs text-gray-500">Fecha limite</p>
+                    <p className="mt-1 text-sm font-medium text-gray-900">{formatDate(selectedTask.fecha_limite)}</p>
+                  </div>
+                  <div className="border border-gray-200 p-3">
+                    <p className="text-xs text-gray-500">Ultima actualizacion</p>
+                    <p className="mt-1 text-sm font-medium text-gray-900">{formatDateTime(selectedTask.updated_at || selectedTask.created_at)}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900">Descripcion</h3>
+                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                    {selectedTask.descripcion || "Sin descripcion."}
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900">Asignados</h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selectedTask.assigned_users?.length ? selectedTask.assigned_users.map((user) => (
+                      <span
+                        key={user._id}
+                        className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
+                        title={user.email}
+                      >
+                        {user.name || user.email}
+                      </span>
+                    )) : <span className="text-sm text-gray-400">Sin asignar</span>}
+                  </div>
+                </div>
+
+                <Tabs defaultValue="comments">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="comments" className="gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Comentarios
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="gap-2">
+                      <History className="h-4 w-4" />
+                      Historial
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="comments" className="mt-4 space-y-4">
+                    {canComment && (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={commentText}
+                          onChange={(event) => setCommentText(event.target.value)}
+                          placeholder="Agregar comentario"
+                          rows={3}
+                        />
+                        <div className="flex justify-end">
+                          <Button onClick={handleAddComment} disabled={commentSubmitting || !commentText.trim()} className="gap-2">
+                            {commentSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                            Enviar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      {taskDetail?.comments?.length ? taskDetail.comments.map((comment) => {
+                        const canDeleteComment = currentUser?.role === "admin" || currentUser?._id === comment.user_id;
+                        return (
+                          <div key={comment._id} className="border border-gray-200 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{comment.user_name}</p>
+                                <p className="mt-0.5 text-xs text-gray-500">{formatDateTime(comment.created_at)}</p>
+                              </div>
+                              {canDeleteComment && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveComment(comment._id)}
+                                  className="h-8 w-8 text-gray-400 hover:text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                            <p className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-700">{comment.comment}</p>
+                          </div>
+                        );
+                      }) : (
+                        <div className="border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+                          Aun no hay comentarios en esta tarea.
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="history" className="mt-4">
+                    <div className="space-y-3">
+                      {taskDetail?.history?.length ? taskDetail.history.map((item) => (
+                        <div key={item._id} className="flex gap-3 border-b border-gray-100 pb-3 last:border-b-0">
+                          <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                            <Clock3 className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-900">{historyLabel(item)}</p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {item.changed_by_name} · {formatDateTime(item.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      )) : (
+                        <div className="border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+                          Aun no hay historial registrado.
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">
@@ -622,6 +913,23 @@ export default function TareasPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={Boolean(taskToDelete)} onOpenChange={(open) => !open && setTaskToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar tarea</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta accion eliminara la tarea, sus comentarios y su historial. No se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTaskToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
