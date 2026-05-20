@@ -474,6 +474,8 @@ export default defineSchema({
   // Tareas - Project task assignment and follow-up
   tareas: defineTable({
     proyecto: v.id("desarrollos"),
+    parent_task: v.optional(v.id("tareas")),
+    position: v.optional(v.number()),
     titulo: v.string(),
     descripcion: v.optional(v.string()),
     asignados: v.array(v.id("users")),
@@ -487,6 +489,7 @@ export default defineSchema({
     updated_at: v.optional(v.number()),
     completed_at: v.optional(v.number()),
   }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_parent_task", { fields: ["parent_task"] })
     .index("by_status", { fields: ["status"] })
     .index("by_created_by", { fields: ["created_by_id"] }),
 

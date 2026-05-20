@@ -87,8 +87,11 @@ async function enrichTask(ctx: QueryCtx | MutationCtx, task: Doc<"tareas">) {
   };
 }
 
-function sortTasks<T extends { status: string; updated_at?: number; created_at: number }>(tasks: T[]) {
+function sortTasks<T extends { status: string; position?: number; updated_at?: number; created_at: number }>(tasks: T[]) {
   return tasks.sort((a, b) => {
+    if (a.position !== undefined || b.position !== undefined) {
+      return (a.position ?? a.created_at) - (b.position ?? b.created_at);
+    }
     const aCompleted = a.status === "Completada" ? 1 : 0;
     const bCompleted = b.status === "Completada" ? 1 : 0;
     if (aCompleted !== bCompleted) return aCompleted - bCompleted;
@@ -448,6 +451,7 @@ export const getAssignableUsers = query({
 export const create = mutation({
   args: {
     proyecto: v.id("desarrollos"),
+    parent_task: v.optional(v.id("tareas")),
     titulo: v.string(),
     descripcion: v.optional(v.string()),
     asignados: v.array(v.id("users")),
@@ -465,10 +469,18 @@ export const create = mutation({
     if (!titulo) {
       throw new Error("El titulo es obligatorio");
     }
+    if (args.parent_task) {
+      const parent = await ctx.db.get(args.parent_task);
+      if (!parent || parent.proyecto !== args.proyecto) {
+        throw new Error("La tarea padre debe pertenecer al mismo proyecto");
+      }
+    }
 
     const now = Date.now();
     const taskId = await ctx.db.insert("tareas", {
       proyecto: args.proyecto,
+      parent_task: args.parent_task,
+      position: now,
       titulo,
       descripcion: args.descripcion?.trim() || undefined,
       asignados: args.asignados,
@@ -503,6 +515,7 @@ export const update = mutation({
     prioridad: v.string(),
     fecha_limite: v.optional(v.string()),
     categoria: v.optional(v.string()),
+    parent_task: v.optional(v.id("tareas")),
   },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.id);
@@ -524,8 +537,16 @@ export const update = mutation({
     }
 
     const now = Date.now();
+    if (args.parent_task) {
+      const parent = await ctx.db.get(args.parent_task);
+      const nextProject = args.proyecto || task.proyecto;
+      if (!parent || parent.proyecto !== nextProject || parent._id === args.id) {
+        throw new Error("La tarea padre debe pertenecer al mismo proyecto");
+      }
+    }
     const nextTask = {
       proyecto: args.proyecto || task.proyecto,
+      parent_task: args.parent_task,
       titulo,
       descripcion: args.descripcion?.trim() || undefined,
       asignados: args.asignados,
@@ -570,6 +591,7 @@ export const update = mutation({
       "prioridad",
       "fecha_limite",
       "categoria",
+      "parent_task",
     ];
 
     const historyTask = { _id: task._id, proyecto: nextTask.proyecto };
@@ -586,6 +608,91 @@ export const update = mutation({
           user,
         });
       }
+    }
+
+    return { success: true };
+  },
+});
+
+export const duplicate = mutation({
+  args: {
+    id: v.id("tareas"),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.id);
+    if (!task) {
+      throw new Error("Task not found");
+    }
+
+    const user = await ensureProjectAccess(ctx, task.proyecto);
+    if (!canWrite(user.role)) {
+      throw new Error("Unauthorized: Viewer role is read-only");
+    }
+
+    const now = Date.now();
+    const taskId = await ctx.db.insert("tareas", {
+      proyecto: task.proyecto,
+      parent_task: task.parent_task,
+      position: now,
+      titulo: `${task.titulo} copia`,
+      descripcion: task.descripcion,
+      asignados: task.asignados,
+      created_by_id: user._id,
+      created_by_name: user.name,
+      status: "Pendiente",
+      prioridad: task.prioridad,
+      fecha_limite: task.fecha_limite,
+      categoria: task.categoria,
+      created_at: now,
+    });
+
+    await insertHistory(ctx, {
+      task: { _id: taskId, proyecto: task.proyecto },
+      action: "created",
+      user,
+      new_value: `${task.titulo} copia`,
+    });
+
+    return taskId;
+  },
+});
+
+export const reorderSiblings = mutation({
+  args: {
+    orderedIds: v.array(v.id("tareas")),
+  },
+  handler: async (ctx, args) => {
+    if (args.orderedIds.length === 0) {
+      return { success: true };
+    }
+
+    const tasks = [];
+    for (const id of args.orderedIds) {
+      const task = await ctx.db.get(id);
+      if (!task) {
+        throw new Error("Task not found");
+      }
+      tasks.push(task);
+    }
+
+    const [firstTask] = tasks;
+    const user = await ensureProjectAccess(ctx, firstTask.proyecto);
+    if (!canWrite(user.role)) {
+      throw new Error("Unauthorized: Viewer role is read-only");
+    }
+
+    for (const task of tasks) {
+      if (task.proyecto !== firstTask.proyecto || task.parent_task !== firstTask.parent_task) {
+        throw new Error("Solo se pueden reordenar tareas del mismo nivel");
+      }
+    }
+
+    const now = Date.now();
+    for (const [index, task] of tasks.entries()) {
+      await ctx.db.patch(task._id, {
+        position: now + index,
+        updated_at: now,
+      });
     }
 
     return { success: true };

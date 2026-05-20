@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -15,7 +15,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +34,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -54,25 +67,31 @@ import { cn } from "@/lib/utils";
 import {
   CalendarClock,
   Bell,
+  Archive,
   CheckCircle2,
+  ChevronDown,
+  Copy,
   CircleAlert,
   Clock3,
+  ExternalLink,
   Eye,
+  GripVertical,
   History,
   ListChecks,
   Loader2,
   MessageSquare,
+  MoreHorizontal,
+  MoveRight,
   Pencil,
   Plus,
   Search,
   Send,
   SlidersHorizontal,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
-const STATUS_OPTIONS = ["Pendiente", "En progreso", "Bloqueada", "Completada", "Cancelada"];
-const PRIORITY_OPTIONS = ["Baja", "Media", "Alta", "Urgente"];
 const CATEGORY_OPTIONS = ["General", "Obra", "Finanzas", "Documentos", "Requisicion", "Bitacora"];
 
 type UserSummary = {
@@ -85,6 +104,8 @@ type UserSummary = {
 type Task = {
   _id: Id<"tareas">;
   proyecto: Id<"desarrollos">;
+  parent_task?: Id<"tareas">;
+  position?: number;
   proyecto_nombre?: string;
   titulo: string;
   descripcion?: string;
@@ -140,6 +161,75 @@ type ProjectOption = {
   nombre: string;
 };
 
+type TaskLabelOption = {
+  id: string;
+  label: string;
+  color: string;
+};
+
+type TaskGroup = {
+  projectId: string;
+  projectName: string;
+  tasks: Task[];
+};
+
+type TaskContextMenu = {
+  task: Task;
+  x: number;
+  y: number;
+} | null;
+
+const LABEL_COLORS = [
+  "#00a884",
+  "#9fd80f",
+  "#d6bd2f",
+  "#ffc400",
+  "#ff5a3d",
+  "#ffa0a0",
+  "#ff6b6b",
+  "#e6294f",
+  "#c42f62",
+  "#f00072",
+  "#f653b5",
+  "#ed86d8",
+  "#9c4bdc",
+  "#7444c4",
+  "#863994",
+  "#4f86c6",
+  "#0796c7",
+  "#45c7bb",
+  "#55c5eb",
+  "#68a9c6",
+  "#9db2c3",
+  "#777777",
+  "#8a4f3f",
+  "#df70b5",
+  "#c4aa83",
+  "#84d8ed",
+  "#d28b75",
+  "#2875d9",
+  "#40908c",
+  "#a990e8",
+  "#adc5e8",
+  "#9d98b8",
+  "#9a6f6f",
+];
+
+const DEFAULT_STATUS_LABELS: TaskLabelOption[] = [
+  { id: "Pendiente", label: "Pendiente", color: "#8a93aa" },
+  { id: "En progreso", label: "En progreso", color: "#f8b84e" },
+  { id: "Completada", label: "Completada", color: "#34c987" },
+  { id: "Bloqueada", label: "Bloqueada", color: "#e75f79" },
+  { id: "Cancelada", label: "Cancelada", color: "#6b7280" },
+];
+
+const DEFAULT_PRIORITY_LABELS: TaskLabelOption[] = [
+  { id: "Urgente", label: "Urgente", color: "#e75f79" },
+  { id: "Alta", label: "Alta", color: "#6f43b8" },
+  { id: "Media", label: "Media", color: "#6d6fe3" },
+  { id: "Baja", label: "Baja", color: "#72a8f3" },
+];
+
 function emptyForm() {
   return {
     proyecto: "",
@@ -167,6 +257,19 @@ function formatDate(date?: string) {
     month: "short",
     year: "numeric",
   }).format(new Date(`${date}T00:00:00`));
+}
+
+function parseDateString(date?: string) {
+  if (!date) return undefined;
+  const parsed = new Date(`${date}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatDateTime(timestamp?: number) {
@@ -266,6 +369,399 @@ function relativeTime(timestamp: number) {
   return `${value} dia${value === 1 ? "" : "s"}`;
 }
 
+function userInitials(user: Pick<UserSummary, "name" | "email">) {
+  const source = user.name || user.email;
+  const parts = source.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return source.slice(0, 2).toUpperCase();
+}
+
+function assigneeColor(seed: string) {
+  const colors = [
+    "bg-violet-500",
+    "bg-blue-500",
+    "bg-emerald-500",
+    "bg-rose-500",
+    "bg-amber-500",
+    "bg-cyan-500",
+  ];
+  const total = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return colors[total % colors.length];
+}
+
+function normalizeStoredLabels(value: string | null, fallback: TaskLabelOption[]) {
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return fallback;
+    const valid = parsed.filter((item) => item?.id && item?.label && item?.color);
+    return valid.length ? valid : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function labelForValue(value: string, labels: TaskLabelOption[]) {
+  return labels.find((label) => label.label === value || label.id === value) || {
+    id: value,
+    label: value || "Sin etiqueta",
+    color: "#8a93aa",
+  };
+}
+
+function InlineDatePicker({
+  value,
+  disabled,
+  overdue,
+  onChange,
+}: {
+  value?: string;
+  disabled: boolean;
+  overdue: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedDate = parseDateString(value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={disabled}
+          className={cn(
+            "h-8 w-36 justify-start px-2 text-left text-sm font-normal hover:bg-gray-50",
+            overdue ? "font-medium text-red-600" : "text-gray-600"
+          )}
+        >
+          <CalendarClock className="mr-2 h-4 w-4 text-gray-400" />
+          {formatDate(value)}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-auto border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={(date) => {
+            if (!date) return;
+            onChange(toDateInputValue(date));
+            setOpen(false);
+          }}
+          buttonVariant="ghost"
+        />
+        <div className="flex items-center justify-between border-t border-gray-100 px-3 py-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+            }}
+          >
+            Limpiar
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              onChange(toDateInputValue(new Date()));
+              setOpen(false);
+            }}
+          >
+            Hoy
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function InlineLabelPicker({
+  value,
+  labels,
+  disabled,
+  onSelect,
+  onLabelsChange,
+}: {
+  value: string;
+  labels: TaskLabelOption[];
+  disabled: boolean;
+  onSelect: (value: string) => void;
+  onLabelsChange: (labels: TaskLabelOption[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftLabels, setDraftLabels] = useState<TaskLabelOption[]>(labels);
+  const [colorTargetId, setColorTargetId] = useState<string | null>(null);
+  const activeLabel = labelForValue(value, labels);
+
+  useEffect(() => {
+    if (open) {
+      setDraftLabels(labels);
+      setEditing(false);
+      setColorTargetId(null);
+    }
+  }, [labels, open]);
+
+  const updateDraftLabel = (id: string, changes: Partial<TaskLabelOption>) => {
+    setDraftLabels((current) => current.map((label) => label.id === id ? { ...label, ...changes } : label));
+  };
+
+  const addDraftLabel = () => {
+    const id = `label-${Date.now()}`;
+    setDraftLabels((current) => [
+      ...current,
+      { id, label: "Nueva etiqueta", color: LABEL_COLORS[current.length % LABEL_COLORS.length] },
+    ]);
+    setEditing(true);
+  };
+
+  const applyLabels = () => {
+    const normalized = draftLabels
+      .map((label) => ({ ...label, label: label.label.trim() }))
+      .filter((label) => label.label);
+    onLabelsChange(normalized.length ? normalized : labels);
+    setEditing(false);
+    setColorTargetId(null);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          disabled={disabled}
+          className="h-8 w-36 justify-center rounded-none border-0 px-2 text-sm font-medium text-white shadow-none hover:brightness-95"
+          style={{ backgroundColor: activeLabel.color }}
+        >
+          <span className="truncate">{activeLabel.label}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="center" sideOffset={6} className="w-72 overflow-visible border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+        <div className="mx-auto -mt-2 h-4 w-4 rotate-45 border-l border-t border-gray-200 bg-white" />
+        <div className="space-y-2 p-4 pt-2">
+          {(editing ? draftLabels : labels).map((label) => (
+            <div key={label.id} className="relative flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => editing ? setColorTargetId(colorTargetId === label.id ? null : label.id) : onSelect(label.label)}
+                className="flex h-9 min-w-0 flex-1 items-center justify-center rounded-sm px-3 text-sm font-medium text-white hover:brightness-95"
+                style={{ backgroundColor: label.color }}
+              >
+                {editing ? (
+                  <Input
+                    value={label.label}
+                    onClick={(event) => event.stopPropagation()}
+                    onChange={(event) => updateDraftLabel(label.id, { label: event.target.value })}
+                    className="h-7 border-white/30 bg-white/10 text-center text-white placeholder:text-white/70 focus-visible:ring-0"
+                  />
+                ) : (
+                  <span className="truncate">{label.label}</span>
+                )}
+              </button>
+              {editing && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDraftLabels((current) => current.filter((item) => item.id !== label.id))}
+                  className="h-8 w-8 text-gray-400 hover:text-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              {editing && colorTargetId === label.id && (
+                <div className="absolute left-4 top-full z-50 mt-2 grid w-40 grid-cols-4 gap-2 rounded-md border border-gray-200 bg-white p-3 shadow-xl">
+                  {LABEL_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => {
+                        updateDraftLabel(label.id, { color });
+                        setColorTargetId(null);
+                      }}
+                      className="h-6 w-6 rounded-md border border-white shadow-sm"
+                      style={{ backgroundColor: color }}
+                      aria-label={`Color ${color}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {editing && (
+            <Button type="button" variant="outline" onClick={addDraftLabel} className="w-full gap-2">
+              <Plus className="h-4 w-4" />
+              Etiqueta nueva
+            </Button>
+          )}
+        </div>
+        <div className="border-t border-gray-100 p-3">
+          {editing ? (
+            <Button type="button" variant="ghost" onClick={applyLabels} className="w-full">
+              Aplicar
+            </Button>
+          ) : (
+            <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="w-full gap-2 text-gray-600">
+              <Pencil className="h-4 w-4" />
+              Editar etiquetas
+            </Button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function InlineAssigneePicker({
+  task,
+  disabled,
+  onChange,
+}: {
+  task: Task;
+  disabled: boolean;
+  onChange: (assignees: Id<"users">[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const assignableUsers = useQuery(api.tareas.getAssignableUsers, { proyecto: task.proyecto }) as UserSummary[] | undefined;
+  const assignedIds = useMemo(() => new Set(task.asignados), [task.asignados]);
+  const assignedUsers = useMemo(() => {
+    const usersById = new Map((assignableUsers || []).map((user) => [user._id, user]));
+    return task.asignados.map((id) => usersById.get(id) || task.assigned_users?.find((user) => user._id === id)).filter(Boolean) as UserSummary[];
+  }, [assignableUsers, task.asignados, task.assigned_users]);
+  const filteredUsers = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return (assignableUsers || []).filter((user) => {
+      if (!term) return true;
+      return (
+        user.name.toLowerCase().includes(term) ||
+        user.email.toLowerCase().includes(term) ||
+        user.role.toLowerCase().includes(term)
+      );
+    });
+  }, [assignableUsers, searchTerm]);
+
+  const toggleUser = (userId: Id<"users">) => {
+    const next = new Set(task.asignados);
+    if (next.has(userId)) {
+      next.delete(userId);
+    } else {
+      next.add(userId);
+    }
+    onChange(Array.from(next));
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            "flex min-h-8 w-full min-w-44 flex-wrap items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-left hover:border-gray-200 hover:bg-gray-50",
+            disabled && "cursor-not-allowed opacity-70"
+          )}
+        >
+          {assignedUsers.length ? assignedUsers.slice(0, 3).map((user) => (
+            <span
+              key={user._id}
+              className="inline-flex h-7 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2 text-xs text-gray-700"
+              title={user.email}
+            >
+              <span className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium text-white", assigneeColor(user._id))}>
+                {userInitials(user)}
+              </span>
+              <span className="max-w-28 truncate">{user.name || user.email}</span>
+            </span>
+          )) : <span className="text-sm text-gray-400">Sin asignar</span>}
+          {assignedUsers.length > 3 && (
+            <span className="inline-flex h-7 items-center rounded-full bg-gray-100 px-2 text-xs text-gray-500">
+              +{assignedUsers.length - 3}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+        <div className="border-b border-gray-100 p-3">
+          <div className="flex flex-wrap gap-1.5">
+            {assignedUsers.length ? assignedUsers.map((user) => (
+              <button
+                key={user._id}
+                type="button"
+                onClick={() => toggleUser(user._id)}
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-blue-50 px-2 text-xs text-blue-800 hover:bg-blue-100"
+              >
+                <span className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium text-white", assigneeColor(user._id))}>
+                  {userInitials(user)}
+                </span>
+                <span className="max-w-36 truncate">{user.name || user.email}</span>
+                <X className="h-3 w-3" />
+              </button>
+            )) : (
+              <span className="text-sm text-gray-400">Selecciona responsables</span>
+            )}
+          </div>
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar nombres, roles o equipos"
+              className="h-9 pl-9 pr-9"
+            />
+            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+        <div className="max-h-72 overflow-y-auto p-2">
+          <p className="px-2 pb-1 text-xs font-medium text-gray-500">Personas sugeridas</p>
+          {!assignableUsers && (
+            <div className="flex h-24 items-center justify-center text-gray-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          )}
+          {assignableUsers && filteredUsers.length === 0 && (
+            <div className="px-2 py-6 text-center text-sm text-gray-500">
+              No hay usuarios con esa busqueda.
+            </div>
+          )}
+          {filteredUsers.map((user) => {
+            const selected = assignedIds.has(user._id);
+
+            return (
+              <button
+                key={user._id}
+                type="button"
+                onClick={() => toggleUser(user._id)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100",
+                  selected && "bg-gray-100"
+                )}
+              >
+                <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium text-white", assigneeColor(user._id))}>
+                  {userInitials(user)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium text-gray-800">{user.name || user.email}</span>
+                  <span className="block truncate text-xs text-gray-500">{user.role}</span>
+                </span>
+                {selected && <CheckCircle2 className="h-4 w-4 text-blue-600" />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2 border-t border-gray-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          <Bell className="h-4 w-4" />
+          Se notificara a los responsables
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function TareasPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const isProjectScoped = Boolean(proyectoId);
@@ -324,6 +820,8 @@ export default function TareasPage() {
   const addComment = useMutation(api.tareas.addComment);
   const removeComment = useMutation(api.tareas.removeComment);
   const markNotificationsAsRead = useMutation(api.tareas.markNotificationsAsRead);
+  const duplicateTask = useMutation(api.tareas.duplicate);
+  const reorderTasks = useMutation(api.tareas.reorderSiblings);
 
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -333,6 +831,19 @@ export default function TareasPage() {
   const [notificationTab, setNotificationTab] = useState<"all" | "mentions" | "assignments">("all");
   const [notificationSearch, setNotificationSearch] = useState("");
   const [onlyUnreadNotifications, setOnlyUnreadNotifications] = useState(false);
+  const [contextMenu, setContextMenu] = useState<TaskContextMenu>(null);
+  const [addingSubtaskFor, setAddingSubtaskFor] = useState<Id<"tareas"> | null>(null);
+  const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [inlineSavingId, setInlineSavingId] = useState<string | null>(null);
+  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+  const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
+  const [draggingTaskId, setDraggingTaskId] = useState<Id<"tareas"> | null>(null);
+  const [statusLabels, setStatusLabels] = useState<TaskLabelOption[]>(() =>
+    normalizeStoredLabels(window.localStorage.getItem("tareas.statusLabels"), DEFAULT_STATUS_LABELS)
+  );
+  const [priorityLabels, setPriorityLabels] = useState<TaskLabelOption[]>(() =>
+    normalizeStoredLabels(window.localStorage.getItem("tareas.priorityLabels"), DEFAULT_PRIORITY_LABELS)
+  );
 
   const taskDetail = useQuery(
     api.tareas.getDetail,
@@ -361,6 +872,30 @@ export default function TareasPage() {
     );
   }, [markNotificationsAsRead, notificationsOpen, proyectoId]);
 
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    const closeMenu = () => setContextMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+
+    window.addEventListener("click", closeMenu);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("click", closeMenu);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [contextMenu]);
+
+  useEffect(() => {
+    window.localStorage.setItem("tareas.statusLabels", JSON.stringify(statusLabels));
+  }, [statusLabels]);
+
+  useEffect(() => {
+    window.localStorage.setItem("tareas.priorityLabels", JSON.stringify(priorityLabels));
+  }, [priorityLabels]);
+
   const stats = useMemo(() => {
     const list = tareas || [];
     return {
@@ -386,6 +921,40 @@ export default function TareasPage() {
       return matchesSearch && matchesStatus && matchesAssignee && matchesProject;
     });
   }, [assigneeFilter, projectFilter, search, statusFilter, tareas]);
+
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    for (const task of filteredTasks) {
+      if (!task.parent_task) continue;
+      const children = map.get(task.parent_task) || [];
+      children.push(task);
+      map.set(task.parent_task, children);
+    }
+    return map;
+  }, [filteredTasks]);
+
+  const groupedTasks = useMemo<TaskGroup[]>(() => {
+    const projectNames = new Map<string, string>();
+    for (const project of proyectos || []) {
+      projectNames.set(project._id, project.nombre);
+    }
+    const filteredIds = new Set(filteredTasks.map((task) => task._id));
+
+    const groups = new Map<string, TaskGroup>();
+    for (const task of filteredTasks) {
+      if (task.parent_task && filteredIds.has(task.parent_task)) continue;
+      const projectId = task.proyecto;
+      const group = groups.get(projectId) || {
+        projectId,
+        projectName: task.proyecto_nombre || projectNames.get(projectId) || "Sin proyecto",
+        tasks: [],
+      };
+      group.tasks.push(task);
+      groups.set(projectId, group);
+    }
+
+    return Array.from(groups.values()).sort((a, b) => a.projectName.localeCompare(b.projectName));
+  }, [filteredTasks, proyectos]);
 
   const filteredNotifications = useMemo(() => {
     const term = notificationSearch.trim().toLowerCase();
@@ -474,6 +1043,7 @@ export default function TareasPage() {
           proyecto: targetProjectId as Id<"desarrollos">,
           ...payload,
           status: form.status,
+          parent_task: editingTask.parent_task,
         });
         toast.success("Tarea actualizada");
       } else {
@@ -503,6 +1073,158 @@ export default function TareasPage() {
       toast.error("No se pudo actualizar el estado");
     } finally {
       setUpdatingStatusId(null);
+    }
+  };
+
+  const handleInlineUpdate = async (
+    task: Task,
+    changes: Partial<Pick<Task, "titulo" | "fecha_limite" | "prioridad" | "status" | "categoria" | "proyecto" | "asignados">>
+  ) => {
+    if (currentUser?.role === "viewer") return;
+
+    const nextTitle = changes.titulo ?? task.titulo;
+    if (!nextTitle.trim()) {
+      toast.error("El titulo no puede quedar vacio");
+      return;
+    }
+
+    setInlineSavingId(task._id);
+    try {
+      await updateTask({
+        id: task._id,
+        proyecto: changes.proyecto ?? task.proyecto,
+        titulo: nextTitle,
+        descripcion: task.descripcion || undefined,
+        asignados: changes.asignados ?? task.asignados,
+        status: changes.status ?? task.status,
+        prioridad: changes.prioridad ?? task.prioridad,
+        fecha_limite: changes.fecha_limite || undefined,
+        categoria: changes.categoria ?? task.categoria ?? "General",
+        parent_task: changes.proyecto && changes.proyecto !== task.proyecto ? undefined : task.parent_task,
+      });
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast.error("No se pudo actualizar la tarea");
+    } finally {
+      setInlineSavingId(null);
+    }
+  };
+
+  const handleCreateSubtask = async (parent: Task) => {
+    if (!subtaskTitle.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const taskId = await createTask({
+        proyecto: parent.proyecto,
+        parent_task: parent._id,
+        titulo: subtaskTitle,
+        descripcion: undefined,
+        asignados: parent.asignados,
+        prioridad: parent.prioridad,
+        fecha_limite: undefined,
+        categoria: parent.categoria || "General",
+      });
+      setSubtaskTitle("");
+      setAddingSubtaskFor(null);
+      setSelectedTaskId(taskId);
+      toast.success("Subtarea creada");
+    } catch (error) {
+      console.error("Error creating subtask:", error);
+      toast.error("No se pudo crear la subtarea");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDuplicate = async (task: Task) => {
+    try {
+      const taskId = await duplicateTask({ id: task._id });
+      setSelectedTaskId(taskId);
+      toast.success("Tarea duplicada");
+    } catch (error) {
+      console.error("Error duplicating task:", error);
+      toast.error("No se pudo duplicar la tarea");
+    }
+  };
+
+  const copyTaskName = async (task: Task) => {
+    await navigator.clipboard.writeText(task.titulo);
+    toast.success("Nombre copiado");
+  };
+
+  const copyTaskUrl = async (task: Task) => {
+    const url = `${window.location.origin}/proyecto/${task.proyecto}/tareas?task=${task._id}`;
+    await navigator.clipboard.writeText(url);
+    toast.success("URL copiada");
+  };
+
+  const openProjectTaskRoute = (task: Task) => {
+    window.open(`/proyecto/${task.proyecto}/tareas?task=${task._id}`, "_blank", "noopener,noreferrer");
+  };
+
+  const toggleProjectCollapse = (projectId: string) => {
+    setCollapsedProjects((current) => {
+      const next = new Set(current);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+      } else {
+        next.add(projectId);
+      }
+      return next;
+    });
+  };
+
+  const toggleTaskCollapse = (taskId: Id<"tareas">) => {
+    setCollapsedTasks((current) => {
+      const next = new Set(current);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  };
+
+  const handleTaskDrop = async (targetTask: Task) => {
+    if (!draggingTaskId || draggingTaskId === targetTask._id || currentUser?.role === "viewer") {
+      setDraggingTaskId(null);
+      return;
+    }
+
+    const draggedTask = filteredTasks.find((task) => task._id === draggingTaskId);
+    if (
+      !draggedTask ||
+      draggedTask.proyecto !== targetTask.proyecto ||
+      (draggedTask.parent_task || null) !== (targetTask.parent_task || null)
+    ) {
+      setDraggingTaskId(null);
+      return;
+    }
+
+    const siblings = targetTask.parent_task
+      ? (childrenByParent.get(targetTask.parent_task) || [])
+      : (groupedTasks.find((group) => group.projectId === targetTask.proyecto)?.tasks || []);
+    const orderedIds = siblings.map((task) => task._id);
+    const from = orderedIds.indexOf(draggingTaskId);
+    const to = orderedIds.indexOf(targetTask._id);
+
+    if (from < 0 || to < 0) {
+      setDraggingTaskId(null);
+      return;
+    }
+
+    orderedIds.splice(from, 1);
+    orderedIds.splice(to, 0, draggingTaskId);
+
+    try {
+      await reorderTasks({ orderedIds });
+    } catch (error) {
+      console.error("Error reordering tasks:", error);
+      toast.error("No se pudo reordenar la tarea");
+    } finally {
+      setDraggingTaskId(null);
     }
   };
 
@@ -544,6 +1266,198 @@ export default function TareasPage() {
     }
   };
 
+  const renderTaskRow = (task: Task, level = 0) => {
+    const overdue = isOverdue(task);
+    const canDelete = currentUser?.role === "admin" || currentUser?._id === task.created_by_id;
+    const isSaving = inlineSavingId === task._id || updatingStatusId === task._id;
+    const childTasks = childrenByParent.get(task._id) || [];
+    const hasChildren = childTasks.length > 0;
+    const isTaskCollapsed = collapsedTasks.has(task._id);
+
+    return (
+      <React.Fragment key={task._id}>
+        <TableRow
+          key={task._id}
+          onDragOver={(event) => {
+            if (!draggingTaskId || draggingTaskId === task._id) return;
+            event.preventDefault();
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            void handleTaskDrop(task);
+          }}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            setContextMenu({ task, x: event.clientX, y: event.clientY });
+          }}
+          className={cn(
+            "group hover:bg-gray-50",
+            draggingTaskId === task._id && "opacity-50",
+            draggingTaskId && draggingTaskId !== task._id && "data-[drop=true]:bg-blue-50"
+          )}
+        >
+          <TableCell className="px-4">
+            <div className="flex items-start gap-2" style={{ paddingLeft: level * 26 }}>
+              <button
+                type="button"
+                draggable={currentUser?.role !== "viewer"}
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", task._id);
+                  setDraggingTaskId(task._id);
+                }}
+                onDragEnd={() => setDraggingTaskId(null)}
+                className="mt-2 flex h-6 w-5 shrink-0 cursor-grab items-center justify-center text-gray-300 opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+                aria-label="Reordenar tarea"
+              >
+                <GripVertical className="h-4 w-4" />
+              </button>
+              <div className="relative mt-1 flex h-8 shrink-0 items-center gap-2">
+                {level > 0 && (
+                  <>
+                    <span className="absolute -left-6 top-1/2 h-px w-6 bg-gray-300" />
+                    <span className="absolute -left-6 bottom-1/2 h-10 w-px bg-gray-300" />
+                  </>
+                )}
+                <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={currentUser?.role === "viewer"} />
+                {hasChildren ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleTaskCollapse(task._id)}
+                    className="flex h-7 w-7 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    aria-expanded={!isTaskCollapsed}
+                  >
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", isTaskCollapsed && "-rotate-90")} />
+                  </button>
+                ) : (
+                  <span className="h-7 w-7" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <Input
+                    defaultValue={task.titulo}
+                    disabled={currentUser?.role === "viewer" || isSaving}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") event.currentTarget.blur();
+                    }}
+                    onBlur={(event) => {
+                      const value = event.currentTarget.value.trim();
+                      if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
+                    }}
+                    className={cn(
+                      "h-8 border-transparent bg-transparent px-2 font-medium text-gray-900 shadow-none hover:border-gray-200 focus-visible:border-gray-300 focus-visible:ring-0",
+                      level > 0 && "font-normal"
+                    )}
+                  />
+                  {overdue && <CircleAlert className="h-4 w-4 shrink-0 text-red-500" />}
+                  {isSaving && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-gray-400" />}
+                </div>
+                {task.descripcion && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTaskId(task._id)}
+                    className="mt-1 line-clamp-1 px-2 text-left text-sm text-gray-500 hover:text-gray-900"
+                  >
+                    {task.descripcion}
+                  </button>
+                )}
+                <p className="mt-1 px-2 text-xs text-gray-400">
+                  {task.categoria || "General"} · Creada por {task.created_by_name}
+                </p>
+              </div>
+            </div>
+          </TableCell>
+          <TableCell>
+            <InlineAssigneePicker
+              task={task}
+              disabled={currentUser?.role === "viewer" || isSaving}
+              onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
+            />
+          </TableCell>
+          <TableCell>
+            <InlineDatePicker
+              value={task.fecha_limite}
+              disabled={currentUser?.role === "viewer" || isSaving}
+              overdue={overdue}
+              onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
+            />
+          </TableCell>
+          <TableCell>
+            <InlineLabelPicker
+              value={task.prioridad}
+              labels={priorityLabels}
+              disabled={currentUser?.role === "viewer" || isSaving}
+              onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
+              onLabelsChange={setPriorityLabels}
+            />
+          </TableCell>
+          <TableCell>
+            <InlineLabelPicker
+              value={task.status}
+              labels={statusLabels}
+              disabled={isSaving || currentUser?.role === "viewer"}
+              onSelect={(value) => handleStatusChange(task, value)}
+              onLabelsChange={setStatusLabels}
+            />
+          </TableCell>
+          <TableCell className="text-right">
+            <div className="flex justify-end gap-1">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedTaskId(task._id)} className="h-8 w-8">
+                <Eye className="h-4 w-4" />
+              </Button>
+              {level === 0 && !task.parent_task && canCreate && (
+                <Button variant="ghost" size="icon" onClick={() => { setAddingSubtaskFor(task._id); setSubtaskTitle(""); }} className="h-8 w-8">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+              {canDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTaskToDelete(task)}
+                  className="h-8 w-8 text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+        {level === 0 && !isTaskCollapsed && childTasks.map((child) => renderTaskRow(child, 1))}
+        {level === 0 && !isTaskCollapsed && !task.parent_task && addingSubtaskFor === task._id && (
+          <TableRow key={`${task._id}-new-subtask`} className="bg-blue-50/40">
+            <TableCell className="px-4" colSpan={6}>
+              <div className="flex items-center gap-2 pl-10">
+                <span className="text-sm text-gray-500">Subtarea</span>
+                <Input
+                  autoFocus
+                  value={subtaskTitle}
+                  onChange={(event) => setSubtaskTitle(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") void handleCreateSubtask(task);
+                    if (event.key === "Escape") setAddingSubtaskFor(null);
+                  }}
+                  placeholder="Nombre de la subtarea"
+                  className="h-8 max-w-md"
+                />
+                <Button size="sm" onClick={() => handleCreateSubtask(task)} disabled={submitting || !subtaskTitle.trim()}>
+                  Agregar
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setAddingSubtaskFor(null)}>
+                  Cancelar
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+      </React.Fragment>
+    );
+  };
+
   if ((isProjectScoped && !proyecto) || !tareas || !proyectos) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
@@ -551,6 +1465,14 @@ export default function TareasPage() {
       </div>
     );
   }
+
+  const contextMenuMaxHeight = Math.min(440, window.innerHeight - 16);
+  const contextMenuTop = contextMenu
+    ? Math.max(8, Math.min(contextMenu.y, window.innerHeight - contextMenuMaxHeight - 8))
+    : 8;
+  const contextMenuLeft = contextMenu
+    ? Math.max(8, Math.min(contextMenu.x, window.innerWidth - 300))
+    : 8;
 
   return (
     <div className="min-h-screen bg-white text-left">
@@ -634,9 +1556,9 @@ export default function TareasPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los estados</SelectItem>
-              {STATUS_OPTIONS.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
+              {statusLabels.map((status) => (
+                <SelectItem key={status.id} value={status.label}>
+                  {status.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -684,93 +1606,52 @@ export default function TareasPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTasks.map((task) => {
-                const overdue = isOverdue(task);
-                const canDelete = currentUser?.role === "admin" || currentUser?._id === task.created_by_id;
+              {groupedTasks.map((group) => {
+                const isCollapsed = collapsedProjects.has(group.projectId);
+
                 return (
-                  <TableRow key={task._id}>
-                    <TableCell className="px-4">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTaskId(task._id)}
-                        className="block w-full text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{task.titulo}</span>
-                          {overdue && <CircleAlert className="h-4 w-4 text-red-500" />}
-                        </div>
-                        {task.descripcion && (
-                          <p className="mt-1 line-clamp-1 text-sm text-gray-500">{task.descripcion}</p>
-                        )}
-                        <p className="mt-1 text-xs text-gray-400">
-                          {!isProjectScoped && `${task.proyecto_nombre || "Sin proyecto"} · `}
-                          {task.categoria || "General"} · Creada por {task.created_by_name}
-                        </p>
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1.5">
-                        {task.assigned_users?.length ? task.assigned_users.map((user) => (
-                          <span
-                            key={user._id}
-                            className="inline-flex h-7 items-center rounded-full border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700"
-                            title={user.email}
+                  <React.Fragment key={group.projectId}>
+                    {!isProjectScoped && (
+                      <TableRow className="border-t bg-white hover:bg-gray-50">
+                        <TableCell colSpan={6} className="p-0">
+                          <button
+                            type="button"
+                            onClick={() => toggleProjectCollapse(group.projectId)}
+                            className="flex w-full items-center gap-2 px-4 py-4 text-left"
+                            aria-expanded={!isCollapsed}
                           >
-                            {user.name || user.email}
-                          </span>
-                        )) : <span className="text-sm text-gray-400">Sin asignar</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell className={cn("text-sm text-gray-600", overdue && "font-medium text-red-600")}>
-                      {formatDate(task.fecha_limite)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn("border", priorityClass(task.prioridad))}>
-                        {task.prioridad}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={task.status}
-                        onValueChange={(value) => handleStatusChange(task, value)}
-                        disabled={updatingStatusId === task._id || currentUser?.role === "viewer"}
-                      >
-                        <SelectTrigger className={cn("h-8 w-36 border", statusClass(task.status))}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              {status}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedTaskId(task._id)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(task)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        {canDelete && (
+                            <ChevronDown className={cn("h-4 w-4 text-gray-400 transition-transform", isCollapsed && "-rotate-90")} />
+                            <span className="text-xs uppercase tracking-wide text-gray-400">OGC</span>
+                            <span className="font-medium text-gray-900">{group.projectName}</span>
+                            <Badge variant="secondary">{group.tasks.length}</Badge>
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {!isCollapsed && group.tasks.map((task) => renderTaskRow(task))}
+                    {!isCollapsed && canCreate && (
+                      <TableRow className="hover:bg-gray-50">
+                        <TableCell colSpan={6} className="px-4 py-3">
                           <Button
                             variant="ghost"
-                            size="icon"
-                            onClick={() => setTaskToDelete(task)}
-                            className="h-8 w-8 text-red-600 hover:text-red-700"
+                            size="sm"
+                            onClick={() => {
+                              setForm({ ...emptyForm(), proyecto: group.projectId });
+                              setEditingTask(null);
+                              setDialogOpen(true);
+                            }}
+                            className="gap-2 text-gray-500"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Plus className="h-4 w-4" />
+                            Agregar tarea
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 );
               })}
-              {filteredTasks.length === 0 && (
+              {groupedTasks.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center text-gray-500">
                     No hay tareas con los filtros actuales.
@@ -781,6 +1662,89 @@ export default function TareasPage() {
           </Table>
         </div>
       </div>
+
+      {contextMenu && (
+        <div
+          className="fixed z-50 w-72 overflow-hidden rounded-md border border-gray-200 bg-white p-1 text-gray-900 shadow-xl"
+          style={{
+            left: contextMenuLeft,
+            top: contextMenuTop,
+            maxHeight: contextMenuMaxHeight,
+          }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <Command className="bg-white text-gray-900">
+            <CommandList className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: contextMenuMaxHeight - 8 }}>
+              <CommandGroup>
+                <CommandItem onSelect={() => { void copyTaskName(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
+                  <Copy className="h-4 w-4" />
+                  Copiar nombre
+                </CommandItem>
+                <CommandItem onSelect={() => { setSelectedTaskId(contextMenu.task._id); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
+                  <Eye className="h-4 w-4" />
+                  Abrir tarea
+                </CommandItem>
+                <CommandItem onSelect={() => { openProjectTaskRoute(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir en una pestana nueva
+                </CommandItem>
+                <CommandItem onSelect={() => { void copyTaskUrl(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
+                  <Copy className="h-4 w-4" />
+                  Copiar URL de tarea
+                </CommandItem>
+              </CommandGroup>
+              <CommandSeparator className="bg-gray-200" />
+              <CommandGroup>
+                <CommandItem onSelect={() => { void handleDuplicate(contextMenu.task); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-gray-100">
+                  <Copy className="h-4 w-4" />
+                  Duplicar
+                </CommandItem>
+                {!contextMenu.task.parent_task && (
+                  <CommandItem onSelect={() => { setAddingSubtaskFor(contextMenu.task._id); setSubtaskTitle(""); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-gray-100">
+                    <Plus className="h-4 w-4" />
+                    Agregar subtarea
+                  </CommandItem>
+                )}
+                <CommandItem onSelect={() => { void handleInlineUpdate(contextMenu.task, { status: "Cancelada" }); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-gray-100">
+                  <Archive className="h-4 w-4" />
+                  Archivar
+                </CommandItem>
+              </CommandGroup>
+              {!isProjectScoped && canCreate && (
+                <>
+                  <CommandSeparator className="bg-gray-200" />
+                  <CommandGroup heading="Mover a">
+                    {proyectos.filter((project) => project._id !== contextMenu.task.proyecto).slice(0, 6).map((project) => (
+                      <CommandItem
+                        key={project._id}
+                        onSelect={() => {
+                          void handleInlineUpdate(contextMenu.task, { proyecto: project._id });
+                          setContextMenu(null);
+                        }}
+                        className="data-[selected=true]:bg-gray-100"
+                      >
+                        <MoveRight className="h-4 w-4" />
+                        {project.nombre}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+              {(currentUser?.role === "admin" || currentUser?._id === contextMenu.task.created_by_id) && (
+                <>
+                  <CommandSeparator className="bg-gray-200" />
+                  <CommandGroup>
+                    <CommandItem onSelect={() => { setTaskToDelete(contextMenu.task); setContextMenu(null); }} className="text-red-600 data-[selected=true]:bg-red-50">
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar
+                    </CommandItem>
+                  </CommandGroup>
+                </>
+              )}
+            </CommandList>
+          </Command>
+        </div>
+      )}
 
       <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
         <SheetContent side="right" className="w-full overflow-y-auto border-l border-gray-200 bg-white p-0 text-gray-900 sm:max-w-xl">
@@ -1166,9 +2130,9 @@ export default function TareasPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PRIORITY_OPTIONS.map((priority) => (
-                      <SelectItem key={priority} value={priority}>
-                        {priority}
+                    {priorityLabels.map((priority) => (
+                      <SelectItem key={priority.id} value={priority.label}>
+                        {priority.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1214,9 +2178,9 @@ export default function TareasPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUS_OPTIONS.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
+                    {statusLabels.map((status) => (
+                      <SelectItem key={status.id} value={status.label}>
+                        {status.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
