@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -762,8 +761,7 @@ function InlineAssigneePicker({
   );
 }
 
-export default function TareasPage() {
-  const { proyectoId } = useParams<{ proyectoId: string }>();
+export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const isProjectScoped = Boolean(proyectoId);
   const proyecto = useQuery(
     api.desarrollos.getById,
@@ -834,6 +832,8 @@ export default function TareasPage() {
   const [contextMenu, setContextMenu] = useState<TaskContextMenu>(null);
   const [addingSubtaskFor, setAddingSubtaskFor] = useState<Id<"tareas"> | null>(null);
   const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [addingTaskForProject, setAddingTaskForProject] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
   const [inlineSavingId, setInlineSavingId] = useState<string | null>(null);
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
@@ -1137,6 +1137,32 @@ export default function TareasPage() {
     }
   };
 
+  const handleCreateProjectTask = async (projectId: string) => {
+    if (!newTaskTitle.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const taskId = await createTask({
+        proyecto: projectId as Id<"desarrollos">,
+        titulo: newTaskTitle,
+        descripcion: undefined,
+        asignados: [],
+        prioridad: priorityLabels.find((label) => label.label === "Media")?.label || priorityLabels[0]?.label || "Media",
+        fecha_limite: undefined,
+        categoria: "General",
+      });
+      setNewTaskTitle("");
+      setAddingTaskForProject(null);
+      setSelectedTaskId(taskId);
+      toast.success("Tarea creada");
+    } catch (error) {
+      console.error("Error creating task:", error);
+      toast.error("No se pudo crear la tarea");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleDuplicate = async (task: Task) => {
     try {
       const taskId = await duplicateTask({ id: task._id });
@@ -1329,6 +1355,28 @@ export default function TareasPage() {
                   >
                     <ChevronDown className={cn("h-4 w-4 transition-transform", isTaskCollapsed && "-rotate-90")} />
                   </button>
+                ) : level === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (addingSubtaskFor === task._id) {
+                        setAddingSubtaskFor(null);
+                        setSubtaskTitle("");
+                      } else {
+                        setAddingSubtaskFor(task._id);
+                        setSubtaskTitle("");
+                        setCollapsedTasks((current) => {
+                          const next = new Set(current);
+                          next.delete(task._id);
+                          return next;
+                        });
+                      }
+                    }}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    aria-label="Agregar subtarea"
+                  >
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", addingSubtaskFor !== task._id && "-rotate-90")} />
+                  </button>
                 ) : (
                   <span className="h-7 w-7" />
                 )}
@@ -1428,28 +1476,44 @@ export default function TareasPage() {
           </TableCell>
         </TableRow>
         {level === 0 && !isTaskCollapsed && childTasks.map((child) => renderTaskRow(child, 1))}
-        {level === 0 && !isTaskCollapsed && !task.parent_task && addingSubtaskFor === task._id && (
-          <TableRow key={`${task._id}-new-subtask`} className="bg-blue-50/40">
-            <TableCell className="px-4" colSpan={6}>
-              <div className="flex items-center gap-2 pl-10">
-                <span className="text-sm text-gray-500">Subtarea</span>
-                <Input
-                  autoFocus
-                  value={subtaskTitle}
-                  onChange={(event) => setSubtaskTitle(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") void handleCreateSubtask(task);
-                    if (event.key === "Escape") setAddingSubtaskFor(null);
-                  }}
-                  placeholder="Nombre de la subtarea"
-                  className="h-8 max-w-md"
-                />
-                <Button size="sm" onClick={() => handleCreateSubtask(task)} disabled={submitting || !subtaskTitle.trim()}>
-                  Agregar
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setAddingSubtaskFor(null)}>
-                  Cancelar
-                </Button>
+        {level === 0 && !isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
+          <TableRow key={`${task._id}-new-subtask`} className="bg-blue-50/40 hover:bg-blue-50/40">
+            <TableCell className="px-0 py-0" colSpan={6}>
+              <div className="ml-14 border-l-4 border-emerald-500 px-4 py-2">
+                {addingSubtaskFor === task._id ? (
+                  <div className="flex items-center gap-2">
+                    <Checkbox disabled />
+                    <Input
+                      autoFocus
+                      value={subtaskTitle}
+                      onChange={(event) => setSubtaskTitle(event.target.value)}
+                      onBlur={() => {
+                        if (subtaskTitle.trim()) void handleCreateSubtask(task);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
+                        if (event.key === "Escape") {
+                          setSubtaskTitle("");
+                          setAddingSubtaskFor(null);
+                        }
+                      }}
+                      placeholder="+ Agregar subelemento"
+                      className="h-8 max-w-sm border-gray-300 bg-white"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingSubtaskFor(task._id);
+                      setSubtaskTitle("");
+                    }}
+                    className="flex h-8 items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar subelemento
+                  </button>
+                )}
               </div>
             </TableCell>
           </TableRow>
@@ -1632,19 +1696,41 @@ export default function TareasPage() {
                     {!isCollapsed && canCreate && (
                       <TableRow className="hover:bg-gray-50">
                         <TableCell colSpan={6} className="px-4 py-3">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setForm({ ...emptyForm(), proyecto: group.projectId });
-                              setEditingTask(null);
-                              setDialogOpen(true);
-                            }}
-                            className="gap-2 text-gray-500"
-                          >
-                            <Plus className="h-4 w-4" />
-                            Agregar tarea
-                          </Button>
+                          {addingTaskForProject === group.projectId ? (
+                            <div className="flex max-w-md items-center gap-2">
+                              <Plus className="h-4 w-4 text-gray-400" />
+                              <Input
+                                autoFocus
+                                value={newTaskTitle}
+                                onChange={(event) => setNewTaskTitle(event.target.value)}
+                                onBlur={() => {
+                                  if (newTaskTitle.trim()) void handleCreateProjectTask(group.projectId);
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") event.currentTarget.blur();
+                                  if (event.key === "Escape") {
+                                    setNewTaskTitle("");
+                                    setAddingTaskForProject(null);
+                                  }
+                                }}
+                                placeholder="+ Agregar task"
+                                className="h-8"
+                              />
+                            </div>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setAddingTaskForProject(group.projectId);
+                                setNewTaskTitle("");
+                              }}
+                              className="gap-2 text-gray-500"
+                            >
+                              <Plus className="h-4 w-4" />
+                              Agregar task
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
@@ -2238,7 +2324,7 @@ export default function TareasPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar tarea</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta accion eliminara la tarea, sus comentarios y su historial. No se puede deshacer.
+              Esta accion eliminara la tarea, sus subtareas, comentarios e historial. No se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2251,4 +2337,8 @@ export default function TareasPage() {
       </AlertDialog>
     </div>
   );
+}
+
+export default function TareasPage() {
+  return <TareasBoard />;
 }

@@ -61,6 +61,75 @@ async function insertHistory(
   });
 }
 
+async function deleteTaskTree(ctx: MutationCtx, taskId: Id<"tareas">) {
+  const children = await ctx.db
+    .query("tareas")
+    .withIndex("by_parent_task", (q) => q.eq("parent_task", taskId))
+    .collect();
+
+  for (const child of children) {
+    await deleteTaskTree(ctx, child._id);
+  }
+
+  const [comments, history] = await Promise.all([
+    ctx.db
+      .query("tarea_comments")
+      .withIndex("by_tarea", (q) => q.eq("tarea_id", taskId))
+      .collect(),
+    ctx.db
+      .query("tarea_history")
+      .withIndex("by_tarea", (q) => q.eq("tarea_id", taskId))
+      .collect(),
+  ]);
+
+  for (const comment of comments) {
+    await ctx.db.delete(comment._id);
+  }
+  for (const item of history) {
+    await ctx.db.delete(item._id);
+  }
+
+  await ctx.db.delete(taskId);
+}
+
+async function completeParentIfAllChildrenDone(
+  ctx: MutationCtx,
+  args: {
+    parentTaskId?: Id<"tareas">;
+    user: Doc<"users">;
+  }
+) {
+  if (!args.parentTaskId) return;
+
+  const parent = await ctx.db.get(args.parentTaskId);
+  if (!parent || parent.status === "Completada") return;
+
+  const children = await ctx.db
+    .query("tareas")
+    .withIndex("by_parent_task", (q) => q.eq("parent_task", args.parentTaskId))
+    .collect();
+
+  if (children.length === 0 || children.some((child) => child.status !== "Completada")) {
+    return;
+  }
+
+  const now = Date.now();
+  await ctx.db.patch(args.parentTaskId, {
+    status: "Completada",
+    updated_at: now,
+    completed_at: parent.completed_at || now,
+  });
+
+  await insertHistory(ctx, {
+    task: parent,
+    action: "status_changed",
+    field_changed: "status",
+    old_value: parent.status,
+    new_value: "Completada",
+    user: args.user,
+  });
+}
+
 async function enrichTask(ctx: QueryCtx | MutationCtx, task: Doc<"tareas">) {
   const assignedUsers = await Promise.all(task.asignados.map((id) => ctx.db.get(id)));
   const creator = await ctx.db.get(task.created_by_id);
@@ -610,6 +679,11 @@ export const update = mutation({
       }
     }
 
+    await completeParentIfAllChildrenDone(ctx, {
+      parentTaskId: nextTask.parent_task,
+      user,
+    });
+
     return { success: true };
   },
 });
@@ -736,6 +810,11 @@ export const updateStatus = mutation({
       });
     }
 
+    await completeParentIfAllChildrenDone(ctx, {
+      parentTaskId: task.parent_task,
+      user,
+    });
+
     return { success: true };
   },
 });
@@ -817,25 +896,7 @@ export const remove = mutation({
       throw new Error("Unauthorized: Only admins or creators can delete tasks");
     }
 
-    const [comments, history] = await Promise.all([
-      ctx.db
-        .query("tarea_comments")
-        .withIndex("by_tarea", (q) => q.eq("tarea_id", args.id))
-        .collect(),
-      ctx.db
-        .query("tarea_history")
-        .withIndex("by_tarea", (q) => q.eq("tarea_id", args.id))
-        .collect(),
-    ]);
-
-    for (const comment of comments) {
-      await ctx.db.delete(comment._id);
-    }
-    for (const item of history) {
-      await ctx.db.delete(item._id);
-    }
-
-    await ctx.db.delete(args.id);
+    await deleteTaskTree(ctx, args.id);
     return { success: true };
   },
 });
