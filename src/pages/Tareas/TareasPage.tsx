@@ -56,15 +56,12 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
-  CalendarClock,
   Bell,
   Archive,
   CheckCircle2,
@@ -85,13 +82,20 @@ import {
   Plus,
   Search,
   Send,
-  SlidersHorizontal,
   Trash2,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 
 const CATEGORY_OPTIONS = ["General", "Obra", "Finanzas", "Documentos", "Requisicion", "Bitacora"];
+const TASK_UI_COLORS = {
+  pending: "#ADADAD",
+  blue: "#76AFD9",
+  green: "#50AC66",
+  itemBg: "#FBFBFB",
+  itemBorder: "#E6E6E6",
+};
+const TASK_TABLE_GRID = "grid-cols-[minmax(360px,1.6fr)_minmax(200px,1fr)_180px_160px_160px_48px]";
 
 type UserSummary = {
   _id: Id<"users">;
@@ -215,18 +219,18 @@ const LABEL_COLORS = [
 ];
 
 const DEFAULT_STATUS_LABELS: TaskLabelOption[] = [
-  { id: "Pendiente", label: "Pendiente", color: "#8a93aa" },
-  { id: "En progreso", label: "En progreso", color: "#f8b84e" },
-  { id: "Completada", label: "Completada", color: "#34c987" },
-  { id: "Bloqueada", label: "Bloqueada", color: "#e75f79" },
-  { id: "Cancelada", label: "Cancelada", color: "#6b7280" },
+  { id: "Pendiente", label: "Pendiente", color: TASK_UI_COLORS.pending },
+  { id: "En progreso", label: "En progreso", color: TASK_UI_COLORS.blue },
+  { id: "Completada", label: "Completada", color: TASK_UI_COLORS.green },
+  { id: "Bloqueada", label: "Bloqueada", color: "#E75F79" },
+  { id: "Cancelada", label: "Cancelada", color: TASK_UI_COLORS.pending },
 ];
 
 const DEFAULT_PRIORITY_LABELS: TaskLabelOption[] = [
-  { id: "Urgente", label: "Urgente", color: "#e75f79" },
-  { id: "Alta", label: "Alta", color: "#6f43b8" },
-  { id: "Media", label: "Media", color: "#6d6fe3" },
-  { id: "Baja", label: "Baja", color: "#72a8f3" },
+  { id: "Urgente", label: "Urgente", color: "#E75F79" },
+  { id: "Alta", label: "Alta", color: TASK_UI_COLORS.blue },
+  { id: "Media", label: "Media", color: TASK_UI_COLORS.green },
+  { id: "Baja", label: "Baja", color: TASK_UI_COLORS.pending },
 ];
 
 function emptyForm() {
@@ -393,7 +397,12 @@ function normalizeStoredLabels(value: string | null, fallback: TaskLabelOption[]
   try {
     const parsed = JSON.parse(value);
     if (!Array.isArray(parsed)) return fallback;
-    const valid = parsed.filter((item) => item?.id && item?.label && item?.color);
+    const valid = parsed
+      .filter((item) => item?.id && item?.label && item?.color)
+      .map((item) => {
+        const fallbackMatch = fallback.find((label) => label.id === item.id || label.label === item.label);
+        return fallbackMatch ? { ...item, color: fallbackMatch.color } : item;
+      });
     return valid.length ? valid : fallback;
   } catch {
     return fallback;
@@ -401,10 +410,13 @@ function normalizeStoredLabels(value: string | null, fallback: TaskLabelOption[]
 }
 
 function labelForValue(value: string, labels: TaskLabelOption[]) {
-  return labels.find((label) => label.label === value || label.id === value) || {
+  const defaultLabel = [...DEFAULT_STATUS_LABELS, ...DEFAULT_PRIORITY_LABELS].find(
+    (label) => label.label === value || label.id === value
+  );
+  return labels.find((label) => label.label === value || label.id === value) || defaultLabel || {
     id: value,
     label: value || "Sin etiqueta",
-    color: "#8a93aa",
+    color: TASK_UI_COLORS.pending,
   };
 }
 
@@ -430,11 +442,10 @@ function InlineDatePicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-8 w-36 justify-start px-2 text-left text-sm font-normal hover:bg-gray-50",
-            overdue ? "font-medium text-red-600" : "text-gray-600"
+            "h-9 w-44 justify-start rounded-none border-0 bg-transparent px-0 text-left text-base font-normal shadow-none hover:bg-transparent",
+            overdue ? "font-medium text-red-600" : "text-gray-400"
           )}
         >
-          <CalendarClock className="mr-2 h-4 w-4 text-gray-400" />
           {formatDate(value)}
         </Button>
       </PopoverTrigger>
@@ -533,9 +544,9 @@ function InlineLabelPicker({
         <Button
           type="button"
           disabled={disabled}
-          className="h-8 w-36 justify-center rounded-none border-0 px-2 text-sm font-medium text-white shadow-none hover:brightness-95"
-          style={{ backgroundColor: activeLabel.color }}
+          className="h-9 w-36 justify-start gap-2 rounded-none border-0 bg-transparent px-0 text-base font-normal text-gray-400 shadow-none hover:bg-transparent hover:text-gray-600"
         >
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: activeLabel.color }} />
           <span className="truncate">{activeLabel.label}</span>
         </Button>
       </PopoverTrigger>
@@ -661,26 +672,31 @@ function InlineAssigneePicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "flex min-h-8 w-full min-w-44 flex-wrap items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-left hover:border-gray-200 hover:bg-gray-50",
+            "flex min-h-12 w-full min-w-44 items-center gap-3 rounded-none border-0 bg-transparent px-0 py-1 text-left hover:bg-transparent",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
-          {assignedUsers.length ? assignedUsers.slice(0, 3).map((user) => (
-            <span
-              key={user._id}
-              className="inline-flex h-7 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2 text-xs text-gray-700"
-              title={user.email}
-            >
-              <span className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium text-white", assigneeColor(user._id))}>
-                {userInitials(user)}
+          {assignedUsers.length ? (
+            <>
+              <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white", assigneeColor(assignedUsers[0]._id))}>
+                {userInitials(assignedUsers[0])}
               </span>
-              <span className="max-w-28 truncate">{user.name || user.email}</span>
-            </span>
-          )) : <span className="text-sm text-gray-400">Sin asignar</span>}
-          {assignedUsers.length > 3 && (
-            <span className="inline-flex h-7 items-center rounded-full bg-gray-100 px-2 text-xs text-gray-500">
-              +{assignedUsers.length - 3}
-            </span>
+              <span className="min-w-0 flex-1 truncate text-base text-gray-400">
+                {assignedUsers[0].name || assignedUsers[0].email}
+              </span>
+              {assignedUsers.length > 1 && (
+                <span className="inline-flex h-6 items-center rounded-full bg-gray-100 px-2 text-xs text-gray-500">
+                  +{assignedUsers.length - 1}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-sm font-medium text-gray-500">
+                -
+              </span>
+              <span className="text-base text-gray-400">Sin asignar</span>
+            </>
           )}
         </button>
       </PopoverTrigger>
@@ -778,6 +794,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   ) as Task[] | undefined;
   const tareas = isProjectScoped ? projectTasks : globalTasks;
   const [search, setSearch] = useState("");
+  const [taskTab, setTaskTab] = useState<"all" | "open" | "overdue" | "done">("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
@@ -832,10 +849,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [contextMenu, setContextMenu] = useState<TaskContextMenu>(null);
   const [addingSubtaskFor, setAddingSubtaskFor] = useState<Id<"tareas"> | null>(null);
   const [subtaskTitle, setSubtaskTitle] = useState("");
-  const [addingTaskForProject, setAddingTaskForProject] = useState<string | null>(null);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
   const [inlineSavingId, setInlineSavingId] = useState<string | null>(null);
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+  const [collapsedStatusSections, setCollapsedStatusSections] = useState<Set<string>>(new Set());
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
   const [draggingTaskId, setDraggingTaskId] = useState<Id<"tareas"> | null>(null);
   const [statusLabels, setStatusLabels] = useState<TaskLabelOption[]>(() =>
@@ -915,12 +931,17 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         task.descripcion?.toLowerCase().includes(term) ||
         task.proyecto_nombre?.toLowerCase().includes(term) ||
         task.assigned_users?.some((user) => user.name.toLowerCase().includes(term));
+      const matchesTab =
+        taskTab === "all" ||
+        (taskTab === "open" && task.status !== "Completada" && task.status !== "Cancelada") ||
+        (taskTab === "overdue" && isOverdue(task)) ||
+        (taskTab === "done" && task.status === "Completada");
       const matchesStatus = statusFilter === "all" || task.status === statusFilter;
       const matchesAssignee = assigneeFilter === "all" || task.asignados.includes(assigneeFilter as Id<"users">);
       const matchesProject = projectFilter === "all" || task.proyecto === projectFilter;
-      return matchesSearch && matchesStatus && matchesAssignee && matchesProject;
+      return matchesSearch && matchesTab && matchesStatus && matchesAssignee && matchesProject;
     });
-  }, [assigneeFilter, projectFilter, search, statusFilter, tareas]);
+  }, [assigneeFilter, projectFilter, search, statusFilter, taskTab, tareas]);
 
   const childrenByParent = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -1137,32 +1158,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
-  const handleCreateProjectTask = async (projectId: string) => {
-    if (!newTaskTitle.trim()) return;
-
-    setSubmitting(true);
-    try {
-      const taskId = await createTask({
-        proyecto: projectId as Id<"desarrollos">,
-        titulo: newTaskTitle,
-        descripcion: undefined,
-        asignados: [],
-        prioridad: priorityLabels.find((label) => label.label === "Media")?.label || priorityLabels[0]?.label || "Media",
-        fecha_limite: undefined,
-        categoria: "General",
-      });
-      setNewTaskTitle("");
-      setAddingTaskForProject(null);
-      setSelectedTaskId(taskId);
-      toast.success("Tarea creada");
-    } catch (error) {
-      console.error("Error creating task:", error);
-      toast.error("No se pudo crear la tarea");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleDuplicate = async (task: Task) => {
     try {
       const taskId = await duplicateTask({ id: task._id });
@@ -1196,6 +1191,18 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         next.delete(projectId);
       } else {
         next.add(projectId);
+      }
+      return next;
+    });
+  };
+
+  const toggleStatusCollapse = (sectionKey: string) => {
+    setCollapsedStatusSections((current) => {
+      const next = new Set(current);
+      if (next.has(sectionKey)) {
+        next.delete(sectionKey);
+      } else {
+        next.add(sectionKey);
       }
       return next;
     });
@@ -1292,9 +1299,31 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
+  const getStatusSections = (tasks: Task[]) => {
+    const statuses = new Map<string, Task[]>();
+    for (const task of tasks) {
+      const existing = statuses.get(task.status) || [];
+      existing.push(task);
+      statuses.set(task.status, existing);
+    }
+
+    const orderedLabels = [
+      ...statusLabels,
+      ...Array.from(statuses.keys())
+        .filter((status) => !statusLabels.some((label) => label.label === status))
+        .map((status) => labelForValue(status, statusLabels)),
+    ];
+
+    return orderedLabels
+      .map((label) => ({
+        label,
+        tasks: statuses.get(label.label) || [],
+      }))
+      .filter((section) => section.tasks.length > 0);
+  };
+
   const renderTaskRow = (task: Task, level = 0) => {
     const overdue = isOverdue(task);
-    const canDelete = currentUser?.role === "admin" || currentUser?._id === task.created_by_id;
     const isSaving = inlineSavingId === task._id || updatingStatusId === task._id;
     const childTasks = childrenByParent.get(task._id) || [];
     const hasChildren = childTasks.length > 0;
@@ -1317,12 +1346,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             setContextMenu({ task, x: event.clientX, y: event.clientY });
           }}
           className={cn(
-            "group hover:bg-gray-50",
+            "group border-0 bg-transparent hover:bg-transparent",
             draggingTaskId === task._id && "opacity-50",
             draggingTaskId && draggingTaskId !== task._id && "data-[drop=true]:bg-blue-50"
           )}
         >
-          <TableCell className="px-4">
+          <TableCell className="p-0" colSpan={6}>
+            <div
+              className={cn(
+                "grid items-start gap-4 rounded-md border bg-[#FBFBFB] px-6 py-2 transition group-hover:bg-[#F1F1F1]",
+                TASK_TABLE_GRID
+              )}
+              style={{ borderColor: TASK_UI_COLORS.itemBorder }}
+            >
             <div className="flex items-start gap-2" style={{ paddingLeft: level * 26 }}>
               <button
                 type="button"
@@ -1333,7 +1369,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   setDraggingTaskId(task._id);
                 }}
                 onDragEnd={() => setDraggingTaskId(null)}
-                className="mt-2 flex h-6 w-5 shrink-0 cursor-grab items-center justify-center text-gray-300 opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+                className="mt-2 flex h-6 w-5 shrink-0 cursor-grab items-center justify-center text-gray-400 opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
                 aria-label="Reordenar tarea"
               >
                 <GripVertical className="h-4 w-4" />
@@ -1350,7 +1386,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <button
                     type="button"
                     onClick={() => toggleTaskCollapse(task._id)}
-                    className="flex h-7 w-7 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    className="flex h-7 w-7 items-center justify-center rounded-md border text-white hover:brightness-95"
+                    style={{ backgroundColor: TASK_UI_COLORS.blue, borderColor: TASK_UI_COLORS.blue }}
                     aria-expanded={!isTaskCollapsed}
                   >
                     <ChevronDown className={cn("h-4 w-4 transition-transform", isTaskCollapsed && "-rotate-90")} />
@@ -1372,7 +1409,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         });
                       }
                     }}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-white/70 hover:text-gray-700"
                     aria-label="Agregar subtarea"
                   >
                     <ChevronDown className={cn("h-4 w-4 transition-transform", addingSubtaskFor !== task._id && "-rotate-90")} />
@@ -1394,7 +1431,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
                     }}
                     className={cn(
-                      "h-8 border-transparent bg-transparent px-2 font-medium text-gray-900 shadow-none hover:border-gray-200 focus-visible:border-gray-300 focus-visible:ring-0",
+                      "h-8 border-transparent bg-transparent px-2 font-medium text-gray-900 shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0",
                       level > 0 && "font-normal"
                     )}
                   />
@@ -1415,23 +1452,17 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 </p>
               </div>
             </div>
-          </TableCell>
-          <TableCell>
             <InlineAssigneePicker
               task={task}
               disabled={currentUser?.role === "viewer" || isSaving}
               onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
             />
-          </TableCell>
-          <TableCell>
             <InlineDatePicker
               value={task.fecha_limite}
               disabled={currentUser?.role === "viewer" || isSaving}
               overdue={overdue}
               onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
             />
-          </TableCell>
-          <TableCell>
             <InlineLabelPicker
               value={task.prioridad}
               labels={priorityLabels}
@@ -1439,8 +1470,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
               onLabelsChange={setPriorityLabels}
             />
-          </TableCell>
-          <TableCell>
             <InlineLabelPicker
               value={task.status}
               labels={statusLabels}
@@ -1448,38 +1477,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               onSelect={(value) => handleStatusChange(task, value)}
               onLabelsChange={setStatusLabels}
             />
-          </TableCell>
-          <TableCell className="text-right">
-            <div className="flex justify-end gap-1">
-              <Button variant="ghost" size="icon" onClick={() => setSelectedTaskId(task._id)} className="h-8 w-8">
-                <Eye className="h-4 w-4" />
-              </Button>
-              {level === 0 && !task.parent_task && canCreate && (
-                <Button variant="ghost" size="icon" onClick={() => { setAddingSubtaskFor(task._id); setSubtaskTitle(""); }} className="h-8 w-8">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              )}
+            <div className="flex justify-end">
               <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-8 w-8">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
-              {canDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setTaskToDelete(task)}
-                  className="h-8 w-8 text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
+            </div>
             </div>
           </TableCell>
         </TableRow>
         {level === 0 && !isTaskCollapsed && childTasks.map((child) => renderTaskRow(child, 1))}
         {level === 0 && !isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
-          <TableRow key={`${task._id}-new-subtask`} className="bg-blue-50/40 hover:bg-blue-50/40">
+          <TableRow key={`${task._id}-new-subtask`} className="bg-[#FBFBFB] hover:bg-[#F1F1F1]">
             <TableCell className="px-0 py-0" colSpan={6}>
-              <div className="ml-14 border-l-4 border-emerald-500 px-4 py-2">
+              <div className="ml-14 border-l-4 px-4 py-2" style={{ borderColor: TASK_UI_COLORS.green }}>
                 {addingSubtaskFor === task._id ? (
                   <div className="flex items-center gap-2">
                     <Checkbox disabled />
@@ -1498,7 +1508,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         }
                       }}
                       placeholder="+ Agregar subelemento"
-                      className="h-8 max-w-sm border-gray-300 bg-white"
+                      className="h-8 max-w-sm border-[#E6E6E6] bg-white"
                     />
                   </div>
                 ) : (
@@ -1572,39 +1582,32 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         </div>
       </div>
 
-      <div className="space-y-6 px-6 py-8 lg:px-16">
-        <div className="grid gap-3 md:grid-cols-4">
-          <div className="border border-gray-200 bg-white p-4">
-            <div className="flex items-center justify-between text-gray-500">
-              <span className="text-sm">Total</span>
-              <ListChecks className="h-4 w-4" />
-            </div>
-            <p className="mt-3 text-2xl font-medium text-gray-900">{stats.total}</p>
-          </div>
-          <div className="border border-gray-200 bg-white p-4">
-            <div className="flex items-center justify-between text-gray-500">
-              <span className="text-sm">Abiertas</span>
-              <SlidersHorizontal className="h-4 w-4" />
-            </div>
-            <p className="mt-3 text-2xl font-medium text-gray-900">{stats.pending}</p>
-          </div>
-          <div className="border border-gray-200 bg-white p-4">
-            <div className="flex items-center justify-between text-gray-500">
-              <span className="text-sm">Vencidas</span>
-              <CalendarClock className="h-4 w-4" />
-            </div>
-            <p className="mt-3 text-2xl font-medium text-gray-900">{stats.overdue}</p>
-          </div>
-          <div className="border border-gray-200 bg-white p-4">
-            <div className="flex items-center justify-between text-gray-500">
-              <span className="text-sm">Completadas</span>
-              <CheckCircle2 className="h-4 w-4" />
-            </div>
-            <p className="mt-3 text-2xl font-medium text-gray-900">{stats.done}</p>
-          </div>
+      <div className="space-y-8 px-6 py-8 lg:px-16">
+        <div className="flex border-b border-[#E6E6E6]">
+          {[
+            { id: "all" as const, label: "Total", value: stats.total },
+            { id: "open" as const, label: "Abiertas", value: stats.pending },
+            { id: "overdue" as const, label: "Vencidas", value: stats.overdue },
+            { id: "done" as const, label: "Completas", value: stats.done },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTaskTab(item.id)}
+              className={cn(
+                "flex min-w-36 items-center gap-4 px-1 py-4 text-sm text-gray-600",
+                taskTab === item.id && "border-b-2 border-gray-900 text-gray-900"
+              )}
+            >
+              <span>{item.label}</span>
+              <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-[#FBFBFB] px-2 text-xs text-gray-600">
+                {item.value}
+              </span>
+            </button>
+          ))}
         </div>
 
-        <div className="flex flex-col gap-3 border border-gray-200 p-4 lg:flex-row lg:items-center">
+        <div className="flex flex-col gap-3 rounded-md border border-[#E6E6E6] bg-white p-4 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
@@ -1657,18 +1660,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           )}
         </div>
 
-        <div className="border border-gray-200">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
-                <TableHead className="w-[34%] px-4">Tarea</TableHead>
-                <TableHead>Asignados</TableHead>
-                <TableHead>Fecha limite</TableHead>
-                <TableHead>Prioridad</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="w-28 text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
+        <div className="overflow-hidden rounded-md border border-[#E6E6E6] bg-white">
+          <Table className="border-separate border-spacing-y-2">
             <TableBody>
               {groupedTasks.map((group) => {
                 const isCollapsed = collapsedProjects.has(group.projectId);
@@ -1676,64 +1669,54 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 return (
                   <React.Fragment key={group.projectId}>
                     {!isProjectScoped && (
-                      <TableRow className="border-t bg-white hover:bg-gray-50">
+                      <TableRow className="border-t bg-white hover:bg-white">
                         <TableCell colSpan={6} className="p-0">
                           <button
                             type="button"
                             onClick={() => toggleProjectCollapse(group.projectId)}
-                            className="flex w-full items-center gap-2 px-4 py-4 text-left"
+                            className="flex w-full items-center gap-3 px-6 py-8 text-left"
                             aria-expanded={!isCollapsed}
                           >
-                            <ChevronDown className={cn("h-4 w-4 text-gray-400 transition-transform", isCollapsed && "-rotate-90")} />
-                            <span className="text-xs uppercase tracking-wide text-gray-400">OGC</span>
-                            <span className="font-medium text-gray-900">{group.projectName}</span>
-                            <Badge variant="secondary">{group.tasks.length}</Badge>
+                            <ChevronDown className={cn("h-4 w-4 text-gray-500 transition-transform", isCollapsed && "-rotate-90")} />
+                            <span className="font-medium text-gray-600">{group.projectName}</span>
+                            <span className="rounded-sm bg-[#FBFBFB] px-4 py-1 text-xs text-gray-500">{group.tasks.length} tareas</span>
+                            <MoreHorizontal className="h-4 w-4 text-gray-400" />
                           </button>
                         </TableCell>
                       </TableRow>
                     )}
-                    {!isCollapsed && group.tasks.map((task) => renderTaskRow(task))}
-                    {!isCollapsed && canCreate && (
-                      <TableRow className="hover:bg-gray-50">
-                        <TableCell colSpan={6} className="px-4 py-3">
-                          {addingTaskForProject === group.projectId ? (
-                            <div className="flex max-w-md items-center gap-2">
-                              <Plus className="h-4 w-4 text-gray-400" />
-                              <Input
-                                autoFocus
-                                value={newTaskTitle}
-                                onChange={(event) => setNewTaskTitle(event.target.value)}
-                                onBlur={() => {
-                                  if (newTaskTitle.trim()) void handleCreateProjectTask(group.projectId);
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") event.currentTarget.blur();
-                                  if (event.key === "Escape") {
-                                    setNewTaskTitle("");
-                                    setAddingTaskForProject(null);
-                                  }
-                                }}
-                                placeholder="+ Agregar task"
-                                className="h-8"
-                              />
-                            </div>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setAddingTaskForProject(group.projectId);
-                                setNewTaskTitle("");
-                              }}
-                              className="gap-2 text-gray-500"
-                            >
-                              <Plus className="h-4 w-4" />
-                              Agregar task
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )}
+                    {!isCollapsed && getStatusSections(group.tasks).map((section) => {
+                      const sectionKey = `${group.projectId}:${section.label.id}`;
+                      const isStatusCollapsed = collapsedStatusSections.has(sectionKey);
+
+                      return (
+                        <React.Fragment key={sectionKey}>
+                          <TableRow className="bg-white hover:bg-white">
+                            <TableCell colSpan={6} className="px-6 pb-2 pt-8">
+                              <div className={cn("grid items-center gap-4 text-sm text-gray-500", TASK_TABLE_GRID)}>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleStatusCollapse(sectionKey)}
+                                  className="flex min-w-0 items-center gap-2 text-left hover:text-gray-900"
+                                  aria-expanded={!isStatusCollapsed}
+                                >
+                                  <ChevronDown className={cn("h-4 w-4 text-gray-500 transition-transform", isStatusCollapsed && "-rotate-90")} />
+                                  <span className="h-4 w-4 rounded-full" style={{ backgroundColor: section.label.color }} />
+                                  <span>{section.label.label}</span>
+                                  <span className="text-xs text-gray-400">{section.tasks.length}</span>
+                                </button>
+                                <span className="text-base text-gray-500">Responsable</span>
+                                <span className="text-base text-gray-500">Fecha vencimiento</span>
+                                <span className="text-base text-gray-500">Prioridad</span>
+                                <span className="text-base text-gray-500">Estado</span>
+                                <span />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {!isStatusCollapsed && section.tasks.map((task) => renderTaskRow(task))}
+                        </React.Fragment>
+                      );
+                    })}
                   </React.Fragment>
                 );
               })}
