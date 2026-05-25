@@ -692,10 +692,10 @@ function InlineAssigneePicker({
         >
           {assignedUsers.length ? (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-sm font-medium text-gray-500">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-sm font-medium text-gray-500">
                 {userInitials(assignedUsers[0])}
               </span>
-              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-gray-500">
+              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-[#A6A6A1]">
                 {assignedUsers.map((user) => user.name || user.email).join(", ")}
               </span>
             </>
@@ -841,10 +841,10 @@ function InlinePartidaPicker({
         >
           {selectedPartidas.length ? (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-sm font-medium text-gray-500">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-sm font-medium text-gray-500">
                 {selectedPartidas.length}
               </span>
-              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-gray-500">
+              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-[#A6A6A1]">
                 {selectedPartidas.map(partidaDisplayName).join(", ")}
               </span>
             </>
@@ -1613,7 +1613,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   {overdue && <CircleAlert className="h-4 w-4 shrink-0 text-red-500" />}
                   {isSaving && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-gray-400" />}
                 </div>
-                {task.descripcion && (
+                {/* {task.descripcion && (
                   <button
                     type="button"
                     onClick={() => setSelectedTaskId(task._id)}
@@ -1621,10 +1621,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   >
                     {task.descripcion}
                   </button>
-                )}
-                <p className="mt-1 px-2 text-xs text-gray-400">
+                )} */}
+                {/* <p className="mt-1 px-2 text-xs text-gray-400">
                   {task.categoria || "General"} · Creada por {task.created_by_name}
-                </p>
+                </p> */}
               </div>
             </div>
             <InlineAssigneePicker
