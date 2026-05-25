@@ -479,6 +479,7 @@ export default defineSchema({
     titulo: v.string(),
     descripcion: v.optional(v.string()),
     asignados: v.array(v.id("users")),
+    partidas: v.optional(v.array(v.id("partidas"))),
     created_by_id: v.id("users"),
     created_by_name: v.string(),
     status: v.string(), // Pendiente, En progreso, Bloqueada, Completada, Cancelada

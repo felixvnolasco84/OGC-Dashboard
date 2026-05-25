@@ -95,7 +95,7 @@ const TASK_UI_COLORS = {
   itemBg: "#FBFBFB",
   itemBorder: "#E6E6E6",
 };
-const TASK_TABLE_GRID = "grid-cols-[minmax(360px,1.6fr)_minmax(200px,1fr)_180px_160px_160px_48px]";
+const TASK_TABLE_GRID = "grid-cols-[minmax(360px,1.6fr)_minmax(220px,1fr)_180px_160px_160px_minmax(220px,1fr)_48px]";
 
 type UserSummary = {
   _id: Id<"users">;
@@ -113,6 +113,7 @@ type Task = {
   titulo: string;
   descripcion?: string;
   asignados: Id<"users">[];
+  partidas?: Id<"partidas">[];
   status: string;
   prioridad: string;
   fecha_limite?: string;
@@ -123,6 +124,16 @@ type Task = {
   updated_at?: number;
   completed_at?: number;
   assigned_users?: UserSummary[];
+  assigned_partidas?: PartidaSummary[];
+};
+
+type PartidaSummary = {
+  _id: Id<"partidas">;
+  nombre: string;
+  familia?: string;
+  sub_partida?: string;
+  partida_nombre?: string;
+  nivel: number;
 };
 
 type TaskComment = {
@@ -243,6 +254,7 @@ function emptyForm() {
     fecha_limite: "",
     categoria: "General",
     asignados: new Set<string>(),
+    partidas: new Set<string>(),
   };
 }
 
@@ -332,6 +344,7 @@ function historyLabel(item: TaskHistory) {
     return `Cambio el estado de ${formatHistoryValue(item.old_value)} a ${formatHistoryValue(item.new_value)}`;
   }
   if (item.field_changed === "asignados") return "Actualizo los asignados";
+  if (item.field_changed === "partidas") return "Actualizo las partidas";
   if (item.field_changed) return `Actualizo ${item.field_changed.replace("_", " ")}`;
   return "Actualizo la tarea";
 }
@@ -379,19 +392,6 @@ function userInitials(user: Pick<UserSummary, "name" | "email">) {
   return source.slice(0, 2).toUpperCase();
 }
 
-function assigneeColor(seed: string) {
-  const colors = [
-    "bg-violet-500",
-    "bg-blue-500",
-    "bg-emerald-500",
-    "bg-rose-500",
-    "bg-amber-500",
-    "bg-cyan-500",
-  ];
-  const total = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return colors[total % colors.length];
-}
-
 function normalizeStoredLabels(value: string | null, fallback: TaskLabelOption[]) {
   if (!value) return fallback;
   try {
@@ -407,6 +407,20 @@ function normalizeStoredLabels(value: string | null, fallback: TaskLabelOption[]
   } catch {
     return fallback;
   }
+}
+
+function partidaDisplayName(partida: PartidaSummary) {
+  if (partida.nivel === 3) return partida.sub_partida || partida.nombre;
+  if (partida.nivel === 2) return partida.familia || partida.nombre;
+  return partida.nombre;
+}
+
+function partidaContext(partida: PartidaSummary) {
+  if (partida.nivel === 3) {
+    return [partida.partida_nombre || partida.nombre, partida.familia].filter(Boolean).join(" / ");
+  }
+  if (partida.nivel === 2) return partida.partida_nombre || partida.nombre;
+  return "Partida";
 }
 
 function labelForValue(value: string, labels: TaskLabelOption[]) {
@@ -678,17 +692,12 @@ function InlineAssigneePicker({
         >
           {assignedUsers.length ? (
             <>
-              <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white", assigneeColor(assignedUsers[0]._id))}>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-sm font-medium text-gray-500">
                 {userInitials(assignedUsers[0])}
               </span>
-              <span className="min-w-0 flex-1 truncate text-base text-gray-400">
-                {assignedUsers[0].name || assignedUsers[0].email}
+              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-gray-500">
+                {assignedUsers.map((user) => user.name || user.email).join(", ")}
               </span>
-              {assignedUsers.length > 1 && (
-                <span className="inline-flex h-6 items-center rounded-full bg-gray-100 px-2 text-xs text-gray-500">
-                  +{assignedUsers.length - 1}
-                </span>
-              )}
             </>
           ) : (
             <>
@@ -708,9 +717,9 @@ function InlineAssigneePicker({
                 key={user._id}
                 type="button"
                 onClick={() => toggleUser(user._id)}
-                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-blue-50 px-2 text-xs text-blue-800 hover:bg-blue-100"
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-gray-100 px-2 text-xs text-gray-700 hover:bg-gray-200"
               >
-                <span className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium text-white", assigneeColor(user._id))}>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-[10px] font-medium text-gray-500">
                   {userInitials(user)}
                 </span>
                 <span className="max-w-36 truncate">{user.name || user.email}</span>
@@ -756,21 +765,167 @@ function InlineAssigneePicker({
                   selected && "bg-gray-100"
                 )}
               >
-                <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium text-white", assigneeColor(user._id))}>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-medium text-gray-500">
                   {userInitials(user)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-gray-800">{user.name || user.email}</span>
                   <span className="block truncate text-xs text-gray-500">{user.role}</span>
                 </span>
-                {selected && <CheckCircle2 className="h-4 w-4 text-blue-600" />}
+                {selected && <CheckCircle2 className="h-4 w-4 text-gray-600" />}
               </button>
             );
           })}
         </div>
-        <div className="flex items-center gap-2 border-t border-gray-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
           <Bell className="h-4 w-4" />
           Se notificara a los responsables
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function InlinePartidaPicker({
+  task,
+  disabled,
+  onChange,
+}: {
+  task: Task;
+  disabled: boolean;
+  onChange: (partidas: Id<"partidas">[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const projectPartidas = useQuery(api.partida.getByProject, { projectId: task.proyecto }) as PartidaSummary[] | undefined;
+  const selectedPartidaIds = useMemo(() => new Set(task.partidas || []), [task.partidas]);
+  const selectedPartidas = useMemo(() => {
+    const partidasById = new Map((projectPartidas || []).map((partida) => [partida._id, partida]));
+    return (task.partidas || [])
+      .map((id) => partidasById.get(id) || task.assigned_partidas?.find((partida) => partida._id === id))
+      .filter(Boolean) as PartidaSummary[];
+  }, [projectPartidas, task.partidas, task.assigned_partidas]);
+  const filteredPartidas = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return (projectPartidas || []).filter((partida) => {
+      if (!term) return true;
+      return (
+        partida.nombre.toLowerCase().includes(term) ||
+        partida.familia?.toLowerCase().includes(term) ||
+        partida.sub_partida?.toLowerCase().includes(term) ||
+        partida.partida_nombre?.toLowerCase().includes(term)
+      );
+    });
+  }, [projectPartidas, searchTerm]);
+
+  const togglePartida = (partidaId: Id<"partidas">) => {
+    const next = new Set(task.partidas || []);
+    if (next.has(partidaId)) {
+      next.delete(partidaId);
+    } else {
+      next.add(partidaId);
+    }
+    onChange(Array.from(next));
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            "flex min-h-12 w-full min-w-44 items-center gap-3 rounded-none border-0 bg-transparent px-0 py-1 text-left hover:bg-transparent",
+            disabled && "cursor-not-allowed opacity-70"
+          )}
+        >
+          {selectedPartidas.length ? (
+            <>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-sm font-medium text-gray-500">
+                {selectedPartidas.length}
+              </span>
+              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-gray-500">
+                {selectedPartidas.map(partidaDisplayName).join(", ")}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-sm font-medium text-gray-500">
+                -
+              </span>
+              <span className="text-base text-gray-400">Sin partidas</span>
+            </>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+        <div className="border-b border-gray-100 p-3">
+          <div className="flex flex-wrap gap-1.5">
+            {selectedPartidas.length ? selectedPartidas.map((partida) => (
+              <button
+                key={partida._id}
+                type="button"
+                onClick={() => togglePartida(partida._id)}
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-gray-100 px-2 text-xs text-gray-700 hover:bg-gray-200"
+              >
+                <span className="max-w-44 truncate">{partidaDisplayName(partida)}</span>
+                <X className="h-3 w-3" />
+              </button>
+            )) : (
+              <span className="text-sm text-gray-400">Selecciona partidas</span>
+            )}
+          </div>
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar partidas, familias o subpartidas"
+              className="h-9 pl-9 pr-9"
+            />
+            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+        <div className="max-h-72 overflow-y-auto p-2">
+          <p className="px-2 pb-1 text-xs font-medium text-gray-500">Partidas del proyecto</p>
+          {!projectPartidas && (
+            <div className="flex h-24 items-center justify-center text-gray-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          )}
+          {projectPartidas && filteredPartidas.length === 0 && (
+            <div className="px-2 py-6 text-center text-sm text-gray-500">
+              No hay partidas con esa busqueda.
+            </div>
+          )}
+          {filteredPartidas.map((partida) => {
+            const selected = selectedPartidaIds.has(partida._id);
+
+            return (
+              <button
+                key={partida._id}
+                type="button"
+                onClick={() => togglePartida(partida._id)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100",
+                  selected && "bg-gray-100"
+                )}
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-medium text-gray-500">
+                  {partida.nivel}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium text-gray-800">{partidaDisplayName(partida)}</span>
+                  <span className="block truncate text-xs text-gray-500">{partidaContext(partida)}</span>
+                </span>
+                {selected && <CheckCircle2 className="h-4 w-4 text-gray-600" />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <ListChecks className="h-4 w-4" />
+          Se relacionara con la tarea
         </div>
       </PopoverContent>
     </Popover>
@@ -808,6 +963,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     api.tareas.getAssignableUsers,
     selectedFormProjectId ? { proyecto: selectedFormProjectId as Id<"desarrollos"> } : "skip"
   );
+  const formPartidas = useQuery(
+    api.partida.getByProject,
+    selectedFormProjectId ? { projectId: selectedFormProjectId as Id<"desarrollos"> } : "skip"
+  ) as PartidaSummary[] | undefined;
   const projectNotifications = useQuery(
     api.tareas.getNotifications,
     proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, limit: 60 } : "skip"
@@ -1016,6 +1175,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       fecha_limite: task.fecha_limite || "",
       categoria: task.categoria || "General",
       asignados: new Set(task.asignados),
+      partidas: new Set(task.partidas || []),
     });
     setDialogOpen(true);
   };
@@ -1029,6 +1189,18 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         next.add(userId);
       }
       return { ...current, asignados: next };
+    });
+  };
+
+  const togglePartida = (partidaId: string) => {
+    setForm((current) => {
+      const next = new Set(current.partidas);
+      if (next.has(partidaId)) {
+        next.delete(partidaId);
+      } else {
+        next.add(partidaId);
+      }
+      return { ...current, partidas: next };
     });
   };
 
@@ -1052,6 +1224,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       titulo: form.titulo,
       descripcion: form.descripcion || undefined,
       asignados: Array.from(form.asignados) as Id<"users">[],
+      partidas: Array.from(form.partidas) as Id<"partidas">[],
       prioridad: form.prioridad,
       fecha_limite: form.fecha_limite || undefined,
       categoria: form.categoria,
@@ -1099,7 +1272,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
   const handleInlineUpdate = async (
     task: Task,
-    changes: Partial<Pick<Task, "titulo" | "fecha_limite" | "prioridad" | "status" | "categoria" | "proyecto" | "asignados">>
+    changes: Partial<Pick<Task, "titulo" | "fecha_limite" | "prioridad" | "status" | "categoria" | "proyecto" | "asignados" | "partidas">>
   ) => {
     if (currentUser?.role === "viewer") return;
 
@@ -1117,6 +1290,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         titulo: nextTitle,
         descripcion: task.descripcion || undefined,
         asignados: changes.asignados ?? task.asignados,
+        partidas: changes.partidas ?? task.partidas ?? [],
         status: changes.status ?? task.status,
         prioridad: changes.prioridad ?? task.prioridad,
         fecha_limite: changes.fecha_limite || undefined,
@@ -1142,6 +1316,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         titulo: subtaskTitle,
         descripcion: undefined,
         asignados: parent.asignados,
+        partidas: parent.partidas || [],
         prioridad: parent.prioridad,
         fecha_limite: undefined,
         categoria: parent.categoria || "General",
@@ -1351,7 +1526,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             draggingTaskId && draggingTaskId !== task._id && "data-[drop=true]:bg-blue-50"
           )}
         >
-          <TableCell className="p-0" colSpan={6}>
+          <TableCell className="p-0" colSpan={7}>
             <div
               className={cn(
                 "grid items-start gap-4 rounded-md border bg-[#FBFBFB] px-6 py-2 transition group-hover:bg-[#F1F1F1]",
@@ -1386,8 +1561,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <button
                     type="button"
                     onClick={() => toggleTaskCollapse(task._id)}
-                    className="flex h-7 w-7 items-center justify-center rounded-md border text-white hover:brightness-95"
-                    style={{ backgroundColor: TASK_UI_COLORS.blue, borderColor: TASK_UI_COLORS.blue }}
+                    className="flex h-7 w-7 items-center justify-center rounded-md border hover:brightness-95  text-black"
+                    // style={{ backgroundColor: TASK_UI_COLORS.blue, borderColor: TASK_UI_COLORS.blue }}
                     aria-expanded={!isTaskCollapsed}
                   >
                     <ChevronDown className={cn("h-4 w-4 transition-transform", isTaskCollapsed && "-rotate-90")} />
@@ -1477,6 +1652,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               onSelect={(value) => handleStatusChange(task, value)}
               onLabelsChange={setStatusLabels}
             />
+            <InlinePartidaPicker
+              task={task}
+              disabled={currentUser?.role === "viewer" || isSaving}
+              onChange={(partidas) => handleInlineUpdate(task, { partidas })}
+            />
             <div className="flex justify-end">
               <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-8 w-8">
                 <MoreHorizontal className="h-4 w-4" />
@@ -1488,8 +1668,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         {level === 0 && !isTaskCollapsed && childTasks.map((child) => renderTaskRow(child, 1))}
         {level === 0 && !isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
           <TableRow key={`${task._id}-new-subtask`} className="bg-[#FBFBFB] hover:bg-[#F1F1F1]">
-            <TableCell className="px-0 py-0" colSpan={6}>
-              <div className="ml-14 border-l-4 px-4 py-2" style={{ borderColor: TASK_UI_COLORS.green }}>
+            <TableCell className="px-0 py-0" colSpan={7}>
+              {/* <div className="ml-14 border-l-2 px-4 py-2" style={{ borderColor: TASK_UI_COLORS.green }}> */}
+              <div className="ml-14 px-4 py-2" style={{ borderColor: TASK_UI_COLORS.green }}>
                 {addingSubtaskFor === task._id ? (
                   <div className="flex items-center gap-2">
                     <Checkbox disabled />
@@ -1670,7 +1851,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <React.Fragment key={group.projectId}>
                     {!isProjectScoped && (
                       <TableRow className="border-t bg-white hover:bg-white">
-                        <TableCell colSpan={6} className="p-0">
+                        <TableCell colSpan={7} className="p-0">
                           <button
                             type="button"
                             onClick={() => toggleProjectCollapse(group.projectId)}
@@ -1680,7 +1861,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                             <ChevronDown className={cn("h-4 w-4 text-gray-500 transition-transform", isCollapsed && "-rotate-90")} />
                             <span className="font-medium text-gray-600">{group.projectName}</span>
                             <span className="rounded-sm bg-[#FBFBFB] px-4 py-1 text-xs text-gray-500">{group.tasks.length} tareas</span>
-                            <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                            {/* <MoreHorizontal className="h-4 w-4 text-gray-400" /> */}
                           </button>
                         </TableCell>
                       </TableRow>
@@ -1692,7 +1873,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       return (
                         <React.Fragment key={sectionKey}>
                           <TableRow className="bg-white hover:bg-white">
-                            <TableCell colSpan={6} className="px-6 pb-2 pt-8">
+                            <TableCell colSpan={7} className="px-6 pb-2 pt-8">
                               <div className={cn("grid items-center gap-4 text-sm text-gray-500", TASK_TABLE_GRID)}>
                                 <button
                                   type="button"
@@ -1709,6 +1890,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                 <span className="text-base text-gray-500">Fecha vencimiento</span>
                                 <span className="text-base text-gray-500">Prioridad</span>
                                 <span className="text-base text-gray-500">Estado</span>
+                                <span className="text-base text-gray-500">Partidas</span>
                                 <span />
                               </div>
                             </TableCell>
@@ -1722,7 +1904,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               })}
               {groupedTasks.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-gray-500">
+                  <TableCell colSpan={7} className="h-32 text-center text-gray-500">
                     No hay tareas con los filtros actuales.
                   </TableCell>
                 </TableRow>
@@ -2151,6 +2333,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     ...current,
                     proyecto: value,
                     asignados: new Set(),
+                    partidas: new Set(),
                   }))
                 }
               >
@@ -2284,6 +2467,38 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       <span className="truncate text-xs text-gray-500">{user.email}</span>
                     </span>
                     <span className="ml-auto text-xs text-gray-400">{user.role}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Partidas</Label>
+              <div className="max-h-52 overflow-y-auto border border-gray-200 p-3">
+                {!selectedFormProjectId && (
+                  <div className="py-4 text-center text-sm text-gray-500">
+                    Selecciona un proyecto para ver partidas disponibles.
+                  </div>
+                )}
+                {selectedFormProjectId && !formPartidas && (
+                  <div className="flex h-20 items-center justify-center text-gray-500">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                )}
+                {(formPartidas || []).map((partida) => (
+                  <label
+                    key={partida._id}
+                    className="flex cursor-pointer items-center gap-3 border-b border-gray-100 py-2 last:border-b-0"
+                  >
+                    <Checkbox
+                      checked={form.partidas.has(partida._id)}
+                      onCheckedChange={() => togglePartida(partida._id)}
+                    />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-sm font-medium text-gray-900">{partidaDisplayName(partida)}</span>
+                      <span className="truncate text-xs text-gray-500">{partidaContext(partida)}</span>
+                    </span>
+                    <span className="ml-auto text-xs text-gray-400">N{partida.nivel}</span>
                   </label>
                 ))}
               </div>

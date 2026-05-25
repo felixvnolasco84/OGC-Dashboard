@@ -5,6 +5,256 @@ import { mutation } from "./functions";
 import { v } from "convex/values";
 import { assertCanWrite } from "./permissions";
 
+type PartidaTotals = {
+  presupuesto_original: number;
+  presupuesto_aprobado: number;
+  pagado: number;
+  por_gastar: number;
+};
+
+type SyncPartidaResult = {
+  partida: string;
+  nivel1Updated: number;
+  familiasUpdated: number;
+  familiasSynced: number;
+  subPartidasCount: number;
+};
+
+function totalsFromPartidas(partidas: Doc<"partidas">[]): PartidaTotals {
+  const presupuesto_original = partidas.reduce((sum, item) => sum + (item.presupuesto_original || 0), 0);
+  const presupuesto_aprobado = partidas.reduce((sum, item) => sum + (item.presupuesto_aprobado || 0), 0);
+  const pagado = partidas.reduce((sum, item) => sum + (item.pagado || 0), 0);
+  return {
+    presupuesto_original,
+    presupuesto_aprobado,
+    pagado,
+    por_gastar: presupuesto_aprobado - pagado,
+  };
+}
+
+function totalsChanged(item: Doc<"partidas">, totals: PartidaTotals) {
+  return (
+    item.presupuesto_original !== totals.presupuesto_original ||
+    item.presupuesto_aprobado !== totals.presupuesto_aprobado ||
+    item.pagado !== totals.pagado ||
+    item.por_gastar !== totals.por_gastar
+  );
+}
+
+async function patchTotalsIfChanged(ctx: any, item: Doc<"partidas">, totals: PartidaTotals) {
+  if (!totalsChanged(item, totals)) return false;
+  await ctx.db.patch(item._id, totals);
+  return true;
+}
+
+async function updateProjectMetrics(ctx: any, proyecto: Id<"desarrollos">) {
+  const nivel1Partidas = await ctx.db
+    .query("partidas")
+    .withIndex("by_nivel_proyecto", (q: any) => q.eq("nivel", 1).eq("proyecto", proyecto))
+    .collect();
+  const totals = totalsFromPartidas(nivel1Partidas);
+
+  const existingMetrics = await ctx.db
+    .query("meticas_presupuesto")
+    .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyecto))
+    .first();
+
+  if (existingMetrics) {
+    await ctx.db.patch(existingMetrics._id, {
+      presupuesto_original: totals.presupuesto_original,
+      presupuesto_aprobado: totals.presupuesto_aprobado,
+      gasto_total: totals.pagado,
+      por_gastar: totals.por_gastar,
+    });
+  } else {
+    await ctx.db.insert("meticas_presupuesto", {
+      proyecto,
+      presupuesto_original: totals.presupuesto_original,
+      presupuesto_aprobado: totals.presupuesto_aprobado,
+      gasto_total: totals.pagado,
+      por_gastar: totals.por_gastar,
+    });
+  }
+}
+
+async function recalculateFamiliaRollup(
+  ctx: any,
+  args: {
+    proyecto: Id<"desarrollos">;
+    partidaNombre: string;
+    familia: string;
+  }
+) {
+  const nivel2Items = await ctx.db
+    .query("partidas")
+    .withIndex("by_proyecto_nivel_partida_familia", (q: any) =>
+      q.eq("proyecto", args.proyecto).eq("nivel", 2).eq("partida_nombre", args.partidaNombre).eq("familia", args.familia)
+    )
+    .collect();
+
+  if (nivel2Items.length === 0) return;
+
+  const nivel3Items = await ctx.db
+    .query("partidas")
+    .withIndex("by_proyecto_nivel_partida_familia", (q: any) =>
+      q.eq("proyecto", args.proyecto).eq("nivel", 3).eq("partida_nombre", args.partidaNombre).eq("familia", args.familia)
+    )
+    .collect();
+
+  if (nivel3Items.length === 0) return;
+
+  const totals = totalsFromPartidas(nivel3Items);
+  for (const item of nivel2Items) {
+    await patchTotalsIfChanged(ctx, item, totals);
+  }
+}
+
+async function recalculatePartidaRollup(
+  ctx: any,
+  args: {
+    proyecto: Id<"desarrollos">;
+    partidaNombre: string;
+  }
+) {
+  const nivel1Items: Doc<"partidas">[] = await ctx.db
+    .query("partidas")
+    .withIndex("by_proyecto_nivel_nombre", (q: any) =>
+      q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", args.partidaNombre)
+    )
+    .collect() as Doc<"partidas">[];
+
+  if (nivel1Items.length === 0) return;
+
+  const nivel2Items: Doc<"partidas">[] = await ctx.db
+    .query("partidas")
+    .withIndex("by_proyecto_nivel_partida", (q: any) =>
+      q.eq("proyecto", args.proyecto).eq("nivel", 2).eq("partida_nombre", args.partidaNombre)
+    )
+    .collect() as Doc<"partidas">[];
+
+  if (nivel2Items.length === 0) return;
+
+  const totals = totalsFromPartidas(nivel2Items);
+  for (const item of nivel1Items) {
+    await patchTotalsIfChanged(ctx, item, totals);
+  }
+}
+
+async function syncNivel1PartidaAmounts(
+  ctx: any,
+  args: {
+    proyecto: Id<"desarrollos">;
+    partidaNombre: string;
+  }
+): Promise<SyncPartidaResult> {
+  const nivel1Items: Doc<"partidas">[] = await ctx.db
+    .query("partidas")
+    .withIndex("by_proyecto_nivel_nombre", (q: any) =>
+      q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", args.partidaNombre)
+    )
+    .collect();
+
+  const nivel2Items: Doc<"partidas">[] = await ctx.db
+    .query("partidas")
+    .withIndex("by_proyecto_nivel_partida", (q: any) =>
+      q.eq("proyecto", args.proyecto).eq("nivel", 2).eq("partida_nombre", args.partidaNombre)
+    )
+    .collect();
+
+  const nivel3Items: Doc<"partidas">[] = await ctx.db
+    .query("partidas")
+    .withIndex("by_proyecto_nivel_partida", (q: any) =>
+      q.eq("proyecto", args.proyecto).eq("nivel", 3).eq("partida_nombre", args.partidaNombre)
+    )
+    .collect();
+
+  let familiasUpdated = 0;
+  const familias = Array.from(new Set(nivel2Items.map((item) => item.familia).filter(Boolean)));
+
+  for (const familia of familias) {
+    const familiaNivel2Items = nivel2Items.filter((item) => item.familia === familia);
+    const familiaNivel3Items = nivel3Items.filter((item) => item.familia === familia);
+
+    if (familiaNivel3Items.length === 0) {
+      const directTotals = totalsFromPartidas(familiaNivel2Items);
+      for (const item of familiaNivel2Items) {
+        const changed = await patchTotalsIfChanged(ctx, item, {
+          presupuesto_original: item.presupuesto_original || 0,
+          presupuesto_aprobado: item.presupuesto_aprobado || 0,
+          pagado: item.pagado || 0,
+          por_gastar: (item.presupuesto_aprobado || 0) - (item.pagado || 0),
+        });
+        if (changed) familiasUpdated += 1;
+      }
+
+      if (familiaNivel2Items.length > 1) {
+        for (const item of familiaNivel2Items) {
+          const changed = await patchTotalsIfChanged(ctx, item, directTotals);
+          if (changed) familiasUpdated += 1;
+        }
+      }
+      continue;
+    }
+
+    const totals = totalsFromPartidas(familiaNivel3Items);
+    for (const item of familiaNivel2Items) {
+      const changed = await patchTotalsIfChanged(ctx, item, totals);
+      if (changed) familiasUpdated += 1;
+    }
+  }
+
+  const updatedNivel2Items: Doc<"partidas">[] = await ctx.db
+    .query("partidas")
+    .withIndex("by_proyecto_nivel_partida", (q: any) =>
+      q.eq("proyecto", args.proyecto).eq("nivel", 2).eq("partida_nombre", args.partidaNombre)
+    )
+    .collect();
+
+  let nivel1Updated = 0;
+  const nivel1Totals = updatedNivel2Items.length > 0
+    ? totalsFromPartidas(updatedNivel2Items)
+    : totalsFromPartidas(nivel1Items);
+
+  for (const item of nivel1Items) {
+    const changed = await patchTotalsIfChanged(ctx, item, nivel1Totals);
+    if (changed) nivel1Updated += 1;
+  }
+
+  return {
+    partida: args.partidaNombre,
+    nivel1Updated,
+    familiasUpdated,
+    familiasSynced: familias.length,
+    subPartidasCount: nivel3Items.length,
+  };
+}
+
+async function recalculateBudgetAfterPartidaChange(
+  ctx: any,
+  partida: Doc<"partidas">
+) {
+  if (!partida.proyecto) return;
+
+  const partidaNombre = partida.nivel === 1 ? partida.nombre : (partida.partida_nombre || partida.nombre);
+
+  if (partida.nivel === 3 && partida.familia) {
+    await recalculateFamiliaRollup(ctx, {
+      proyecto: partida.proyecto,
+      partidaNombre,
+      familia: partida.familia,
+    });
+  }
+
+  if (partida.nivel === 2 || partida.nivel === 3) {
+    await recalculatePartidaRollup(ctx, {
+      proyecto: partida.proyecto,
+      partidaNombre,
+    });
+  }
+
+  await updateProjectMetrics(ctx, partida.proyecto);
+}
+
 
 //TODO: IMPLEMENT PAGINATION IN THE REST OF THE APP WHERE IT MAKES SENSE
 export const list = query({
@@ -269,30 +519,10 @@ export const createPartida = mutation({
       proyecto: args.proyecto,
     });
 
-    // Update meticas_presupuesto only when adding a nivel 1 partida (matches syncProjectData logic)
-    if (args.nivel === 1 && args.proyecto) {
-      const existingMetrics = await ctx.db
-        .query("meticas_presupuesto")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto!))
-        .first();
-
-      if (existingMetrics) {
-        await ctx.db.patch(existingMetrics._id, {
-          presupuesto_original:
-            (existingMetrics.presupuesto_original || 0) + (args.presupuesto_original || 0),
-          presupuesto_aprobado:
-            (existingMetrics.presupuesto_aprobado || 0) + (args.presupuesto_aprobado || 0),
-          gasto_total: (existingMetrics.gasto_total || 0) + (args.pagado || 0),
-          por_gastar: (existingMetrics.por_gastar || 0) + porGastar,
-        });
-      } else {
-        await ctx.db.insert("meticas_presupuesto", {
-          proyecto: args.proyecto,
-          presupuesto_original: args.presupuesto_original || 0,
-          presupuesto_aprobado: args.presupuesto_aprobado || 0,
-          gasto_total: args.pagado || 0,
-          por_gastar: porGastar,
-        });
+    if (args.proyecto) {
+      const createdPartida = await ctx.db.get(partidaId);
+      if (createdPartida) {
+        await recalculateBudgetAfterPartidaChange(ctx, createdPartida);
       }
     }
 
@@ -327,9 +557,15 @@ export const update = mutation({
       throw new Error("Not found");
     }
 
-    const updatedPartida = await ctx.db.patch(args.id, {
+    const porGastar = (args.presupuesto_aprobado || 0) - (args.pagado || 0);
+    await ctx.db.patch(args.id, {
       ...rest,
+      por_gastar: porGastar,
     });
+    const updatedPartida = await ctx.db.get(args.id);
+    if (updatedPartida) {
+      await recalculateBudgetAfterPartidaChange(ctx, updatedPartida);
+    }
     return updatedPartida;
   },
 });
@@ -486,6 +722,54 @@ export const getById = query({
       ...partida,
       proyectoData: proyectoData,
       pagos: pagosWithTransactionData
+    };
+  },
+});
+
+export const syncMontosPorPartidaNivel1 = mutation({
+  args: {
+    projectId: v.id("desarrollos"),
+    partidaId: v.optional(v.id("partidas")),
+    partidaNombre: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let targetPartidaNames: string[] = [];
+
+    if (args.partidaId) {
+      const partida = await ctx.db.get(args.partidaId);
+      if (!partida || partida.proyecto !== args.projectId || partida.nivel !== 1) {
+        throw new Error("La partida nivel 1 no existe o no pertenece al proyecto");
+      }
+      targetPartidaNames = [partida.nombre];
+    } else if (args.partidaNombre?.trim()) {
+      targetPartidaNames = [args.partidaNombre.trim()];
+    } else {
+      const nivel1Partidas = await ctx.db
+        .query("partidas")
+        .withIndex("by_nivel_proyecto", (q) =>
+          q.eq("nivel", 1).eq("proyecto", args.projectId)
+        )
+        .collect();
+      targetPartidaNames = Array.from(new Set(nivel1Partidas.map((partida) => partida.nombre)));
+    }
+
+    const results: SyncPartidaResult[] = [];
+    for (const partidaNombre of targetPartidaNames) {
+      const result = await syncNivel1PartidaAmounts(ctx, {
+        proyecto: args.projectId,
+        partidaNombre,
+      });
+      results.push(result);
+    }
+
+    await updateProjectMetrics(ctx, args.projectId);
+
+    return {
+      projectId: args.projectId,
+      syncedPartidas: results.length,
+      nivel1Updated: results.reduce((sum, item) => sum + item.nivel1Updated, 0),
+      familiasUpdated: results.reduce((sum, item) => sum + item.familiasUpdated, 0),
+      results,
     };
   },
 });

@@ -37,6 +37,19 @@ function stringifyValue(value: unknown) {
   return typeof value === "string" ? value : JSON.stringify(value);
 }
 
+async function ensurePartidasBelongToProject(
+  ctx: QueryCtx | MutationCtx,
+  partidas: Id<"partidas">[] | undefined,
+  proyecto: Id<"desarrollos">
+) {
+  for (const partidaId of partidas || []) {
+    const partida = await ctx.db.get(partidaId);
+    if (!partida || partida.proyecto !== proyecto) {
+      throw new Error("Las partidas deben pertenecer al mismo proyecto de la tarea");
+    }
+  }
+}
+
 async function insertHistory(
   ctx: MutationCtx,
   args: {
@@ -132,6 +145,7 @@ async function completeParentIfAllChildrenDone(
 
 async function enrichTask(ctx: QueryCtx | MutationCtx, task: Doc<"tareas">) {
   const assignedUsers = await Promise.all(task.asignados.map((id) => ctx.db.get(id)));
+  const assignedPartidas = await Promise.all((task.partidas || []).map((id) => ctx.db.get(id)));
   const creator = await ctx.db.get(task.created_by_id);
   const proyecto = await ctx.db.get(task.proyecto);
 
@@ -145,6 +159,16 @@ async function enrichTask(ctx: QueryCtx | MutationCtx, task: Doc<"tareas">) {
         name: user.name,
         email: user.email,
         role: user.role,
+      })),
+    assigned_partidas: assignedPartidas
+      .filter((partida) => partida !== null)
+      .map((partida) => ({
+        _id: partida._id,
+        nombre: partida.nombre,
+        familia: partida.familia,
+        sub_partida: partida.sub_partida,
+        partida_nombre: partida.partida_nombre,
+        nivel: partida.nivel,
       })),
     creator: creator
       ? {
@@ -524,6 +548,7 @@ export const create = mutation({
     titulo: v.string(),
     descripcion: v.optional(v.string()),
     asignados: v.array(v.id("users")),
+    partidas: v.optional(v.array(v.id("partidas"))),
     status: v.optional(v.string()),
     prioridad: v.string(),
     fecha_limite: v.optional(v.string()),
@@ -545,6 +570,7 @@ export const create = mutation({
         throw new Error("La tarea padre debe pertenecer al mismo proyecto");
       }
     }
+    await ensurePartidasBelongToProject(ctx, args.partidas, args.proyecto);
 
     const now = Date.now();
     const taskId = await ctx.db.insert("tareas", {
@@ -554,6 +580,7 @@ export const create = mutation({
       titulo,
       descripcion: args.descripcion?.trim() || undefined,
       asignados: args.asignados,
+      partidas: args.partidas || [],
       created_by_id: user._id,
       created_by_name: user.name,
       status: args.status || "Pendiente",
@@ -581,6 +608,7 @@ export const update = mutation({
     titulo: v.string(),
     descripcion: v.optional(v.string()),
     asignados: v.array(v.id("users")),
+    partidas: v.optional(v.array(v.id("partidas"))),
     status: v.string(),
     prioridad: v.string(),
     fecha_limite: v.optional(v.string()),
@@ -614,12 +642,15 @@ export const update = mutation({
         throw new Error("La tarea padre debe pertenecer al mismo proyecto");
       }
     }
+    const nextProject = args.proyecto || task.proyecto;
+    await ensurePartidasBelongToProject(ctx, args.partidas, nextProject);
     const nextTask = {
-      proyecto: args.proyecto || task.proyecto,
+      proyecto: nextProject,
       parent_task: args.parent_task,
       titulo,
       descripcion: args.descripcion?.trim() || undefined,
       asignados: args.asignados,
+      partidas: args.partidas || [],
       status: args.status,
       prioridad: args.prioridad,
       fecha_limite: args.fecha_limite,
@@ -657,6 +688,7 @@ export const update = mutation({
       "titulo",
       "descripcion",
       "asignados",
+      "partidas",
       "status",
       "prioridad",
       "fecha_limite",
@@ -712,6 +744,7 @@ export const duplicate = mutation({
       titulo: `${task.titulo} copia`,
       descripcion: task.descripcion,
       asignados: task.asignados,
+      partidas: task.partidas || [],
       created_by_id: user._id,
       created_by_name: user.name,
       status: "Pendiente",
