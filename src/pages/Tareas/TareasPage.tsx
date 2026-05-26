@@ -52,12 +52,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -96,6 +90,8 @@ const TASK_UI_COLORS = {
   itemBorder: "#E6E6E6",
 };
 const TASK_TABLE_GRID = "grid-cols-[minmax(360px,1.6fr)_minmax(220px,1fr)_180px_160px_160px_minmax(220px,1fr)_48px]";
+const TASK_VALUE_TEXT = "text-[#A3A39E]";
+const TASK_COLUMN_TEXT = "text-[#A5A5A0]";
 
 type UserSummary = {
   _id: Id<"users">;
@@ -457,7 +453,7 @@ function InlineDatePicker({
           disabled={disabled}
           className={cn(
             "h-9 w-44 justify-start rounded-none border-0 bg-transparent px-0 text-left text-base font-normal shadow-none hover:bg-transparent",
-            overdue ? "font-medium text-red-600" : "text-gray-400"
+            overdue ? "font-medium text-red-600" : TASK_VALUE_TEXT
           )}
         >
           {formatDate(value)}
@@ -558,7 +554,7 @@ function InlineLabelPicker({
         <Button
           type="button"
           disabled={disabled}
-          className="h-9 w-36 justify-start gap-2 rounded-none border-0 bg-transparent px-0 text-base font-normal text-gray-400 shadow-none hover:bg-transparent hover:text-gray-600"
+          className="h-9 w-36 justify-start gap-2 rounded-none border-0 bg-transparent px-0 text-base font-normal text-[#A3A39E] shadow-none hover:bg-transparent hover:text-[#898982]"
         >
           <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: activeLabel.color }} />
           <span className="truncate">{activeLabel.label}</span>
@@ -692,19 +688,19 @@ function InlineAssigneePicker({
         >
           {assignedUsers.length ? (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-sm font-medium text-gray-500">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-sm font-medium text-[#898982]">
                 {userInitials(assignedUsers[0])}
               </span>
-              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-[#A6A6A1]">
+              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-[#A3A39E]">
                 {assignedUsers.map((user) => user.name || user.email).join(", ")}
               </span>
             </>
           ) : (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-sm font-medium text-gray-500">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-sm font-medium text-[#898982]">
                 -
               </span>
-              <span className="text-base text-gray-400">Sin asignar</span>
+              <span className="text-base text-[#A3A39E]">Sin asignar</span>
             </>
           )}
         </button>
@@ -841,19 +837,19 @@ function InlinePartidaPicker({
         >
           {selectedPartidas.length ? (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-sm font-medium text-gray-500">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#F5F5F5] text-sm font-medium text-[#898982]">
                 {selectedPartidas.length}
               </span>
-              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-[#A6A6A1]">
+              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-[#A3A39E]">
                 {selectedPartidas.map(partidaDisplayName).join(", ")}
               </span>
             </>
           ) : (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-sm font-medium text-gray-500">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-sm font-medium text-[#898982]">
                 -
               </span>
-              <span className="text-base text-gray-400">Sin partidas</span>
+              <span className="text-base text-[#A3A39E]">Sin partidas</span>
             </>
           )}
         </button>
@@ -1506,7 +1502,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
     return (
       <React.Fragment key={task._id}>
-        <TableRow
+        <div
           key={task._id}
           onDragOver={(event) => {
             if (!draggingTaskId || draggingTaskId === task._id) return;
@@ -1521,20 +1517,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             setContextMenu({ task, x: event.clientX, y: event.clientY });
           }}
           className={cn(
-            "group border-0 bg-transparent hover:bg-transparent",
+            "group bg-transparent px-8 py-1",
             draggingTaskId === task._id && "opacity-50",
             draggingTaskId && draggingTaskId !== task._id && "data-[drop=true]:bg-blue-50"
           )}
         >
-          <TableCell className="p-0" colSpan={7}>
-            <div
-              className={cn(
-                "grid items-start gap-4 rounded-md border bg-[#FBFBFB] px-6 py-2 transition group-hover:bg-[#F1F1F1]",
-                TASK_TABLE_GRID
-              )}
-              style={{ borderColor: TASK_UI_COLORS.itemBorder }}
-            >
-            <div className="flex items-start gap-2" style={{ paddingLeft: level * 26 }}>
+          <div
+            className={cn(
+              "grid min-h-[68px] items-center gap-4 rounded-md border bg-[#FBFBFB] px-6 py-2 transition group-hover:bg-[#F1F1F1]",
+              TASK_TABLE_GRID
+            )}
+            style={{ borderColor: TASK_UI_COLORS.itemBorder }}
+          >
+            <div className="flex items-center gap-2" style={{ paddingLeft: level * 26 }}>
               <button
                 type="button"
                 draggable={currentUser?.role !== "viewer"}
@@ -1544,12 +1539,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   setDraggingTaskId(task._id);
                 }}
                 onDragEnd={() => setDraggingTaskId(null)}
-                className="mt-2 flex h-6 w-5 shrink-0 cursor-grab items-center justify-center text-gray-400 opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+                className="flex h-6 w-5 shrink-0 cursor-grab items-center justify-center text-[#A3A39E] opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
                 aria-label="Reordenar tarea"
               >
                 <GripVertical className="h-4 w-4" />
               </button>
-              <div className="relative mt-1 flex h-8 shrink-0 items-center gap-2">
+              <div className="relative flex h-8 shrink-0 items-center gap-2">
                 {level > 0 && (
                   <>
                     <span className="absolute -left-6 top-1/2 h-px w-6 bg-gray-300" />
@@ -1658,19 +1653,16 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               onChange={(partidas) => handleInlineUpdate(task, { partidas })}
             />
             <div className="flex justify-end">
-              <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-8 w-8">
+              <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-8 w-8 text-[#A3A39E] hover:text-[#898982]">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </div>
-            </div>
-          </TableCell>
-        </TableRow>
+          </div>
+        </div>
         {level === 0 && !isTaskCollapsed && childTasks.map((child) => renderTaskRow(child, 1))}
         {level === 0 && !isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
-          <TableRow key={`${task._id}-new-subtask`} className="bg-[#FBFBFB] hover:bg-[#F1F1F1]">
-            <TableCell className="px-0 py-0" colSpan={7}>
-              {/* <div className="ml-14 border-l-2 px-4 py-2" style={{ borderColor: TASK_UI_COLORS.green }}> */}
-              <div className="ml-14 px-4 py-2" style={{ borderColor: TASK_UI_COLORS.green }}>
+          <div key={`${task._id}-new-subtask`} className="px-8 py-1">
+              <div className="ml-14 px-4 py-2">
                 {addingSubtaskFor === task._id ? (
                   <div className="flex items-center gap-2">
                     <Checkbox disabled />
@@ -1706,8 +1698,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   </button>
                 )}
               </div>
-            </TableCell>
-          </TableRow>
+          </div>
         )}
       </React.Fragment>
     );
@@ -1743,19 +1734,23 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             <Button
               variant="outline"
               onClick={() => setNotificationsOpen(true)}
-              className="relative gap-2"
+              className="relative h-14 gap-3 rounded-sm border-[#DBDBDB] bg-white px-5 text-base font-normal text-[#898982] shadow-none hover:bg-white hover:text-[#898982]"
             >
-              <Bell className="h-4 w-4" />
+              <span className="h-3 w-3 rounded-full bg-[#50AC66]" />
               Notificaciones
               {unreadNotificationCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[11px] font-medium ">
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#50AC66] px-1.5 text-[11px] font-medium text-white">
                   {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
                 </span>
               )}
             </Button>
             {canCreate && (
-              <Button onClick={openCreateDialog} className="gap-2">
-                <Plus className="h-4 w-4" />
+              <Button
+                onClick={openCreateDialog}
+                variant="outline"
+                className="h-14 gap-3 rounded-sm border-[#DBDBDB] bg-white px-8 text-base font-normal text-[#898982] shadow-none hover:bg-white hover:text-[#898982]"
+              >
+                <Plus className="h-5 w-5 text-[#898982]" />
                 Nueva tarea
               </Button>
             )}
@@ -1841,76 +1836,74 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           )}
         </div>
 
-        <div className="overflow-hidden rounded-md border border-[#E6E6E6] bg-white">
-          <Table className="border-separate border-spacing-y-2">
-            <TableBody>
+        <div className="space-y-10 bg-white">
               {groupedTasks.map((group) => {
                 const isCollapsed = collapsedProjects.has(group.projectId);
 
                 return (
-                  <React.Fragment key={group.projectId}>
+                  <div
+                    key={group.projectId}
+                    className={cn(
+                      "overflow-hidden rounded-md border border-[#E6E6E6] bg-white",
+                      isProjectScoped && "border-0"
+                    )}
+                  >
                     {!isProjectScoped && (
-                      <TableRow className="border-t bg-white hover:bg-white">
-                        <TableCell colSpan={7} className="p-0">
-                          <button
-                            type="button"
-                            onClick={() => toggleProjectCollapse(group.projectId)}
-                            className="flex w-full items-center gap-3 px-6 py-8 text-left"
-                            aria-expanded={!isCollapsed}
-                          >
-                            <ChevronDown className={cn("h-4 w-4 text-gray-500 transition-transform", isCollapsed && "-rotate-90")} />
-                            <span className="font-medium text-gray-600">{group.projectName}</span>
-                            <span className="rounded-sm bg-[#FBFBFB] px-4 py-1 text-xs text-gray-500">{group.tasks.length} tareas</span>
-                            {/* <MoreHorizontal className="h-4 w-4 text-gray-400" /> */}
-                          </button>
-                        </TableCell>
-                      </TableRow>
+                      <button
+                        type="button"
+                        onClick={() => toggleProjectCollapse(group.projectId)}
+                        className={cn(
+                          "flex min-h-32 w-full items-center gap-3 bg-white px-8 text-left",
+                          !isCollapsed && "border-b border-[#E6E6E6]"
+                        )}
+                        aria-expanded={!isCollapsed}
+                      >
+                        <ChevronDown className={cn("h-4 w-4 text-[#898982] transition-transform", isCollapsed && "-rotate-90")} />
+                        <span className="font-medium text-[#898982]">{group.projectName}</span>
+                        <MoreHorizontal className="h-4 w-4 text-[#898982]" />
+                        <span className="ml-8 rounded-sm bg-[#FBFBFB] px-6 py-2 text-xs text-[#A3A39E]">{group.tasks.length} tareas</span>
+                      </button>
                     )}
                     {!isCollapsed && getStatusSections(group.tasks).map((section) => {
                       const sectionKey = `${group.projectId}:${section.label.id}`;
                       const isStatusCollapsed = collapsedStatusSections.has(sectionKey);
 
                       return (
-                        <React.Fragment key={sectionKey}>
-                          <TableRow className="bg-white hover:bg-white">
-                            <TableCell colSpan={7} className="px-6 pb-2 pt-8">
-                              <div className={cn("grid items-center gap-4 text-sm text-gray-500", TASK_TABLE_GRID)}>
+                        <div key={sectionKey}>
+                          <div className={cn("px-8 pb-2", isProjectScoped ? "pt-8" : "pt-10")}>
+                              <div className={cn("grid items-center gap-4 text-sm", TASK_COLUMN_TEXT, TASK_TABLE_GRID)}>
                                 <button
                                   type="button"
                                   onClick={() => toggleStatusCollapse(sectionKey)}
-                                  className="flex min-w-0 items-center gap-2 text-left hover:text-gray-900"
+                                  className="flex min-w-0 items-center gap-2 text-left text-[#898982] hover:text-[#898982]"
                                   aria-expanded={!isStatusCollapsed}
                                 >
-                                  <ChevronDown className={cn("h-4 w-4 text-gray-500 transition-transform", isStatusCollapsed && "-rotate-90")} />
+                                  <ChevronDown className={cn("h-4 w-4 text-[#898982] transition-transform", isStatusCollapsed && "-rotate-90")} />
                                   <span className="h-4 w-4 rounded-full" style={{ backgroundColor: section.label.color }} />
                                   <span>{section.label.label}</span>
-                                  <span className="text-xs text-gray-400">{section.tasks.length}</span>
+                                  <span className="text-xs text-[#A3A39E]">{section.tasks.length}</span>
                                 </button>
-                                <span className="text-base text-gray-500">Responsable</span>
-                                <span className="text-base text-gray-500">Fecha vencimiento</span>
-                                <span className="text-base text-gray-500">Prioridad</span>
-                                <span className="text-base text-gray-500">Estado</span>
-                                <span className="text-base text-gray-500">Partidas</span>
+                                <span className="text-base text-[#A5A5A0]">Responsable</span>
+                                <span className="text-base text-[#A5A5A0]">Fecha vencimiento</span>
+                                <span className="text-base text-[#A5A5A0]">Prioridad</span>
+                                <span className="text-base text-[#A5A5A0]">Estado</span>
+                                <span className="text-base text-[#A5A5A0]">Partida</span>
                                 <span />
                               </div>
-                            </TableCell>
-                          </TableRow>
+                          </div>
                           {!isStatusCollapsed && section.tasks.map((task) => renderTaskRow(task))}
-                        </React.Fragment>
+                        </div>
                       );
                     })}
-                  </React.Fragment>
+                    {!isCollapsed && !isProjectScoped && <div className="h-6" />}
+                  </div>
                 );
               })}
               {groupedTasks.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-gray-500">
+                <div className="flex h-32 items-center justify-center text-gray-500">
                     No hay tareas con los filtros actuales.
-                  </TableCell>
-                </TableRow>
+                </div>
               )}
-            </TableBody>
-          </Table>
         </div>
       </div>
 
