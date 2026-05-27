@@ -169,15 +169,28 @@ export default defineSchema({
     proyecto: v.optional(v.id("desarrollos")), // Regular project
     sales_proyecto: v.optional(v.id("sales_projects")), // Sales project
     uploaded_at: v.optional(v.number()), // Timestamp
+    folder_id: v.optional(v.id("document_folders")), // Optional folder location in the document library
     partida_id: v.optional(v.id("partidas")), // Linked Level 1 Partida for bitacora
     bitacora_id: v.optional(v.union(v.id("documentos"), v.id("bitacora"))), // Parent bitacora entry ID for photos
     comment: v.optional(v.string()), // Comment for bitacora photos
   }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proyecto_uploaded", { fields: ["proyecto", "uploaded_at"] })
     .index("by_sales_proyecto", { fields: ["sales_proyecto"] })
     .index("by_transaccion", { fields: ["transaccion_id"] })
     .index("by_sales_transaccion", { fields: ["sales_transaccion_id"] })
+    .index("by_folder", { fields: ["folder_id"] })
+    .index("by_folder_uploaded", { fields: ["folder_id", "uploaded_at"] })
+    .index("by_folder_proyecto", { fields: ["folder_id", "proyecto"] })
+    .index("by_folder_sales_proyecto", { fields: ["folder_id", "sales_proyecto"] })
+    .index("by_folder_type", { fields: ["folder_id", "type"] })
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_bitacora_id", { fields: ["bitacora_id"] }),
+  document_folders: defineTable({
+    nombre: v.string(),
+    parent_folder_id: v.optional(v.id("document_folders")),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  }).index("by_parent_folder", { fields: ["parent_folder_id"] }),
   meticas_presupuesto: defineTable({
     proyecto: v.id("desarrollos"),
     presupuesto_original: v.number(),
@@ -456,6 +469,8 @@ export default defineSchema({
     field_changed: v.optional(v.string()), // Which field changed (for updates)
     old_value: v.optional(v.string()), // Previous value (JSON stringified)
     new_value: v.optional(v.string()), // New value (JSON stringified)
+    comentario: v.optional(v.string()),
+    documento_ids: v.optional(v.array(v.id("requisicion_documentos"))),
     changed_by_id: v.id("users"),
     changed_by_name: v.string(),
     created_at: v.number(),
@@ -576,6 +591,21 @@ export default defineSchema({
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_programa_obra", { fields: ["programa_obra_id"] })
     .index("by_proyecto_partida_familia", { fields: ["proyecto", "partida", "familia"] }),
+
+  // Programa de Obra - Historial de cambios del avance real por familia
+  programa_obra_avance_historial: defineTable({
+    proyecto: v.id("desarrollos"),
+    detalle_id: v.id("programa_obra_detalle"),
+    partida: v.string(),
+    familia: v.string(),
+    old_value: v.optional(v.number()),
+    new_value: v.number(),
+    changed_by_id: v.optional(v.id("users")),
+    changed_by_name: v.optional(v.string()),
+    created_at: v.number(),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_detalle", { fields: ["detalle_id"] })
+    .index("by_proyecto_created", { fields: ["proyecto", "created_at"] }),
 
   // Programa de Obra - Comentarios per partida/familia with date ranges
   programa_obra_comentarios: defineTable({

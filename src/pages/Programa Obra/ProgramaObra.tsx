@@ -4,7 +4,22 @@ import { api } from "../../../convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2, MessageSquare, FileDown } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2, MessageSquare, FileDown, CalendarDays, Percent, History } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -12,6 +27,7 @@ import { type ScheduleData, type ProgramaItem, parseDate } from "./programa-obra
 import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
 import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 import ProgramaObraComentarios from "./ProgramaObraComentarios";
+import ProgramaObraAvanceHistorial from "./ProgramaObraAvanceHistorial";
 import ProgramaObraExcelPreview, { type ExcelPartida, type ExcelRow } from "./ProgramaObraExcelPreview";
 import { exportProgramaObraPdf } from "./ProgramaObraPdfExport";
 
@@ -107,7 +123,13 @@ export default function ProgramaObra() {
   const [editingPartida, setEditingPartida] = useState<ProgramaItem | null>(null);
   const [editingFamilia, setEditingFamilia] = useState<ProgramaItem | null>(null);
   const [comentariosItem, setComentariosItem] = useState<ProgramaItem | null>(null);
+  const [historialItem, setHistorialItem] = useState<ProgramaItem | null>(null);
+  const [ponderacionItem, setPonderacionItem] = useState<ProgramaItem | null>(null);
+  const [savingPonderacion, setSavingPonderacion] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const canEditPesos = currentUser?.role === "admin";
 
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -133,6 +155,11 @@ export default function ProgramaObra() {
   // Fetch comentarios
   const comentarios = useQuery(
     api.programa_obra.getComentariosByProyecto,
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  );
+
+  const avanceHistorial = useQuery(
+    api.programa_obra.getAvanceHistorialByProyecto,
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
 
@@ -307,6 +334,24 @@ export default function ProgramaObra() {
     });
   }, []);
 
+  const openPonderacionEditor = useCallback((item: ProgramaItem) => {
+    if (!canEditPesos) return;
+    const value = String(item.ponderacion ?? "");
+    editingPesoItemRef.current = item;
+    editingPesoValueRef.current = value;
+    setEditingPesoValue(value);
+    setPonderacionItem(item);
+  }, [canEditPesos]);
+
+  const closePonderacionEditor = useCallback(() => {
+    editingPesoItemRef.current = null;
+    editingPesoValueRef.current = "";
+    setEditingPesoValue("");
+    setEditingPesoId(null);
+    setPonderacionItem(null);
+    setSavingPonderacion(false);
+  }, []);
+
   // Compute overall weighted progress from level 0 items
   // const overallProgress = useMemo(() => {
   //   if (programaDataWithComentarios.length === 0) return 0;
@@ -330,25 +375,23 @@ export default function ProgramaObra() {
       const rawValue = editingPesoValueRef.current;
       const value = parseFloat(rawValue);
       if (isNaN(value) || value < 0 || value > 100) {
-        editingPesoItemRef.current = null;
-        setEditingPesoId(null);
-        setEditingPesoValue("");
+        closePonderacionEditor();
         return;
       }
+      setSavingPonderacion(true);
       try {
         if (item?.level === 0 && item.schedule?._id) {
           await updateSchedulePeso({ schedule_id: item.schedule._id, peso: value });
         } else if (item?.level === 1 && item.detalleSchedule?._id) {
           await updateDetallePeso({ detalle_id: item.detalleSchedule._id, peso: value });
         }
+        closePonderacionEditor();
       } catch (err) {
         console.error("Error saving peso:", err);
+        setSavingPonderacion(false);
       }
-      editingPesoItemRef.current = null;
-      setEditingPesoId(null);
-      setEditingPesoValue("");
     },
-    [updateSchedulePeso, updateDetallePeso]
+    [closePonderacionEditor, updateSchedulePeso, updateDetallePeso]
   );
 
   // Save avance real for a familia item (uses refs to avoid stale closures)
@@ -845,38 +888,76 @@ export default function ProgramaObra() {
                         {/* Menu for nivel 0 */}
                         {item.level === 0 && (
                           <div className="ml-auto flex items-center gap-0.5 shrink-0">
-                            <button
-                              onClick={() => setComentariosItem(item)}
-                              className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
-                              title="Comentarios"
-                            >
-                              <MessageSquare className="h-3.5 w-3.5 text-gray-400" />
-                            </button>
-                            <button
-                              onClick={() => setEditingPartida(item)}
-                              className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
-                            >
-                              <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
-                            </button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
+                                  title="Opciones"
+                                >
+                                  <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuItem onClick={() => setEditingPartida(item)}>
+                                  <CalendarDays className="h-4 w-4" />
+                                  Editar programa
+                                </DropdownMenuItem>
+                                {canEditPesos && (
+                                  <DropdownMenuItem onClick={() => openPonderacionEditor(item)}>
+                                    <Percent className="h-4 w-4" />
+                                    Ponderación
+                                    <span className="ml-auto text-xs text-gray-400">
+                                      {item.ponderacion != null ? `${item.ponderacion.toFixed(2)}%` : "Sin definir"}
+                                    </span>
+                                  </DropdownMenuItem>
+                                )}
+                                {canEditPesos && <DropdownMenuSeparator />}
+                                <DropdownMenuItem onClick={() => setComentariosItem(item)}>
+                                  <MessageSquare className="h-4 w-4" />
+                                  Comentarios
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         )}
 
                         {/* Menu for nivel 1 (familia) */}
                         {item.level === 1 && (
                           <div className="ml-auto flex items-center gap-0.5 shrink-0">
-                            <button
-                              onClick={() => setComentariosItem(item)}
-                              className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
-                              title="Comentarios"
-                            >
-                              <MessageSquare className="h-3.5 w-3.5 text-gray-400" />
-                            </button>
-                            <button
-                              onClick={() => setEditingFamilia(item)}
-                              className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
-                            >
-                              <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
-                            </button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
+                                  title="Opciones"
+                                >
+                                  <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuItem onClick={() => setEditingFamilia(item)}>
+                                  <CalendarDays className="h-4 w-4" />
+                                  Editar programa
+                                </DropdownMenuItem>
+                                {canEditPesos && (
+                                  <DropdownMenuItem onClick={() => openPonderacionEditor(item)}>
+                                    <Percent className="h-4 w-4" />
+                                    Ponderación
+                                    <span className="ml-auto text-xs text-gray-400">
+                                      {item.ponderacion != null ? `${item.ponderacion.toFixed(2)}%` : "Sin definir"}
+                                    </span>
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => setHistorialItem(item)}>
+                                  <History className="h-4 w-4" />
+                                  Historial avance
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => setComentariosItem(item)}>
+                                  <MessageSquare className="h-4 w-4" />
+                                  Comentarios
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         )}
                       </div>
@@ -926,7 +1007,7 @@ export default function ProgramaObra() {
                                 setEditingPesoId(item.id);
                                 setEditingPesoValue(String(item.ponderacion ?? ""));
                               }}
-                              className="text-[9px] text-gray-400 hover:text-gray-600 transition-colors"
+                              className="hidden"
                               title="Editar peso"
                             >
                               {item.ponderacion != null ? `${(item.ponderacion).toFixed(2)}%` : "—"}
@@ -1026,7 +1107,7 @@ export default function ProgramaObra() {
                                 setEditingPesoId(item.id);
                                 setEditingPesoValue(String(item.ponderacion ?? ""));
                               }}
-                              className="text-[9px] text-gray-400 hover:text-gray-600 transition-colors"
+                              className="hidden"
                               title="Editar peso"
                             >
                               {item.ponderacion != null ? `${(item.ponderacion).toFixed(2)}%` : "—"}
@@ -1190,6 +1271,81 @@ export default function ProgramaObra() {
           proyectoId={proyectoId as Id<"desarrollos">}
           onClose={() => setComentariosItem(null)}
         />
+      )}
+
+      {/* Avance History Sheet */}
+      {historialItem && (
+        <ProgramaObraAvanceHistorial
+          item={historialItem}
+          historial={avanceHistorial ?? []}
+          onClose={() => setHistorialItem(null)}
+        />
+      )}
+
+      {/* Ponderacion Sheet */}
+      {canEditPesos && ponderacionItem && (
+        <Sheet open onOpenChange={(open) => !open && closePonderacionEditor()}>
+          <SheetContent className="w-[360px] sm:max-w-[360px] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="text-left flex items-center gap-2">
+                <Percent className="h-4 w-4" />
+                Ponderación
+              </SheetTitle>
+              <SheetDescription className="text-left">
+                {ponderacionItem.partida}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-6 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-500">Peso del elemento</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    autoFocus
+                    value={editingPesoValue}
+                    onChange={(e) => {
+                      setEditingPesoValue(e.target.value);
+                      editingPesoValueRef.current = e.target.value;
+                    }}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSavePeso();
+                      }
+                      if (e.key === "Escape") {
+                        closePonderacionEditor();
+                      }
+                    }}
+                    className="h-9 rounded-none text-sm"
+                  />
+                  <span className="text-sm text-gray-500">%</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={closePonderacionEditor}
+                  className="rounded-none text-xs"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSavePeso}
+                  disabled={savingPonderacion || editingPesoValue.trim() === ""}
+                  className="rounded-none text-xs"
+                >
+                  {savingPonderacion ? "Guardando..." : "Guardar"}
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       )}
 
       {/* Excel Preview Dialog */}

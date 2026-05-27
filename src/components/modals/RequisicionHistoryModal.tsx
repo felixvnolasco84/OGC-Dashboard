@@ -14,6 +14,8 @@ interface HistoryEntry {
   field_changed?: string;
   old_value?: string;
   new_value?: string;
+  comentario?: string;
+  documento_ids?: Id<"requisicion_documentos">[];
   changed_by_id: Id<"users">;
   changed_by_name: string;
   created_at: number;
@@ -25,6 +27,41 @@ interface HistoryEntry {
     solicitante_nombre: string;
     fecha_solicitud: string;
   } | null;
+}
+
+interface HistoryDocumentDetail {
+  nombre: string;
+  type?: string;
+  size?: number;
+}
+
+function HistoryCommentAndDocuments({ entry, data }: { entry: HistoryEntry; data: Record<string, unknown> | null }) {
+  const comentario = entry.comentario || (data?.comentario as string | undefined);
+  const documentos = data?.documentos as HistoryDocumentDetail[] | undefined;
+
+  if (!comentario && (!documentos || documentos.length === 0)) return null;
+
+  return (
+    <div className="space-y-2 border-t border-gray-100 pt-2">
+      {comentario && (
+        <div>
+          <span className="text-gray-400">Comentario:</span>{" "}
+          <span className="text-gray-700">{comentario}</span>
+        </div>
+      )}
+      {documentos && documentos.length > 0 && (
+        <div className="space-y-1">
+          <span className="text-gray-400">Documentos:</span>
+          {documentos.map((doc, index) => (
+            <div key={`${doc.nombre}-${index}`} className="flex items-center gap-2 text-gray-700">
+              <FileText className="h-3 w-3 text-cyan-600" />
+              <span>{doc.nombre}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Safe JSON parse helper
@@ -194,6 +231,7 @@ function StatusChangeDetails({ entry }: { entry: HistoryEntry }) {
         <ArrowRight className="w-3 h-3 text-gray-400" />
         <span className="px-2 py-0.5 rounded-sm bg-green-50 text-green-700 font-medium">{newStatus}</span>
       </div>
+      <HistoryCommentAndDocuments entry={entry} data={newData} />
     </div>
   );
 }
@@ -349,6 +387,7 @@ function ReviewedDetails({ entry }: { entry: HistoryEntry }) {
           "{notaRevision}"
         </div>
       )}
+      <HistoryCommentAndDocuments entry={entry} data={data} />
     </div>
   );
 }

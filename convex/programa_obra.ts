@@ -2,7 +2,7 @@ import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { assertCanWrite } from "./permissions";
+import { assertAdmin, assertCanWrite } from "./permissions";
 
 // ============================================================
 // SCHEDULING (programa_obra table) - per nivel 1 partida
@@ -200,7 +200,7 @@ export const upsertPonderacion = mutation({
     peso: v.number(),
   },
   handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
+    await assertAdmin(ctx);
 
     const existing = await ctx.db
       .query("programa_obra_ponderacion")
@@ -364,10 +364,59 @@ export const updateDetalleAvance = mutation({
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
 
+    const detalle = await ctx.db.get(args.detalle_id);
+    if (!detalle) {
+      throw new Error("Detalle de programa de obra no encontrado");
+    }
+
+    const previousValue = detalle.avance_porcentaje;
+    if (previousValue === args.avance_porcentaje) {
+      return { success: true };
+    }
+
+    const user = await ctx.auth.getUserIdentity();
+    let userId: Id<"users"> | undefined;
+    let userName: string | undefined;
+    if (user) {
+      const dbUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", user.subject))
+        .first();
+      if (dbUser) {
+        userId = dbUser._id;
+        userName = dbUser.name;
+      }
+    }
+
     await ctx.db.patch(args.detalle_id, {
       avance_porcentaje: args.avance_porcentaje,
     });
+
+    await ctx.db.insert("programa_obra_avance_historial", {
+      proyecto: detalle.proyecto,
+      detalle_id: args.detalle_id,
+      partida: detalle.partida,
+      familia: detalle.familia,
+      old_value: previousValue,
+      new_value: args.avance_porcentaje,
+      changed_by_id: userId,
+      changed_by_name: userName,
+      created_at: Date.now(),
+    });
+
     return { success: true };
+  },
+});
+
+export const getAvanceHistorialByProyecto = query({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("programa_obra_avance_historial")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
   },
 });
 
@@ -378,7 +427,7 @@ export const updateSchedulePeso = mutation({
     peso: v.number(),
   },
   handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
+    await assertAdmin(ctx);
 
     await ctx.db.patch(args.schedule_id, { peso: args.peso });
     return { success: true };
@@ -392,7 +441,7 @@ export const updateDetallePeso = mutation({
     peso: v.number(),
   },
   handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
+    await assertAdmin(ctx);
 
     await ctx.db.patch(args.detalle_id, { peso: args.peso });
     return { success: true };

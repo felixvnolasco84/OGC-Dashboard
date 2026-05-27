@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Check, Clock, ChevronDown, ChevronUp, XCircle, CheckCircle, Minus } from "lucide-react";
+import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Clock, ChevronDown, ChevronUp, XCircle, CheckCircle, CreditCard, PackageCheck, Mail, Send, ExternalLink, Paperclip } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,15 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+
+type PipelineStageKey = "aprobadas" | "pagadas" | "recibidas";
+type StatusHistoryDocument = {
+    storage_id: Id<"_storage">;
+    nombre: string;
+    type: string;
+    size: number;
+};
 
 export default function ProyectoRequisicionesPage() {
     const { proyectoId } = useParams<{ proyectoId: string }>();
@@ -50,10 +59,28 @@ export default function ProyectoRequisicionesPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [activeTab, setActiveTab] = useState<"por_revisar" | "aprobadas" | "pagadas" | "recibidas">("por_revisar");
     const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+    const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+    const [notificationType, setNotificationType] = useState("created");
+    const [selectedNotificationReqId, setSelectedNotificationReqId] = useState<string>("latest");
+    const [notificationMessage, setNotificationMessage] = useState("");
+    const [isSendingNotification, setIsSendingNotification] = useState(false);
+    const [statusHistoryDialogOpen, setStatusHistoryDialogOpen] = useState(false);
+    const [pendingStatusChange, setPendingStatusChange] = useState<{
+        requisicionId: Id<"requisiciones">;
+        targetStage?: PipelineStageKey;
+        paymentStatus?: string;
+        deliveryStatus?: string;
+        title: string;
+        description: string;
+    } | null>(null);
+    const [statusHistoryComment, setStatusHistoryComment] = useState("");
+    const [statusHistoryDocument, setStatusHistoryDocument] = useState<File | null>(null);
+    const [isSubmittingStatusHistory, setIsSubmittingStatusHistory] = useState(false);
 
     // Inline review state
     const [editedQuantities, setEditedQuantities] = useState<Record<string, number>>({});
     const [reviewingItemId, setReviewingItemId] = useState<string | null>(null);
+    const [updatingPipelineReqId, setUpdatingPipelineReqId] = useState<string | null>(null);
 
     // Fetch project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -65,11 +92,17 @@ export default function ProyectoRequisicionesPage() {
     const updateStatus = useMutation(api.requisiciones.updateStatus);
     const updateStatusEntrega = useMutation(api.requisiciones.updateStatusEntrega);
     const updateRequisicionProveedor = useMutation(api.requisiciones.update);
+    const reviewRequisicionMutation = useMutation(api.requisiciones.reviewRequisicion);
     const reviewSingleItemMutation = useMutation(api.requisiciones.reviewSingleItem);
+    const generateRequisicionUploadUrl = useMutation(api.requisiciones.generateUploadUrl);
     const createProveedor = useMutation(api.proveedores.create);
 
     // Fetch all proveedores
     const proveedores = useQuery(api.proveedores.getAll);
+    const emailRecipients = useQuery(
+        api.requisiciones.getEmailRecipients,
+        proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
+    );
 
     // Provider dialog state
     const [providerDialogOpen, setProviderDialogOpen] = useState(false);
@@ -107,6 +140,7 @@ export default function ProyectoRequisicionesPage() {
     const currentUser = useQuery(api.users.getCurrentUser);
     const updateProveedor = useMutation(api.proveedores.update);
     const markAsRead = useMutation(api.requisicion_history.markAsRead);
+    const sendEmailNotification = useAction(api.requisiciones.sendEmailNotification);
 
     const requisicionModal = useRequisicionModal();
     const historyModal = useRequisicionHistoryModal();
@@ -228,6 +262,72 @@ export default function ProyectoRequisicionesPage() {
         }, 0);
     }, [requisiciones]);
 
+    const selectedNotificationReq = useMemo(() => {
+        if (!requisiciones || requisiciones.length === 0) return null;
+        if (selectedNotificationReqId !== "latest") {
+            return requisiciones.find((req) => req._id === selectedNotificationReqId) ?? requisiciones[0];
+        }
+        return [...requisiciones].sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0];
+    }, [requisiciones, selectedNotificationReqId]);
+
+    const notificationCopy = useMemo(() => {
+        const actionByType: Record<string, string> = {
+            created: "creo una requisicion",
+            updated: "actualizo una requisicion",
+            reviewed: "reviso una requisicion",
+            assigned: "asigno proveedor",
+            payment: "actualizo pago",
+            delivery: "actualizo entrega",
+        };
+        const titleByType: Record<string, string> = {
+            created: "Nueva requisicion",
+            updated: "Requisicion actualizada",
+            reviewed: "Revision de requisicion",
+            assigned: "Proveedor asignado",
+            payment: "Pago actualizado",
+            delivery: "Entrega actualizada",
+        };
+
+        const requisicionTitle = selectedNotificationReq
+            ? `${selectedNotificationReq.tipo === "equipo" ? "Equipo" : "Material"} solicitado`
+            : "Requisiciones";
+        const statusLabel = selectedNotificationReq?.status_revision || selectedNotificationReq?.status || "On Going";
+        const message = notificationMessage.trim() || selectedNotificationReq?.descripcion || "Hay una actualizacion en las requisiciones del proyecto.";
+
+        return {
+            action: actionByType[notificationType] || "envio una notificacion",
+            title: titleByType[notificationType] || "Notificacion",
+            requisicionTitle,
+            statusLabel,
+            message,
+        };
+    }, [notificationMessage, notificationType, selectedNotificationReq]);
+
+    const handleSendEmailNotification = async () => {
+        if (!proyectoId) return;
+        setIsSendingNotification(true);
+        try {
+            const result = await sendEmailNotification({
+                proyecto: proyectoId as Id<"desarrollos">,
+                requisicion_id: selectedNotificationReq?._id,
+                notification_type: notificationType,
+                message: notificationMessage.trim() || undefined,
+            });
+            toast.success("Notificacion enviada", {
+                description: `Se envio a ${result.sent} destinatario${result.sent === 1 ? "" : "s"}.`,
+            });
+            setEmailDialogOpen(false);
+            setNotificationMessage("");
+        } catch (error) {
+            console.error("Error sending requisicion email notification:", error);
+            toast.error("No se pudo enviar el correo", {
+                description: error instanceof Error ? error.message : "Revisa la configuracion de correo.",
+            });
+        } finally {
+            setIsSendingNotification(false);
+        }
+    };
+
     // Toggle card expansion
     const toggleCard = (id: string) => {
         setExpandedCards(prev => {
@@ -238,22 +338,169 @@ export default function ProyectoRequisicionesPage() {
         });
     };
 
-    // Get status badge config
-    const getStatusBadge = (req: NonNullable<typeof requisiciones>[number]) => {
-        if (req.status === "Cancelado") return { label: "Cancelado", color: "border-red-200  text-red-700", icon: <XCircle className="w-4 h-4" /> };
-        if (req.status_revision === "Aprobada") return { label: "Aprobado", color: "border-[#7EC18E]  text-[#5FB473]", icon: <Check className="w-4 h-4 rounded-full p-0.5 text-white bg-[#50AC66]" /> };
-        if (req.status_revision === "Parcialmente Aprobada") return { label: "Aprobado", color: "border-[#7EC18E]  text-[#5FB473]", icon: <Check className="w-4 h-4 rounded-full p-0.5 text-white bg-[#50AC66]" /> };
-        if (req.status_revision === "Rechazada") return { label: "Rechazado", color: "border-red-200  text-red-700", icon: <XCircle className="w-4 h-4" /> };
-        if (req.status === "Pagado") return { label: "Pagado", color: "border-[#7EC18E]  text-[#5FB473]", icon: <Check className="w-4 h-4 rounded-full p-0.5 text-white bg-[#50AC66]" /> };
-        if (req.status_entrega === "Completo") return { label: "Recibido", color: "border-[#7EC18E]  text-[#5FB473]", icon: <Check className="w-4 h-4 rounded-full p-0.5 text-white bg-[#50AC66]" /> };
-        return { label: "Por revisar", color: "border-[#D0D0D0]  text-[#75756D]", icon: <Minus className="w-4 h-4 bg-[#D1D1D1] rounded-full p-0.5 text-white" /> };
-    };
-
     // Get approved items count for partial badge
     const getApprovedItemsCount = (req: NonNullable<typeof requisiciones>[number]) => {
         if (!req.items) return { approved: 0, total: 0 };
         const approved = req.items.filter(i => i.status_revision === "aprobado").length;
         return { approved, total: req.items.length };
+    };
+
+    const isRequisicionApproved = (req: NonNullable<typeof requisiciones>[number]) =>
+        req.status_revision === "Aprobada" || req.status_revision === "Parcialmente Aprobada";
+
+    const getPipelineStages = (req: NonNullable<typeof requisiciones>[number]) => [
+        {
+            key: "aprobadas" as const,
+            label: "Aprobada",
+            icon: CheckCircle,
+            complete: isRequisicionApproved(req),
+        },
+        {
+            key: "pagadas" as const,
+            label: "Pagada",
+            icon: CreditCard,
+            complete: req.status === "Pagado",
+        },
+        {
+            key: "recibidas" as const,
+            label: "Recibida",
+            icon: PackageCheck,
+            complete: req.status_entrega === "Completo",
+        },
+    ];
+
+    const canUpdatePipelineStage = (
+        req: NonNullable<typeof requisiciones>[number],
+        stage: PipelineStageKey
+    ) => {
+        if (!currentUser) return false;
+        if (stage === "aprobadas") return currentUser.role === "admin" || currentUser.role === "finance";
+        if (stage === "pagadas") return currentUser.role === "admin" || currentUser.role === "finance";
+        return currentUser.role === "admin" || currentUser.role === "user" || (currentUser.role === "contratista" && req.solicitante_id === currentUser._id);
+    };
+
+    const approveRequisicion = async (
+        req: NonNullable<typeof requisiciones>[number],
+        comentario?: string,
+        documentos?: StatusHistoryDocument[]
+    ) => {
+        if (!currentUser) return;
+        if (!req.items?.length) {
+            throw new Error("La requisición no tiene items para aprobar.");
+        }
+
+        await reviewRequisicionMutation({
+            id: req._id,
+            reviewer_id: currentUser._id,
+            reviewer_name: currentUser.name,
+            comentario,
+            documentos,
+            items: req.items.map((item) => ({
+                item_id: item._id,
+                status_revision: "aprobado",
+                cantidad_aprobada: item.cantidad_aprobada ?? item.cantidad,
+            })),
+        });
+    };
+
+    const handlePipelineStageChange = async (
+        req: NonNullable<typeof requisiciones>[number],
+        targetStage: PipelineStageKey,
+        comentario?: string,
+        documentos?: StatusHistoryDocument[]
+    ) => {
+        if (!currentUser) return;
+
+        if (!canUpdatePipelineStage(req, targetStage)) {
+            toast.error("Sin permisos para actualizar este estado");
+            return;
+        }
+
+        const needsApproval = !isRequisicionApproved(req);
+        if (needsApproval && !(currentUser.role === "admin" || currentUser.role === "finance")) {
+            toast.error("Primero debe aprobarse la requisición");
+            return;
+        }
+
+        setUpdatingPipelineReqId(req._id);
+        try {
+            let pendingDocuments = documentos;
+            const consumeDocuments = () => {
+                const currentDocuments = pendingDocuments;
+                pendingDocuments = undefined;
+                return currentDocuments;
+            };
+
+            if (needsApproval) {
+                await approveRequisicion(req, comentario, consumeDocuments());
+            }
+
+            if (targetStage === "aprobadas") {
+                if (req.status === "Pagado") {
+                    await updateStatus({
+                        id: req._id,
+                        status: "En proceso",
+                        comentario,
+                        documentos: consumeDocuments(),
+                        changed_by_id: currentUser._id,
+                        changed_by_name: currentUser.name,
+                    });
+                }
+                if (req.status_entrega === "Completo") {
+                    await updateStatusEntrega({
+                        id: req._id,
+                        status_entrega: "Pendiente",
+                        comentario,
+                        documentos: consumeDocuments(),
+                        changed_by_id: currentUser._id,
+                        changed_by_name: currentUser.name,
+                    });
+                }
+            }
+
+            if (targetStage === "pagadas") {
+                if (req.status !== "Pagado") {
+                    await updateStatus({
+                        id: req._id,
+                        status: "Pagado",
+                        comentario,
+                        documentos: consumeDocuments(),
+                        changed_by_id: currentUser._id,
+                        changed_by_name: currentUser.name,
+                    });
+                }
+                if (req.status_entrega === "Completo") {
+                    await updateStatusEntrega({
+                        id: req._id,
+                        status_entrega: "Pendiente",
+                        comentario,
+                        documentos: consumeDocuments(),
+                        changed_by_id: currentUser._id,
+                        changed_by_name: currentUser.name,
+                    });
+                }
+            }
+
+            if (targetStage === "recibidas" && req.status_entrega !== "Completo") {
+                await updateStatusEntrega({
+                    id: req._id,
+                    status_entrega: "Completo",
+                    comentario,
+                    documentos: consumeDocuments(),
+                    changed_by_id: currentUser._id,
+                    changed_by_name: currentUser.name,
+                });
+            }
+
+            toast.success("Pipeline actualizado");
+        } catch (error) {
+            console.error("Error updating requisicion pipeline:", error);
+            toast.error("Error al actualizar", {
+                description: error instanceof Error ? error.message : "No se pudo actualizar el pipeline.",
+            });
+        } finally {
+            setUpdatingPipelineReqId(null);
+        }
     };
 
     // Format date from DD/MM/YYYY to readable
@@ -356,12 +603,19 @@ export default function ProyectoRequisicionesPage() {
         setDeleteDialogOpen(true);
     };
 
-    const handleStatusChange = async (requisicionId: Id<"requisiciones">, newStatus: string) => {
+    const handleStatusChange = async (
+        requisicionId: Id<"requisiciones">,
+        newStatus: string,
+        comentario?: string,
+        documentos?: StatusHistoryDocument[]
+    ) => {
         if (!currentUser) return;
         try {
             await updateStatus({
                 id: requisicionId,
                 status: newStatus,
+                comentario,
+                documentos,
                 changed_by_id: currentUser._id,
                 changed_by_name: currentUser.name,
             });
@@ -376,12 +630,19 @@ export default function ProyectoRequisicionesPage() {
         }
     };
 
-    const handleStatusEntregaChange = async (requisicionId: Id<"requisiciones">, newStatus: string) => {
+    const handleStatusEntregaChange = async (
+        requisicionId: Id<"requisiciones">,
+        newStatus: string,
+        comentario?: string,
+        documentos?: StatusHistoryDocument[]
+    ) => {
         if (!currentUser) return;
         try {
             await updateStatusEntrega({
                 id: requisicionId,
                 status_entrega: newStatus,
+                comentario,
+                documentos,
                 changed_by_id: currentUser._id,
                 changed_by_name: currentUser.name,
             });
@@ -393,6 +654,124 @@ export default function ProyectoRequisicionesPage() {
             toast.error("Error al actualizar", {
                 description: "No se pudo actualizar el estado de entrega.",
             });
+        }
+    };
+
+    const resetStatusHistoryDialog = () => {
+        setStatusHistoryDialogOpen(false);
+        setPendingStatusChange(null);
+        setStatusHistoryComment("");
+        setStatusHistoryDocument(null);
+    };
+
+    const openPipelineStatusDialog = (
+        req: NonNullable<typeof requisiciones>[number],
+        targetStage: PipelineStageKey
+    ) => {
+        const stageLabel = targetStage === "aprobadas"
+            ? "Aprobada"
+            : targetStage === "pagadas"
+                ? "Pagada"
+                : "Recibida";
+
+        setPendingStatusChange({
+            requisicionId: req._id,
+            targetStage,
+            title: `Cambiar a ${stageLabel}`,
+            description: "Registra el motivo del cambio. Puedes adjuntar un comprobante, factura, evidencia de entrega u otro soporte.",
+        });
+        setStatusHistoryComment("");
+        setStatusHistoryDocument(null);
+        setStatusHistoryDialogOpen(true);
+    };
+
+    const openPaymentStatusDialog = (
+        req: NonNullable<typeof requisiciones>[number],
+        paymentStatus: string
+    ) => {
+        setPendingStatusChange({
+            requisicionId: req._id,
+            paymentStatus,
+            title: `Cambiar pago a ${paymentStatus}`,
+            description: "Agrega un comentario para el historial. El documento es opcional y puede ser factura, comprobante o soporte de pago.",
+        });
+        setStatusHistoryComment("");
+        setStatusHistoryDocument(null);
+        setStatusHistoryDialogOpen(true);
+    };
+
+    const openDeliveryStatusDialog = (
+        req: NonNullable<typeof requisiciones>[number],
+        deliveryStatus: string
+    ) => {
+        setPendingStatusChange({
+            requisicionId: req._id,
+            deliveryStatus,
+            title: `Cambiar entrega a ${deliveryStatus}`,
+            description: "Agrega un comentario para el historial. El documento es opcional y puede ser evidencia de entrega o remisión.",
+        });
+        setStatusHistoryComment("");
+        setStatusHistoryDocument(null);
+        setStatusHistoryDialogOpen(true);
+    };
+
+    const uploadStatusHistoryDocument = async (): Promise<StatusHistoryDocument[] | undefined> => {
+        if (!statusHistoryDocument) return undefined;
+
+        const uploadUrl = await generateRequisicionUploadUrl();
+        const uploadResult = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": statusHistoryDocument.type || "application/octet-stream" },
+            body: statusHistoryDocument,
+        });
+
+        if (!uploadResult.ok) {
+            throw new Error("No se pudo subir el documento.");
+        }
+
+        const { storageId } = await uploadResult.json();
+        return [{
+            storage_id: storageId as Id<"_storage">,
+            nombre: statusHistoryDocument.name,
+            type: statusHistoryDocument.type || "application/octet-stream",
+            size: statusHistoryDocument.size,
+        }];
+    };
+
+    const handleConfirmStatusHistory = async () => {
+        if (!pendingStatusChange) return;
+        const comment = statusHistoryComment.trim();
+        if (!comment) {
+            toast.error("Agrega un comentario para registrar el cambio.");
+            return;
+        }
+
+        const req = requisiciones?.find((item) => item._id === pendingStatusChange.requisicionId);
+        if (!req) {
+            toast.error("No se encontró la requisición.");
+            return;
+        }
+
+        setIsSubmittingStatusHistory(true);
+        try {
+            const documentos = await uploadStatusHistoryDocument();
+
+            if (pendingStatusChange.targetStage) {
+                await handlePipelineStageChange(req, pendingStatusChange.targetStage, comment, documentos);
+            } else if (pendingStatusChange.paymentStatus) {
+                await handleStatusChange(req._id, pendingStatusChange.paymentStatus, comment, documentos);
+            } else if (pendingStatusChange.deliveryStatus) {
+                await handleStatusEntregaChange(req._id, pendingStatusChange.deliveryStatus, comment, documentos);
+            }
+
+            resetStatusHistoryDialog();
+        } catch (error) {
+            console.error("Error saving status history:", error);
+            toast.error("Error al guardar el historial", {
+                description: error instanceof Error ? error.message : "No se pudo registrar el cambio.",
+            });
+        } finally {
+            setIsSubmittingStatusHistory(false);
         }
     };
 
@@ -581,6 +960,15 @@ export default function ProyectoRequisicionesPage() {
                             <h1 className="text-2xl text-gray-700">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
+                            <Button
+                                onClick={() => setEmailDialogOpen(true)}
+                                variant="outline"
+                                size="lg"
+                                className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+                            >
+                                <Mail className="h-5 w-5" />
+                                Notificar
+                            </Button>
                             {/* History Button */}
                             <Button
                                 onClick={() => historyModal.openAllHistory(proyectoId as Id<"desarrollos">)}
@@ -770,7 +1158,6 @@ export default function ProyectoRequisicionesPage() {
                     ) : (
                         filteredRequisiciones.map((req) => {
                             const isExpanded = expandedCards.has(req._id);
-                            const statusBadge = getStatusBadge(req);
                             const itemCounts = getApprovedItemsCount(req);
                             const reqMontoTotal = req.items?.reduce((s, i) => s + (i.monto || 0), 0) || 0;
                             const familias = [...new Set(req.items?.map(i => i.familia) || [])];
@@ -782,6 +1169,8 @@ export default function ProyectoRequisicionesPage() {
                             const materialsBadgeText = isPartial
                                 ? `${itemCounts.approved} de ${itemCounts.total} materiales`
                                 : `${itemCounts.total} materiales`;
+                            const pipelineStages = getPipelineStages(req);
+                            const pipelineBusy = updatingPipelineReqId === req._id;
 
                             return (
                                 <div key={req._id} className="border border-[#EEEEEE] rounded-md">
@@ -835,15 +1224,58 @@ export default function ProyectoRequisicionesPage() {
                                             </span>
                                         </div>
 
-                                        {/* Status Badge */}
-                                        <div className="min-w-[120px] flex justify-end">
-                                            <span className={cn(
-                                                "inline-flex items-center gap-1.5 px-3 py-2.5 text-xs  border rounded-sm",
-                                                statusBadge.color
-                                            )}>
-                                                {statusBadge.icon}
-                                                {statusBadge.label}
-                                            </span>
+                                        {/* Status Pipeline */}
+                                        <div className="min-w-[230px]" onClick={(e) => e.stopPropagation()}>
+                                            <div className="relative">
+                                                <div className="absolute left-3 right-3 top-3 h-0.5 bg-[#D0D0D0]" />
+                                                <div className="relative grid grid-cols-3 gap-1">
+                                                    {pipelineStages.map((stage, stageIndex) => {
+                                                        const nextStage = pipelineStages[stageIndex + 1];
+                                                        const segmentComplete = stage.complete && nextStage?.complete;
+                                                        const canUpdateStage = canUpdatePipelineStage(req, stage.key);
+                                                        const StageIcon = stage.icon;
+
+                                                        return (
+                                                            <div key={stage.key} className="relative flex flex-col items-center">
+                                                                {segmentComplete && (
+                                                                    <span className="pointer-events-none absolute left-1/2 top-3 h-0.5 w-full bg-[#50AC66]" />
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={pipelineBusy || !canUpdateStage}
+                                                                    onClick={() => openPipelineStatusDialog(req, stage.key)}
+                                                                    className={cn(
+                                                                        "relative z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-white transition-colors",
+                                                                        stage.complete
+                                                                            ? "border-[#50AC66] bg-[#50AC66] text-white"
+                                                                            : "border-[#9B9B9B] text-[#9B9B9B] hover:border-[#7EC18E] hover:text-[#50AC66]",
+                                                                        (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60"
+                                                                    )}
+                                                                    title={`Cambiar a ${stage.label}`}
+                                                                >
+                                                                    {pipelineBusy ? (
+                                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                                    ) : (
+                                                                        <StageIcon className="h-3.5 w-3.5" />
+                                                                    )}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={pipelineBusy || !canUpdateStage}
+                                                                    onClick={() => openPipelineStatusDialog(req, stage.key)}
+                                                                    className={cn(
+                                                                        "mt-1 text-[10px] leading-none transition-colors",
+                                                                        stage.complete ? "font-medium text-[#282822]" : "text-[#777770] hover:text-[#282822]",
+                                                                        (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60"
+                                                                    )}
+                                                                >
+                                                                    {stage.label}
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Actions Menu */}
@@ -905,7 +1337,7 @@ export default function ProyectoRequisicionesPage() {
                                                                             variant="ghost"
                                                                             size="sm"
                                                                             className={cn("justify-start text-[10px] rounded-full w-fit", getStatusEntregaColor(s))}
-                                                                            onClick={() => handleStatusChange(req._id, s)}
+                                                                            onClick={() => openPaymentStatusDialog(req, s)}
                                                                         >
                                                                             {s}
                                                                         </Button>
@@ -926,7 +1358,7 @@ export default function ProyectoRequisicionesPage() {
                                                                                 variant="ghost"
                                                                                 size="sm"
                                                                                 className={cn("justify-start w-fit text-[10px] rounded-full", getStatusEntregaColor(s))}
-                                                                                onClick={() => handleStatusEntregaChange(req._id, s)}
+                                                                                onClick={() => openDeliveryStatusDialog(req, s)}
                                                                             >
                                                                                 {s}
                                                                             </Button>
@@ -1112,6 +1544,225 @@ export default function ProyectoRequisicionesPage() {
                     )}
                 </div>
             </div>
+
+            <Dialog open={statusHistoryDialogOpen} onOpenChange={(open) => {
+                if (!open && !isSubmittingStatusHistory) resetStatusHistoryDialog();
+                else setStatusHistoryDialogOpen(open);
+            }}>
+                <DialogContent className="max-w-lg rounded-none">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-normal text-gray-900">
+                            {pendingStatusChange?.title || "Actualizar estado"}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {pendingStatusChange?.description || "Registra el motivo del cambio para el historial de la requisición."}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-5">
+                        <div className="space-y-2">
+                            <Label>Comentario *</Label>
+                            <Textarea
+                                value={statusHistoryComment}
+                                onChange={(e) => setStatusHistoryComment(e.target.value)}
+                                placeholder="Ej. Pago confirmado con transferencia, entrega validada en obra, aprobación autorizada por dirección..."
+                                className="min-h-[110px] rounded-none border-gray-300 resize-none"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Documento opcional</Label>
+                            <label className="flex cursor-pointer items-center justify-between gap-3 border border-dashed border-gray-300 px-4 py-3 text-sm text-[#777770] hover:border-[#7EC18E]">
+                                <span className="flex min-w-0 items-center gap-2">
+                                    <Paperclip className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                    <span className="truncate">
+                                        {statusHistoryDocument ? statusHistoryDocument.name : "Adjuntar comprobante, factura o evidencia"}
+                                    </span>
+                                </span>
+                                <span className="text-xs text-[#ADADA9]">Seleccionar</span>
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    onChange={(e) => setStatusHistoryDocument(e.target.files?.[0] ?? null)}
+                                />
+                            </label>
+                            {statusHistoryDocument && (
+                                <button
+                                    type="button"
+                                    onClick={() => setStatusHistoryDocument(null)}
+                                    className="text-xs text-red-600 hover:text-red-700"
+                                >
+                                    Quitar documento
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="rounded-none"
+                                onClick={resetStatusHistoryDialog}
+                                disabled={isSubmittingStatusHistory}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                className="rounded-none bg-[#50AC66] hover:bg-[#499b5c]"
+                                onClick={handleConfirmStatusHistory}
+                                disabled={isSubmittingStatusHistory || !statusHistoryComment.trim()}
+                            >
+                                {isSubmittingStatusHistory && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Guardar cambio
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Email Notification Dialog */}
+            <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                <DialogContent className="max-w-5xl rounded-none p-0 overflow-hidden">
+                    <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr]">
+                        <div className="border-r border-gray-200 p-6 space-y-6">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2 text-xl font-normal text-gray-900">
+                                    <Mail className="h-5 w-5 text-gray-500" />
+                                    Notificaciones por correo
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Envía una actualización con plantilla OGC a los usuarios con acceso a este proyecto.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-2">
+                                <Label>Tipo de notificación</Label>
+                                <Select value={notificationType} onValueChange={setNotificationType}>
+                                    <SelectTrigger className="rounded-none h-10">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="created">Nueva requisición</SelectItem>
+                                        <SelectItem value="updated">Actualización</SelectItem>
+                                        <SelectItem value="reviewed">Revisión</SelectItem>
+                                        <SelectItem value="assigned">Proveedor asignado</SelectItem>
+                                        <SelectItem value="payment">Pago</SelectItem>
+                                        <SelectItem value="delivery">Entrega</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Requisición</Label>
+                                <Select value={selectedNotificationReqId} onValueChange={setSelectedNotificationReqId}>
+                                    <SelectTrigger className="rounded-none h-10">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="latest">Última requisición</SelectItem>
+                                        {requisiciones?.map((req) => (
+                                            <SelectItem key={req._id} value={req._id}>
+                                                {req.tipo === "equipo" ? "Equipo" : "Material"} · {req.solicitante_nombre}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Mensaje</Label>
+                                <textarea
+                                    value={notificationMessage}
+                                    onChange={(e) => setNotificationMessage(e.target.value)}
+                                    placeholder="Ej. Se requiere revisar esta requisición antes de autorizar la compra."
+                                    className="min-h-28 w-full resize-none rounded-none border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-500"
+                                />
+                            </div>
+
+                            <div className="border border-gray-200 bg-[#FBFBFB] p-4">
+                                <p className="text-sm text-gray-500">Destinatarios</p>
+                                <p className="mt-1 text-2xl text-gray-900">{emailRecipients?.filter((recipient) => recipient.email !== currentUser?.email).length ?? 0}</p>
+                                <p className="mt-1 text-xs text-gray-500">Usuarios activos con acceso al proyecto.</p>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2">
+                                <Button
+                                    variant="outline"
+                                    className="rounded-none"
+                                    onClick={() => setEmailDialogOpen(false)}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className="rounded-none bg-[#20243d] hover:bg-[#2e344f]"
+                                    onClick={handleSendEmailNotification}
+                                    disabled={isSendingNotification || !emailRecipients || emailRecipients.length === 0}
+                                >
+                                    {isSendingNotification ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Send className="mr-2 h-4 w-4" />
+                                    )}
+                                    Enviar
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="bg-[#F3F4F6] p-8 overflow-y-auto">
+                            <div className="mx-auto max-w-[680px] overflow-hidden rounded-xl border border-gray-200 bg-white">
+                                <div className="flex justify-center px-8 py-8">
+                                    <img
+                                        src="https://www.ogc.mx/_next/static/media/Logo.a1dfe6e3.svg"
+                                        alt="OGC"
+                                        className="h-14 w-auto"
+                                    />
+                                </div>
+                                <div className="h-1 bg-[#20243d]" />
+                                <div className="px-8 py-14 sm:px-14">
+                                    <div className="flex items-start gap-5">
+                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#EEF3F1] text-sm font-medium text-[#20243d]">
+                                            {(currentUser?.name || "OGC")
+                                                .split(" ")
+                                                .filter(Boolean)
+                                                .slice(0, 2)
+                                                .map((part) => part[0])
+                                                .join("")
+                                                .toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-2xl leading-relaxed text-gray-900">
+                                                <span>{currentUser?.name || "Usuario OGC"} </span>
+                                                <span className="text-[#0073EA]">{notificationCopy.action}</span>
+                                                <span> en </span>
+                                                <span className="font-semibold">{notificationCopy.requisicionTitle}</span>
+                                            </p>
+                                            <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-gray-500">
+                                                <span className="h-2 w-2 rounded-full bg-[#50AC66]" />
+                                                <span>{proyecto.nombre}</span>
+                                                <ChevronDown className="h-4 w-4 -rotate-90 text-gray-400" />
+                                                <span>{notificationCopy.statusLabel}</span>
+                                            </div>
+                                            <p className="mt-8 text-sm text-gray-500">
+                                                {new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                            </p>
+                                            <p className="mt-6 text-lg leading-relaxed text-gray-900">
+                                                {notificationCopy.message}
+                                            </p>
+                                            <div className="mt-12 flex justify-center">
+                                                <Button className="rounded bg-[#0073EA] px-8 py-6 text-base hover:bg-[#0065cf]">
+                                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                                    Ver requisiciones
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

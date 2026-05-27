@@ -1,5 +1,295 @@
-import { mutation, query } from "./_generated/server";
+import { action, mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+
+const OGC_LOGO_URL = "https://www.ogc.mx/_next/static/media/Logo.a1dfe6e3.svg";
+const convexApi = api as any;
+
+const requisicionStatusDocumentValidator = v.object({
+    storage_id: v.id("_storage"),
+    nombre: v.string(),
+    type: v.string(),
+    size: v.number(),
+});
+
+async function createRequisicionHistoryDocuments(
+    ctx: MutationCtx,
+    args: {
+        requisicion_id: Id<"requisiciones">;
+        proyecto: Id<"desarrollos">;
+        documentos?: Array<{
+            storage_id: Id<"_storage">;
+            nombre: string;
+            type: string;
+            size: number;
+        }>;
+        uploaded_by_id: Id<"users">;
+        uploaded_by_name: string;
+    }
+) {
+    const documentoIds: Id<"requisicion_documentos">[] = [];
+
+    for (const documento of args.documentos ?? []) {
+        const documentoId = await ctx.db.insert("requisicion_documentos", {
+            requisicion_id: args.requisicion_id,
+            proyecto: args.proyecto,
+            storage_id: documento.storage_id,
+            nombre: documento.nombre,
+            type: documento.type,
+            size: documento.size,
+            uploaded_at: Date.now(),
+            uploaded_by_id: args.uploaded_by_id,
+            uploaded_by_name: args.uploaded_by_name,
+        });
+        documentoIds.push(documentoId);
+    }
+
+    return documentoIds;
+}
+
+function escapeHtml(value: string) {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function renderRequisicionEmail(args: {
+    actorName: string;
+    actionLabel: string;
+    projectName: string;
+    requisicionTitle: string;
+    statusLabel: string;
+    message: string;
+    ctaUrl: string;
+}) {
+    const actorName = escapeHtml(args.actorName);
+    const actionLabel = escapeHtml(args.actionLabel);
+    const projectName = escapeHtml(args.projectName);
+    const requisicionTitle = escapeHtml(args.requisicionTitle);
+    const statusLabel = escapeHtml(args.statusLabel);
+    const message = escapeHtml(args.message);
+    const ctaUrl = escapeHtml(args.ctaUrl);
+    const initials = actorName
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join("") || "OG";
+
+    return `<!doctype html>
+<html>
+  <body style="margin:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#202124;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f4f6;padding:28px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:672px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #ececec;">
+            <tr>
+              <td align="center" style="padding:34px 32px 28px;">
+                <img src="${OGC_LOGO_URL}" alt="OGC" style="display:block;height:54px;max-width:190px;width:auto;" />
+              </td>
+            </tr>
+            <tr>
+              <td style="height:4px;background:#20243d;font-size:0;line-height:0;">&nbsp;</td>
+            </tr>
+            <tr>
+              <td style="padding:72px 56px 52px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td valign="top" width="58">
+                      <div style="width:48px;height:48px;border-radius:8px;background:#eef3f1;color:#20243d;font-size:16px;font-weight:700;line-height:48px;text-align:center;">${initials}</div>
+                    </td>
+                    <td style="padding-left:18px;">
+                      <div style="font-size:28px;line-height:1.45;color:#292b33;font-weight:400;">
+                        <strong style="font-weight:400;">${actorName}</strong>
+                        <span style="color:#0073ea;"> ${actionLabel}</span>
+                        <span> en </span>
+                        <strong style="font-weight:700;color:#202124;">${requisicionTitle}</strong>
+                      </div>
+                      <div style="padding-top:12px;font-size:18px;line-height:1.4;color:#5b6170;">
+                        <span style="color:#50AC66;">●</span>
+                        <span> ${projectName}</span>
+                        <span style="padding:0 8px;color:#8b9099;">›</span>
+                        <span>${statusLabel}</span>
+                      </div>
+                      <div style="padding-top:34px;font-size:16px;line-height:1.5;color:#5b6170;">
+                        ${new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}
+                      </div>
+                      <p style="margin:24px 0 42px;font-size:20px;line-height:1.55;color:#202124;">${message}</p>
+                      <table role="presentation" cellspacing="0" cellpadding="0" align="center" style="margin:0 auto;">
+                        <tr>
+                          <td bgcolor="#0073ea" style="border-radius:5px;">
+                            <a href="${ctaUrl}" style="display:inline-block;padding:15px 32px;color:#ffffff;text-decoration:none;font-size:18px;font-weight:700;">Ver requisiciones</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+export const getEmailRecipients = query({
+    args: {
+        proyecto: v.id("desarrollos"),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("Not authenticated");
+        }
+
+        const currentUser = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+            .first();
+
+        if (!currentUser) {
+            throw new Error("Unauthorized");
+        }
+
+        const canAccessProject =
+            currentUser.allowed_desarrollos.includes(args.proyecto) ||
+            currentUser.role === "admin" ||
+            currentUser.role === "finance";
+
+        if (!canAccessProject) {
+            throw new Error("Unauthorized");
+        }
+
+        const users = await ctx.db.query("users").collect();
+        return users
+            .filter((user) =>
+                user.email &&
+                user.allowed_desarrollos.includes(args.proyecto) &&
+                user.invitation_status !== "pending"
+            )
+            .map((user) => ({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            }));
+    },
+});
+
+export const sendEmailNotification = action({
+    args: {
+        proyecto: v.id("desarrollos"),
+        requisicion_id: v.optional(v.id("requisiciones")),
+        notification_type: v.string(),
+        message: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const resendApiKey = process.env.RESEND_API_KEY;
+        const resendFromEmail = process.env.RESEND_FROM_EMAIL;
+        const appUrl = (process.env.APP_URL || process.env.SITE_URL || "").replace(/\/$/, "");
+
+        if (!resendApiKey || !resendFromEmail) {
+            throw new Error("Missing RESEND_API_KEY or RESEND_FROM_EMAIL Convex environment variable");
+        }
+        if (!appUrl) {
+            throw new Error("Missing APP_URL Convex environment variable");
+        }
+
+        const currentUser = await ctx.runQuery(convexApi.users.getCurrentUser);
+        if (!currentUser) {
+            throw new Error("Not authenticated");
+        }
+
+        const proyecto = await ctx.runQuery(convexApi.desarrollos.getById, { id: args.proyecto });
+        if (!proyecto) {
+            throw new Error("Project not found");
+        }
+
+        const recipients: { name: string; email: string; role: string }[] = await ctx.runQuery(convexApi.requisiciones.getEmailRecipients, {
+            proyecto: args.proyecto,
+        });
+
+        const recipientsToNotify = recipients.filter((recipient) => recipient.email !== currentUser.email);
+        if (recipientsToNotify.length === 0) {
+            return { success: true, sent: 0 };
+        }
+
+        const requisicion = args.requisicion_id
+            ? await ctx.runQuery(convexApi.requisiciones.getById, { id: args.requisicion_id })
+            : null;
+
+        const actionByType: Record<string, string> = {
+            created: "creo una requisicion",
+            updated: "actualizo una requisicion",
+            reviewed: "reviso una requisicion",
+            assigned: "asigno proveedor",
+            payment: "actualizo pago",
+            delivery: "actualizo entrega",
+        };
+
+        const subjectByType: Record<string, string> = {
+            created: "Nueva requisicion",
+            updated: "Requisicion actualizada",
+            reviewed: "Requisicion revisada",
+            assigned: "Proveedor asignado",
+            payment: "Pago actualizado",
+            delivery: "Entrega actualizada",
+        };
+
+        const requisicionTitle = requisicion
+            ? `${requisicion.tipo === "equipo" ? "Equipo" : "Material"} solicitado`
+            : "Requisiciones";
+        const statusLabel = requisicion?.status_revision || requisicion?.status || "On Going";
+        const message = args.message?.trim() || requisicion?.descripcion || "Hay una actualizacion en las requisiciones del proyecto.";
+        const ctaUrl = `${appUrl}/proyecto/${args.proyecto}/requisiciones`;
+        const html = renderRequisicionEmail({
+            actorName: currentUser.name || currentUser.email,
+            actionLabel: actionByType[args.notification_type] || "envio una notificacion",
+            projectName: proyecto.nombre,
+            requisicionTitle,
+            statusLabel,
+            message,
+            ctaUrl,
+        });
+
+        const emailResults = await Promise.all(
+            recipientsToNotify.map(async (recipient) => {
+                const emailResponse = await fetch("https://api.resend.com/emails", {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${resendApiKey}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        from: resendFromEmail,
+                        to: [recipient.email],
+                        subject: `${subjectByType[args.notification_type] || "Notificacion"} - ${proyecto.nombre}`,
+                        html,
+                    }),
+                });
+
+                const emailResult = await emailResponse.json();
+                if (!emailResponse.ok) {
+                    throw new Error(emailResult?.message || `Unable to send requisicion email notification to ${recipient.email}`);
+                }
+                return emailResult;
+            })
+        );
+
+        return {
+            success: true,
+            sent: recipientsToNotify.length,
+            emailIds: emailResults.map((result) => result.id).filter(Boolean),
+        };
+    },
+});
 
 // Generate upload URL for requisicion documents
 export const generateUploadUrl = mutation(async (ctx) => {
@@ -244,6 +534,8 @@ export const updateStatus = mutation({
     args: {
         id: v.id("requisiciones"),
         status: v.string(),
+        comentario: v.optional(v.string()),
+        documentos: v.optional(v.array(requisicionStatusDocumentValidator)),
         changed_by_id: v.id("users"),
         changed_by_name: v.string(),
     },
@@ -252,10 +544,19 @@ export const updateStatus = mutation({
         if (!requisicion) throw new Error("Requisicion not found");
         
         const oldStatus = requisicion.status;
+        const now = Date.now();
         
         await ctx.db.patch(args.id, {
             status: args.status,
-            updated_at: Date.now(),
+            updated_at: now,
+        });
+
+        const documentoIds = await createRequisicionHistoryDocuments(ctx, {
+            requisicion_id: args.id,
+            proyecto: requisicion.proyecto,
+            documentos: args.documentos,
+            uploaded_by_id: args.changed_by_id,
+            uploaded_by_name: args.changed_by_name,
         });
         
         // Log history with requisicion context
@@ -273,10 +574,18 @@ export const updateStatus = mutation({
                 status: args.status,
                 solicitante: requisicion.solicitante_nombre,
                 tipo: requisicion.tipo,
+                comentario: args.comentario,
+                documentos: args.documentos?.map((doc) => ({
+                    nombre: doc.nombre,
+                    type: doc.type,
+                    size: doc.size,
+                })),
             }),
+            comentario: args.comentario,
+            documento_ids: documentoIds.length > 0 ? documentoIds : undefined,
             changed_by_id: args.changed_by_id,
             changed_by_name: args.changed_by_name,
-            created_at: Date.now(),
+            created_at: now,
         });
         
         return { success: true };
@@ -288,6 +597,8 @@ export const updateStatusEntrega = mutation({
     args: {
         id: v.id("requisiciones"),
         status_entrega: v.string(),
+        comentario: v.optional(v.string()),
+        documentos: v.optional(v.array(requisicionStatusDocumentValidator)),
         changed_by_id: v.id("users"),
         changed_by_name: v.string(),
     },
@@ -296,10 +607,19 @@ export const updateStatusEntrega = mutation({
         if (!requisicion) throw new Error("Requisicion not found");
         
         const oldStatusEntrega = requisicion.status_entrega;
+        const now = Date.now();
         
         await ctx.db.patch(args.id, {
             status_entrega: args.status_entrega,
-            updated_at: Date.now(),
+            updated_at: now,
+        });
+
+        const documentoIds = await createRequisicionHistoryDocuments(ctx, {
+            requisicion_id: args.id,
+            proyecto: requisicion.proyecto,
+            documentos: args.documentos,
+            uploaded_by_id: args.changed_by_id,
+            uploaded_by_name: args.changed_by_name,
         });
         
         // Log history with requisicion context
@@ -317,10 +637,18 @@ export const updateStatusEntrega = mutation({
                 status_entrega: args.status_entrega,
                 solicitante: requisicion.solicitante_nombre,
                 tipo: requisicion.tipo,
+                comentario: args.comentario,
+                documentos: args.documentos?.map((doc) => ({
+                    nombre: doc.nombre,
+                    type: doc.type,
+                    size: doc.size,
+                })),
             }),
+            comentario: args.comentario,
+            documento_ids: documentoIds.length > 0 ? documentoIds : undefined,
             changed_by_id: args.changed_by_id,
             changed_by_name: args.changed_by_name,
-            created_at: Date.now(),
+            created_at: now,
         });
         
         return { success: true };
@@ -632,6 +960,8 @@ export const reviewRequisicion = mutation({
         reviewer_id: v.id("users"),
         reviewer_name: v.string(),
         nota_revision: v.optional(v.string()),
+        comentario: v.optional(v.string()),
+        documentos: v.optional(v.array(requisicionStatusDocumentValidator)),
         items: v.array(v.object({
             item_id: v.id("requisicion_items"),
             status_revision: v.string(), // "aprobado" | "rechazado"
@@ -697,6 +1027,14 @@ export const reviewRequisicion = mutation({
             .query("requisicion_items")
             .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.id))
             .collect();
+
+        const documentoIds = await createRequisicionHistoryDocuments(ctx, {
+            requisicion_id: args.id,
+            proyecto: requisicion.proyecto,
+            documentos: args.documentos,
+            uploaded_by_id: args.reviewer_id,
+            uploaded_by_name: args.reviewer_name,
+        });
         
         // Build detailed history
         const itemDetails = allItems.map(item => {
@@ -726,12 +1064,20 @@ export const reviewRequisicion = mutation({
                 items_rejected: rejectedCount,
                 items_total: totalCount,
                 items: itemDetails,
+                comentario: args.comentario,
+                documentos: args.documentos?.map((doc) => ({
+                    nombre: doc.nombre,
+                    type: doc.type,
+                    size: doc.size,
+                })),
             }),
             old_value: JSON.stringify({
                 status_revision: requisicion.status_revision,
                 solicitante: requisicion.solicitante_nombre,
                 tipo: requisicion.tipo,
             }),
+            comentario: args.comentario,
+            documento_ids: documentoIds.length > 0 ? documentoIds : undefined,
             changed_by_id: args.reviewer_id,
             changed_by_name: args.reviewer_name,
             created_at: Date.now(),
