@@ -2,14 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  ChevronLeft, ChevronRight, FileText, Search, Upload, Download, ExternalLink, Trash2
-} from "lucide-react";
-import { toast } from "sonner";
 import { Id } from "../../../convex/_generated/dataModel";
+import { toast } from "sonner";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Edit3,
+  ExternalLink,
+  FileText,
+  Folder,
+  FolderInput,
+  FolderOpen,
+  MoreVertical,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,25 +31,102 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useUploadProyectoDocumentsModal } from "@/hooks/upload-proyecto-documents-modal";
+import { cn } from "@/lib/utils";
 
+type FolderId = Id<"document_folders">;
+type DocumentId = Id<"documentos">;
+
+type FolderItem = {
+  _id: FolderId;
+  nombre: string;
+  parent_folder_id?: FolderId;
+  proyecto?: Id<"desarrollos">;
+  created_at: number;
+  updated_at?: number;
+};
+
+type DocumentItem = {
+  _id: DocumentId;
+  nombre: string;
+  descripcion: string;
+  type: string;
+  size?: number;
+  url?: string | null;
+  folder_id?: FolderId;
+  uploaded_at?: number;
+  _creationTime: number;
+  proyecto?: Id<"desarrollos">;
+  transaccion_id?: Id<"transacciones">;
+};
+
+type TransaccionItem = {
+  _id: Id<"transacciones">;
+  banco?: string;
+  factura?: string;
+  codigo_referencia?: string;
+};
+
+type MenuTarget =
+  | { kind: "document"; item: DocumentItem }
+  | { kind: "folder"; item: FolderItem };
+
+const ROOT_VALUE = "root";
 const PAGE_SIZE = 25;
 
 export default function ProyectoDocumentosPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
+  const projectId = proyectoId as Id<"desarrollos"> | undefined;
+  const uploadModal = useUploadProyectoDocumentsModal();
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [documentToDelete, setDocumentToDelete] = useState<Id<"documentos"> | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<FolderId | undefined>();
+  const [folderDialogOpen, setFolderDialogOpen] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<MenuTarget | null>(null);
+  const [selectedTarget, setSelectedTarget] = useState<MenuTarget | null>(null);
+  const [draftName, setDraftName] = useState("");
+  const [targetFolderId, setTargetFolderId] = useState<string>(ROOT_VALUE);
   const [page, setPage] = useState(1);
 
-  // Fetch project
-  const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
-
+  const proyecto = useQuery(api.desarrollos.getById, projectId ? { id: projectId } : "skip");
+  const metadata = useQuery(
+    api.documentos.getProjectFileManagerMetadata,
+    projectId ? { proyecto: projectId } : "skip"
+  );
   const documentosPage = useQuery(
-    api.documentos.getByProyectoPaginated,
-    proyectoId
+    api.documentos.listFileManagerDocuments,
+    projectId
       ? {
-          proyecto_id: proyectoId as Id<"desarrollos">,
+          folder_id: currentFolderId,
+          proyecto: projectId,
           search: searchTerm,
           page,
           pageSize: PAGE_SIZE,
@@ -46,12 +134,17 @@ export default function ProyectoDocumentosPage() {
       : "skip"
   );
 
-  // Mutations
-  const deleteDocumentMutation = useMutation(api.documentos.deleteDocument);
+  const createFolder = useMutation(api.documentos.createFolder);
+  const renameFolder = useMutation(api.documentos.renameFolder);
+  const renameDocument = useMutation(api.documentos.renameDocument);
+  const moveFolder = useMutation(api.documentos.moveFolder);
+  const moveDocument = useMutation(api.documentos.moveDocument);
+  const deleteFolder = useMutation(api.documentos.deleteFolder);
+  const deleteDocument = useMutation(api.documentos.deleteDocument);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, proyectoId]);
+  }, [currentFolderId, searchTerm, proyectoId]);
 
   useEffect(() => {
     if (documentosPage && page !== documentosPage.page) {
@@ -59,84 +152,175 @@ export default function ProyectoDocumentosPage() {
     }
   }, [documentosPage, page]);
 
-  const documentos = documentosPage?.documentos;
+  const folders = (metadata?.folders || []) as FolderItem[];
+  const documentos = (documentosPage?.documents || []) as DocumentItem[];
+
+  const folderById = useMemo(() => new Map(folders.map((folder) => [folder._id, folder])), [folders]);
+  const currentFolder = currentFolderId ? folderById.get(currentFolderId) : undefined;
+
+  const breadcrumbs = useMemo(() => {
+    const items: FolderItem[] = [];
+    let cursor = currentFolder;
+
+    while (cursor) {
+      items.unshift(cursor);
+      cursor = cursor.parent_folder_id ? folderById.get(cursor.parent_folder_id) : undefined;
+    }
+
+    return items;
+  }, [currentFolder, folderById]);
+
+  const folderItemCount = useMemo(() => {
+    const counts = new Map<string, number>();
+    folders.forEach((folder) => {
+      const key = folder.parent_folder_id || ROOT_VALUE;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+
+    Object.entries((metadata?.documentCountsByFolder || {}) as Record<string, number>).forEach(([folderId, count]) => {
+      counts.set(folderId, (counts.get(folderId) || 0) + count);
+    });
+
+    return counts;
+  }, [folders, metadata?.documentCountsByFolder]);
+
+  const folderOptions = useMemo(() => flattenFolders(folders), [folders]);
+  const visibleFolders = useMemo(() => {
+    return folders
+      .filter((folder) => (folder.parent_folder_id || undefined) === currentFolderId)
+      .filter((folder) => normalize(folder.nombre).includes(normalize(searchTerm)))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [currentFolderId, folders, searchTerm]);
+
   const transaccionesById = useMemo(() => {
-    const transacciones = (documentosPage?.transacciones || []).filter((tx) => tx !== null);
+    const transacciones = ((documentosPage?.transacciones || []) as TransaccionItem[]).filter(Boolean);
     return new Map(transacciones.map((tx) => [tx._id, tx]));
   }, [documentosPage?.transacciones]);
 
-  // Get transaction details for a document
-  const getTransactionForDoc = (transaccionId?: Id<"transacciones">) => {
-    if (!transaccionId) return undefined;
-    return transaccionesById.get(transaccionId);
+  const availableMoveFolders = useMemo(() => {
+    if (selectedTarget?.kind !== "folder") return folderOptions;
+
+    const blocked = new Set<string>([selectedTarget.item._id]);
+    collectDescendants(folders, selectedTarget.item._id, blocked);
+    return folderOptions.filter((option) => !blocked.has(option.id));
+  }, [folderOptions, folders, selectedTarget]);
+
+  const isLoading = !proyecto || !metadata || !documentosPage;
+  const selectedTargetLabel = selectedTarget?.item.nombre || "";
+
+  const handleUploadClick = () => {
+    if (projectId) uploadModal.onOpen(projectId);
   };
 
-  // Get tipo badge color
-  const getTipoBadgeColor = (tipo: string) => {
-    switch (tipo.toLowerCase()) {
-      case "factura":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-      case "comprobante":
-        return "bg-green-50 text-green-700 border-green-200";
-      case "presupuesto":
-        return "bg-purple-50 text-purple-700 border-purple-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+  const handleCreateFolder = async () => {
+    try {
+      await createFolder({
+        nombre: draftName,
+        parent_folder_id: currentFolderId,
+        proyecto: projectId,
+      });
+      setFolderDialogOpen(false);
+      setDraftName("");
+      toast.success("Carpeta creada");
+    } catch (error) {
+      toast.error("No se pudo crear la carpeta", {
+        description: getErrorMessage(error),
+      });
     }
   };
 
-  // Format upload date
-  const formatUploadDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString("es-MX", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+  const startRename = (target: MenuTarget) => {
+    setSelectedTarget(target);
+    setDraftName(target.item.nombre);
+    setRenameDialogOpen(true);
+  };
+
+  const handleRename = async () => {
+    if (!selectedTarget) return;
+
+    try {
+      if (selectedTarget.kind === "folder") {
+        await renameFolder({ id: selectedTarget.item._id, nombre: draftName });
+      } else {
+        await renameDocument({ id: selectedTarget.item._id, nombre: draftName });
+      }
+
+      setRenameDialogOpen(false);
+      setDraftName("");
+      toast.success("Nombre actualizado");
+    } catch (error) {
+      toast.error("No se pudo renombrar", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const startMove = (target: MenuTarget) => {
+    setSelectedTarget(target);
+    const folderId = target.kind === "document" ? target.item.folder_id : target.item.parent_folder_id;
+    setTargetFolderId(folderId || ROOT_VALUE);
+    setMoveDialogOpen(true);
+  };
+
+  const handleMove = async () => {
+    if (!selectedTarget) return;
+
+    const folderId = targetFolderId === ROOT_VALUE ? undefined : (targetFolderId as FolderId);
+
+    try {
+      if (selectedTarget.kind === "folder") {
+        await moveFolder({ id: selectedTarget.item._id, parent_folder_id: folderId });
+      } else {
+        await moveDocument({ id: selectedTarget.item._id, folder_id: folderId });
+      }
+
+      setMoveDialogOpen(false);
+      toast.success("Ubicación actualizada");
+    } catch (error) {
+      toast.error("No se pudo mover", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const requestDelete = (target: MenuTarget) => {
+    setSelectedTarget(target);
+    setDeleteTarget(target);
   };
 
   const handleDelete = async () => {
-    if (!documentToDelete) return;
+    if (!deleteTarget) return;
 
     try {
-      const doc = documentos?.find(d => d._id === documentToDelete);
-      if (!doc) return;
+      if (deleteTarget.kind === "folder") {
+        await deleteFolder({ id: deleteTarget.item._id });
+        if (currentFolderId === deleteTarget.item._id) setCurrentFolderId(undefined);
+        toast.success("Carpeta eliminada");
+      } else {
+        await deleteDocument({ id: deleteTarget.item._id });
+        toast.success("Documento eliminado");
+      }
 
-      // Delete from Convex database
-      await deleteDocumentMutation({ id: documentToDelete });
-
-      toast.success("Documento eliminado", {
-        description: "El documento se eliminó correctamente.",
-      });
-
-      setDeleteDialogOpen(false);
-      setDocumentToDelete(null);
+      setDeleteTarget(null);
     } catch (error) {
-      console.error("Error deleting document:", error);
-      toast.error("Error al eliminar", {
-        description: "No se pudo eliminar el documento.",
+      toast.error("No se pudo eliminar", {
+        description:
+          deleteTarget.kind === "folder"
+            ? "La carpeta debe estar vacía antes de eliminarse."
+            : getErrorMessage(error),
       });
-    }
-  };
-
-  const uploadModal = useUploadProyectoDocumentsModal();
-
-  const handleUploadClick = () => {
-    // Open modal with proyectoId from URL
-    if (proyectoId) {
-      uploadModal.onOpen(proyectoId as Id<"desarrollos">);
     }
   };
 
   const handleDownload = async (fileUrl: string, fileName: string) => {
     try {
       toast.loading("Descargando documento...", { id: "download" });
-      
+
       const response = await fetch(fileUrl);
       if (!response.ok) throw new Error("Error al descargar");
-      
+
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
-      
       const link = document.createElement("a");
       link.href = blobUrl;
       link.download = fileName;
@@ -144,7 +328,7 @@ export default function ProyectoDocumentosPage() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
-      
+
       toast.success("Documento descargado", { id: "download" });
     } catch (error) {
       console.error("Error downloading file:", error);
@@ -152,211 +336,418 @@ export default function ProyectoDocumentosPage() {
     }
   };
 
-  const openDeleteDialog = (documentId: Id<"documentos">) => {
-    setDocumentToDelete(documentId);
-    setDeleteDialogOpen(true);
-  };
-
   if (!proyecto) {
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <p className="text-gray-500">Cargando...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-full mx-auto py-8 text-left">
-        <div className="flex flex-col gap-4 px-12">
-          <div className="mb-8 flex items-start justify-between">
+    <div className="min-h-screen bg-white text-left">
+      <div className="border-b border-gray-200 px-12 py-8">
+        <div className="flex flex-col gap-6">
+          <div className="flex items-end justify-between gap-6">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Documentos</p>
+              <p className="mb-1 text-sm text-gray-500">Documentos del proyecto</p>
               <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleUploadClick}>
-                <Upload className="mr-2 h-4 w-4" />
-                Subir Documentos
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                className="rounded-none py-6 text-gray-500"
+                onClick={() => {
+                  setDraftName("");
+                  setFolderDialogOpen(true);
+                }}
+              >
+                Nueva carpeta
+                <Plus className="h-5 w-5" />
               </Button>
-              <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
-                <span className="text-sm font-normal">
-                  Total: {documentosPage?.total || 0}
-                </span>
+              <Button size="lg" className="rounded-none py-6" onClick={handleUploadClick}>
+                Subir documentos
+                <Upload className="h-5 w-5" />
+              </Button>
+              <Badge variant="outline" className="rounded-none px-4 py-3 bg-gray-100">
+                Total: {documentosPage?.total || 0}
               </Badge>
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="mb-8 relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
             <Input
-              type="text"
-              placeholder="Buscar por nombre o tipo de documento..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 rounded-none border-gray-300 h-12"
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar por nombre, tipo o descripción"
+              className="h-12 rounded-none border-gray-300 pl-12"
             />
           </div>
         </div>
-
-        {/* Table */}
-        <div className="border border-gray-200 rounded-none">
-          <table className="w-full">
-            <thead className="border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Documento
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Proveedor
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Tipo
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Transacción
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {!documentosPage ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    Cargando documentos...
-                  </td>
-                </tr>
-              ) : documentos && documentos.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    No se encontraron documentos en este proyecto
-                  </td>
-                </tr>
-              ) : (
-                documentos?.map((doc) => {
-                  const transaction = getTransactionForDoc(doc.transaccion_id);
-                  return (
-                    <tr
-                      key={doc._id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4 border-r border-gray-200">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-gray-400" />
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {doc.nombre}
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              Subido el {formatUploadDate(doc._creationTime)}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                        {transaction?.banco || "-"}
-                      </td>
-                      <td className="px-6 py-4 border-r border-gray-200">
-                        <Badge
-                          variant="outline"
-                          className={`${getTipoBadgeColor(
-                            doc.type
-                          )} px-3 py-1 text-xs font-normal capitalize rounded-none`}
-                        >
-                          {doc.type}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                        {transaction?.factura || transaction?.codigo_referencia || "-"}
-                      </td>
-                      <td className="px-6 py-4 border-r border-gray-200">
-                        <div className="flex items-center gap-2">
-                          {
-                            doc.url ? (
-                              <Button
-                                key={doc._id}
-                                onClick={() => window.open(doc.url!, '_blank')}
-                                size={"sm"}
-                                variant="ghost"
-                                className="h-8 px-2 text-gray-600 hover:text-gray-900"
-                                title={`Ver ${doc.nombre}`}
-                                disabled={!doc.url}
-                              >
-                                <ExternalLink className="w-3 h-3 text-gray-600" />
-                              </Button>
-                            ) : (
-                              <></>
-                            )
-                          }
-                          {
-                            doc.url ? (
-                              // direct download button 
-                              <Button size={"sm"}
-                                variant="ghost"
-                                onClick={() => handleDownload(doc.url!, doc.nombre)}
-                                title="Descargar documento" disabled={!doc.url}>
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            ) : (
-                              // download button 
-                              <></>
-                            )
-                          }
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDeleteDialog(doc._id)}
-                            className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            title="Eliminar documento"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-        {documentosPage && (
-          <PaginationControls
-            page={documentosPage.page}
-            pageSize={documentosPage.pageSize}
-            total={documentosPage.total}
-            totalPages={documentosPage.totalPages}
-            onPageChange={setPage}
-          />
-        )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <div className="grid min-h-[calc(100vh-225px)] grid-cols-[280px_1fr]">
+        <aside className="border-r border-gray-200 px-8 py-8">
+          <Button
+            variant="ghost"
+            className={cn(
+              "mb-2 h-10 w-full justify-start rounded-none px-3 text-sm font-normal",
+              !currentFolderId && "bg-gray-100 text-gray-900"
+            )}
+            onClick={() => setCurrentFolderId(undefined)}
+          >
+            <FolderOpen className="h-4 w-4 text-gray-500" />
+            Biblioteca
+            <span className="ml-auto text-xs text-gray-400">{folderItemCount.get(ROOT_VALUE) || 0}</span>
+          </Button>
+
+          <div className="mt-4 space-y-1">
+            {folderOptions.slice(0, 20).map((folder) => (
+              <Button
+                key={folder.id}
+                variant="ghost"
+                className={cn(
+                  "h-9 w-full justify-start rounded-none px-3 text-sm font-normal text-gray-600",
+                  currentFolderId === folder.id && "bg-gray-100 text-gray-900"
+                )}
+                style={{ paddingLeft: `${12 + folder.level * 14}px` }}
+                onClick={() => setCurrentFolderId(folder.id)}
+              >
+                <Folder className="h-4 w-4 text-gray-500" />
+                <span className="truncate">{folder.name}</span>
+              </Button>
+            ))}
+          </div>
+        </aside>
+
+        <main className="px-12 py-8">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
+                <button className="hover:text-gray-900" onClick={() => setCurrentFolderId(undefined)}>
+                  Biblioteca
+                </button>
+                {breadcrumbs.map((folder) => (
+                  <span key={folder._id} className="flex min-w-0 items-center gap-2">
+                    <ChevronRight className="h-4 w-4 text-gray-300" />
+                    <button
+                      className="truncate hover:text-gray-900"
+                      onClick={() => setCurrentFolderId(folder._id)}
+                    >
+                      {folder.nombre}
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <h2 className="text-3xl font-normal text-gray-900">
+                {currentFolder?.nombre || "Biblioteca del proyecto"}
+              </h2>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex min-h-[360px] items-center justify-center text-gray-500">
+              Cargando documentos...
+            </div>
+          ) : visibleFolders.length === 0 && documentos.length === 0 ? (
+            <div className="flex min-h-[360px] flex-col items-center justify-center border border-dashed border-gray-300 px-6 text-center">
+              <FolderOpen className="mb-4 h-10 w-10 text-gray-400" />
+              <h3 className="text-lg font-normal text-gray-900">Esta ubicación está vacía</h3>
+              <p className="mt-2 max-w-md text-sm text-gray-500">
+                Crea carpetas o sube documentos para organizar los archivos de este proyecto.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="border border-gray-200">
+                <table className="w-full">
+                  <thead className="border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Nombre</th>
+                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Proveedor</th>
+                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Tipo</th>
+                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Transacción</th>
+                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Fecha</th>
+                      <th className="w-36 px-6 py-4 text-left text-sm font-normal text-gray-600">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {visibleFolders.map((folder) => (
+                      <tr key={folder._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <button
+                            className="flex min-w-0 items-center gap-3"
+                            onClick={() => setCurrentFolderId(folder._id)}
+                          >
+                            <Folder className="h-5 w-5 shrink-0 fill-gray-700 text-gray-700" />
+                            <span className="min-w-0">
+                              <span className="block truncate font-medium text-gray-900">{folder.nombre}</span>
+                              <span className="block truncate text-xs text-gray-400">
+                                {folderItemCount.get(folder._id) || 0} elementos
+                              </span>
+                            </span>
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">-</td>
+                        <td className="px-6 py-4 text-sm text-gray-500">Carpeta</td>
+                        <td className="px-6 py-4 text-sm text-gray-500">-</td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {formatDate(folder.updated_at || folder.created_at)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <RowActions
+                            target={{ kind: "folder", item: folder }}
+                            onRename={startRename}
+                            onMove={startMove}
+                            onDelete={requestDelete}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+
+                    {documentos.map((doc) => {
+                      const transaction = doc.transaccion_id ? transaccionesById.get(doc.transaccion_id) : undefined;
+
+                      return (
+                        <tr key={doc._id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <FileText className="h-5 w-5 shrink-0 text-gray-400" />
+                              <div className="min-w-0">
+                                <button
+                                  className="truncate text-sm font-medium text-gray-900 hover:underline"
+                                  onClick={() => doc.url && window.open(doc.url, "_blank")}
+                                >
+                                  {doc.nombre}
+                                </button>
+                                <p className="truncate text-xs text-gray-400">{doc.descripcion || doc.type}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">{transaction?.banco || "-"}</td>
+                          <td className="px-6 py-4">
+                            <Badge
+                              variant="outline"
+                              className={`${getTipoBadgeColor(doc.type)} rounded-none px-3 py-1 text-xs font-normal capitalize`}
+                            >
+                              {doc.type}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {transaction?.factura || transaction?.codigo_referencia || "-"}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            {formatDate(doc.uploaded_at || doc._creationTime)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-1">
+                              {doc.url && (
+                                <>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 rounded-none"
+                                    title={`Ver ${doc.nombre}`}
+                                    onClick={() => window.open(doc.url!, "_blank")}
+                                  >
+                                    <ExternalLink className="h-4 w-4 text-gray-600" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 rounded-none"
+                                    title="Descargar documento"
+                                    onClick={() => handleDownload(doc.url!, doc.nombre)}
+                                  >
+                                    <Download className="h-4 w-4 text-gray-600" />
+                                  </Button>
+                                </>
+                              )}
+                              <RowActions
+                                target={{ kind: "document", item: doc }}
+                                onRename={startRename}
+                                onMove={startMove}
+                                onDelete={requestDelete}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {documentosPage && (
+                <PaginationControls
+                  page={documentosPage.page}
+                  pageSize={documentosPage.pageSize}
+                  total={documentosPage.total}
+                  totalPages={documentosPage.totalPages}
+                  onPageChange={setPage}
+                />
+              )}
+            </>
+          )}
+        </main>
+      </div>
+
+      <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-normal">Nueva carpeta</DialogTitle>
+            <DialogDescription>
+              Crea una carpeta dentro de {currentFolder?.nombre || "Biblioteca"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="folder-name">Nombre</Label>
+            <Input
+              id="folder-name"
+              value={draftName}
+              onChange={(event) => setDraftName(event.target.value)}
+              className="rounded-none"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-none" onClick={() => setFolderDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button className="rounded-none" onClick={handleCreateFolder} disabled={!draftName.trim()}>
+              Crear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-normal">Renombrar</DialogTitle>
+            <DialogDescription>{selectedTargetLabel}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="rename-name">Nombre</Label>
+            <Input
+              id="rename-name"
+              value={draftName}
+              onChange={(event) => setDraftName(event.target.value)}
+              className="rounded-none"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-none" onClick={() => setRenameDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button className="rounded-none" onClick={handleRename} disabled={!draftName.trim()}>
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-normal">Mover ubicación</DialogTitle>
+            <DialogDescription>{selectedTargetLabel}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Destino</Label>
+            <Select value={targetFolderId} onValueChange={setTargetFolderId}>
+              <SelectTrigger className="rounded-none">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ROOT_VALUE}>Biblioteca</SelectItem>
+                {availableMoveFolders.map((folder) => (
+                  <SelectItem key={folder.id} value={folder.id}>
+                    {"  ".repeat(folder.level)}
+                    {folder.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-none" onClick={() => setMoveDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button className="rounded-none" onClick={handleMove}>
+              Mover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteTarget?.kind === "folder" ? "Eliminar carpeta" : "Eliminar documento"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. El documento se eliminará permanentemente
-              del sistema y del almacenamiento.
+              {deleteTarget?.kind === "folder"
+                ? `Se eliminará la carpeta "${deleteTarget.item.nombre}". La carpeta debe estar vacía para poder eliminarla.`
+                : `Se eliminará el documento "${deleteTarget?.item.nombre}". Esta acción no se puede deshacer.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDocumentToDelete(null)}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function RowActions({
+  target,
+  onRename,
+  onMove,
+  onDelete,
+}: {
+  target: MenuTarget;
+  onRename: (target: MenuTarget) => void;
+  onMove: (target: MenuTarget) => void;
+  onDelete: (target: MenuTarget) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none">
+          <MoreVertical className="h-4 w-4 text-gray-500" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="rounded-none">
+        <DropdownMenuItem onClick={() => onRename(target)}>
+          <Edit3 className="h-4 w-4" />
+          Renombrar
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onMove(target)}>
+          <FolderInput className="h-4 w-4" />
+          Mover ubicación
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onDelete(target)} className="text-red-600 focus:text-red-700">
+          <Trash2 className="h-4 w-4" />
+          Eliminar
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -380,7 +771,7 @@ function PaginationControls({
   const pages = getPaginationPages(page, totalPages);
 
   return (
-    <div className="mx-12 mt-5 flex flex-col gap-3 border border-gray-200 px-4 py-3 text-sm text-gray-500 md:flex-row md:items-center md:justify-between">
+    <div className="mt-5 flex flex-col gap-3 border border-gray-200 px-4 py-3 text-sm text-gray-500 md:flex-row md:items-center md:justify-between">
       <span>
         Mostrando {firstItem}-{lastItem} de {total} documentos
       </span>
@@ -427,6 +818,38 @@ function PaginationControls({
   );
 }
 
+function flattenFolders(folders: FolderItem[]) {
+  const byParent = new Map<string, FolderItem[]>();
+  folders.forEach((folder) => {
+    const key = folder.parent_folder_id || ROOT_VALUE;
+    const siblings = byParent.get(key) || [];
+    siblings.push(folder);
+    byParent.set(key, siblings);
+  });
+
+  byParent.forEach((siblings) => siblings.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+
+  const result: { id: FolderId; name: string; level: number }[] = [];
+  const walk = (parentId: string, level: number) => {
+    (byParent.get(parentId) || []).forEach((folder) => {
+      result.push({ id: folder._id, name: folder.nombre, level });
+      walk(folder._id, level + 1);
+    });
+  };
+
+  walk(ROOT_VALUE, 0);
+  return result;
+}
+
+function collectDescendants(folders: FolderItem[], folderId: FolderId, blocked: Set<string>) {
+  folders
+    .filter((folder) => folder.parent_folder_id === folderId)
+    .forEach((folder) => {
+      blocked.add(folder._id);
+      collectDescendants(folders, folder._id, blocked);
+    });
+}
+
 function getPaginationPages(page: number, totalPages: number) {
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -446,4 +869,36 @@ function getPaginationPages(page: number, totalPages: number) {
 
   pages.push(totalPages);
   return pages;
+}
+
+function getTipoBadgeColor(tipo: string) {
+  switch (tipo.toLowerCase()) {
+    case "factura":
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    case "comprobante":
+      return "bg-green-50 text-green-700 border-green-200";
+    case "presupuesto":
+      return "bg-purple-50 text-purple-700 border-purple-200";
+    default:
+      return "bg-gray-100 text-gray-700 border-gray-200";
+  }
+}
+
+function formatDate(timestamp?: number) {
+  if (!timestamp) return "--";
+
+  return new Intl.DateTimeFormat("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(timestamp));
+}
+
+function normalize(value: string) {
+  return value.toLowerCase().trim();
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "Ocurrió un error inesperado";
 }

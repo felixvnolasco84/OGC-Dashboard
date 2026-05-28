@@ -4,7 +4,7 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Clock, ChevronDown, ChevronUp, XCircle, CheckCircle, CreditCard, PackageCheck, Mail, Send, ExternalLink, Paperclip } from "lucide-react";
+import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Clock, ChevronDown, ChevronUp, XCircle, CheckCircle, CreditCard, PackageCheck, Mail, Send, ExternalLink, Paperclip, Trash2, UserPlus, Truck, Receipt, MessageSquare, FileUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,8 +20,6 @@ import {
 import { useRequisicionModal } from "@/hooks/nueva-requisicion-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
-import { Popover } from "@radix-ui/react-popover";
-import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import RequisicionModal from "@/components/modals/RequisicionModal";
 import RequisicionHistoryModal from "@/components/modals/RequisicionHistoryModal";
 import { useRequisicionHistoryModal } from "@/hooks/requisicion-history-modal";
@@ -36,6 +34,17 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type PipelineStageKey = "aprobadas" | "pagadas" | "recibidas";
 type StatusHistoryDocument = {
@@ -784,17 +793,6 @@ export default function ProyectoRequisicionesPage() {
     //     }
     // };
 
-    const getStatusEntregaColor = (status: string | undefined) => {
-        switch (status) {
-            case "Pendiente": return " text-gray-700 border border-gray-200";
-            case "Cancelado": return " text-red-700 border border-red-200";
-            case "En proceso": return " text-blue-700 border border-blue-200";
-            case "Parcial": return " text-yellow-700 border border-yellow-200";
-            case "Completo": return " text-emerald-700 border border-emerald-200";
-            default: return " text-gray-700 border border-gray-200";
-        }
-    };
-
     // Open provider dialog
     const openProviderDialog = (requisicionId: Id<"requisiciones">) => {
         setSelectedRequisicionForProvider(requisicionId);
@@ -1280,108 +1278,151 @@ export default function ProyectoRequisicionesPage() {
 
                                         {/* Actions Menu */}
                                         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none p-0 hover:bg-gray-100">
                                                         <MoreVertical className="h-4 w-4 text-gray-400" />
                                                     </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="flex flex-col space-y-1 w-56 p-2" align="end">
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="justify-start"
-                                                        size="sm"
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-72 rounded-none border-gray-200 p-1">
+                                                    <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal uppercase tracking-wide text-[#ADADA9]">
+                                                        Acciones
+                                                    </DropdownMenuLabel>
+                                                    <DropdownMenuItem
+                                                        className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
                                                         onClick={() => requisicionModal.onOpen({
                                                             projectId: proyectoId as Id<"desarrollos">,
                                                             requisicionId: req._id
                                                         }, "view")}
                                                     >
+                                                        <Eye className="h-4 w-4 text-gray-400" />
                                                         Ver detalles
-                                                    </Button>
+                                                    </DropdownMenuItem>
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                className="justify-start"
-                                                                size="sm"
+                                                            <DropdownMenuItem
+                                                                className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
                                                                 onClick={() => requisicionModal.onOpen({
                                                                     projectId: proyectoId as Id<"desarrollos">,
                                                                     requisicionId: req._id
                                                                 }, "edit")}
                                                             >
+                                                                <Edit2 className="h-4 w-4 text-gray-400" />
                                                                 Editar
-                                                            </Button>
+                                                            </DropdownMenuItem>
                                                         )}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                className="justify-start"
-                                                                size="sm"
+                                                            <DropdownMenuItem
+                                                                className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
                                                                 onClick={() => openProviderDialog(req._id)}
                                                             >
+                                                                <UserPlus className="h-4 w-4 text-gray-400" />
                                                                 Agregar proveedor
-                                                            </Button>
+                                                            </DropdownMenuItem>
                                                         )}
+
+                                                    <DropdownMenuSeparator className="bg-gray-100" />
+
+                                                    <DropdownMenuSub>
+                                                        <DropdownMenuSubTrigger className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 data-[state=open]:bg-gray-100">
+                                                            <CheckCircle className="h-4 w-4 text-[#50AC66]" />
+                                                            Cambiar etapa
+                                                        </DropdownMenuSubTrigger>
+                                                        <DropdownMenuSubContent className="w-56 rounded-none border-gray-200 p-1">
+                                                            {pipelineStages.map((stage) => {
+                                                                const StageIcon = stage.icon;
+                                                                const canUpdateStage = canUpdatePipelineStage(req, stage.key);
+
+                                                                return (
+                                                                    <DropdownMenuItem
+                                                                        key={stage.key}
+                                                                        disabled={pipelineBusy || !canUpdateStage}
+                                                                        className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
+                                                                        onClick={() => openPipelineStatusDialog(req, stage.key)}
+                                                                    >
+                                                                        {pipelineBusy ? (
+                                                                            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                                                        ) : (
+                                                                            <StageIcon className={cn("h-4 w-4", stage.complete ? "text-[#50AC66]" : "text-gray-400")} />
+                                                                        )}
+                                                                        <span>Mover a {stage.label}</span>
+                                                                        {stage.complete && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
+                                                                    </DropdownMenuItem>
+                                                                );
+                                                            })}
+                                                        </DropdownMenuSubContent>
+                                                    </DropdownMenuSub>
+
                                                     {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
-                                                        <div className="border-t border-gray-100 pt-1 mt-1">
-                                                            <p className="text-xs text-gray-500 px-2 py-1">Estado de pago:</p>
-                                                            <div className="space-y-1 flex flex-col">
+                                                        <DropdownMenuSub>
+                                                            <DropdownMenuSubTrigger className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 data-[state=open]:bg-gray-100">
+                                                                <Receipt className="h-4 w-4 text-gray-400" />
+                                                                Estado de pago
+                                                            </DropdownMenuSubTrigger>
+                                                            <DropdownMenuSubContent className="w-52 rounded-none border-gray-200 p-1">
                                                                 {(currentUser?.role === "finance"
                                                                     ? ["Pagado", "Cancelado"]
                                                                     : ["En proceso", "Pagado", "Cancelado"]
                                                                 ).map(s => (
-                                                                    s !== req.status && (
-                                                                        <Button
-                                                                            key={s}
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            className={cn("justify-start text-[10px] rounded-full w-fit", getStatusEntregaColor(s))}
-                                                                            onClick={() => openPaymentStatusDialog(req, s)}
-                                                                        >
-                                                                            {s}
-                                                                        </Button>
-                                                                    )
+                                                                    <DropdownMenuItem
+                                                                        key={s}
+                                                                        disabled={s === req.status}
+                                                                        className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
+                                                                        onClick={() => openPaymentStatusDialog(req, s)}
+                                                                    >
+                                                                        <CreditCard className={cn("h-4 w-4", s === "Pagado" ? "text-[#50AC66]" : s === "Cancelado" ? "text-red-500" : "text-gray-400")} />
+                                                                        {s}
+                                                                        {s === req.status && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
+                                                                    </DropdownMenuItem>
                                                                 ))}
-                                                            </div>
-                                                        </div>
+                                                            </DropdownMenuSubContent>
+                                                        </DropdownMenuSub>
                                                     )}
+
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
-                                                            <div className="border-t border-gray-100 pt-1 mt-1">
-                                                                <p className="text-xs text-gray-500 px-2 py-1">Estado de entrega:</p>
-                                                                <div className="space-y-1 flex flex-col">
-                                                                    {["Pendiente", "Parcial", "Completo"].map(s => (
-                                                                        s !== (req.status_entrega || "Pendiente") && (
-                                                                            <Button
+                                                            <DropdownMenuSub>
+                                                                <DropdownMenuSubTrigger className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 data-[state=open]:bg-gray-100">
+                                                                    <Truck className="h-4 w-4 text-gray-400" />
+                                                                    Estado de entrega
+                                                                </DropdownMenuSubTrigger>
+                                                                <DropdownMenuSubContent className="w-52 rounded-none border-gray-200 p-1">
+                                                                    {["Pendiente", "Parcial", "Completo"].map(s => {
+                                                                        const isCurrent = s === (req.status_entrega || "Pendiente");
+
+                                                                        return (
+                                                                            <DropdownMenuItem
                                                                                 key={s}
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                className={cn("justify-start w-fit text-[10px] rounded-full", getStatusEntregaColor(s))}
+                                                                                disabled={isCurrent}
+                                                                                className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
                                                                                 onClick={() => openDeliveryStatusDialog(req, s)}
                                                                             >
+                                                                                <PackageCheck className={cn("h-4 w-4", s === "Completo" ? "text-[#50AC66]" : s === "Parcial" ? "text-yellow-600" : "text-gray-400")} />
                                                                                 {s}
-                                                                            </Button>
-                                                                        )
-                                                                    ))}
-                                                                </div>
-                                                            </div>
+                                                                                {isCurrent && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
+                                                                            </DropdownMenuItem>
+                                                                        );
+                                                                    })}
+                                                                </DropdownMenuSubContent>
+                                                            </DropdownMenuSub>
                                                         )}
+
                                                     {(currentUser?.role === "admin" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
-                                                            <div className="border-t border-gray-100 pt-1 mt-1">
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="text-red-600 justify-start w-full"
+                                                            <>
+                                                                <DropdownMenuSeparator className="bg-gray-100" />
+                                                                <DropdownMenuItem
+                                                                    className="gap-2 rounded-none text-red-600 focus:bg-red-50 focus:text-red-700"
                                                                     onClick={() => openDeleteDialog(req._id)}
                                                                 >
+                                                                    <Trash2 className="h-4 w-4" />
                                                                     Eliminar
-                                                                </Button>
-                                                            </div>
+                                                                </DropdownMenuItem>
+                                                            </>
                                                         )}
-                                                </PopoverContent>
-                                            </Popover>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                             <button
                                                 onClick={() => toggleCard(req._id)}
                                                 className="p-1 hover:bg-gray-100 rounded transition-colors"
@@ -1560,8 +1601,20 @@ export default function ProyectoRequisicionesPage() {
                     </DialogHeader>
 
                     <div className="space-y-5">
+                        <div className="rounded-none border border-[#EEEEEE] bg-[#F8F8F7] px-4 py-3 text-sm text-[#777770]">
+                            <div className="flex items-start gap-3">
+                                <MessageSquare className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#50AC66]" />
+                                <p>
+                                    El comentario queda guardado en el historial del cambio. El documento es opcional para respaldar la aprobacion, pago o entrega.
+                                </p>
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
-                            <Label>Comentario *</Label>
+                            <Label className="flex items-center gap-2 text-[#282822]">
+                                <MessageSquare className="h-4 w-4 text-gray-400" />
+                                Comentario *
+                            </Label>
                             <Textarea
                                 value={statusHistoryComment}
                                 onChange={(e) => setStatusHistoryComment(e.target.value)}
@@ -1571,7 +1624,10 @@ export default function ProyectoRequisicionesPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Documento opcional</Label>
+                            <Label className="flex items-center gap-2 text-[#282822]">
+                                <FileUp className="h-4 w-4 text-gray-400" />
+                                Documento opcional
+                            </Label>
                             <label className="flex cursor-pointer items-center justify-between gap-3 border border-dashed border-gray-300 px-4 py-3 text-sm text-[#777770] hover:border-[#7EC18E]">
                                 <span className="flex min-w-0 items-center gap-2">
                                     <Paperclip className="h-4 w-4 flex-shrink-0 text-gray-400" />

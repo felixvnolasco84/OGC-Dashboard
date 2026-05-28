@@ -188,9 +188,13 @@ export default defineSchema({
   document_folders: defineTable({
     nombre: v.string(),
     parent_folder_id: v.optional(v.id("document_folders")),
+    proyecto: v.optional(v.id("desarrollos")),
+    sales_proyecto: v.optional(v.id("sales_projects")),
     created_at: v.number(),
     updated_at: v.optional(v.number()),
-  }).index("by_parent_folder", { fields: ["parent_folder_id"] }),
+  }).index("by_parent_folder", { fields: ["parent_folder_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_sales_proyecto", { fields: ["sales_proyecto"] }),
   meticas_presupuesto: defineTable({
     proyecto: v.id("desarrollos"),
     presupuesto_original: v.number(),

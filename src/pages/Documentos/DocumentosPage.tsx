@@ -18,6 +18,7 @@ import {
   FolderOpen,
   Grid2X2,
   List,
+  Loader2,
   MoreVertical,
   Plus,
   Search,
@@ -28,6 +29,16 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Command,
   CommandGroup,
@@ -44,6 +55,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -110,6 +128,15 @@ type ContextMenuState = {
 
 const ROOT_VALUE = "root";
 const PAGE_SIZE = 25;
+const ORGANIZE_BATCH_SIZE = 100;
+
+type OrganizeDocumentsResult = {
+  createdFolders: number;
+  isDone: boolean;
+  movedDocuments: number;
+  processedDocuments: number;
+  continueCursor: string | null;
+};
 
 const fileIconClass = "h-5 w-5 shrink-0";
 
@@ -124,9 +151,11 @@ export default function DocumentosPage() {
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<MenuTarget | null>(null);
   const [draftName, setDraftName] = useState("");
   const [targetFolderId, setTargetFolderId] = useState<string>(ROOT_VALUE);
   const [page, setPage] = useState(1);
+  const [isOrganizing, setIsOrganizing] = useState(false);
 
   const uploadModal = useUploadDocumentsModal();
   const metadata = useQuery(api.documentos.getFileManagerMetadata);
@@ -158,6 +187,7 @@ export default function DocumentosPage() {
   const moveDocument = useMutation(api.documentos.moveDocument);
   const deleteFolder = useMutation(api.documentos.deleteFolder);
   const deleteDocument = useMutation(api.documentos.deleteDocument);
+  const organizeDocuments = useMutation(api.documentos.organizeDocumentsByProjectAndType);
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null);
@@ -193,14 +223,19 @@ export default function DocumentosPage() {
     return new Map(folders.map((folder) => [folder._id, folder]));
   }, [folders]);
 
-  const folderChildrenCount = useMemo(() => {
+  const folderItemCount = useMemo(() => {
     const counts = new Map<string, number>();
     folders.forEach((folder) => {
       const key = folder.parent_folder_id || ROOT_VALUE;
       counts.set(key, (counts.get(key) || 0) + 1);
     });
+
+    Object.entries((metadata?.documentCountsByFolder || {}) as Record<string, number>).forEach(([folderId, count]) => {
+      counts.set(folderId, (counts.get(folderId) || 0) + count);
+    });
+
     return counts;
-  }, [folders]);
+  }, [folders, metadata?.documentCountsByFolder]);
 
   const folderOptions = useMemo(() => flattenFolders(folders), [folders]);
 
@@ -314,23 +349,71 @@ export default function DocumentosPage() {
     }
   };
 
-  const handleDelete = async (target: MenuTarget) => {
+  const requestDelete = (target: MenuTarget) => {
+    setSelectedTarget(target);
+    setDeleteTarget(target);
+    setContextMenu(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
     try {
-      if (target.kind === "folder") {
-        await deleteFolder({ id: target.item._id });
-        if (currentFolderId === target.item._id) setCurrentFolderId(undefined);
+      if (deleteTarget.kind === "folder") {
+        await deleteFolder({ id: deleteTarget.item._id });
+        if (currentFolderId === deleteTarget.item._id) setCurrentFolderId(undefined);
         toast.success("Carpeta eliminada");
       } else {
-        await deleteDocument({ id: target.item._id });
+        await deleteDocument({ id: deleteTarget.item._id });
         toast.success("Documento eliminado");
       }
+
+      setDeleteTarget(null);
     } catch (error) {
       toast.error("No se pudo eliminar", {
         description:
-          target.kind === "folder"
+          deleteTarget.kind === "folder"
             ? "La carpeta debe estar vacia antes de eliminarse."
             : getErrorMessage(error),
       });
+    }
+  };
+
+  const handleOrganizeDocuments = async () => {
+    setIsOrganizing(true);
+
+    try {
+      let cursor: string | null = null;
+      let createdFolders = 0;
+      let movedDocuments = 0;
+      let processedDocuments = 0;
+      let isDone = false;
+
+      while (!isDone) {
+        const result: OrganizeDocumentsResult = await organizeDocuments({
+          paginationOpts: {
+            cursor,
+            numItems: ORGANIZE_BATCH_SIZE,
+          },
+        });
+
+        createdFolders += result.createdFolders;
+        movedDocuments += result.movedDocuments;
+        processedDocuments += result.processedDocuments;
+        cursor = result.continueCursor;
+        isDone = result.isDone;
+      }
+
+      setCurrentFolderId(undefined);
+      toast.success("Documentos organizados", {
+        description: `${movedDocuments} de ${processedDocuments} archivo(s) movido(s) y ${createdFolders} carpeta(s) creada(s).`,
+      });
+    } catch (error) {
+      toast.error("No se pudieron organizar los documentos", {
+        description: getErrorMessage(error),
+      });
+    } finally {
+      setIsOrganizing(false);
     }
   };
 
@@ -354,6 +437,20 @@ export default function DocumentosPage() {
               </div>
 
               <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="rounded-none py-6 text-gray-500"
+                  onClick={handleOrganizeDocuments}
+                  disabled={isOrganizing}
+                >
+                  Organizar
+                  {isOrganizing ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <FolderInput className="h-5 w-5" />
+                  )}
+                </Button>
                 <Button
                   variant="outline"
                   size="lg"
@@ -468,7 +565,7 @@ export default function DocumentosPage() {
             >
               <FolderOpen className="h-4 w-4 text-gray-500" />
               Biblioteca
-              <span className="ml-auto text-xs text-gray-400">{folderChildrenCount.get(ROOT_VALUE) || 0}</span>
+              <span className="ml-auto text-xs text-gray-400">{folderItemCount.get(ROOT_VALUE) || 0}</span>
             </Button>
 
             <div className="mt-4 space-y-1">
@@ -564,12 +661,12 @@ export default function DocumentosPage() {
                     folders={visibleFolders}
                     documents={visibleDocuments}
                     projectById={projectById}
-                    folderChildrenCount={folderChildrenCount}
+                    folderItemCount={folderItemCount}
                     onOpenFolder={setCurrentFolderId}
                     onContextMenu={openContextMenu}
                     onRename={startRename}
                     onMove={startMove}
-                    onDelete={handleDelete}
+                    onDelete={requestDelete}
                   />
                 ) : (
                   <DocumentGrid
@@ -580,7 +677,7 @@ export default function DocumentosPage() {
                     onContextMenu={openContextMenu}
                     onRename={startRename}
                     onMove={startMove}
-                    onDelete={handleDelete}
+                    onDelete={requestDelete}
                   />
                 )}
                 <PaginationControls
@@ -612,7 +709,7 @@ export default function DocumentosPage() {
               }}
               onRename={() => startRename(contextMenu.target)}
               onMove={() => startMove(contextMenu.target)}
-              onDelete={() => handleDelete(contextMenu.target)}
+              onDelete={() => requestDelete(contextMenu.target)}
             />
           </div>
         )}
@@ -706,6 +803,35 @@ export default function DocumentosPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {deleteTarget?.kind === "folder" ? "Eliminar carpeta" : "Eliminar documento"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {deleteTarget?.kind === "folder"
+                  ? `Se eliminará la carpeta "${deleteTarget.item.nombre}". La carpeta debe estar vacía para poder eliminarla.`
+                  : `Se eliminará el documento "${deleteTarget?.item.nombre}". Esta acción no se puede deshacer.`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );
@@ -715,7 +841,7 @@ function DocumentList({
   folders,
   documents,
   projectById,
-  folderChildrenCount,
+  folderItemCount,
   onOpenFolder,
   onContextMenu,
   onRename,
@@ -725,7 +851,7 @@ function DocumentList({
   folders: FolderItem[];
   documents: DocumentItem[];
   projectById: Map<string, string>;
-  folderChildrenCount: Map<string, number>;
+  folderItemCount: Map<string, number>;
   onOpenFolder: (id: FolderId) => void;
   onContextMenu: (event: React.MouseEvent, target: MenuTarget) => void;
   onRename: (target: MenuTarget) => void;
@@ -759,7 +885,7 @@ function DocumentList({
                   <span className="min-w-0">
                     <span className="block truncate font-medium text-gray-900">{folder.nombre}</span>
                     <span className="block truncate text-xs text-gray-400">
-                      {folderChildrenCount.get(folder._id) || 0} elementos
+                      {folderItemCount.get(folder._id) || 0} elementos
                     </span>
                   </span>
                 </button>
@@ -1040,11 +1166,33 @@ function InlineActions({
         <TooltipContent>Mover</TooltipContent>
       </Tooltip>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onDelete(target)}>
-            <MoreVertical className="h-4 w-4 text-gray-500" />
-          </Button>
-        </TooltipTrigger>
+        <DropdownMenu>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none">
+                <MoreVertical className="h-4 w-4 text-gray-500" />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <DropdownMenuContent align="end" className="rounded-none">
+            <DropdownMenuItem onClick={() => onRename(target)}>
+              <Edit3 className="h-4 w-4" />
+              Renombrar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onMove(target)}>
+              <FolderInput className="h-4 w-4" />
+              Mover ubicacion
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => onDelete(target)}
+              className="text-red-600 focus:text-red-700"
+            >
+              <Trash2 className="h-4 w-4" />
+              Eliminar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <TooltipContent>Mas acciones</TooltipContent>
       </Tooltip>
     </div>
