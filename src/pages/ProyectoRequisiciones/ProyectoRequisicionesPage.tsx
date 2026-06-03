@@ -1231,7 +1231,6 @@ export default function ProyectoRequisicionesPage() {
                                                         const nextStage = pipelineStages[stageIndex + 1];
                                                         const segmentComplete = stage.complete && nextStage?.complete;
                                                         const canUpdateStage = canUpdatePipelineStage(req, stage.key);
-                                                        const StageIcon = stage.icon;
 
                                                         return (
                                                             <div key={stage.key} className="relative flex flex-col items-center">
@@ -1254,7 +1253,12 @@ export default function ProyectoRequisicionesPage() {
                                                                     {pipelineBusy ? (
                                                                         <Loader2 className="h-3 w-3 animate-spin" />
                                                                     ) : (
-                                                                        <StageIcon className="h-3.5 w-3.5" />
+                                                                        <span
+                                                                            className={cn(
+                                                                                "h-2 w-2 rounded-full",
+                                                                                stage.complete ? "bg-[#50AC66]" : "bg-transparent"
+                                                                            )}
+                                                                        />
                                                                     )}
                                                                 </button>
                                                                 <button

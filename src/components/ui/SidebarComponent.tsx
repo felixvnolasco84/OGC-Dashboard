@@ -755,6 +755,27 @@ export default function SidebarComponent() {
         <SidebarGroup className="mt-auto border-t border-gray-200 pt-2 text-left">
           <SidebarGroupContent>
             <SidebarMenu>
+              {currentUser?.role === "admin" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Documentos"
+                    className={cn(
+                      "px-3 py-2 text-sm transition-colors",
+                      isActive("/documentos")
+                        ? "text-gray-900 bg-gray-100 font-medium"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    <Link to="/documentos">
+                      <File className="w-4 h-4" />
+                      <span className="flex items-center justify-between w-full">
+                        Documentos
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild

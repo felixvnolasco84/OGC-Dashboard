@@ -34,6 +34,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -51,14 +59,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DocumentFolderSidebar,
+  MoveLocationDialog,
+} from "@/components/documents/DocumentFolderNavigation";
 import { useUploadProyectoDocumentsModal } from "@/hooks/upload-proyecto-documents-modal";
-import { cn } from "@/lib/utils";
 
 type FolderId = Id<"document_folders">;
 type DocumentId = Id<"documentos">;
@@ -97,6 +101,12 @@ type MenuTarget =
   | { kind: "document"; item: DocumentItem }
   | { kind: "folder"; item: FolderItem };
 
+type ContextMenuState = {
+  x: number;
+  y: number;
+  target: MenuTarget;
+} | null;
+
 const ROOT_VALUE = "root";
 const PAGE_SIZE = 25;
 
@@ -112,7 +122,9 @@ export default function ProyectoDocumentosPage() {
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MenuTarget | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<MenuTarget | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
   const [draftName, setDraftName] = useState("");
+  const [folderDialogParentId, setFolderDialogParentId] = useState<FolderId | undefined>();
   const [targetFolderId, setTargetFolderId] = useState<string>(ROOT_VALUE);
   const [page, setPage] = useState(1);
 
@@ -141,6 +153,16 @@ export default function ProyectoDocumentosPage() {
   const moveDocument = useMutation(api.documentos.moveDocument);
   const deleteFolder = useMutation(api.documentos.deleteFolder);
   const deleteDocument = useMutation(api.documentos.deleteDocument);
+
+  useEffect(() => {
+    const closeMenu = () => setContextMenu(null);
+    window.addEventListener("click", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+    return () => {
+      window.removeEventListener("click", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+    };
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -212,16 +234,39 @@ export default function ProyectoDocumentosPage() {
     if (projectId) uploadModal.onOpen(projectId);
   };
 
+  const openContextMenu = (event: React.MouseEvent, target: MenuTarget) => {
+    event.preventDefault();
+    setSelectedTarget(target);
+    setContextMenu({ x: event.clientX, y: event.clientY, target });
+  };
+
   const handleCreateFolder = async () => {
     try {
       await createFolder({
         nombre: draftName,
-        parent_folder_id: currentFolderId,
+        parent_folder_id: folderDialogParentId ?? currentFolderId,
         proyecto: projectId,
       });
       setFolderDialogOpen(false);
       setDraftName("");
+      setFolderDialogParentId(undefined);
       toast.success("Carpeta creada");
+    } catch (error) {
+      toast.error("No se pudo crear la carpeta", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const handleCreateMoveFolder = async (name: string, parentFolderId?: FolderId) => {
+    try {
+      const folderId = await createFolder({
+        nombre: name,
+        parent_folder_id: parentFolderId,
+        proyecto: projectId,
+      });
+      toast.success("Carpeta creada");
+      return folderId;
     } catch (error) {
       toast.error("No se pudo crear la carpeta", {
         description: getErrorMessage(error),
@@ -286,6 +331,7 @@ export default function ProyectoDocumentosPage() {
   const requestDelete = (target: MenuTarget) => {
     setSelectedTarget(target);
     setDeleteTarget(target);
+    setContextMenu(null);
   };
 
   const handleDelete = async () => {
@@ -361,6 +407,7 @@ export default function ProyectoDocumentosPage() {
                 className="rounded-none py-6 text-gray-500"
                 onClick={() => {
                   setDraftName("");
+                  setFolderDialogParentId(undefined);
                   setFolderDialogOpen(true);
                 }}
               >
@@ -389,41 +436,21 @@ export default function ProyectoDocumentosPage() {
         </div>
       </div>
 
-      <div className="grid min-h-[calc(100vh-225px)] grid-cols-[280px_1fr]">
-        <aside className="border-r border-gray-200 px-8 py-8">
-          <Button
-            variant="ghost"
-            className={cn(
-              "mb-2 h-10 w-full justify-start rounded-none px-3 text-sm font-normal",
-              !currentFolderId && "bg-gray-100 text-gray-900"
-            )}
-            onClick={() => setCurrentFolderId(undefined)}
-          >
-            <FolderOpen className="h-4 w-4 text-gray-500" />
-            Biblioteca
-            <span className="ml-auto text-xs text-gray-400">{folderItemCount.get(ROOT_VALUE) || 0}</span>
-          </Button>
+      <div className="flex min-h-[calc(100vh-225px)]">
+        <DocumentFolderSidebar
+          activeFolderId={currentFolderId}
+          folderOptions={folderOptions}
+          folderItemCount={folderItemCount}
+          foldersCount={folders.length}
+          onFolderSelect={setCurrentFolderId}
+          onFolderContextMenu={(event, id) => {
+            const item = folderById.get(id);
+            if (item) openContextMenu(event, { kind: "folder", item });
+          }}
+          visibleLimit={20}
+        />
 
-          <div className="mt-4 space-y-1">
-            {folderOptions.slice(0, 20).map((folder) => (
-              <Button
-                key={folder.id}
-                variant="ghost"
-                className={cn(
-                  "h-9 w-full justify-start rounded-none px-3 text-sm font-normal text-gray-600",
-                  currentFolderId === folder.id && "bg-gray-100 text-gray-900"
-                )}
-                style={{ paddingLeft: `${12 + folder.level * 14}px` }}
-                onClick={() => setCurrentFolderId(folder.id)}
-              >
-                <Folder className="h-4 w-4 text-gray-500" />
-                <span className="truncate">{folder.name}</span>
-              </Button>
-            ))}
-          </div>
-        </aside>
-
-        <main className="px-12 py-8">
+        <main className="min-w-0 flex-1 px-12 py-8">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div className="min-w-0">
               <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
@@ -476,7 +503,11 @@ export default function ProyectoDocumentosPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {visibleFolders.map((folder) => (
-                      <tr key={folder._id} className="hover:bg-gray-50">
+                      <tr
+                        key={folder._id}
+                        className="hover:bg-gray-50"
+                        onContextMenu={(event) => openContextMenu(event, { kind: "folder", item: folder })}
+                      >
                         <td className="px-6 py-4">
                           <button
                             className="flex min-w-0 items-center gap-3"
@@ -512,7 +543,11 @@ export default function ProyectoDocumentosPage() {
                       const transaction = doc.transaccion_id ? transaccionesById.get(doc.transaccion_id) : undefined;
 
                       return (
-                        <tr key={doc._id} className="hover:bg-gray-50">
+                        <tr
+                          key={doc._id}
+                          className="hover:bg-gray-50"
+                          onContextMenu={(event) => openContextMenu(event, { kind: "document", item: doc })}
+                        >
                           <td className="px-6 py-4">
                             <div className="flex min-w-0 items-center gap-3">
                               <FileText className="h-5 w-5 shrink-0 text-gray-400" />
@@ -595,12 +630,37 @@ export default function ProyectoDocumentosPage() {
         </main>
       </div>
 
+      {contextMenu && (
+        <div
+          className="fixed z-50 w-72 overflow-hidden border border-gray-200 bg-white shadow-lg"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <ActionCommand
+            target={contextMenu.target}
+            onOpen={() => {
+              if (contextMenu.target.kind === "folder") {
+                setCurrentFolderId(contextMenu.target.item._id);
+              } else if (contextMenu.target.item.url) {
+                window.open(contextMenu.target.item.url, "_blank");
+              }
+              setContextMenu(null);
+            }}
+            onRename={() => startRename(contextMenu.target)}
+            onMove={() => startMove(contextMenu.target)}
+            onDelete={() => requestDelete(contextMenu.target)}
+          />
+        </div>
+      )}
+
       <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-normal">Nueva carpeta</DialogTitle>
             <DialogDescription>
-              Crea una carpeta dentro de {currentFolder?.nombre || "Biblioteca"}.
+              Crea una carpeta dentro de{" "}
+              {(folderDialogParentId ? folderById.get(folderDialogParentId)?.nombre : currentFolder?.nombre) ||
+                "Biblioteca"}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -651,39 +711,22 @@ export default function ProyectoDocumentosPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-normal">Mover ubicación</DialogTitle>
-            <DialogDescription>{selectedTargetLabel}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label>Destino</Label>
-            <Select value={targetFolderId} onValueChange={setTargetFolderId}>
-              <SelectTrigger className="rounded-none">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ROOT_VALUE}>Biblioteca</SelectItem>
-                {availableMoveFolders.map((folder) => (
-                  <SelectItem key={folder.id} value={folder.id}>
-                    {"  ".repeat(folder.level)}
-                    {folder.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" className="rounded-none" onClick={() => setMoveDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button className="rounded-none" onClick={handleMove}>
-              Mover
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <MoveLocationDialog
+        open={moveDialogOpen}
+        onOpenChange={setMoveDialogOpen}
+        itemName={selectedTargetLabel}
+        currentLocationId={
+          selectedTarget?.kind === "document"
+            ? selectedTarget.item.folder_id
+            : selectedTarget?.item.parent_folder_id
+        }
+        folders={folders}
+        folderOptions={availableMoveFolders}
+        targetFolderId={targetFolderId}
+        onTargetFolderChange={setTargetFolderId}
+        onMove={handleMove}
+        onCreateFolder={handleCreateMoveFolder}
+      />
 
       <AlertDialog
         open={Boolean(deleteTarget)}
@@ -748,6 +791,49 @@ function RowActions({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function ActionCommand({
+  target,
+  onOpen,
+  onRename,
+  onMove,
+  onDelete,
+}: {
+  target: MenuTarget;
+  onOpen: () => void;
+  onRename: () => void;
+  onMove: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <Command className="rounded-none">
+      <CommandList>
+        <CommandGroup heading={target.kind === "folder" ? "Carpeta" : "Documento"}>
+          <CommandItem onSelect={onOpen}>
+            {target.kind === "folder" ? <FolderOpen /> : <Download />}
+            {target.kind === "folder" ? "Abrir" : "Abrir archivo"}
+          </CommandItem>
+          <CommandItem onSelect={onRename}>
+            <Edit3 />
+            Cambiar nombre
+            <CommandShortcut>Ctrl+E</CommandShortcut>
+          </CommandItem>
+          <CommandItem onSelect={onMove}>
+            <FolderInput />
+            Mover ubicacion
+          </CommandItem>
+        </CommandGroup>
+        <CommandSeparator />
+        <CommandGroup>
+          <CommandItem onSelect={onDelete} className="text-red-600 data-[selected=true]:text-red-700">
+            <Trash2 />
+            Eliminar
+          </CommandItem>
+        </CommandGroup>
+      </CommandList>
+    </Command>
   );
 }
 

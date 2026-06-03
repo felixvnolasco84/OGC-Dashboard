@@ -86,6 +86,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DocumentFolderSidebar,
+  MoveLocationDialog,
+} from "@/components/documents/DocumentFolderNavigation";
 import { cn } from "@/lib/utils";
 import { useUploadDocumentsModal } from "@/hooks/upload-documents-modal";
 
@@ -153,6 +157,7 @@ export default function DocumentosPage() {
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MenuTarget | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [folderDialogParentId, setFolderDialogParentId] = useState<FolderId | undefined>();
   const [targetFolderId, setTargetFolderId] = useState<string>(ROOT_VALUE);
   const [page, setPage] = useState(1);
   const [isOrganizing, setIsOrganizing] = useState(false);
@@ -296,11 +301,27 @@ export default function DocumentosPage() {
     try {
       await createFolder({
         nombre: draftName,
-        parent_folder_id: currentFolderId,
+        parent_folder_id: folderDialogParentId ?? currentFolderId,
       });
       setFolderDialogOpen(false);
       setDraftName("");
+      setFolderDialogParentId(undefined);
       toast.success("Carpeta creada");
+    } catch (error) {
+      toast.error("No se pudo crear la carpeta", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const handleCreateMoveFolder = async (name: string, parentFolderId?: FolderId) => {
+    try {
+      const folderId = await createFolder({
+        nombre: name,
+        parent_folder_id: parentFolderId,
+      });
+      toast.success("Carpeta creada");
+      return folderId;
     } catch (error) {
       toast.error("No se pudo crear la carpeta", {
         description: getErrorMessage(error),
@@ -457,6 +478,7 @@ export default function DocumentosPage() {
                   className="rounded-none py-6 text-gray-500"
                   onClick={() => {
                     setDraftName("");
+                    setFolderDialogParentId(undefined);
                     setFolderDialogOpen(true);
                   }}
                 >
@@ -553,53 +575,26 @@ export default function DocumentosPage() {
           </div>
         </div>
 
-        <div className="grid min-h-[calc(100vh-225px)] grid-cols-[280px_1fr]">
-          <aside className="border-r border-gray-200 px-8 py-8">
-            <Button
-              variant="ghost"
-              className={cn(
-                "mb-2 h-10 w-full justify-start rounded-none px-3 text-sm font-normal",
-                !currentFolderId && "bg-gray-100 text-gray-900"
-              )}
-              onClick={() => setCurrentFolderId(undefined)}
-            >
-              <FolderOpen className="h-4 w-4 text-gray-500" />
-              Biblioteca
-              <span className="ml-auto text-xs text-gray-400">{folderItemCount.get(ROOT_VALUE) || 0}</span>
-            </Button>
+        <div className="flex min-h-[calc(100vh-225px)]">
+          <DocumentFolderSidebar
+            activeFolderId={currentFolderId}
+            folderOptions={folderOptions}
+            folderItemCount={folderItemCount}
+            foldersCount={folders.length}
+            metrics={[
+              { label: "Archivos", value: (documentsPage?.total || 0).toString() },
+              { label: "Carpetas", value: folders.length.toString() },
+              { label: "Almacenamiento", value: formatBytes(totalSize) },
+            ]}
+            onFolderSelect={setCurrentFolderId}
+            onFolderContextMenu={(event, id) => {
+              const item = folderById.get(id);
+              if (item) openContextMenu(event, { kind: "folder", item });
+            }}
+            visibleLimit={12}
+          />
 
-            <div className="mt-4 space-y-1">
-              {folderOptions.slice(0, 12).map((folder) => (
-                <Button
-                  key={folder.id}
-                  variant="ghost"
-                  className={cn(
-                    "h-9 w-full justify-start rounded-none px-3 text-sm font-normal text-gray-600",
-                    currentFolderId === folder.id && "bg-gray-100 text-gray-900"
-                  )}
-                  style={{ paddingLeft: `${12 + folder.level * 14}px` }}
-                  onClick={() => setCurrentFolderId(folder.id)}
-                  onContextMenu={(event) => {
-                    const item = folderById.get(folder.id);
-                    if (item) openContextMenu(event, { kind: "folder", item });
-                  }}
-                >
-                  <Folder className="h-4 w-4 text-gray-500" />
-                  <span className="truncate">{folder.name}</span>
-                </Button>
-              ))}
-            </div>
-
-            <Separator className="my-6" />
-
-            <div className="space-y-4 text-sm">
-              <Metric label="Archivos" value={(documentsPage?.total || 0).toString()} />
-              <Metric label="Carpetas" value={folders.length.toString()} />
-              <Metric label="Almacenamiento" value={formatBytes(totalSize)} />
-            </div>
-          </aside>
-
-          <main className="px-12 py-8">
+          <main className="min-w-0 flex-1 px-12 py-8">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
@@ -651,6 +646,7 @@ export default function DocumentosPage() {
                 hasFilters={hasFilters}
                 onCreateFolder={() => {
                   setDraftName("");
+                  setFolderDialogParentId(undefined);
                   setFolderDialogOpen(true);
                 }}
               />
@@ -719,7 +715,9 @@ export default function DocumentosPage() {
             <DialogHeader>
               <DialogTitle className="font-normal">Nueva carpeta</DialogTitle>
               <DialogDescription>
-                Crea una carpeta dentro de {currentFolder?.nombre || "Biblioteca"}.
+                Crea una carpeta dentro de{" "}
+                {(folderDialogParentId ? folderById.get(folderDialogParentId)?.nombre : currentFolder?.nombre) ||
+                  "Biblioteca"}.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
@@ -770,39 +768,22 @@ export default function DocumentosPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-normal">Mover ubicacion</DialogTitle>
-              <DialogDescription>{selectedTargetLabel}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2">
-              <Label>Destino</Label>
-              <Select value={targetFolderId} onValueChange={setTargetFolderId}>
-                <SelectTrigger className="rounded-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ROOT_VALUE}>Biblioteca</SelectItem>
-                  {availableMoveFolders.map((folder) => (
-                    <SelectItem key={folder.id} value={folder.id}>
-                      {"  ".repeat(folder.level)}
-                      {folder.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" className="rounded-none" onClick={() => setMoveDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button className="rounded-none" onClick={handleMove}>
-                Mover
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <MoveLocationDialog
+          open={moveDialogOpen}
+          onOpenChange={setMoveDialogOpen}
+          itemName={selectedTargetLabel}
+          currentLocationId={
+            selectedTarget?.kind === "document"
+              ? selectedTarget.item.folder_id
+              : selectedTarget?.item.parent_folder_id
+          }
+          folders={folders}
+          folderOptions={availableMoveFolders}
+          targetFolderId={targetFolderId}
+          onTargetFolderChange={setTargetFolderId}
+          onMove={handleMove}
+          onCreateFolder={handleCreateMoveFolder}
+        />
 
         <AlertDialog
           open={Boolean(deleteTarget)}
@@ -1223,15 +1204,6 @@ function EmptyState({
           <Plus className="h-4 w-4" />
         </Button>
       )}
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="mt-1 text-base text-gray-900">{value}</p>
     </div>
   );
 }
