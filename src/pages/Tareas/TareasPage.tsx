@@ -2198,7 +2198,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm leading-5 text-gray-700">
+                          <p className="text-sm leading-5 break-words text-gray-700">
                             <span className="font-medium text-gray-900">{item.changed_by_name}</span>{" "}
                             {notificationLabel(item).toLowerCase()}{" "}
                             <span className="font-medium text-gray-900">"{item.task.titulo}"</span>
@@ -2244,7 +2244,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     </Badge>
                   )}
                 </div>
-                <SheetTitle className="text-left text-2xl font-normal">{selectedTask.titulo}</SheetTitle>
+                <SheetTitle className="text-left text-2xl font-normal break-words">{selectedTask.titulo}</SheetTitle>
                 <SheetDescription className="text-left">
                   {!isProjectScoped && `${selectedTask.proyecto_nombre || "Sin proyecto"} · `}
                   {selectedTask.categoria || "General"} · Creada por {selectedTask.created_by_name} · {formatDateTime(selectedTask.created_at)}
@@ -2282,7 +2282,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
                 <div>
                   <h3 className="text-sm font-medium text-gray-900">Descripcion</h3>
-                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                  <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-gray-600">
                     {selectedTask.descripcion || "Sin descripcion."}
                   </p>
                 </div>
@@ -2353,7 +2353,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                 </Button>
                               )}
                             </div>
-                            <p className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-700">{comment.comment}</p>
+                            <p className="mt-3 whitespace-pre-line break-words text-sm leading-6 text-gray-700">{comment.comment}</p>
                           </div>
                         );
                       }) : (
@@ -2372,7 +2372,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                             <Clock3 className="h-4 w-4" />
                           </div>
                           <div>
-                            <p className="text-sm text-gray-900">{historyLabel(item)}</p>
+                            <p className="text-sm break-words text-gray-900">{historyLabel(item)}</p>
                             <p className="mt-1 text-xs text-gray-500">
                               {item.changed_by_name} · {formatDateTime(item.created_at)}
                             </p>
@@ -2397,7 +2397,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       </Sheet>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingTask ? "Editar tarea" : "Nueva tarea"}</DialogTitle>
             <DialogDescription>
@@ -2523,9 +2523,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label>Asignados</Label>
-              <div className="max-h-52 overflow-y-auto border border-gray-200 p-3">
+              <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-gray-200 p-3">
                 {!selectedFormProjectId && (
                   <div className="py-4 text-center text-sm text-gray-500">
                     Selecciona un proyecto para ver usuarios disponibles.
@@ -2555,9 +2555,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label>Partidas</Label>
-              <div className="max-h-52 overflow-y-auto border border-gray-200 p-3">
+              <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-gray-200 p-3">
                 {!selectedFormProjectId && (
                   <div className="py-4 text-center text-sm text-gray-500">
                     Selecciona un proyecto para ver partidas disponibles.
@@ -2601,7 +2601,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       </Dialog>
 
       <AlertDialog open={Boolean(taskToDelete)} onOpenChange={(open) => !open && setTaskToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar tarea</AlertDialogTitle>
             <AlertDialogDescription>

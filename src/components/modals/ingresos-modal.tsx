@@ -925,7 +925,7 @@ export default function IngresosModal() {
 
           {/* Action Bar */}
           {!showForm && !showBulkUpload && (
-            <div className="flex justify-end gap-1">
+            <div className="flex justify-end gap-1 items-center">
               <Button
                 variant={"ghost"}
                 onClick={() => {
