@@ -10,10 +10,17 @@ import {
   Download,
   Edit3,
   ExternalLink,
+  File,
+  FileArchive,
+  FileImage,
+  FileSpreadsheet,
   FileText,
   Folder,
   FolderInput,
   FolderOpen,
+  Loader2,
+  Grid2X2,
+  List,
   MoreVertical,
   Plus,
   Search,
@@ -58,6 +65,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import {
   DocumentFolderSidebar,
   MoveLocationDialog,
@@ -109,6 +124,15 @@ type ContextMenuState = {
 
 const ROOT_VALUE = "root";
 const PAGE_SIZE = 25;
+const ORGANIZE_BATCH_SIZE = 100;
+
+type OrganizeDocumentsResult = {
+  createdFolders: number;
+  isDone: boolean;
+  movedDocuments: number;
+  processedDocuments: number;
+  continueCursor: string | null;
+};
 
 export default function ProyectoDocumentosPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
@@ -117,6 +141,7 @@ export default function ProyectoDocumentosPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentFolderId, setCurrentFolderId] = useState<FolderId | undefined>();
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
@@ -127,6 +152,7 @@ export default function ProyectoDocumentosPage() {
   const [folderDialogParentId, setFolderDialogParentId] = useState<FolderId | undefined>();
   const [targetFolderId, setTargetFolderId] = useState<string>(ROOT_VALUE);
   const [page, setPage] = useState(1);
+  const [isOrganizing, setIsOrganizing] = useState(false);
 
   const proyecto = useQuery(api.desarrollos.getById, projectId ? { id: projectId } : "skip");
   const metadata = useQuery(
@@ -153,6 +179,7 @@ export default function ProyectoDocumentosPage() {
   const moveDocument = useMutation(api.documentos.moveDocument);
   const deleteFolder = useMutation(api.documentos.deleteFolder);
   const deleteDocument = useMutation(api.documentos.deleteDocument);
+  const organizeDocuments = useMutation(api.documentos.organizeDocumentsByProjectAndType);
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null);
@@ -358,6 +385,44 @@ export default function ProyectoDocumentosPage() {
     }
   };
 
+  const handleOrganizeDocuments = async () => {
+    setIsOrganizing(true);
+
+    try {
+      let cursor: string | null = null;
+      let createdFolders = 0;
+      let movedDocuments = 0;
+      let processedDocuments = 0;
+      let isDone = false;
+
+      while (!isDone) {
+        const result: OrganizeDocumentsResult = await organizeDocuments({
+          paginationOpts: {
+            cursor,
+            numItems: ORGANIZE_BATCH_SIZE,
+          },
+        });
+
+        createdFolders += result.createdFolders;
+        movedDocuments += result.movedDocuments;
+        processedDocuments += result.processedDocuments;
+        cursor = result.continueCursor;
+        isDone = result.isDone;
+      }
+
+      setCurrentFolderId(undefined);
+      toast.success("Documentos organizados", {
+        description: `${movedDocuments} de ${processedDocuments} archivo(s) movido(s) y ${createdFolders} carpeta(s) creada(s).`,
+      });
+    } catch (error) {
+      toast.error("No se pudieron organizar los documentos", {
+        description: getErrorMessage(error),
+      });
+    } finally {
+      setIsOrganizing(false);
+    }
+  };
+
   const handleDownload = async (fileUrl: string, fileName: string) => {
     try {
       toast.loading("Descargando documento...", { id: "download" });
@@ -391,6 +456,7 @@ export default function ProyectoDocumentosPage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-white text-left">
       <div className="border-b border-gray-200 px-12 py-8">
         <div className="flex flex-col gap-6">
@@ -401,6 +467,20 @@ export default function ProyectoDocumentosPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                className="rounded-none py-6 text-gray-500"
+                onClick={handleOrganizeDocuments}
+                disabled={isOrganizing}
+              >
+                Organizar
+                {isOrganizing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <FolderInput className="h-5 w-5" />
+                )}
+              </Button>
               <Button
                 variant="outline"
                 size="lg"
@@ -424,14 +504,48 @@ export default function ProyectoDocumentosPage() {
             </div>
           </div>
 
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-            <Input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Buscar por nombre, tipo o descripción"
-              className="h-12 rounded-none border-gray-300 pl-12"
-            />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Buscar por nombre, tipo o descripción"
+                className="h-12 rounded-none border-gray-300 pl-12"
+              />
+            </div>
+
+            <div className="flex h-12 border border-gray-300">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn("h-full rounded-none", viewMode === "list" && "bg-gray-100")}
+                    onClick={() => setViewMode("list")}
+                  >
+                    <List className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Vista de lista</TooltipContent>
+              </Tooltip>
+              <Separator orientation="vertical" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn("h-full rounded-none", viewMode === "grid" && "bg-gray-100")}
+                    onClick={() => setViewMode("grid")}
+                  >
+                    <Grid2X2 className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Vista de mosaico</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </div>
       </div>
@@ -439,9 +553,12 @@ export default function ProyectoDocumentosPage() {
       <div className="flex min-h-[calc(100vh-225px)]">
         <DocumentFolderSidebar
           activeFolderId={currentFolderId}
-          folderOptions={folderOptions}
+          folderOptions={folderOptions
+            .filter((f) => f.level > 0)
+            .map((f) => ({ ...f, level: f.level - 1 }))}
           folderItemCount={folderItemCount}
           foldersCount={folders.length}
+          hideRoot
           onFolderSelect={setCurrentFolderId}
           onFolderContextMenu={(event, id) => {
             const item = folderById.get(id);
@@ -454,12 +571,9 @@ export default function ProyectoDocumentosPage() {
           <div className="mb-6 flex items-center justify-between gap-4">
             <div className="min-w-0">
               <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
-                <button className="hover:text-gray-900" onClick={() => setCurrentFolderId(undefined)}>
-                  Biblioteca
-                </button>
-                {breadcrumbs.map((folder) => (
+                {breadcrumbs.map((folder, index) => (
                   <span key={folder._id} className="flex min-w-0 items-center gap-2">
-                    <ChevronRight className="h-4 w-4 text-gray-300" />
+                    {index > 0 && <ChevronRight className="h-4 w-4 text-gray-300" />}
                     <button
                       className="truncate hover:text-gray-900"
                       onClick={() => setCurrentFolderId(folder._id)}
@@ -489,132 +603,32 @@ export default function ProyectoDocumentosPage() {
             </div>
           ) : (
             <>
-              <div className="border border-gray-200">
-                <table className="w-full">
-                  <thead className="border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Nombre</th>
-                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Proveedor</th>
-                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Tipo</th>
-                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Transacción</th>
-                      <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Fecha</th>
-                      <th className="w-36 px-6 py-4 text-left text-sm font-normal text-gray-600">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {visibleFolders.map((folder) => (
-                      <tr
-                        key={folder._id}
-                        className="hover:bg-gray-50"
-                        onContextMenu={(event) => openContextMenu(event, { kind: "folder", item: folder })}
-                      >
-                        <td className="px-6 py-4">
-                          <button
-                            className="flex min-w-0 items-center gap-3"
-                            onClick={() => setCurrentFolderId(folder._id)}
-                          >
-                            <Folder className="h-5 w-5 shrink-0 fill-gray-700 text-gray-700" />
-                            <span className="min-w-0">
-                              <span className="block truncate font-medium text-gray-900">{folder.nombre}</span>
-                              <span className="block truncate text-xs text-gray-400">
-                                {folderItemCount.get(folder._id) || 0} elementos
-                              </span>
-                            </span>
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">-</td>
-                        <td className="px-6 py-4 text-sm text-gray-500">Carpeta</td>
-                        <td className="px-6 py-4 text-sm text-gray-500">-</td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {formatDate(folder.updated_at || folder.created_at)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <RowActions
-                            target={{ kind: "folder", item: folder }}
-                            onRename={startRename}
-                            onMove={startMove}
-                            onDelete={requestDelete}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-
-                    {documentos.map((doc) => {
-                      const transaction = doc.transaccion_id ? transaccionesById.get(doc.transaccion_id) : undefined;
-
-                      return (
-                        <tr
-                          key={doc._id}
-                          className="hover:bg-gray-50"
-                          onContextMenu={(event) => openContextMenu(event, { kind: "document", item: doc })}
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex min-w-0 items-center gap-3">
-                              <FileText className="h-5 w-5 shrink-0 text-gray-400" />
-                              <div className="min-w-0">
-                                <button
-                                  className="truncate text-sm font-medium text-gray-900 hover:underline"
-                                  onClick={() => doc.url && window.open(doc.url, "_blank")}
-                                >
-                                  {doc.nombre}
-                                </button>
-                                <p className="truncate text-xs text-gray-400">{doc.descripcion || doc.type}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">{transaction?.banco || "-"}</td>
-                          <td className="px-6 py-4">
-                            <Badge
-                              variant="outline"
-                              className={`${getTipoBadgeColor(doc.type)} rounded-none px-3 py-1 text-xs font-normal capitalize`}
-                            >
-                              {doc.type}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {transaction?.factura || transaction?.codigo_referencia || "-"}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            {formatDate(doc.uploaded_at || doc._creationTime)}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-1">
-                              {doc.url && (
-                                <>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 rounded-none"
-                                    title={`Ver ${doc.nombre}`}
-                                    onClick={() => window.open(doc.url!, "_blank")}
-                                  >
-                                    <ExternalLink className="h-4 w-4 text-gray-600" />
-                                  </Button>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 rounded-none"
-                                    title="Descargar documento"
-                                    onClick={() => handleDownload(doc.url!, doc.nombre)}
-                                  >
-                                    <Download className="h-4 w-4 text-gray-600" />
-                                  </Button>
-                                </>
-                              )}
-                              <RowActions
-                                target={{ kind: "document", item: doc }}
-                                onRename={startRename}
-                                onMove={startMove}
-                                onDelete={requestDelete}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {viewMode === "list" ? (
+                <DocumentListView
+                  folders={visibleFolders}
+                  documents={documentos}
+                  transaccionesById={transaccionesById}
+                  folderItemCount={folderItemCount}
+                  onOpenFolder={setCurrentFolderId}
+                  onContextMenu={openContextMenu}
+                  onRename={startRename}
+                  onMove={startMove}
+                  onDelete={requestDelete}
+                  onDownload={handleDownload}
+                />
+              ) : (
+                <DocumentGridView
+                  folders={visibleFolders}
+                  documents={documentos}
+                  transaccionesById={transaccionesById}
+                  onOpenFolder={setCurrentFolderId}
+                  onContextMenu={openContextMenu}
+                  onRename={startRename}
+                  onMove={startMove}
+                  onDelete={requestDelete}
+                  onDownload={handleDownload}
+                />
+              )}
 
               {documentosPage && (
                 <PaginationControls
@@ -753,6 +767,276 @@ export default function ProyectoDocumentosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+    </TooltipProvider>
+  );
+}
+
+function DocumentListView({
+  folders,
+  documents,
+  transaccionesById,
+  folderItemCount,
+  onOpenFolder,
+  onContextMenu,
+  onRename,
+  onMove,
+  onDelete,
+  onDownload,
+}: {
+  folders: FolderItem[];
+  documents: DocumentItem[];
+  transaccionesById: Map<string, TransaccionItem>;
+  folderItemCount: Map<string, number>;
+  onOpenFolder: (id: FolderId) => void;
+  onContextMenu: (event: React.MouseEvent, target: MenuTarget) => void;
+  onRename: (target: MenuTarget) => void;
+  onMove: (target: MenuTarget) => void;
+  onDelete: (target: MenuTarget) => void;
+  onDownload: (url: string, name: string) => void;
+}) {
+  return (
+    <div className="border border-gray-200">
+      <table className="w-full">
+        <thead className="border-b border-gray-200">
+          <tr>
+            <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Nombre</th>
+            <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Proveedor</th>
+            <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Tipo</th>
+            <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Transacción</th>
+            <th className="px-6 py-4 text-left text-sm font-normal text-gray-600">Fecha</th>
+            <th className="w-36 px-6 py-4 text-left text-sm font-normal text-gray-600">Acciones</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {folders.map((folder) => (
+            <tr
+              key={folder._id}
+              className="hover:bg-gray-50"
+              onContextMenu={(event) => onContextMenu(event, { kind: "folder", item: folder })}
+            >
+              <td className="px-6 py-4">
+                <button
+                  className="flex min-w-0 items-center gap-3"
+                  onClick={() => onOpenFolder(folder._id)}
+                >
+                  <Folder className="h-5 w-5 shrink-0 fill-gray-700 text-gray-700" />
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-gray-900">{folder.nombre}</span>
+                    <span className="block truncate text-xs text-gray-400">
+                      {folderItemCount.get(folder._id) || 0} elementos
+                    </span>
+                  </span>
+                </button>
+              </td>
+              <td className="px-6 py-4 text-sm text-gray-500">-</td>
+              <td className="px-6 py-4 text-sm text-gray-500">Carpeta</td>
+              <td className="px-6 py-4 text-sm text-gray-500">-</td>
+              <td className="px-6 py-4 text-sm text-gray-500">
+                {formatDate(folder.updated_at || folder.created_at)}
+              </td>
+              <td className="px-6 py-4">
+                <RowActions
+                  target={{ kind: "folder", item: folder }}
+                  onRename={onRename}
+                  onMove={onMove}
+                  onDelete={onDelete}
+                />
+              </td>
+            </tr>
+          ))}
+
+          {documents.map((doc) => {
+            const transaction = doc.transaccion_id ? transaccionesById.get(doc.transaccion_id) : undefined;
+
+            return (
+              <tr
+                key={doc._id}
+                className="hover:bg-gray-50"
+                onContextMenu={(event) => onContextMenu(event, { kind: "document", item: doc })}
+              >
+                <td className="px-6 py-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    {getFileIcon(doc)}
+                    <div className="min-w-0">
+                      <button
+                        className="truncate text-sm font-medium text-gray-900 hover:underline"
+                        onClick={() => doc.url && window.open(doc.url, "_blank")}
+                      >
+                        {doc.nombre}
+                      </button>
+                      <p className="truncate text-xs text-gray-400">{doc.descripcion || doc.type}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-900">{transaction?.banco || "-"}</td>
+                <td className="px-6 py-4">
+                  <Badge
+                    variant="outline"
+                    className={`${getTipoBadgeColor(doc.type)} rounded-none px-3 py-1 text-xs font-normal capitalize`}
+                  >
+                    {doc.type}
+                  </Badge>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-900">
+                  {transaction?.factura || transaction?.codigo_referencia || "-"}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {formatDate(doc.uploaded_at || doc._creationTime)}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-1">
+                    {doc.url && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-none"
+                          title={`Ver ${doc.nombre}`}
+                          onClick={() => window.open(doc.url!, "_blank")}
+                        >
+                          <ExternalLink className="h-4 w-4 text-gray-600" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-none"
+                          title="Descargar documento"
+                          onClick={() => onDownload(doc.url!, doc.nombre)}
+                        >
+                          <Download className="h-4 w-4 text-gray-600" />
+                        </Button>
+                      </>
+                    )}
+                    <RowActions
+                      target={{ kind: "document", item: doc }}
+                      onRename={onRename}
+                      onMove={onMove}
+                      onDelete={onDelete}
+                    />
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function DocumentGridView({
+  folders,
+  documents,
+  transaccionesById,
+  onOpenFolder,
+  onContextMenu,
+  onRename,
+  onMove,
+  onDelete,
+  onDownload,
+}: {
+  folders: FolderItem[];
+  documents: DocumentItem[];
+  transaccionesById: Map<string, TransaccionItem>;
+  onOpenFolder: (id: FolderId) => void;
+  onContextMenu: (event: React.MouseEvent, target: MenuTarget) => void;
+  onRename: (target: MenuTarget) => void;
+  onMove: (target: MenuTarget) => void;
+  onDelete: (target: MenuTarget) => void;
+  onDownload: (url: string, name: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {folders.map((folder) => (
+        <button
+          key={folder._id}
+          className="min-h-32 border border-gray-200 p-4 text-left hover:bg-gray-50"
+          onDoubleClick={() => onOpenFolder(folder._id)}
+          onClick={() => onOpenFolder(folder._id)}
+          onContextMenu={(event) => onContextMenu(event, { kind: "folder", item: folder })}
+        >
+          <div className="mb-6 flex items-center justify-between">
+            <Folder className="h-8 w-8 fill-gray-700 text-gray-700" />
+            <RowActions
+              target={{ kind: "folder", item: folder }}
+              onRename={onRename}
+              onMove={onMove}
+              onDelete={onDelete}
+            />
+          </div>
+          <p className="truncate font-medium text-gray-900">{folder.nombre}</p>
+          <p className="mt-1 text-xs text-gray-500">{formatDate(folder.updated_at || folder.created_at)}</p>
+        </button>
+      ))}
+
+      {documents.map((doc) => {
+        const transaction = doc.transaccion_id ? transaccionesById.get(doc.transaccion_id) : undefined;
+
+        return (
+          <div
+            key={doc._id}
+            className="min-h-40 border border-gray-200 p-4 hover:bg-gray-50"
+            onContextMenu={(event) => onContextMenu(event, { kind: "document", item: doc })}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              {getFileIcon(doc, "h-8 w-8")}
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                {doc.url && (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-none"
+                      title={`Ver ${doc.nombre}`}
+                      onClick={() => window.open(doc.url!, "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4 text-gray-600" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-none"
+                      title="Descargar documento"
+                      onClick={() => onDownload(doc.url!, doc.nombre)}
+                    >
+                      <Download className="h-4 w-4 text-gray-600" />
+                    </Button>
+                  </>
+                )}
+                <RowActions
+                  target={{ kind: "document", item: doc }}
+                  onRename={onRename}
+                  onMove={onMove}
+                  onDelete={onDelete}
+                />
+              </div>
+            </div>
+            <button
+              className="line-clamp-2 text-left font-medium text-gray-900 hover:underline"
+              onClick={() => doc.url && window.open(doc.url, "_blank")}
+            >
+              {doc.nombre}
+            </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge
+                variant="outline"
+                className={`${getTipoBadgeColor(doc.type)} rounded-none px-2 py-0.5 text-xs font-normal capitalize`}
+              >
+                {doc.type}
+              </Badge>
+            </div>
+            {(transaction?.banco || transaction?.factura || transaction?.codigo_referencia) && (
+              <p className="mt-2 truncate text-xs text-gray-500">
+                {transaction.banco || transaction.factura || transaction.codigo_referencia}
+              </p>
+            )}
+            <p className="mt-1 truncate text-xs text-gray-400">
+              {formatDate(doc.uploaded_at || doc._creationTime)}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -987,4 +1271,26 @@ function normalize(value: string) {
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   return "Ocurrió un error inesperado";
+}
+
+function getFileIcon(doc: DocumentItem, className = "h-5 w-5 shrink-0") {
+  const text = `${doc.type} ${doc.nombre}`.toLowerCase();
+
+  if (text.includes("image") || text.match(/\.(png|jpg|jpeg|webp|gif)$/)) {
+    return <FileImage className={cn(className, "text-sky-600")} />;
+  }
+
+  if (text.includes("sheet") || text.match(/\.(xls|xlsx|csv)$/)) {
+    return <FileSpreadsheet className={cn(className, "text-emerald-600")} />;
+  }
+
+  if (text.match(/\.(zip|rar|7z)$/)) {
+    return <FileArchive className={cn(className, "text-amber-600")} />;
+  }
+
+  if (text.includes("pdf") || text.includes("contrato") || text.includes("factura")) {
+    return <FileText className={cn(className, "text-red-600")} />;
+  }
+
+  return <File className={cn(className, "text-gray-500")} />;
 }

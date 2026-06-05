@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  ChevronDown,
   ChevronRight,
   Folder,
   FolderOpen,
@@ -10,6 +11,7 @@ import {
   Search,
   TriangleAlert,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +54,7 @@ type DocumentFolderSidebarProps<TId extends string = string> = {
   folderOptions: DocumentFolderOption<TId>[];
   folderItemCount: Map<string, number>;
   foldersCount: number;
+  hideRoot?: boolean;
   metrics?: FolderSidebarMetric[];
   onFolderContextMenu?: (event: React.MouseEvent, id: TId) => void;
   onFolderSelect: (id?: TId) => void;
@@ -59,11 +62,135 @@ type DocumentFolderSidebarProps<TId extends string = string> = {
   visibleLimit?: number;
 };
 
+type FolderTreeNode<TId extends string = string> = DocumentFolderOption<TId> & {
+  children: FolderTreeNode<TId>[];
+};
+
+function buildFolderTree<TId extends string = string>(
+  folders: DocumentFolderOption<TId>[]
+): FolderTreeNode<TId>[] {
+  const nodeMap = new Map<TId, FolderTreeNode<TId>>();
+  const roots: FolderTreeNode<TId>[] = [];
+
+  folders.forEach((f) => {
+    nodeMap.set(f.id, { ...f, children: [] });
+  });
+
+  folders.forEach((f, index) => {
+    const node = nodeMap.get(f.id)!;
+    if (f.level === 0) {
+      roots.push(node);
+    } else {
+      let parentEntry: DocumentFolderOption<TId> | undefined;
+      for (let i = index - 1; i >= 0; i--) {
+        if (folders[i].level === f.level - 1) {
+          parentEntry = folders[i];
+          break;
+        }
+      }
+      if (parentEntry) {
+        nodeMap.get(parentEntry.id)?.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    }
+  });
+
+  return roots;
+}
+
+function FolderTreeItem<TId extends string = string>({
+  node,
+  activeFolderId,
+  collapsed,
+  onFolderSelect,
+  onFolderContextMenu,
+}: {
+  node: FolderTreeNode<TId>;
+  activeFolderId?: TId;
+  collapsed: boolean;
+  onFolderSelect: (id?: TId) => void;
+  onFolderContextMenu?: (event: React.MouseEvent, id: TId) => void;
+}) {
+  const hasChildren = node.children.length > 0;
+  const isActive = activeFolderId === node.id;
+  const hasActiveDescendant = (n: FolderTreeNode<TId>): boolean =>
+    n.children.some((c) => c.id === activeFolderId || hasActiveDescendant(c));
+  const defaultOpen = isActive || hasActiveDescendant(node);
+
+  if (!hasChildren) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            className={cn(
+              "h-9 w-full rounded-none text-sm font-normal text-gray-600",
+              collapsed ? "justify-center px-0" : "justify-start px-3",
+              isActive && "bg-gray-100 text-gray-900"
+            )}
+            style={collapsed ? undefined : { paddingLeft: `${12 + node.level * 14}px` }}
+            onClick={() => onFolderSelect(node.id)}
+            onContextMenu={(event) => onFolderContextMenu?.(event, node.id)}
+          >
+            <Folder className="h-4 w-4 shrink-0 text-gray-500" />
+            {!collapsed && <span className="truncate">{node.name}</span>}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right" hidden={!collapsed}>{node.name}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Collapsible defaultOpen={defaultOpen} className="w-full">
+      <div
+        className={cn(
+          "flex h-9 w-full items-center rounded-none text-sm font-normal text-gray-600",
+          isActive && "bg-gray-100 text-gray-900"
+        )}
+        style={collapsed ? undefined : { paddingLeft: `${12 + node.level * 14}px` }}
+        onContextMenu={(event) => onFolderContextMenu?.(event, node.id)}
+      >
+        <button
+          className="flex min-w-0 flex-1 items-center gap-1 px-1 py-1 hover:text-gray-900"
+          onClick={() => onFolderSelect(node.id)}
+        >
+          <Folder className="h-4 w-4 shrink-0 text-gray-500" />
+          {!collapsed && <span className="truncate">{node.name}</span>}
+        </button>
+        {!collapsed && (
+          <CollapsibleTrigger asChild>
+            <button className="mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded text-gray-400 hover:text-gray-600">
+              <ChevronDown className="h-3.5 w-3.5 transition-transform [[data-state=open]_&]:rotate-0 [[data-state=closed]_&]:-rotate-90" />
+            </button>
+          </CollapsibleTrigger>
+        )}
+      </div>
+      <CollapsibleContent>
+        <div className="space-y-0.5">
+          {node.children.map((child) => (
+            <FolderTreeItem
+              key={child.id}
+              node={child}
+              activeFolderId={activeFolderId}
+              collapsed={collapsed}
+              onFolderSelect={onFolderSelect}
+              onFolderContextMenu={onFolderContextMenu}
+            />
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 export function DocumentFolderSidebar<TId extends string = string>({
   activeFolderId,
   folderOptions,
   folderItemCount,
   foldersCount,
+  hideRoot = false,
   metrics = [],
   onFolderContextMenu,
   onFolderSelect,
@@ -71,7 +198,8 @@ export function DocumentFolderSidebar<TId extends string = string>({
   visibleLimit,
 }: DocumentFolderSidebarProps<TId>) {
   const [collapsed, setCollapsed] = useState(false);
-  const visibleFolders = typeof visibleLimit === "number" ? folderOptions.slice(0, visibleLimit) : folderOptions;
+  const limitedFolders = typeof visibleLimit === "number" ? folderOptions.slice(0, visibleLimit) : folderOptions;
+  const folderTree = useMemo(() => buildFolderTree(limitedFolders), [limitedFolders]);
 
   return (
     <aside
@@ -108,54 +236,43 @@ export function DocumentFolderSidebar<TId extends string = string>({
       </Tooltip>
 
       <div className={cn("py-8", collapsed ? "px-2" : "px-8")}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              className={cn(
-                "mb-2 h-10 w-full rounded-none px-3 text-sm font-normal",
-                collapsed ? "justify-center" : "justify-start",
-                !activeFolderId && "bg-gray-100 text-gray-900"
-              )}
-              onClick={() => onFolderSelect(undefined)}
-            >
-              <FolderOpen className="h-4 w-4 shrink-0 text-gray-500" />
-              {!collapsed && (
-                <>
-                  <span className="truncate">{rootLabel}</span>
-                  <span className="ml-auto text-xs text-gray-400">{folderItemCount.get("root") || 0}</span>
-                </>
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right" hidden={!collapsed}>
-            {rootLabel}
-          </TooltipContent>
-        </Tooltip>
+        {!hideRoot && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "mb-2 h-10 w-full rounded-none px-3 text-sm font-normal",
+                  collapsed ? "justify-center" : "justify-start",
+                  !activeFolderId && "bg-gray-100 text-gray-900"
+                )}
+                onClick={() => onFolderSelect(undefined)}
+              >
+                <FolderOpen className="h-4 w-4 shrink-0 text-gray-500" />
+                {!collapsed && (
+                  <>
+                    <span className="truncate">{rootLabel}</span>
+                    <span className="ml-auto text-xs text-gray-400">{folderItemCount.get("root") || 0}</span>
+                  </>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" hidden={!collapsed}>
+              {rootLabel}
+            </TooltipContent>
+          </Tooltip>
+        )}
 
-        <div className="mt-4 space-y-1">
-          {visibleFolders.map((folder) => (
-            <Tooltip key={folder.id}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "h-9 w-full rounded-none text-sm font-normal text-gray-600",
-                    collapsed ? "justify-center px-0" : "justify-start px-3",
-                    activeFolderId === folder.id && "bg-gray-100 text-gray-900"
-                  )}
-                  style={collapsed ? undefined : { paddingLeft: `${12 + folder.level * 14}px` }}
-                  onClick={() => onFolderSelect(folder.id)}
-                  onContextMenu={(event) => onFolderContextMenu?.(event, folder.id)}
-                >
-                  <Folder className="h-4 w-4 shrink-0 text-gray-500" />
-                  {!collapsed && <span className="truncate">{folder.name}</span>}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" hidden={!collapsed}>
-                {folder.name}
-              </TooltipContent>
-            </Tooltip>
+        <div className="mt-4 space-y-0.5">
+          {folderTree.map((node) => (
+            <FolderTreeItem
+              key={node.id}
+              node={node}
+              activeFolderId={activeFolderId}
+              collapsed={collapsed}
+              onFolderSelect={onFolderSelect}
+              onFolderContextMenu={onFolderContextMenu}
+            />
           ))}
         </div>
 

@@ -245,7 +245,7 @@ export default function UploadDocumentsModal() {
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-normal">Subir Documentos</DialogTitle>
                     <DialogDescription>
-                        Sube múltiples documentos a la vez. Puedes personalizar el nombre, descripción y tipo de cada archivo.
+                        Sube múltiples documentos a la vez. Puedes personalizar el nombre, descripción y tipo de cada archivo. 2
                     </DialogDescription>
                 </DialogHeader>
 

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { mutation } from "./functions";
+import { Id } from "./_generated/dataModel";
 
 // ============================================
 // QUERIES
@@ -94,6 +95,62 @@ export const create = mutation({
     });
     
     return ingresoId;
+  },
+});
+
+// Bulk create ingresos from a parsed Excel upload
+export const bulkCreate = mutation({
+  args: {
+    proyecto: v.id("desarrollos"),
+    clerk_id: v.string(), // Clerk user ID to look up internal user
+    ingresos: v.array(
+      v.object({
+        monto: v.number(),
+        fecha: v.string(),
+        descripcion: v.optional(v.string()),
+        moneda: v.string(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    // Look up internal user by Clerk ID once for the whole batch
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (args.ingresos.length === 0) {
+      return { created: 0, ids: [] as Id<"ingresos">[] };
+    }
+
+    const now = Date.now();
+    const ids: Id<"ingresos">[] = [];
+
+    for (const item of args.ingresos) {
+      // Defensive validation: skip rows that don't meet minimum requirements
+      if (!Number.isFinite(item.monto) || item.monto <= 0 || !item.fecha) {
+        continue;
+      }
+
+      const ingresoId = await ctx.db.insert("ingresos", {
+        proyecto: args.proyecto,
+        monto: item.monto,
+        fecha: item.fecha,
+        descripcion: item.descripcion || undefined,
+        moneda: item.moneda || "MXN",
+        added_by_id: user._id,
+        added_by_name: user.name,
+        created_at: now,
+      });
+
+      ids.push(ingresoId);
+    }
+
+    return { created: ids.length, ids };
   },
 });
 

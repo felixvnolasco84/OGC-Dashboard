@@ -452,7 +452,7 @@ function InlineDatePicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-9 w-44 justify-start rounded-none border-0 bg-transparent px-0 text-left text-base font-normal shadow-none hover:bg-transparent",
+            "h-6 w-44 justify-start rounded-none border-0 bg-transparent px-0 text-left text-sm font-normal shadow-none hover:bg-transparent",
             overdue ? "font-medium text-red-600" : TASK_VALUE_TEXT
           )}
         >
@@ -554,9 +554,9 @@ function InlineLabelPicker({
         <Button
           type="button"
           disabled={disabled}
-          className="h-9 w-36 justify-start gap-2 rounded-none border-0 bg-transparent px-0 text-base font-normal text-[#A3A39E] shadow-none hover:bg-transparent hover:text-[#898982]"
+          className="h-6 w-36 justify-start gap-2 rounded-none border-0 bg-transparent px-0 text-sm font-normal text-[#A3A39E] shadow-none hover:bg-transparent hover:text-[#898982]"
         >
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: activeLabel.color }} />
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: activeLabel.color }} />
           <span className="truncate">{activeLabel.label}</span>
         </Button>
       </PopoverTrigger>
@@ -682,25 +682,25 @@ function InlineAssigneePicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "flex min-h-12 w-full min-w-44 items-center gap-3 rounded-none border-0 bg-transparent px-0 py-1 text-left hover:bg-transparent",
+            "flex h-6 w-full min-w-44 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
           {assignedUsers.length ? (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-sm font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-xs font-medium text-[#898982]">
                 {userInitials(assignedUsers[0])}
               </span>
-              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-[#A3A39E]">
+              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-[#A3A39E]">
                 {assignedUsers.map((user) => user.name || user.email).join(", ")}
               </span>
             </>
           ) : (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-sm font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-xs font-medium text-[#898982]">
                 -
               </span>
-              <span className="text-base text-[#A3A39E]">Sin asignar</span>
+              <span className="text-sm text-[#A3A39E]">Sin asignar</span>
             </>
           )}
         </button>
@@ -831,25 +831,25 @@ function InlinePartidaPicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "flex min-h-12 w-full min-w-44 items-center gap-3 rounded-none border-0 bg-transparent px-0 py-1 text-left hover:bg-transparent",
+            "flex h-6 w-full min-w-44 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
           {selectedPartidas.length ? (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#F5F5F5] text-sm font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#F5F5F5] text-xs font-medium text-[#898982]">
                 {selectedPartidas.length}
               </span>
-              <span className="min-w-0 flex-1 line-clamp-2 text-base leading-5 text-[#A3A39E]">
+              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-[#A3A39E]">
                 {selectedPartidas.map(partidaDisplayName).join(", ")}
               </span>
             </>
           ) : (
             <>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-sm font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-xs font-medium text-[#898982]">
                 -
               </span>
-              <span className="text-base text-[#A3A39E]">Sin partidas</span>
+              <span className="text-sm text-[#A3A39E]">Sin partidas</span>
             </>
           )}
         </button>
@@ -1493,12 +1493,110 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       .filter((section) => section.tasks.length > 0);
   };
 
-  const renderTaskRow = (task: Task, level = 0) => {
+  const renderTaskContent = (task: Task, level = 0, parentHasSubtasks = false) => {
     const overdue = isOverdue(task);
     const isSaving = inlineSavingId === task._id || updatingStatusId === task._id;
+
+    return (
+      <div
+        className={cn(
+          "grid min-h-[44px] items-center gap-4 px-6 py-1.5 transition",
+          TASK_TABLE_GRID
+        )}
+      >
+        <div className="flex items-center gap-2" style={{ paddingLeft: level * 26 }}>
+          <button
+            type="button"
+            draggable={currentUser?.role !== "viewer"}
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", task._id);
+              setDraggingTaskId(task._id);
+            }}
+            onDragEnd={() => setDraggingTaskId(null)}
+            className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-[#A3A39E] opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+            aria-label="Reordenar tarea"
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+          <div className="relative flex h-6 shrink-0 items-center gap-2">
+            {level > 0 && parentHasSubtasks && (
+              <>
+                <span className="absolute -left-4 top-1/2 h-px w-4 bg-[#E6E6E6]" />
+                <span className="absolute -left-4 bottom-1/2 h-5 w-px bg-[#E6E6E6]" />
+              </>
+            )}
+            <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={currentUser?.role === "viewer"} className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <Input
+                defaultValue={task.titulo}
+                disabled={currentUser?.role === "viewer" || isSaving}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.currentTarget.blur();
+                }}
+                onBlur={(event) => {
+                  const value = event.currentTarget.value.trim();
+                  if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
+                }}
+                className={cn(
+                  "h-6 border-transparent bg-transparent px-1 text-sm font-medium text-gray-900 shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0",
+                  level > 0 && "font-normal"
+                )}
+              />
+              {overdue && <CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-500" />}
+              {isSaving && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-gray-400" />}
+            </div>
+          </div>
+        </div>
+        <InlineAssigneePicker
+          task={task}
+          disabled={currentUser?.role === "viewer" || isSaving}
+          onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
+        />
+        <InlineDatePicker
+          value={task.fecha_limite}
+          disabled={currentUser?.role === "viewer" || isSaving}
+          overdue={overdue}
+          onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
+        />
+        <InlineLabelPicker
+          value={task.prioridad}
+          labels={priorityLabels}
+          disabled={currentUser?.role === "viewer" || isSaving}
+          onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
+          onLabelsChange={setPriorityLabels}
+        />
+        <InlineLabelPicker
+          value={task.status}
+          labels={statusLabels}
+          disabled={isSaving || currentUser?.role === "viewer"}
+          onSelect={(value) => handleStatusChange(task, value)}
+          onLabelsChange={setStatusLabels}
+        />
+        <InlinePartidaPicker
+          task={task}
+          disabled={currentUser?.role === "viewer" || isSaving}
+          onChange={(partidas) => handleInlineUpdate(task, { partidas })}
+        />
+        <div className="flex justify-end">
+          <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTaskRow = (task: Task, level = 0) => {
     const childTasks = childrenByParent.get(task._id) || [];
     const hasChildren = childTasks.length > 0;
     const isTaskCollapsed = collapsedTasks.has(task._id);
+
+    if (level > 0) {
+      return renderTaskContent(task, level, false);
+    }
 
     return (
       <React.Fragment key={task._id}>
@@ -1523,183 +1621,169 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           )}
         >
           <div
-            className={cn(
-              "grid min-h-[68px] items-center gap-4 rounded-md border bg-[#FBFBFB] px-6 py-2 transition group-hover:bg-[#F1F1F1]",
-              TASK_TABLE_GRID
-            )}
+            className="overflow-hidden rounded-md border bg-[#FBFBFB] transition group-hover:bg-[#F1F1F1]"
             style={{ borderColor: TASK_UI_COLORS.itemBorder }}
           >
-            <div className="flex items-center gap-2" style={{ paddingLeft: level * 26 }}>
-              <button
-                type="button"
-                draggable={currentUser?.role !== "viewer"}
-                onDragStart={(event) => {
-                  event.dataTransfer.effectAllowed = "move";
-                  event.dataTransfer.setData("text/plain", task._id);
-                  setDraggingTaskId(task._id);
-                }}
-                onDragEnd={() => setDraggingTaskId(null)}
-                className="flex h-6 w-5 shrink-0 cursor-grab items-center justify-center text-[#A3A39E] opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
-                aria-label="Reordenar tarea"
-              >
-                <GripVertical className="h-4 w-4" />
-              </button>
-              <div className="relative flex h-8 shrink-0 items-center gap-2">
-                {level > 0 && (
-                  <>
-                    <span className="absolute -left-6 top-1/2 h-px w-6 bg-gray-300" />
-                    <span className="absolute -left-6 bottom-1/2 h-10 w-px bg-gray-300" />
-                  </>
-                )}
-                <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={currentUser?.role === "viewer"} />
-                {hasChildren ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleTaskCollapse(task._id)}
-                    className="flex h-7 w-7 items-center justify-center rounded-md border hover:brightness-95  text-black"
-                    // style={{ backgroundColor: TASK_UI_COLORS.blue, borderColor: TASK_UI_COLORS.blue }}
-                    aria-expanded={!isTaskCollapsed}
-                  >
-                    <ChevronDown className={cn("h-4 w-4 transition-transform", isTaskCollapsed && "-rotate-90")} />
-                  </button>
-                ) : level === 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (addingSubtaskFor === task._id) {
-                        setAddingSubtaskFor(null);
-                        setSubtaskTitle("");
-                      } else {
-                        setAddingSubtaskFor(task._id);
-                        setSubtaskTitle("");
-                        setCollapsedTasks((current) => {
-                          const next = new Set(current);
-                          next.delete(task._id);
-                          return next;
-                        });
-                      }
-                    }}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-white/70 hover:text-gray-700"
-                    aria-label="Agregar subtarea"
-                  >
-                    <ChevronDown className={cn("h-4 w-4 transition-transform", addingSubtaskFor !== task._id && "-rotate-90")} />
-                  </button>
-                ) : (
-                  <span className="h-7 w-7" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <Input
-                    defaultValue={task.titulo}
-                    disabled={currentUser?.role === "viewer" || isSaving}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") event.currentTarget.blur();
-                    }}
-                    onBlur={(event) => {
-                      const value = event.currentTarget.value.trim();
-                      if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
-                    }}
-                    className={cn(
-                      "h-8 border-transparent bg-transparent px-2 font-medium text-gray-900 shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0",
-                      level > 0 && "font-normal"
-                    )}
-                  />
-                  {overdue && <CircleAlert className="h-4 w-4 shrink-0 text-red-500" />}
-                  {isSaving && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-gray-400" />}
-                </div>
-                {/* {task.descripcion && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTaskId(task._id)}
-                    className="mt-1 line-clamp-1 px-2 text-left text-sm text-gray-500 hover:text-gray-900"
-                  >
-                    {task.descripcion}
-                  </button>
-                )} */}
-                {/* <p className="mt-1 px-2 text-xs text-gray-400">
-                  {task.categoria || "General"} · Creada por {task.created_by_name}
-                </p> */}
-              </div>
-            </div>
-            <InlineAssigneePicker
-              task={task}
-              disabled={currentUser?.role === "viewer" || isSaving}
-              onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
-            />
-            <InlineDatePicker
-              value={task.fecha_limite}
-              disabled={currentUser?.role === "viewer" || isSaving}
-              overdue={overdue}
-              onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
-            />
-            <InlineLabelPicker
-              value={task.prioridad}
-              labels={priorityLabels}
-              disabled={currentUser?.role === "viewer" || isSaving}
-              onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
-              onLabelsChange={setPriorityLabels}
-            />
-            <InlineLabelPicker
-              value={task.status}
-              labels={statusLabels}
-              disabled={isSaving || currentUser?.role === "viewer"}
-              onSelect={(value) => handleStatusChange(task, value)}
-              onLabelsChange={setStatusLabels}
-            />
-            <InlinePartidaPicker
-              task={task}
-              disabled={currentUser?.role === "viewer" || isSaving}
-              onChange={(partidas) => handleInlineUpdate(task, { partidas })}
-            />
-            <div className="flex justify-end">
-              <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-8 w-8 text-[#A3A39E] hover:text-[#898982]">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-        {level === 0 && !isTaskCollapsed && childTasks.map((child) => renderTaskRow(child, 1))}
-        {level === 0 && !isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
-          <div key={`${task._id}-new-subtask`} className="px-8 py-1">
-              <div className="ml-14 px-4 py-2">
-                {addingSubtaskFor === task._id ? (
-                  <div className="flex items-center gap-2">
-                    <Checkbox disabled />
-                    <Input
-                      autoFocus
-                      value={subtaskTitle}
-                      onChange={(event) => setSubtaskTitle(event.target.value)}
-                      onBlur={() => {
-                        if (subtaskTitle.trim()) void handleCreateSubtask(task);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") event.currentTarget.blur();
-                        if (event.key === "Escape") {
-                          setSubtaskTitle("");
+            <div className={cn("grid min-h-[44px] items-center gap-4 px-6 py-1.5", TASK_TABLE_GRID)}>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  draggable={currentUser?.role !== "viewer"}
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", task._id);
+                    setDraggingTaskId(task._id);
+                  }}
+                  onDragEnd={() => setDraggingTaskId(null)}
+                  className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-[#A3A39E] opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+                  aria-label="Reordenar tarea"
+                >
+                  <GripVertical className="h-3.5 w-3.5" />
+                </button>
+                <div className="relative flex h-6 shrink-0 items-center gap-2">
+                  <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={currentUser?.role === "viewer"} className="h-4 w-4" />
+                  {hasChildren ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleTaskCollapse(task._id)}
+                      className="flex h-5 w-5 items-center justify-center rounded-sm border border-[#E6E6E6] hover:bg-[#F1F1F1] text-gray-600"
+                      aria-expanded={!isTaskCollapsed}
+                    >
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isTaskCollapsed && "-rotate-90")} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (addingSubtaskFor === task._id) {
                           setAddingSubtaskFor(null);
+                          setSubtaskTitle("");
+                        } else {
+                          setAddingSubtaskFor(task._id);
+                          setSubtaskTitle("");
+                          setCollapsedTasks((current) => {
+                            const next = new Set(current);
+                            next.delete(task._id);
+                            return next;
+                          });
                         }
                       }}
-                      placeholder="+ Agregar subelemento"
-                      className="h-8 max-w-sm border-[#E6E6E6] bg-white"
+                      className="flex h-5 w-5 items-center justify-center rounded-sm text-gray-400 hover:bg-[#F1F1F1] hover:text-gray-600"
+                      aria-label="Agregar subtarea"
+                    >
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", addingSubtaskFor !== task._id && "-rotate-90")} />
+                    </button>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      defaultValue={task.titulo}
+                      disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
+                      }}
+                      onBlur={(event) => {
+                        const value = event.currentTarget.value.trim();
+                        if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
+                      }}
+                      className="h-6 border-transparent bg-transparent px-1 text-sm font-medium text-gray-900 shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0"
                     />
+                    {isOverdue(task) && <CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-500" />}
+                    {(inlineSavingId === task._id || updatingStatusId === task._id) && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-gray-400" />}
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddingSubtaskFor(task._id);
-                      setSubtaskTitle("");
-                    }}
-                    className="flex h-8 items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar subelemento
-                  </button>
-                )}
+                </div>
               </div>
+              <InlineAssigneePicker
+                task={task}
+                disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
+              />
+              <InlineDatePicker
+                value={task.fecha_limite}
+                disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                overdue={isOverdue(task)}
+                onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
+              />
+              <InlineLabelPicker
+                value={task.prioridad}
+                labels={priorityLabels}
+                disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
+                onLabelsChange={setPriorityLabels}
+              />
+              <InlineLabelPicker
+                value={task.status}
+                labels={statusLabels}
+                disabled={inlineSavingId === task._id || updatingStatusId === task._id || currentUser?.role === "viewer"}
+                onSelect={(value) => handleStatusChange(task, value)}
+                onLabelsChange={setStatusLabels}
+              />
+              <InlinePartidaPicker
+                task={task}
+                disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                onChange={(partidas) => handleInlineUpdate(task, { partidas })}
+              />
+              <div className="flex justify-end">
+                <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            {!isTaskCollapsed && hasChildren && (
+              <>
+                {childTasks.map((child) => (
+                  <React.Fragment key={child._id}>
+                    <div className="border-t border-[#E6E6E6]" />
+                    {renderTaskContent(child, 1, true)}
+                  </React.Fragment>
+                ))}
+              </>
+            )}
+            {!isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
+              <>
+                <div className="border-t border-[#E6E6E6]" />
+                <div className="px-6 py-2">
+                  {addingSubtaskFor === task._id ? (
+                    <div className="flex items-center gap-2" style={{ paddingLeft: 26 }}>
+                      <Checkbox disabled className="h-4 w-4" />
+                      <Input
+                        autoFocus
+                        value={subtaskTitle}
+                        onChange={(event) => setSubtaskTitle(event.target.value)}
+                        onBlur={() => {
+                          if (subtaskTitle.trim()) void handleCreateSubtask(task);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") event.currentTarget.blur();
+                          if (event.key === "Escape") {
+                            setSubtaskTitle("");
+                            setAddingSubtaskFor(null);
+                          }
+                        }}
+                        placeholder="+ Agregar subelemento"
+                        className="h-6 max-w-sm border-[#E6E6E6] bg-white text-sm"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddingSubtaskFor(task._id);
+                        setSubtaskTitle("");
+                      }}
+                      className="flex h-6 items-center gap-2 text-xs text-gray-500 hover:text-gray-900"
+                      style={{ paddingLeft: 26 }}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Agregar subelemento
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </React.Fragment>
     );
   };
@@ -1844,7 +1928,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <div
                     key={group.projectId}
                     className={cn(
-                      "overflow-hidden rounded-md border border-[#E6E6E6] bg-white",
+                      "rounded-md border border-[#E6E6E6] bg-white",
                       isProjectScoped && "border-0"
                     )}
                   >
@@ -1864,38 +1948,44 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         <span className="ml-8 rounded-sm bg-[#FBFBFB] px-6 py-2 text-xs text-[#A3A39E]">{group.tasks.length} tareas</span>
                       </button>
                     )}
-                    {!isCollapsed && getStatusSections(group.tasks).map((section) => {
-                      const sectionKey = `${group.projectId}:${section.label.id}`;
-                      const isStatusCollapsed = collapsedStatusSections.has(sectionKey);
+                    {!isCollapsed && (
+                      <div className="overflow-x-auto w-full">
+                        <div className="w-max min-w-full">
+                        {getStatusSections(group.tasks).map((section) => {
+                            const sectionKey = `${group.projectId}:${section.label.id}`;
+                            const isStatusCollapsed = collapsedStatusSections.has(sectionKey);
 
-                      return (
-                        <div key={sectionKey}>
-                          <div className={cn("px-8 pb-2", isProjectScoped ? "pt-8" : "pt-10")}>
-                              <div className={cn("grid items-center gap-4 text-sm", TASK_COLUMN_TEXT, TASK_TABLE_GRID)}>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleStatusCollapse(sectionKey)}
-                                  className="flex min-w-0 items-center gap-2 text-left text-[#898982] hover:text-[#898982]"
-                                  aria-expanded={!isStatusCollapsed}
-                                >
-                                  <ChevronDown className={cn("h-4 w-4 text-[#898982] transition-transform", isStatusCollapsed && "-rotate-90")} />
-                                  <span className="h-4 w-4 rounded-full" style={{ backgroundColor: section.label.color }} />
-                                  <span>{section.label.label}</span>
-                                  <span className="text-xs text-[#A3A39E]">{section.tasks.length}</span>
-                                </button>
-                                <span className="text-base text-[#A5A5A0]">Responsable</span>
-                                <span className="text-base text-[#A5A5A0]">Fecha vencimiento</span>
-                                <span className="text-base text-[#A5A5A0]">Prioridad</span>
-                                <span className="text-base text-[#A5A5A0]">Estado</span>
-                                <span className="text-base text-[#A5A5A0]">Partida</span>
-                                <span />
+                            return (
+                              <div key={sectionKey}>
+                                <div className={cn("px-8 pb-2", isProjectScoped ? "pt-8" : "pt-10")}>
+                                    <div className={cn("grid items-center gap-4 text-sm", TASK_COLUMN_TEXT, TASK_TABLE_GRID)}>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleStatusCollapse(sectionKey)}
+                                        className="flex min-w-0 items-center gap-2 text-left text-[#898982] hover:text-[#898982]"
+                                        aria-expanded={!isStatusCollapsed}
+                                      >
+                                        <ChevronDown className={cn("h-4 w-4 text-[#898982] transition-transform", isStatusCollapsed && "-rotate-90")} />
+                                        <span className="h-4 w-4 rounded-full" style={{ backgroundColor: section.label.color }} />
+                                        <span>{section.label.label}</span>
+                                        <span className="text-xs text-[#A3A39E]">{section.tasks.length}</span>
+                                      </button>
+                                      <span className="text-base text-[#A5A5A0]">Responsable</span>
+                                      <span className="text-base text-[#A5A5A0]">Fecha vencimiento</span>
+                                      <span className="text-base text-[#A5A5A0]">Prioridad</span>
+                                      <span className="text-base text-[#A5A5A0]">Estado</span>
+                                      <span className="text-base text-[#A5A5A0]">Partida</span>
+                                      <span />
+                                    </div>
+                                </div>
+                                {!isStatusCollapsed && section.tasks.map((task) => renderTaskRow(task))}
                               </div>
-                          </div>
-                          {!isStatusCollapsed && section.tasks.map((task) => renderTaskRow(task))}
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                    {!isCollapsed && !isProjectScoped && <div className="h-6" />}
+                        {!isProjectScoped && <div className="h-6" />}
+                      </div>
+                    )}
                   </div>
                 );
               })}

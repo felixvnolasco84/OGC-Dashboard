@@ -1225,7 +1225,7 @@ export default function ProyectoRequisicionesPage() {
                                         {/* Status Pipeline */}
                                         <div className="min-w-[230px]" onClick={(e) => e.stopPropagation()}>
                                             <div className="relative">
-                                                <div className="absolute left-3 right-3 top-3 h-0.5 bg-[#D0D0D0]" />
+                                                <div className="absolute left-3 right-3 top-2 h-0.5 bg-[#D0D0D0]" />
                                                 <div className="relative grid grid-cols-3 gap-1">
                                                     {pipelineStages.map((stage, stageIndex) => {
                                                         const nextStage = pipelineStages[stageIndex + 1];
@@ -1235,14 +1235,14 @@ export default function ProyectoRequisicionesPage() {
                                                         return (
                                                             <div key={stage.key} className="relative flex flex-col items-center">
                                                                 {segmentComplete && (
-                                                                    <span className="pointer-events-none absolute left-1/2 top-3 h-0.5 w-full bg-[#50AC66]" />
+                                                                    <span className="pointer-events-none absolute left-1/2 top-2 h-0.5 w-full bg-[#50AC66]" />
                                                                 )}
                                                                 <button
                                                                     type="button"
                                                                     disabled={pipelineBusy || !canUpdateStage}
                                                                     onClick={() => openPipelineStatusDialog(req, stage.key)}
                                                                     className={cn(
-                                                                        "relative z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-white transition-colors",
+                                                                        "relative z-10 flex h-4 w-4 items-center justify-center rounded-full border bg-white transition-colors",
                                                                         stage.complete
                                                                             ? "border-[#50AC66] bg-[#50AC66] text-white"
                                                                             : "border-[#9B9B9B] text-[#9B9B9B] hover:border-[#7EC18E] hover:text-[#50AC66]",
@@ -1251,7 +1251,7 @@ export default function ProyectoRequisicionesPage() {
                                                                     title={`Cambiar a ${stage.label}`}
                                                                 >
                                                                     {pipelineBusy ? (
-                                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                                        <Loader2 className="h-2 w-2 animate-spin" />
                                                                     ) : (
                                                                         <span
                                                                             className={cn(
