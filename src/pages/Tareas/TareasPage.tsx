@@ -1524,7 +1524,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       .filter((section) => section.tasks.length > 0);
   };
 
-  const renderTaskContent = (task: Task, level = 0, parentHasSubtasks = false) => {
+  const renderTaskContent = (task: Task, level = 0) => {
     const overdue = isOverdue(task);
     const isSaving = inlineSavingId === task._id || updatingStatusId === task._id;
 
@@ -1620,7 +1620,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     const isTaskCollapsed = collapsedTasks.has(task._id);
 
     if (level > 0) {
-      return renderTaskContent(task, level, false);
+      return renderTaskContent(task, level);
     }
 
     return (
@@ -1760,7 +1760,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 {childTasks.map((child) => (
                   <React.Fragment key={child._id}>
                     <div className="border-t border-[#E6E6E6]" />
-                    {renderTaskContent(child, 1, true)}
+                    {renderTaskContent(child, 1)}
                   </React.Fragment>
                 ))}
               </>
