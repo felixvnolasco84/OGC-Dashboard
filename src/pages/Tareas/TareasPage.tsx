@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -928,6 +928,332 @@ function InlinePartidaPicker({
   );
 }
 
+const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerForCreate({
+  proyecto,
+  value,
+  disabled,
+  onChange,
+}: {
+  proyecto: Id<"desarrollos">;
+  value: Id<"users">[];
+  disabled: boolean;
+  onChange: (assignees: Id<"users">[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  // Lazy loading: solo cargar datos cuando el popover está abierto o se ha abierto alguna vez
+  const [hasBeenOpened, setHasBeenOpened] = useState(false);
+  
+  const assignableUsers = useQuery(
+    api.tareas.getAssignableUsers, 
+    hasBeenOpened ? { proyecto } : "skip"
+  ) as UserSummary[] | undefined;
+  
+  // Convertir value a string estable para comparación
+  const valueKey = useMemo(() => value.join(","), [value]);
+  
+  const assignedIds = useMemo(() => new Set(value), [valueKey]);
+  
+  const assignedUsers = useMemo(() => {
+    if (!assignableUsers?.length && !value.length) return [];
+    const usersById = new Map((assignableUsers || []).map((user) => [user._id, user]));
+    return value.map((id) => usersById.get(id)).filter(Boolean) as UserSummary[];
+  }, [assignableUsers, valueKey]);
+  
+  const filteredUsers = useMemo(() => {
+    if (!assignableUsers?.length) return [];
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return assignableUsers;
+    return assignableUsers.filter((user) => (
+      user.name.toLowerCase().includes(term) ||
+      user.email.toLowerCase().includes(term) ||
+      user.role.toLowerCase().includes(term)
+    ));
+  }, [assignableUsers, searchTerm]);
+
+  const toggleUser = useCallback((userId: Id<"users">) => {
+    onChange(
+      value.includes(userId) 
+        ? value.filter((id) => id !== userId)
+        : [...value, userId]
+    );
+  }, [value, onChange]);
+
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    setOpen(newOpen);
+    if (newOpen && !hasBeenOpened) {
+      setHasBeenOpened(true);
+    }
+  }, [hasBeenOpened]);
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            "flex h-6 w-full min-w-44 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            disabled && "cursor-not-allowed opacity-70"
+          )}
+        >
+          {assignedUsers.length ? (
+            <>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-xs font-medium text-[#898982]">
+                {userInitials(assignedUsers[0])}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-[#A3A39E]">
+                {assignedUsers.map((user) => user.name || user.email).join(", ")}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-xs font-medium text-[#898982]">
+                -
+              </span>
+              <span className="text-sm text-[#A3A39E]">Sin asignar</span>
+            </>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+        <div className="border-b border-gray-100 p-3">
+          <div className="flex flex-wrap gap-1.5">
+            {assignedUsers.length ? assignedUsers.map((user) => (
+              <button
+                key={user._id}
+                type="button"
+                onClick={() => toggleUser(user._id)}
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-gray-100 px-2 text-xs text-gray-700 hover:bg-gray-200"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-[10px] font-medium text-gray-500">
+                  {userInitials(user)}
+                </span>
+                <span className="max-w-36 truncate">{user.name || user.email}</span>
+                <X className="h-3 w-3" />
+              </button>
+            )) : (
+              <span className="text-sm text-gray-400">Selecciona responsables</span>
+            )}
+          </div>
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar nombres, roles o equipos"
+              className="h-9 pl-9 pr-9"
+            />
+            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+        <div className="max-h-72 overflow-y-auto p-2">
+          <p className="px-2 pb-1 text-xs font-medium text-gray-500">Personas sugeridas</p>
+          {!assignableUsers && hasBeenOpened && (
+            <div className="flex h-24 items-center justify-center text-gray-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          )}
+          {assignableUsers && filteredUsers.length === 0 && (
+            <div className="px-2 py-6 text-center text-sm text-gray-500">
+              No hay usuarios con esa busqueda.
+            </div>
+          )}
+          {filteredUsers.map((user) => {
+            const selected = assignedIds.has(user._id);
+            return (
+              <button
+                key={user._id}
+                type="button"
+                onClick={() => toggleUser(user._id)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100",
+                  selected && "bg-gray-100"
+                )}
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-medium text-gray-500">
+                  {userInitials(user)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium text-gray-800">{user.name || user.email}</span>
+                  <span className="block truncate text-xs text-gray-500">{user.role}</span>
+                </span>
+                {selected && <CheckCircle2 className="h-4 w-4 text-gray-600" />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <Bell className="h-4 w-4" />
+          Se notificara a los responsables
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+});
+
+const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForCreate({
+  proyecto,
+  value,
+  disabled,
+  onChange,
+}: {
+  proyecto: Id<"desarrollos">;
+  value: Id<"partidas">[];
+  disabled: boolean;
+  onChange: (partidas: Id<"partidas">[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  // Lazy loading: solo cargar datos cuando el popover está abierto o se ha abierto alguna vez
+  const [hasBeenOpened, setHasBeenOpened] = useState(false);
+  
+  const projectPartidas = useQuery(
+    api.partida.getByProject, 
+    hasBeenOpened ? { projectId: proyecto } : "skip"
+  ) as PartidaSummary[] | undefined;
+  
+  // Convertir value a string estable para comparación
+  const valueKey = useMemo(() => value.join(","), [value]);
+  
+  const selectedPartidaIds = useMemo(() => new Set(value), [valueKey]);
+  
+  const selectedPartidas = useMemo(() => {
+    if (!projectPartidas?.length && !value.length) return [];
+    const partidasById = new Map((projectPartidas || []).map((partida) => [partida._id, partida]));
+    return value.map((id) => partidasById.get(id)).filter(Boolean) as PartidaSummary[];
+  }, [projectPartidas, valueKey]);
+  
+  const filteredPartidas = useMemo(() => {
+    if (!projectPartidas?.length) return [];
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return projectPartidas;
+    return projectPartidas.filter((partida) => (
+      partida.nombre.toLowerCase().includes(term) ||
+      partida.familia?.toLowerCase().includes(term) ||
+      partida.sub_partida?.toLowerCase().includes(term) ||
+      partida.partida_nombre?.toLowerCase().includes(term)
+    ));
+  }, [projectPartidas, searchTerm]);
+
+  const togglePartida = useCallback((partidaId: Id<"partidas">) => {
+    onChange(
+      value.includes(partidaId)
+        ? value.filter((id) => id !== partidaId)
+        : [...value, partidaId]
+    );
+  }, [value, onChange]);
+
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    setOpen(newOpen);
+    if (newOpen && !hasBeenOpened) {
+      setHasBeenOpened(true);
+    }
+  }, [hasBeenOpened]);
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            "flex h-6 w-full min-w-44 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            disabled && "cursor-not-allowed opacity-70"
+          )}
+        >
+          {selectedPartidas.length ? (
+            <>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#F5F5F5] text-xs font-medium text-[#898982]">
+                {selectedPartidas.length}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-[#A3A39E]">
+                {selectedPartidas.map(partidaDisplayName).join(", ")}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-xs font-medium text-[#898982]">
+                -
+              </span>
+              <span className="text-sm text-[#A3A39E]">Sin partidas</span>
+            </>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+        <div className="border-b border-gray-100 p-3">
+          <div className="flex flex-wrap gap-1.5">
+            {selectedPartidas.length ? selectedPartidas.map((partida) => (
+              <button
+                key={partida._id}
+                type="button"
+                onClick={() => togglePartida(partida._id)}
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-gray-100 px-2 text-xs text-gray-700 hover:bg-gray-200"
+              >
+                <span className="max-w-44 truncate">{partidaDisplayName(partida)}</span>
+                <X className="h-3 w-3" />
+              </button>
+            )) : (
+              <span className="text-sm text-gray-400">Selecciona partidas</span>
+            )}
+          </div>
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar partidas, familias o subpartidas"
+              className="h-9 pl-9 pr-9"
+            />
+            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+        <div className="max-h-72 overflow-y-auto p-2">
+          <p className="px-2 pb-1 text-xs font-medium text-gray-500">Partidas del proyecto</p>
+          {!projectPartidas && hasBeenOpened && (
+            <div className="flex h-24 items-center justify-center text-gray-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          )}
+          {projectPartidas && filteredPartidas.length === 0 && (
+            <div className="px-2 py-6 text-center text-sm text-gray-500">
+              No hay partidas con esa busqueda.
+            </div>
+          )}
+          {filteredPartidas.map((partida) => {
+            const selected = selectedPartidaIds.has(partida._id);
+            return (
+              <button
+                key={partida._id}
+                type="button"
+                onClick={() => togglePartida(partida._id)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100",
+                  selected && "bg-gray-100"
+                )}
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-medium text-gray-500">
+                  {partida.nivel}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium text-gray-800">{partidaDisplayName(partida)}</span>
+                  <span className="block truncate text-xs text-gray-500">{partidaContext(partida)}</span>
+                </span>
+                {selected && <CheckCircle2 className="h-4 w-4 text-gray-600" />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <ListChecks className="h-4 w-4" />
+          Se relacionara con la tarea
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+});
+
 export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const isProjectScoped = Boolean(proyectoId);
   const proyecto = useQuery(
@@ -1004,8 +1330,16 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [contextMenu, setContextMenu] = useState<TaskContextMenu>(null);
   const [addingSubtaskFor, setAddingSubtaskFor] = useState<Id<"tareas"> | null>(null);
   const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [subtaskAssignees, setSubtaskAssignees] = useState<Id<"users">[]>([]);
+  const [subtaskDueDate, setSubtaskDueDate] = useState<string>("");
+  const [subtaskPriority, setSubtaskPriority] = useState<string>("Media");
+  const [subtaskPartidas, setSubtaskPartidas] = useState<Id<"partidas">[]>([]);
   const [addingTaskInSection, setAddingTaskInSection] = useState<{projectId: string; statusLabel: string} | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskAssignees, setNewTaskAssignees] = useState<Id<"users">[]>([]);
+  const [newTaskDueDate, setNewTaskDueDate] = useState<string>("");
+  const [newTaskPriority, setNewTaskPriority] = useState<string>("Media");
+  const [newTaskPartidas, setNewTaskPartidas] = useState<Id<"partidas">[]>([]);
   const [inlineSavingId, setInlineSavingId] = useState<string | null>(null);
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [collapsedStatusSections, setCollapsedStatusSections] = useState<Set<string>>(new Set());
@@ -1313,13 +1647,18 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         parent_task: parent._id,
         titulo: subtaskTitle,
         descripcion: undefined,
-        asignados: parent.asignados,
-        partidas: parent.partidas || [],
-        prioridad: parent.prioridad,
-        fecha_limite: undefined,
+        asignados: subtaskAssignees.length ? subtaskAssignees : parent.asignados,
+        partidas: subtaskPartidas.length ? subtaskPartidas : parent.partidas || [],
+        prioridad: subtaskPriority || parent.prioridad,
+        status: parent.status,
+        fecha_limite: subtaskDueDate || undefined,
         categoria: parent.categoria || "General",
       });
       setSubtaskTitle("");
+      setSubtaskAssignees([]);
+      setSubtaskDueDate("");
+      setSubtaskPriority("Media");
+      setSubtaskPartidas([]);
       setAddingSubtaskFor(null);
       setSelectedTaskId(taskId);
       toast.success("Subtarea creada");
@@ -1341,14 +1680,18 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         parent_task: undefined,
         titulo: newTaskTitle,
         descripcion: undefined,
-        asignados: [],
-        partidas: [],
-        prioridad: "Media",
+        asignados: newTaskAssignees,
+        partidas: newTaskPartidas,
+        prioridad: newTaskPriority,
         status,
-        fecha_limite: undefined,
+        fecha_limite: newTaskDueDate || undefined,
         categoria: "General",
       });
       setNewTaskTitle("");
+      setNewTaskAssignees([]);
+      setNewTaskDueDate("");
+      setNewTaskPriority("Media");
+      setNewTaskPartidas([]);
       setAddingTaskInSection(null);
       setSelectedTaskId(taskId);
       toast.success("Tarea creada");
@@ -1683,9 +2026,17 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         if (addingSubtaskFor === task._id) {
                           setAddingSubtaskFor(null);
                           setSubtaskTitle("");
+                          setSubtaskAssignees([]);
+                          setSubtaskDueDate("");
+                          setSubtaskPriority("Media");
+                          setSubtaskPartidas([]);
                         } else {
                           setAddingSubtaskFor(task._id);
                           setSubtaskTitle("");
+                          setSubtaskAssignees([]);
+                          setSubtaskDueDate("");
+                          setSubtaskPriority("Media");
+                          setSubtaskPartidas([]);
                           setCollapsedTasks((current) => {
                             const next = new Set(current);
                             next.delete(task._id);
@@ -1770,29 +2121,90 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 <div className="border-t border-[#E6E6E6]" />
                 <div className="px-6 py-2">
                   {addingSubtaskFor === task._id ? (
-                    <div className="flex items-center gap-2" style={{ paddingLeft: 26 }}>
-                      <Checkbox disabled className="h-4 w-4" />
-                      <Input
-                        autoFocus
-                        value={subtaskTitle}
-                        onChange={(event) => setSubtaskTitle(event.target.value)}
-                        onBlur={() => {
-                          if (subtaskTitle.trim()) {
-                            void handleCreateSubtask(task);
-                          } else {
-                            setAddingSubtaskFor(null);
-                          }
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") event.currentTarget.blur();
-                          if (event.key === "Escape") {
-                            setSubtaskTitle("");
-                            setAddingSubtaskFor(null);
-                          }
-                        }}
-                        placeholder="+ Agregar subelemento"
-                        className="h-6 max-w-sm border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+                    <div className={cn("grid min-h-[44px] items-center gap-4", TASK_TABLE_GRID)} style={{ paddingLeft: 26 }}>
+                      <div className="flex items-center gap-2">
+                        <Checkbox disabled className="h-4 w-4" />
+                        <Input
+                          autoFocus
+                          value={subtaskTitle}
+                          onChange={(event) => setSubtaskTitle(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              if (subtaskTitle.trim()) {
+                                void handleCreateSubtask(task);
+                              }
+                            }
+                            if (event.key === "Escape") {
+                              setSubtaskTitle("");
+                              setSubtaskAssignees([]);
+                              setSubtaskDueDate("");
+                              setSubtaskPriority("Media");
+                              setSubtaskPartidas([]);
+                              setAddingSubtaskFor(null);
+                            }
+                          }}
+                          placeholder="Nombre de la subtarea"
+                          className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-gray-900 shadow-none focus-visible:ring-0"
+                        />
+                      </div>
+                      <InlineAssigneePickerForCreate
+                        proyecto={task.proyecto}
+                        value={subtaskAssignees}
+                        disabled={submitting}
+                        onChange={setSubtaskAssignees}
                       />
+                      <InlineDatePicker
+                        value={subtaskDueDate}
+                        disabled={submitting}
+                        overdue={false}
+                        onChange={setSubtaskDueDate}
+                      />
+                      <InlineLabelPicker
+                        value={subtaskPriority}
+                        labels={priorityLabels}
+                        disabled={submitting}
+                        onSelect={setSubtaskPriority}
+                        onLabelsChange={setPriorityLabels}
+                      />
+                      <div className="flex items-center">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: labelForValue(task.status, statusLabels).color }} />
+                        <span className="ml-2 text-sm text-[#A3A39E]">{task.status}</span>
+                      </div>
+                      <InlinePartidaPickerForCreate
+                        proyecto={task.proyecto}
+                        value={subtaskPartidas}
+                        disabled={submitting}
+                        onChange={setSubtaskPartidas}
+                      />
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSubtaskTitle("");
+                            setSubtaskAssignees([]);
+                            setSubtaskDueDate("");
+                            setSubtaskPriority("Media");
+                            setSubtaskPartidas([]);
+                            setAddingSubtaskFor(null);
+                          }}
+                          className="h-7 w-7 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={!subtaskTitle.trim() || submitting}
+                          onClick={() => void handleCreateSubtask(task)}
+                          className="h-7 gap-1 bg-[#50AC66] px-3 text-xs font-medium text-white hover:bg-[#459a59] disabled:opacity-50"
+                        >
+                          {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                          Guardar
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <button
@@ -1800,6 +2212,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       onClick={() => {
                         setAddingSubtaskFor(task._id);
                         setSubtaskTitle("");
+                        setSubtaskAssignees([]);
+                        setSubtaskDueDate("");
+                        setSubtaskPriority("Media");
+                        setSubtaskPartidas([]);
                       }}
                       className="flex h-6 items-center gap-2 text-xs text-gray-500 hover:text-gray-900"
                       style={{ paddingLeft: 26 }}
@@ -2013,29 +2429,90 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                     {canCreate && (
                                       <div className="px-8 py-2">
                                         {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.id ? (
-                                          <div className="flex items-center gap-2">
-                                            <Checkbox disabled className="h-4 w-4" />
-                                            <Input
-                                              autoFocus
-                                              value={newTaskTitle}
-                                              onChange={(event) => setNewTaskTitle(event.target.value)}
-                                              onBlur={() => {
-                                                if (newTaskTitle.trim()) {
-                                                  void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label);
-                                                } else {
-                                                  setAddingTaskInSection(null);
-                                                }
-                                              }}
-                                              onKeyDown={(event) => {
-                                                if (event.key === "Enter") event.currentTarget.blur();
-                                                if (event.key === "Escape") {
-                                                  setNewTaskTitle("");
-                                                  setAddingTaskInSection(null);
-                                                }
-                                              }}
-                                              placeholder="+ Agregar tarea"
-                                              className="h-6 max-w-sm border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+                                          <div className={cn("grid min-h-[44px] items-center gap-4", TASK_TABLE_GRID)}>
+                                            <div className="flex items-center gap-2">
+                                              <Checkbox disabled className="h-4 w-4" />
+                                              <Input
+                                                autoFocus
+                                                value={newTaskTitle}
+                                                onChange={(event) => setNewTaskTitle(event.target.value)}
+                                                onKeyDown={(event) => {
+                                                  if (event.key === "Enter") {
+                                                    event.preventDefault();
+                                                    if (newTaskTitle.trim()) {
+                                                      void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label);
+                                                    }
+                                                  }
+                                                  if (event.key === "Escape") {
+                                                    setNewTaskTitle("");
+                                                    setNewTaskAssignees([]);
+                                                    setNewTaskDueDate("");
+                                                    setNewTaskPriority("Media");
+                                                    setNewTaskPartidas([]);
+                                                    setAddingTaskInSection(null);
+                                                  }
+                                                }}
+                                                placeholder="Nombre de la tarea"
+                                                className="h-6 border-0 bg-transparent px-0 text-sm font-medium text-gray-900 shadow-none focus-visible:ring-0"
+                                              />
+                                            </div>
+                                            <InlineAssigneePickerForCreate
+                                              proyecto={group.projectId as Id<"desarrollos">}
+                                              value={newTaskAssignees}
+                                              disabled={submitting}
+                                              onChange={setNewTaskAssignees}
                                             />
+                                            <InlineDatePicker
+                                              value={newTaskDueDate}
+                                              disabled={submitting}
+                                              overdue={false}
+                                              onChange={setNewTaskDueDate}
+                                            />
+                                            <InlineLabelPicker
+                                              value={newTaskPriority}
+                                              labels={priorityLabels}
+                                              disabled={submitting}
+                                              onSelect={setNewTaskPriority}
+                                              onLabelsChange={setPriorityLabels}
+                                            />
+                                            <div className="flex items-center">
+                                              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: section.label.color }} />
+                                              <span className="ml-2 text-sm text-[#A3A39E]">{section.label.label}</span>
+                                            </div>
+                                            <InlinePartidaPickerForCreate
+                                              proyecto={group.projectId as Id<"desarrollos">}
+                                              value={newTaskPartidas}
+                                              disabled={submitting}
+                                              onChange={setNewTaskPartidas}
+                                            />
+                                            <div className="flex items-center justify-end gap-1">
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => {
+                                                  setNewTaskTitle("");
+                                                  setNewTaskAssignees([]);
+                                                  setNewTaskDueDate("");
+                                                  setNewTaskPriority("Media");
+                                                  setNewTaskPartidas([]);
+                                                  setAddingTaskInSection(null);
+                                                }}
+                                                className="h-7 w-7 text-gray-400 hover:text-gray-600"
+                                              >
+                                                <X className="h-4 w-4" />
+                                              </Button>
+                                              <Button
+                                                type="button"
+                                                size="sm"
+                                                disabled={!newTaskTitle.trim() || submitting}
+                                                onClick={() => void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label)}
+                                                className="h-7 gap-1 bg-[#50AC66] px-3 text-xs font-medium text-white hover:bg-[#459a59] disabled:opacity-50"
+                                              >
+                                                {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                                Guardar
+                                              </Button>
+                                            </div>
                                           </div>
                                         ) : (
                                           <button
@@ -2043,6 +2520,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                             onClick={() => {
                                               setAddingTaskInSection({ projectId: group.projectId, statusLabel: section.label.id });
                                               setNewTaskTitle("");
+                                              setNewTaskAssignees([]);
+                                              setNewTaskDueDate("");
+                                              setNewTaskPriority("Media");
+                                              setNewTaskPartidas([]);
                                             }}
                                             className="flex h-6 items-center gap-2 text-xs text-gray-500 hover:text-gray-900"
                                           >
