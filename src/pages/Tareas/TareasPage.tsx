@@ -1004,6 +1004,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [contextMenu, setContextMenu] = useState<TaskContextMenu>(null);
   const [addingSubtaskFor, setAddingSubtaskFor] = useState<Id<"tareas"> | null>(null);
   const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [addingTaskInSection, setAddingTaskInSection] = useState<{projectId: string; statusLabel: string} | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
   const [inlineSavingId, setInlineSavingId] = useState<string | null>(null);
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [collapsedStatusSections, setCollapsedStatusSections] = useState<Set<string>>(new Set());
@@ -1329,6 +1331,35 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
+  const handleCreateInlineTask = async (projectId: Id<"desarrollos">, status: string) => {
+    if (!newTaskTitle.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const taskId = await createTask({
+        proyecto: projectId,
+        parent_task: undefined,
+        titulo: newTaskTitle,
+        descripcion: undefined,
+        asignados: [],
+        partidas: [],
+        prioridad: "Media",
+        status,
+        fecha_limite: undefined,
+        categoria: "General",
+      });
+      setNewTaskTitle("");
+      setAddingTaskInSection(null);
+      setSelectedTaskId(taskId);
+      toast.success("Tarea creada");
+    } catch (error) {
+      console.error("Error creating task:", error);
+      toast.error("No se pudo crear la tarea");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleDuplicate = async (task: Task) => {
     try {
       const taskId = await duplicateTask({ id: task._id });
@@ -1520,12 +1551,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             <GripVertical className="h-3.5 w-3.5" />
           </button>
           <div className="relative flex h-6 shrink-0 items-center gap-2">
-            {level > 0 && parentHasSubtasks && (
-              <>
-                <span className="absolute -left-4 top-1/2 h-px w-4 bg-[#E6E6E6]" />
-                <span className="absolute -left-4 bottom-1/2 h-5 w-px bg-[#E6E6E6]" />
-              </>
-            )}
             <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={currentUser?.role === "viewer"} className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
@@ -1752,7 +1777,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         value={subtaskTitle}
                         onChange={(event) => setSubtaskTitle(event.target.value)}
                         onBlur={() => {
-                          if (subtaskTitle.trim()) void handleCreateSubtask(task);
+                          if (subtaskTitle.trim()) {
+                            void handleCreateSubtask(task);
+                          } else {
+                            setAddingSubtaskFor(null);
+                          }
                         }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter") event.currentTarget.blur();
@@ -1762,7 +1791,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           }
                         }}
                         placeholder="+ Agregar subelemento"
-                        className="h-6 max-w-sm border-[#E6E6E6] bg-white text-sm"
+                        className="h-6 max-w-sm border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
                       />
                     </div>
                   ) : (
@@ -1978,7 +2007,53 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                       <span />
                                     </div>
                                 </div>
-                                {!isStatusCollapsed && section.tasks.map((task) => renderTaskRow(task))}
+                                {!isStatusCollapsed && (
+                                  <>
+                                    {section.tasks.map((task) => renderTaskRow(task))}
+                                    {canCreate && (
+                                      <div className="px-8 py-2">
+                                        {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.id ? (
+                                          <div className="flex items-center gap-2">
+                                            <Checkbox disabled className="h-4 w-4" />
+                                            <Input
+                                              autoFocus
+                                              value={newTaskTitle}
+                                              onChange={(event) => setNewTaskTitle(event.target.value)}
+                                              onBlur={() => {
+                                                if (newTaskTitle.trim()) {
+                                                  void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label);
+                                                } else {
+                                                  setAddingTaskInSection(null);
+                                                }
+                                              }}
+                                              onKeyDown={(event) => {
+                                                if (event.key === "Enter") event.currentTarget.blur();
+                                                if (event.key === "Escape") {
+                                                  setNewTaskTitle("");
+                                                  setAddingTaskInSection(null);
+                                                }
+                                              }}
+                                              placeholder="+ Agregar tarea"
+                                              className="h-6 max-w-sm border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+                                            />
+                                          </div>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setAddingTaskInSection({ projectId: group.projectId, statusLabel: section.label.id });
+                                              setNewTaskTitle("");
+                                            }}
+                                            className="flex h-6 items-center gap-2 text-xs text-gray-500 hover:text-gray-900"
+                                          >
+                                            <Plus className="h-3.5 w-3.5" />
+                                            Agregar tarea
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
                               </div>
                             );
                           })}
