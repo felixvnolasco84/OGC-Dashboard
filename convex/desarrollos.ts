@@ -51,6 +51,119 @@ export const getAllWithMetrics = query(async (ctx) => {
     return proyectosWithMetrics;
 });
 
+const parseReportDate = (date?: string) => {
+    if (!date) return null;
+
+    if (date.includes("/")) {
+        const [day, month, year] = date.split("/").map(Number);
+        const parsed = new Date(year, month - 1, day);
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    }
+
+    if (date.includes("-")) {
+        const parsed = new Date(date);
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    }
+
+    const parsed = new Date(date);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+};
+
+const isSameReportMonth = (date?: string, year?: number, month?: number) => {
+    const parsed = parseReportDate(date);
+    if (!parsed || year === undefined || month === undefined) return false;
+
+    return parsed.getFullYear() === year && parsed.getMonth() === month;
+};
+
+// Aggregated profitability data for the P&L Project profitability tab.
+export const getProfitabilitySummary = query(async (ctx) => {
+    const proyectos = await getUserDesarrollos(ctx);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const projects = await Promise.all(
+        proyectos.map(async (proyecto) => {
+            const [metrics, ingresosTotal, ingresos, transacciones] = await Promise.all([
+                ctx.db
+                    .query("meticas_presupuesto")
+                    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
+                    .first(),
+                ctx.db
+                    .query("ingresos_totals")
+                    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
+                    .first(),
+                ctx.db
+                    .query("ingresos")
+                    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
+                    .collect(),
+                ctx.db
+                    .query("transacciones")
+                    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
+                    .collect(),
+            ]);
+
+            const ingresosOgc = ingresosTotal?.total_ingresos || 0;
+            const costosOgc = metrics?.gasto_total || 0;
+            const currentMonthIngresos = ingresos
+                .filter((ingreso) => isSameReportMonth(ingreso.fecha, currentYear, currentMonth))
+                .reduce((sum, ingreso) => sum + (ingreso.monto || 0), 0);
+            const currentMonthCostos = transacciones
+                .filter((transaccion) => transaccion.status === "Pagado")
+                .filter((transaccion) => isSameReportMonth(transaccion.fecha, currentYear, currentMonth))
+                .reduce((sum, transaccion) => sum + (transaccion.monto_total || 0), 0);
+
+            return {
+                id: proyecto._id,
+                nombre: proyecto.nombre,
+                status: proyecto.status,
+                ingresosOgc,
+                costosOgc,
+                margen: ingresosOgc - costosOgc,
+                margenPercent: ingresosOgc > 0 ? (ingresosOgc - costosOgc) / ingresosOgc : 0,
+                currentMonthIngresos,
+                currentMonthCostos,
+                currentMonthMargen: currentMonthIngresos - currentMonthCostos,
+                currentMonthMargenPercent:
+                    currentMonthIngresos > 0 ? (currentMonthIngresos - currentMonthCostos) / currentMonthIngresos : 0,
+            };
+        })
+    );
+
+    const totals = projects.reduce(
+        (acc, project) => {
+            acc.ingresosOgc += project.ingresosOgc;
+            acc.costosOgc += project.costosOgc;
+            acc.margen += project.margen;
+            acc.currentMonthIngresos += project.currentMonthIngresos;
+            acc.currentMonthCostos += project.currentMonthCostos;
+            acc.currentMonthMargen += project.currentMonthMargen;
+            return acc;
+        },
+        {
+            ingresosOgc: 0,
+            costosOgc: 0,
+            margen: 0,
+            currentMonthIngresos: 0,
+            currentMonthCostos: 0,
+            currentMonthMargen: 0,
+        }
+    );
+
+    return {
+        projects,
+        totals: {
+            ...totals,
+            margenPercent: totals.ingresosOgc > 0 ? totals.margen / totals.ingresosOgc : 0,
+            currentMonthMargenPercent:
+                totals.currentMonthIngresos > 0 ? totals.currentMonthMargen / totals.currentMonthIngresos : 0,
+            activeProjects: projects.filter((project) => project.status !== "Cancelado").length,
+        },
+        generatedAt: now.getTime(),
+    };
+});
+
 // Get project by ID
 export const getById = query({
     args: {

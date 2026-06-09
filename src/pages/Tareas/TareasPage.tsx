@@ -1548,7 +1548,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [newTaskPriority, setNewTaskPriority] = useState<string>("Media");
   const [newTaskPartidas, setNewTaskPartidas] = useState<Id<"partidas">[]>([]);
   const [inlineSavingId, setInlineSavingId] = useState<string | null>(null);
-  const [isInteractingWithTaskFields, setIsInteractingWithTaskFields] = useState(false);
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [collapsedStatusSections, setCollapsedStatusSections] = useState<Set<string>>(new Set());
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
@@ -1865,9 +1864,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
-  const handleCreateSubtask = async (parent: Task, titleOverride?: string) => {
+  const handleCreateSubtask = async (parent: Task, titleOverride?: string, options: { openDetails?: boolean } = {}) => {
     const title = (titleOverride ?? subtaskTitle).trim();
     if (!title || submitting) return;
+    const { openDetails = true } = options;
 
     setSubmitting(true);
     try {
@@ -1889,7 +1889,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       setSubtaskPriority("Media");
       setSubtaskPartidas([]);
       setAddingSubtaskFor(null);
-      setSelectedTaskId(taskId);
+      if (openDetails) setSelectedTaskId(taskId);
       toast.success("Subtarea creada");
     } catch (error) {
       console.error("Error creating subtask:", error);
@@ -1899,9 +1899,15 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
-  const handleCreateInlineTask = async (projectId: Id<"desarrollos">, status: string, titleOverride?: string) => {
+  const handleCreateInlineTask = async (
+    projectId: Id<"desarrollos">,
+    status: string,
+    titleOverride?: string,
+    options: { openDetails?: boolean } = {}
+  ) => {
     const title = (titleOverride ?? newTaskTitle).trim();
     if (!title || submitting) return;
+    const { openDetails = true } = options;
 
     setSubmitting(true);
     try {
@@ -1923,7 +1929,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       setNewTaskPriority("Media");
       setNewTaskPartidas([]);
       setAddingTaskInSection(null);
-      setSelectedTaskId(taskId);
+      if (openDetails) setSelectedTaskId(taskId);
       toast.success("Tarea creada");
     } catch (error) {
       console.error("Error creating task:", error);
@@ -2105,6 +2111,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       <div
         onContextMenu={(event) => {
           event.preventDefault();
+          event.stopPropagation();
           setContextMenu({ task, x: event.clientX, y: event.clientY });
         }}
         className={cn(
@@ -2379,6 +2386,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           onKeyDown={(event) => {
                             if (event.key === "Enter") {
                               event.preventDefault();
+                              skipSubtaskCreateOnBlur.current = true;
                               void handleCreateSubtask(task, event.currentTarget.value);
                             }
                             if (event.key === "Escape") {
@@ -2396,7 +2404,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                               skipSubtaskCreateOnBlur.current = false;
                               return;
                             }
-                            setTimeout(() => { if (document.activeElement?.closest(".subtask-creation-form")) return; void handleCreateSubtask(task, event.currentTarget.value); }, 100);
+                            const title = event.currentTarget.value;
+                            setTimeout(() => { if (document.activeElement?.closest(".subtask-creation-form")) return; void handleCreateSubtask(task, title, { openDetails: false }); }, 100);
                           }}
                           placeholder="Nombre de la subtarea"
                           className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-gray-900 shadow-none focus-visible:ring-0"
@@ -2670,6 +2679,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                 onKeyDown={(event) => {
                                                   if (event.key === "Enter") {
                                                     event.preventDefault();
+                                                    skipNewTaskCreateOnBlur.current = true;
                                                     void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label, event.currentTarget.value);
                                                   }
                                                   if (event.key === "Escape") {
@@ -2687,7 +2697,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                     skipNewTaskCreateOnBlur.current = false;
                                                     return;
                                                   }
-                                                  setTimeout(() => { if (document.activeElement?.closest(".task-creation-form")) return; void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label, event.currentTarget.value); }, 100);
+                                                  const title = event.currentTarget.value;
+                                                  setTimeout(() => { if (document.activeElement?.closest(".task-creation-form")) return; void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label, title, { openDetails: false }); }, 100);
                                                 }}
                                                 placeholder="Nombre de la tarea"
                                                 className="h-6 border-0 bg-transparent px-0 text-sm font-medium text-gray-900 shadow-none focus-visible:ring-0"
@@ -3372,9 +3383,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       <AlertDialog open={Boolean(taskToDelete)} onOpenChange={(open) => !open && setTaskToDelete(null)}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar tarea</AlertDialogTitle>
+            <AlertDialogTitle>{taskToDelete?.parent_task ? "Eliminar subtarea" : "Eliminar tarea"}</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta accion eliminara la tarea, sus subtareas, comentarios e historial. No se puede deshacer.
+              {taskToDelete?.parent_task
+                ? "Esta accion eliminara esta subtarea, sus comentarios e historial. No se puede deshacer."
+                : "Esta accion eliminara la tarea, sus subtareas, comentarios e historial. No se puede deshacer."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

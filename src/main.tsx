@@ -48,6 +48,7 @@ import ProyectoRequisicionesPage from "./pages/ProyectoRequisiciones/ProyectoReq
 import AutorizacionesObraPage from "./pages/AutorizacionesObra/AutorizacionesObraPage.tsx";
 import TareasPage from "./pages/Tareas/TareasPage.tsx";
 import ProyectoTareasPage from "./pages/Tareas/ProyectoTareasPage.tsx";
+import ProfitAndLossPage from "./pages/ProfitAndLoss/ProfitAndLossPage.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -126,6 +127,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/proyecto/:proyectoId/control" element={
                   <ProtectedRoute requiredRole="viewer">
                     <ControlPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/pnl" element={
+                  <ProtectedRoute requiredRole="viewer">
+                    <ProfitAndLossPage />
                   </ProtectedRoute>
                 } />
                 
