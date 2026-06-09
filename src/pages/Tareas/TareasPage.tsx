@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -56,6 +56,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
+  Ban,
   Bell,
   Archive,
   CheckCircle2,
@@ -65,6 +66,7 @@ import {
   Clock3,
   ExternalLink,
   Eye,
+  Flag,
   GripVertical,
   History,
   ListChecks,
@@ -310,6 +312,7 @@ function statusClass(status: string) {
 }
 
 function priorityClass(priority: string) {
+  if (!priority) return "bg-gray-50 text-gray-600 border-gray-200";
   switch (priority) {
     case "Urgente":
       return "bg-red-50 text-red-700 border-red-200";
@@ -554,83 +557,295 @@ function InlineLabelPicker({
         <Button
           type="button"
           disabled={disabled}
-          className="h-6 w-36 justify-start gap-2 rounded-none border-0 bg-transparent px-0 text-sm font-normal text-[#A3A39E] shadow-none hover:bg-transparent hover:text-[#898982]"
+          className={cn(
+            "h-8 w-36 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
+            open && "border-[#E6E6E6] bg-white text-[#898982] ring-1 ring-[#E6E6E6]"
+          )}
         >
           <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: activeLabel.color }} />
           <span className="truncate">{activeLabel.label}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="center" sideOffset={6} className="w-72 overflow-visible border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+      <PopoverContent align="center" sideOffset={6} className="w-56 overflow-visible border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
         <div className="mx-auto -mt-2 h-4 w-4 rotate-45 border-l border-t border-gray-200 bg-white" />
-        <div className="space-y-2 p-4 pt-2">
-          {(editing ? draftLabels : labels).map((label) => (
-            <div key={label.id} className="relative flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => editing ? setColorTargetId(colorTargetId === label.id ? null : label.id) : onSelect(label.label)}
-                className="flex h-9 min-w-0 flex-1 items-center justify-center rounded-sm px-3 text-sm font-medium text-white hover:brightness-95"
-                style={{ backgroundColor: label.color }}
-              >
-                {editing ? (
-                  <Input
-                    value={label.label}
-                    onClick={(event) => event.stopPropagation()}
-                    onChange={(event) => updateDraftLabel(label.id, { label: event.target.value })}
-                    className="h-7 border-white/30 bg-white/10 text-center text-white placeholder:text-white/70 focus-visible:ring-0"
-                  />
-                ) : (
-                  <span className="truncate">{label.label}</span>
-                )}
-              </button>
-              {editing && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDraftLabels((current) => current.filter((item) => item.id !== label.id))}
-                  className="h-8 w-8 text-gray-400 hover:text-red-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              {editing && colorTargetId === label.id && (
-                <div className="absolute left-4 top-full z-50 mt-2 grid w-40 grid-cols-4 gap-2 rounded-md border border-gray-200 bg-white p-3 shadow-xl">
-                  {LABEL_COLORS.map((color) => (
+        {editing ? (
+          <>
+            <div className="p-3 pb-2">
+              <p className="mb-2 px-1 text-xs font-medium text-[#A3A39E]">Estado</p>
+              <div className="space-y-0.5">
+                {draftLabels.map((label) => (
+                  <div key={label.id} className="relative flex items-center gap-1">
                     <button
-                      key={color}
                       type="button"
-                      onClick={() => {
-                        updateDraftLabel(label.id, { color });
-                        setColorTargetId(null);
-                      }}
-                      className="h-6 w-6 rounded-md border border-white shadow-sm"
-                      style={{ backgroundColor: color }}
-                      aria-label={`Color ${color}`}
+                      onClick={() => setColorTargetId(colorTargetId === label.id ? null : label.id)}
+                      className="shrink-0 rounded p-1 hover:bg-[#F5F5F3]"
+                    >
+                      <span className="block h-3 w-3 rounded-full" style={{ backgroundColor: label.color }} />
+                    </button>
+                    <Input
+                      value={label.label}
+                      onChange={(event) => updateDraftLabel(label.id, { label: event.target.value })}
+                      className="h-7 flex-1 border-[#E6E6E6] bg-white px-2 text-sm text-[#3D3D3A] focus-visible:ring-1 focus-visible:ring-[#E6E6E6]"
                     />
-                  ))}
-                </div>
-              )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDraftLabels((current) => current.filter((item) => item.id !== label.id))}
+                      className="h-7 w-7 shrink-0 text-[#A3A39E] hover:text-[#E75F79]"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                    {colorTargetId === label.id && (
+                      <div className="absolute left-0 top-full z-50 mt-1 grid w-40 grid-cols-4 gap-2 rounded-md border border-gray-200 bg-white p-3 shadow-xl">
+                        {LABEL_COLORS.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => {
+                              updateDraftLabel(label.id, { color });
+                              setColorTargetId(null);
+                            }}
+                            className="h-6 w-6 rounded-md border border-white shadow-sm"
+                            style={{ backgroundColor: color }}
+                            aria-label={`Color ${color}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-[#A3A39E] hover:text-[#898982]">
+                <Plus className="h-3.5 w-3.5" />
+                Nueva etiqueta
+              </Button>
             </div>
-          ))}
-          {editing && (
-            <Button type="button" variant="outline" onClick={addDraftLabel} className="w-full gap-2">
-              <Plus className="h-4 w-4" />
-              Etiqueta nueva
-            </Button>
+            <div className="border-t border-gray-100 p-2">
+              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-[#898982]">
+                Aplicar
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="p-3 pb-2">
+              <p className="mb-2 px-1 text-xs font-medium text-[#A3A39E]">Estado</p>
+              <div className="space-y-0.5">
+                {labels.map((label) => (
+                  <button
+                    key={label.id}
+                    type="button"
+                    onClick={() => { onSelect(label.label); setOpen(false); }}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#3D3D3A] hover:bg-[#F5F5F3]",
+                      value === label.label || value === label.id ? "bg-[#F5F5F3] font-medium" : ""
+                    )}
+                  >
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: label.color }} />
+                    <span>{label.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="border-t border-gray-100 p-2">
+              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-[#A3A39E] hover:text-[#898982]">
+                <Pencil className="h-3.5 w-3.5" />
+                Editar etiquetas
+              </Button>
+            </div>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function priorityDisplayName(priority: string) {
+  return priority || "Sin prioridad";
+}
+
+function InlinePriorityPicker({
+  value,
+  labels,
+  disabled,
+  onSelect,
+  onLabelsChange,
+}: {
+  value: string;
+  labels: TaskLabelOption[];
+  disabled: boolean;
+  onSelect: (value: string) => void;
+  onLabelsChange: (labels: TaskLabelOption[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftLabels, setDraftLabels] = useState<TaskLabelOption[]>(labels);
+  const [colorTargetId, setColorTargetId] = useState<string | null>(null);
+  const activeLabel = value ? labelForValue(value, labels) : null;
+  const clearLabel = "Sin prioridad";
+
+  useEffect(() => {
+    if (open) {
+      setDraftLabels(labels);
+      setEditing(false);
+      setColorTargetId(null);
+    }
+  }, [labels, open]);
+
+  const updateDraftLabel = (id: string, changes: Partial<TaskLabelOption>) => {
+    setDraftLabels((current) => current.map((label) => label.id === id ? { ...label, ...changes } : label));
+  };
+
+  const addDraftLabel = () => {
+    const id = `label-${Date.now()}`;
+    setDraftLabels((current) => [
+      ...current,
+      { id, label: "Nueva etiqueta", color: LABEL_COLORS[current.length % LABEL_COLORS.length] },
+    ]);
+    setEditing(true);
+  };
+
+  const applyLabels = () => {
+    const normalized = draftLabels
+      .map((label) => ({ ...label, label: label.label.trim() }))
+      .filter((label) => label.label);
+    onLabelsChange(normalized.length ? normalized : labels);
+    setEditing(false);
+    setColorTargetId(null);
+  };
+
+  const handleSelect = (nextValue: string) => {
+    onSelect(nextValue);
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={disabled}
+          className={cn(
+            "h-8 w-36 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
+            open && "border-[#E6E6E6] bg-white text-[#898982] ring-1 ring-[#E6E6E6]"
           )}
-        </div>
-        <div className="border-t border-gray-100 p-3">
-          {editing ? (
-            <Button type="button" variant="ghost" onClick={applyLabels} className="w-full">
-              Aplicar
-            </Button>
-          ) : (
-            <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="w-full gap-2 text-gray-600">
-              <Pencil className="h-4 w-4" />
-              Editar etiquetas
-            </Button>
-          )}
-        </div>
+        >
+          <Flag
+            className="h-4 w-4 shrink-0"
+            style={{
+              color: activeLabel?.color || TASK_UI_COLORS.pending,
+              fill: activeLabel?.color || "transparent",
+            }}
+          />
+          <span className="truncate">{activeLabel?.label || clearLabel}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="center" sideOffset={6} className="w-56 overflow-visible border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+        <div className="mx-auto -mt-2 h-4 w-4 rotate-45 border-l border-t border-gray-200 bg-white" />
+        {editing ? (
+          <>
+            <div className="p-3 pb-2">
+              <p className="mb-2 px-1 text-xs font-medium text-[#A3A39E]">Prioridad</p>
+              <div className="space-y-0.5">
+                {draftLabels.map((label) => (
+                  <div key={label.id} className="relative flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setColorTargetId(colorTargetId === label.id ? null : label.id)}
+                      className="shrink-0 rounded p-1 hover:bg-[#F5F5F3]"
+                    >
+                      <Flag
+                        className="h-4 w-4"
+                        style={{ color: label.color, fill: label.color }}
+                      />
+                    </button>
+                    <Input
+                      value={label.label}
+                      onChange={(event) => updateDraftLabel(label.id, { label: event.target.value })}
+                      className="h-7 flex-1 border-[#E6E6E6] bg-white px-2 text-sm text-[#3D3D3A] focus-visible:ring-1 focus-visible:ring-[#E6E6E6]"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDraftLabels((current) => current.filter((item) => item.id !== label.id))}
+                      className="h-7 w-7 shrink-0 text-[#A3A39E] hover:text-[#E75F79]"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                    {colorTargetId === label.id && (
+                      <div className="absolute left-0 top-full z-50 mt-1 grid w-40 grid-cols-4 gap-2 rounded-md border border-gray-200 bg-white p-3 shadow-xl">
+                        {LABEL_COLORS.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => {
+                              updateDraftLabel(label.id, { color });
+                              setColorTargetId(null);
+                            }}
+                            className="h-6 w-6 rounded-md border border-white shadow-sm"
+                            style={{ backgroundColor: color }}
+                            aria-label={`Color ${color}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-[#A3A39E] hover:text-[#898982]">
+                <Plus className="h-3.5 w-3.5" />
+                Nueva prioridad
+              </Button>
+            </div>
+            <div className="border-t border-gray-100 p-2">
+              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-[#898982]">
+                Aplicar
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="p-3 pb-2">
+              <p className="mb-2 px-1 text-xs font-medium text-[#A3A39E]">Prioridad</p>
+              <div className="space-y-0.5">
+                {labels.map((label) => (
+                  <button
+                    key={label.id}
+                    type="button"
+                    onClick={() => handleSelect(label.label)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#3D3D3A] hover:bg-[#F5F5F3]",
+                      value === label.label || value === label.id ? "bg-[#F5F5F3] font-medium" : ""
+                    )}
+                  >
+                    <Flag
+                      className="h-4 w-4 shrink-0"
+                      style={{ color: label.color, fill: label.color }}
+                    />
+                    <span>{label.label}</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleSelect("")}
+                  className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#A3A39E] hover:bg-[#F5F5F3]"
+                >
+                  <Ban className="h-4 w-4 shrink-0" />
+                  <span>Limpiar</span>
+                </button>
+              </div>
+            </div>
+            <div className="border-t border-gray-100 p-2">
+              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-[#A3A39E] hover:text-[#898982]">
+                <Pencil className="h-3.5 w-3.5" />
+                Editar etiquetas
+              </Button>
+            </div>
+          </>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -804,13 +1019,9 @@ function InlinePartidaPicker({
   const filteredPartidas = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return (projectPartidas || []).filter((partida) => {
+      if (partida.nivel !== 1) return false;
       if (!term) return true;
-      return (
-        partida.nombre.toLowerCase().includes(term) ||
-        partida.familia?.toLowerCase().includes(term) ||
-        partida.sub_partida?.toLowerCase().includes(term) ||
-        partida.partida_nombre?.toLowerCase().includes(term)
-      );
+      return partida.nombre.toLowerCase().includes(term);
     });
   }, [projectPartidas, searchTerm]);
 
@@ -876,7 +1087,7 @@ function InlinePartidaPicker({
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Buscar partidas, familias o subpartidas"
+              placeholder="Buscar partidas"
               className="h-9 pl-9 pr-9"
             />
             <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
@@ -941,7 +1152,7 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
 }) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  // Lazy loading: solo cargar datos cuando el popover está abierto o se ha abierto alguna vez
+  // Lazy loading: solo cargar datos cuando el popover estÃ¡ abierto o se ha abierto alguna vez
   const [hasBeenOpened, setHasBeenOpened] = useState(false);
   
   const assignableUsers = useQuery(
@@ -949,7 +1160,7 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
     hasBeenOpened ? { proyecto } : "skip"
   ) as UserSummary[] | undefined;
   
-  // Convertir value a string estable para comparación
+  // Convertir value a string estable para comparaciÃ³n
   const valueKey = useMemo(() => value.join(","), [value]);
   
   const assignedIds = useMemo(() => new Set(value), [valueKey]);
@@ -1105,7 +1316,7 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
 }) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  // Lazy loading: solo cargar datos cuando el popover está abierto o se ha abierto alguna vez
+  // Lazy loading: solo cargar datos cuando el popover estÃ¡ abierto o se ha abierto alguna vez
   const [hasBeenOpened, setHasBeenOpened] = useState(false);
   
   const projectPartidas = useQuery(
@@ -1113,7 +1324,7 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
     hasBeenOpened ? { projectId: proyecto } : "skip"
   ) as PartidaSummary[] | undefined;
   
-  // Convertir value a string estable para comparación
+  // Convertir value a string estable para comparaciÃ³n
   const valueKey = useMemo(() => value.join(","), [value]);
   
   const selectedPartidaIds = useMemo(() => new Set(value), [valueKey]);
@@ -1127,13 +1338,9 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
   const filteredPartidas = useMemo(() => {
     if (!projectPartidas?.length) return [];
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return projectPartidas;
-    return projectPartidas.filter((partida) => (
-      partida.nombre.toLowerCase().includes(term) ||
-      partida.familia?.toLowerCase().includes(term) ||
-      partida.sub_partida?.toLowerCase().includes(term) ||
-      partida.partida_nombre?.toLowerCase().includes(term)
-    ));
+    const nivelOnePartidas = projectPartidas.filter((partida) => partida.nivel === 1);
+    if (!term) return nivelOnePartidas;
+    return nivelOnePartidas.filter((partida) => partida.nombre.toLowerCase().includes(term));
   }, [projectPartidas, searchTerm]);
 
   const togglePartida = useCallback((partidaId: Id<"partidas">) => {
@@ -1203,7 +1410,7 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Buscar partidas, familias o subpartidas"
+              placeholder="Buscar partidas"
               className="h-9 pl-9 pr-9"
             />
             <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
@@ -1341,10 +1548,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [newTaskPriority, setNewTaskPriority] = useState<string>("Media");
   const [newTaskPartidas, setNewTaskPartidas] = useState<Id<"partidas">[]>([]);
   const [inlineSavingId, setInlineSavingId] = useState<string | null>(null);
+  const [isInteractingWithTaskFields, setIsInteractingWithTaskFields] = useState(false);
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [collapsedStatusSections, setCollapsedStatusSections] = useState<Set<string>>(new Set());
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
   const [draggingTaskId, setDraggingTaskId] = useState<Id<"tareas"> | null>(null);
+  const skipSubtaskCreateOnBlur = useRef(false);
+  const skipNewTaskCreateOnBlur = useRef(false);
   const [statusLabels, setStatusLabels] = useState<TaskLabelOption[]>(() =>
     normalizeStoredLabels(window.localStorage.getItem("tareas.statusLabels"), DEFAULT_STATUS_LABELS)
   );
@@ -1450,6 +1660,24 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     for (const project of proyectos || []) {
       projectNames.set(project._id, project.nombre);
     }
+
+    if ((tareas || []).length === 0 && filteredTasks.length === 0) {
+      if (isProjectScoped && proyectoId) {
+        return [{
+          projectId: proyectoId,
+          projectName: proyecto?.nombre || projectNames.get(proyectoId) || "Proyecto",
+          tasks: [],
+        }];
+      }
+
+      const visibleProjects = (proyectos || []).filter((project) => projectFilter === "all" || project._id === projectFilter);
+      return visibleProjects.map((project) => ({
+        projectId: project._id,
+        projectName: project.nombre,
+        tasks: [],
+      }));
+    }
+
     const filteredIds = new Set(filteredTasks.map((task) => task._id));
 
     const groups = new Map<string, TaskGroup>();
@@ -1466,7 +1694,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
 
     return Array.from(groups.values()).sort((a, b) => a.projectName.localeCompare(b.projectName));
-  }, [filteredTasks, proyectos]);
+  }, [filteredTasks, isProjectScoped, projectFilter, proyecto, proyectoId, proyectos, tareas]);
 
   const filteredNotifications = useMemo(() => {
     const term = notificationSearch.trim().toLowerCase();
@@ -1637,15 +1865,16 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
-  const handleCreateSubtask = async (parent: Task) => {
-    if (!subtaskTitle.trim()) return;
+  const handleCreateSubtask = async (parent: Task, titleOverride?: string) => {
+    const title = (titleOverride ?? subtaskTitle).trim();
+    if (!title || submitting) return;
 
     setSubmitting(true);
     try {
       const taskId = await createTask({
         proyecto: parent.proyecto,
         parent_task: parent._id,
-        titulo: subtaskTitle,
+        titulo: title,
         descripcion: undefined,
         asignados: subtaskAssignees.length ? subtaskAssignees : parent.asignados,
         partidas: subtaskPartidas.length ? subtaskPartidas : parent.partidas || [],
@@ -1670,15 +1899,16 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
-  const handleCreateInlineTask = async (projectId: Id<"desarrollos">, status: string) => {
-    if (!newTaskTitle.trim()) return;
+  const handleCreateInlineTask = async (projectId: Id<"desarrollos">, status: string, titleOverride?: string) => {
+    const title = (titleOverride ?? newTaskTitle).trim();
+    if (!title || submitting) return;
 
     setSubmitting(true);
     try {
       const taskId = await createTask({
         proyecto: projectId,
         parent_task: undefined,
-        titulo: newTaskTitle,
+        titulo: title,
         descripcion: undefined,
         asignados: newTaskAssignees,
         partidas: newTaskPartidas,
@@ -1844,7 +2074,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
-  const getStatusSections = (tasks: Task[]) => {
+  const getStatusSections = (tasks: Task[], includeEmptyStarter = false) => {
     const statuses = new Map<string, Task[]>();
     for (const task of tasks) {
       const existing = statuses.get(task.status) || [];
@@ -1864,7 +2094,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         label,
         tasks: statuses.get(label.label) || [],
       }))
-      .filter((section) => section.tasks.length > 0);
+      .filter((section, index) => section.tasks.length > 0 || (includeEmptyStarter && index === 0));
   };
 
   const renderTaskContent = (task: Task, level = 0) => {
@@ -1873,6 +2103,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
     return (
       <div
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setContextMenu({ task, x: event.clientX, y: event.clientY });
+        }}
         className={cn(
           "grid min-h-[44px] items-center gap-4 px-6 py-1.5 transition",
           TASK_TABLE_GRID
@@ -1929,7 +2163,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           overdue={overdue}
           onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
         />
-        <InlineLabelPicker
+        <InlinePriorityPicker
           value={task.prioridad}
           labels={priorityLabels}
           disabled={currentUser?.role === "viewer" || isSaving}
@@ -2031,6 +2265,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           setSubtaskPriority("Media");
                           setSubtaskPartidas([]);
                         } else {
+                          skipSubtaskCreateOnBlur.current = false;
                           setAddingSubtaskFor(task._id);
                           setSubtaskTitle("");
                           setSubtaskAssignees([]);
@@ -2081,7 +2316,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 overdue={isOverdue(task)}
                 onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
               />
-              <InlineLabelPicker
+              <InlinePriorityPicker
                 value={task.prioridad}
                 labels={priorityLabels}
                 disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
@@ -2093,8 +2328,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 labels={statusLabels}
                 disabled={inlineSavingId === task._id || updatingStatusId === task._id || currentUser?.role === "viewer"}
                 onSelect={(value) => handleStatusChange(task, value)}
-                onLabelsChange={setStatusLabels}
-              />
+              onLabelsChange={setStatusLabels}
+            />
               <InlinePartidaPicker
                 task={task}
                 disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
@@ -2111,7 +2346,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 {childTasks.map((child) => (
                   <React.Fragment key={child._id}>
                     <div className="border-t border-[#E6E6E6]" />
-                    {renderTaskContent(child, 1)}
+                    <div
+                      className={cn(draggingTaskId === child._id && "opacity-50")}
+                      onDragOver={(event) => {
+                        if (!draggingTaskId || draggingTaskId === child._id) return;
+                        event.preventDefault();
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        void handleTaskDrop(child);
+                      }}
+                    >
+                      {renderTaskContent(child, 1)}
+                    </div>
                   </React.Fragment>
                 ))}
               </>
@@ -2121,21 +2368,21 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 <div className="border-t border-[#E6E6E6]" />
                 <div className="px-6 py-2">
                   {addingSubtaskFor === task._id ? (
-                    <div className={cn("grid min-h-[44px] items-center gap-4", TASK_TABLE_GRID)} style={{ paddingLeft: 26 }}>
+                    <div className={cn("grid min-h-[44px] items-center gap-4 subtask-creation-form", TASK_TABLE_GRID)} style={{ paddingLeft: 26 }}>
                       <div className="flex items-center gap-2">
                         <Checkbox disabled className="h-4 w-4" />
                         <Input
                           autoFocus
                           value={subtaskTitle}
+                          disabled={submitting}
                           onChange={(event) => setSubtaskTitle(event.target.value)}
                           onKeyDown={(event) => {
                             if (event.key === "Enter") {
                               event.preventDefault();
-                              if (subtaskTitle.trim()) {
-                                void handleCreateSubtask(task);
-                              }
+                              void handleCreateSubtask(task, event.currentTarget.value);
                             }
                             if (event.key === "Escape") {
+                              skipSubtaskCreateOnBlur.current = true;
                               setSubtaskTitle("");
                               setSubtaskAssignees([]);
                               setSubtaskDueDate("");
@@ -2143,6 +2390,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                               setSubtaskPartidas([]);
                               setAddingSubtaskFor(null);
                             }
+                          }}
+                          onBlur={(event) => {
+                            if (skipSubtaskCreateOnBlur.current) {
+                              skipSubtaskCreateOnBlur.current = false;
+                              return;
+                            }
+                            setTimeout(() => { if (document.activeElement?.closest(".subtask-creation-form")) return; void handleCreateSubtask(task, event.currentTarget.value); }, 100);
                           }}
                           placeholder="Nombre de la subtarea"
                           className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-gray-900 shadow-none focus-visible:ring-0"
@@ -2160,7 +2414,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         overdue={false}
                         onChange={setSubtaskDueDate}
                       />
-                      <InlineLabelPicker
+                      <InlinePriorityPicker
                         value={subtaskPriority}
                         labels={priorityLabels}
                         disabled={submitting}
@@ -2177,39 +2431,15 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         disabled={submitting}
                         onChange={setSubtaskPartidas}
                       />
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSubtaskTitle("");
-                            setSubtaskAssignees([]);
-                            setSubtaskDueDate("");
-                            setSubtaskPriority("Media");
-                            setSubtaskPartidas([]);
-                            setAddingSubtaskFor(null);
-                          }}
-                          className="h-7 w-7 text-gray-400 hover:text-gray-600"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={!subtaskTitle.trim() || submitting}
-                          onClick={() => void handleCreateSubtask(task)}
-                          className="h-7 gap-1 bg-[#50AC66] px-3 text-xs font-medium text-white hover:bg-[#459a59] disabled:opacity-50"
-                        >
-                          {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                          Guardar
-                        </Button>
+                      <div className="flex items-center justify-end">
+                        {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
                       </div>
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => {
+                        skipSubtaskCreateOnBlur.current = false;
                         setAddingSubtaskFor(task._id);
                         setSubtaskTitle("");
                         setSubtaskAssignees([]);
@@ -2396,7 +2626,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     {!isCollapsed && (
                       <div className="overflow-x-auto w-full">
                         <div className="w-max min-w-full">
-                        {getStatusSections(group.tasks).map((section) => {
+                        {getStatusSections(group.tasks, group.tasks.length === 0).map((section) => {
                             const sectionKey = `${group.projectId}:${section.label.id}`;
                             const isStatusCollapsed = collapsedStatusSections.has(sectionKey);
 
@@ -2429,21 +2659,21 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                     {canCreate && (
                                       <div className="px-8 py-2">
                                         {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.id ? (
-                                          <div className={cn("grid min-h-[44px] items-center gap-4", TASK_TABLE_GRID)}>
+                                          <div className={cn("grid min-h-[44px] items-center gap-4 task-creation-form", TASK_TABLE_GRID)}>
                                             <div className="flex items-center gap-2">
                                               <Checkbox disabled className="h-4 w-4" />
                                               <Input
                                                 autoFocus
                                                 value={newTaskTitle}
+                                                disabled={submitting}
                                                 onChange={(event) => setNewTaskTitle(event.target.value)}
                                                 onKeyDown={(event) => {
                                                   if (event.key === "Enter") {
                                                     event.preventDefault();
-                                                    if (newTaskTitle.trim()) {
-                                                      void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label);
-                                                    }
+                                                    void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label, event.currentTarget.value);
                                                   }
                                                   if (event.key === "Escape") {
+                                                    skipNewTaskCreateOnBlur.current = true;
                                                     setNewTaskTitle("");
                                                     setNewTaskAssignees([]);
                                                     setNewTaskDueDate("");
@@ -2451,6 +2681,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                     setNewTaskPartidas([]);
                                                     setAddingTaskInSection(null);
                                                   }
+                                                }}
+                                                onBlur={(event) => {
+                                                  if (skipNewTaskCreateOnBlur.current) {
+                                                    skipNewTaskCreateOnBlur.current = false;
+                                                    return;
+                                                  }
+                                                  setTimeout(() => { if (document.activeElement?.closest(".task-creation-form")) return; void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label, event.currentTarget.value); }, 100);
                                                 }}
                                                 placeholder="Nombre de la tarea"
                                                 className="h-6 border-0 bg-transparent px-0 text-sm font-medium text-gray-900 shadow-none focus-visible:ring-0"
@@ -2468,7 +2705,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                               overdue={false}
                                               onChange={setNewTaskDueDate}
                                             />
-                                            <InlineLabelPicker
+                                            <InlinePriorityPicker
                                               value={newTaskPriority}
                                               labels={priorityLabels}
                                               disabled={submitting}
@@ -2485,39 +2722,15 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                               disabled={submitting}
                                               onChange={setNewTaskPartidas}
                                             />
-                                            <div className="flex items-center justify-end gap-1">
-                                              <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => {
-                                                  setNewTaskTitle("");
-                                                  setNewTaskAssignees([]);
-                                                  setNewTaskDueDate("");
-                                                  setNewTaskPriority("Media");
-                                                  setNewTaskPartidas([]);
-                                                  setAddingTaskInSection(null);
-                                                }}
-                                                className="h-7 w-7 text-gray-400 hover:text-gray-600"
-                                              >
-                                                <X className="h-4 w-4" />
-                                              </Button>
-                                              <Button
-                                                type="button"
-                                                size="sm"
-                                                disabled={!newTaskTitle.trim() || submitting}
-                                                onClick={() => void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label)}
-                                                className="h-7 gap-1 bg-[#50AC66] px-3 text-xs font-medium text-white hover:bg-[#459a59] disabled:opacity-50"
-                                              >
-                                                {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                                                Guardar
-                                              </Button>
+                                            <div className="flex items-center justify-end">
+                                              {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
                                             </div>
                                           </div>
                                         ) : (
                                           <button
                                             type="button"
                                             onClick={() => {
+                                              skipNewTaskCreateOnBlur.current = false;
                                               setAddingTaskInSection({ projectId: group.projectId, statusLabel: section.label.id });
                                               setNewTaskTitle("");
                                               setNewTaskAssignees([]);
@@ -2764,7 +2977,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                           {!isProjectScoped && item.proyecto_nombre && <span>{item.proyecto_nombre}</span>}
                           <span>{item.task.status}</span>
-                          <span>Prioridad {item.task.prioridad}</span>
+                          <span>Prioridad {priorityDisplayName(item.task.prioridad)}</span>
                           {item.task.fecha_limite && <span>Limite {formatDate(item.task.fecha_limite)}</span>}
                         </div>
                       </div>
@@ -2789,7 +3002,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <SheetHeader className="border-b border-gray-200 p-6 text-left">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className={cn("border", priorityClass(selectedTask.prioridad))}>
-                    {selectedTask.prioridad}
+                    {priorityDisplayName(selectedTask.prioridad)}
                   </Badge>
                   <Badge variant="outline" className={cn("border", statusClass(selectedTask.status))}>
                     {selectedTask.status}
@@ -2802,8 +3015,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 </div>
                 <SheetTitle className="text-left text-2xl font-normal break-words">{selectedTask.titulo}</SheetTitle>
                 <SheetDescription className="text-left">
-                  {!isProjectScoped && `${selectedTask.proyecto_nombre || "Sin proyecto"} · `}
-                  {selectedTask.categoria || "General"} · Creada por {selectedTask.created_by_name} · {formatDateTime(selectedTask.created_at)}
+                  {!isProjectScoped && `${selectedTask.proyecto_nombre || "Sin proyecto"} Â· `}
+                  {selectedTask.categoria || "General"} Â· Creada por {selectedTask.created_by_name} Â· {formatDateTime(selectedTask.created_at)}
                 </SheetDescription>
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Button variant="outline" size="sm" onClick={() => openEditDialog(selectedTask)} className="gap-2">
@@ -2930,7 +3143,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           <div>
                             <p className="text-sm break-words text-gray-900">{historyLabel(item)}</p>
                             <p className="mt-1 text-xs text-gray-500">
-                              {item.changed_by_name} · {formatDateTime(item.created_at)}
+                              {item.changed_by_name} Â· {formatDateTime(item.created_at)}
                             </p>
                           </div>
                         </div>
@@ -3124,7 +3337,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     <Loader2 className="h-5 w-5 animate-spin" />
                   </div>
                 )}
-                {(formPartidas || []).map((partida) => (
+                {(formPartidas || []).filter((partida) => partida.nivel === 1).map((partida) => (
                   <label
                     key={partida._id}
                     className="flex cursor-pointer items-center gap-3 border-b border-gray-100 py-2 last:border-b-0"
@@ -3179,3 +3392,4 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 export default function TareasPage() {
   return <TareasBoard />;
 }
+
