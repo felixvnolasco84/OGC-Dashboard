@@ -244,7 +244,7 @@ function OrganizationProjectGroups({
 const projectMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
-  { id: "pnl", label: "P&L", path: "pnl", disabled: false, icon: ChartBar },
+  // { id: "pnl", label: "P&L", path: "pnl", disabled: false, icon: ChartBar },
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
@@ -272,7 +272,7 @@ const financeMenuItems: ProjectMenuItem[] = [
 const viewerMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
-  { id: "pnl", label: "P&L", path: "pnl", disabled: false, icon: ChartBar },
+  // { id: "pnl", label: "P&L", path: "pnl", disabled: false, icon: ChartBar },
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: BookCheck },
