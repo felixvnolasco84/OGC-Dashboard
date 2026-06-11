@@ -1,4 +1,5 @@
-import { query, mutation as rawMutation } from "./_generated/server";
+import { query, mutation as rawMutation, QueryCtx } from "./_generated/server";
+import { Doc } from "./_generated/dataModel";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import {
@@ -51,6 +52,51 @@ export const getAllWithMetrics = query(async (ctx) => {
     return proyectosWithMetrics;
 });
 
+const normalizeReportLabel = (value?: string) => {
+    return (value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+};
+
+const matchesAnyReportLabel = (value: string | undefined, labels: string[]) => {
+    const normalized = normalizeReportLabel(value);
+    return labels.some((label) => normalized.includes(label));
+};
+
+const HONORARIOS_LABELS = ["honorarios"];
+const INDIRECTOS_LABELS = ["indirectos", "indirecto"];
+const STRUCTURE_COST_GROUPS = [
+    { key: "nomina", label: "NÓMINA", labels: ["nomina", "residente", "residentes", "sueldos"] },
+    { key: "transporte", label: "TRANSPORTE", labels: ["transporte"] },
+    { key: "impuestos", label: "IMPUESTOS", labels: ["impuestos", "imss", "isn", "infonavit", "cargas sociales"] },
+    { key: "renta", label: "RENTA", labels: ["renta"] },
+];
+const sumPartidasByLabels = (
+    partidas: Array<Pick<Doc<"partidas">, "nombre" | "familia" | "sub_partida" | "pagado">>,
+    labels: string[]
+) => {
+    return partidas.reduce((sum, partida) => {
+        const matches =
+            matchesAnyReportLabel(partida.nombre, labels) ||
+            matchesAnyReportLabel(partida.familia, labels) ||
+            matchesAnyReportLabel(partida.sub_partida, labels);
+
+        return matches ? sum + (partida.pagado || 0) : sum;
+    }, 0);
+};
+
+const buildStructureBreakdown = (
+    partidas: Array<Pick<Doc<"partidas">, "nombre" | "familia" | "sub_partida" | "pagado">>
+) => {
+    return STRUCTURE_COST_GROUPS.map((group) => ({
+        key: group.key,
+        label: group.label,
+        amount: sumPartidasByLabels(partidas, group.labels),
+    }));
+};
+
 const parseReportDate = (date?: string) => {
     if (!date) return null;
 
@@ -69,85 +115,158 @@ const parseReportDate = (date?: string) => {
     return Number.isFinite(parsed.getTime()) ? parsed : null;
 };
 
-const isSameReportMonth = (date?: string, year?: number, month?: number) => {
-    const parsed = parseReportDate(date);
-    if (!parsed || year === undefined || month === undefined) return false;
+const getLatestAvancePercent = async (ctx: QueryCtx, proyectoId: Doc<"desarrollos">["_id"]) => {
+    const records = await ctx.db
+        .query("weekly_avance_real")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
+        .collect();
 
-    return parsed.getFullYear() === year && parsed.getMonth() === month;
+    const latest = records
+        .filter((record) => Number.isFinite(record.avance_real))
+        .sort((a, b) => b.week_date - a.week_date)[0];
+
+    return (latest?.avance_real || 0) / 100;
 };
 
-// Aggregated profitability data for the P&L Project profitability tab.
-export const getProfitabilitySummary = query(async (ctx) => {
+const getAverageWeeklyExpense = async (ctx: QueryCtx, proyectoId: Doc<"desarrollos">["_id"], now: Date) => {
+    const fourWeeksAgo = now.getTime() - 1000 * 60 * 60 * 24 * 28;
+    const transactions = await ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
+        .collect();
+
+    const totalLastFourWeeks = transactions
+        .filter((transaction) => transaction.status === "Pagado")
+        .filter((transaction) => {
+            const parsedDate = parseReportDate(transaction.fecha);
+            if (!parsedDate) return false;
+            const timestamp = parsedDate.getTime();
+            return timestamp >= fourWeeksAgo && timestamp <= now.getTime();
+        })
+        .reduce((sum, transaction) => sum + (transaction.monto_total || 0), 0);
+
+    return totalLastFourWeeks / 4;
+};
+
+const getOgcFormulaTotals = async (ctx: QueryCtx, proyecto: Doc<"desarrollos">) => {
+    const [metrics, partidas] = await Promise.all([
+        ctx.db
+            .query("meticas_presupuesto")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
+            .first(),
+        ctx.db
+            .query("partidas")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
+            .collect(),
+    ]);
+
+    const honorariosFromPartidas = sumPartidasByLabels(partidas, HONORARIOS_LABELS);
+    const honorarios = proyecto.honorarios_monto || honorariosFromPartidas;
+    const indirectos = sumPartidasByLabels(partidas, INDIRECTOS_LABELS);
+    const ingresosOgc = honorarios + indirectos;
+    const structureBreakdown = buildStructureBreakdown(partidas);
+    const estructuraFromPartidas = structureBreakdown.reduce((sum, item) => sum + item.amount, 0);
+    const totalCostos = metrics?.gasto_total || 0;
+    const costosDirectosObra = Math.max(totalCostos - honorarios - indirectos, 0);
+    const costosEstructuraOgc = estructuraFromPartidas;
+    const costosEstructuraMasIndirectos = costosEstructuraOgc + indirectos;
+    const margenBruto = ingresosOgc - costosDirectosObra;
+    const ebitda = ingresosOgc - costosEstructuraMasIndirectos;
+
+    return {
+        metrics,
+        honorarios,
+        indirectos,
+        ingresosOgc,
+        costosDirectosObra,
+        costosEstructuraOgc,
+        costosEstructuraMasIndirectos,
+        margenBruto,
+        ebitda,
+        estructuraPercent: ingresosOgc > 0 ? costosEstructuraOgc / ingresosOgc : 0,
+        ebitdaMargin: ingresosOgc > 0 ? ebitda / ingresosOgc : 0,
+        margenBrutoPercent: ingresosOgc > 0 ? margenBruto / ingresosOgc : 0,
+        structureBreakdown,
+    };
+};
+
+const getWipFormulaTotals = async (
+    ctx: QueryCtx,
+    proyecto: Doc<"desarrollos">,
+    formulaTotals: Awaited<ReturnType<typeof getOgcFormulaTotals>>,
+    now: Date
+) => {
+    const presupuesto = formulaTotals.metrics?.presupuesto_aprobado || 0;
+    const costoReal = formulaTotals.metrics?.gasto_total || 0;
+    const pagado = formulaTotals.ingresosOgc;
+    const avance = await getLatestAvancePercent(ctx, proyecto._id);
+    const valorGanado = avance * presupuesto;
+    const restante = Math.max(presupuesto - valorGanado, 0);
+    const cpi = costoReal > 0 ? valorGanado / costoReal : 0;
+    const eac = cpi > 0 ? costoReal + restante / cpi : 0;
+    const varianza = eac > 0 ? presupuesto - eac : 0;
+    const saldo = pagado - costoReal;
+    const averageWeeklyExpense = await getAverageWeeklyExpense(ctx, proyecto._id, now);
+    const runway = saldo > 0 && averageWeeklyExpense > 0 ? saldo / averageWeeklyExpense : 0;
+
+    return {
+        presupuesto,
+        costoReal,
+        avance,
+        valorGanado,
+        restante,
+        eac,
+        varianza,
+        cpi,
+        pagado,
+        saldo,
+        runway,
+        averageWeeklyExpense,
+    };
+};
+
+// Aggregated P&L metrics using the formulas from the OGC monthly P&L reference.
+export const getPnlSummary = query(async (ctx) => {
     const proyectos = await getUserDesarrollos(ctx);
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
 
     const projects = await Promise.all(
         proyectos.map(async (proyecto) => {
-            const [metrics, ingresosTotal, ingresos, transacciones] = await Promise.all([
-                ctx.db
-                    .query("meticas_presupuesto")
-                    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
-                    .first(),
-                ctx.db
-                    .query("ingresos_totals")
-                    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
-                    .first(),
-                ctx.db
-                    .query("ingresos")
-                    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
-                    .collect(),
-                ctx.db
-                    .query("transacciones")
-                    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
-                    .collect(),
-            ]);
-
-            const ingresosOgc = ingresosTotal?.total_ingresos || 0;
-            const costosOgc = metrics?.gasto_total || 0;
-            const currentMonthIngresos = ingresos
-                .filter((ingreso) => isSameReportMonth(ingreso.fecha, currentYear, currentMonth))
-                .reduce((sum, ingreso) => sum + (ingreso.monto || 0), 0);
-            const currentMonthCostos = transacciones
-                .filter((transaccion) => transaccion.status === "Pagado")
-                .filter((transaccion) => isSameReportMonth(transaccion.fecha, currentYear, currentMonth))
-                .reduce((sum, transaccion) => sum + (transaccion.monto_total || 0), 0);
-
+            const totals = await getOgcFormulaTotals(ctx, proyecto);
             return {
                 id: proyecto._id,
                 nombre: proyecto.nombre,
                 status: proyecto.status,
-                ingresosOgc,
-                costosOgc,
-                margen: ingresosOgc - costosOgc,
-                margenPercent: ingresosOgc > 0 ? (ingresosOgc - costosOgc) / ingresosOgc : 0,
-                currentMonthIngresos,
-                currentMonthCostos,
-                currentMonthMargen: currentMonthIngresos - currentMonthCostos,
-                currentMonthMargenPercent:
-                    currentMonthIngresos > 0 ? (currentMonthIngresos - currentMonthCostos) / currentMonthIngresos : 0,
+                ...totals,
             };
         })
     );
 
     const totals = projects.reduce(
         (acc, project) => {
+            acc.honorarios += project.honorarios;
+            acc.indirectos += project.indirectos;
             acc.ingresosOgc += project.ingresosOgc;
-            acc.costosOgc += project.costosOgc;
-            acc.margen += project.margen;
-            acc.currentMonthIngresos += project.currentMonthIngresos;
-            acc.currentMonthCostos += project.currentMonthCostos;
-            acc.currentMonthMargen += project.currentMonthMargen;
+            acc.costosDirectosObra += project.costosDirectosObra;
+            acc.costosEstructuraOgc += project.costosEstructuraOgc;
+            acc.costosEstructuraMasIndirectos += project.costosEstructuraMasIndirectos;
+            acc.margenBruto += project.margenBruto;
+            acc.ebitda += project.ebitda;
+            project.structureBreakdown.forEach((item) => {
+                acc.structureBreakdown[item.key] = (acc.structureBreakdown[item.key] || 0) + item.amount;
+            });
             return acc;
         },
         {
+            honorarios: 0,
+            indirectos: 0,
             ingresosOgc: 0,
-            costosOgc: 0,
-            margen: 0,
-            currentMonthIngresos: 0,
-            currentMonthCostos: 0,
-            currentMonthMargen: 0,
+            costosDirectosObra: 0,
+            costosEstructuraOgc: 0,
+            costosEstructuraMasIndirectos: 0,
+            margenBruto: 0,
+            ebitda: 0,
+            structureBreakdown: {} as Record<string, number>,
         }
     );
 
@@ -155,10 +274,132 @@ export const getProfitabilitySummary = query(async (ctx) => {
         projects,
         totals: {
             ...totals,
+            structureBreakdown: STRUCTURE_COST_GROUPS.map((group) => ({
+                key: group.key,
+                label: group.label,
+                amount: totals.structureBreakdown[group.key] || 0,
+            })),
+            estructuraPercent: totals.ingresosOgc > 0 ? totals.costosEstructuraOgc / totals.ingresosOgc : 0,
+            ebitdaMargin: totals.ingresosOgc > 0 ? totals.ebitda / totals.ingresosOgc : 0,
+            margenBrutoPercent: totals.ingresosOgc > 0 ? totals.margenBruto / totals.ingresosOgc : 0,
+            activeProjects: projects.filter((project) => project.status !== "Cancelado").length,
+        },
+        formulas: {
+            ingresosOgc: "honorarios + indirectos",
+            estructura: "total costos estructura OGC",
+            estructuraPercent: "estructura / ingresos OGC",
+            margenBruto: "ingresos OGC - costos directos por obra",
+            margenBrutoPercent: "margen bruto / ingresos OGC",
+            ebitda: "ingresos OGC - (estructura OGC + indirectos)",
+            ebitdaMargin: "EBITDA / ingresos OGC",
+        },
+        generatedAt: now.getTime(),
+    };
+});
+
+// Aggregated profitability data for the P&L Project profitability tab.
+export const getProfitabilitySummary = query(async (ctx) => {
+    const proyectos = await getUserDesarrollos(ctx);
+    const now = new Date();
+    const ytdMonthCount = now.getMonth() + 1;
+
+    const projects = await Promise.all(
+        proyectos.map(async (proyecto) => {
+            const formulaTotals = await getOgcFormulaTotals(ctx, proyecto);
+            const wip = await getWipFormulaTotals(ctx, proyecto, formulaTotals, now);
+            const ingresosOgc = formulaTotals.ingresosOgc;
+            const costosOgc = formulaTotals.costosDirectosObra;
+            const currentMonthIngresos = ytdMonthCount > 0 ? ingresosOgc / ytdMonthCount : 0;
+            const currentMonthCostos = ytdMonthCount > 0 ? costosOgc / ytdMonthCount : 0;
+
+            return {
+                id: proyecto._id,
+                nombre: proyecto.nombre,
+                status: proyecto.status,
+                honorarios: formulaTotals.honorarios,
+                indirectos: formulaTotals.indirectos,
+                ingresosOgc,
+                costosOgc,
+                costosEstructuraOgc: formulaTotals.costosEstructuraOgc,
+                costosEstructuraMasIndirectos: formulaTotals.costosEstructuraMasIndirectos,
+                structureBreakdown: formulaTotals.structureBreakdown,
+                ebitda: formulaTotals.ebitda,
+                ebitdaMargin: formulaTotals.ebitdaMargin,
+                margen: formulaTotals.margenBruto,
+                margenPercent: formulaTotals.margenBrutoPercent,
+                currentMonthIngresos,
+                currentMonthCostos,
+                currentMonthMargen: currentMonthIngresos - currentMonthCostos,
+                currentMonthMargenPercent:
+                    currentMonthIngresos > 0 ? (currentMonthIngresos - currentMonthCostos) / currentMonthIngresos : 0,
+                wip,
+            };
+        })
+    );
+
+    const totals = projects.reduce(
+        (acc, project) => {
+            acc.wip.presupuesto += project.wip.presupuesto;
+            acc.wip.costoReal += project.wip.costoReal;
+            acc.wip.pagado += project.wip.pagado;
+            acc.wip.saldo += project.wip.saldo;
+            acc.ingresosOgc += project.ingresosOgc;
+            acc.costosOgc += project.costosOgc;
+            acc.honorarios += project.honorarios;
+            acc.indirectos += project.indirectos;
+            acc.costosEstructuraOgc += project.costosEstructuraOgc;
+            acc.costosEstructuraMasIndirectos += project.costosEstructuraMasIndirectos;
+            acc.ebitda += project.ebitda;
+            acc.margen += project.margen;
+            acc.currentMonthIngresos += project.currentMonthIngresos;
+            acc.currentMonthCostos += project.currentMonthCostos;
+            acc.currentMonthMargen += project.currentMonthMargen;
+            project.structureBreakdown.forEach((item) => {
+                acc.structureBreakdown[item.key] = (acc.structureBreakdown[item.key] || 0) + item.amount;
+            });
+            return acc;
+        },
+        {
+            honorarios: 0,
+            indirectos: 0,
+            ingresosOgc: 0,
+            costosOgc: 0,
+            costosEstructuraOgc: 0,
+            costosEstructuraMasIndirectos: 0,
+            ebitda: 0,
+            margen: 0,
+            currentMonthIngresos: 0,
+            currentMonthCostos: 0,
+            currentMonthMargen: 0,
+            structureBreakdown: {} as Record<string, number>,
+            wip: {
+                presupuesto: 0,
+                costoReal: 0,
+                pagado: 0,
+                saldo: 0,
+            },
+        }
+    );
+
+    return {
+        projects,
+        totals: {
+            ...totals,
+            structureBreakdown: STRUCTURE_COST_GROUPS.map((group) => ({
+                key: group.key,
+                label: group.label,
+                amount: totals.structureBreakdown[group.key] || 0,
+            })),
             margenPercent: totals.ingresosOgc > 0 ? totals.margen / totals.ingresosOgc : 0,
+            ebitdaMargin: totals.ingresosOgc > 0 ? totals.ebitda / totals.ingresosOgc : 0,
             currentMonthMargenPercent:
                 totals.currentMonthIngresos > 0 ? totals.currentMonthMargen / totals.currentMonthIngresos : 0,
             activeProjects: projects.filter((project) => project.status !== "Cancelado").length,
+            wip: {
+                ...totals.wip,
+                ejecutadoPercent: totals.wip.presupuesto > 0 ? totals.wip.costoReal / totals.wip.presupuesto : 0,
+                backlogPendiente: Math.max(totals.wip.presupuesto - totals.wip.pagado, 0),
+            },
         },
         generatedAt: now.getTime(),
     };

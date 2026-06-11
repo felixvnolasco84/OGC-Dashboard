@@ -102,6 +102,11 @@ createRoot(document.getElementById("root")!).render(
                     <ProveedoresTablePage />
                   </ProtectedRoute>
                 } />
+                <Route path="/pnl" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <ProfitAndLossPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/documentos" element={
                   <ProtectedRoute requiredRole="admin">
                     <DocumentosPage />
@@ -127,11 +132,6 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/proyecto/:proyectoId/control" element={
                   <ProtectedRoute requiredRole="viewer">
                     <ControlPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/proyecto/:proyectoId/pnl" element={
-                  <ProtectedRoute requiredRole="viewer">
-                    <ProfitAndLossPage />
                   </ProtectedRoute>
                 } />
                 

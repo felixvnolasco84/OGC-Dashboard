@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Id } from "convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -21,38 +19,79 @@ type PnlRow = {
   percentages?: number[];
 };
 
-type WorkInProgressProject = {
-  nombre: string;
-  fecha_creacion?: string;
-};
-
-type WorkInProgressMetrics = {
-  presupuesto_aprobado?: number;
-  gasto_total?: number;
-};
-
-type WorkInProgressIngresos = {
-  total_ingresos?: number;
-};
-
 type ProfitabilityProject = {
   id: string;
   nombre: string;
+  status?: string;
+  honorarios: number;
+  indirectos: number;
   ingresosOgc: number;
   costosOgc: number;
+  costosEstructuraOgc: number;
+  costosEstructuraMasIndirectos: number;
   margen: number;
   margenPercent: number;
+  ebitda: number;
+  ebitdaMargin: number;
+  wip: {
+    presupuesto: number;
+    costoReal: number;
+    avance: number;
+    valorGanado: number;
+    restante: number;
+    eac: number;
+    varianza: number;
+    cpi: number;
+    pagado: number;
+    saldo: number;
+    runway: number;
+    averageWeeklyExpense: number;
+  };
+};
+
+type ProfitabilityStructureRow = {
+  key: string;
+  label: string;
+  amount: number;
 };
 
 type ProfitabilitySummary = {
   projects: ProfitabilityProject[];
   totals: {
+    honorarios: number;
+    indirectos: number;
     ingresosOgc: number;
     costosOgc: number;
+    costosEstructuraOgc: number;
+    costosEstructuraMasIndirectos: number;
     margen: number;
     margenPercent: number;
+    ebitda: number;
+    ebitdaMargin: number;
     currentMonthMargen: number;
     currentMonthMargenPercent: number;
+    activeProjects: number;
+    structureBreakdown: ProfitabilityStructureRow[];
+    wip: {
+      presupuesto: number;
+      costoReal: number;
+      pagado: number;
+      saldo: number;
+      ejecutadoPercent: number;
+      backlogPendiente: number;
+    };
+  };
+};
+
+type PnlSummary = {
+  totals: {
+    honorarios: number;
+    indirectos: number;
+    ingresosOgc: number;
+    costosEstructuraOgc: number;
+    ebitda: number;
+    estructuraPercent: number;
+    ebitdaMargin: number;
     activeProjects: number;
   };
 };
@@ -64,6 +103,9 @@ const PNL_TABS: Array<{ id: PnlTab; label: string }> = [
 ];
 
 const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun"];
+const DETAIL_TEXT_CLASS = "text-[#ACACAA]";
+const SOFT_HIGHLIGHT_CLASS = "bg-[#FBFAF2]";
+const STRONG_HIGHLIGHT_CLASS = "bg-[#F7F5E6]";
 
 const safeNumber = (value: unknown) => {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -121,46 +163,14 @@ const formatWholePercent = (value?: number) => {
   return `${Math.round(value * 100)}%`;
 };
 
-const formatMultiplier = (value: number) => {
-  return `${safeNumber(value).toFixed(2)}x`;
+const formatMultiplier = (value?: number) => {
+  if (value === undefined || !Number.isFinite(value) || value === 0) return "-";
+  return `${value.toFixed(2)}x`;
 };
 
-const formatRunway = (weeks?: number) => {
-  if (weeks === undefined || !Number.isFinite(weeks)) return "-";
-  return `${weeks.toFixed(1)} sem`;
-};
-
-const parseProjectDate = (date?: string) => {
-  if (!date) return null;
-
-  if (date.includes("/")) {
-    const [day, month, year] = date.split("/").map(Number);
-    const parsed = new Date(year, month - 1, day);
-    return Number.isFinite(parsed.getTime()) ? parsed : null;
-  }
-
-  if (date.includes("-")) {
-    const parsed = new Date(date);
-    return Number.isFinite(parsed.getTime()) ? parsed : null;
-  }
-
-  const parsed = new Date(date);
-  return Number.isFinite(parsed.getTime()) ? parsed : null;
-};
-
-const calculateRunwayWeeks = (saldo: number, gastoTotal: number, fechaCreacion?: string) => {
-  if (saldo <= 0 || gastoTotal <= 0) return undefined;
-
-  const startDate = parseProjectDate(fechaCreacion);
-  if (!startDate) return undefined;
-
-  const elapsedWeeks = (Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7);
-  if (!Number.isFinite(elapsedWeeks) || elapsedWeeks <= 0) return undefined;
-
-  const weeklySpend = gastoTotal / elapsedWeeks;
-  if (!Number.isFinite(weeklySpend) || weeklySpend <= 0) return undefined;
-
-  return saldo / weeklySpend;
+const formatRunway = (value?: number) => {
+  if (value === undefined || !Number.isFinite(value) || value <= 0) return "-";
+  return `${value.toFixed(1)} sem`;
 };
 
 const buildMonths = (): PnlMonth[] => {
@@ -178,13 +188,15 @@ const spreadEvenly = (total: number, monthCount: number) => {
 
 const buildMonthlyRows = (
   months: PnlMonth[],
-  ingresosYtd: number,
+  honorariosYtd: number,
+  indirectosYtd: number,
   estructuraYtd: number
 ): PnlRow[] => {
   const monthCount = months.length;
+  const ingresosYtd = honorariosYtd + indirectosYtd;
   const monthlyIngresos = spreadEvenly(ingresosYtd, monthCount);
-  const monthlyHonorarios = monthlyIngresos.map((value) => value * 0.79);
-  const monthlyIndirectos = monthlyIngresos.map((value) => value * 0.21);
+  const monthlyHonorarios = spreadEvenly(honorariosYtd, monthCount);
+  const monthlyIndirectos = spreadEvenly(indirectosYtd, monthCount);
   const monthlyEstructura = spreadEvenly(estructuraYtd, monthCount).map((value) => -Math.abs(value));
 
   const costRatios = [0.4, 0.1, 0.21, 0.1, 0.15, 0.04];
@@ -255,19 +267,20 @@ function MonthlyPnlTable({
               const isSection = row.type === "section";
               const isSubtotal = row.type === "subtotal";
               const isMetric = row.type === "metric";
+              const isDetail = row.type === "line";
 
               return (
                 <tr
                   key={`${row.label}-${rowIndex}`}
                   className={cn(
                     "border-b border-gray-200",
-                    isSubtotal || isMetric ? "bg-[#fcfcfc]" : "bg-white"
+                    isSubtotal || isMetric ? "bg-[#FBFAF2]" : "bg-white"
                   )}
                 >
                   <td
                     className={cn(
                       "px-8 py-6 align-middle text-base whitespace-nowrap",
-                      isSection ? "text-gray-900" : "text-gray-400",
+                      isSection ? "text-gray-900" : "text-[#ACACAA]",
                       isSubtotal || isMetric ? "text-gray-900" : ""
                     )}
                   >
@@ -281,19 +294,20 @@ function MonthlyPnlTable({
                     const value = row.values?.[monthIndex];
                     const percentage = row.percentages?.[monthIndex];
                     const isHighlighted = monthIndex === highlightedMonthIndex;
+                    const isIntersection = isHighlighted && (isSubtotal || isMetric);
 
                     return (
                       <td
                         key={`${row.label}-${month.key}`}
                         className={cn(
                           "px-8 py-6 text-center align-middle text-base",
-                          isHighlighted ? "bg-[#fcfcfc]" : "",
-                          isSection ? "text-gray-400" : "text-gray-900"
+                          isIntersection ? "bg-[#F7F5E6]" : isHighlighted ? "bg-[#FBFAF2]" : "",
+                          isSection ? "text-gray-400" : isDetail ? "text-[#ACACAA]" : "text-gray-900"
                         )}
                       >
                         {!isSection && (
                           <div className="flex flex-col gap-1">
-                            <span className={isMetric && safeNumber(value) >= 0 ? "text-[#4CC684]" : ""}>
+                            <span className={isMetric && safeNumber(value) >= 0 ? "text-[#1A5D21]" : ""}>
                               {formatPnlValue(value)}
                             </span>
                             {isMetric && (
@@ -337,61 +351,52 @@ function WipMetricCard({
 }
 
 function WorkInProgressView({
-  proyecto,
-  budgetMetrics,
-  ingresosTotals,
+  summary,
 }: {
-  proyecto: WorkInProgressProject;
-  budgetMetrics: WorkInProgressMetrics | null;
-  ingresosTotals: WorkInProgressIngresos;
+  summary: ProfitabilitySummary;
 }) {
-  const presupuesto = safeNumber(budgetMetrics?.presupuesto_aprobado);
-  const costoReal = safeNumber(budgetMetrics?.gasto_total);
-  const ingresoFacturado = safeNumber(ingresosTotals.total_ingresos);
-  const backlogPendiente = Math.max(presupuesto - ingresoFacturado, 0);
-  const eac = Math.max(presupuesto, costoReal);
-  const varianza = presupuesto - eac;
-  const cpi = safeDivide(presupuesto, eac);
-  const saldo = ingresoFacturado - costoReal;
-  const runwayWeeks = calculateRunwayWeeks(saldo, costoReal, proyecto.fecha_creacion);
+  const totals = summary.totals;
+  const activeProjects = summary.projects.filter((project) => project.status !== "Cancelado");
 
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-10 w-full xl:w-3/4 py-8">
         <WipMetricCard
           label="Backlog total contratado"
-          value={formatMetricCurrency(presupuesto)}
-          badge="1 obra activa"
+          value={formatMetricCurrency(totals.wip.presupuesto)}
+          badge={`${totals.activeProjects} obras activas`}
         />
         <WipMetricCard
           label="Costo real acumulado"
-          value={formatMetricCurrency(costoReal)}
-          badge={`${(safeDivide(costoReal, presupuesto) * 100).toFixed(1)}% ejecutado`}
+          value={formatMetricCurrency(totals.wip.costoReal)}
+          badge={`${(totals.wip.ejecutadoPercent * 100).toFixed(0)}% ejecutado`}
         />
         <WipMetricCard
           label="Ingreso facturado total"
-          value={formatMetricCurrency(ingresoFacturado)}
+          value={formatMetricCurrency(totals.wip.pagado)}
           badge="Cobrado a la fecha"
-          valueClassName="text-[#4CC684]"
+          valueClassName="text-[#1A5D21]"
         />
         <WipMetricCard
           label="Backlog pendiente"
-          value={formatMetricCurrency(backlogPendiente)}
+          value={formatMetricCurrency(totals.wip.backlogPendiente)}
           badge="Por facturar"
         />
       </div>
 
-      <div className="border-t border-[#AFAEA2] pt-12 space-y-6">
+      <div className="border-t border-[#AFAEA2] pt-6 space-y-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <h2 className="text-lg text-gray-900">OBRAS ACTIVAS - ESTADO AL CORTE</h2>
-          <p className="text-sm text-gray-400">Costo real - Saldo y runway de Tesoreria</p>
+          <div className="text-left md:text-right">
+            <p className="text-sm text-gray-400">Costo real - Saldo y runway de Tesoreria</p>
+          </div>
         </div>
 
         <div className="overflow-x-auto border border-gray-200 bg-white">
           <table className="w-full min-w-[1180px] border-collapse text-left">
             <thead>
               <tr className="border-b border-gray-200 text-sm text-gray-500">
-                <th className="w-[260px] px-8 py-4 font-normal">Obra</th>
+                <th className="w-[240px] px-8 py-4 font-normal">Obra</th>
                 <th className="px-8 py-4 text-center font-normal">Presupuesto</th>
                 <th className="px-8 py-4 text-center font-normal">Costo real</th>
                 <th className="px-8 py-4 text-center font-normal">EAC</th>
@@ -403,35 +408,45 @@ function WorkInProgressView({
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-gray-200 bg-white">
-                <td className="px-8 py-6 align-middle text-base text-gray-900">
-                  <span className="block max-w-[260px] truncate">{proyecto.nombre}</span>
-                </td>
-                <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
-                  {formatTableCurrency(presupuesto)}
-                </td>
-                <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
-                  {formatTableCurrency(costoReal)}
-                </td>
-                <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
-                  {formatTableCurrency(eac)}
-                </td>
-                <td className={cn("px-8 py-6 text-center align-middle text-base", varianza < 0 ? "text-[#802424]" : "text-gray-900")}>
-                  {formatTableCurrency(varianza)}
-                </td>
-                <td className="px-8 py-6 text-center align-middle text-base text-gray-900">
-                  {formatMultiplier(cpi)}
-                </td>
-                <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
-                  {formatTableCurrency(costoReal)}
-                </td>
-                <td className={cn("px-8 py-6 text-center align-middle text-base", saldo >= 0 ? "text-[#4CC684]" : "text-[#802424]")}>
-                  {formatTableCurrency(saldo)}
-                </td>
-                <td className="bg-[#fcfcfc] px-8 py-6 text-center align-middle text-base text-gray-900">
-                  {formatRunway(runwayWeeks)}
-                </td>
-              </tr>
+              {activeProjects.map((project) => (
+                <tr key={project.id} className="border-b border-gray-200 bg-white">
+                  <td className="px-8 py-6 align-middle text-base text-gray-900">
+                    <span className="block max-w-[240px] truncate">{project.nombre}</span>
+                  </td>
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                    {formatTableCurrency(project.wip.presupuesto)}
+                  </td>
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                    {formatTableCurrency(project.wip.costoReal)}
+                  </td>
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                    {formatTableCurrency(project.wip.eac)}
+                  </td>
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", project.wip.varianza < 0 ? "text-[#802424]" : "text-gray-900")}>
+                    {formatTableCurrency(project.wip.varianza)}
+                  </td>
+                  <td className="px-8 py-6 text-center align-middle text-base text-gray-900">
+                    {formatMultiplier(project.wip.cpi)}
+                  </td>
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                    {formatTableCurrency(project.wip.pagado)}
+                  </td>
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", project.wip.saldo >= 0 ? "text-[#1A5D21]" : "text-[#802424]")}>
+                    {formatTableCurrency(project.wip.saldo)}
+                  </td>
+                  <td className={cn(SOFT_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base text-gray-900")}>
+                    {formatRunway(project.wip.runway)}
+                  </td>
+                </tr>
+              ))}
+
+              {activeProjects.length === 0 && (
+                <tr className="border-b border-gray-200 bg-white">
+                  <td className="px-8 py-6 align-middle text-base text-gray-400" colSpan={9}>
+                    No hay obras activas disponibles.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -447,16 +462,13 @@ function ProjectProfitabilityView({
 }) {
   const projects = summary.projects;
   const totals = summary.totals;
-  const estructuraRows = [
-    { label: "NOMINA", amount: totals.costosOgc * 0.4, percent: 0.4 },
-    { label: "TRANSPORTE", amount: totals.costosOgc * 0.21, percent: 0.21 },
-    { label: "IMPUESTOS", amount: totals.costosOgc * 0.15, percent: 0.15 },
-    { label: "RENTA", amount: totals.costosOgc * 0.1, percent: 0.1 },
-  ];
-  const estructuraVisibleTotal = estructuraRows.reduce((sum, row) => sum + row.amount, 0);
-  const honorariosCobrados = totals.ingresosOgc * 0.79;
-  const indirectosCobrados = totals.ingresosOgc * 0.21;
-  const ebitda = totals.margen;
+  const estructuraRows = totals.structureBreakdown.map((row) => ({
+    ...row,
+    percent: safeDivide(row.amount, totals.costosEstructuraOgc),
+  }));
+  const honorariosCobrados = totals.honorarios;
+  const indirectosCobrados = totals.indirectos;
+  const ebitda = totals.ebitda;
 
   return (
     <>
@@ -464,7 +476,7 @@ function ProjectProfitabilityView({
         <WipMetricCard
           label="Margen bruto total OGC"
           value={formatMetricCurrency(totals.margen)}
-          badge="Desde inicio de año"
+          badge="Desde inicio de anio"
           valueClassName={totals.margen >= 0 ? "text-gray-900" : "text-[#802424]"}
         />
         <WipMetricCard
@@ -510,18 +522,18 @@ function ProjectProfitabilityView({
                     <td className="px-8 py-6 align-middle text-base text-gray-900">
                       <span className="block max-w-[360px] truncate">{project.nombre}</span>
                     </td>
-                    <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
+                    <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatTableCurrency(project.ingresosOgc)}
                     </td>
-                    <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
+                    <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatAccountingCurrency(-Math.abs(project.costosOgc))}
-                    </td>
-                    <td className="bg-[#fcfcfc] px-8 py-6 text-center align-middle text-base">
-                      <div className="flex items-center justify-center gap-8">
-                        <span className={project.margen >= 0 ? "text-[#4CC684]" : "text-[#802424]"}>
+                  </td>
+                  <td className={cn(SOFT_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
+                    <div className="flex items-center justify-center gap-8">
+                        <span className={project.margen >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
                           {formatTableCurrency(project.margen)}
                         </span>
-                        <span className="text-gray-400">{formatWholePercent(project.margenPercent)}</span>
+                        <span className={DETAIL_TEXT_CLASS}>{formatWholePercent(project.margenPercent)}</span>
                       </div>
                     </td>
                   </tr>
@@ -535,20 +547,20 @@ function ProjectProfitabilityView({
                   </tr>
                 )}
 
-                <tr className="border-b border-gray-200 bg-[#fcfcfc]">
+                <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
                   <td className="px-8 py-6 align-middle text-base text-gray-900">TOTAL OGC</td>
-                  <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                     {formatTableCurrency(totals.ingresosOgc)}
                   </td>
-                  <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                     {formatAccountingCurrency(-Math.abs(totals.costosOgc))}
                   </td>
-                  <td className="bg-[#fcfcfc] px-8 py-6 text-center align-middle text-base">
+                  <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
                     <div className="flex items-center justify-center gap-8">
-                      <span className={totals.margen >= 0 ? "text-[#4CC684]" : "text-[#802424]"}>
+                      <span className={totals.margen >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
                         {formatTableCurrency(totals.margen)}
                       </span>
-                      <span className="text-gray-400">{formatWholePercent(totals.margenPercent)}</span>
+                      <span className={DETAIL_TEXT_CLASS}>{formatWholePercent(totals.margenPercent)}</span>
                     </div>
                   </td>
                 </tr>
@@ -577,21 +589,21 @@ function ProjectProfitabilityView({
                   {estructuraRows.map((row) => (
                     <tr key={row.label} className="border-b border-gray-200 bg-white">
                       <td className="px-8 py-6 align-middle text-base text-gray-900">{row.label}</td>
-                      <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
+                      <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                         {formatTableCurrency(row.amount)}
                       </td>
-                      <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
+                      <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                         {formatWholePercent(row.percent)}
                       </td>
                     </tr>
                   ))}
-                  <tr className="border-b border-gray-200 bg-[#fcfcfc]">
+                  <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
                     <td className="px-8 py-6 align-middle text-base text-gray-900">TOTAL ESTRUCTURA</td>
-                    <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
-                      {formatTableCurrency(estructuraVisibleTotal)}
+                    <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                      {formatTableCurrency(totals.costosEstructuraOgc)}
                     </td>
-                    <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
-                      {formatWholePercent(safeDivide(estructuraVisibleTotal, totals.costosOgc))}
+                    <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                      {formatWholePercent(safeDivide(totals.costosEstructuraOgc, totals.ingresosOgc))}
                     </td>
                   </tr>
                 </tbody>
@@ -616,41 +628,41 @@ function ProjectProfitabilityView({
                 <tbody>
                   <tr className="border-b border-gray-200 bg-white">
                     <td className="px-8 py-6 align-middle text-base text-gray-900">HONORARIOS COBRADOS</td>
-                    <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
+                    <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatTableCurrency(honorariosCobrados)}
                     </td>
                   </tr>
                   <tr className="border-b border-gray-200 bg-white">
                     <td className="px-8 py-6 align-middle text-base text-gray-900">INDIRECTOS COBRADOS</td>
-                    <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
+                    <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatTableCurrency(indirectosCobrados)}
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-200 bg-[#fcfcfc]">
+                  <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
                     <td className="px-8 py-6 align-middle text-base text-gray-900">INGRESOS OGC</td>
-                    <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
+                    <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatTableCurrency(totals.ingresosOgc)}
                     </td>
                   </tr>
                   <tr className="border-b border-gray-200 bg-white">
                     <td className="px-8 py-6 align-middle text-base text-gray-900">COSTO ESTRUCTURA + INDIRECTOS</td>
-                    <td className="px-8 py-6 text-center align-middle text-base text-gray-400">
-                      {formatAccountingCurrency(-Math.abs(totals.costosOgc))}
+                    <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                      {formatAccountingCurrency(-Math.abs(totals.costosEstructuraMasIndirectos))}
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-200 bg-[#fcfcfc]">
+                  <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
                     <td className="px-8 py-6 align-middle text-base text-gray-900">
                       <div className="flex flex-col gap-1">
                         <span>EBITDA</span>
                         <span className="text-sm text-gray-500">%</span>
                       </div>
                     </td>
-                    <td className="px-8 py-6 text-center align-middle text-base">
+                    <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
                       <div className="flex flex-col gap-1">
-                        <span className={ebitda >= 0 ? "text-[#4CC684]" : "text-[#802424]"}>
+                        <span className={ebitda >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
                           {formatTableCurrency(ebitda)}
                         </span>
-                        <span className="text-sm text-gray-500">{formatPercent(totals.margenPercent)}</span>
+                        <span className="text-sm text-gray-500">{formatPercent(totals.ebitdaMargin)}</span>
                       </div>
                     </td>
                   </tr>
@@ -665,33 +677,26 @@ function ProjectProfitabilityView({
 }
 
 export default function ProfitAndLossPage() {
-  const { proyectoId } = useParams<{ proyectoId: string }>();
   const [activeTab, setActiveTab] = useState<PnlTab>("pnl");
 
-  const proyecto = useQuery(
-    api.desarrollos.getById,
-    proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip"
-  );
-  const ingresosTotals = useQuery(
-    api.ingresos.getTotalsByProyecto,
-    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
-  );
-  const budgetMetrics = useQuery(
-    api.meticas_presupuesto.getByProyecto,
-    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
-  );
+  const pnlSummary = useQuery(api.desarrollos.getPnlSummary) as PnlSummary | undefined;
   const profitabilitySummary = useQuery(api.desarrollos.getProfitabilitySummary);
 
   const months = useMemo(() => buildMonths(), []);
-  const ingresosYtd = safeNumber(ingresosTotals?.total_ingresos);
-  const estructuraYtd = safeNumber(budgetMetrics?.gasto_total);
-  const ebitdaYtd = ingresosYtd - estructuraYtd;
+  const honorariosYtd = safeNumber(pnlSummary?.totals.honorarios);
+  const indirectosYtd = safeNumber(pnlSummary?.totals.indirectos);
+  const ingresosYtd = safeNumber(pnlSummary?.totals.ingresosOgc);
+  const estructuraYtd = safeNumber(pnlSummary?.totals.costosEstructuraOgc);
+  const ebitdaYtd = safeNumber(pnlSummary?.totals.ebitda);
   const rows = useMemo(
-    () => buildMonthlyRows(months, ingresosYtd, estructuraYtd),
-    [months, ingresosYtd, estructuraYtd]
+    () => buildMonthlyRows(months, honorariosYtd, indirectosYtd, estructuraYtd),
+    [months, honorariosYtd, indirectosYtd, estructuraYtd]
   );
 
-  if (!proyecto || ingresosTotals === undefined || budgetMetrics === undefined || profitabilitySummary === undefined) {
+  if (
+    pnlSummary === undefined ||
+    profitabilitySummary === undefined
+  ) {
     return (
       <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
         <p className="text-gray-500">Cargando datos...</p>
@@ -737,17 +742,17 @@ export default function ProfitAndLossPage() {
                 <p className="text-sm text-[#777770]">Estructura YTD</p>
                 <p className="text-4xl text-gray-900">{formatMetricCurrency(estructuraYtd)}</p>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
-                  {(safeDivide(estructuraYtd, ingresosYtd) * 100).toFixed(1)}% de ingresos
+                  {(pnlSummary.totals.estructuraPercent * 100).toFixed(1)}% de ingresos
                 </Badge>
               </div>
 
               <div className="space-y-2 text-left">
                 <p className="text-sm text-[#777770]">EBITDA YTD</p>
-                <p className={cn("text-4xl", ebitdaYtd >= 0 ? "text-[#4CC684]" : "text-[#802424]")}>
+                <p className={cn("text-4xl", ebitdaYtd >= 0 ? "text-[#1A5D21]" : "text-[#802424]")}>
                   {formatMetricCurrency(ebitdaYtd)}
                 </p>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
-                  {(safeDivide(ebitdaYtd, ingresosYtd) * 100).toFixed(1)}% de margen
+                  {(pnlSummary.totals.ebitdaMargin * 100).toFixed(1)}% de margen
                 </Badge>
               </div>
             </div>
@@ -761,11 +766,7 @@ export default function ProfitAndLossPage() {
             </div>
           </>
         ) : activeTab === "wip" ? (
-          <WorkInProgressView
-            proyecto={proyecto}
-            budgetMetrics={budgetMetrics}
-            ingresosTotals={ingresosTotals}
-          />
+          <WorkInProgressView summary={profitabilitySummary} />
         ) : (
           <ProjectProfitabilityView summary={profitabilitySummary} />
         )}

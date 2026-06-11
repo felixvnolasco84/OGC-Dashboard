@@ -244,7 +244,6 @@ function OrganizationProjectGroups({
 const projectMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
-  // { id: "pnl", label: "P&L", path: "pnl", disabled: false, icon: ChartBar },
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
@@ -272,7 +271,6 @@ const financeMenuItems: ProjectMenuItem[] = [
 const viewerMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
-  // { id: "pnl", label: "P&L", path: "pnl", disabled: false, icon: ChartBar },
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: BookCheck },
@@ -758,25 +756,46 @@ export default function SidebarComponent() {
           <SidebarGroupContent>
             <SidebarMenu>
               {currentUser?.role === "admin" && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip="Documentos"
-                    className={cn(
-                      "px-3 py-2 text-sm transition-colors",
-                      isActive("/documentos")
-                        ? "text-gray-900 bg-gray-100 font-medium"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                    )}
-                  >
-                    <Link to="/documentos">
-                      <File className="w-4 h-4" />
-                      <span className="flex items-center justify-between w-full">
-                        Documentos
-                      </span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip="P&L"
+                      className={cn(
+                        "px-3 py-2 text-sm transition-colors",
+                        isActive("/pnl")
+                          ? "text-gray-900 bg-gray-100 font-medium"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      )}
+                    >
+                      <Link to="/pnl">
+                        <ChartBar className="w-4 h-4" />
+                        <span className="flex items-center justify-between w-full">
+                          P&L
+                        </span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip="Documentos"
+                      className={cn(
+                        "px-3 py-2 text-sm transition-colors",
+                        isActive("/documentos")
+                          ? "text-gray-900 bg-gray-100 font-medium"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      )}
+                    >
+                      <Link to="/documentos">
+                        <File className="w-4 h-4" />
+                        <span className="flex items-center justify-between w-full">
+                          Documentos
+                        </span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
               <SidebarMenuItem>
                 <SidebarMenuButton
