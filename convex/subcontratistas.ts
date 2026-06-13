@@ -129,24 +129,45 @@ export const deleteSubcontratista = mutation({
   args: { id: v.id("subcontratistas") },
   handler: async (ctx, args) => {
     // Delete related history entries
-    const historyPresupuesto = await ctx.db
-      .query("autorizaciones_obra_historial")
+    const subHistoryParentTypes = [
+      "subcontratista_presupuesto",
+      "subcontratista_contrato",
+      "imss_siroc_sub",
+    ];
+    for (const parentType of subHistoryParentTypes) {
+      const history = await ctx.db
+        .query("autorizaciones_obra_historial")
+        .withIndex("by_parent", (q) =>
+          q.eq("parent_type", parentType).eq("parent_id", args.id)
+        )
+        .collect();
+      for (const h of history) {
+        await ctx.db.delete(h._id);
+      }
+    }
+
+    const imssPagos = await ctx.db
+      .query("imss_pagos_cuota")
       .withIndex("by_parent", (q) =>
-        q.eq("parent_type", "subcontratista_presupuesto").eq("parent_id", args.id)
+        q.eq("parent_type", "subcontratista").eq("parent_id", args.id)
       )
       .collect();
-    for (const h of historyPresupuesto) {
-      await ctx.db.delete(h._id);
+    for (const pago of imssPagos) {
+      const pagoHistoryParentTypes = ["imss_comprobante", "imss_soporte"];
+      for (const parentType of pagoHistoryParentTypes) {
+        const history = await ctx.db
+          .query("autorizaciones_obra_historial")
+          .withIndex("by_parent", (q) =>
+            q.eq("parent_type", parentType).eq("parent_id", pago._id)
+          )
+          .collect();
+        for (const h of history) {
+          await ctx.db.delete(h._id);
+        }
+      }
+      await ctx.db.delete(pago._id);
     }
-    const historyContrato = await ctx.db
-      .query("autorizaciones_obra_historial")
-      .withIndex("by_parent", (q) =>
-        q.eq("parent_type", "subcontratista_contrato").eq("parent_id", args.id)
-      )
-      .collect();
-    for (const h of historyContrato) {
-      await ctx.db.delete(h._id);
-    }
+
     await ctx.db.delete(args.id);
   },
 });
@@ -313,6 +334,61 @@ export const updateContratistaGeneral = mutation({
     if (fields.status_manual !== undefined) updates.status_manual = fields.status_manual;
     if (fields.siroc_numero !== undefined) updates.siroc_numero = fields.siroc_numero;
     await ctx.db.patch(id, updates);
+  },
+});
+
+export const deleteContratistaGeneral = mutation({
+  args: { id: v.id("contratistas_generales") },
+  handler: async (ctx, args) => {
+    const cg = await ctx.db.get(args.id);
+    if (!cg) throw new Error("Contratista general not found");
+
+    const linkedSubs = await ctx.db
+      .query("subcontratistas")
+      .withIndex("by_contratista_general", (q) =>
+        q.eq("contratista_general_id", args.id)
+      )
+      .collect();
+    if (linkedSubs.length > 0) {
+      throw new Error("CONTRATISTA_GENERAL_HAS_SUBCONTRATISTAS");
+    }
+
+    const cgHistoryParentTypes = ["imss_cg_contrato", "imss_cg_siroc"];
+    for (const parentType of cgHistoryParentTypes) {
+      const history = await ctx.db
+        .query("autorizaciones_obra_historial")
+        .withIndex("by_parent", (q) =>
+          q.eq("parent_type", parentType).eq("parent_id", args.id)
+        )
+        .collect();
+      for (const h of history) {
+        await ctx.db.delete(h._id);
+      }
+    }
+
+    const imssPagos = await ctx.db
+      .query("imss_pagos_cuota")
+      .withIndex("by_parent", (q) =>
+        q.eq("parent_type", "contratista_general").eq("parent_id", args.id)
+      )
+      .collect();
+    for (const pago of imssPagos) {
+      const pagoHistoryParentTypes = ["imss_comprobante", "imss_soporte"];
+      for (const parentType of pagoHistoryParentTypes) {
+        const history = await ctx.db
+          .query("autorizaciones_obra_historial")
+          .withIndex("by_parent", (q) =>
+            q.eq("parent_type", parentType).eq("parent_id", pago._id)
+          )
+          .collect();
+        for (const h of history) {
+          await ctx.db.delete(h._id);
+        }
+      }
+      await ctx.db.delete(pago._id);
+    }
+
+    await ctx.db.delete(args.id);
   },
 });
 

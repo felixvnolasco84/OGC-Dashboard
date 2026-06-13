@@ -151,6 +151,22 @@ export const updatePagoCuota = mutation({
 export const deletePagoCuota = mutation({
   args: { id: v.id("imss_pagos_cuota") },
   handler: async (ctx, args) => {
+    const pago = await ctx.db.get(args.id);
+    if (!pago) throw new Error("Pago not found");
+
+    const historyParentTypes = ["imss_comprobante", "imss_soporte"];
+    for (const parentType of historyParentTypes) {
+      const history = await ctx.db
+        .query("autorizaciones_obra_historial")
+        .withIndex("by_parent", (q) =>
+          q.eq("parent_type", parentType).eq("parent_id", args.id)
+        )
+        .collect();
+      for (const h of history) {
+        await ctx.db.delete(h._id);
+      }
+    }
+
     await ctx.db.delete(args.id);
   },
 });

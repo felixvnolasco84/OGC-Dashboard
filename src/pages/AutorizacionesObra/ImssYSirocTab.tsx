@@ -10,6 +10,16 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -55,6 +65,7 @@ interface ContratistaGeneralRow {
 interface SubcontratistaRow {
   _id: Id<"subcontratistas">;
   proyecto: Id<"desarrollos">;
+  contratista_general_id?: Id<"contratistas_generales">;
   nombre: string;
   partida_nombre?: string;
   monto?: number;
@@ -387,7 +398,7 @@ function PagosCuotaSection({
   pagos: PagoCuotaRow[];
   onCreatePago: () => void;
   onUpdatePago: (id: Id<"imss_pagos_cuota">, fields: { cuota_tipo?: string; monto?: number }) => void;
-  onDeletePago: (id: Id<"imss_pagos_cuota">) => void;
+  onDeletePago: (pago: PagoCuotaRow) => void;
   onUploadFile: (pagoId: Id<"imss_pagos_cuota">, file: File, field: "comprobante" | "soporte") => void;
   onDeleteFile: (pagoId: Id<"imss_pagos_cuota">, field: "comprobante" | "soporte") => void;
   uploadingPagoId: string | null;
@@ -420,7 +431,7 @@ function PagosCuotaSection({
           onDeleteComprobante={() => onDeleteFile(p._id, "comprobante")}
           onDeleteSoporte={() => onDeleteFile(p._id, "soporte")}
           onUpdate={(fields) => onUpdatePago(p._id, fields)}
-          onDelete={() => onDeletePago(p._id)}
+          onDelete={() => onDeletePago(p)}
           uploadingField={uploadingPagoId === p._id ? uploadingField : null}
           showCuotaTipo={showCuotaTipo}
           partidas={partidas}
@@ -450,6 +461,7 @@ function SubPagoCuotaRow({
   pago,
   onUploadFile,
   onDeleteFile,
+  onDelete,
   onUpdateMonto,
   uploadingComprobante,
   uploadingSoporte,
@@ -457,6 +469,7 @@ function SubPagoCuotaRow({
   pago: PagoCuotaRow;
   onUploadFile: (file: File, field: "comprobante" | "soporte") => void;
   onDeleteFile: (field: "comprobante" | "soporte") => void;
+  onDelete: () => void;
   onUpdateMonto: (monto: number) => void;
   uploadingComprobante: boolean;
   uploadingSoporte: boolean;
@@ -464,7 +477,7 @@ function SubPagoCuotaRow({
   const [editMonto, setEditMonto] = useState("");
 
   return (
-    <div className="grid grid-cols-[1.2fr_1.2fr_1fr] gap-4 items-center px-5 py-4 border-b border-[#EAEAEA] last:border-b-0">
+    <div className="grid grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 items-center px-5 py-4 border-b border-[#EAEAEA] last:border-b-0">
       <FileCell
         nombre={pago.comprobante_nombre}
         uploadedAt={pago.comprobante_uploaded_at}
@@ -501,6 +514,27 @@ function SubPagoCuotaRow({
         }}
         placeholder="$0.00"
       />
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            className="text-gray-400 hover:text-gray-600 p-1"
+            type="button"
+            title="Acciones del pago"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-44 p-1" align="end">
+          <button
+            className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded w-full text-left"
+            onClick={onDelete}
+            type="button"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Eliminar pago
+          </button>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -510,6 +544,7 @@ function SubPagosCuotaSection({
   pagos,
   onCreatePago,
   onUpdatePago,
+  onDeletePago,
   onUploadFile,
   onDeleteFile,
   uploadingPagoId,
@@ -518,6 +553,7 @@ function SubPagosCuotaSection({
   pagos: PagoCuotaRow[];
   onCreatePago: () => void;
   onUpdatePago: (id: Id<"imss_pagos_cuota">, fields: { cuota_tipo?: string; monto?: number }) => void;
+  onDeletePago: (pago: PagoCuotaRow) => void;
   onUploadFile: (pagoId: Id<"imss_pagos_cuota">, file: File, field: "comprobante" | "soporte") => void;
   onDeleteFile: (pagoId: Id<"imss_pagos_cuota">, field: "comprobante" | "soporte") => void;
   uploadingPagoId: string | null;
@@ -526,10 +562,11 @@ function SubPagosCuotaSection({
   return (
     <div className="border border-[#E8E8E7] rounded-sm">
       {/* Header */}
-      <div className="grid grid-cols-[1.2fr_1.2fr_1fr] gap-4 text-xs text-[#777770] font-normal px-5 py-3 border-b border-[#EAEAEA]">
+      <div className="grid grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-[#777770] font-normal px-5 py-3 border-b border-[#EAEAEA]">
         <span>Comprobante</span>
         <span>Soporte</span>
         <span className="text-right">Monto</span>
+        <span className="w-8" />
       </div>
 
       {/* Scrollable rows */}
@@ -540,6 +577,7 @@ function SubPagosCuotaSection({
             pago={p}
             onUploadFile={(file, field) => onUploadFile(p._id, file, field)}
             onDeleteFile={(field) => onDeleteFile(p._id, field)}
+            onDelete={() => onDeletePago(p)}
             onUpdateMonto={(monto) => onUpdatePago(p._id, { monto })}
             uploadingComprobante={uploadingPagoId === p._id && uploadingField === "comprobante"}
             uploadingSoporte={uploadingPagoId === p._id && uploadingField === "soporte"}
@@ -574,6 +612,7 @@ function SubcontratistaImssRow({
   totalSubsMonto,
   onCreatePago,
   onUpdatePago,
+  onDeletePago,
   onUploadPagoFile,
   onDeletePagoFile,
   onUploadSirocFile,
@@ -587,7 +626,7 @@ function SubcontratistaImssRow({
   totalSubsMonto: number;
   onCreatePago: () => void;
   onUpdatePago: (id: Id<"imss_pagos_cuota">, fields: { cuota_tipo?: string; monto?: number }) => void;
-  onDeletePago: (id: Id<"imss_pagos_cuota">) => void;
+  onDeletePago: (pago: PagoCuotaRow) => void;
   onUploadPagoFile: (pagoId: Id<"imss_pagos_cuota">, file: File, field: "comprobante" | "soporte") => void;
   onDeletePagoFile: (pagoId: Id<"imss_pagos_cuota">, field: "comprobante" | "soporte") => void;
   onUploadSirocFile: (file: File) => void;
@@ -684,6 +723,7 @@ function SubcontratistaImssRow({
                 pagos={pagos}
                 onCreatePago={onCreatePago}
                 onUpdatePago={onUpdatePago}
+                onDeletePago={onDeletePago}
                 onUploadFile={onUploadPagoFile}
                 onDeleteFile={onDeletePagoFile}
                 uploadingPagoId={uploadingPagoId}
@@ -709,6 +749,16 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
   const [uploadingContratoId, setUploadingContratoId] = useState<string | null>(null);
   const [costoInput, setCostoInput] = useState("");
   const [isEditingCostoTotal, setIsEditingCostoTotal] = useState(false);
+  const [pagoToDelete, setPagoToDelete] = useState<PagoCuotaRow | null>(null);
+  const [isDeletingPago, setIsDeletingPago] = useState(false);
+  const [cgToDelete, setCgToDelete] = useState<{
+    id: Id<"contratistas_generales">;
+    nombre: string;
+    pagosCount: number;
+    pagosTotal: number;
+    linkedSubsCount: number;
+  } | null>(null);
+  const [isDeletingCG, setIsDeletingCG] = useState(false);
 
   // ============================================================
   // Queries
@@ -748,6 +798,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
   const removeSoporte = useMutation(api.imss_siroc.removeSoporte);
   const generateUploadUrl = useMutation(api.imss_siroc.generateUploadUrl);
   const updateCG = useMutation(api.subcontratistas.updateContratistaGeneral);
+  const deleteCG = useMutation(api.subcontratistas.deleteContratistaGeneral);
   const attachCGContrato = useMutation(api.subcontratistas.attachContratistaGeneralContrato);
   const attachCGSiroc = useMutation(api.subcontratistas.attachContratistaGeneralSiroc);
   const updateSubSiroc = useMutation(api.subcontratistas.updateSubcontratistaSiroc);
@@ -876,18 +927,41 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
     [updatePago]
   );
 
-  const handleDeletePago = useCallback(
-    async (id: Id<"imss_pagos_cuota">) => {
-      try {
-        await deletePago({ id });
-        toast.success("Pago eliminado");
-      } catch (err) {
-        console.error("Error deleting pago:", err);
-        toast.error("Error al eliminar pago");
-      }
-    },
-    [deletePago]
-  );
+  const requestDeletePago = useCallback((pago: PagoCuotaRow) => {
+    setPagoToDelete(pago);
+  }, []);
+
+  const handleConfirmDeletePago = useCallback(async () => {
+    if (!pagoToDelete) return;
+
+    setIsDeletingPago(true);
+    try {
+      await deletePago({ id: pagoToDelete._id });
+      toast.success("Pago eliminado");
+      setPagoToDelete(null);
+    } catch (err) {
+      console.error("Error deleting pago:", err);
+      toast.error("Error al eliminar pago");
+    } finally {
+      setIsDeletingPago(false);
+    }
+  }, [deletePago, pagoToDelete]);
+
+  const handleConfirmDeleteCG = useCallback(async () => {
+    if (!cgToDelete || cgToDelete.linkedSubsCount > 0) return;
+
+    setIsDeletingCG(true);
+    try {
+      await deleteCG({ id: cgToDelete.id });
+      toast.success("Contratista general eliminado");
+      setCgToDelete(null);
+    } catch (err) {
+      console.error("Error deleting contratista general:", err);
+      toast.error("Error al eliminar contratista general");
+    } finally {
+      setIsDeletingCG(false);
+    }
+  }, [deleteCG, cgToDelete]);
 
   const handleUploadPagoFile = useCallback(
     async (pagoId: Id<"imss_pagos_cuota">, file: File, field: "comprobante" | "soporte") => {
@@ -1150,6 +1224,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           {cgs.map((cg) => {
             const cgPagos = pagosByCG[cg._id] || [];
             const cgTotal = cgPagos.reduce((s, p) => s + p.monto, 0);
+            const linkedSubsCount = subs.filter((sub) => sub.contratista_general_id === cg._id).length;
 
             return (
               <div
@@ -1199,6 +1274,22 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                         Descargar contrato
                       </a>
                     )}
+                    <button
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded w-full text-left"
+                      onClick={() =>
+                        setCgToDelete({
+                          id: cg._id,
+                          nombre: cg.nombre,
+                          pagosCount: cgPagos.length,
+                          pagosTotal: cgTotal,
+                          linkedSubsCount,
+                        })
+                      }
+                      type="button"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Eliminar contratista
+                    </button>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -1273,7 +1364,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 pagos={pagosByCG[mainCG._id] || []}
                 onCreatePago={() => handleCreatePago("contratista_general", mainCG._id)}
                 onUpdatePago={handleUpdatePago}
-                onDeletePago={handleDeletePago}
+                onDeletePago={requestDeletePago}
                 onUploadFile={handleUploadPagoFile}
                 onDeleteFile={handleDeletePagoFile}
                 uploadingPagoId={uploadingPagoId}
@@ -1379,7 +1470,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 totalSubsMonto={subExpected}
                 onCreatePago={() => handleCreatePago("subcontratista", sub._id)}
                 onUpdatePago={handleUpdatePago}
-                onDeletePago={handleDeletePago}
+                onDeletePago={requestDeletePago}
                 onUploadPagoFile={handleUploadPagoFile}
                 onDeletePagoFile={handleDeletePagoFile}
                 onUploadSirocFile={(file) => handleUploadSubSiroc(sub._id, file)}
@@ -1406,6 +1497,87 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           )}
         </div>
       </div>
+
+      <AlertDialog
+        open={Boolean(pagoToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingPago) setPagoToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar pago?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará el pago por {formatCurrencyMXN(pagoToDelete?.monto || 0)}
+              {pagoToDelete?.comprobante_nombre || pagoToDelete?.soporte_nombre
+                ? " y sus documentos asociados."
+                : "."} Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingPago}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                void handleConfirmDeletePago();
+              }}
+              disabled={isDeletingPago}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeletingPago ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(cgToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingCG) setCgToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar contratista general?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {cgToDelete?.linkedSubsCount
+                ? `No se puede eliminar "${cgToDelete.nombre}" porque tiene ${cgToDelete.linkedSubsCount} subcontratista${cgToDelete.linkedSubsCount === 1 ? "" : "s"} asociado${cgToDelete.linkedSubsCount === 1 ? "" : "s"}.`
+                : `Se eliminará "${cgToDelete?.nombre || "este contratista"}".`}
+              {!cgToDelete?.linkedSubsCount && cgToDelete?.pagosCount
+                ? ` También se eliminarán ${cgToDelete.pagosCount} pago${cgToDelete.pagosCount === 1 ? "" : "s"} por ${formatCurrencyMXN(cgToDelete.pagosTotal)}.`
+                : ""}
+              {!cgToDelete?.linkedSubsCount ? " Esta acción no se puede deshacer." : " Reasigna o elimina esos subcontratistas antes de continuar."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingCG}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                void handleConfirmDeleteCG();
+              }}
+              disabled={isDeletingCG || Boolean(cgToDelete?.linkedSubsCount)}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDeletingCG ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
