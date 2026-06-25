@@ -102,6 +102,11 @@ function parseExcelNumber(value) {
     return isNegative ? -parsed : parsed;
 }
 
+function parseExcelText(value) {
+    if (value === undefined || value === null) return '';
+    return String(value).trim();
+}
+
 // Function to parse hierarchical budget structure using Nivel column
 function parseHierarchicalStructureWithFormatting(worksheet, jsonData) {
     if (jsonData.length < 2) return { partidas: [], summary: {} };
@@ -130,10 +135,10 @@ function parseHierarchicalStructureWithFormatting(worksheet, jsonData) {
     dataRows.forEach((row, index) => {
         const rowNum = index + 2; // +2 because we start from row 1 and skip header (row 0 is header, data starts at row 1)
         const nivelCell = row[columnMap.nivel];
-        const partidaCell = row[columnMap.partida] || '';
-        const familiaCell = row[columnMap.familia] || '';
-        const subpartidaCell = row[columnMap.subpartida] || '';
-        const unidadCell = row[columnMap.unidad] || '';
+        const partidaCell = parseExcelText(row[columnMap.partida]);
+        const familiaCell = parseExcelText(row[columnMap.familia]);
+        const subpartidaCell = parseExcelText(row[columnMap.subpartida]);
+        const unidadCell = parseExcelText(row[columnMap.unidad]);
         const cantidadCell = row[columnMap.cantidad];
 
         // Skip completely empty rows
@@ -296,9 +301,9 @@ function extractPaymentData(worksheet, jsonData) {
     dataRows.forEach((row, index) => {
         const rowNum = index + 2; // +2 for header and 0-index
         const nivelValue = row[0];
-        const partidaName = row[1] || '';
-        const familiaName = row[2] || '';
-        const subpartidaName = row[3] || '';
+        const partidaName = parseExcelText(row[1]);
+        const familiaName = parseExcelText(row[2]);
+        const subpartidaName = parseExcelText(row[3]);
         
         // Skip completely empty rows
         if (!nivelValue && !partidaName && !familiaName && !subpartidaName) return;

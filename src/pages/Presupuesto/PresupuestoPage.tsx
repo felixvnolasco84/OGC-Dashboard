@@ -157,7 +157,7 @@ export default function PresupuestoPage() {
   const { results: allPartidas, status: partidasStatus, loadMore } = usePaginatedQuery(
     api.partida.getByProjectPaginated,
     proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip",
-    { initialNumItems: 1000 }
+    { initialNumItems: 5000 }
   );
 
 

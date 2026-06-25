@@ -195,21 +195,72 @@ export default function AddProyectoModal() {
       // Type for the record from the API
       type PartidaRecord = {
         nivel: number;
-        nombre: string;
-        familia: string;
-        sub_partida: string;
-        unidad: string;
-        cantidad: number;
-        precio_unitario: number;
-        presupuesto_original: number;
-        presupuesto_aprobado: number;
-        pagado: number;
+        nombre: unknown;
+        familia: unknown;
+        sub_partida: unknown;
+        unidad: unknown;
+        cantidad: unknown;
+        precio_unitario: unknown;
+        presupuesto_original: unknown;
+        presupuesto_aprobado: unknown;
+        pagado: unknown;
         weeklyPayments?: Array<{
           week: number;
           columnLetter: string;
           amount: number;
           position: number;
         }>;
+      };
+
+      const textValue = (value: unknown) => {
+        if (value === null || value === undefined) return '';
+        return String(value).trim();
+      };
+
+      const numberValue = (value: unknown) => {
+        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+        if (value === null || value === undefined || value === '') return 0;
+        let normalized = String(value)
+          .trim()
+          .replace(/\s|\u00a0/g, '')
+          .replace(/[$%]/g, '')
+          .replace(/[^0-9.,()-]/g, '');
+
+        if (!normalized) return 0;
+
+        let isNegative = false;
+        if (normalized.startsWith('(') && normalized.endsWith(')')) {
+          isNegative = true;
+          normalized = normalized.slice(1, -1);
+        }
+
+        const lastComma = normalized.lastIndexOf(',');
+        const lastDot = normalized.lastIndexOf('.');
+
+        if (lastComma !== -1 && lastDot !== -1) {
+          const decimalSeparator = lastComma > lastDot ? ',' : '.';
+          const groupSeparator = decimalSeparator === ',' ? '.' : ',';
+          normalized = normalized
+            .replace(new RegExp(`\\${groupSeparator}`, 'g'), '')
+            .replace(decimalSeparator, '.');
+        } else if (lastComma !== -1) {
+          const decimalDigits = normalized.length - lastComma - 1;
+          normalized = decimalDigits > 0 && decimalDigits <= 2
+            ? normalized.replace(/\./g, '').replace(',', '.')
+            : normalized.replace(/,/g, '');
+        } else if (lastDot !== -1) {
+          const decimalDigits = normalized.length - lastDot - 1;
+          const dotCount = (normalized.match(/\./g) || []).length;
+          normalized = dotCount > 1
+            ? (decimalDigits > 0 && decimalDigits <= 2
+              ? normalized.replace(/\.(?=.*\.)/g, '')
+              : normalized.replace(/\./g, ''))
+            : normalized;
+        }
+
+        const parsed = Number(normalized);
+        if (!Number.isFinite(parsed)) return 0;
+        return isNegative ? -parsed : parsed;
       };
 
       // Upload all partidas from the Excel data in order. Convex recalculates
@@ -219,9 +270,14 @@ export default function AddProyectoModal() {
       const partidas = [];
 
       for (const record of response.data as PartidaRecord[]) {
+        const nombre = textValue(record.nombre);
+        const familia = textValue(record.familia);
+        const subPartida = textValue(record.sub_partida);
+        const unidad = textValue(record.unidad);
+
         // Update current partida name when we encounter a nivel 1 item
         if (record.nivel === 1) {
-          currentPartidaNombre = record.nombre;
+          currentPartidaNombre = nombre;
         }
 
         const parentPartidaNombre = record.nivel > 1 ? currentPartidaNombre : undefined;
@@ -229,16 +285,16 @@ export default function AddProyectoModal() {
         // Create the partida
         const partidaId = await uploadProjectData({
           nivel: record.nivel || 0,
-          nombre: record.nombre || '',
-          familia: record.familia || '',
-          sub_partida: record.sub_partida || '',
+          nombre,
+          familia,
+          sub_partida: subPartida,
           partida_nombre: parentPartidaNombre,
-          unidad: record.unidad || '',
-          cantidad: record.cantidad || 0,
-          precio_unitario: record.precio_unitario || 0,
-          presupuesto_original: record.presupuesto_original || 0,
-          presupuesto_aprobado: record.presupuesto_aprobado || 0,
-          pagado: record.pagado || 0,
+          unidad,
+          cantidad: numberValue(record.cantidad),
+          precio_unitario: numberValue(record.precio_unitario),
+          presupuesto_original: numberValue(record.presupuesto_original),
+          presupuesto_aprobado: numberValue(record.presupuesto_aprobado),
+          pagado: numberValue(record.pagado),
           archivo_origen: response.fileName || formData.excel?.name || 'unknown',
           proyecto: project,
         });
@@ -272,9 +328,9 @@ export default function AddProyectoModal() {
               lineItems: [
                 {
                   partida_id: partidaId,
-                  partida: record.nivel === 1 ? record.nombre : parentPartidaNombre || record.nombre,
-                  familia: record.familia || '',
-                  sub_partida: record.sub_partida || '',
+                  partida: record.nivel === 1 ? nombre : parentPartidaNombre || nombre,
+                  familia,
+                  sub_partida: subPartida,
                   monto: payment.amount,
                 }
               ]
