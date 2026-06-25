@@ -351,6 +351,7 @@ export default defineSchema({
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] })
+    .index("by_proyecto_uploaded", { fields: ["proyecto", "uploaded_at"] })
     .index("by_proyecto_fecha", { fields: ["proyecto", "fecha"] })
     .index("by_proyecto_categoria", { fields: ["proyecto", "categoria"] }),
   

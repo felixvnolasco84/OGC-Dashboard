@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams } from "react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -129,15 +129,23 @@ export default function BitacoraPage() {
         proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip"
     );
 
-    // Get log entries (now includes photos and partida info)
-    const logEntries = useQuery(
+    // Get log entries in pages so large projects don't exceed Convex read limits.
+    const {
+        results: logEntries,
+        status: logEntriesStatus,
+        loadMore: loadMoreLogEntries,
+    } = usePaginatedQuery(
         api.bitacora.getLogEntriesByProject,
         proyectoId
             ? {
                 proyecto: proyectoId as Id<"desarrollos">,
             }
-            : "skip"
+            : "skip",
+        { initialNumItems: 50 }
     );
+    const isLoadingLogEntries = logEntriesStatus === "LoadingFirstPage";
+    const canLoadMoreLogEntries = logEntriesStatus === "CanLoadMore";
+    const isLoadingMoreLogEntries = logEntriesStatus === "LoadingMore";
 
     // Parse date from DD/MM/YYYY format to comparable value
     const parseDateForSort = (dateStr: string): number => {
@@ -557,8 +565,28 @@ export default function BitacoraPage() {
                     </div>
                 ))}
 
+                {viewMode === "grouped" && isLoadingLogEntries && (
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                    </div>
+                )}
+
+                {viewMode === "grouped" && (canLoadMoreLogEntries || isLoadingMoreLogEntries) && (
+                    <div className="flex justify-center pt-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => loadMoreLogEntries(50)}
+                            disabled={isLoadingMoreLogEntries}
+                            className="flex items-center gap-2"
+                        >
+                            {isLoadingMoreLogEntries && <Loader2 className="h-4 w-4 animate-spin" />}
+                            Cargar más entradas
+                        </Button>
+                    </div>
+                )}
+
                 {/* Empty State (for grouped view) */}
-                {viewMode === "grouped" && (!logEntries || logEntries.length === 0) && (
+                {viewMode === "grouped" && !isLoadingLogEntries && logEntries.length === 0 && (
                     <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
                         <p className="text-gray-500">No hay registros de bitácora aún.</p>
                         <Button

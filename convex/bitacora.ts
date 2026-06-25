@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Auth } from "convex/server";
+import { Auth, paginationOptsValidator } from "convex/server";
 import { Id } from "./_generated/dataModel";
 import { assertCanWrite } from "./permissions";
 
@@ -126,24 +126,37 @@ export const getLogEntriesByProject = query({
     partida_id: v.optional(v.id("partidas")), // Filter by partida
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     await getUserIdentity(ctx);
 
-    let logs = await ctx.db
-      .query("bitacora")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
-      .collect();
+    const logsPage = args.partida_id
+      ? await ctx.db
+        .query("bitacora")
+        .withIndex("by_proyecto_partida", (q) =>
+          q.eq("proyecto", args.proyecto).eq("partida_id", args.partida_id!)
+        )
+        .order("desc")
+        .paginate(args.paginationOpts)
+      : await ctx.db
+        .query("bitacora")
+        .withIndex("by_proyecto_uploaded", (q) => q.eq("proyecto", args.proyecto))
+        .order("desc")
+        .paginate(args.paginationOpts);
 
-    // Filter by partida if specified
-    if (args.partida_id) {
-      logs = logs.filter((log) => log.partida_id === args.partida_id);
-    }
+    const partidaById = new Map(
+      await Promise.all(
+        Array.from(new Set(logsPage.page.map((log) => log.partida_id))).map(
+          async (partidaId) => [partidaId, await ctx.db.get(partidaId)] as const
+        )
+      )
+    );
 
     // Enrich with partida info, photos, and documents
-    const enrichedLogs = await Promise.all(logs.map(async (log) => {
+    const enrichedLogs = await Promise.all(logsPage.page.map(async (log) => {
       // Get partida info
-      const partida = await ctx.db.get(log.partida_id);
+      const partida = partidaById.get(log.partida_id);
       const partidaNombre = partida?.nombre || "General";
       
       // Fetch all linked documents (photos and files)
@@ -186,8 +199,10 @@ export const getLogEntriesByProject = query({
       };
     }));
 
-    // Sort by date (most recent first)
-    return enrichedLogs.sort((a, b) => (b.uploaded_at || 0) - (a.uploaded_at || 0));
+    return {
+      ...logsPage,
+      page: enrichedLogs,
+    };
   },
 });
 

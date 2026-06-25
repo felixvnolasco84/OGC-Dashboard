@@ -47,6 +47,61 @@ function detectRowType(nivelValue) {
     return 'SUBPARTIDA';
 }
 
+// Parse numbers exported with either US format (1,234.56) or MX/ES format
+// (1.234,56). Excel sometimes returns formatted cells as strings, and
+// parseFloat("1.372.474,05") would otherwise return 1.372.
+function parseExcelNumber(value) {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    if (value === undefined || value === null || value === '') {
+        return 0;
+    }
+
+    let normalized = String(value)
+        .trim()
+        .replace(/\s|\u00a0/g, '')
+        .replace(/[$%]/g, '')
+        .replace(/[^0-9.,()-]/g, '');
+
+    if (!normalized) return 0;
+
+    let isNegative = false;
+    if (normalized.startsWith('(') && normalized.endsWith(')')) {
+        isNegative = true;
+        normalized = normalized.slice(1, -1);
+    }
+
+    const lastComma = normalized.lastIndexOf(',');
+    const lastDot = normalized.lastIndexOf('.');
+
+    if (lastComma !== -1 && lastDot !== -1) {
+        const decimalSeparator = lastComma > lastDot ? ',' : '.';
+        const groupSeparator = decimalSeparator === ',' ? '.' : ',';
+        normalized = normalized
+            .replace(new RegExp(`\\${groupSeparator}`, 'g'), '')
+            .replace(decimalSeparator, '.');
+    } else if (lastComma !== -1) {
+        const decimalDigits = normalized.length - lastComma - 1;
+        normalized = decimalDigits > 0 && decimalDigits <= 2
+            ? normalized.replace(/\./g, '').replace(',', '.')
+            : normalized.replace(/,/g, '');
+    } else if (lastDot !== -1) {
+        const decimalDigits = normalized.length - lastDot - 1;
+        const dotCount = (normalized.match(/\./g) || []).length;
+        normalized = dotCount > 1
+            ? (decimalDigits > 0 && decimalDigits <= 2
+                ? normalized.replace(/\.(?=.*\.)/g, '')
+                : normalized.replace(/\./g, ''))
+            : normalized;
+    }
+
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed)) return 0;
+    return isNegative ? -parsed : parsed;
+}
+
 // Function to parse hierarchical budget structure using Nivel column
 function parseHierarchicalStructureWithFormatting(worksheet, jsonData) {
     if (jsonData.length < 2) return { partidas: [], summary: {} };
@@ -101,11 +156,11 @@ function parseHierarchicalStructureWithFormatting(worksheet, jsonData) {
             familia: familiaCell,
             subpartida: subpartidaCell,
             unidad: unidadCell,
-            cantidad: parseFloat(cantidadCell) || 0,
-            pu: parseFloat(row[columnMap.pu]) || 0,
-            presupuestoOriginal: parseFloat(row[columnMap.presupuestoOriginal]) || 0,
-            presupuestoAprobado: parseFloat(row[columnMap.presupuestoAprobado]) || 0,
-            pagado: parseFloat(row[columnMap.pagado]) || 0,
+            cantidad: parseExcelNumber(cantidadCell),
+            pu: parseExcelNumber(row[columnMap.pu]),
+            presupuestoOriginal: parseExcelNumber(row[columnMap.presupuestoOriginal]),
+            presupuestoAprobado: parseExcelNumber(row[columnMap.presupuestoAprobado]),
+            pagado: parseExcelNumber(row[columnMap.pagado]),
             detectedType: rowType // Add detected type for debugging
         };
 
@@ -260,7 +315,7 @@ function extractPaymentData(worksheet, jsonData) {
         let totalPayments = 0;
         
         weekHeaders.forEach(week => {
-            const paymentValue = parseFloat(row[week.columnIndex]) || 0;
+            const paymentValue = parseExcelNumber(row[week.columnIndex]);
             totalPayments += paymentValue;
             
             if (paymentValue !== 0) { // Only include non-zero payments

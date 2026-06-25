@@ -965,10 +965,11 @@ export const syncGastadoForAllPartidas = mutation({
 
 /**
  * Comprehensive sync mutation for a project that:
- * 1. Recalculates `pagado` for all partida levels (1, 2, 3)
- * 2. Updates `por_gastar` = presupuesto_aprobado - pagado
- * 3. Updates `honorarios_monto` on the proyecto based on honorarios_porcentaje
- * 4. Updates the HONORARIOS partida with the calculated amount
+ * 1. Recalculates budget rollups for all partida levels (1, 2, 3)
+ * 2. Recalculates `pagado` for all partida levels (1, 2, 3)
+ * 3. Updates `por_gastar` = presupuesto_aprobado - pagado
+ * 4. Updates `honorarios_monto` on the proyecto based on honorarios_porcentaje
+ * 5. Updates the HONORARIOS partida with the calculated amount
  * 
  * @param projectId - Required: Project ID to sync
  */
@@ -988,17 +989,47 @@ export const syncProjectData = mutation({
         throw new Error("Proyecto not found");
       }
 
-      // ============================================
-      // STEP 1: Sync pagado for all partida levels
-      // ============================================
-      console.log("Step 1: Syncing pagado for all partidas...");
-
       // Get all partidas for this project
-      const allPartidas = await ctx.db
+      let allPartidas = await ctx.db
         .query("partidas")
         .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
         .collect();
       console.log(`Found ${allPartidas.length} partidas`);
+
+      // ============================================
+      // STEP 1: Sync budget rollups for all partida levels
+      // ============================================
+      console.log("Step 1: Syncing budget rollups for all partidas...");
+
+      const topLevelPartidas = Array.from(
+        new Set(
+          allPartidas
+            .filter((partida) => partida.nivel === 1 && partida.nombre)
+            .map((partida) => partida.nombre)
+        )
+      );
+
+      let budgetRollupsUpdated = 0;
+      for (const partidaNombre of topLevelPartidas) {
+        const result = await syncNivel1PartidaAmounts(ctx, {
+          proyecto: args.projectId,
+          partidaNombre,
+        });
+        budgetRollupsUpdated += result.nivel1Updated + result.familiasUpdated;
+      }
+
+      if (budgetRollupsUpdated > 0) {
+        allPartidas = await ctx.db
+          .query("partidas")
+          .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+          .collect();
+      }
+      console.log(`✅ Updated budget rollups for ${budgetRollupsUpdated} partidas`);
+
+      // ============================================
+      // STEP 2: Sync pagado for all partida levels
+      // ============================================
+      console.log("Step 2: Syncing pagado for all partidas...");
 
       // Get all pagos - filter by project's transactions to avoid cross-project issues
       const projectTransactions = await ctx.db
@@ -1131,9 +1162,17 @@ export const syncProjectData = mutation({
       console.log(`✅ Updated pagado/por_gastar for ${updatedPagadoCount} partidas`);
 
       // ============================================
-      // STEP 2: Calculate and update honorarios
+      if (updatedPagadoCount > 0) {
+        allPartidas = await ctx.db
+          .query("partidas")
+          .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+          .collect();
+      }
+
       // ============================================
-      console.log("Step 2: Calculating honorarios...");
+      // STEP 3: Calculate and update honorarios
+      // ============================================
+      console.log("Step 3: Calculating honorarios...");
 
       const honorariosPorcentaje = proyecto.honorarios_porcentaje || 0;
       const excludedPartidasIds = proyecto.excluded_partidas_honorarios || [];
@@ -1204,9 +1243,9 @@ export const syncProjectData = mutation({
       console.log(`✅ Updated proyecto honorarios_monto to ${honorariosMonto}`);
 
       // ============================================
-      // STEP 3: Update HONORARIOS partida
+      // STEP 4: Update HONORARIOS partida
       // ============================================
-      console.log("Step 3: Updating HONORARIOS partida...");
+      console.log("Step 4: Updating HONORARIOS partida...");
 
       // Find HONORARIOS partida with case-insensitive match (honorarios, Honorarios, HONORARIOS)
       // Use allPartidas which was already fetched earlier
@@ -1228,9 +1267,15 @@ export const syncProjectData = mutation({
       }
 
       // ============================================
-      // STEP 4: Update meticas_presupuesto
+      allPartidas = await ctx.db
+        .query("partidas")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
+        .collect();
+
       // ============================================
-      console.log("Step 4: Updating meticas_presupuesto...");
+      // STEP 5: Update meticas_presupuesto
+      // ============================================
+      console.log("Step 5: Updating meticas_presupuesto...");
 
       // Calculate totals from nivel 1 partidas only
       const nivel1Partidas = allPartidas.filter(p => p.nivel === 1);
@@ -1264,6 +1309,7 @@ export const syncProjectData = mutation({
 
       const summary = {
         projectId: args.projectId,
+        budgetRollupsUpdated,
         partidasUpdated: updatedPagadoCount,
         totalPartidas: allPartidas.length,
         honorariosPorcentaje,

@@ -212,23 +212,27 @@ export default function AddProyectoModal() {
         }>;
       };
 
-      // Upload all partidas from the Excel data and create associated payments
-      // Track current partida name for nested items
+      // Upload all partidas from the Excel data in order. Convex recalculates
+      // rollups after each insert, so parallel inserts can leave parent totals
+      // calculated from an incomplete tree.
       let currentPartidaNombre = '';
-      
-      const partidaPromises = response.data.map(async (record: PartidaRecord) => {
+      const partidas = [];
+
+      for (const record of response.data as PartidaRecord[]) {
         // Update current partida name when we encounter a nivel 1 item
         if (record.nivel === 1) {
           currentPartidaNombre = record.nombre;
         }
-        
+
+        const parentPartidaNombre = record.nivel > 1 ? currentPartidaNombre : undefined;
+
         // Create the partida
         const partidaId = await uploadProjectData({
           nivel: record.nivel || 0,
           nombre: record.nombre || '',
           familia: record.familia || '',
           sub_partida: record.sub_partida || '',
-          partida_nombre: record.nivel > 1 ? currentPartidaNombre : undefined,
+          partida_nombre: parentPartidaNombre,
           unidad: record.unidad || '',
           cantidad: record.cantidad || 0,
           precio_unitario: record.precio_unitario || 0,
@@ -238,6 +242,7 @@ export default function AddProyectoModal() {
           archivo_origen: response.fileName || formData.excel?.name || 'unknown',
           proyecto: project,
         });
+        partidas.push(partidaId);
 
         // Create transactions for this partida if weeklyPayments exist
         if (record.weeklyPayments && record.weeklyPayments.length > 0) {
@@ -267,7 +272,7 @@ export default function AddProyectoModal() {
               lineItems: [
                 {
                   partida_id: partidaId,
-                  partida: record.nivel === 1 ? record.nombre : currentPartidaNombre,
+                  partida: record.nivel === 1 ? record.nombre : parentPartidaNombre || record.nombre,
                   familia: record.familia || '',
                   sub_partida: record.sub_partida || '',
                   monto: payment.amount,
@@ -278,11 +283,7 @@ export default function AddProyectoModal() {
 
           await Promise.all(transactionPromises);
         }
-
-        return partidaId;
-      });
-
-      const partidas = await Promise.all(partidaPromises);
+      }
       console.log(`Successfully uploaded ${partidas.length} partida records with their transactions`);
 
       // Show success toast
