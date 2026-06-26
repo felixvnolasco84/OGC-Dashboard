@@ -1,7 +1,7 @@
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import {
   getScopedOrganizationId,
@@ -12,6 +12,11 @@ import {
 } from "./permissions";
 
 const TEMPLATE_DOWNLOAD_URL = "https://drive.google.com/drive/folders/1uzn_nHnoryv2M_syMDVjPqWabc-SyzQK?usp=sharing";
+const convexApi = api as any;
+const DEFAULT_PROJECT_SECTION_BY_ROLE: Record<string, string> = {
+  contratista: "tareas",
+  finance: "requisiciones",
+};
 
 // Get or create user from Clerk
 export const getCurrentUser = query({
@@ -159,6 +164,36 @@ export const createOrUpdateInvitedUser = mutation({
   },
 });
 
+export const validateInviteDesarrollos = query({
+  args: {
+    role: v.string(),
+    allowed_desarrollos: v.array(v.id("desarrollos")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!currentUser || !hasAdminAccess(currentUser)) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    if (args.role !== "admin" && args.allowed_desarrollos.length === 0) {
+      throw new Error("Selecciona al menos un proyecto");
+    }
+
+    await assertDesarrollosInAdminScope(ctx, currentUser, args.allowed_desarrollos);
+
+    return { success: true };
+  },
+});
+
 export const inviteUser = action({
   args: {
     email: v.string(),
@@ -188,11 +223,13 @@ export const inviteUser = action({
     }
 
     const normalizedEmail = args.email.trim().toLowerCase();
-    const firstProjectId = args.allowed_desarrollos[0];
-    const finalRedirectPath = firstProjectId
-      ? `/proyecto/${firstProjectId}/presupuesto`
-      : "/";
-    const redirectUrl = `${appUrl}/accept-invitation?redirect_url=${encodeURIComponent(finalRedirectPath)}`;
+    const finalRedirectPath = getInvitationRedirectPath(args.role, args.allowed_desarrollos);
+    const redirectUrl = buildAcceptInvitationUrl(appUrl, finalRedirectPath);
+
+    await ctx.runQuery(convexApi.users.validateInviteDesarrollos, {
+      role: args.role,
+      allowed_desarrollos: args.allowed_desarrollos,
+    });
 
     const invitationResponse = await fetch("https://api.clerk.com/v1/invitations", {
       method: "POST",
@@ -542,7 +579,7 @@ function escapeHtml(value: string) {
 }
 
 async function assertDesarrollosInAdminScope(
-  ctx: MutationCtx,
+  ctx: MutationCtx | QueryCtx,
   currentUser: { role: string; email: string; organization_id?: string },
   desarrolloIds: Id<"desarrollos">[]
 ) {
@@ -556,6 +593,22 @@ async function assertDesarrollosInAdminScope(
       throw new Error("Unauthorized: Project belongs to another organization");
     }
   }
+}
+
+function getInvitationRedirectPath(role: string, allowedDesarrollos: Id<"desarrollos">[]) {
+  const firstProjectId = allowedDesarrollos[0];
+  if (!firstProjectId) {
+    return "/";
+  }
+
+  const section = DEFAULT_PROJECT_SECTION_BY_ROLE[role] || "presupuesto";
+  return `/proyecto/${firstProjectId}/${section}`;
+}
+
+function buildAcceptInvitationUrl(appUrl: string, redirectPath: string) {
+  const url = new URL("/accept-invitation", appUrl);
+  url.searchParams.set("redirect_url", redirectPath);
+  return url.toString();
 }
 
 async function assertSalesProjectsInAdminScope(

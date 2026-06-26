@@ -29,6 +29,10 @@ export default function NewUserPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedCount = selectedDesarrollos.size;
+  const selectedDesarrolloIds = useMemo(
+    () => desarrollos?.filter((desarrollo) => selectedDesarrollos.has(desarrollo._id)).map((desarrollo) => desarrollo._id) ?? [],
+    [desarrollos, selectedDesarrollos]
+  );
   const roleDescription = useMemo(() => {
     if (role === "admin") return "Puede administrar usuarios y proyectos dentro de su organización.";
     if (role === "user") return "Puede trabajar en los proyectos asignados.";
@@ -64,7 +68,7 @@ export default function NewUserPage() {
         name: name.trim(),
         email: email.trim(),
         role,
-        allowed_desarrollos: Array.from(selectedDesarrollos) as Id<"desarrollos">[],
+        allowed_desarrollos: selectedDesarrolloIds as Id<"desarrollos">[],
       });
       toast.success("Usuario invitado correctamente");
       setName("");

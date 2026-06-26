@@ -53,23 +53,6 @@ function getInvitationStatus(): InvitationStatus {
   return null;
 }
 
-function getClerkErrorMessage(error: unknown) {
-  if (typeof error !== "object" || error === null) {
-    return "";
-  }
-
-  const clerkError = error as {
-    message?: string;
-    errors?: Array<{ message?: string; code?: string }>;
-  };
-
-  return clerkError.errors?.[0]?.message || clerkError.errors?.[0]?.code || clerkError.message || "";
-}
-
-function isInvalidTicketError(error: unknown) {
-  return getClerkErrorMessage(error).toLowerCase().includes("ticket is invalid");
-}
-
 export default function AcceptInvitationPage() {
   const { isLoaded: signUpLoaded, signUp, setActive: setActiveSignUp } = useSignUp();
   const { isLoaded: signInLoaded, signIn, setActive: setActiveSignIn } = useSignIn();
@@ -165,10 +148,6 @@ export default function AcceptInvitationPage() {
           return;
         } catch (error) {
           errors.push(error);
-
-          if (isInvalidTicketError(error)) {
-            break;
-          }
         }
       }
 
