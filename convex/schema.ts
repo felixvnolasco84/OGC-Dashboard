@@ -392,6 +392,27 @@ export default defineSchema({
     total_count: v.number(), // Number of income entries
     last_updated: v.number(), // Timestamp of last update
   }).index("by_proyecto", { fields: ["proyecto"] }),
+
+  // OGC company-level financial movements used only by the Profit & Loss views.
+  // These records intentionally do not update project budgets, partidas, or normal transactions.
+  ogc_movimientos: defineTable({
+    tipo: v.string(), // "ingreso" | "costo_estructura"
+    categoria: v.string(), // HONORARIOS, INDIRECTOS, NOMINA, TRANSPORTE, RENTA, etc.
+    monto: v.number(),
+    fecha: v.string(), // DD/MM/YYYY
+    descripcion: v.optional(v.string()),
+    moneda: v.string(),
+    proyecto: v.optional(v.id("desarrollos")),
+    archivo_origen: v.optional(v.string()),
+    fila_origen: v.optional(v.number()),
+    organization_id: v.optional(v.string()),
+    created_by_id: v.id("users"),
+    created_by_name: v.string(),
+    created_at: v.number(),
+  }).index("by_tipo", { fields: ["tipo"] })
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_fecha", { fields: ["fecha"] })
+    .index("by_organization", { fields: ["organization_id"] }),
   
   // Ingresos documents - Separate document storage for income entries
   ingresos_documentos: defineTable({

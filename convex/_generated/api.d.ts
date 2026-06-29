@@ -26,6 +26,7 @@ import type * as ingresos from "../ingresos.js";
 import type * as ingresos_documentos from "../ingresos_documentos.js";
 import type * as meticas_presupuesto from "../meticas_presupuesto.js";
 import type * as migrations from "../migrations.js";
+import type * as ogc_movimientos from "../ogc_movimientos.js";
 import type * as pagos from "../pagos.js";
 import type * as partida from "../partida.js";
 import type * as permissions from "../permissions.js";
@@ -78,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   ingresos_documentos: typeof ingresos_documentos;
   meticas_presupuesto: typeof meticas_presupuesto;
   migrations: typeof migrations;
+  ogc_movimientos: typeof ogc_movimientos;
   pagos: typeof pagos;
   partida: typeof partida;
   permissions: typeof permissions;

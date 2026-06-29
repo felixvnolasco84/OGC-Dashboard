@@ -1,8 +1,20 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "convex/react";
+import { useMemo, useState, type ChangeEvent } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { FileSpreadsheet, Loader2, Upload } from "lucide-react";
+import { toast } from "sonner";
+import { Id } from "../../../convex/_generated/dataModel";
 
 type PnlTab = "pnl" | "wip" | "profitability";
 type PnlRowType = "section" | "line" | "subtotal" | "metric";
@@ -55,6 +67,12 @@ type ProfitabilityStructureRow = {
   amount: number;
 };
 
+type PnlMonthlyMovement = {
+  honorarios: number;
+  indirectos: number;
+  structureBreakdown: Record<string, number>;
+};
+
 type ProfitabilitySummary = {
   projects: ProfitabilityProject[];
   totals: {
@@ -93,7 +111,44 @@ type PnlSummary = {
     estructuraPercent: number;
     ebitdaMargin: number;
     activeProjects: number;
+    structureBreakdown: ProfitabilityStructureRow[];
+    hasOgcIncomeMovements?: boolean;
+    hasOgcStructureMovements?: boolean;
   };
+  monthlyOgcMovements?: Record<string, PnlMonthlyMovement>;
+  structureGroups?: Array<{ key: string; label: string }>;
+};
+
+type OgcUploadMovement = {
+  rowIndex: number;
+  tipo: "ingreso" | "costo_estructura";
+  categoria: string;
+  monto: number;
+  fecha: string;
+  proyecto_nombre?: string;
+  descripcion?: string;
+  moneda: string;
+};
+
+type OgcUploadResult = {
+  success: boolean;
+  message?: string;
+  fileName?: string;
+  summary?: {
+    totalRows: number;
+    validRows: number;
+    errors: number;
+    totalAmount: number;
+    ingresos: number;
+    costosEstructura: number;
+  };
+  movimientos?: OgcUploadMovement[];
+  errors?: Array<{ row: number; error: string }>;
+};
+
+type DesarrolloOption = {
+  _id: Id<"desarrollos">;
+  nombre: string;
 };
 
 const PNL_TABS: Array<{ id: PnlTab; label: string }> = [
@@ -106,6 +161,18 @@ const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun"];
 const DETAIL_TEXT_CLASS = "text-[#ACACAA]";
 const SOFT_HIGHLIGHT_CLASS = "bg-[#FBFAF2]";
 const STRONG_HIGHLIGHT_CLASS = "bg-[#F7F5E6]";
+const DEFAULT_STRUCTURE_GROUPS = [
+  { key: "nomina", label: "NOMINA" },
+  { key: "cargas_sociales", label: "CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)" },
+  { key: "transporte", label: "TRANSPORTE" },
+  { key: "renta", label: "RENTA" },
+  { key: "otros", label: "OTROS" },
+  { key: "disp_honorarios", label: "DISP HONORARIOS" },
+];
+const OGC_UPLOAD_ENDPOINTS = [
+  "https://ogc-excel-reader.vercel.app/upload/ogc-transactions",
+  "http://localhost:3000/upload/ogc-transactions",
+];
 
 const safeNumber = (value: unknown) => {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -114,6 +181,15 @@ const safeNumber = (value: unknown) => {
 const safeDivide = (value: number, total: number) => {
   if (!Number.isFinite(value) || !Number.isFinite(total) || total === 0) return 0;
   return value / total;
+};
+
+const normalizeLookupText = (value?: string) => {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
 };
 
 const formatNumber = (amount: number) => {
@@ -173,6 +249,13 @@ const formatRunway = (value?: number) => {
   return `${value.toFixed(1)} sem`;
 };
 
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return "0 Bytes";
+  const units = ["Bytes", "KB", "MB"];
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / 1024 ** unitIndex).toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
+
 const buildMonths = (): PnlMonth[] => {
   const year = new Date().getFullYear();
   return MONTH_LABELS.map((month, index) => ({
@@ -181,26 +264,46 @@ const buildMonths = (): PnlMonth[] => {
   }));
 };
 
-const spreadEvenly = (total: number, monthCount: number) => {
-  if (monthCount <= 0) return [];
-  return Array.from({ length: monthCount }, () => total / monthCount);
-};
-
 const buildMonthlyRows = (
   months: PnlMonth[],
   honorariosYtd: number,
   indirectosYtd: number,
-  estructuraYtd: number
+  estructuraYtd: number,
+  pnlSummary?: PnlSummary
 ): PnlRow[] => {
   const monthCount = months.length;
-  const ingresosYtd = honorariosYtd + indirectosYtd;
-  const monthlyIngresos = spreadEvenly(ingresosYtd, monthCount);
-  const monthlyHonorarios = spreadEvenly(honorariosYtd, monthCount);
-  const monthlyIndirectos = spreadEvenly(indirectosYtd, monthCount);
-  const monthlyEstructura = spreadEvenly(estructuraYtd, monthCount).map((value) => -Math.abs(value));
+  const monthlyMovements = pnlSummary?.monthlyOgcMovements || {};
+  const structureGroups = pnlSummary?.structureGroups?.length ? pnlSummary.structureGroups : DEFAULT_STRUCTURE_GROUPS;
+  const hasIncomeMovements = Boolean(pnlSummary?.totals.hasOgcIncomeMovements);
+  const hasStructureMovements = Boolean(pnlSummary?.totals.hasOgcStructureMovements);
+  const movementHonorarios = months.reduce((sum, month) => sum + safeNumber(monthlyMovements[month.key]?.honorarios), 0);
+  const movementIndirectos = months.reduce((sum, month) => sum + safeNumber(monthlyMovements[month.key]?.indirectos), 0);
+  const legacyHonorarios = Math.max(honorariosYtd - movementHonorarios, 0);
+  const legacyIndirectos = Math.max(indirectosYtd - movementIndirectos, 0);
 
-  const costRatios = [0.4, 0.1, 0.21, 0.1, 0.15, 0.04];
-  const costRows = costRatios.map((ratio) => monthlyEstructura.map((value) => value * ratio));
+  const monthlyHonorarios = months.map((month) => {
+    return safeNumber(monthlyMovements[month.key]?.honorarios) + (hasIncomeMovements ? legacyHonorarios / monthCount : honorariosYtd / monthCount);
+  });
+  const monthlyIndirectos = months.map((month) => {
+    return safeNumber(monthlyMovements[month.key]?.indirectos) + (hasIncomeMovements ? legacyIndirectos / monthCount : indirectosYtd / monthCount);
+  });
+  const monthlyIngresos = monthlyHonorarios.map((value, index) => value + monthlyIndirectos[index]);
+
+  const fallbackBreakdown = pnlSummary?.totals.structureBreakdown?.length
+    ? pnlSummary.totals.structureBreakdown
+    : structureGroups.map((group, index) => {
+        const ratios = [0.4, 0.1, 0.21, 0.1, 0.15, 0.04];
+        return { ...group, amount: estructuraYtd * (ratios[index] || 0) };
+      });
+  const costRows = structureGroups.map((group) => {
+    const fallbackAmount = fallbackBreakdown.find((row) => row.key === group.key)?.amount || 0;
+    return months.map((month) => {
+      const movementAmount = safeNumber(monthlyMovements[month.key]?.structureBreakdown?.[group.key]);
+      const fallbackMonthly = hasStructureMovements ? 0 : fallbackAmount / monthCount;
+      return -Math.abs(movementAmount + fallbackMonthly);
+    });
+  });
+  const monthlyEstructura = months.map((_, index) => costRows.reduce((sum, row) => sum + safeNumber(row[index]), 0));
   const ebitdaValues = monthlyIngresos.map((value, index) => value + monthlyEstructura[index]);
   const taxRows = [
     ebitdaValues.map((value) => -Math.max(value, 0) * 0.04),
@@ -216,12 +319,7 @@ const buildMonthlyRows = (
     { label: "INDIRECTOS", type: "line", values: monthlyIndirectos },
     { label: "TOTAL INGRESOS", type: "subtotal", values: monthlyIngresos },
     { label: "COSTO ESTRUCTURA", type: "section" },
-    { label: "NOMINA", type: "line", values: costRows[0] },
-    { label: "CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)", type: "line", values: costRows[1] },
-    { label: "TRANSPORTE", type: "line", values: costRows[2] },
-    { label: "RENTA", type: "line", values: costRows[3] },
-    { label: "OTROS", type: "line", values: costRows[4] },
-    { label: "DISP HONORARIOS", type: "line", values: costRows[5] },
+    ...structureGroups.map((group, index) => ({ label: group.label, type: "line" as const, values: costRows[index] })),
     { label: "TOTAL ESTRUCTURA", type: "subtotal", values: monthlyEstructura },
     { label: "EBITDA", type: "metric", values: ebitdaValues, percentages: ebitdaPercentages },
     { label: "IMPUESTOS SOBRE RESULTADO", type: "section" },
@@ -347,6 +445,230 @@ function WipMetricCard({
         {badge}
       </Badge>
     </div>
+  );
+}
+
+function OgcMovementsUploadDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [result, setResult] = useState<OgcUploadResult | null>(null);
+  const proyectos = useQuery(api.desarrollos.getAll) as DesarrolloOption[] | undefined;
+  const bulkCreateMovements = useMutation(api.ogc_movimientos.bulkCreate);
+
+  const projectLookup = useMemo(() => {
+    const lookup = new Map<string, Id<"desarrollos">>();
+    proyectos?.forEach((proyecto) => {
+      lookup.set(normalizeLookupText(proyecto.nombre), proyecto._id);
+    });
+    return lookup;
+  }, [proyectos]);
+
+  const resetState = () => {
+    setFile(null);
+    setResult(null);
+  };
+
+  const handleClose = (nextOpen: boolean) => {
+    if (isProcessing) return;
+    if (!nextOpen) resetState();
+    onOpenChange(nextOpen);
+  };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
+
+    const extension = selectedFile.name.toLowerCase().slice(selectedFile.name.lastIndexOf("."));
+    if (![".xlsx", ".xls", ".xlsm"].includes(extension)) {
+      toast.error("Archivo invalido", { description: "Sube un Excel .xlsx, .xls o .xlsm." });
+      event.target.value = "";
+      return;
+    }
+
+    setFile(selectedFile);
+    setResult(null);
+    event.target.value = "";
+  };
+
+  const parseFile = async (selectedFile: File) => {
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    let lastError = "No se pudo procesar el archivo.";
+    for (const endpoint of OGC_UPLOAD_ENDPOINTS) {
+      try {
+        const response = await fetch(endpoint, { method: "POST", body: formData });
+        const data = await response.json().catch(() => null);
+        if (response.ok && data) return data as OgcUploadResult;
+        lastError = data?.message || data?.error || lastError;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : lastError;
+      }
+    }
+
+    throw new Error(lastError);
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      toast.error("Selecciona un archivo");
+      return;
+    }
+
+    if (!proyectos) {
+      toast.error("Espera a que carguen las obras");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const parsed = await parseFile(file);
+      setResult(parsed);
+
+      if (!parsed.success || !parsed.movimientos?.length) {
+        throw new Error(parsed.message || "No se encontraron movimientos validos.");
+      }
+
+      const missingProjects = new Set<string>();
+      const movimientos = parsed.movimientos.flatMap((movement) => {
+        const projectName = normalizeLookupText(movement.proyecto_nombre);
+        const proyecto = projectName ? projectLookup.get(projectName) : undefined;
+
+        if (projectName && !proyecto) {
+          missingProjects.add(movement.proyecto_nombre || "Sin nombre");
+          return [];
+        }
+
+        return [{
+          tipo: movement.tipo,
+          categoria: movement.categoria,
+          monto: movement.monto,
+          fecha: movement.fecha,
+          descripcion: movement.descripcion || undefined,
+          moneda: movement.moneda || "MXN",
+          proyecto,
+          archivo_origen: file.name,
+          fila_origen: movement.rowIndex,
+        }];
+      });
+
+      if (movimientos.length === 0) {
+        throw new Error("Ninguna fila coincide con las obras disponibles.");
+      }
+
+      const created = await bulkCreateMovements({ movimientos });
+      const skipped = missingProjects.size;
+
+      toast.success("Carga OGC completada", {
+        description: `${created.created} movimientos guardados${skipped ? `, ${skipped} obras no encontradas` : ""}.`,
+      });
+      handleClose(false);
+    } catch (error) {
+      toast.error("Error al cargar movimientos OGC", {
+        description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-normal">Cargar movimientos OGC</DialogTitle>
+          <DialogDescription>
+            Sube ingresos y costos de estructura. Las filas con obra se reflejan en rentabilidad; las filas sin obra quedan solo a nivel empresa.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Archivo Excel</Label>
+            <div className="border border-dashed border-gray-300 p-6">
+              {file ? (
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileSpreadsheet className="h-8 w-8 text-[#1A5D21]" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-gray-900">{file.name}</p>
+                      <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                    </div>
+                  </div>
+                  <Button type="button" variant="outline" onClick={() => setFile(null)} disabled={isProcessing}>
+                    Cambiar
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <Upload className="h-10 w-10 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-900">Excel con columnas: tipo, categoria, monto, fecha, obra, descripcion</p>
+                    <p className="mt-1 text-xs text-gray-500">La obra puede quedar vacia para costos solo de empresa.</p>
+                  </div>
+                  <Button type="button" variant="outline" onClick={() => document.getElementById("ogc-movements-file")?.click()}>
+                    Seleccionar archivo
+                  </Button>
+                </div>
+              )}
+              <input
+                id="ogc-movements-file"
+                type="file"
+                accept=".xlsx,.xls,.xlsm"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </div>
+          </div>
+
+          {result?.summary && (
+            <div className="border border-gray-200 bg-[#FBFAF2] p-4 text-sm text-gray-700">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div>
+                  <p className="text-xs text-gray-500">Filas validas</p>
+                  <p className="text-lg text-gray-900">{result.summary.validRows}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Ingresos</p>
+                  <p className="text-lg text-gray-900">{result.summary.ingresos}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Costos</p>
+                  <p className="text-lg text-gray-900">{result.summary.costosEstructura}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Errores</p>
+                  <p className="text-lg text-gray-900">{result.summary.errors}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 border-t pt-4">
+            <Button type="button" variant="outline" onClick={() => handleClose(false)} disabled={isProcessing}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleUpload} disabled={!file || isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                "Cargar movimientos"
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -678,6 +1000,7 @@ function ProjectProfitabilityView({
 
 export default function ProfitAndLossPage() {
   const [activeTab, setActiveTab] = useState<PnlTab>("pnl");
+  const [isOgcUploadOpen, setIsOgcUploadOpen] = useState(false);
 
   const pnlSummary = useQuery(api.desarrollos.getPnlSummary) as PnlSummary | undefined;
   const profitabilitySummary = useQuery(api.desarrollos.getProfitabilitySummary);
@@ -689,8 +1012,8 @@ export default function ProfitAndLossPage() {
   const estructuraYtd = safeNumber(pnlSummary?.totals.costosEstructuraOgc);
   const ebitdaYtd = safeNumber(pnlSummary?.totals.ebitda);
   const rows = useMemo(
-    () => buildMonthlyRows(months, honorariosYtd, indirectosYtd, estructuraYtd),
-    [months, honorariosYtd, indirectosYtd, estructuraYtd]
+    () => buildMonthlyRows(months, honorariosYtd, indirectosYtd, estructuraYtd, pnlSummary),
+    [months, honorariosYtd, indirectosYtd, estructuraYtd, pnlSummary]
   );
 
   if (
@@ -706,24 +1029,36 @@ export default function ProfitAndLossPage() {
 
   return (
     <div className="bg-white px-12 py-6">
+      <OgcMovementsUploadDialog open={isOgcUploadOpen} onOpenChange={setIsOgcUploadOpen} />
       <div className="max-w-full mx-auto space-y-6">
         <div className="border-b border-[#AFAEA2]">
-          <div className="flex flex-wrap items-end gap-8 md:gap-20">
-            {PNL_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "pb-4 text-base text-gray-500 border-b-2 transition-colors",
-                  activeTab === tab.id
-                    ? "border-gray-900 text-gray-900"
-                    : "border-transparent hover:text-gray-900"
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="flex flex-wrap items-end gap-8 md:gap-20">
+              {PNL_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "pb-4 text-base text-gray-500 border-b-2 transition-colors",
+                    activeTab === tab.id
+                      ? "border-gray-900 text-gray-900"
+                      : "border-transparent hover:text-gray-900"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsOgcUploadOpen(true)}
+              className="mb-3 h-10 self-start border-[#D98222] text-gray-900 hover:bg-[#FBFAF2] md:self-auto"
+            >
+              <Upload className="h-4 w-4" />
+              Cargar movimientos
+            </Button>
           </div>
         </div>
 

@@ -1439,6 +1439,167 @@ app.post('/upload/transactions', upload.single('file'), (req, res) => {
     }
 });
 
+function normalizeHeaderName(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+function findColumnIndex(headers, aliases) {
+    const normalizedAliases = aliases.map(normalizeHeaderName);
+    return headers.findIndex(header => {
+        const normalizedHeader = normalizeHeaderName(header);
+        return normalizedAliases.some(alias => normalizedHeader === alias || normalizedHeader.includes(alias));
+    });
+}
+
+function normalizeOgcCategoria(value, tipo) {
+    const normalized = normalizeHeaderName(value);
+
+    if (normalized.includes('honorario')) return 'HONORARIOS';
+    if (normalized.includes('indirect')) return 'INDIRECTOS';
+    if (normalized.includes('nomina') || normalized.includes('sueldo')) return 'NOMINA';
+    if (normalized.includes('imss') || normalized.includes('isn') || normalized.includes('infonavit') || normalized.includes('carga')) {
+        return 'CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)';
+    }
+    if (normalized.includes('transporte')) return 'TRANSPORTE';
+    if (normalized.includes('renta')) return 'RENTA';
+    if (normalized.includes('disp')) return 'DISP HONORARIOS';
+
+    return tipo === 'ingreso' ? 'HONORARIOS' : 'OTROS';
+}
+
+function inferOgcTipo(rawTipo, rawCategoria, monto) {
+    const tipo = normalizeHeaderName(rawTipo);
+    const categoria = normalizeHeaderName(rawCategoria);
+
+    if (tipo.includes('ingreso') || tipo.includes('cobro') || categoria.includes('honorario') || categoria.includes('indirect')) {
+        return 'ingreso';
+    }
+
+    if (tipo.includes('costo') || tipo.includes('gasto') || tipo.includes('estructura') || tipo.includes('egreso')) {
+        return 'costo_estructura';
+    }
+
+    return monto < 0 ? 'costo_estructura' : 'costo_estructura';
+}
+
+// Function to parse OGC company P&L movements.
+// Expected flexible headers: TIPO, CATEGORIA, MONTO, FECHA, OBRA/PROYECTO, DESCRIPCION, MONEDA.
+function parseOgcTransactionsExcel(worksheet, jsonData) {
+    if (jsonData.length < 2) return { movimientos: [], errors: [] };
+
+    const headers = jsonData[0];
+    const dataRows = jsonData.slice(1);
+    const columnMap = {
+        tipo: findColumnIndex(headers, ['tipo', 'movimiento']),
+        categoria: findColumnIndex(headers, ['categoria', 'concepto', 'rubro']),
+        monto: findColumnIndex(headers, ['monto', 'importe', 'total']),
+        fecha: findColumnIndex(headers, ['fecha']),
+        proyecto: findColumnIndex(headers, ['obra', 'proyecto', 'desarrollo']),
+        descripcion: findColumnIndex(headers, ['descripcion', 'descripciÃ³n', 'detalle', 'referencia']),
+        moneda: findColumnIndex(headers, ['moneda', 'currency'])
+    };
+
+    const movimientos = [];
+    const errors = [];
+
+    if (columnMap.monto === -1 || columnMap.fecha === -1) {
+        return {
+            movimientos,
+            errors: [{ row: 1, error: 'Missing required headers: MONTO and FECHA are required' }]
+        };
+    }
+
+    dataRows.forEach((row, index) => {
+        const rowNum = index + 2;
+        const isEmpty = row.every(cell => cell === undefined || cell === null || cell === '');
+        if (isEmpty) return;
+
+        try {
+            const monto = parseExcelNumber(row[columnMap.monto]);
+            const rawTipo = columnMap.tipo >= 0 ? row[columnMap.tipo] : '';
+            const rawCategoria = columnMap.categoria >= 0 ? row[columnMap.categoria] : '';
+            const tipo = inferOgcTipo(rawTipo, rawCategoria, monto);
+            const categoria = normalizeOgcCategoria(rawCategoria, tipo);
+            const fecha = row[columnMap.fecha] !== undefined && row[columnMap.fecha] !== ''
+                ? excelDateToString(row[columnMap.fecha])
+                : '';
+
+            const movimiento = {
+                rowIndex: rowNum,
+                tipo,
+                categoria,
+                monto: Math.abs(monto),
+                fecha,
+                proyecto_nombre: columnMap.proyecto >= 0 ? parseExcelText(row[columnMap.proyecto]) : '',
+                descripcion: columnMap.descripcion >= 0 ? parseExcelText(row[columnMap.descripcion]) : '',
+                moneda: columnMap.moneda >= 0 ? parseExcelText(row[columnMap.moneda]).toUpperCase() || 'MXN' : 'MXN'
+            };
+
+            if (!Number.isFinite(movimiento.monto) || movimiento.monto <= 0) {
+                errors.push({ row: rowNum, error: 'Invalid or missing MONTO value', data: movimiento });
+                return;
+            }
+
+            if (!movimiento.fecha) {
+                errors.push({ row: rowNum, error: 'Missing FECHA value', data: movimiento });
+                return;
+            }
+
+            movimientos.push(movimiento);
+        } catch (error) {
+            errors.push({ row: rowNum, error: error.message, data: row });
+        }
+    });
+
+    return { movimientos, errors };
+}
+
+// POST /upload/ogc-transactions - Upload Excel file and parse OGC P&L movements
+app.post('/upload/ogc-transactions', upload.single('file'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const filePath = req.file.path;
+        const workbook = XLSX.readFile(filePath);
+        const sheetNames = workbook.SheetNames;
+        const firstSheetName = sheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        const { movimientos, errors } = parseOgcTransactionsExcel(worksheet, jsonData);
+
+        fs.unlinkSync(filePath);
+
+        res.json({
+            success: errors.length === 0 || movimientos.length > 0,
+            fileName: req.file.originalname,
+            sheetName: firstSheetName,
+            summary: {
+                totalRows: Math.max(jsonData.length - 1, 0),
+                validRows: movimientos.length,
+                errors: errors.length,
+                totalAmount: movimientos.reduce((sum, item) => sum + item.monto, 0),
+                ingresos: movimientos.filter((item) => item.tipo === 'ingreso').length,
+                costosEstructura: movimientos.filter((item) => item.tipo === 'costo_estructura').length
+            },
+            movimientos,
+            errors: errors.length > 0 ? errors : undefined
+        });
+
+    } catch (error) {
+        console.error('Error processing OGC transactions:', error);
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Function to parse Ingresos (income) Excel file
 // Expected columns (0-indexed), first row is a header row:
 //   0: MONTO, 1: FECHA, 2: DESCRIPCION, 3: MONEDA
