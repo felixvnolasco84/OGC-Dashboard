@@ -8,6 +8,7 @@ import {
     getScopedOrganizationId,
     getUserDesarrollos,
     hasAdminAccess,
+    hasGlobalAdminAccess,
 } from "./permissions";
 
 // Get all projects (filtered by user permissions)
@@ -155,11 +156,15 @@ const emptyStructureBreakdownMap = () => {
 };
 
 const getAccessibleOgcMovements = async (ctx: QueryCtx, proyectos: Doc<"desarrollos">[]) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    const organizationId = getScopedOrganizationId(user);
     const projectIds = new Set(proyectos.map((proyecto) => proyecto._id as string));
     const movements = await ctx.db.query("ogc_movimientos").collect();
 
     return movements.filter((movement) => {
-        if (!movement.proyecto) return true;
+        if (hasGlobalAdminAccess(user)) return true;
+        if (!movement.proyecto) return movement.organization_id === organizationId;
+        if (movement.organization_id && movement.organization_id !== organizationId) return false;
         return projectIds.has(movement.proyecto as string);
     });
 };

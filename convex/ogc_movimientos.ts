@@ -19,6 +19,35 @@ const normalizeCategoria = (value: string) => {
   return value.trim().toUpperCase() || "OTROS";
 };
 
+const normalizeDate = (value: string) => {
+  const trimmed = value.trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [year, month, day] = trimmed.split("-");
+    return `${day}/${month}/${year}`;
+  }
+
+  const match = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (!match) return trimmed;
+
+  const day = match[1].padStart(2, "0");
+  const month = match[2].padStart(2, "0");
+  const year = match[3].length === 2 ? `20${match[3]}` : match[3];
+  return `${day}/${month}/${year}`;
+};
+
+const isValidDate = (value: string) => {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return false;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const parsed = new Date(year, month - 1, day);
+
+  return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day;
+};
+
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
@@ -68,7 +97,10 @@ export const bulkCreate = mutation({
     const now = Date.now();
 
     for (const item of args.movimientos) {
-      if (!Number.isFinite(item.monto) || item.monto === 0 || !item.fecha) {
+      const fecha = normalizeDate(item.fecha);
+      const monto = Math.abs(item.monto);
+
+      if (!Number.isFinite(monto) || monto === 0 || !isValidDate(fecha)) {
         continue;
       }
 
@@ -82,10 +114,10 @@ export const bulkCreate = mutation({
       const id = await ctx.db.insert("ogc_movimientos", {
         tipo: normalizeTipo(item.tipo),
         categoria: normalizeCategoria(item.categoria),
-        monto: Math.abs(item.monto),
-        fecha: item.fecha,
+        monto,
+        fecha,
         descripcion: item.descripcion || undefined,
-        moneda: item.moneda || "MXN",
+        moneda: (item.moneda || "MXN").trim().toUpperCase(),
         proyecto: item.proyecto,
         archivo_origen: item.archivo_origen,
         fila_origen: item.fila_origen,

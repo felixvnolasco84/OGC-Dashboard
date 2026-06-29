@@ -1,0 +1,912 @@
+import { useId, useMemo, useState, type ChangeEvent, type ReactNode } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import { AlertTriangle, CheckCircle2, Copy, FileSpreadsheet, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
+
+type OgcMovementType = "ingreso" | "costo_estructura";
+
+type DesarrolloOption = {
+  _id: Id<"desarrollos">;
+  nombre: string;
+};
+
+type OgcUploadMovement = {
+  rowIndex: number;
+  tipo: OgcMovementType;
+  categoria: string;
+  monto: number;
+  fecha: string;
+  proyecto_nombre?: string;
+  descripcion?: string;
+  moneda: string;
+};
+
+type OgcUploadResult = {
+  success: boolean;
+  message?: string;
+  fileName?: string;
+  summary?: {
+    totalRows: number;
+    validRows: number;
+    errors: number;
+    totalAmount: number;
+    ingresos: number;
+    costosEstructura: number;
+  };
+  movimientos?: OgcUploadMovement[];
+  errors?: Array<{ row: number; error: string }>;
+};
+
+type PreparedMovement = {
+  tipo: OgcMovementType;
+  categoria: string;
+  monto: number;
+  fecha: string;
+  descripcion?: string;
+  moneda: string;
+  proyecto?: Id<"desarrollos">;
+  archivo_origen?: string;
+  fila_origen?: number;
+};
+
+type ValidationReport = {
+  valid: PreparedMovement[];
+  errors: Array<{ row: number; message: string }>;
+  missingProjects: string[];
+  totalAmount: number;
+  ingresos: number;
+  costosEstructura: number;
+};
+
+type EditableMovementRow = {
+  id: string;
+  tipo: OgcMovementType;
+  categoria: string;
+  monto: string;
+  fecha: string;
+  proyecto: Id<"desarrollos"> | "empresa";
+  descripcion: string;
+  moneda: string;
+};
+
+const OGC_UPLOAD_ENDPOINTS = [
+  "https://ogc-excel-reader.vercel.app/upload/ogc-transactions",
+  "http://localhost:3000/upload/ogc-transactions",
+];
+
+const CATEGORIES = [
+  "HONORARIOS",
+  "INDIRECTOS",
+  "NOMINA",
+  "CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)",
+  "TRANSPORTE",
+  "RENTA",
+  "OTROS",
+  "DISP HONORARIOS",
+];
+
+const normalizeLookupText = (value?: string) => {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+};
+
+const normalizeTipo = (value?: string, fallback: OgcMovementType = "costo_estructura"): OgcMovementType => {
+  const normalized = normalizeLookupText(value);
+  if (normalized.includes("ingreso") || normalized.includes("cobro")) return "ingreso";
+  if (normalized.includes("costo") || normalized.includes("gasto") || normalized.includes("egreso")) return "costo_estructura";
+  return fallback;
+};
+
+const normalizeDate = (value?: string) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split("-");
+    return `${day}/${month}/${year}`;
+  }
+
+  const slashMatch = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (slashMatch) {
+    const day = slashMatch[1].padStart(2, "0");
+    const month = slashMatch[2].padStart(2, "0");
+    const year = slashMatch[3].length === 2 ? `20${slashMatch[3]}` : slashMatch[3];
+    return `${day}/${month}/${year}`;
+  }
+
+  return raw;
+};
+
+const isValidDate = (value: string) => {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return false;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const parsed = new Date(year, month - 1, day);
+  return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day;
+};
+
+const parseAmount = (value?: string | number) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+
+  const raw = String(value || "")
+    .trim()
+    .replace(/\s|\u00a0/g, "")
+    .replace(/[$%]/g, "");
+
+  const isParenthesizedNegative = raw.startsWith("(") && raw.endsWith(")");
+  const cleaned = raw.replace(/[()]/g, "").replace(/[^0-9.,-]/g, "");
+  const lastComma = cleaned.lastIndexOf(",");
+  const lastDot = cleaned.lastIndexOf(".");
+  let normalized = cleaned;
+
+  if (lastComma !== -1 && lastDot !== -1) {
+    const decimalSeparator = lastComma > lastDot ? "," : ".";
+    const groupSeparator = decimalSeparator === "," ? "." : ",";
+    normalized = cleaned.replace(new RegExp(`\\${groupSeparator}`, "g"), "").replace(decimalSeparator, ".");
+  } else if (lastComma !== -1) {
+    normalized = cleaned.replace(/\./g, "").replace(",", ".");
+  } else if ((cleaned.match(/\./g) || []).length > 1) {
+    normalized = cleaned.replace(/\.(?=.*\.)/g, "");
+  }
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) return 0;
+  return isParenthesizedNegative ? -Math.abs(parsed) : parsed;
+};
+
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return "0 Bytes";
+  const units = ["Bytes", "KB", "MB"];
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / 1024 ** unitIndex).toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
+
+const createMovementRow = (overrides: Partial<EditableMovementRow> = {}): EditableMovementRow => ({
+  id: crypto.randomUUID(),
+  tipo: "costo_estructura",
+  categoria: "OTROS",
+  monto: "",
+  fecha: new Date().toISOString().slice(0, 10),
+  proyecto: "empresa",
+  descripcion: "",
+  moneda: "MXN",
+  ...overrides,
+});
+
+export function OgcMovementsUploadModal({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const fileInputId = useId();
+  const [file, setFile] = useState<File | null>(null);
+  const [manualRows, setManualRows] = useState<EditableMovementRow[]>(() => [createMovementRow()]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [result, setResult] = useState<OgcUploadResult | null>(null);
+  const proyectos = useQuery(api.desarrollos.getAll) as DesarrolloOption[] | undefined;
+  const bulkCreateMovements = useMutation(api.ogc_movimientos.bulkCreate);
+
+  const projectLookup = useMemo(() => {
+    const lookup = new Map<string, Id<"desarrollos">>();
+    proyectos?.forEach((proyecto) => {
+      lookup.set(normalizeLookupText(proyecto.nombre), proyecto._id);
+    });
+    return lookup;
+  }, [proyectos]);
+
+  const projectNameById = useMemo(() => {
+    const lookup = new Map<string, string>();
+    proyectos?.forEach((proyecto) => {
+      lookup.set(proyecto._id, proyecto.nombre);
+    });
+    return lookup;
+  }, [proyectos]);
+
+  const resetState = () => {
+    setFile(null);
+    setManualRows([createMovementRow()]);
+    setResult(null);
+  };
+
+  const handleClose = (nextOpen: boolean) => {
+    if (isProcessing) return;
+    if (!nextOpen) resetState();
+    onOpenChange(nextOpen);
+  };
+
+  const validateMovements = (movements: OgcUploadMovement[], sourceName?: string): ValidationReport => {
+    const errors: ValidationReport["errors"] = [];
+    const missingProjects = new Set<string>();
+    const valid: PreparedMovement[] = [];
+
+    movements.forEach((movement) => {
+      const rowErrors: string[] = [];
+      const monto = Math.abs(safeAmount(movement.monto));
+      const fecha = normalizeDate(movement.fecha);
+      const projectName = normalizeLookupText(movement.proyecto_nombre);
+      const proyecto = projectName ? projectLookup.get(projectName) : undefined;
+
+      if (monto <= 0) rowErrors.push("Monto invalido");
+      if (!isValidDate(fecha)) rowErrors.push("Fecha invalida");
+      if (projectName && !proyecto) {
+        missingProjects.add(movement.proyecto_nombre || "Sin nombre");
+        rowErrors.push("Obra no encontrada");
+      }
+
+      if (rowErrors.length > 0) {
+        errors.push({ row: movement.rowIndex, message: rowErrors.join(", ") });
+        return;
+      }
+
+      valid.push({
+        tipo: normalizeTipo(movement.tipo),
+        categoria: movement.categoria || "OTROS",
+        monto,
+        fecha,
+        descripcion: movement.descripcion || undefined,
+        moneda: (movement.moneda || "MXN").toUpperCase(),
+        proyecto,
+        archivo_origen: sourceName,
+        fila_origen: movement.rowIndex,
+      });
+    });
+
+    return {
+      valid,
+      errors,
+      missingProjects: Array.from(missingProjects),
+      totalAmount: valid.reduce((sum, movement) => sum + movement.monto, 0),
+      ingresos: valid.filter((movement) => movement.tipo === "ingreso").length,
+      costosEstructura: valid.filter((movement) => movement.tipo === "costo_estructura").length,
+    };
+  };
+
+  const safeAmount = (value: number) => {
+    return Number.isFinite(value) ? value : 0;
+  };
+
+  const rowsToMovements = (rows: EditableMovementRow[]): OgcUploadMovement[] => {
+    return rows.flatMap((row, index) => {
+      const hasUserInput =
+        row.monto.trim() ||
+        row.descripcion.trim() ||
+        row.proyecto !== "empresa" ||
+        row.tipo !== "costo_estructura" ||
+        row.categoria !== "OTROS";
+
+      if (!hasUserInput) return [];
+
+      return [{
+        rowIndex: index + 1,
+        tipo: row.tipo,
+        categoria: row.categoria,
+        monto: Math.abs(parseAmount(row.monto)),
+        fecha: normalizeDate(row.fecha),
+        proyecto_nombre: row.proyecto === "empresa" ? "" : projectNameById.get(row.proyecto) || "",
+        descripcion: row.descripcion.trim(),
+        moneda: row.moneda,
+      }];
+    });
+  };
+
+  const updateManualRow = <K extends keyof EditableMovementRow>(
+    id: string,
+    key: K,
+    value: EditableMovementRow[K]
+  ) => {
+    setManualRows((currentRows) =>
+      currentRows.map((row) => (row.id === id ? { ...row, [key]: value } : row))
+    );
+  };
+
+  const addManualRow = () => {
+    const lastRow = manualRows[manualRows.length - 1];
+    setManualRows((currentRows) => [
+      ...currentRows,
+      createMovementRow({
+        tipo: lastRow?.tipo || "costo_estructura",
+        categoria: lastRow?.categoria || "OTROS",
+        fecha: lastRow?.fecha || new Date().toISOString().slice(0, 10),
+        moneda: lastRow?.moneda || "MXN",
+      }),
+    ]);
+  };
+
+  const duplicateManualRow = (row: EditableMovementRow) => {
+    setManualRows((currentRows) => {
+      const index = currentRows.findIndex((currentRow) => currentRow.id === row.id);
+      const duplicate = createMovementRow({
+        ...row,
+        id: crypto.randomUUID(),
+      });
+
+      if (index === -1) return [...currentRows, duplicate];
+      return [
+        ...currentRows.slice(0, index + 1),
+        duplicate,
+        ...currentRows.slice(index + 1),
+      ];
+    });
+  };
+
+  const removeManualRow = (id: string) => {
+    setManualRows((currentRows) => {
+      const nextRows = currentRows.filter((row) => row.id !== id);
+      return nextRows.length > 0 ? nextRows : [createMovementRow()];
+    });
+  };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
+
+    const extension = selectedFile.name.toLowerCase().slice(selectedFile.name.lastIndexOf("."));
+    if (![".xlsx", ".xls", ".xlsm"].includes(extension)) {
+      toast.error("Archivo invalido", { description: "Sube un Excel .xlsx, .xls o .xlsm." });
+      event.target.value = "";
+      return;
+    }
+
+    setFile(selectedFile);
+    setResult(null);
+    event.target.value = "";
+  };
+
+  const parseFile = async (selectedFile: File) => {
+    let lastError = "No se pudo procesar el archivo.";
+
+    for (const endpoint of OGC_UPLOAD_ENDPOINTS) {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      try {
+        const response = await fetch(endpoint, { method: "POST", body: formData });
+        const data = await response.json().catch(() => null);
+        if (response.ok && data) return data as OgcUploadResult;
+        lastError = data?.message || data?.error || lastError;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : lastError;
+      }
+    }
+
+    throw new Error(lastError);
+  };
+
+  const saveValidatedMovements = async (report: ValidationReport) => {
+    if (report.valid.length === 0) {
+      throw new Error("No hay movimientos validos para guardar.");
+    }
+
+    let createdCount = 0;
+    const chunkSize = 100;
+    for (let index = 0; index < report.valid.length; index += chunkSize) {
+      const chunk = report.valid.slice(index, index + chunkSize);
+      const created = await bulkCreateMovements({ movimientos: chunk });
+      createdCount += created.created;
+    }
+
+    const skippedDetails = [
+      report.errors.length ? `${report.errors.length} filas omitidas` : "",
+      report.missingProjects.length ? `${report.missingProjects.length} obras no encontradas` : "",
+      createdCount < report.valid.length ? `${report.valid.length - createdCount} rechazadas por validacion final` : "",
+    ].filter(Boolean).join(", ");
+
+    toast.success("Carga OGC completada", {
+      description: `${createdCount} movimientos guardados${skippedDetails ? `, ${skippedDetails}` : ""}.`,
+    });
+    handleClose(false);
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      toast.error("Selecciona un archivo");
+      return;
+    }
+
+    if (!proyectos) {
+      toast.error("Espera a que carguen las obras");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const parsed = await parseFile(file);
+      setResult(parsed);
+
+      if (!parsed.success || !parsed.movimientos?.length) {
+        throw new Error(parsed.message || "No se encontraron movimientos validos.");
+      }
+
+      const report = validateMovements(parsed.movimientos, file.name);
+      await saveValidatedMovements(report);
+    } catch (error) {
+      toast.error("Error al cargar movimientos OGC", {
+        description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePreviewManual = () => {
+    const parsed = rowsToMovements(manualRows);
+
+    if (parsed.length === 0) {
+      toast.error("Agrega al menos una fila de movimientos");
+      return;
+    }
+
+    const report = validateMovements(parsed, "captura masiva");
+    if (report.errors.length > 0) {
+      toast.warning("Vista previa con advertencias", {
+        description: `${report.valid.length} validos, ${report.errors.length} con error.`,
+      });
+    } else {
+      toast.success("Vista previa lista", { description: `${report.valid.length} movimientos validos.` });
+    }
+  };
+
+  const handleSaveManual = async () => {
+    if (!proyectos) {
+      toast.error("Espera a que carguen las obras");
+      return;
+    }
+
+    const parsed = rowsToMovements(manualRows);
+    const report = validateMovements(parsed, "captura masiva");
+
+    setIsProcessing(true);
+    try {
+      await saveValidatedMovements(report);
+    } catch (error) {
+      toast.error("Error al guardar movimientos", {
+        description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const manualMovements = useMemo(() => rowsToMovements(manualRows), [manualRows, projectNameById]);
+  const manualReport = useMemo(() => validateMovements(manualMovements, "captura masiva"), [manualMovements, projectLookup]);
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-4xl overflow-x-hidden overflow-y-auto sm:w-full">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-normal">Cargar movimientos OGC</DialogTitle>
+          <DialogDescription>
+            Sube ingresos y costos de estructura. Las filas con obra se reflejan en rentabilidad; las filas sin obra quedan solo a nivel empresa.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs defaultValue="manual" className="min-w-0 space-y-5">
+          <TabsList className="rounded-none">
+            <TabsTrigger value="manual" className="rounded-none">Captura masiva</TabsTrigger>
+            <TabsTrigger value="excel" className="rounded-none">Archivo Excel</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="manual" className="min-w-0 space-y-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <Label className="text-sm text-gray-900">Movimientos manuales</Label>
+                <p className="mt-1 text-xs text-gray-500">
+                  Agrega filas editables; selecciona una obra solo cuando el movimiento aplique a una obra especifica.
+                </p>
+              </div>
+              <Button type="button" variant="outline" onClick={addManualRow} disabled={isProcessing}>
+                <Plus className="h-4 w-4" />
+                Agregar fila
+              </Button>
+            </div>
+
+            <EditableMovementsTable
+              rows={manualRows}
+              proyectos={proyectos || []}
+              errors={manualReport.errors}
+              disabled={isProcessing}
+              onUpdate={updateManualRow}
+              onDuplicate={duplicateManualRow}
+              onRemove={removeManualRow}
+            />
+
+            <MovementPreview report={manualReport} movements={manualMovements} compact />
+
+            <div className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => handleClose(false)} disabled={isProcessing}>
+                Cancelar
+              </Button>
+              <Button type="button" variant="outline" onClick={handlePreviewManual} disabled={isProcessing || manualRows.length === 0}>
+                Vista previa
+              </Button>
+              <Button type="button" onClick={handleSaveManual} disabled={isProcessing || manualReport.valid.length === 0}>
+                {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : "Guardar movimientos"}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="excel" className="min-w-0 space-y-5">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Archivo Excel</Label>
+              <div className="border border-dashed border-gray-300 p-6">
+                {file ? (
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileSpreadsheet className="h-8 w-8 text-[#1A5D21]" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-gray-900">{file.name}</p>
+                        <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                      </div>
+                    </div>
+                    <Button type="button" variant="outline" onClick={() => setFile(null)} disabled={isProcessing}>
+                      Cambiar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <Upload className="h-10 w-10 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-900">Excel con columnas: tipo, categoria, monto, fecha, obra, descripcion</p>
+                      <p className="mt-1 text-xs text-gray-500">La obra puede quedar vacia para costos solo de empresa.</p>
+                    </div>
+                    <Button type="button" variant="outline" onClick={() => document.getElementById(fileInputId)?.click()}>
+                      Seleccionar archivo
+                    </Button>
+                  </div>
+                )}
+                <input
+                  id={fileInputId}
+                  type="file"
+                  accept=".xlsx,.xls,.xlsm"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </div>
+            </div>
+
+            {result?.summary && (
+              <div className="border border-gray-200 bg-[#FBFAF2] p-4 text-sm text-gray-700">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <SummaryStat label="Filas validas" value={result.summary.validRows} />
+                  <SummaryStat label="Ingresos" value={result.summary.ingresos} />
+                  <SummaryStat label="Costos" value={result.summary.costosEstructura} />
+                  <SummaryStat label="Errores" value={result.summary.errors} />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => handleClose(false)} disabled={isProcessing}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={handleUpload} disabled={!file || isProcessing}>
+                {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</> : "Cargar Excel"}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SummaryStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-lg text-gray-900">{value}</p>
+    </div>
+  );
+}
+
+function EditableMovementsTable({
+  rows,
+  proyectos,
+  errors,
+  disabled,
+  onUpdate,
+  onDuplicate,
+  onRemove,
+}: {
+  rows: EditableMovementRow[];
+  proyectos: DesarrolloOption[];
+  errors: ValidationReport["errors"];
+  disabled: boolean;
+  onUpdate: <K extends keyof EditableMovementRow>(id: string, key: K, value: EditableMovementRow[K]) => void;
+  onDuplicate: (row: EditableMovementRow) => void;
+  onRemove: (id: string) => void;
+}) {
+  const errorsByRow = useMemo(() => {
+    const map = new Map<number, string>();
+    errors.forEach((error) => map.set(error.row, error.message));
+    return map;
+  }, [errors]);
+
+  return (
+    <div className="min-w-0 space-y-3">
+      {rows.map((row, index) => {
+        const rowError = errorsByRow.get(index + 1);
+
+        return (
+          <div
+            key={row.id}
+            className={cn(
+              "min-w-0 border border-gray-200 p-3",
+              rowError ? "bg-red-50" : "bg-white"
+            )}
+          >
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+              <div className="min-w-0 sm:col-span-2 lg:col-span-1">
+                <FieldLabel>Fila</FieldLabel>
+                <div className="flex h-9 items-center gap-2 text-sm text-gray-900">
+                  <span>{index + 1}</span>
+                  {rowError && <AlertTriangle className="h-4 w-4 shrink-0 text-[#802424]" />}
+                </div>
+              </div>
+
+              <div className="min-w-0 lg:col-span-3">
+                <FieldLabel>Tipo</FieldLabel>
+                <Select
+                  value={row.tipo}
+                  onValueChange={(value) => onUpdate(row.id, "tipo", value as OgcMovementType)}
+                  disabled={disabled}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="costo_estructura">Costo estructura</SelectItem>
+                    <SelectItem value="ingreso">Ingreso</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="min-w-0 lg:col-span-4">
+                <FieldLabel>Categoria</FieldLabel>
+                <Select
+                  value={row.categoria}
+                  onValueChange={(value) => onUpdate(row.id, "categoria", value)}
+                  disabled={disabled}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="min-w-0 lg:col-span-2">
+                <FieldLabel>Monto</FieldLabel>
+                <Input
+                  inputMode="decimal"
+                  value={row.monto}
+                  onChange={(event) => onUpdate(row.id, "monto", event.target.value)}
+                  placeholder="0.00"
+                  disabled={disabled}
+                />
+              </div>
+
+              <div className="min-w-0 lg:col-span-2">
+                <FieldLabel>Fecha</FieldLabel>
+                <Input
+                  type="date"
+                  value={row.fecha}
+                  onChange={(event) => onUpdate(row.id, "fecha", event.target.value)}
+                  disabled={disabled}
+                />
+              </div>
+
+              <div className="min-w-0 lg:col-span-4">
+                <FieldLabel>Obra</FieldLabel>
+                <Select
+                  value={row.proyecto}
+                  onValueChange={(value) => onUpdate(row.id, "proyecto", value as EditableMovementRow["proyecto"])}
+                  disabled={disabled}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="empresa">Empresa</SelectItem>
+                    {proyectos.map((proyecto) => (
+                      <SelectItem key={proyecto._id} value={proyecto._id}>{proyecto.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="min-w-0 lg:col-span-4">
+                <FieldLabel>Descripcion</FieldLabel>
+                <Input
+                  value={row.descripcion}
+                  onChange={(event) => onUpdate(row.id, "descripcion", event.target.value)}
+                  placeholder="Detalle del movimiento"
+                  disabled={disabled}
+                />
+              </div>
+
+              <div className="min-w-0 lg:col-span-2">
+                <FieldLabel>Moneda</FieldLabel>
+                <Select
+                  value={row.moneda}
+                  onValueChange={(value) => onUpdate(row.id, "moneda", value)}
+                  disabled={disabled}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MXN">MXN</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="min-w-0 lg:col-span-2">
+                <FieldLabel>Acciones</FieldLabel>
+                <div className="flex h-9 justify-end gap-1 sm:justify-start lg:justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDuplicate(row)}
+                    disabled={disabled}
+                    title="Duplicar fila"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onRemove(row.id)}
+                    disabled={disabled}
+                    title="Eliminar fila"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {rowError && (
+                <p className="min-w-0 break-words text-xs text-[#802424] sm:col-span-2 lg:col-span-12">
+                  {rowError}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <Label className="mb-1 block text-xs font-normal text-gray-500">
+      {children}
+    </Label>
+  );
+}
+
+function MovementPreview({
+  report,
+  movements,
+  compact = false,
+}: {
+  report: ValidationReport;
+  movements: OgcUploadMovement[];
+  compact?: boolean;
+}) {
+  const errorRows = new Set(report.errors.map((error) => error.row));
+  const visibleMovements = movements.slice(0, compact ? 5 : 8);
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="border border-gray-200 bg-[#FBFAF2] p-3">
+          <p className="text-xs text-gray-500">Validos</p>
+          <p className="flex items-center gap-2 text-lg text-gray-900"><CheckCircle2 className="h-4 w-4 text-[#1A5D21]" />{report.valid.length}</p>
+        </div>
+        <div className="border border-gray-200 bg-white p-3">
+          <p className="text-xs text-gray-500">Con error</p>
+          <p className="flex items-center gap-2 text-lg text-gray-900"><AlertTriangle className="h-4 w-4 text-[#802424]" />{report.errors.length}</p>
+        </div>
+        <div className="border border-gray-200 bg-white p-3">
+          <p className="text-xs text-gray-500">Ingresos</p>
+          <p className="text-lg text-gray-900">{report.ingresos}</p>
+        </div>
+        <div className="border border-gray-200 bg-white p-3">
+          <p className="text-xs text-gray-500">Costos</p>
+          <p className="text-lg text-gray-900">{report.costosEstructura}</p>
+        </div>
+      </div>
+
+      <div className="min-w-0 border border-gray-200 text-sm">
+        <div className="hidden grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] border-b border-gray-200 bg-[#FBFAF2] text-gray-500 md:grid">
+          <p className="px-3 py-2">Fila</p>
+          <p className="px-3 py-2">Tipo</p>
+          <p className="px-3 py-2">Categoria</p>
+          <p className="px-3 py-2">Monto</p>
+          <p className="px-3 py-2">Fecha</p>
+          <p className="px-3 py-2">Obra</p>
+        </div>
+
+        {visibleMovements.map((movement) => (
+          <div
+            key={movement.rowIndex}
+            className={cn(
+              "grid min-w-0 grid-cols-1 gap-2 border-b border-gray-200 p-3 md:grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] md:gap-0 md:p-0",
+              errorRows.has(movement.rowIndex) ? "bg-red-50" : "bg-white"
+            )}
+          >
+            <PreviewCell label="Fila">{movement.rowIndex}</PreviewCell>
+            <PreviewCell label="Tipo">{movement.tipo === "ingreso" ? "Ingreso" : "Costo estructura"}</PreviewCell>
+            <PreviewCell label="Categoria">{movement.categoria}</PreviewCell>
+            <PreviewCell label="Monto">${movement.monto.toLocaleString("es-MX")}</PreviewCell>
+            <PreviewCell label="Fecha">{movement.fecha}</PreviewCell>
+            <PreviewCell label="Obra">{movement.proyecto_nombre || "Empresa"}</PreviewCell>
+          </div>
+        ))}
+      </div>
+
+      {report.errors.length > 0 && (
+        <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {report.errors.slice(0, 4).map((error) => (
+            <p key={`${error.row}-${error.message}`}>Fila {error.row}: {error.message}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PreviewCell({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 break-words md:px-3 md:py-2">
+      <span className="mr-2 text-xs text-gray-500 md:hidden">{label}</span>
+      <span>{children}</span>
+    </div>
+  );
+}
