@@ -769,7 +769,7 @@ export default function ProfitAndLossPage() {
               type="button"
               variant="outline"
               onClick={() => setIsOgcUploadOpen(true)}
-              className="mb-3 h-10 self-start border-[#D98222] text-gray-900 hover:bg-[#FBFAF2] md:self-auto"
+              className="mb-3 h-10 self-start text-gray-900 md:self-auto"
             >
               <Upload className="h-4 w-4" />
               Cargar movimientos
