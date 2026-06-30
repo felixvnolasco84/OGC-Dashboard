@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +25,8 @@ import {
 } from "@/components/ui/select";
 import { OgcMovementsUploadModal } from "@/components/modals/ogc-movements-upload-modal";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Percent, RefreshCcw, Settings2, Upload } from "lucide-react";
+import { Ban, CalendarDays, Check, Copy, Pencil, Percent, RefreshCcw, Save, Settings2, Upload, X } from "lucide-react";
+import { toast } from "sonner";
 
 type PnlTab = "pnl" | "wip" | "profitability";
 type PnlRowType = "section" | "line" | "subtotal" | "metric";
@@ -85,6 +87,46 @@ type PnlMonthlyMovement = {
   costosDirectosObra?: number;
   structureBreakdown: Record<string, number>;
 };
+
+type DesarrolloOption = {
+  _id: Id<"desarrollos">;
+  nombre: string;
+};
+
+type OgcLedgerMovement = {
+  _id: Id<"ogc_movimientos">;
+  tipo: string;
+  categoria: string;
+  monto: number;
+  fecha: string;
+  descripcion?: string;
+  moneda: string;
+  tipo_cambio?: number;
+  proyecto?: Id<"desarrollos">;
+  status?: string;
+  duplicate_key?: string;
+  reconciled?: boolean;
+  reconciliation_reference?: string;
+  reconciliation_note?: string;
+  void_reason?: string;
+  created_by_name: string;
+  created_at: number;
+  updated_by_name?: string;
+  updated_at?: number;
+};
+
+type LedgerDraft = {
+  tipo: string;
+  categoria: string;
+  monto: string;
+  fecha: string;
+  proyecto: string;
+  descripcion: string;
+  moneda: string;
+  tipo_cambio: string;
+};
+
+type LedgerAction = "void" | "duplicate" | "reconcile";
 
 type TaxSettings = {
   isr: number;
@@ -193,6 +235,16 @@ const DEFAULT_STRUCTURE_GROUPS = [
   { key: "otros", label: "OTROS" },
   { key: "disp_honorarios", label: "DISP HONORARIOS" },
 ];
+const LEDGER_CATEGORIES = [
+  "HONORARIOS",
+  "INDIRECTOS",
+  "NOMINA",
+  "CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)",
+  "TRANSPORTE",
+  "RENTA",
+  "OTROS",
+  "DISP HONORARIOS",
+];
 
 const safeNumber = (value: unknown) => {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -201,6 +253,36 @@ const safeNumber = (value: unknown) => {
 const safeDivide = (value: number, total: number) => {
   if (!Number.isFinite(value) || !Number.isFinite(total) || total === 0) return 0;
   return value / total;
+};
+
+const parseLedgerNumber = (value: string, fallback = 0) => {
+  const parsed = Number(String(value || "").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const toDateInputValue = (value?: string) => {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return "";
+  return `${match[3]}-${match[2]}-${match[1]}`;
+};
+
+const formatLedgerTimestamp = (value?: number) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+};
+
+const getLedgerStatusLabel = (movement: Pick<OgcLedgerMovement, "status" | "reconciled">) => {
+  if (movement.status === "anulado") return "Anulado";
+  if (movement.status === "duplicado") return "Duplicado";
+  return movement.reconciled ? "Conciliado" : "Activo";
 };
 
 const formatNumber = (amount: number) => {
@@ -816,6 +898,449 @@ function ProjectProfitabilityView({
   );
 }
 
+const createLedgerDraft = (movement: OgcLedgerMovement): LedgerDraft => ({
+  tipo: movement.tipo,
+  categoria: movement.categoria,
+  monto: String(movement.monto || ""),
+  fecha: toDateInputValue(movement.fecha),
+  proyecto: movement.proyecto || "empresa",
+  descripcion: movement.descripcion || "",
+  moneda: movement.moneda || "MXN",
+  tipo_cambio: movement.tipo_cambio ? String(movement.tipo_cambio) : "",
+});
+
+function OgcLedgerSection({
+  movements,
+  proyectos,
+}: {
+  movements: OgcLedgerMovement[];
+  proyectos: DesarrolloOption[];
+}) {
+  const updateMovement = useMutation(api.ogc_movimientos.update);
+  const voidMovement = useMutation(api.ogc_movimientos.voidMovement);
+  const reconcileMovement = useMutation(api.ogc_movimientos.reconcile);
+  const markDuplicate = useMutation(api.ogc_movimientos.markDuplicate);
+
+  const [editingId, setEditingId] = useState<Id<"ogc_movimientos"> | null>(null);
+  const [draft, setDraft] = useState<LedgerDraft | null>(null);
+  const [action, setAction] = useState<{ type: LedgerAction; movement: OgcLedgerMovement } | null>(null);
+  const [actionReason, setActionReason] = useState("");
+  const [actionReference, setActionReference] = useState("");
+  const [actionNote, setActionNote] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const projectNameById = useMemo(() => {
+    const lookup = new Map<string, string>();
+    proyectos.forEach((proyecto) => lookup.set(proyecto._id, proyecto.nombre));
+    return lookup;
+  }, [proyectos]);
+
+  const duplicateCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    movements
+      .filter((movement) => !movement.status || movement.status === "activo")
+      .forEach((movement) => {
+        if (!movement.duplicate_key) return;
+        counts.set(movement.duplicate_key, (counts.get(movement.duplicate_key) || 0) + 1);
+      });
+    return counts;
+  }, [movements]);
+
+  const activeCount = movements.filter((movement) => !movement.status || movement.status === "activo").length;
+  const reconciledCount = movements.filter((movement) => movement.reconciled && (!movement.status || movement.status === "activo")).length;
+  const inactiveCount = movements.length - activeCount;
+
+  const startEdit = (movement: OgcLedgerMovement) => {
+    setEditingId(movement._id);
+    setDraft(createLedgerDraft(movement));
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft(null);
+  };
+
+  const updateDraft = <K extends keyof LedgerDraft>(key: K, value: LedgerDraft[K]) => {
+    setDraft((currentDraft) => currentDraft ? { ...currentDraft, [key]: value } : currentDraft);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !draft) return;
+    const monto = parseLedgerNumber(draft.monto);
+    const tipoCambio = parseLedgerNumber(draft.tipo_cambio);
+
+    setIsSaving(true);
+    try {
+      await updateMovement({
+        id: editingId,
+        patch: {
+          tipo: draft.tipo,
+          categoria: draft.categoria,
+          monto,
+          fecha: draft.fecha,
+          descripcion: draft.descripcion.trim(),
+          moneda: draft.moneda,
+          tipo_cambio: draft.moneda === "MXN" ? undefined : tipoCambio,
+          proyecto: draft.proyecto === "empresa" ? null : draft.proyecto as Id<"desarrollos">,
+        },
+        reason: "Edicion desde ledger P&L",
+      });
+      toast.success("Movimiento actualizado");
+      cancelEdit();
+    } catch (error) {
+      toast.error("No se pudo actualizar", {
+        description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openAction = (type: LedgerAction, movement: OgcLedgerMovement) => {
+    setAction({ type, movement });
+    setActionReason("");
+    setActionReference(movement.reconciliation_reference || "");
+    setActionNote(movement.reconciliation_note || "");
+  };
+
+  const closeAction = () => {
+    setAction(null);
+    setActionReason("");
+    setActionReference("");
+    setActionNote("");
+  };
+
+  const confirmAction = async () => {
+    if (!action) return;
+
+    setIsSaving(true);
+    try {
+      if (action.type === "void") {
+        await voidMovement({ id: action.movement._id, reason: actionReason });
+        toast.success("Movimiento anulado");
+      } else if (action.type === "duplicate") {
+        await markDuplicate({ id: action.movement._id, reason: actionReason || "Marcado como duplicado desde ledger P&L" });
+        toast.success("Movimiento marcado como duplicado");
+      } else {
+        await reconcileMovement({
+          id: action.movement._id,
+          reconciled: true,
+          reference: actionReference,
+          note: actionNote,
+        });
+        toast.success("Movimiento conciliado");
+      }
+      closeAction();
+    } catch (error) {
+      toast.error("No se pudo completar la accion", {
+        description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const unreconcile = async (movement: OgcLedgerMovement) => {
+    setIsSaving(true);
+    try {
+      await reconcileMovement({ id: movement._id, reconciled: false });
+      toast.success("Conciliacion removida");
+    } catch (error) {
+      toast.error("No se pudo remover conciliacion", {
+        description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const actionTitle = action?.type === "void"
+    ? "Anular movimiento"
+    : action?.type === "duplicate"
+      ? "Marcar duplicado"
+      : "Conciliar movimiento";
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 border-t border-[#AFAEA2] pt-12 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 className="text-lg text-gray-900">LEDGER MOVIMIENTOS OGC</h2>
+          <p className="mt-1 text-sm text-gray-400">Edicion, anulacion, deduplicacion y conciliacion con auditoria.</p>
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="border border-gray-200 bg-[#FBFAF2] px-4 py-3">
+            <p className="text-xs text-gray-500">Activos</p>
+            <p className="text-lg text-gray-900">{activeCount}</p>
+          </div>
+          <div className="border border-gray-200 bg-white px-4 py-3">
+            <p className="text-xs text-gray-500">Conciliados</p>
+            <p className="text-lg text-gray-900">{reconciledCount}</p>
+          </div>
+          <div className="border border-gray-200 bg-white px-4 py-3">
+            <p className="text-xs text-gray-500">Historicos</p>
+            <p className="text-lg text-gray-900">{inactiveCount}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto border border-gray-200 bg-white">
+        <table className="w-full min-w-[1480px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 text-gray-500">
+              <th className="px-4 py-3 font-normal">Estado</th>
+              <th className="px-4 py-3 font-normal">Fecha</th>
+              <th className="px-4 py-3 font-normal">Tipo</th>
+              <th className="px-4 py-3 font-normal">Categoria</th>
+              <th className="px-4 py-3 text-right font-normal">Monto</th>
+              <th className="px-4 py-3 font-normal">Moneda</th>
+              <th className="px-4 py-3 font-normal">TC</th>
+              <th className="px-4 py-3 font-normal">Obra</th>
+              <th className="px-4 py-3 font-normal">Descripcion</th>
+              <th className="px-4 py-3 font-normal">Auditoria</th>
+              <th className="px-4 py-3 text-right font-normal">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {movements.map((movement) => {
+              const isEditing = editingId === movement._id && draft;
+              const isActive = !movement.status || movement.status === "activo";
+              const duplicateCount = movement.duplicate_key ? duplicateCounts.get(movement.duplicate_key) || 0 : 0;
+
+              return (
+                <tr key={movement._id} className={cn("border-b border-gray-200", isActive ? "bg-white" : "bg-gray-50")}>
+                  <td className="px-4 py-4 align-top">
+                    <div className="flex flex-col gap-1">
+                      <Badge variant="secondary" className={cn(
+                        "w-fit rounded-xl text-[10px] font-normal",
+                        movement.status === "anulado" ? "border-red-200 text-[#802424]" : "",
+                        movement.status === "duplicado" ? "border-amber-200 text-amber-700" : "",
+                        movement.reconciled && isActive ? "border-green-200 text-[#1A5D21]" : ""
+                      )}>
+                        {getLedgerStatusLabel(movement)}
+                      </Badge>
+                      {duplicateCount > 1 && (
+                        <span className="text-xs text-amber-700">{duplicateCount} posibles duplicados</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    {isEditing ? (
+                      <Input
+                        type="date"
+                        value={draft.fecha}
+                        onChange={(event) => updateDraft("fecha", event.target.value)}
+                        className="h-9"
+                      />
+                    ) : (
+                      <span className={DETAIL_TEXT_CLASS}>{movement.fecha}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    {isEditing ? (
+                      <Select value={draft.tipo} onValueChange={(value) => updateDraft("tipo", value)}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ingreso">Ingreso</SelectItem>
+                          <SelectItem value="costo_estructura">Costo estructura</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : movement.tipo === "ingreso" ? "Ingreso" : "Costo estructura"}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    {isEditing ? (
+                      <Select value={draft.categoria} onValueChange={(value) => updateDraft("categoria", value)}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LEDGER_CATEGORIES.map((category) => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : movement.categoria}
+                  </td>
+                  <td className="px-4 py-4 text-right align-top">
+                    {isEditing ? (
+                      <Input
+                        inputMode="decimal"
+                        value={draft.monto}
+                        onChange={(event) => updateDraft("monto", event.target.value)}
+                        className="h-9 text-right"
+                      />
+                    ) : (
+                      formatTableCurrency(movement.monto)
+                    )}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    {isEditing ? (
+                      <Select value={draft.moneda} onValueChange={(value) => updateDraft("moneda", value)}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MXN">MXN</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : movement.moneda}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    {isEditing ? (
+                      <Input
+                        inputMode="decimal"
+                        value={draft.tipo_cambio}
+                        onChange={(event) => updateDraft("tipo_cambio", event.target.value)}
+                        placeholder={draft.moneda === "MXN" ? "-" : "0.00"}
+                        disabled={draft.moneda === "MXN"}
+                        className="h-9"
+                      />
+                    ) : movement.tipo_cambio ? movement.tipo_cambio.toFixed(4) : "-"}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    {isEditing ? (
+                      <Select value={draft.proyecto} onValueChange={(value) => updateDraft("proyecto", value)}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="empresa">Empresa</SelectItem>
+                          {proyectos.map((proyecto) => (
+                            <SelectItem key={proyecto._id} value={proyecto._id}>{proyecto.nombre}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : movement.proyecto ? projectNameById.get(movement.proyecto) || "Obra" : "Empresa"}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    {isEditing ? (
+                      <Input
+                        value={draft.descripcion}
+                        onChange={(event) => updateDraft("descripcion", event.target.value)}
+                        className="h-9"
+                      />
+                    ) : (
+                      <span className="block max-w-[220px] truncate" title={movement.descripcion || ""}>
+                        {movement.descripcion || "-"}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 align-top text-xs text-gray-500">
+                    <div className="space-y-1">
+                      <p>Creado: {formatLedgerTimestamp(movement.created_at)}</p>
+                      <p>Por: {movement.created_by_name}</p>
+                      {movement.updated_at && <p>Ultimo cambio: {formatLedgerTimestamp(movement.updated_at)}</p>}
+                      {movement.updated_by_name && <p>Por: {movement.updated_by_name}</p>}
+                      {movement.void_reason && <p className="text-[#802424]">Motivo: {movement.void_reason}</p>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    <div className="flex justify-end gap-1">
+                      {isEditing ? (
+                        <>
+                          <Button type="button" variant="ghost" size="icon" onClick={saveEdit} disabled={isSaving} title="Guardar">
+                            <Save className="h-4 w-4" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" onClick={cancelEdit} disabled={isSaving} title="Cancelar">
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => startEdit(movement)} disabled={!isActive || isSaving} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          {movement.reconciled ? (
+                            <Button type="button" variant="ghost" size="icon" onClick={() => unreconcile(movement)} disabled={!isActive || isSaving} title="Desconciliar">
+                              <X className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button type="button" variant="ghost" size="icon" onClick={() => openAction("reconcile", movement)} disabled={!isActive || isSaving} title="Conciliar">
+                              <Check className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button type="button" variant="ghost" size="icon" onClick={() => openAction("duplicate", movement)} disabled={!isActive || isSaving} title="Marcar duplicado">
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => openAction("void", movement)} disabled={!isActive || isSaving} title="Anular">
+                            <Ban className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+
+            {movements.length === 0 && (
+              <tr className="border-b border-gray-200 bg-white">
+                <td className="px-8 py-6 align-middle text-base text-gray-400" colSpan={11}>
+                  No hay movimientos OGC cargados.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <Dialog open={!!action} onOpenChange={(open) => !open && closeAction()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-normal">{actionTitle}</DialogTitle>
+            <DialogDescription>
+              {action?.movement.descripcion || action?.movement.categoria || "Movimiento OGC"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {action?.type === "reconcile" ? (
+            <div className="space-y-4">
+              <SettingField label="Referencia">
+                <Input
+                  value={actionReference}
+                  onChange={(event) => setActionReference(event.target.value)}
+                  placeholder="Estado de cuenta, poliza o folio"
+                />
+              </SettingField>
+              <SettingField label="Nota">
+                <Input
+                  value={actionNote}
+                  onChange={(event) => setActionNote(event.target.value)}
+                  placeholder="Detalle opcional"
+                />
+              </SettingField>
+            </div>
+          ) : (
+            <SettingField label={action?.type === "void" ? "Motivo" : "Nota"}>
+              <Input
+                value={actionReason}
+                onChange={(event) => setActionReason(event.target.value)}
+                placeholder={action?.type === "void" ? "Motivo de anulacion" : "Motivo de deduplicacion"}
+              />
+            </SettingField>
+          )}
+
+          <DialogFooter className="gap-3">
+            <Button type="button" variant="outline" onClick={closeAction} disabled={isSaving}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmAction}
+              disabled={isSaving || (action?.type === "void" && !actionReason.trim())}
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function SettingsGroup({
   icon,
   title,
@@ -1083,6 +1608,8 @@ export default function ProfitAndLossPage() {
 
   const pnlSummary = useQuery(api.desarrollos.getPnlSummary, pnlQueryParams) as PnlSummary | undefined;
   const profitabilitySummary = useQuery(api.desarrollos.getProfitabilitySummary, pnlQueryParams) as ProfitabilitySummary | undefined;
+  const ogcMovements = useQuery(api.ogc_movimientos.getAll, { includeInactive: true }) as OgcLedgerMovement[] | undefined;
+  const proyectos = useQuery(api.desarrollos.getAll) as DesarrolloOption[] | undefined;
 
   const months = useMemo(() => buildMonths(periodYear, cutoffMonth), [periodYear, cutoffMonth]);
   const periodLabel = buildPeriodLabel(periodYear, cutoffMonth);
@@ -1117,7 +1644,9 @@ export default function ProfitAndLossPage() {
 
   if (
     pnlSummary === undefined ||
-    profitabilitySummary === undefined
+    profitabilitySummary === undefined ||
+    ogcMovements === undefined ||
+    proyectos === undefined
   ) {
     return (
       <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
@@ -1216,6 +1745,8 @@ export default function ProfitAndLossPage() {
                 dataQualityNote={monthlyDataNote}
               />
             </div>
+
+            <OgcLedgerSection movements={ogcMovements} proyectos={proyectos} />
           </>
         ) : activeTab === "wip" ? (
           <WorkInProgressView summary={profitabilitySummary} />

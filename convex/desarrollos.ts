@@ -250,6 +250,7 @@ const getAccessibleOgcMovements = async (ctx: QueryCtx, proyectos: Doc<"desarrol
     const movements = await ctx.db.query("ogc_movimientos").collect();
 
     return movements.filter((movement) => {
+        if (movement.status && movement.status !== "activo") return false;
         if (hasGlobalAdminAccess(user)) return true;
         if (!movement.proyecto) return movement.organization_id === organizationId;
         if (movement.organization_id && movement.organization_id !== organizationId) return false;
@@ -263,7 +264,9 @@ const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rate
             const parsedDate = parseReportDate(movement.fecha);
             if (!isDateWithinPeriod(parsedDate, period)) return acc;
 
-            const amount = Math.abs(convertToMxn(movement.monto || 0, movement.moneda, undefined, rates));
+            if (movement.status && movement.status !== "activo") return acc;
+
+            const amount = Math.abs(convertToMxn(movement.monto || 0, movement.moneda, movement.tipo_cambio, rates));
             const monthKey = parsedDate ? `${parsedDate.getFullYear()}-${parsedDate.getMonth() + 1}` : null;
 
             if (movement.tipo === "ingreso") {

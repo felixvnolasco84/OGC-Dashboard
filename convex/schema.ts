@@ -402,9 +402,26 @@ export default defineSchema({
     fecha: v.string(), // DD/MM/YYYY
     descripcion: v.optional(v.string()),
     moneda: v.string(),
+    tipo_cambio: v.optional(v.number()),
     proyecto: v.optional(v.id("desarrollos")),
     archivo_origen: v.optional(v.string()),
     fila_origen: v.optional(v.number()),
+    status: v.optional(v.string()), // "activo" | "anulado" | "duplicado"
+    duplicate_key: v.optional(v.string()),
+    duplicate_of: v.optional(v.id("ogc_movimientos")),
+    reconciled: v.optional(v.boolean()),
+    reconciliation_reference: v.optional(v.string()),
+    reconciliation_note: v.optional(v.string()),
+    reconciled_by_id: v.optional(v.id("users")),
+    reconciled_by_name: v.optional(v.string()),
+    reconciled_at: v.optional(v.number()),
+    void_reason: v.optional(v.string()),
+    voided_by_id: v.optional(v.id("users")),
+    voided_by_name: v.optional(v.string()),
+    voided_at: v.optional(v.number()),
+    updated_by_id: v.optional(v.id("users")),
+    updated_by_name: v.optional(v.string()),
+    updated_at: v.optional(v.number()),
     organization_id: v.optional(v.string()),
     created_by_id: v.id("users"),
     created_by_name: v.string(),
@@ -412,7 +429,23 @@ export default defineSchema({
   }).index("by_tipo", { fields: ["tipo"] })
     .index("by_proyecto", { fields: ["proyecto"] })
     .index("by_fecha", { fields: ["fecha"] })
-    .index("by_organization", { fields: ["organization_id"] }),
+    .index("by_organization", { fields: ["organization_id"] })
+    .index("by_duplicate_key", { fields: ["duplicate_key"] })
+    .index("by_status", { fields: ["status"] }),
+
+  ogc_movimientos_audit: defineTable({
+    movimiento_id: v.id("ogc_movimientos"),
+    action: v.string(), // created, updated, voided, reconciled, marked_duplicate
+    reason: v.optional(v.string()),
+    before_json: v.optional(v.string()),
+    after_json: v.optional(v.string()),
+    actor_id: v.id("users"),
+    actor_name: v.string(),
+    organization_id: v.optional(v.string()),
+    created_at: v.number(),
+  }).index("by_movimiento", { fields: ["movimiento_id"] })
+    .index("by_actor", { fields: ["actor_id"] })
+    .index("by_created_at", { fields: ["created_at"] }),
   
   // Ingresos documents - Separate document storage for income entries
   ingresos_documentos: defineTable({

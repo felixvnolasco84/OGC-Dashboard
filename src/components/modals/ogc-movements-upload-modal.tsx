@@ -40,6 +40,7 @@ type OgcUploadMovement = {
   proyecto_nombre?: string;
   descripcion?: string;
   moneda: string;
+  tipo_cambio?: number;
 };
 
 type OgcUploadResult = {
@@ -65,6 +66,7 @@ type PreparedMovement = {
   fecha: string;
   descripcion?: string;
   moneda: string;
+  tipo_cambio?: number;
   proyecto?: Id<"desarrollos">;
   archivo_origen?: string;
   fila_origen?: number;
@@ -88,6 +90,7 @@ type EditableMovementRow = {
   proyecto: Id<"desarrollos"> | "empresa";
   descripcion: string;
   moneda: string;
+  tipo_cambio: string;
 };
 
 const OGC_UPLOAD_ENDPOINTS = [
@@ -197,6 +200,7 @@ const createMovementRow = (overrides: Partial<EditableMovementRow> = {}): Editab
   proyecto: "empresa",
   descripcion: "",
   moneda: "MXN",
+  tipo_cambio: "",
   ...overrides,
 });
 
@@ -252,11 +256,14 @@ export function OgcMovementsUploadModal({
       const rowErrors: string[] = [];
       const monto = Math.abs(safeAmount(movement.monto));
       const fecha = normalizeDate(movement.fecha);
+      const moneda = (movement.moneda || "MXN").toUpperCase();
+      const tipoCambio = safeAmount(movement.tipo_cambio || 0);
       const projectName = normalizeLookupText(movement.proyecto_nombre);
       const proyecto = projectName ? projectLookup.get(projectName) : undefined;
 
       if (monto <= 0) rowErrors.push("Monto invalido");
       if (!isValidDate(fecha)) rowErrors.push("Fecha invalida");
+      if (moneda !== "MXN" && tipoCambio <= 0) rowErrors.push("Tipo de cambio requerido");
       if (projectName && !proyecto) {
         missingProjects.add(movement.proyecto_nombre || "Sin nombre");
         rowErrors.push("Obra no encontrada");
@@ -273,7 +280,8 @@ export function OgcMovementsUploadModal({
         monto,
         fecha,
         descripcion: movement.descripcion || undefined,
-        moneda: (movement.moneda || "MXN").toUpperCase(),
+        moneda,
+        tipo_cambio: moneda === "MXN" ? undefined : tipoCambio,
         proyecto,
         archivo_origen: sourceName,
         fila_origen: movement.rowIndex,
@@ -314,6 +322,7 @@ export function OgcMovementsUploadModal({
         proyecto_nombre: row.proyecto === "empresa" ? "" : projectNameById.get(row.proyecto) || "",
         descripcion: row.descripcion.trim(),
         moneda: row.moneda,
+        tipo_cambio: parseAmount(row.tipo_cambio),
       }];
     });
   };
@@ -337,6 +346,7 @@ export function OgcMovementsUploadModal({
         categoria: lastRow?.categoria || "OTROS",
         fecha: lastRow?.fecha || new Date().toISOString().slice(0, 10),
         moneda: lastRow?.moneda || "MXN",
+        tipo_cambio: lastRow?.tipo_cambio || "",
       }),
     ]);
   };
@@ -407,17 +417,25 @@ export function OgcMovementsUploadModal({
     }
 
     let createdCount = 0;
+    let duplicateCount = 0;
+    let rejectedCount = 0;
     const chunkSize = 100;
     for (let index = 0; index < report.valid.length; index += chunkSize) {
       const chunk = report.valid.slice(index, index + chunkSize);
       const created = await bulkCreateMovements({ movimientos: chunk });
       createdCount += created.created;
+      duplicateCount += created.skippedDuplicates || 0;
+      rejectedCount += created.rejected || 0;
     }
 
     const skippedDetails = [
       report.errors.length ? `${report.errors.length} filas omitidas` : "",
       report.missingProjects.length ? `${report.missingProjects.length} obras no encontradas` : "",
-      createdCount < report.valid.length ? `${report.valid.length - createdCount} rechazadas por validacion final` : "",
+      duplicateCount ? `${duplicateCount} duplicadas` : "",
+      rejectedCount ? `${rejectedCount} rechazadas` : "",
+      report.valid.length - createdCount - duplicateCount - rejectedCount > 0
+        ? `${report.valid.length - createdCount - duplicateCount - rejectedCount} no guardadas`
+        : "",
     ].filter(Boolean).join(", ");
 
     toast.success("Carga OGC completada", {
@@ -674,7 +692,7 @@ function EditableMovementsTable({
                 </div>
               </div>
 
-              <div className="min-w-0 lg:col-span-3">
+              <div className="min-w-0 lg:col-span-2">
                 <FieldLabel>Tipo</FieldLabel>
                 <Select
                   value={row.tipo}
@@ -691,7 +709,7 @@ function EditableMovementsTable({
                 </Select>
               </div>
 
-              <div className="min-w-0 lg:col-span-4">
+              <div className="min-w-0 lg:col-span-3">
                 <FieldLabel>Categoria</FieldLabel>
                 <Select
                   value={row.categoria}
@@ -759,7 +777,7 @@ function EditableMovementsTable({
                 />
               </div>
 
-              <div className="min-w-0 lg:col-span-2">
+              <div className="min-w-0 lg:col-span-1">
                 <FieldLabel>Moneda</FieldLabel>
                 <Select
                   value={row.moneda}
@@ -775,6 +793,17 @@ function EditableMovementsTable({
                     <SelectItem value="EUR">EUR</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="min-w-0 lg:col-span-1">
+                <FieldLabel>TC</FieldLabel>
+                <Input
+                  inputMode="decimal"
+                  value={row.tipo_cambio}
+                  onChange={(event) => onUpdate(row.id, "tipo_cambio", event.target.value)}
+                  placeholder={row.moneda === "MXN" ? "-" : "0.00"}
+                  disabled={disabled || row.moneda === "MXN"}
+                />
               </div>
 
               <div className="min-w-0 lg:col-span-2">
