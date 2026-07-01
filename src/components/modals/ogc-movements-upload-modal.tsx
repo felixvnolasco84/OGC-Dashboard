@@ -25,6 +25,7 @@ import { AlertTriangle, CheckCircle2, Copy, FileSpreadsheet, Loader2, Plus, Tras
 import { toast } from "sonner";
 
 type OgcMovementType = "ingreso" | "costo_estructura";
+type ExchangeRateMode = "pnl" | "manual";
 
 type DesarrolloOption = {
   _id: Id<"desarrollos">;
@@ -90,7 +91,13 @@ type EditableMovementRow = {
   proyecto: Id<"desarrollos"> | "empresa";
   descripcion: string;
   moneda: string;
+  tipo_cambio_mode: ExchangeRateMode;
   tipo_cambio: string;
+};
+
+type ExchangeRateSettings = {
+  USD: number;
+  EUR: number;
 };
 
 const OGC_UPLOAD_ENDPOINTS = [
@@ -200,6 +207,7 @@ const createMovementRow = (overrides: Partial<EditableMovementRow> = {}): Editab
   proyecto: "empresa",
   descripcion: "",
   moneda: "MXN",
+  tipo_cambio_mode: "pnl",
   tipo_cambio: "",
   ...overrides,
 });
@@ -207,9 +215,11 @@ const createMovementRow = (overrides: Partial<EditableMovementRow> = {}): Editab
 export function OgcMovementsUploadModal({
   open,
   onOpenChange,
+  exchangeRates = { USD: 17, EUR: 18.5 },
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  exchangeRates?: ExchangeRateSettings;
 }) {
   const fileInputId = useId();
   const [file, setFile] = useState<File | null>(null);
@@ -241,6 +251,13 @@ export function OgcMovementsUploadModal({
     setResult(null);
   };
 
+  const getConfiguredExchangeRate = (currency?: string) => {
+    const normalizedCurrency = (currency || "MXN").toUpperCase();
+    if (normalizedCurrency === "USD") return Number.isFinite(exchangeRates.USD) && exchangeRates.USD > 0 ? exchangeRates.USD : 0;
+    if (normalizedCurrency === "EUR") return Number.isFinite(exchangeRates.EUR) && exchangeRates.EUR > 0 ? exchangeRates.EUR : 0;
+    return 0;
+  };
+
   const handleClose = (nextOpen: boolean) => {
     if (isProcessing) return;
     if (!nextOpen) resetState();
@@ -257,7 +274,7 @@ export function OgcMovementsUploadModal({
       const monto = Math.abs(safeAmount(movement.monto));
       const fecha = normalizeDate(movement.fecha);
       const moneda = (movement.moneda || "MXN").toUpperCase();
-      const tipoCambio = safeAmount(movement.tipo_cambio || 0);
+      const tipoCambio = safeAmount(movement.tipo_cambio || getConfiguredExchangeRate(moneda));
       const projectName = normalizeLookupText(movement.proyecto_nombre);
       const proyecto = projectName ? projectLookup.get(projectName) : undefined;
 
@@ -322,7 +339,11 @@ export function OgcMovementsUploadModal({
         proyecto_nombre: row.proyecto === "empresa" ? "" : projectNameById.get(row.proyecto) || "",
         descripcion: row.descripcion.trim(),
         moneda: row.moneda,
-        tipo_cambio: parseAmount(row.tipo_cambio),
+        tipo_cambio: row.moneda === "MXN"
+          ? undefined
+          : row.tipo_cambio_mode === "pnl"
+            ? getConfiguredExchangeRate(row.moneda)
+            : parseAmount(row.tipo_cambio),
       }];
     });
   };
@@ -346,6 +367,7 @@ export function OgcMovementsUploadModal({
         categoria: lastRow?.categoria || "OTROS",
         fecha: lastRow?.fecha || new Date().toISOString().slice(0, 10),
         moneda: lastRow?.moneda || "MXN",
+        tipo_cambio_mode: lastRow?.tipo_cambio_mode || "pnl",
         tipo_cambio: lastRow?.tipo_cambio || "",
       }),
     ]);
@@ -515,8 +537,8 @@ export function OgcMovementsUploadModal({
     }
   };
 
-  const manualMovements = useMemo(() => rowsToMovements(manualRows), [manualRows, projectNameById]);
-  const manualReport = useMemo(() => validateMovements(manualMovements, "captura masiva"), [manualMovements, projectLookup]);
+  const manualMovements = useMemo(() => rowsToMovements(manualRows), [manualRows, projectNameById, exchangeRates]);
+  const manualReport = useMemo(() => validateMovements(manualMovements, "captura masiva"), [manualMovements, projectLookup, exchangeRates]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -538,8 +560,9 @@ export function OgcMovementsUploadModal({
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <Label className="text-sm text-gray-900">Movimientos manuales</Label>
-                <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-500">
                   Agrega filas editables; selecciona una obra solo cuando el movimiento aplique a una obra especifica.
+                  TC P&L: USD {exchangeRates.USD.toLocaleString("es-MX", { maximumFractionDigits: 4 })} / EUR {exchangeRates.EUR.toLocaleString("es-MX", { maximumFractionDigits: 4 })}.
                 </p>
               </div>
               <Button type="button" variant="outline" onClick={addManualRow} disabled={isProcessing}>
@@ -551,6 +574,7 @@ export function OgcMovementsUploadModal({
             <EditableMovementsTable
               rows={manualRows}
               proyectos={proyectos || []}
+              exchangeRates={exchangeRates}
               errors={manualReport.errors}
               disabled={isProcessing}
               onUpdate={updateManualRow}
@@ -650,6 +674,7 @@ function SummaryStat({ label, value }: { label: string; value: number }) {
 function EditableMovementsTable({
   rows,
   proyectos,
+  exchangeRates,
   errors,
   disabled,
   onUpdate,
@@ -658,12 +683,24 @@ function EditableMovementsTable({
 }: {
   rows: EditableMovementRow[];
   proyectos: DesarrolloOption[];
+  exchangeRates: ExchangeRateSettings;
   errors: ValidationReport["errors"];
   disabled: boolean;
   onUpdate: <K extends keyof EditableMovementRow>(id: string, key: K, value: EditableMovementRow[K]) => void;
   onDuplicate: (row: EditableMovementRow) => void;
   onRemove: (id: string) => void;
 }) {
+  const getConfiguredExchangeRate = (currency?: string) => {
+    const normalizedCurrency = (currency || "MXN").toUpperCase();
+    if (normalizedCurrency === "USD") return Number.isFinite(exchangeRates.USD) && exchangeRates.USD > 0 ? exchangeRates.USD : 0;
+    if (normalizedCurrency === "EUR") return Number.isFinite(exchangeRates.EUR) && exchangeRates.EUR > 0 ? exchangeRates.EUR : 0;
+    return 0;
+  };
+
+  const formatExchangeRate = (value: number) => {
+    return value > 0 ? String(value) : "";
+  };
+
   const errorsByRow = useMemo(() => {
     const map = new Map<number, string>();
     errors.forEach((error) => map.set(error.row, error.message));
@@ -674,6 +711,8 @@ function EditableMovementsTable({
     <div className="min-w-0 space-y-3">
       {rows.map((row, index) => {
         const rowError = errorsByRow.get(index + 1);
+        const configuredExchangeRate = getConfiguredExchangeRate(row.moneda);
+        const isPnlExchangeRate = row.tipo_cambio_mode === "pnl";
 
         return (
           <div
@@ -781,7 +820,13 @@ function EditableMovementsTable({
                 <FieldLabel>Moneda</FieldLabel>
                 <Select
                   value={row.moneda}
-                  onValueChange={(value) => onUpdate(row.id, "moneda", value)}
+                  onValueChange={(value) => {
+                    onUpdate(row.id, "moneda", value);
+                    if (value === "MXN") {
+                      onUpdate(row.id, "tipo_cambio_mode", "pnl");
+                      onUpdate(row.id, "tipo_cambio", "");
+                    }
+                  }}
                   disabled={disabled}
                 >
                   <SelectTrigger>
@@ -795,18 +840,39 @@ function EditableMovementsTable({
                 </Select>
               </div>
 
-              <div className="min-w-0 lg:col-span-1">
+              <div className="min-w-0 lg:col-span-2">
                 <FieldLabel>TC</FieldLabel>
-                <Input
-                  inputMode="decimal"
-                  value={row.tipo_cambio}
-                  onChange={(event) => onUpdate(row.id, "tipo_cambio", event.target.value)}
-                  placeholder={row.moneda === "MXN" ? "-" : "0.00"}
-                  disabled={disabled || row.moneda === "MXN"}
-                />
+                <div className="flex min-w-0 gap-2">
+                  <Select
+                    value={row.tipo_cambio_mode}
+                    onValueChange={(value) => {
+                      const mode = value as ExchangeRateMode;
+                      onUpdate(row.id, "tipo_cambio_mode", mode);
+                      if (mode === "manual" && !row.tipo_cambio.trim() && configuredExchangeRate > 0) {
+                        onUpdate(row.id, "tipo_cambio", formatExchangeRate(configuredExchangeRate));
+                      }
+                    }}
+                    disabled={disabled || row.moneda === "MXN"}
+                  >
+                    <SelectTrigger className="w-[88px] shrink-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pnl">P&L</SelectItem>
+                      <SelectItem value="manual">Manual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    inputMode="decimal"
+                    value={isPnlExchangeRate && row.moneda !== "MXN" ? formatExchangeRate(configuredExchangeRate) : row.tipo_cambio}
+                    onChange={(event) => onUpdate(row.id, "tipo_cambio", event.target.value)}
+                    placeholder={row.moneda === "MXN" ? "-" : "0.00"}
+                    disabled={disabled || row.moneda === "MXN" || isPnlExchangeRate}
+                  />
+                </div>
               </div>
 
-              <div className="min-w-0 lg:col-span-2">
+              <div className="min-w-0 lg:col-span-1">
                 <FieldLabel>Acciones</FieldLabel>
                 <div className="flex h-9 justify-end gap-1 sm:justify-start lg:justify-end">
                   <Button

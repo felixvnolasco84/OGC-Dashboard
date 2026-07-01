@@ -1605,6 +1605,7 @@ export default function ProfitAndLossPage() {
     }),
     [periodYear, cutoffMonth, usdToMxn, eurToMxn]
   );
+  const ogcExchangeRates = useMemo(() => ({ USD: usdToMxn, EUR: eurToMxn }), [usdToMxn, eurToMxn]);
 
   const pnlSummary = useQuery(api.desarrollos.getPnlSummary, pnlQueryParams) as PnlSummary | undefined;
   const profitabilitySummary = useQuery(api.desarrollos.getProfitabilitySummary, pnlQueryParams) as ProfitabilitySummary | undefined;
@@ -1657,7 +1658,11 @@ export default function ProfitAndLossPage() {
 
   return (
     <div className="bg-white px-12 py-6">
-      <OgcMovementsUploadModal open={isOgcUploadOpen} onOpenChange={setIsOgcUploadOpen} />
+      <OgcMovementsUploadModal
+        open={isOgcUploadOpen}
+        onOpenChange={setIsOgcUploadOpen}
+        exchangeRates={ogcExchangeRates}
+      />
       <div className="max-w-full mx-auto space-y-6">
         <div className="border-b border-[#AFAEA2]">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
