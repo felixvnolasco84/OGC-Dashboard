@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { OgcMovementsUploadModal } from "@/components/modals/ogc-movements-upload-modal";
 import { cn } from "@/lib/utils";
-import { Ban, CalendarDays, Check, Copy, Pencil, Percent, RefreshCcw, Save, Settings2, Upload, X } from "lucide-react";
+import { Ban, CalendarDays, Check, Copy, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 type PnlTab = "pnl" | "wip" | "profitability";
@@ -909,7 +909,7 @@ const createLedgerDraft = (movement: OgcLedgerMovement): LedgerDraft => ({
   tipo_cambio: movement.tipo_cambio ? String(movement.tipo_cambio) : "",
 });
 
-function OgcLedgerSection({
+function OgcLedgerDialog({
   movements,
   proyectos,
 }: {
@@ -1061,231 +1061,262 @@ function OgcLedgerSection({
       : "Conciliar movimiento";
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 border-t border-[#AFAEA2] pt-12 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="text-lg text-gray-900">LEDGER MOVIMIENTOS OGC</h2>
-          <p className="mt-1 text-sm text-gray-400">Edicion, anulacion, deduplicacion y conciliacion con auditoria.</p>
-        </div>
-        <div className="grid grid-cols-3 gap-3 text-sm">
-          <div className="border border-gray-200 bg-[#FBFAF2] px-4 py-3">
-            <p className="text-xs text-gray-500">Activos</p>
-            <p className="text-lg text-gray-900">{activeCount}</p>
-          </div>
-          <div className="border border-gray-200 bg-white px-4 py-3">
-            <p className="text-xs text-gray-500">Conciliados</p>
-            <p className="text-lg text-gray-900">{reconciledCount}</p>
-          </div>
-          <div className="border border-gray-200 bg-white px-4 py-3">
-            <p className="text-xs text-gray-500">Historicos</p>
-            <p className="text-lg text-gray-900">{inactiveCount}</p>
-          </div>
-        </div>
-      </div>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          title="Ledger movimientos OGC"
+          aria-label="Ledger movimientos OGC"
+          className="mb-3 h-10 w-10 shrink-0 self-start bg-white text-gray-900 md:self-auto"
+        >
+          <ScrollText className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
 
-      <div className="overflow-x-auto border border-gray-200 bg-white">
-        <table className="w-full min-w-[1480px] border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 text-gray-500">
-              <th className="px-4 py-3 font-normal">Estado</th>
-              <th className="px-4 py-3 font-normal">Fecha</th>
-              <th className="px-4 py-3 font-normal">Tipo</th>
-              <th className="px-4 py-3 font-normal">Categoria</th>
-              <th className="px-4 py-3 text-right font-normal">Monto</th>
-              <th className="px-4 py-3 font-normal">Moneda</th>
-              <th className="px-4 py-3 font-normal">TC</th>
-              <th className="px-4 py-3 font-normal">Obra</th>
-              <th className="px-4 py-3 font-normal">Descripcion</th>
-              <th className="px-4 py-3 font-normal">Auditoria</th>
-              <th className="px-4 py-3 text-right font-normal">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {movements.map((movement) => {
-              const isEditing = editingId === movement._id && draft;
-              const isActive = !movement.status || movement.status === "activo";
-              const duplicateCount = movement.duplicate_key ? duplicateCounts.get(movement.duplicate_key) || 0 : 0;
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-normal">LEDGER MOVIMIENTOS OGC</DialogTitle>
+          <DialogDescription>
+            Edicion, anulacion, deduplicacion y conciliacion con auditoria.
+          </DialogDescription>
+        </DialogHeader>
 
-              return (
-                <tr key={movement._id} className={cn("border-b border-gray-200", isActive ? "bg-white" : "bg-gray-50")}>
-                  <td className="px-4 py-4 align-top">
-                    <div className="flex flex-col gap-1">
-                      <Badge variant="secondary" className={cn(
-                        "w-fit rounded-xl text-[10px] font-normal",
-                        movement.status === "anulado" ? "border-red-200 text-[#802424]" : "",
-                        movement.status === "duplicado" ? "border-amber-200 text-amber-700" : "",
-                        movement.reconciled && isActive ? "border-green-200 text-[#1A5D21]" : ""
-                      )}>
-                        {getLedgerStatusLabel(movement)}
-                      </Badge>
-                      {duplicateCount > 1 && (
-                        <span className="text-xs text-amber-700">{duplicateCount} posibles duplicados</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    {isEditing ? (
-                      <Input
-                        type="date"
-                        value={draft.fecha}
-                        onChange={(event) => updateDraft("fecha", event.target.value)}
-                        className="h-9"
-                      />
-                    ) : (
-                      <span className={DETAIL_TEXT_CLASS}>{movement.fecha}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    {isEditing ? (
-                      <Select value={draft.tipo} onValueChange={(value) => updateDraft("tipo", value)}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ingreso">Ingreso</SelectItem>
-                          <SelectItem value="costo_estructura">Costo estructura</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : movement.tipo === "ingreso" ? "Ingreso" : "Costo estructura"}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    {isEditing ? (
-                      <Select value={draft.categoria} onValueChange={(value) => updateDraft("categoria", value)}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LEDGER_CATEGORIES.map((category) => (
-                            <SelectItem key={category} value={category}>{category}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : movement.categoria}
-                  </td>
-                  <td className="px-4 py-4 text-right align-top">
-                    {isEditing ? (
-                      <Input
-                        inputMode="decimal"
-                        value={draft.monto}
-                        onChange={(event) => updateDraft("monto", event.target.value)}
-                        className="h-9 text-right"
-                      />
-                    ) : (
-                      formatTableCurrency(movement.monto)
-                    )}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    {isEditing ? (
-                      <Select value={draft.moneda} onValueChange={(value) => updateDraft("moneda", value)}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MXN">MXN</SelectItem>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="EUR">EUR</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : movement.moneda}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    {isEditing ? (
-                      <Input
-                        inputMode="decimal"
-                        value={draft.tipo_cambio}
-                        onChange={(event) => updateDraft("tipo_cambio", event.target.value)}
-                        placeholder={draft.moneda === "MXN" ? "-" : "0.00"}
-                        disabled={draft.moneda === "MXN"}
-                        className="h-9"
-                      />
-                    ) : movement.tipo_cambio ? movement.tipo_cambio.toFixed(4) : "-"}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    {isEditing ? (
-                      <Select value={draft.proyecto} onValueChange={(value) => updateDraft("proyecto", value)}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="empresa">Empresa</SelectItem>
-                          {proyectos.map((proyecto) => (
-                            <SelectItem key={proyecto._id} value={proyecto._id}>{proyecto.nombre}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : movement.proyecto ? projectNameById.get(movement.proyecto) || "Obra" : "Empresa"}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    {isEditing ? (
-                      <Input
-                        value={draft.descripcion}
-                        onChange={(event) => updateDraft("descripcion", event.target.value)}
-                        className="h-9"
-                      />
-                    ) : (
-                      <span className="block max-w-[220px] truncate" title={movement.descripcion || ""}>
-                        {movement.descripcion || "-"}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-4 align-top text-xs text-gray-500">
-                    <div className="space-y-1">
-                      <p>Creado: {formatLedgerTimestamp(movement.created_at)}</p>
-                      <p>Por: {movement.created_by_name}</p>
-                      {movement.updated_at && <p>Ultimo cambio: {formatLedgerTimestamp(movement.updated_at)}</p>}
-                      {movement.updated_by_name && <p>Por: {movement.updated_by_name}</p>}
-                      {movement.void_reason && <p className="text-[#802424]">Motivo: {movement.void_reason}</p>}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <div className="flex justify-end gap-1">
-                      {isEditing ? (
-                        <>
-                          <Button type="button" variant="ghost" size="icon" onClick={saveEdit} disabled={isSaving} title="Guardar">
-                            <Save className="h-4 w-4" />
-                          </Button>
-                          <Button type="button" variant="ghost" size="icon" onClick={cancelEdit} disabled={isSaving} title="Cancelar">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button type="button" variant="ghost" size="icon" onClick={() => startEdit(movement)} disabled={!isActive || isSaving} title="Editar">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          {movement.reconciled ? (
-                            <Button type="button" variant="ghost" size="icon" onClick={() => unreconcile(movement)} disabled={!isActive || isSaving} title="Desconciliar">
-                              <X className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <Button type="button" variant="ghost" size="icon" onClick={() => openAction("reconcile", movement)} disabled={!isActive || isSaving} title="Conciliar">
-                              <Check className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button type="button" variant="ghost" size="icon" onClick={() => openAction("duplicate", movement)} disabled={!isActive || isSaving} title="Marcar duplicado">
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button type="button" variant="ghost" size="icon" onClick={() => openAction("void", movement)} disabled={!isActive || isSaving} title="Anular">
-                            <Ban className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+            <div className="border border-gray-200 bg-[#FBFAF2] px-4 py-3">
+              <p className="text-xs text-gray-500">Activos</p>
+              <p className="text-lg text-gray-900">{activeCount}</p>
+            </div>
+            <div className="border border-gray-200 bg-white px-4 py-3">
+              <p className="text-xs text-gray-500">Conciliados</p>
+              <p className="text-lg text-gray-900">{reconciledCount}</p>
+            </div>
+            <div className="border border-gray-200 bg-white px-4 py-3">
+              <p className="text-xs text-gray-500">Historicos</p>
+              <p className="text-lg text-gray-900">{inactiveCount}</p>
+            </div>
+          </div>
+
+          <div className="overflow-hidden border border-gray-200 bg-white">
+            <table className="w-full table-fixed border-collapse text-left text-xs xl:text-sm">
+              <colgroup>
+                <col className="w-[8%]" />
+                <col className="w-[8%]" />
+                <col className="w-[9%]" />
+                <col className="w-[12%]" />
+                <col className="w-[8%]" />
+                <col className="w-[6%]" />
+                <col className="w-[6%]" />
+                <col className="w-[10%]" />
+                <col className="w-[12%]" />
+                <col className="w-[15%]" />
+                <col className="w-[6%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-gray-200 text-gray-500">
+                  <th className="px-4 py-3 font-normal">Estado</th>
+                  <th className="px-4 py-3 font-normal">Fecha</th>
+                  <th className="px-4 py-3 font-normal">Tipo</th>
+                  <th className="px-4 py-3 font-normal">Categoria</th>
+                  <th className="px-4 py-3 text-right font-normal">Monto</th>
+                  <th className="px-4 py-3 font-normal">Moneda</th>
+                  <th className="px-4 py-3 font-normal">TC</th>
+                  <th className="px-4 py-3 font-normal">Obra</th>
+                  <th className="px-4 py-3 font-normal">Descripcion</th>
+                  <th className="px-4 py-3 font-normal">Auditoria</th>
+                  <th className="px-4 py-3 text-right font-normal">Acciones</th>
                 </tr>
-              );
-            })}
+              </thead>
+              <tbody>
+                {movements.map((movement) => {
+                  const isEditing = editingId === movement._id && draft;
+                  const isActive = !movement.status || movement.status === "activo";
+                  const duplicateCount = movement.duplicate_key ? duplicateCounts.get(movement.duplicate_key) || 0 : 0;
 
-            {movements.length === 0 && (
-              <tr className="border-b border-gray-200 bg-white">
-                <td className="px-8 py-6 align-middle text-base text-gray-400" colSpan={11}>
-                  No hay movimientos OGC cargados.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                  return (
+                    <tr key={movement._id} className={cn("border-b border-gray-200", isActive ? "bg-white" : "bg-gray-50")}>
+                      <td className="px-4 py-4 align-top">
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="secondary" className={cn(
+                            "w-fit rounded-xl text-[10px] font-normal",
+                            movement.status === "anulado" ? "border-red-200 text-[#802424]" : "",
+                            movement.status === "duplicado" ? "border-amber-200 text-amber-700" : "",
+                            movement.reconciled && isActive ? "border-green-200 text-[#1A5D21]" : ""
+                          )}>
+                            {getLedgerStatusLabel(movement)}
+                          </Badge>
+                          {duplicateCount > 1 && (
+                            <span className="text-xs text-amber-700">{duplicateCount} posibles duplicados</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        {isEditing ? (
+                          <Input
+                            type="date"
+                            value={draft.fecha}
+                            onChange={(event) => updateDraft("fecha", event.target.value)}
+                            className="h-9"
+                          />
+                        ) : (
+                          <span className={DETAIL_TEXT_CLASS}>{movement.fecha}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        {isEditing ? (
+                          <Select value={draft.tipo} onValueChange={(value) => updateDraft("tipo", value)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ingreso">Ingreso</SelectItem>
+                              <SelectItem value="costo_estructura">Costo estructura</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : movement.tipo === "ingreso" ? "Ingreso" : "Costo estructura"}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        {isEditing ? (
+                          <Select value={draft.categoria} onValueChange={(value) => updateDraft("categoria", value)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LEDGER_CATEGORIES.map((category) => (
+                                <SelectItem key={category} value={category}>{category}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : movement.categoria}
+                      </td>
+                      <td className="px-4 py-4 text-right align-top">
+                        {isEditing ? (
+                          <Input
+                            inputMode="decimal"
+                            value={draft.monto}
+                            onChange={(event) => updateDraft("monto", event.target.value)}
+                            className="h-9 text-right"
+                          />
+                        ) : (
+                          formatTableCurrency(movement.monto)
+                        )}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        {isEditing ? (
+                          <Select value={draft.moneda} onValueChange={(value) => updateDraft("moneda", value)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MXN">MXN</SelectItem>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="EUR">EUR</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : movement.moneda}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        {isEditing ? (
+                          <Input
+                            inputMode="decimal"
+                            value={draft.tipo_cambio}
+                            onChange={(event) => updateDraft("tipo_cambio", event.target.value)}
+                            placeholder={draft.moneda === "MXN" ? "-" : "0.00"}
+                            disabled={draft.moneda === "MXN"}
+                            className="h-9"
+                          />
+                        ) : movement.tipo_cambio ? movement.tipo_cambio.toFixed(4) : "-"}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        {isEditing ? (
+                          <Select value={draft.proyecto} onValueChange={(value) => updateDraft("proyecto", value)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="empresa">Empresa</SelectItem>
+                              {proyectos.map((proyecto) => (
+                                <SelectItem key={proyecto._id} value={proyecto._id}>{proyecto.nombre}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : movement.proyecto ? projectNameById.get(movement.proyecto) || "Obra" : "Empresa"}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        {isEditing ? (
+                          <Input
+                            value={draft.descripcion}
+                            onChange={(event) => updateDraft("descripcion", event.target.value)}
+                            className="h-9"
+                          />
+                        ) : (
+                          <span className="block max-w-[220px] truncate" title={movement.descripcion || ""}>
+                            {movement.descripcion || "-"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 align-top text-xs text-gray-500">
+                        <div className="space-y-1">
+                          <p>Creado: {formatLedgerTimestamp(movement.created_at)}</p>
+                          <p>Por: {movement.created_by_name}</p>
+                          {movement.updated_at && <p>Ultimo cambio: {formatLedgerTimestamp(movement.updated_at)}</p>}
+                          {movement.updated_by_name && <p>Por: {movement.updated_by_name}</p>}
+                          {movement.void_reason && <p className="text-[#802424]">Motivo: {movement.void_reason}</p>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="flex justify-end gap-1">
+                          {isEditing ? (
+                            <>
+                              <Button type="button" variant="ghost" size="icon" onClick={saveEdit} disabled={isSaving} title="Guardar">
+                                <Save className="h-4 w-4" />
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon" onClick={cancelEdit} disabled={isSaving} title="Cancelar">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button type="button" variant="ghost" size="icon" onClick={() => startEdit(movement)} disabled={!isActive || isSaving} title="Editar">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              {movement.reconciled ? (
+                                <Button type="button" variant="ghost" size="icon" onClick={() => unreconcile(movement)} disabled={!isActive || isSaving} title="Desconciliar">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              ) : (
+                                <Button type="button" variant="ghost" size="icon" onClick={() => openAction("reconcile", movement)} disabled={!isActive || isSaving} title="Conciliar">
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button type="button" variant="ghost" size="icon" onClick={() => openAction("duplicate", movement)} disabled={!isActive || isSaving} title="Marcar duplicado">
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon" onClick={() => openAction("void", movement)} disabled={!isActive || isSaving} title="Anular">
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {movements.length === 0 && (
+                  <tr className="border-b border-gray-200 bg-white">
+                    <td className="px-8 py-6 align-middle text-base text-gray-400" colSpan={11}>
+                      No hay movimientos OGC cargados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </DialogContent>
 
       <Dialog open={!!action} onOpenChange={(open) => !open && closeAction()}>
         <DialogContent className="max-w-lg">
@@ -1337,7 +1368,7 @@ function OgcLedgerSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Dialog>
   );
 }
 
@@ -1698,6 +1729,7 @@ export default function ProfitAndLossPage() {
                 onTaxSettingChange={updateTaxSetting}
                 onReset={resetSettings}
               />
+              <OgcLedgerDialog movements={ogcMovements} proyectos={proyectos} />
               <Button
                 type="button"
                 variant="outline"
@@ -1750,8 +1782,6 @@ export default function ProfitAndLossPage() {
                 dataQualityNote={monthlyDataNote}
               />
             </div>
-
-            <OgcLedgerSection movements={ogcMovements} proyectos={proyectos} />
           </>
         ) : activeTab === "wip" ? (
           <WorkInProgressView summary={profitabilitySummary} />
