@@ -21,11 +21,13 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CheckCircle2, Copy, FileSpreadsheet, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, FileSpreadsheet, Loader2, Paperclip, Plus, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 type OgcMovementType = "ingreso" | "costo_estructura";
 type ExchangeRateMode = "pnl" | "manual";
+type DeliveryNoteStatus = "none" | "parcial" | "completa";
+type UploadedDeliveryNoteStatus = Exclude<DeliveryNoteStatus, "none">;
 
 type DesarrolloOption = {
   _id: Id<"desarrollos">;
@@ -42,6 +44,12 @@ type OgcUploadMovement = {
   descripcion?: string;
   moneda: string;
   tipo_cambio?: number;
+  nota_recepcion_status?: UploadedDeliveryNoteStatus;
+  nota_recepcion_storage_id?: Id<"_storage">;
+  nota_recepcion_nombre?: string;
+  nota_recepcion_type?: string;
+  nota_recepcion_size?: number;
+  nota_recepcion_uploaded_at?: number;
 };
 
 type OgcUploadResult = {
@@ -71,6 +79,12 @@ type PreparedMovement = {
   proyecto?: Id<"desarrollos">;
   archivo_origen?: string;
   fila_origen?: number;
+  nota_recepcion_status?: UploadedDeliveryNoteStatus;
+  nota_recepcion_storage_id?: Id<"_storage">;
+  nota_recepcion_nombre?: string;
+  nota_recepcion_type?: string;
+  nota_recepcion_size?: number;
+  nota_recepcion_uploaded_at?: number;
 };
 
 type ValidationReport = {
@@ -93,6 +107,8 @@ type EditableMovementRow = {
   moneda: string;
   tipo_cambio_mode: ExchangeRateMode;
   tipo_cambio: string;
+  nota_recepcion_status: DeliveryNoteStatus;
+  nota_recepcion_file: File | null;
 };
 
 type ExchangeRateSettings = {
@@ -100,10 +116,21 @@ type ExchangeRateSettings = {
   EUR: number;
 };
 
+type UploadedDeliveryNote = {
+  status: UploadedDeliveryNoteStatus;
+  storage_id: Id<"_storage">;
+  nombre: string;
+  type: string;
+  size: number;
+  uploaded_at: number;
+};
+
 const OGC_UPLOAD_ENDPOINTS = [
   "https://ogc-excel-reader.vercel.app/upload/ogc-transactions",
   "http://localhost:3000/upload/ogc-transactions",
 ];
+const MAX_DELIVERY_NOTE_FILE_SIZE = 20 * 1024 * 1024;
+const DELIVERY_NOTE_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
 
 const CATEGORIES = [
   "HONORARIOS",
@@ -209,8 +236,30 @@ const createMovementRow = (overrides: Partial<EditableMovementRow> = {}): Editab
   moneda: "MXN",
   tipo_cambio_mode: "pnl",
   tipo_cambio: "",
+  nota_recepcion_status: "none",
+  nota_recepcion_file: null,
   ...overrides,
 });
+
+const rowHasUserInput = (row: EditableMovementRow) => {
+  return Boolean(
+    row.monto.trim() ||
+    row.descripcion.trim() ||
+    row.proyecto !== "empresa" ||
+    row.tipo !== "costo_estructura" ||
+    row.categoria !== "OTROS"
+  );
+};
+
+const isAcceptedDeliveryNoteFile = (file: File) => {
+  const lowerName = file.name.toLowerCase();
+  return (
+    file.type.startsWith("image/") ||
+    file.type === "application/pdf" ||
+    lowerName.endsWith(".pdf") ||
+    DELIVERY_NOTE_IMAGE_EXTENSIONS.some((extension) => lowerName.endsWith(extension))
+  );
+};
 
 export function OgcMovementsUploadModal({
   open,
@@ -227,6 +276,8 @@ export function OgcMovementsUploadModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<OgcUploadResult | null>(null);
   const proyectos = useQuery(api.desarrollos.getAll) as DesarrolloOption[] | undefined;
+  const generateOgcUploadUrl = useMutation(api.ogc_movimientos.generateUploadUrl);
+  const validateBulkCreateMovements = useMutation(api.ogc_movimientos.validateBulkCreate);
   const bulkCreateMovements = useMutation(api.ogc_movimientos.bulkCreate);
 
   const projectLookup = useMemo(() => {
@@ -302,6 +353,12 @@ export function OgcMovementsUploadModal({
         proyecto,
         archivo_origen: sourceName,
         fila_origen: movement.rowIndex,
+        nota_recepcion_status: movement.nota_recepcion_status,
+        nota_recepcion_storage_id: movement.nota_recepcion_storage_id,
+        nota_recepcion_nombre: movement.nota_recepcion_nombre,
+        nota_recepcion_type: movement.nota_recepcion_type,
+        nota_recepcion_size: movement.nota_recepcion_size,
+        nota_recepcion_uploaded_at: movement.nota_recepcion_uploaded_at,
       });
     });
 
@@ -319,16 +376,14 @@ export function OgcMovementsUploadModal({
     return Number.isFinite(value) ? value : 0;
   };
 
-  const rowsToMovements = (rows: EditableMovementRow[]): OgcUploadMovement[] => {
+  const rowsToMovements = (
+    rows: EditableMovementRow[],
+    uploadedNotes = new Map<string, UploadedDeliveryNote>()
+  ): OgcUploadMovement[] => {
     return rows.flatMap((row, index) => {
-      const hasUserInput =
-        row.monto.trim() ||
-        row.descripcion.trim() ||
-        row.proyecto !== "empresa" ||
-        row.tipo !== "costo_estructura" ||
-        row.categoria !== "OTROS";
+      if (!rowHasUserInput(row)) return [];
 
-      if (!hasUserInput) return [];
+      const uploadedNote = uploadedNotes.get(row.id);
 
       return [{
         rowIndex: index + 1,
@@ -344,6 +399,12 @@ export function OgcMovementsUploadModal({
           : row.tipo_cambio_mode === "pnl"
             ? getConfiguredExchangeRate(row.moneda)
             : parseAmount(row.tipo_cambio),
+        nota_recepcion_status: uploadedNote?.status,
+        nota_recepcion_storage_id: uploadedNote?.storage_id,
+        nota_recepcion_nombre: uploadedNote?.nombre,
+        nota_recepcion_type: uploadedNote?.type,
+        nota_recepcion_size: uploadedNote?.size,
+        nota_recepcion_uploaded_at: uploadedNote?.uploaded_at,
       }];
     });
   };
@@ -379,6 +440,8 @@ export function OgcMovementsUploadModal({
       const duplicate = createMovementRow({
         ...row,
         id: crypto.randomUUID(),
+        nota_recepcion_status: "none",
+        nota_recepcion_file: null,
       });
 
       if (index === -1) return [...currentRows, duplicate];
@@ -388,6 +451,70 @@ export function OgcMovementsUploadModal({
         ...currentRows.slice(index + 1),
       ];
     });
+  };
+
+  const updateManualRowDeliveryNote = (id: string, file: File | null) => {
+    setManualRows((currentRows) =>
+      currentRows.map((row) => {
+        if (row.id !== id) return row;
+
+        return {
+          ...row,
+          nota_recepcion_file: file,
+          nota_recepcion_status: file ? row.nota_recepcion_status === "none" ? "completa" : row.nota_recepcion_status : "none",
+        };
+      })
+    );
+  };
+
+  const handleDeliveryNoteFileChange = (id: string, event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0] ?? null;
+    event.target.value = "";
+
+    if (!selectedFile) return;
+    if (!isAcceptedDeliveryNoteFile(selectedFile)) {
+      toast.error("Archivo invalido", { description: "Sube una foto o un PDF de la nota." });
+      return;
+    }
+    if (selectedFile.size > MAX_DELIVERY_NOTE_FILE_SIZE) {
+      toast.error("Archivo demasiado grande", {
+        description: `La nota debe pesar maximo ${formatFileSize(MAX_DELIVERY_NOTE_FILE_SIZE)}.`,
+      });
+      return;
+    }
+
+    updateManualRowDeliveryNote(id, selectedFile);
+  };
+
+  const uploadManualRowNotes = async (rows: EditableMovementRow[]) => {
+    const uploadedNotes = new Map<string, UploadedDeliveryNote>();
+
+    for (const row of rows) {
+      if (!row.nota_recepcion_file || row.nota_recepcion_status === "none") continue;
+
+      const uploadUrl = await generateOgcUploadUrl();
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": row.nota_recepcion_file.type || "application/octet-stream" },
+        body: row.nota_recepcion_file,
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error(`No se pudo subir la nota de ${row.descripcion || row.categoria}.`);
+      }
+
+      const { storageId } = await uploadResult.json();
+      uploadedNotes.set(row.id, {
+        status: row.nota_recepcion_status,
+        storage_id: storageId as Id<"_storage">,
+        nombre: row.nota_recepcion_file.name,
+        type: row.nota_recepcion_file.type || "application/octet-stream",
+        size: row.nota_recepcion_file.size,
+        uploaded_at: Date.now(),
+      });
+    }
+
+    return uploadedNotes;
   };
 
   const removeManualRow = (id: string) => {
@@ -522,11 +649,16 @@ export function OgcMovementsUploadModal({
       return;
     }
 
-    const parsed = rowsToMovements(manualRows);
-    const report = validateMovements(parsed, "captura masiva");
-
+    const preliminaryMovements = rowsToMovements(manualRows);
+    const preliminaryReport = validateMovements(preliminaryMovements, "captura masiva");
     setIsProcessing(true);
     try {
+      const preflight = await validateBulkCreateMovements({ movimientos: preliminaryReport.valid });
+      const rowsThatWillCreate = new Set(preflight.validRows);
+      const rowsReadyToSave = manualRows.filter((row, index) => rowHasUserInput(row) && rowsThatWillCreate.has(index + 1));
+      const uploadedNotes = await uploadManualRowNotes(rowsReadyToSave);
+      const parsed = rowsToMovements(manualRows, uploadedNotes);
+      const report = validateMovements(parsed, "captura masiva");
       await saveValidatedMovements(report);
     } catch (error) {
       toast.error("Error al guardar movimientos", {
@@ -539,6 +671,15 @@ export function OgcMovementsUploadModal({
 
   const manualMovements = useMemo(() => rowsToMovements(manualRows), [manualRows, projectNameById, exchangeRates]);
   const manualReport = useMemo(() => validateMovements(manualMovements, "captura masiva"), [manualMovements, projectLookup, exchangeRates]);
+  const deliveryNoteSummary = useMemo(() => {
+    const activeRows = manualRows.filter(rowHasUserInput);
+    const total = activeRows.length;
+    const complete = activeRows.filter((row) => row.nota_recepcion_file && row.nota_recepcion_status === "completa").length;
+    const partial = activeRows.filter((row) => row.nota_recepcion_file && row.nota_recepcion_status === "parcial").length;
+    const hasAllComplete = total > 0 && complete === total;
+
+    return { total, complete, partial, hasAllComplete };
+  }, [manualRows]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -558,12 +699,28 @@ export function OgcMovementsUploadModal({
 
           <TabsContent value="manual" className="min-w-0 space-y-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
+              <div className="min-w-0">
                 <Label className="text-sm text-gray-900">Movimientos manuales</Label>
-              <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-500">
                   Agrega filas editables; selecciona una obra solo cuando el movimiento aplique a una obra especifica.
                   TC P&L: USD {exchangeRates.USD.toLocaleString("es-MX", { maximumFractionDigits: 4 })} / EUR {exchangeRates.EUR.toLocaleString("es-MX", { maximumFractionDigits: 4 })}.
                 </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  <span
+                    className={cn(
+                      "h-2.5 w-2.5 rounded-full",
+                      deliveryNoteSummary.hasAllComplete
+                        ? "bg-[#7EC18E]"
+                        : deliveryNoteSummary.partial > 0
+                          ? "bg-amber-500"
+                          : "bg-gray-300"
+                    )}
+                  />
+                  <span>
+                    Notas de recepcion: {deliveryNoteSummary.complete}/{deliveryNoteSummary.total} completas
+                    {deliveryNoteSummary.partial > 0 ? `, ${deliveryNoteSummary.partial} parciales` : ""}
+                  </span>
+                </div>
               </div>
               <Button type="button" variant="outline" onClick={addManualRow} disabled={isProcessing}>
                 <Plus className="h-4 w-4" />
@@ -578,6 +735,8 @@ export function OgcMovementsUploadModal({
               errors={manualReport.errors}
               disabled={isProcessing}
               onUpdate={updateManualRow}
+              onDeliveryNoteFileChange={handleDeliveryNoteFileChange}
+              onRemoveDeliveryNote={updateManualRowDeliveryNote}
               onDuplicate={duplicateManualRow}
               onRemove={removeManualRow}
             />
@@ -678,6 +837,8 @@ function EditableMovementsTable({
   errors,
   disabled,
   onUpdate,
+  onDeliveryNoteFileChange,
+  onRemoveDeliveryNote,
   onDuplicate,
   onRemove,
 }: {
@@ -687,6 +848,8 @@ function EditableMovementsTable({
   errors: ValidationReport["errors"];
   disabled: boolean;
   onUpdate: <K extends keyof EditableMovementRow>(id: string, key: K, value: EditableMovementRow[K]) => void;
+  onDeliveryNoteFileChange: (id: string, event: ChangeEvent<HTMLInputElement>) => void;
+  onRemoveDeliveryNote: (id: string, file: File | null) => void;
   onDuplicate: (row: EditableMovementRow) => void;
   onRemove: (id: string) => void;
 }) {
@@ -713,6 +876,8 @@ function EditableMovementsTable({
         const rowError = errorsByRow.get(index + 1);
         const configuredExchangeRate = getConfiguredExchangeRate(row.moneda);
         const isPnlExchangeRate = row.tipo_cambio_mode === "pnl";
+        const hasDeliveryNote = Boolean(row.nota_recepcion_file);
+        const deliveryNoteInputId = `delivery-note-${row.id}`;
 
         return (
           <div
@@ -787,7 +952,7 @@ function EditableMovementsTable({
                 />
               </div>
 
-              <div className="min-w-0 lg:col-span-4">
+              <div className="min-w-0 lg:col-span-3">
                 <FieldLabel>Obra</FieldLabel>
                 <Select
                   value={row.proyecto}
@@ -806,7 +971,7 @@ function EditableMovementsTable({
                 </Select>
               </div>
 
-              <div className="min-w-0 lg:col-span-4">
+              <div className="min-w-0 lg:col-span-3">
                 <FieldLabel>Descripcion</FieldLabel>
                 <Input
                   value={row.descripcion}
@@ -870,6 +1035,80 @@ function EditableMovementsTable({
                     disabled={disabled || row.moneda === "MXN" || isPnlExchangeRate}
                   />
                 </div>
+              </div>
+
+              <div className="min-w-0 lg:col-span-2">
+                <FieldLabel>Nota</FieldLabel>
+                <div className="flex h-9 min-w-0 items-center gap-1">
+                  <input
+                    id={deliveryNoteInputId}
+                    type="file"
+                    accept="image/*,.pdf,application/pdf"
+                    className="hidden"
+                    onChange={(event) => onDeliveryNoteFileChange(row.id, event)}
+                    disabled={disabled}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => document.getElementById(deliveryNoteInputId)?.click()}
+                    disabled={disabled}
+                    title={hasDeliveryNote ? row.nota_recepcion_file?.name : "Subir foto o PDF de la nota"}
+                    className={cn("shrink-0", hasDeliveryNote ? "text-[#1A5D21]" : "text-gray-400")}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  <Select
+                    value={row.nota_recepcion_status}
+                    onValueChange={(value) => {
+                      if (value === "none") {
+                        onRemoveDeliveryNote(row.id, null);
+                        return;
+                      }
+                      onUpdate(row.id, "nota_recepcion_status", value as DeliveryNoteStatus);
+                    }}
+                    disabled={disabled || !hasDeliveryNote}
+                  >
+                    <SelectTrigger className="h-9 min-w-0 flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin nota</SelectItem>
+                      <SelectItem value="parcial">Parcial</SelectItem>
+                      <SelectItem value="completa">Completa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <CheckCircle2
+                    className={cn(
+                      "h-5 w-5 shrink-0",
+                      row.nota_recepcion_status === "completa" && hasDeliveryNote
+                        ? "text-[#16A34A]"
+                        : row.nota_recepcion_status === "parcial" && hasDeliveryNote
+                          ? "text-amber-500"
+                          : "text-gray-300"
+                    )}
+                    aria-label={hasDeliveryNote ? `Nota ${row.nota_recepcion_status}` : "Sin nota"}
+                  />
+                  {hasDeliveryNote && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onRemoveDeliveryNote(row.id, null)}
+                      disabled={disabled}
+                      title="Quitar nota"
+                      className="shrink-0 text-gray-400 hover:text-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {hasDeliveryNote && (
+                  <p className="mt-1 truncate text-[11px] text-gray-500" title={row.nota_recepcion_file?.name}>
+                    {row.nota_recepcion_file?.name}
+                  </p>
+                )}
               </div>
 
               <div className="min-w-0 lg:col-span-1">

@@ -22,6 +22,25 @@ type NormalizedMovement = Pick<
 };
 
 const ACTIVE_STATUSES = new Set([undefined, "activo"]);
+const deliveryNoteStatusValidator = v.union(v.literal("parcial"), v.literal("completa"));
+const ogcMovementInputValidator = v.object({
+  tipo: v.string(),
+  categoria: v.string(),
+  monto: v.number(),
+  fecha: v.string(),
+  descripcion: v.optional(v.string()),
+  moneda: v.string(),
+  tipo_cambio: v.optional(v.number()),
+  proyecto: v.optional(v.id("desarrollos")),
+  archivo_origen: v.optional(v.string()),
+  fila_origen: v.optional(v.number()),
+  nota_recepcion_status: v.optional(deliveryNoteStatusValidator),
+  nota_recepcion_storage_id: v.optional(v.id("_storage")),
+  nota_recepcion_nombre: v.optional(v.string()),
+  nota_recepcion_type: v.optional(v.string()),
+  nota_recepcion_size: v.optional(v.number()),
+  nota_recepcion_uploaded_at: v.optional(v.number()),
+});
 
 const normalizeTipo = (value: string) => {
   const normalized = value.toLowerCase().trim();
@@ -124,6 +143,43 @@ const normalizeMovementInput = (item: {
     moneda,
     tipo_cambio: moneda === "MXN" ? undefined : normalizeExchangeRate(item.tipo_cambio),
     proyecto: item.proyecto,
+  };
+};
+
+const normalizeDeliveryNoteInput = (item: {
+  nota_recepcion_status?: "parcial" | "completa";
+  nota_recepcion_storage_id?: Id<"_storage">;
+  nota_recepcion_nombre?: string;
+  nota_recepcion_type?: string;
+  nota_recepcion_size?: number;
+  nota_recepcion_uploaded_at?: number;
+}) => {
+  const hasAnyNoteField = Boolean(
+    item.nota_recepcion_status ||
+    item.nota_recepcion_storage_id ||
+    item.nota_recepcion_nombre ||
+    item.nota_recepcion_type ||
+    item.nota_recepcion_size ||
+    item.nota_recepcion_uploaded_at
+  );
+
+  if (!hasAnyNoteField) return {};
+
+  if (!item.nota_recepcion_status || !item.nota_recepcion_storage_id || !item.nota_recepcion_nombre?.trim()) {
+    throw new Error("La nota de recepcion requiere archivo y estado.");
+  }
+
+  return {
+    nota_recepcion_status: item.nota_recepcion_status,
+    nota_recepcion_storage_id: item.nota_recepcion_storage_id,
+    nota_recepcion_nombre: item.nota_recepcion_nombre.trim(),
+    nota_recepcion_type: item.nota_recepcion_type?.trim() || "application/octet-stream",
+    nota_recepcion_size: Number.isFinite(item.nota_recepcion_size) && item.nota_recepcion_size! >= 0
+      ? item.nota_recepcion_size
+      : 0,
+    nota_recepcion_uploaded_at: Number.isFinite(item.nota_recepcion_uploaded_at)
+      ? item.nota_recepcion_uploaded_at
+      : Date.now(),
   };
 };
 
@@ -242,22 +298,58 @@ export const getAudit = query({
   },
 });
 
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    await assertCanWrite(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const validateBulkCreate = mutation({
+  args: {
+    movimientos: v.array(ogcMovementInputValidator),
+  },
+  handler: async (ctx, args) => {
+    const user = await assertCanWrite(ctx);
+    const organizationId = getScopedOrganizationId(user);
+    const validRows: number[] = [];
+    const duplicateRows: number[] = [];
+    const rejectedRows: number[] = [];
+    const pendingDuplicateKeys = new Set<string>();
+
+    for (const [index, item] of args.movimientos.entries()) {
+      const row = item.fila_origen ?? index + 1;
+      const normalized = normalizeMovementInput(item);
+
+      if (!normalized) {
+        rejectedRows.push(row);
+        continue;
+      }
+
+      if (normalized.proyecto) {
+        const hasAccess = await checkDesarrolloAccess(ctx, normalized.proyecto);
+        if (!hasAccess) {
+          throw new Error("No tienes acceso a una de las obras seleccionadas.");
+        }
+      }
+
+      const duplicateKey = buildDuplicateKey(normalized, organizationId);
+      const duplicate = await findActiveDuplicate(ctx, duplicateKey);
+      if (duplicate || pendingDuplicateKeys.has(duplicateKey)) {
+        duplicateRows.push(row);
+      } else {
+        pendingDuplicateKeys.add(duplicateKey);
+        validRows.push(row);
+      }
+    }
+
+    return { validRows, duplicateRows, rejectedRows };
+  },
+});
+
 export const bulkCreate = mutation({
   args: {
-    movimientos: v.array(
-      v.object({
-        tipo: v.string(),
-        categoria: v.string(),
-        monto: v.number(),
-        fecha: v.string(),
-        descripcion: v.optional(v.string()),
-        moneda: v.string(),
-        tipo_cambio: v.optional(v.number()),
-        proyecto: v.optional(v.id("desarrollos")),
-        archivo_origen: v.optional(v.string()),
-        fila_origen: v.optional(v.number()),
-      })
-    ),
+    movimientos: v.array(ogcMovementInputValidator),
   },
   handler: async (ctx, args) => {
     const user = await assertCanWrite(ctx);
@@ -288,10 +380,12 @@ export const bulkCreate = mutation({
         continue;
       }
 
+      const deliveryNote = normalizeDeliveryNoteInput(item);
       const id = await ctx.db.insert("ogc_movimientos", {
         ...normalized,
         archivo_origen: item.archivo_origen,
         fila_origen: item.fila_origen,
+        ...deliveryNote,
         status: "activo",
         duplicate_key: duplicateKey,
         reconciled: false,

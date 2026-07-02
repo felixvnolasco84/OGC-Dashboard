@@ -406,6 +406,12 @@ export default defineSchema({
     proyecto: v.optional(v.id("desarrollos")),
     archivo_origen: v.optional(v.string()),
     fila_origen: v.optional(v.number()),
+    nota_recepcion_status: v.optional(v.union(v.literal("parcial"), v.literal("completa"))),
+    nota_recepcion_storage_id: v.optional(v.id("_storage")),
+    nota_recepcion_nombre: v.optional(v.string()),
+    nota_recepcion_type: v.optional(v.string()),
+    nota_recepcion_size: v.optional(v.number()),
+    nota_recepcion_uploaded_at: v.optional(v.number()),
     status: v.optional(v.string()), // "activo" | "anulado" | "duplicado"
     duplicate_key: v.optional(v.string()),
     duplicate_of: v.optional(v.id("ogc_movimientos")),
