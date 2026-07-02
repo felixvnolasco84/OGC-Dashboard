@@ -23,6 +23,13 @@ type NormalizedMovement = Pick<
 
 const ACTIVE_STATUSES = new Set([undefined, "activo"]);
 const deliveryNoteStatusValidator = v.union(v.literal("parcial"), v.literal("completa"));
+const deliveryNoteDocumentValidator = v.object({
+  storage_id: v.id("_storage"),
+  nombre: v.string(),
+  type: v.string(),
+  size: v.number(),
+  uploaded_at: v.number(),
+});
 const ogcMovementInputValidator = v.object({
   tipo: v.string(),
   categoria: v.string(),
@@ -40,6 +47,7 @@ const ogcMovementInputValidator = v.object({
   nota_recepcion_type: v.optional(v.string()),
   nota_recepcion_size: v.optional(v.number()),
   nota_recepcion_uploaded_at: v.optional(v.number()),
+  nota_recepcion_documentos: v.optional(v.array(deliveryNoteDocumentValidator)),
 });
 
 const normalizeTipo = (value: string) => {
@@ -153,33 +161,68 @@ const normalizeDeliveryNoteInput = (item: {
   nota_recepcion_type?: string;
   nota_recepcion_size?: number;
   nota_recepcion_uploaded_at?: number;
+  nota_recepcion_documentos?: Array<{
+    storage_id: Id<"_storage">;
+    nombre: string;
+    type: string;
+    size: number;
+    uploaded_at: number;
+  }>;
 }) => {
+  const explicitDocuments = item.nota_recepcion_documentos || [];
   const hasAnyNoteField = Boolean(
     item.nota_recepcion_status ||
     item.nota_recepcion_storage_id ||
     item.nota_recepcion_nombre ||
     item.nota_recepcion_type ||
     item.nota_recepcion_size ||
-    item.nota_recepcion_uploaded_at
+    item.nota_recepcion_uploaded_at ||
+    explicitDocuments.length > 0
   );
 
   if (!hasAnyNoteField) return {};
 
-  if (!item.nota_recepcion_status || !item.nota_recepcion_storage_id || !item.nota_recepcion_nombre?.trim()) {
+  const legacyDocument = item.nota_recepcion_storage_id && item.nota_recepcion_nombre?.trim()
+    ? [{
+      storage_id: item.nota_recepcion_storage_id,
+      nombre: item.nota_recepcion_nombre.trim(),
+      type: item.nota_recepcion_type?.trim() || "application/octet-stream",
+      size: Number.isFinite(item.nota_recepcion_size) && item.nota_recepcion_size! >= 0 ? item.nota_recepcion_size : 0,
+      uploaded_at: Number.isFinite(item.nota_recepcion_uploaded_at) ? item.nota_recepcion_uploaded_at! : Date.now(),
+    }]
+    : [];
+
+  const documents = explicitDocuments.length > 0 ? explicitDocuments : legacyDocument;
+
+  if (!item.nota_recepcion_status || documents.length === 0) {
     throw new Error("La nota de recepcion requiere archivo y estado.");
   }
 
+  const normalizedDocuments = documents.map((document) => {
+    const name = document.nombre.trim();
+    const size = Number(document.size);
+    const uploadedAt = Number(document.uploaded_at);
+    if (!name) throw new Error("Cada documento de recepcion requiere nombre.");
+
+    return {
+      storage_id: document.storage_id,
+      nombre: name,
+      type: document.type?.trim() || "application/octet-stream",
+      size: Number.isFinite(size) && size >= 0 ? size : 0,
+      uploaded_at: Number.isFinite(uploadedAt) ? uploadedAt : Date.now(),
+    };
+  });
+
+  const primaryDocument = normalizedDocuments[0];
+
   return {
     nota_recepcion_status: item.nota_recepcion_status,
-    nota_recepcion_storage_id: item.nota_recepcion_storage_id,
-    nota_recepcion_nombre: item.nota_recepcion_nombre.trim(),
-    nota_recepcion_type: item.nota_recepcion_type?.trim() || "application/octet-stream",
-    nota_recepcion_size: Number.isFinite(item.nota_recepcion_size) && item.nota_recepcion_size! >= 0
-      ? item.nota_recepcion_size
-      : 0,
-    nota_recepcion_uploaded_at: Number.isFinite(item.nota_recepcion_uploaded_at)
-      ? item.nota_recepcion_uploaded_at
-      : Date.now(),
+    nota_recepcion_storage_id: primaryDocument.storage_id,
+    nota_recepcion_nombre: primaryDocument.nombre,
+    nota_recepcion_type: primaryDocument.type,
+    nota_recepcion_size: primaryDocument.size,
+    nota_recepcion_uploaded_at: primaryDocument.uploaded_at,
+    nota_recepcion_documentos: normalizedDocuments,
   };
 };
 

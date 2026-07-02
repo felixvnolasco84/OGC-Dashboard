@@ -412,6 +412,13 @@ export default defineSchema({
     nota_recepcion_type: v.optional(v.string()),
     nota_recepcion_size: v.optional(v.number()),
     nota_recepcion_uploaded_at: v.optional(v.number()),
+    nota_recepcion_documentos: v.optional(v.array(v.object({
+      storage_id: v.id("_storage"),
+      nombre: v.string(),
+      type: v.string(),
+      size: v.number(),
+      uploaded_at: v.number(),
+    }))),
     status: v.optional(v.string()), // "activo" | "anulado" | "duplicado"
     duplicate_key: v.optional(v.string()),
     duplicate_of: v.optional(v.id("ogc_movimientos")),

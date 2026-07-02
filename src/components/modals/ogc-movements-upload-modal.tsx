@@ -21,13 +21,25 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CheckCircle2, Copy, FileSpreadsheet, Loader2, Paperclip, Plus, Trash2, Upload, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, FileSpreadsheet, FileText, Image, Loader2, Paperclip, Plus, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 type OgcMovementType = "ingreso" | "costo_estructura";
 type ExchangeRateMode = "pnl" | "manual";
 type DeliveryNoteStatus = "none" | "parcial" | "completa";
 type UploadedDeliveryNoteStatus = Exclude<DeliveryNoteStatus, "none">;
+type DeliveryNoteFile = {
+  id: string;
+  file: File;
+};
+
+type DeliveryNoteDocument = {
+  storage_id: Id<"_storage">;
+  nombre: string;
+  type: string;
+  size: number;
+  uploaded_at: number;
+};
 
 type DesarrolloOption = {
   _id: Id<"desarrollos">;
@@ -50,6 +62,7 @@ type OgcUploadMovement = {
   nota_recepcion_type?: string;
   nota_recepcion_size?: number;
   nota_recepcion_uploaded_at?: number;
+  nota_recepcion_documentos?: DeliveryNoteDocument[];
 };
 
 type OgcUploadResult = {
@@ -85,6 +98,7 @@ type PreparedMovement = {
   nota_recepcion_type?: string;
   nota_recepcion_size?: number;
   nota_recepcion_uploaded_at?: number;
+  nota_recepcion_documentos?: DeliveryNoteDocument[];
 };
 
 type ValidationReport = {
@@ -108,7 +122,7 @@ type EditableMovementRow = {
   tipo_cambio_mode: ExchangeRateMode;
   tipo_cambio: string;
   nota_recepcion_status: DeliveryNoteStatus;
-  nota_recepcion_file: File | null;
+  nota_recepcion_files: DeliveryNoteFile[];
 };
 
 type ExchangeRateSettings = {
@@ -118,11 +132,7 @@ type ExchangeRateSettings = {
 
 type UploadedDeliveryNote = {
   status: UploadedDeliveryNoteStatus;
-  storage_id: Id<"_storage">;
-  nombre: string;
-  type: string;
-  size: number;
-  uploaded_at: number;
+  documentos: DeliveryNoteDocument[];
 };
 
 const OGC_UPLOAD_ENDPOINTS = [
@@ -130,6 +140,7 @@ const OGC_UPLOAD_ENDPOINTS = [
   "http://localhost:3000/upload/ogc-transactions",
 ];
 const MAX_DELIVERY_NOTE_FILE_SIZE = 20 * 1024 * 1024;
+const MAX_DELIVERY_NOTE_FILES_PER_ROW = 8;
 const DELIVERY_NOTE_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
 
 const CATEGORIES = [
@@ -237,7 +248,7 @@ const createMovementRow = (overrides: Partial<EditableMovementRow> = {}): Editab
   tipo_cambio_mode: "pnl",
   tipo_cambio: "",
   nota_recepcion_status: "none",
-  nota_recepcion_file: null,
+  nota_recepcion_files: [],
   ...overrides,
 });
 
@@ -259,6 +270,10 @@ const isAcceptedDeliveryNoteFile = (file: File) => {
     lowerName.endsWith(".pdf") ||
     DELIVERY_NOTE_IMAGE_EXTENSIONS.some((extension) => lowerName.endsWith(extension))
   );
+};
+
+const getDeliveryNoteFileKey = (file: File) => {
+  return `${file.name.toLowerCase()}-${file.size}-${file.lastModified}`;
 };
 
 export function OgcMovementsUploadModal({
@@ -359,6 +374,7 @@ export function OgcMovementsUploadModal({
         nota_recepcion_type: movement.nota_recepcion_type,
         nota_recepcion_size: movement.nota_recepcion_size,
         nota_recepcion_uploaded_at: movement.nota_recepcion_uploaded_at,
+        nota_recepcion_documentos: movement.nota_recepcion_documentos,
       });
     });
 
@@ -384,6 +400,7 @@ export function OgcMovementsUploadModal({
       if (!rowHasUserInput(row)) return [];
 
       const uploadedNote = uploadedNotes.get(row.id);
+      const primaryDocument = uploadedNote?.documentos[0];
 
       return [{
         rowIndex: index + 1,
@@ -400,11 +417,12 @@ export function OgcMovementsUploadModal({
             ? getConfiguredExchangeRate(row.moneda)
             : parseAmount(row.tipo_cambio),
         nota_recepcion_status: uploadedNote?.status,
-        nota_recepcion_storage_id: uploadedNote?.storage_id,
-        nota_recepcion_nombre: uploadedNote?.nombre,
-        nota_recepcion_type: uploadedNote?.type,
-        nota_recepcion_size: uploadedNote?.size,
-        nota_recepcion_uploaded_at: uploadedNote?.uploaded_at,
+        nota_recepcion_storage_id: primaryDocument?.storage_id,
+        nota_recepcion_nombre: primaryDocument?.nombre,
+        nota_recepcion_type: primaryDocument?.type,
+        nota_recepcion_size: primaryDocument?.size,
+        nota_recepcion_uploaded_at: primaryDocument?.uploaded_at,
+        nota_recepcion_documentos: uploadedNote?.documentos,
       }];
     });
   };
@@ -441,7 +459,7 @@ export function OgcMovementsUploadModal({
         ...row,
         id: crypto.randomUUID(),
         nota_recepcion_status: "none",
-        nota_recepcion_file: null,
+        nota_recepcion_files: [],
       });
 
       if (index === -1) return [...currentRows, duplicate];
@@ -453,64 +471,122 @@ export function OgcMovementsUploadModal({
     });
   };
 
-  const updateManualRowDeliveryNote = (id: string, file: File | null) => {
+  const addManualRowDeliveryNotes = (id: string, files: File[]) => {
     setManualRows((currentRows) =>
       currentRows.map((row) => {
         if (row.id !== id) return row;
+        const existingKeys = new Set(row.nota_recepcion_files.map((item) => getDeliveryNoteFileKey(item.file)));
+        const availableSlots = Math.max(MAX_DELIVERY_NOTE_FILES_PER_ROW - row.nota_recepcion_files.length, 0);
+        const seenKeys = new Set(existingKeys);
+        const nextFiles = files
+          .filter((file) => {
+            const key = getDeliveryNoteFileKey(file);
+            if (seenKeys.has(key)) return false;
+            seenKeys.add(key);
+            return true;
+          })
+          .slice(0, availableSlots)
+          .map((file) => ({ id: crypto.randomUUID(), file }));
 
         return {
           ...row,
-          nota_recepcion_file: file,
-          nota_recepcion_status: file ? row.nota_recepcion_status === "none" ? "completa" : row.nota_recepcion_status : "none",
+          nota_recepcion_files: [...row.nota_recepcion_files, ...nextFiles],
+          nota_recepcion_status: nextFiles.length > 0 && row.nota_recepcion_status === "none" ? "completa" : row.nota_recepcion_status,
+        };
+      })
+    );
+  };
+
+  const removeManualRowDeliveryNote = (rowId: string, noteId?: string) => {
+    setManualRows((currentRows) =>
+      currentRows.map((row) => {
+        if (row.id !== rowId) return row;
+        const nextFiles = noteId
+          ? row.nota_recepcion_files.filter((note) => note.id !== noteId)
+          : [];
+
+        return {
+          ...row,
+          nota_recepcion_files: nextFiles,
+          nota_recepcion_status: nextFiles.length > 0 ? row.nota_recepcion_status : "none",
         };
       })
     );
   };
 
   const handleDeliveryNoteFileChange = (id: string, event: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0] ?? null;
+    const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
 
-    if (!selectedFile) return;
-    if (!isAcceptedDeliveryNoteFile(selectedFile)) {
-      toast.error("Archivo invalido", { description: "Sube una foto o un PDF de la nota." });
+    if (selectedFiles.length === 0) return;
+    const invalidFiles = selectedFiles.filter((file) => !isAcceptedDeliveryNoteFile(file));
+    if (invalidFiles.length > 0) {
+      toast.error("Archivo invalido", {
+        description: invalidFiles.length === 1
+          ? `${invalidFiles[0].name} no es foto o PDF.`
+          : `${invalidFiles.length} archivos no son fotos o PDFs.`,
+      });
       return;
     }
-    if (selectedFile.size > MAX_DELIVERY_NOTE_FILE_SIZE) {
+    const oversizedFiles = selectedFiles.filter((file) => file.size > MAX_DELIVERY_NOTE_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
       toast.error("Archivo demasiado grande", {
-        description: `La nota debe pesar maximo ${formatFileSize(MAX_DELIVERY_NOTE_FILE_SIZE)}.`,
+        description: `Cada nota debe pesar maximo ${formatFileSize(MAX_DELIVERY_NOTE_FILE_SIZE)}.`,
       });
       return;
     }
 
-    updateManualRowDeliveryNote(id, selectedFile);
+    const currentRow = manualRows.find((row) => row.id === id);
+    const currentCount = currentRow?.nota_recepcion_files.length || 0;
+    if (currentCount >= MAX_DELIVERY_NOTE_FILES_PER_ROW) {
+      toast.warning("Limite de documentos", {
+        description: `Puedes adjuntar hasta ${MAX_DELIVERY_NOTE_FILES_PER_ROW} documentos por concepto.`,
+      });
+      return;
+    }
+
+    const filesToAdd = selectedFiles.slice(0, MAX_DELIVERY_NOTE_FILES_PER_ROW - currentCount);
+    if (filesToAdd.length < selectedFiles.length) {
+      toast.warning("Se omitieron algunos archivos", {
+        description: `Solo se agregaron ${filesToAdd.length} por el limite de ${MAX_DELIVERY_NOTE_FILES_PER_ROW} documentos.`,
+      });
+    }
+
+    addManualRowDeliveryNotes(id, filesToAdd);
   };
 
   const uploadManualRowNotes = async (rows: EditableMovementRow[]) => {
     const uploadedNotes = new Map<string, UploadedDeliveryNote>();
 
     for (const row of rows) {
-      if (!row.nota_recepcion_file || row.nota_recepcion_status === "none") continue;
+      if (row.nota_recepcion_files.length === 0 || row.nota_recepcion_status === "none") continue;
+      const documentos: DeliveryNoteDocument[] = [];
 
-      const uploadUrl = await generateOgcUploadUrl();
-      const uploadResult = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": row.nota_recepcion_file.type || "application/octet-stream" },
-        body: row.nota_recepcion_file,
-      });
+      for (const note of row.nota_recepcion_files) {
+        const uploadUrl = await generateOgcUploadUrl();
+        const uploadResult = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": note.file.type || "application/octet-stream" },
+          body: note.file,
+        });
 
-      if (!uploadResult.ok) {
-        throw new Error(`No se pudo subir la nota de ${row.descripcion || row.categoria}.`);
+        if (!uploadResult.ok) {
+          throw new Error(`No se pudo subir ${note.file.name}.`);
+        }
+
+        const { storageId } = await uploadResult.json();
+        documentos.push({
+          storage_id: storageId as Id<"_storage">,
+          nombre: note.file.name,
+          type: note.file.type || "application/octet-stream",
+          size: note.file.size,
+          uploaded_at: Date.now(),
+        });
       }
 
-      const { storageId } = await uploadResult.json();
       uploadedNotes.set(row.id, {
         status: row.nota_recepcion_status,
-        storage_id: storageId as Id<"_storage">,
-        nombre: row.nota_recepcion_file.name,
-        type: row.nota_recepcion_file.type || "application/octet-stream",
-        size: row.nota_recepcion_file.size,
-        uploaded_at: Date.now(),
+        documentos,
       });
     }
 
@@ -674,11 +750,12 @@ export function OgcMovementsUploadModal({
   const deliveryNoteSummary = useMemo(() => {
     const activeRows = manualRows.filter(rowHasUserInput);
     const total = activeRows.length;
-    const complete = activeRows.filter((row) => row.nota_recepcion_file && row.nota_recepcion_status === "completa").length;
-    const partial = activeRows.filter((row) => row.nota_recepcion_file && row.nota_recepcion_status === "parcial").length;
+    const complete = activeRows.filter((row) => row.nota_recepcion_files.length > 0 && row.nota_recepcion_status === "completa").length;
+    const partial = activeRows.filter((row) => row.nota_recepcion_files.length > 0 && row.nota_recepcion_status === "parcial").length;
+    const documents = activeRows.reduce((sum, row) => sum + row.nota_recepcion_files.length, 0);
     const hasAllComplete = total > 0 && complete === total;
 
-    return { total, complete, partial, hasAllComplete };
+    return { total, complete, partial, documents, hasAllComplete };
   }, [manualRows]);
 
   return (
@@ -719,6 +796,7 @@ export function OgcMovementsUploadModal({
                   <span>
                     Notas de recepcion: {deliveryNoteSummary.complete}/{deliveryNoteSummary.total} completas
                     {deliveryNoteSummary.partial > 0 ? `, ${deliveryNoteSummary.partial} parciales` : ""}
+                    {deliveryNoteSummary.documents > 0 ? `, ${deliveryNoteSummary.documents} archivos` : ""}
                   </span>
                 </div>
               </div>
@@ -736,7 +814,7 @@ export function OgcMovementsUploadModal({
               disabled={isProcessing}
               onUpdate={updateManualRow}
               onDeliveryNoteFileChange={handleDeliveryNoteFileChange}
-              onRemoveDeliveryNote={updateManualRowDeliveryNote}
+              onRemoveDeliveryNote={removeManualRowDeliveryNote}
               onDuplicate={duplicateManualRow}
               onRemove={removeManualRow}
             />
@@ -849,7 +927,7 @@ function EditableMovementsTable({
   disabled: boolean;
   onUpdate: <K extends keyof EditableMovementRow>(id: string, key: K, value: EditableMovementRow[K]) => void;
   onDeliveryNoteFileChange: (id: string, event: ChangeEvent<HTMLInputElement>) => void;
-  onRemoveDeliveryNote: (id: string, file: File | null) => void;
+  onRemoveDeliveryNote: (rowId: string, noteId?: string) => void;
   onDuplicate: (row: EditableMovementRow) => void;
   onRemove: (id: string) => void;
 }) {
@@ -876,7 +954,7 @@ function EditableMovementsTable({
         const rowError = errorsByRow.get(index + 1);
         const configuredExchangeRate = getConfiguredExchangeRate(row.moneda);
         const isPnlExchangeRate = row.tipo_cambio_mode === "pnl";
-        const hasDeliveryNote = Boolean(row.nota_recepcion_file);
+        const hasDeliveryNotes = row.nota_recepcion_files.length > 0;
         const deliveryNoteInputId = `delivery-note-${row.id}`;
 
         return (
@@ -1037,83 +1115,113 @@ function EditableMovementsTable({
                 </div>
               </div>
 
-              <div className="min-w-0 lg:col-span-2">
-                <FieldLabel>Nota</FieldLabel>
-                <div className="flex h-9 min-w-0 items-center gap-1">
+              <div className="min-w-0 sm:col-span-2 lg:col-span-10">
+                <div
+                  className={cn(
+                    "min-w-0 border px-3 py-2",
+                    hasDeliveryNotes ? "border-[#B7D9BE] bg-[#F4FBF5]" : "border-dashed border-gray-300 bg-white"
+                  )}
+                >
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <CheckCircle2
+                        className={cn(
+                          "h-5 w-5 shrink-0",
+                          row.nota_recepcion_status === "completa" && hasDeliveryNotes
+                            ? "text-[#16A34A]"
+                            : row.nota_recepcion_status === "parcial" && hasDeliveryNotes
+                              ? "text-amber-500"
+                              : "text-gray-300"
+                        )}
+                        aria-label={hasDeliveryNotes ? `Evidencia ${row.nota_recepcion_status}` : "Sin evidencia"}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-medium text-gray-900">Notas de recepcion</p>
+                        <p className="truncate text-[11px] text-gray-500">
+                          {hasDeliveryNotes
+                            ? `${row.nota_recepcion_files.length} archivo${row.nota_recepcion_files.length === 1 ? "" : "s"} adjunto${row.nota_recepcion_files.length === 1 ? "" : "s"}`
+                            : "Fotos o PDFs de notas"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Select
+                        value={row.nota_recepcion_status}
+                        onValueChange={(value) => {
+                          if (value === "none") {
+                            onRemoveDeliveryNote(row.id);
+                            return;
+                          }
+                          onUpdate(row.id, "nota_recepcion_status", value as DeliveryNoteStatus);
+                        }}
+                        disabled={disabled || !hasDeliveryNotes}
+                      >
+                        <SelectTrigger className="h-8 w-[118px] shrink-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sin nota</SelectItem>
+                          <SelectItem value="parcial">Parcial</SelectItem>
+                          <SelectItem value="completa">Completa</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById(deliveryNoteInputId)?.click()}
+                        disabled={disabled || row.nota_recepcion_files.length >= MAX_DELIVERY_NOTE_FILES_PER_ROW}
+                        title="Agregar fotos o PDFs"
+                        className="h-8 shrink-0"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        Agregar
+                      </Button>
+                    </div>
+                  </div>
                   <input
                     id={deliveryNoteInputId}
                     type="file"
+                    multiple
                     accept="image/*,.pdf,application/pdf"
                     className="hidden"
                     onChange={(event) => onDeliveryNoteFileChange(row.id, event)}
                     disabled={disabled}
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => document.getElementById(deliveryNoteInputId)?.click()}
-                    disabled={disabled}
-                    title={hasDeliveryNote ? row.nota_recepcion_file?.name : "Subir foto o PDF de la nota"}
-                    className={cn("shrink-0", hasDeliveryNote ? "text-[#1A5D21]" : "text-gray-400")}
-                  >
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Select
-                    value={row.nota_recepcion_status}
-                    onValueChange={(value) => {
-                      if (value === "none") {
-                        onRemoveDeliveryNote(row.id, null);
-                        return;
-                      }
-                      onUpdate(row.id, "nota_recepcion_status", value as DeliveryNoteStatus);
-                    }}
-                    disabled={disabled || !hasDeliveryNote}
-                  >
-                    <SelectTrigger className="h-9 min-w-0 flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin nota</SelectItem>
-                      <SelectItem value="parcial">Parcial</SelectItem>
-                      <SelectItem value="completa">Completa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <CheckCircle2
-                    className={cn(
-                      "h-5 w-5 shrink-0",
-                      row.nota_recepcion_status === "completa" && hasDeliveryNote
-                        ? "text-[#16A34A]"
-                        : row.nota_recepcion_status === "parcial" && hasDeliveryNote
-                          ? "text-amber-500"
-                          : "text-gray-300"
-                    )}
-                    aria-label={hasDeliveryNote ? `Nota ${row.nota_recepcion_status}` : "Sin nota"}
-                  />
-                  {hasDeliveryNote && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onRemoveDeliveryNote(row.id, null)}
-                      disabled={disabled}
-                      title="Quitar nota"
-                      className="shrink-0 text-gray-400 hover:text-red-600"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                  {hasDeliveryNotes && (
+                    <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
+                      {row.nota_recepcion_files.map((note) => (
+                        <span
+                          key={note.id}
+                          className="inline-flex max-w-full items-center gap-1 border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700"
+                          title={`${note.file.name} - ${formatFileSize(note.file.size)}`}
+                        >
+                          {note.file.type.startsWith("image/") ? (
+                            <Image className="h-3.5 w-3.5 shrink-0 text-[#1A5D21]" />
+                          ) : (
+                            <FileText className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                          )}
+                          <span className="max-w-[180px] truncate">{note.file.name}</span>
+                          <span className="shrink-0 text-gray-400">{formatFileSize(note.file.size)}</span>
+                          <button
+                            type="button"
+                            onClick={() => onRemoveDeliveryNote(row.id, note.id)}
+                            disabled={disabled}
+                            className="shrink-0 text-gray-400 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Quitar archivo"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
-                {hasDeliveryNote && (
-                  <p className="mt-1 truncate text-[11px] text-gray-500" title={row.nota_recepcion_file?.name}>
-                    {row.nota_recepcion_file?.name}
-                  </p>
-                )}
               </div>
 
-              <div className="min-w-0 lg:col-span-1">
+              <div className="min-w-0 sm:col-span-2 lg:col-span-2">
                 <FieldLabel>Acciones</FieldLabel>
-                <div className="flex h-9 justify-end gap-1 sm:justify-start lg:justify-end">
+                <div className="flex h-9 justify-start gap-1 lg:justify-end">
                   <Button
                     type="button"
                     variant="ghost"
