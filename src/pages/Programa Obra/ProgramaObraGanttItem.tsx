@@ -385,7 +385,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
             <div className="bg-[#1A5D21] text-white px-1.5 py-0.5 rounded shadow whitespace-nowrap">
               Avance: {Math.round(avanceReal)}%
             </div>
-            <div className="bg-[#4CC684] text-white px-1.5 py-0.5 rounded shadow whitespace-nowrap">
+            <div className="bg-[#1A5D21] text-white px-1.5 py-0.5 rounded shadow whitespace-nowrap">
               Financiero: {financiero}%
             </div>
           </div>

@@ -141,7 +141,13 @@ const OGC_UPLOAD_ENDPOINTS = [
 ];
 const MAX_DELIVERY_NOTE_FILE_SIZE = 20 * 1024 * 1024;
 const MAX_DELIVERY_NOTE_FILES_PER_ROW = 8;
-const DELIVERY_NOTE_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
+const DELIVERY_NOTE_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".gif", ".bmp", ".tif", ".tiff"];
+const DELIVERY_NOTE_ACCEPT = [
+  "image/*",
+  "application/pdf",
+  ".pdf",
+  ...DELIVERY_NOTE_IMAGE_EXTENSIONS,
+].join(",");
 
 const CATEGORIES = [
   "HONORARIOS",
@@ -270,6 +276,11 @@ const isAcceptedDeliveryNoteFile = (file: File) => {
     lowerName.endsWith(".pdf") ||
     DELIVERY_NOTE_IMAGE_EXTENSIONS.some((extension) => lowerName.endsWith(extension))
   );
+};
+
+const isDeliveryNoteImageFile = (file: File) => {
+  const lowerName = file.name.toLowerCase();
+  return file.type.startsWith("image/") || DELIVERY_NOTE_IMAGE_EXTENSIONS.some((extension) => lowerName.endsWith(extension));
 };
 
 const getDeliveryNoteFileKey = (file: File) => {
@@ -1183,7 +1194,7 @@ function EditableMovementsTable({
                     id={deliveryNoteInputId}
                     type="file"
                     multiple
-                    accept="image/*,.pdf,application/pdf"
+                    accept={DELIVERY_NOTE_ACCEPT}
                     className="hidden"
                     onChange={(event) => onDeliveryNoteFileChange(row.id, event)}
                     disabled={disabled}
@@ -1196,7 +1207,7 @@ function EditableMovementsTable({
                           className="inline-flex max-w-full items-center gap-1 border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700"
                           title={`${note.file.name} - ${formatFileSize(note.file.size)}`}
                         >
-                          {note.file.type.startsWith("image/") ? (
+                          {isDeliveryNoteImageFile(note.file) ? (
                             <Image className="h-3.5 w-3.5 shrink-0 text-[#1A5D21]" />
                           ) : (
                             <FileText className="h-3.5 w-3.5 shrink-0 text-gray-500" />

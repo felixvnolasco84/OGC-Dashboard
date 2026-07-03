@@ -320,11 +320,11 @@ export default function ControlSalePage() {
                                     {/* Legend for Progress Chart */}
                                     <div className="flex items-center space-x-6 flex-wrap text-xs">
                                         <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#BFCFDC' }}></div>
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#B6C3D0' }}></div>
                                             <span className=" text-gray-600 leading-none">Gasto Proyectado</span>
                                         </div>
                                         <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#79AAAF' }}></div>
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#93B0C3' }}></div>
                                             <span className=" text-gray-600 leading-none">Gasto Real</span>
                                         </div>
                                         {/* <div className="flex items-center space-x-2">

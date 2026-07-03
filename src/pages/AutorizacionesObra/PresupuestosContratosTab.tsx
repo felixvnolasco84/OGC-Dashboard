@@ -737,7 +737,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
               <div className="mb-6 px-6">
                 <div className="w-full h-2 bg-[#C9EEDA]  overflow-hidden">
                   <div
-                    className="h-full bg-[#4CC684]  transition-all duration-300"
+                    className="h-full bg-[#1A5D21]  transition-all duration-300"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>

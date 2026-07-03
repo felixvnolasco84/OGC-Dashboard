@@ -35,6 +35,10 @@ type ReactChartsSeries = {
     data: ReactChartsDataPoint[];
 };
 
+const projectedColor = "#B6C3D0";
+const realColor = "#93B0C3";
+const toSafeId = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "-");
+
 export default function ProgressChart({
     data,
     proyectoId,
@@ -43,8 +47,10 @@ export default function ProgressChart({
     selectedRangoFecha = "Ultimos 30 dias",
     isSalesProject = false
 }: ProgressChartProps) {
-
-    console.log(data)
+    const reactId = React.useId();
+    const gradientIdPrefix = React.useMemo(() => `progress-chart-${toSafeId(reactId)}`, [reactId]);
+    const projectedGradientId = `${gradientIdPrefix}-projected`;
+    const realGradientId = `${gradientIdPrefix}-real`;
 
     // Query weekly projected totals if proyectoId is provided (only for regular projects)
     const projectedData = useQuery(
@@ -442,10 +448,10 @@ export default function ProgressChart({
     const chartColors = React.useMemo(() => {
         if (isRealLarger) {
             // Real is larger (rendered first/back) - Real gets light, Proyectado gets dark
-            return ['#79AAAF', '#BFCFDC'];
+            return [realColor, projectedColor];
         } else {
             // Proyectado is larger or equal (rendered first/back) - Proyectado gets light, Real gets dark
-            return ['#BFCFDC', '#79AAAF'];
+            return [projectedColor, realColor];
         }
     }, [isRealLarger]);
 
@@ -565,21 +571,77 @@ export default function ProgressChart({
                     className="w-full pointer-events-none relative progress-chart-container"
                     style={{
                         height: `${height}px`,
-                        background: 'linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%)'
+                        background: '#fbfbfa'
                     }}
                 >
+                    <style>
+                        {`
+                            .progress-chart-container .Axis .domain,
+                            .progress-chart-container .Axis .domainAndTicks > .tick line {
+                                stroke: transparent !important;
+                            }
+
+                            .progress-chart-container .Axis .grid line {
+                                stroke: #EAEAEA !important;
+                                stroke-width: 1;
+                            }
+
+                            .progress-chart-container .Axis text.tickLabel {
+                                fill: #777770 !important;
+                                font-size: 12px !important;
+                                font-weight: 400;
+                            }
+
+                            .progress-chart-container svg path {
+                                transition: none;
+                            }
+                        `}
+                    </style>
 
                     <div className="pointer-events-auto w-full h-full">
                         <Chart
-                            className="bg-[#fcfcfc]"
                             options={{
                                 data: transformedData,
                                 primaryAxis,
                                 secondaryAxes,
                                 // Dynamic colors based on series order - larger series in back gets lighter color
                                 defaultColors: chartColors,
+                                getSeriesStyle: (series) => {
+                                    const isProjected = series.label === 'Gasto Proyectado';
+                                    const seriesColor = isProjected ? projectedColor : realColor;
+                                    const gradientId = isProjected ? projectedGradientId : realGradientId;
+
+                                    return {
+                                        color: seriesColor,
+                                        area: {
+                                            fill: `url(#${gradientId})`,
+                                            opacity: 1,
+                                            stroke: "none",
+                                        },
+                                        line: {
+                                            stroke: "transparent",
+                                            strokeWidth: 0,
+                                        },
+                                    };
+                                },
                                 dark: false,
                                 interactionMode: "primary",
+                                renderSVG: () => (
+                                    <defs>
+                                        <linearGradient id={projectedGradientId} x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor={projectedColor} stopOpacity="0.52" />
+                                            <stop offset="45%" stopColor={projectedColor} stopOpacity="0.36" />
+                                            <stop offset="78%" stopColor={projectedColor} stopOpacity="0.24" />
+                                            <stop offset="100%" stopColor={projectedColor} stopOpacity="0.16" />
+                                        </linearGradient>
+                                        <linearGradient id={realGradientId} x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor={realColor} stopOpacity="0.58" />
+                                            <stop offset="45%" stopColor={realColor} stopOpacity="0.42" />
+                                            <stop offset="78%" stopColor={realColor} stopOpacity="0.30" />
+                                            <stop offset="100%" stopColor={realColor} stopOpacity="0.20" />
+                                        </linearGradient>
+                                    </defs>
+                                ),
                                 
                                 tooltip: {
                                     show: true,
@@ -647,14 +709,14 @@ export default function ProgressChart({
                                                 seriesData.push({
                                                     label: expectedLabel,
                                                     value: value,
-                                                    color: expectedLabel === 'Gasto Proyectado' ? '#BFCFDC' : '#79AAAF'
+                                                    color: expectedLabel === 'Gasto Proyectado' ? projectedColor : realColor
                                                 });
                                             } else {
                                                 // Series doesn't exist, show 0
                                                 seriesData.push({
                                                     label: expectedLabel,
                                                     value: 0,
-                                                    color: expectedLabel === 'Gasto Proyectado' ? '#BFCFDC' : '#79AAAF'
+                                                    color: expectedLabel === 'Gasto Proyectado' ? projectedColor : realColor
                                                 });
                                             }
                                         });
