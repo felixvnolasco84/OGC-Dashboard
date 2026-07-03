@@ -58,7 +58,7 @@ export default function ControlPage() {
         chartId: "control-chart-1",
         defaultConfig: {
             title: "Gasto Mano de Obra",
-            color: "#3B82F6",
+            color: "#256A34",
             height: 300,
             familias: [],
         },

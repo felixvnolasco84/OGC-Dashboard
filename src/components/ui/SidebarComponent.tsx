@@ -581,26 +581,30 @@ export default function SidebarComponent() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
-                  className="w-full data-[state=open]:bg-gray-100"
+                  tooltip={activeProject?.nombre || "Seleccionar proyecto"}
+                  className={cn(
+                    "data-[state=open]:bg-gray-100",
+                    activeProject ? "w-full" : "h-9 w-9 justify-center p-0"
+                  )}
                 >
                   {activeProjectType === "sales" ? (
-                    <Tag className="w-4 h-4 text-gray-500 flex-shrink-0 group-data-[collapsible=icon]:w-full" />
+                    <Tag className="w-4 h-4 text-gray-500 flex-shrink-0" />
                   ) : (
-                    <Folder className="w-4 h-4 text-gray-500 flex-shrink-0 group-data-[collapsible=icon]:w-full" />
+                    <Folder className="w-4 h-4 text-gray-500 flex-shrink-0" />
                   )}
-                  <div className="flex flex-col gap-0.5 leading-none text-left group-data-[collapsible=icon]:hidden">
-                    <span className="font-semibold truncate text-sm ">
-                      {activeProject?.nombre || "Seleccionar Proyecto"}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {activeProjectType === "sales"
-                        ? "Ventas"
-                        : activeProjectType === "proyecto"
-                          ? "Proyecto"
-                          : ""}
-                    </span>
-                  </div>
-                  <ChevronsUpDown className="ml-auto w-4 h-4 text-gray-400 group-data-[collapsible=icon]:hidden" />
+                  {activeProject && (
+                    <>
+                      <div className="flex flex-col gap-0.5 leading-none text-left group-data-[collapsible=icon]:hidden">
+                        <span className="font-semibold truncate text-sm ">
+                          {activeProject.nombre}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {activeProjectType === "sales" ? "Ventas" : "Proyecto"}
+                        </span>
+                      </div>
+                      <ChevronsUpDown className="ml-auto w-4 h-4 text-gray-400 group-data-[collapsible=icon]:hidden" />
+                    </>
+                  )}
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent

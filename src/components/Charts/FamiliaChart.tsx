@@ -62,6 +62,9 @@ type ReactChartsSeries = {
     data: ReactChartsDataPoint[];
 };
 
+const toSafeId = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "-");
+const referenceChartColor = "#256A34";
+
 const formatNumber = (amount: number) => {
     if (amount >= 1000000) {
         return `$${(amount / 1000000).toFixed(1)}M`;
@@ -77,7 +80,7 @@ const formatNumber = (amount: number) => {
 };
 
 export default function FamiliaChart({
-    chartId, // Used for identification purposes when configuring
+    chartId,
     data,
     title,
     total,
@@ -85,9 +88,8 @@ export default function FamiliaChart({
     height = 300,
     onConfigClick
 }: FamiliaChartProps) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _chartId = chartId; // Suppress unused warning - used for component identification
-    console.log(_chartId);
+    const gradientId = React.useMemo(() => `familia-chart-gradient-${toSafeId(chartId)}`, [chartId]);
+    const chartColor = color.toUpperCase() === "#3B82F6" ? referenceChartColor : color;
 
     // Use real data from queries (filtered by configuration)
     const rawData = data;
@@ -208,6 +210,7 @@ export default function FamiliaChart({
                 padBandRange: false, // Remove empty spaces at start/end of chart
                 hardMin: minDate, // Set exact start date
                 hardMax: maxDate, // Set exact end date
+                showGrid: false,
             };
         },
         [transformedData]
@@ -218,6 +221,9 @@ export default function FamiliaChart({
             {
                 getValue: (datum) => datum.secondary,
                 elementType: "area",
+                showGrid: true,
+                shouldNice: true,
+                showDatumElements: false,
                 formatters: {
                     scale: (value: number) => {
                         if (value >= 1000000) {
@@ -247,24 +253,49 @@ export default function FamiliaChart({
     );
 
     return (
-        <div className="w-full h-full relative bg-[#fcfcfc] p-6 rounded-lg border border-gray-200">
+        <div className="familia-chart w-full h-full relative bg-[#FCFCFC] p-8 md:p-10 rounded-md border border-[#e4e2dc]">
+            <style>
+                {`
+                    .familia-chart .Axis .domain,
+                    .familia-chart .Axis .domainAndTicks > .tick line {
+                        stroke: transparent !important;
+                    }
+
+                    .familia-chart .Axis .grid line {
+                        stroke: #EAEAEA !important;
+                        stroke-width: 1;
+                        stroke-dasharray: 6 8;
+                        stroke-linecap: round;
+                    }
+
+                    .familia-chart .Axis text.tickLabel {
+                        fill: #777770 !important;
+                        font-size: 12px !important;
+                        font-weight: 400;
+                    }
+
+                    .familia-chart svg path {
+                        transition: none;
+                    }
+                `}
+            </style>
             {/* Header with title and total */}
-            <div className="mb-6 text-left space-y-4">
+            <div className="mb-8 text-left space-y-8">
                 <div className="flex items-start justify-between">
-                    <h3 className="text-lg font-normal text-gray-900 mb-1">{title}</h3>
+                    <h3 className="text-2xl md:text-xl leading-tight font-normal text-[#2f302c] mb-1">{title}</h3>
                     {onConfigClick && (
                         <button
                             onClick={onConfigClick}
-                            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                            className="p-2 hover:bg-[#eeece6] rounded-md transition-colors"
                             title="Configurar gráfica"
                         >
-                            <Settings className="w-4 h-4 text-gray-600" />
+                            <Settings className="w-5 h-5 text-[#4f5a64]" />
                         </button>
                     )}
                 </div>
                 <div className="flex flex-col items-baseline">
-                    <span className="text-xs text-gray-500">Total</span>
-                    <span className="text-sm  text-gray-900">{formatNumber(total)}</span>
+                    <span className="text-xs text-[#777770]">Total</span>
+                    <span className="text-lg leading-tight text-[#2f302c]">{formatNumber(total)}</span>
                 </div>
             </div>
 
@@ -298,12 +329,39 @@ export default function FamiliaChart({
                             data: transformedData,
                             primaryAxis,
                             secondaryAxes,
-                            defaultColors: [color],
+                            defaultColors: [chartColor],
+                            padding: {
+                                left: 6,
+                                right: 24,
+                                top: 8,
+                                bottom: 10,
+                            },
+                            getSeriesStyle: () => ({
+                                color: chartColor,
+                                area: {
+                                    fill: `url(#${gradientId})`,
+                                    opacity: 1,
+                                    stroke: "none",
+                                },
+                                line: {
+                                    stroke: chartColor,
+                                    strokeWidth: 2,
+                                },
+                            }),
                             dark: false,
                             interactionMode: 'closest',
                             tooltip: {
                                 show: true,
                             },
+                            renderSVG: () => (
+                                <defs>
+                                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={chartColor} stopOpacity="0.42" />
+                                        <stop offset="52%" stopColor={chartColor} stopOpacity="0.24" />
+                                        <stop offset="100%" stopColor="#fbfbfa" stopOpacity="0.02" />
+                                    </linearGradient>
+                                </defs>
+                            ),
                         }}
                     />
                 )}
