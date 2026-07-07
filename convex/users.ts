@@ -2,6 +2,7 @@ import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { internalMutation } from "./functions";
 import { v } from "convex/values";
 import {
   getScopedOrganizationId,
@@ -161,6 +162,56 @@ export const createOrUpdateInvitedUser = mutation({
       ...data,
       created_at: Date.now(),
     });
+  },
+});
+
+export const createTemporaryViewerUser = internalMutation({
+  args: {
+    email: v.string(),
+    name: v.optional(v.string()),
+    desarrolloId: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    const desarrollo = await ctx.db.get(args.desarrolloId);
+    if (!desarrollo) {
+      throw new Error("Proyecto no encontrado");
+    }
+
+    const normalizedEmail = args.email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new Error("Email requerido");
+    }
+
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .first();
+
+    const name = args.name?.trim() || existingUser?.name || normalizedEmail;
+    const directViewerData = {
+      email: normalizedEmail,
+      name,
+      role: "viewer",
+      organization_id: desarrollo.organization_id || existingUser?.organization_id,
+      allowed_desarrollos: [args.desarrolloId],
+      allowed_sales_projects: [] as Id<"sales_projects">[],
+      invitation_status: existingUser?.clerkId && !existingUser.clerkId.startsWith("pending:")
+        ? "accepted"
+        : "pending",
+    };
+
+    if (existingUser) {
+      await ctx.db.patch(existingUser._id, directViewerData);
+      return { success: true, userId: existingUser._id, created: false };
+    }
+
+    const userId = await ctx.db.insert("users", {
+      clerkId: `pending:${normalizedEmail}`,
+      ...directViewerData,
+      created_at: Date.now(),
+    });
+
+    return { success: true, userId, created: true };
   },
 });
 
