@@ -317,6 +317,24 @@ export const getByProject = query({
   },
 });
 
+export const getByProjects = query({
+  args: {
+    projectIds: v.array(v.id("desarrollos")),
+  },
+  handler: async (ctx, args) => {
+    const result: Record<string, Doc<"partidas">[]> = {};
+
+    for (const projectId of Array.from(new Set(args.projectIds))) {
+      result[projectId] = await ctx.db
+        .query("partidas")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", projectId))
+        .collect();
+    }
+
+    return result;
+  },
+});
+
 export const getByProjectPaginated = query({
   args: {
     projectId: v.id("desarrollos"),

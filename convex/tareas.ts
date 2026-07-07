@@ -1,5 +1,6 @@
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { getCurrentUserOrThrow, getUserDesarrollos, hasGlobalAdminAccess } from "./permissions";
 
@@ -32,9 +33,55 @@ function canWrite(role: string) {
   return WRITE_ROLES.has(role);
 }
 
+function canManageTask(user: Doc<"users">, task: Doc<"tareas">) {
+  return user.role === "admin" || task.created_by_id === user._id;
+}
+
+function canUpdateTaskStatus(user: Doc<"users">, task: Doc<"tareas">) {
+  return canManageTask(user, task) || task.asignados.includes(user._id);
+}
+
 function stringifyValue(value: unknown) {
   if (value === undefined || value === null || value === "") return undefined;
   return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+async function ensureAssignableUsersBelongToProject(
+  ctx: QueryCtx | MutationCtx,
+  asignados: Id<"users">[],
+  proyecto: Id<"desarrollos">
+) {
+  if (asignados.length === 0) {
+    throw new Error("Asigna al menos un responsable");
+  }
+
+  if (new Set(asignados).size !== asignados.length) {
+    throw new Error("La tarea no puede tener responsables duplicados");
+  }
+
+  const project = await ctx.db.get(proyecto);
+  if (!project) {
+    throw new Error("Project not found");
+  }
+
+  for (const userId of asignados) {
+    const assignedUser = await ctx.db.get(userId);
+    if (!assignedUser) {
+      throw new Error("El responsable seleccionado no existe");
+    }
+
+    const belongsToProjectOrganization =
+      Boolean(project.organization_id) &&
+      assignedUser.organization_id === project.organization_id;
+    const hasProjectAccess =
+      hasGlobalAdminAccess(assignedUser) ||
+      assignedUser.allowed_desarrollos.includes(proyecto) ||
+      belongsToProjectOrganization;
+
+    if (!hasProjectAccess) {
+      throw new Error("Los responsables deben tener acceso al proyecto");
+    }
+  }
 }
 
 async function ensurePartidasBelongToProject(
@@ -253,9 +300,21 @@ async function getTaskNotificationItems(
       continue;
     }
 
+    const individualRead = await ctx.db
+      .query("tarea_notification_reads")
+      .withIndex("by_user_history", (q) =>
+        q.eq("user_id", args.user._id).eq("tarea_history_id", item._id)
+      )
+      .first();
+    const isUnread = item.created_at > args.lastReadAt && !individualRead;
+
+    if (args.unreadOnly && !isUnread) {
+      continue;
+    }
+
     enriched.push({
       ...item,
-      is_unread: item.created_at > args.lastReadAt,
+      is_unread: isUnread,
       notification_type: getNotificationType(item, task, args.user),
       task: {
         _id: task._id,
@@ -294,6 +353,28 @@ export const getByProyecto = query({
   },
 });
 
+export const getByProyectoPaginated = query({
+  args: {
+    proyecto: v.id("desarrollos"),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    await ensureProjectAccess(ctx, args.proyecto);
+
+    const page = await ctx.db
+      .query("tareas")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
+      .paginate(args.paginationOpts);
+
+    const enriched = await Promise.all(page.page.map((task) => enrichTask(ctx, task)));
+
+    return {
+      ...page,
+      page: sortTasks(enriched),
+    };
+  },
+});
+
 export const getAllAccessible = query({
   args: {},
   handler: async (ctx) => {
@@ -310,6 +391,45 @@ export const getAllAccessible = query({
     const tasks = tasksByProject.flat();
     const enriched = await Promise.all(tasks.map((task) => enrichTask(ctx, task)));
     return sortTasks(enriched);
+  },
+});
+
+export const getCatalogs = query({
+  args: {
+    proyecto: v.optional(v.id("desarrollos")),
+  },
+  handler: async (ctx, args) => {
+    const proyectos = args.proyecto
+      ? [{ _id: args.proyecto }]
+      : await getUserDesarrollos(ctx);
+
+    if (args.proyecto) {
+      await ensureProjectAccess(ctx, args.proyecto);
+    }
+
+    const tasksByProject = await Promise.all(
+      proyectos.map((proyecto) =>
+        ctx.db
+          .query("tareas")
+          .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto._id))
+          .collect()
+      )
+    );
+    const tasks = tasksByProject.flat();
+    const collectValues = (field: "status" | "prioridad" | "categoria") =>
+      Array.from(
+        new Set(
+          tasks
+            .map((task) => task[field])
+            .filter((value): value is string => Boolean(value?.trim()))
+        )
+      ).sort((a, b) => a.localeCompare(b));
+
+    return {
+      statuses: collectValues("status"),
+      priorities: collectValues("prioridad"),
+      categories: collectValues("categoria"),
+    };
   },
 });
 
@@ -506,6 +626,44 @@ export const markNotificationsAsRead = mutation({
   },
 });
 
+export const markNotificationAsRead = mutation({
+  args: {
+    id: v.id("tarea_history"),
+  },
+  handler: async (ctx, args) => {
+    const item = await ctx.db.get(args.id);
+    if (!item) {
+      throw new Error("Notification not found");
+    }
+
+    const user = await ensureProjectAccess(ctx, item.proyecto);
+    const task = await ctx.db.get(item.tarea_id);
+    if (!task || !canSeeTaskHistory(user, task)) {
+      throw new Error("Unauthorized");
+    }
+
+    const existing = await ctx.db
+      .query("tarea_notification_reads")
+      .withIndex("by_user_history", (q) =>
+        q.eq("user_id", user._id).eq("tarea_history_id", item._id)
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { read_at: Date.now() });
+    } else {
+      await ctx.db.insert("tarea_notification_reads", {
+        user_id: user._id,
+        tarea_history_id: item._id,
+        proyecto: item.proyecto,
+        read_at: Date.now(),
+      });
+    }
+
+    return { success: true };
+  },
+});
+
 export const getAssignableUsers = query({
   args: {
     proyecto: v.id("desarrollos"),
@@ -541,6 +699,65 @@ export const getAssignableUsers = query({
   },
 });
 
+export const getAssignableUsersByProjects = query({
+  args: {
+    proyectos: v.array(v.id("desarrollos")),
+  },
+  handler: async (ctx, args) => {
+    const uniqueProjectIds = Array.from(new Set(args.proyectos));
+    const currentUser = await getCurrentUserOrThrow(ctx);
+    const users = await ctx.db.query("users").collect();
+    const result: Record<string, {
+      _id: Id<"users">;
+      name: string;
+      email: string;
+      role: string;
+    }[]> = {};
+
+    for (const projectId of uniqueProjectIds) {
+      const proyecto = await ctx.db.get(projectId);
+      if (!proyecto) {
+        result[projectId] = [];
+        continue;
+      }
+
+      if (!hasGlobalAdminAccess(currentUser)) {
+        const hasProjectAccess =
+          (currentUser.role === "admin" && proyecto.organization_id === currentUser.organization_id) ||
+          currentUser.allowed_desarrollos.includes(projectId);
+
+        if (!hasProjectAccess) {
+          result[projectId] = [];
+          continue;
+        }
+      }
+
+      result[projectId] = users
+        .filter((user) => {
+          if (hasGlobalAdminAccess(currentUser)) {
+            return true;
+          }
+
+          const hasProjectAccess = user.allowed_desarrollos.includes(projectId);
+          const belongsToProjectOrganization =
+            Boolean(proyecto.organization_id) &&
+            user.organization_id === proyecto.organization_id;
+
+          return hasProjectAccess || belongsToProjectOrganization;
+        })
+        .map((user) => ({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return result;
+  },
+});
+
 export const create = mutation({
   args: {
     proyecto: v.id("desarrollos"),
@@ -562,8 +779,9 @@ export const create = mutation({
 
     const titulo = args.titulo.trim();
     if (!titulo) {
-      throw new Error("El titulo es obligatorio");
+      throw new Error("El título es obligatorio");
     }
+    await ensureAssignableUsersBelongToProject(ctx, args.asignados, args.proyecto);
     if (args.parent_task) {
       const parent = await ctx.db.get(args.parent_task);
       if (!parent || parent.proyecto !== args.proyecto) {
@@ -631,7 +849,7 @@ export const update = mutation({
 
     const titulo = args.titulo.trim();
     if (!titulo) {
-      throw new Error("El titulo es obligatorio");
+      throw new Error("El título es obligatorio");
     }
 
     const now = Date.now();
@@ -643,6 +861,7 @@ export const update = mutation({
       }
     }
     const nextProject = args.proyecto || task.proyecto;
+    await ensureAssignableUsersBelongToProject(ctx, args.asignados, nextProject);
     await ensurePartidasBelongToProject(ctx, args.partidas, nextProject);
     const nextTask = {
       proyecto: nextProject,
@@ -660,6 +879,32 @@ export const update = mutation({
         ? (task.completed_at || now)
         : undefined,
     };
+
+    const trackedFields: Array<keyof typeof nextTask> = [
+      "proyecto",
+      "titulo",
+      "descripcion",
+      "asignados",
+      "partidas",
+      "status",
+      "prioridad",
+      "fecha_limite",
+      "categoria",
+      "parent_task",
+    ];
+
+    const changedFields = trackedFields.filter((field) => {
+      const previous = task[field as keyof Doc<"tareas">];
+      const next = nextTask[field];
+      return JSON.stringify(previous ?? null) !== JSON.stringify(next ?? null);
+    });
+    const changedNonStatusFields = changedFields.filter((field) => field !== "status");
+    if (changedNonStatusFields.length > 0 && !canManageTask(user, task)) {
+      throw new Error("Unauthorized: Only admins or creators can edit task details");
+    }
+    if (changedFields.includes("status") && !canUpdateTaskStatus(user, task)) {
+      throw new Error("Unauthorized: Only assigned users or creators can update status");
+    }
 
     await ctx.db.patch(args.id, nextTask);
 
@@ -683,33 +928,18 @@ export const update = mutation({
       }
     }
 
-    const trackedFields: Array<keyof typeof nextTask> = [
-      "proyecto",
-      "titulo",
-      "descripcion",
-      "asignados",
-      "partidas",
-      "status",
-      "prioridad",
-      "fecha_limite",
-      "categoria",
-      "parent_task",
-    ];
-
     const historyTask = { _id: task._id, proyecto: nextTask.proyecto };
-    for (const field of trackedFields) {
+    for (const field of changedFields) {
       const previous = task[field as keyof Doc<"tareas">];
       const next = nextTask[field];
-      if (JSON.stringify(previous ?? null) !== JSON.stringify(next ?? null)) {
-        await insertHistory(ctx, {
-          task: historyTask,
-          action: field === "status" ? "status_changed" : "updated",
-          field_changed: field,
-          old_value: previous,
-          new_value: next,
-          user,
-        });
-      }
+      await insertHistory(ctx, {
+        task: historyTask,
+        action: field === "status" ? "status_changed" : "updated",
+        field_changed: field,
+        old_value: previous,
+        new_value: next,
+        user,
+      });
     }
 
     await completeParentIfAllChildrenDone(ctx, {
@@ -793,6 +1023,9 @@ export const reorderSiblings = mutation({
       if (task.proyecto !== firstTask.proyecto || task.parent_task !== firstTask.parent_task) {
         throw new Error("Solo se pueden reordenar tareas del mismo nivel");
       }
+      if (!canManageTask(user, task)) {
+        throw new Error("Unauthorized: Only admins or creators can reorder tasks");
+      }
     }
 
     const now = Date.now();
@@ -819,8 +1052,7 @@ export const updateStatus = mutation({
     }
 
     const user = await ensureProjectAccess(ctx, task.proyecto);
-    const isAssigned = task.asignados.includes(user._id);
-    if (!canWrite(user.role) || (user.role !== "admin" && !isAssigned && task.created_by_id !== user._id)) {
+    if (!canWrite(user.role) || !canUpdateTaskStatus(user, task)) {
       throw new Error("Unauthorized: Only assigned users or creators can update status");
     }
 

@@ -55,6 +55,20 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import type {
+  PartidaSummary,
+  ProjectLookupMap,
+  ProjectOption,
+  Task,
+  TaskCatalogs,
+  TaskComment,
+  TaskContextMenu,
+  TaskGroup,
+  TaskHistory,
+  TaskLabelOption,
+  TaskNotification,
+  UserSummary,
+} from "./tareasTypes";
 import {
   Ban,
   Bell,
@@ -94,102 +108,6 @@ const TASK_UI_COLORS = {
 const TASK_TABLE_GRID = "grid-cols-[minmax(360px,1.6fr)_minmax(220px,1fr)_180px_160px_160px_minmax(220px,1fr)_48px]";
 const TASK_VALUE_TEXT = "text-[#A3A39E]";
 const TASK_COLUMN_TEXT = "text-[#A5A5A0]";
-
-type UserSummary = {
-  _id: Id<"users">;
-  name: string;
-  email: string;
-  role: string;
-};
-
-type Task = {
-  _id: Id<"tareas">;
-  proyecto: Id<"desarrollos">;
-  parent_task?: Id<"tareas">;
-  position?: number;
-  proyecto_nombre?: string;
-  titulo: string;
-  descripcion?: string;
-  asignados: Id<"users">[];
-  partidas?: Id<"partidas">[];
-  status: string;
-  prioridad: string;
-  fecha_limite?: string;
-  categoria?: string;
-  created_by_id: Id<"users">;
-  created_by_name: string;
-  created_at: number;
-  updated_at?: number;
-  completed_at?: number;
-  assigned_users?: UserSummary[];
-  assigned_partidas?: PartidaSummary[];
-};
-
-type PartidaSummary = {
-  _id: Id<"partidas">;
-  nombre: string;
-  familia?: string;
-  sub_partida?: string;
-  partida_nombre?: string;
-  nivel: number;
-};
-
-type TaskComment = {
-  _id: Id<"tarea_comments">;
-  user_id: Id<"users">;
-  user_name: string;
-  comment: string;
-  created_at: number;
-};
-
-type TaskHistory = {
-  _id: Id<"tarea_history">;
-  action: string;
-  field_changed?: string;
-  old_value?: string;
-  new_value?: string;
-  changed_by_name: string;
-  created_at: number;
-};
-
-type TaskNotification = TaskHistory & {
-  proyecto_nombre?: string;
-  is_unread: boolean;
-  notification_type: "assignment" | "mention" | "update";
-  task: {
-    _id: Id<"tareas">;
-    titulo: string;
-    status: string;
-    prioridad: string;
-    fecha_limite?: string;
-    asignados: Id<"users">[];
-    created_by_id: Id<"users">;
-    created_by_name: string;
-  };
-};
-
-type ProjectOption = {
-  _id: Id<"desarrollos">;
-  nombre: string;
-};
-
-type TaskLabelOption = {
-  id: string;
-  label: string;
-  color: string;
-};
-
-type TaskGroup = {
-  projectId: string;
-  projectName: string;
-  tasks: Task[];
-};
-
-type TaskContextMenu = {
-  task: Task;
-  x: number;
-  y: number;
-} | null;
 
 const LABEL_COLORS = [
   "#00a884",
@@ -337,31 +255,31 @@ function formatHistoryValue(value?: string) {
 }
 
 function historyLabel(item: TaskHistory) {
-  if (item.action === "created") return "Creo la tarea";
-  if (item.action === "comment_added") return "Agrego un comentario";
+  if (item.action === "created") return "Creó la tarea";
+  if (item.action === "comment_added") return "Agregó un comentario";
   if (item.action === "status_changed") {
-    return `Cambio el estado de ${formatHistoryValue(item.old_value)} a ${formatHistoryValue(item.new_value)}`;
+    return `Cambió el estado de ${formatHistoryValue(item.old_value)} a ${formatHistoryValue(item.new_value)}`;
   }
-  if (item.field_changed === "asignados") return "Actualizo los asignados";
-  if (item.field_changed === "partidas") return "Actualizo las partidas";
-  if (item.field_changed) return `Actualizo ${item.field_changed.replace("_", " ")}`;
-  return "Actualizo la tarea";
+  if (item.field_changed === "asignados") return "Actualizó los asignados";
+  if (item.field_changed === "partidas") return "Actualizó las partidas";
+  if (item.field_changed) return `Actualizó ${item.field_changed.replace("_", " ")}`;
+  return "Actualizó la tarea";
 }
 
 function notificationLabel(item: TaskNotification) {
   if (item.notification_type === "mention") {
-    return "Te menciono en un comentario";
+    return "Te mencionó en un comentario";
   }
   if (item.notification_type === "assignment") {
-    return item.action === "created" ? "Te asigno una nueva tarea" : "Actualizo los asignados";
+    return item.action === "created" ? "Te asignó una nueva tarea" : "Actualizó los asignados";
   }
-  if (item.action === "created") return "Creo una tarea";
-  if (item.action === "comment_added") return "Agrego un comentario";
+  if (item.action === "created") return "Creó una tarea";
+  if (item.action === "comment_added") return "Agregó un comentario";
   if (item.action === "status_changed") {
-    return `Cambio el estado a ${formatHistoryValue(item.new_value)}`;
+    return `Cambió el estado a ${formatHistoryValue(item.new_value)}`;
   }
-  if (item.field_changed) return `Actualizo ${item.field_changed.replace("_", " ")}`;
-  return "Actualizo una tarea";
+  if (item.field_changed) return `Actualizó ${item.field_changed.replace("_", " ")}`;
+  return "Actualizó una tarea";
 }
 
 function relativeTime(timestamp: number) {
@@ -381,7 +299,7 @@ function relativeTime(timestamp: number) {
   }
 
   const value = Math.floor(diff / day);
-  return `${value} dia${value === 1 ? "" : "s"}`;
+  return `${value} día${value === 1 ? "" : "s"}`;
 }
 
 function userInitials(user: Pick<UserSummary, "name" | "email">) {
@@ -406,6 +324,20 @@ function normalizeStoredLabels(value: string | null, fallback: TaskLabelOption[]
   } catch {
     return fallback;
   }
+}
+
+function mergeLabels(baseLabels: TaskLabelOption[], values: string[], fallback: TaskLabelOption[]) {
+  const labels = [...baseLabels];
+  const known = new Set(labels.flatMap((label) => [label.id, label.label]));
+
+  for (const value of values) {
+    if (!value || known.has(value)) continue;
+    const fallbackMatch = fallback.find((label) => label.id === value || label.label === value);
+    labels.push(fallbackMatch || labelForValue(value, labels));
+    known.add(value);
+  }
+
+  return labels;
 }
 
 function partidaDisplayName(partida: PartidaSummary) {
@@ -853,16 +785,17 @@ function InlinePriorityPicker({
 
 function InlineAssigneePicker({
   task,
+  assignableUsers,
   disabled,
   onChange,
 }: {
   task: Task;
+  assignableUsers?: UserSummary[];
   disabled: boolean;
   onChange: (assignees: Id<"users">[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const assignableUsers = useQuery(api.tareas.getAssignableUsers, { proyecto: task.proyecto }) as UserSummary[] | undefined;
   const assignedIds = useMemo(() => new Set(task.asignados), [task.asignados]);
   const assignedUsers = useMemo(() => {
     const usersById = new Map((assignableUsers || []).map((user) => [user._id, user]));
@@ -960,7 +893,7 @@ function InlineAssigneePicker({
           )}
           {assignableUsers && filteredUsers.length === 0 && (
             <div className="px-2 py-6 text-center text-sm text-gray-500">
-              No hay usuarios con esa busqueda.
+              No hay usuarios con esa búsqueda.
             </div>
           )}
           {filteredUsers.map((user) => {
@@ -999,16 +932,17 @@ function InlineAssigneePicker({
 
 function InlinePartidaPicker({
   task,
+  projectPartidas,
   disabled,
   onChange,
 }: {
   task: Task;
+  projectPartidas?: PartidaSummary[];
   disabled: boolean;
   onChange: (partidas: Id<"partidas">[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const projectPartidas = useQuery(api.partida.getByProject, { projectId: task.proyecto }) as PartidaSummary[] | undefined;
   const selectedPartidaIds = useMemo(() => new Set(task.partidas || []), [task.partidas]);
   const selectedPartidas = useMemo(() => {
     const partidasById = new Map((projectPartidas || []).map((partida) => [partida._id, partida]));
@@ -1102,7 +1036,7 @@ function InlinePartidaPicker({
           )}
           {projectPartidas && filteredPartidas.length === 0 && (
             <div className="px-2 py-6 text-center text-sm text-gray-500">
-              No hay partidas con esa busqueda.
+              No hay partidas con esa búsqueda.
             </div>
           )}
           {filteredPartidas.map((partida) => {
@@ -1140,27 +1074,18 @@ function InlinePartidaPicker({
 }
 
 const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerForCreate({
-  proyecto,
+  assignableUsers,
   value,
   disabled,
   onChange,
 }: {
-  proyecto: Id<"desarrollos">;
+  assignableUsers?: UserSummary[];
   value: Id<"users">[];
   disabled: boolean;
   onChange: (assignees: Id<"users">[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  // Lazy loading: solo cargar datos cuando el popover estÃ¡ abierto o se ha abierto alguna vez
-  const [hasBeenOpened, setHasBeenOpened] = useState(false);
-  
-  const assignableUsers = useQuery(
-    api.tareas.getAssignableUsers, 
-    hasBeenOpened ? { proyecto } : "skip"
-  ) as UserSummary[] | undefined;
-  
-  // Convertir value a string estable para comparaciÃ³n
   const valueKey = useMemo(() => value.join(","), [value]);
   
   const assignedIds = useMemo(() => new Set(value), [valueKey]);
@@ -1190,15 +1115,8 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
     );
   }, [value, onChange]);
 
-  const handleOpenChange = useCallback((newOpen: boolean) => {
-    setOpen(newOpen);
-    if (newOpen && !hasBeenOpened) {
-      setHasBeenOpened(true);
-    }
-  }, [hasBeenOpened]);
-
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -1260,14 +1178,14 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
           <p className="px-2 pb-1 text-xs font-medium text-gray-500">Personas sugeridas</p>
-          {!assignableUsers && hasBeenOpened && (
+          {!assignableUsers && (
             <div className="flex h-24 items-center justify-center text-gray-400">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {assignableUsers && filteredUsers.length === 0 && (
             <div className="px-2 py-6 text-center text-sm text-gray-500">
-              No hay usuarios con esa busqueda.
+              No hay usuarios con esa búsqueda.
             </div>
           )}
           {filteredUsers.map((user) => {
@@ -1304,27 +1222,18 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
 });
 
 const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForCreate({
-  proyecto,
+  projectPartidas,
   value,
   disabled,
   onChange,
 }: {
-  proyecto: Id<"desarrollos">;
+  projectPartidas?: PartidaSummary[];
   value: Id<"partidas">[];
   disabled: boolean;
   onChange: (partidas: Id<"partidas">[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  // Lazy loading: solo cargar datos cuando el popover estÃ¡ abierto o se ha abierto alguna vez
-  const [hasBeenOpened, setHasBeenOpened] = useState(false);
-  
-  const projectPartidas = useQuery(
-    api.partida.getByProject, 
-    hasBeenOpened ? { projectId: proyecto } : "skip"
-  ) as PartidaSummary[] | undefined;
-  
-  // Convertir value a string estable para comparaciÃ³n
   const valueKey = useMemo(() => value.join(","), [value]);
   
   const selectedPartidaIds = useMemo(() => new Set(value), [valueKey]);
@@ -1351,15 +1260,8 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
     );
   }, [value, onChange]);
 
-  const handleOpenChange = useCallback((newOpen: boolean) => {
-    setOpen(newOpen);
-    if (newOpen && !hasBeenOpened) {
-      setHasBeenOpened(true);
-    }
-  }, [hasBeenOpened]);
-
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -1418,14 +1320,14 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
           <p className="px-2 pb-1 text-xs font-medium text-gray-500">Partidas del proyecto</p>
-          {!projectPartidas && hasBeenOpened && (
+          {!projectPartidas && (
             <div className="flex h-24 items-center justify-center text-gray-400">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {projectPartidas && filteredPartidas.length === 0 && (
             <div className="px-2 py-6 text-center text-sm text-gray-500">
-              No hay partidas con esa busqueda.
+              No hay partidas con esa búsqueda.
             </div>
           )}
           {filteredPartidas.map((partida) => {
@@ -1477,25 +1379,51 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     proyectoId ? "skip" : {}
   ) as Task[] | undefined;
   const tareas = isProjectScoped ? projectTasks : globalTasks;
+  const taskCatalogs = useQuery(
+    api.tareas.getCatalogs,
+    proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : {}
+  ) as TaskCatalogs | undefined;
   const [search, setSearch] = useState("");
   const [taskTab, setTaskTab] = useState<"all" | "open" | "overdue" | "done">("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [partidaFilter, setPartidaFilter] = useState("all");
+  const [ownershipFilter, setOwnershipFilter] = useState<"all" | "mine" | "created">("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<Id<"tareas"> | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [addingTaskInSection, setAddingTaskInSection] = useState<{projectId: string; statusLabel: string} | null>(null);
   const selectedFormProjectId = proyectoId || form.proyecto;
-  const assignableUsers = useQuery(
-    api.tareas.getAssignableUsers,
-    selectedFormProjectId ? { proyecto: selectedFormProjectId as Id<"desarrollos"> } : "skip"
-  );
-  const formPartidas = useQuery(
-    api.partida.getByProject,
-    selectedFormProjectId ? { projectId: selectedFormProjectId as Id<"desarrollos"> } : "skip"
-  ) as PartidaSummary[] | undefined;
+  const lookupProjectIds = useMemo(() => {
+    const ids = new Set<string>();
+
+    if (proyectoId) ids.add(proyectoId);
+    if (selectedFormProjectId) ids.add(selectedFormProjectId);
+    if (!isProjectScoped && projectFilter !== "all") ids.add(projectFilter);
+    if (addingTaskInSection?.projectId) ids.add(addingTaskInSection.projectId);
+
+    for (const task of tareas || []) {
+      ids.add(task.proyecto);
+    }
+
+    return Array.from(ids) as Id<"desarrollos">[];
+  }, [addingTaskInSection, isProjectScoped, projectFilter, proyectoId, selectedFormProjectId, tareas]);
+  const assignableUsersByProject = useQuery(
+    api.tareas.getAssignableUsersByProjects,
+    lookupProjectIds.length ? { proyectos: lookupProjectIds } : "skip"
+  ) as ProjectLookupMap<UserSummary> | undefined;
+  const partidasByProject = useQuery(
+    api.partida.getByProjects,
+    lookupProjectIds.length ? { projectIds: lookupProjectIds } : "skip"
+  ) as ProjectLookupMap<PartidaSummary> | undefined;
+  const assignableUsers = selectedFormProjectId ? assignableUsersByProject?.[selectedFormProjectId] : undefined;
+  const formPartidas = selectedFormProjectId ? partidasByProject?.[selectedFormProjectId] : undefined;
   const projectNotifications = useQuery(
     api.tareas.getNotifications,
     proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, limit: 60 } : "skip"
@@ -1523,6 +1451,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const addComment = useMutation(api.tareas.addComment);
   const removeComment = useMutation(api.tareas.removeComment);
   const markNotificationsAsRead = useMutation(api.tareas.markNotificationsAsRead);
+  const markNotificationAsRead = useMutation(api.tareas.markNotificationAsRead);
   const duplicateTask = useMutation(api.tareas.duplicate);
   const reorderTasks = useMutation(api.tareas.reorderSiblings);
 
@@ -1541,7 +1470,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [subtaskDueDate, setSubtaskDueDate] = useState<string>("");
   const [subtaskPriority, setSubtaskPriority] = useState<string>("Media");
   const [subtaskPartidas, setSubtaskPartidas] = useState<Id<"partidas">[]>([]);
-  const [addingTaskInSection, setAddingTaskInSection] = useState<{projectId: string; statusLabel: string} | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskAssignees, setNewTaskAssignees] = useState<Id<"users">[]>([]);
   const [newTaskDueDate, setNewTaskDueDate] = useState<string>("");
@@ -1560,6 +1488,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [priorityLabels, setPriorityLabels] = useState<TaskLabelOption[]>(() =>
     normalizeStoredLabels(window.localStorage.getItem("tareas.priorityLabels"), DEFAULT_PRIORITY_LABELS)
   );
+  const effectiveStatusLabels = useMemo(
+    () => mergeLabels(statusLabels, taskCatalogs?.statuses || [], DEFAULT_STATUS_LABELS),
+    [statusLabels, taskCatalogs?.statuses]
+  );
+  const effectivePriorityLabels = useMemo(
+    () => mergeLabels(priorityLabels, taskCatalogs?.priorities || [], DEFAULT_PRIORITY_LABELS),
+    [priorityLabels, taskCatalogs?.priorities]
+  );
 
   const taskDetail = useQuery(
     api.tareas.getDetail,
@@ -1567,9 +1503,17 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   ) as { task: Task; comments: TaskComment[]; history: TaskHistory[] } | undefined;
 
   const selectedTask = taskDetail?.task || tareas?.find((task) => task._id === selectedTaskId);
-  const canCreate = currentUser?.role && currentUser.role !== "viewer";
+  const canCreate = Boolean(currentUser?.role && currentUser.role !== "viewer");
   const canComment = canCreate && selectedTask;
   const unreadNotificationCount = taskNotificationSummary?.total || 0;
+  const canManageTask = useCallback(
+    (task: Task) => currentUser?.role === "admin" || currentUser?._id === task.created_by_id,
+    [currentUser?._id, currentUser?.role]
+  );
+  const canChangeTaskStatus = useCallback(
+    (task: Task) => Boolean(canCreate && (canManageTask(task) || (currentUser?._id && task.asignados.includes(currentUser._id)))),
+    [canCreate, canManageTask, currentUser?._id]
+  );
   const assigneeFilterOptions = useMemo(() => {
     const users = new Map<string, UserSummary>();
     for (const task of tareas || []) {
@@ -1579,14 +1523,30 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
     return Array.from(users.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [tareas]);
-
-  useEffect(() => {
-    if (!notificationsOpen) return;
-
-    void markNotificationsAsRead(
-      proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : {}
-    );
-  }, [markNotificationsAsRead, notificationsOpen, proyectoId]);
+  const categoryFilterOptions = useMemo(() => {
+    const categories = new Set(CATEGORY_OPTIONS);
+    for (const category of taskCatalogs?.categories || []) {
+      categories.add(category);
+    }
+    for (const task of tareas || []) {
+      if (task.categoria) categories.add(task.categoria);
+    }
+    return Array.from(categories).sort((a, b) => a.localeCompare(b));
+  }, [tareas, taskCatalogs?.categories]);
+  const partidaFilterOptions = useMemo(() => {
+    const partidas = new Map<string, PartidaSummary>();
+    for (const task of tareas || []) {
+      for (const partida of task.assigned_partidas || []) {
+        partidas.set(partida._id, partida);
+      }
+    }
+    for (const projectPartidas of Object.values(partidasByProject || {})) {
+      for (const partida of projectPartidas) {
+        if (partida.nivel === 1) partidas.set(partida._id, partida);
+      }
+    }
+    return Array.from(partidas.values()).sort((a, b) => partidaDisplayName(a).localeCompare(partidaDisplayName(b)));
+  }, [partidasByProject, tareas]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -1637,11 +1597,28 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         (taskTab === "overdue" && isOverdue(task)) ||
         (taskTab === "done" && task.status === "Completada");
       const matchesStatus = statusFilter === "all" || task.status === statusFilter;
+      const matchesPriority = priorityFilter === "all" || task.prioridad === priorityFilter;
+      const matchesCategory = categoryFilter === "all" || (task.categoria || "General") === categoryFilter;
+      const matchesPartida = partidaFilter === "all" || (task.partidas || []).includes(partidaFilter as Id<"partidas">);
+      const matchesOwnership =
+        ownershipFilter === "all" ||
+        (ownershipFilter === "mine" && Boolean(currentUser?._id && task.asignados.includes(currentUser._id))) ||
+        (ownershipFilter === "created" && currentUser?._id === task.created_by_id);
       const matchesAssignee = assigneeFilter === "all" || task.asignados.includes(assigneeFilter as Id<"users">);
       const matchesProject = projectFilter === "all" || task.proyecto === projectFilter;
-      return matchesSearch && matchesTab && matchesStatus && matchesAssignee && matchesProject;
+      return matchesSearch && matchesTab && matchesStatus && matchesPriority && matchesCategory && matchesPartida && matchesOwnership && matchesAssignee && matchesProject;
     });
-  }, [assigneeFilter, projectFilter, search, statusFilter, taskTab, tareas]);
+  }, [assigneeFilter, categoryFilter, currentUser?._id, ownershipFilter, partidaFilter, priorityFilter, projectFilter, search, statusFilter, taskTab, tareas]);
+
+  const additionalFilterCount = useMemo(() => {
+    return [
+      priorityFilter !== "all",
+      categoryFilter !== "all",
+      ownershipFilter !== "all",
+      partidaFilter !== "all",
+      !isProjectScoped && projectFilter !== "all",
+    ].filter(Boolean).length;
+  }, [categoryFilter, isProjectScoped, ownershipFilter, partidaFilter, priorityFilter, projectFilter]);
 
   const childrenByParent = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -1770,11 +1747,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       return;
     }
     if (!form.titulo.trim()) {
-      toast.error("Agrega un titulo para la tarea");
+      toast.error("Agrega un título para la tarea");
       return;
     }
     if (form.asignados.size === 0) {
-      toast.error("Asigna al menos un usuario");
+      toast.error("Asigna al menos un responsable");
       return;
     }
 
@@ -1817,6 +1794,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   };
 
   const handleStatusChange = async (task: Task, status: string) => {
+    if (!canChangeTaskStatus(task)) {
+      toast.error("Solo responsables, creadores o admins pueden cambiar el estado");
+      return;
+    }
+
     setUpdatingStatusId(task._id);
     try {
       await updateStatus({ id: task._id, status });
@@ -1833,11 +1815,25 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     task: Task,
     changes: Partial<Pick<Task, "titulo" | "fecha_limite" | "prioridad" | "status" | "categoria" | "proyecto" | "asignados" | "partidas">>
   ) => {
-    if (currentUser?.role === "viewer") return;
+    const changedKeys = Object.keys(changes);
+    if (changedKeys.length === 1 && changes.status !== undefined) {
+      await handleStatusChange(task, changes.status);
+      return;
+    }
+
+    if (!canManageTask(task)) {
+      toast.error("Solo el creador o un admin pueden editar los detalles");
+      return;
+    }
 
     const nextTitle = changes.titulo ?? task.titulo;
     if (!nextTitle.trim()) {
-      toast.error("El titulo no puede quedar vacio");
+      toast.error("El título no puede quedar vacío");
+      return;
+    }
+    const nextAssignees = changes.asignados ?? task.asignados;
+    if (nextAssignees.length === 0) {
+      toast.error("Asigna al menos un responsable");
       return;
     }
 
@@ -1848,7 +1844,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         proyecto: changes.proyecto ?? task.proyecto,
         titulo: nextTitle,
         descripcion: task.descripcion || undefined,
-        asignados: changes.asignados ?? task.asignados,
+        asignados: nextAssignees,
         partidas: changes.partidas ?? task.partidas ?? [],
         status: changes.status ?? task.status,
         prioridad: changes.prioridad ?? task.prioridad,
@@ -1868,6 +1864,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     const title = (titleOverride ?? subtaskTitle).trim();
     if (!title || submitting) return;
     const { openDetails = true } = options;
+    const assignees = subtaskAssignees.length ? subtaskAssignees : parent.asignados;
+    if (assignees.length === 0) {
+      toast.error("Asigna al menos un responsable");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -1876,7 +1877,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         parent_task: parent._id,
         titulo: title,
         descripcion: undefined,
-        asignados: subtaskAssignees.length ? subtaskAssignees : parent.asignados,
+        asignados: assignees,
         partidas: subtaskPartidas.length ? subtaskPartidas : parent.partidas || [],
         prioridad: subtaskPriority || parent.prioridad,
         status: parent.status,
@@ -1908,6 +1909,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     const title = (titleOverride ?? newTaskTitle).trim();
     if (!title || submitting) return;
     const { openDetails = true } = options;
+    if (newTaskAssignees.length === 0) {
+      toast.error("Asigna al menos un responsable");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -2002,7 +2007,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   };
 
   const handleTaskDrop = async (targetTask: Task) => {
-    if (!draggingTaskId || draggingTaskId === targetTask._id || currentUser?.role === "viewer") {
+    if (!draggingTaskId || draggingTaskId === targetTask._id) {
       setDraggingTaskId(null);
       return;
     }
@@ -2010,6 +2015,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     const draggedTask = filteredTasks.find((task) => task._id === draggingTaskId);
     if (
       !draggedTask ||
+      !canManageTask(draggedTask) ||
       draggedTask.proyecto !== targetTask.proyecto ||
       (draggedTask.parent_task || null) !== (targetTask.parent_task || null)
     ) {
@@ -2020,6 +2026,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     const siblings = targetTask.parent_task
       ? (childrenByParent.get(targetTask.parent_task) || [])
       : (groupedTasks.find((group) => group.projectId === targetTask.proyecto)?.tasks || []);
+    if (!siblings.every(canManageTask)) {
+      toast.error("Solo el creador o un admin pueden reordenar estas tareas");
+      setDraggingTaskId(null);
+      return;
+    }
+
     const orderedIds = siblings.map((task) => task._id);
     const from = orderedIds.indexOf(draggingTaskId);
     const to = orderedIds.indexOf(targetTask._id);
@@ -2070,6 +2082,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
+  const handleOpenNotification = async (item: TaskNotification) => {
+    setSelectedTaskId(item.task._id);
+    setNotificationsOpen(false);
+
+    if (!item.is_unread) return;
+
+    try {
+      await markNotificationAsRead({ id: item._id });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
   const handleRemoveComment = async (commentId: Id<"tarea_comments">) => {
     try {
       await removeComment({ id: commentId });
@@ -2089,10 +2114,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
 
     const orderedLabels = [
-      ...statusLabels,
+      ...effectiveStatusLabels,
       ...Array.from(statuses.keys())
-        .filter((status) => !statusLabels.some((label) => label.label === status))
-        .map((status) => labelForValue(status, statusLabels)),
+        .filter((status) => !effectiveStatusLabels.some((label) => label.label === status))
+        .map((status) => labelForValue(status, effectiveStatusLabels)),
     ];
 
     return orderedLabels
@@ -2106,6 +2131,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const renderTaskContent = (task: Task, level = 0) => {
     const overdue = isOverdue(task);
     const isSaving = inlineSavingId === task._id || updatingStatusId === task._id;
+    const canEditTask = canManageTask(task);
+    const canEditStatus = canChangeTaskStatus(task);
 
     return (
       <div
@@ -2122,7 +2149,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         <div className="flex items-center gap-2" style={{ paddingLeft: level * 26 }}>
           <button
             type="button"
-            draggable={currentUser?.role !== "viewer"}
+            draggable={canEditTask}
             onDragStart={(event) => {
               event.dataTransfer.effectAllowed = "move";
               event.dataTransfer.setData("text/plain", task._id);
@@ -2135,13 +2162,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             <GripVertical className="h-3.5 w-3.5" />
           </button>
           <div className="relative flex h-6 shrink-0 items-center gap-2">
-            <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={currentUser?.role === "viewer"} className="h-4 w-4" />
+            <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || isSaving} className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <Input
                 defaultValue={task.titulo}
-                disabled={currentUser?.role === "viewer" || isSaving}
+                disabled={!canEditTask || isSaving}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") event.currentTarget.blur();
                 }}
@@ -2161,32 +2188,34 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         </div>
         <InlineAssigneePicker
           task={task}
-          disabled={currentUser?.role === "viewer" || isSaving}
+          assignableUsers={assignableUsersByProject?.[task.proyecto]}
+          disabled={!canEditTask || isSaving}
           onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
         />
         <InlineDatePicker
           value={task.fecha_limite}
-          disabled={currentUser?.role === "viewer" || isSaving}
+          disabled={!canEditTask || isSaving}
           overdue={overdue}
           onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
         />
         <InlinePriorityPicker
           value={task.prioridad}
-          labels={priorityLabels}
-          disabled={currentUser?.role === "viewer" || isSaving}
+          labels={effectivePriorityLabels}
+          disabled={!canEditTask || isSaving}
           onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
           onLabelsChange={setPriorityLabels}
         />
         <InlineLabelPicker
           value={task.status}
-          labels={statusLabels}
-          disabled={isSaving || currentUser?.role === "viewer"}
+          labels={effectiveStatusLabels}
+          disabled={isSaving || !canEditStatus}
           onSelect={(value) => handleStatusChange(task, value)}
           onLabelsChange={setStatusLabels}
         />
         <InlinePartidaPicker
           task={task}
-          disabled={currentUser?.role === "viewer" || isSaving}
+          projectPartidas={partidasByProject?.[task.proyecto]}
+          disabled={!canEditTask || isSaving}
           onChange={(partidas) => handleInlineUpdate(task, { partidas })}
         />
         <div className="flex justify-end">
@@ -2202,6 +2231,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     const childTasks = childrenByParent.get(task._id) || [];
     const hasChildren = childTasks.length > 0;
     const isTaskCollapsed = collapsedTasks.has(task._id);
+    const canEditTask = canManageTask(task);
+    const canEditStatus = canChangeTaskStatus(task);
 
     if (level > 0) {
       return renderTaskContent(task, level);
@@ -2237,7 +2268,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  draggable={currentUser?.role !== "viewer"}
+                  draggable={canEditTask}
                   onDragStart={(event) => {
                     event.dataTransfer.effectAllowed = "move";
                     event.dataTransfer.setData("text/plain", task._id);
@@ -2250,7 +2281,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <GripVertical className="h-3.5 w-3.5" />
                 </button>
                 <div className="relative flex h-6 shrink-0 items-center gap-2">
-                  <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={currentUser?.role === "viewer"} className="h-4 w-4" />
+                  <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || inlineSavingId === task._id || updatingStatusId === task._id} className="h-4 w-4" />
                   {hasChildren ? (
                     <button
                       type="button"
@@ -2297,7 +2328,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <div className="flex items-center gap-2">
                     <Input
                       defaultValue={task.titulo}
-                      disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                      disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") event.currentTarget.blur();
                       }}
@@ -2314,32 +2345,34 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               </div>
               <InlineAssigneePicker
                 task={task}
-                disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                assignableUsers={assignableUsersByProject?.[task.proyecto]}
+                disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
                 onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
               />
               <InlineDatePicker
                 value={task.fecha_limite}
-                disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
                 overdue={isOverdue(task)}
                 onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
               />
               <InlinePriorityPicker
                 value={task.prioridad}
-                labels={priorityLabels}
-                disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                labels={effectivePriorityLabels}
+                disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
                 onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
                 onLabelsChange={setPriorityLabels}
               />
               <InlineLabelPicker
                 value={task.status}
-                labels={statusLabels}
-                disabled={inlineSavingId === task._id || updatingStatusId === task._id || currentUser?.role === "viewer"}
+                labels={effectiveStatusLabels}
+                disabled={inlineSavingId === task._id || updatingStatusId === task._id || !canEditStatus}
                 onSelect={(value) => handleStatusChange(task, value)}
               onLabelsChange={setStatusLabels}
             />
               <InlinePartidaPicker
                 task={task}
-                disabled={currentUser?.role === "viewer" || inlineSavingId === task._id || updatingStatusId === task._id}
+                projectPartidas={partidasByProject?.[task.proyecto]}
+                disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
                 onChange={(partidas) => handleInlineUpdate(task, { partidas })}
               />
               <div className="flex justify-end">
@@ -2404,15 +2437,25 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                               skipSubtaskCreateOnBlur.current = false;
                               return;
                             }
-                            const title = event.currentTarget.value;
-                            setTimeout(() => { if (document.activeElement?.closest(".subtask-creation-form")) return; void handleCreateSubtask(task, title, { openDetails: false }); }, 100);
+                            const title = event.currentTarget.value.trim();
+                            setTimeout(() => {
+                              if (document.activeElement?.closest(".subtask-creation-form")) return;
+                              if (!title) {
+                                setSubtaskTitle("");
+                                setSubtaskAssignees([]);
+                                setSubtaskDueDate("");
+                                setSubtaskPriority("Media");
+                                setSubtaskPartidas([]);
+                                setAddingSubtaskFor(null);
+                              }
+                            }, 100);
                           }}
                           placeholder="Nombre de la subtarea"
                           className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-gray-900 shadow-none focus-visible:ring-0"
                         />
                       </div>
                       <InlineAssigneePickerForCreate
-                        proyecto={task.proyecto}
+                        assignableUsers={assignableUsersByProject?.[task.proyecto]}
                         value={subtaskAssignees}
                         disabled={submitting}
                         onChange={setSubtaskAssignees}
@@ -2425,17 +2468,17 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       />
                       <InlinePriorityPicker
                         value={subtaskPriority}
-                        labels={priorityLabels}
+                        labels={effectivePriorityLabels}
                         disabled={submitting}
                         onSelect={setSubtaskPriority}
                         onLabelsChange={setPriorityLabels}
                       />
                       <div className="flex items-center">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: labelForValue(task.status, statusLabels).color }} />
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: labelForValue(task.status, effectiveStatusLabels).color }} />
                         <span className="ml-2 text-sm text-[#A3A39E]">{task.status}</span>
                       </div>
                       <InlinePartidaPickerForCreate
-                        proyecto={task.proyecto}
+                        projectPartidas={partidasByProject?.[task.proyecto]}
                         value={subtaskPartidas}
                         disabled={submitting}
                         onChange={setSubtaskPartidas}
@@ -2551,31 +2594,33 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 rounded-md border border-[#E6E6E6] bg-white p-4 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <div className="grid gap-4 rounded-lg border border-[#E6E6E6] bg-white p-4 lg:grid-cols-[minmax(280px,1fr)_300px_350px_auto]">
+          <div className="relative">
+            <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9AA3AF]" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por titulo, descripcion o asignado"
-              className="pl-9"
+              placeholder="Buscar por título, descripción o asignado"
+              className="h-9 rounded-none border-[#E6E6E6] bg-white pl-14 text-base font-normal text-gray-900 shadow-none placeholder:text-[#6B7280] focus-visible:ring-[#D1D5DB]"
             />
           </div>
+
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full lg:w-48">
+            <SelectTrigger className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-base  text-gray-900 shadow-none focus:ring-[#D1D5DB]">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los estados</SelectItem>
-              {statusLabels.map((status) => (
+              {effectiveStatusLabels.map((status) => (
                 <SelectItem key={status.id} value={status.label}>
                   {status.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+
           <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="w-full lg:w-56">
+            <SelectTrigger className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-base  text-gray-900 shadow-none focus:ring-[#D1D5DB]">
               <SelectValue placeholder="Asignado" />
             </SelectTrigger>
             <SelectContent>
@@ -2587,21 +2632,20 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               ))}
             </SelectContent>
           </Select>
-          {!isProjectScoped && (
-            <Select value={projectFilter} onValueChange={setProjectFilter}>
-              <SelectTrigger className="w-full lg:w-56">
-                <SelectValue placeholder="Proyecto" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los proyectos</SelectItem>
-                {proyectos.map((project) => (
-                  <SelectItem key={project._id} value={project._id}>
-                    {project.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setFiltersDialogOpen(true)}
+            className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-base text-gray-900 shadow-none hover:bg-white hover:text-gray-900"
+          >
+            Más filtros
+            {additionalFilterCount > 0 && (
+              <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-gray-900 px-1.5 text-xs text-white">
+                {additionalFilterCount}
+              </span>
+            )}
+          </Button>
         </div>
 
         <div className="space-y-10 bg-white">
@@ -2697,15 +2741,25 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                     skipNewTaskCreateOnBlur.current = false;
                                                     return;
                                                   }
-                                                  const title = event.currentTarget.value;
-                                                  setTimeout(() => { if (document.activeElement?.closest(".task-creation-form")) return; void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label, title, { openDetails: false }); }, 100);
+                                                  const title = event.currentTarget.value.trim();
+                                                  setTimeout(() => {
+                                                    if (document.activeElement?.closest(".task-creation-form")) return;
+                                                    if (!title) {
+                                                      setNewTaskTitle("");
+                                                      setNewTaskAssignees([]);
+                                                      setNewTaskDueDate("");
+                                                      setNewTaskPriority("Media");
+                                                      setNewTaskPartidas([]);
+                                                      setAddingTaskInSection(null);
+                                                    }
+                                                  }, 100);
                                                 }}
                                                 placeholder="Nombre de la tarea"
                                                 className="h-6 border-0 bg-transparent px-0 text-sm font-medium text-gray-900 shadow-none focus-visible:ring-0"
                                               />
                                             </div>
                                             <InlineAssigneePickerForCreate
-                                              proyecto={group.projectId as Id<"desarrollos">}
+                                              assignableUsers={assignableUsersByProject?.[group.projectId]}
                                               value={newTaskAssignees}
                                               disabled={submitting}
                                               onChange={setNewTaskAssignees}
@@ -2718,7 +2772,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                             />
                                             <InlinePriorityPicker
                                               value={newTaskPriority}
-                                              labels={priorityLabels}
+                                              labels={effectivePriorityLabels}
                                               disabled={submitting}
                                               onSelect={setNewTaskPriority}
                                               onLabelsChange={setPriorityLabels}
@@ -2728,7 +2782,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                               <span className="ml-2 text-sm text-[#A3A39E]">{section.label.label}</span>
                                             </div>
                                             <InlinePartidaPickerForCreate
-                                              proyecto={group.projectId as Id<"desarrollos">}
+                                              projectPartidas={partidasByProject?.[group.projectId]}
                                               value={newTaskPartidas}
                                               disabled={submitting}
                                               onChange={setNewTaskPartidas}
@@ -2800,7 +2854,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 </CommandItem>
                 <CommandItem onSelect={() => { openProjectTaskRoute(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
                   <ExternalLink className="h-4 w-4" />
-                  Abrir en una pestana nueva
+                  Abrir en una pestaña nueva
                 </CommandItem>
                 <CommandItem onSelect={() => { void copyTaskUrl(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
                   <Copy className="h-4 w-4" />
@@ -2819,12 +2873,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     Agregar subtarea
                   </CommandItem>
                 )}
-                <CommandItem onSelect={() => { void handleInlineUpdate(contextMenu.task, { status: "Cancelada" }); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-gray-100">
+                <CommandItem onSelect={() => { void handleStatusChange(contextMenu.task, "Cancelada"); setContextMenu(null); }} disabled={!canChangeTaskStatus(contextMenu.task)} className="data-[selected=true]:bg-gray-100">
                   <Archive className="h-4 w-4" />
                   Archivar
                 </CommandItem>
               </CommandGroup>
-              {!isProjectScoped && canCreate && (
+              {!isProjectScoped && canManageTask(contextMenu.task) && (
                 <>
                   <CommandSeparator className="bg-gray-200" />
                   <CommandGroup heading="Mover a">
@@ -2844,7 +2898,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   </CommandGroup>
                 </>
               )}
-              {(currentUser?.role === "admin" || currentUser?._id === contextMenu.task.created_by_id) && (
+              {canManageTask(contextMenu.task) && (
                 <>
                   <CommandSeparator className="bg-gray-200" />
                   <CommandGroup>
@@ -2871,7 +2925,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 onClick={() => markNotificationsAsRead(proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : {})}
                 className="text-gray-500 hover:bg-gray-100 hover:text-gray-900"
               >
-                Marcar leidas
+                Marcar leídas
               </Button>
             </div>
             <SheetDescription className="text-left text-gray-600">
@@ -2918,7 +2972,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     )}
                   />
                 </span>
-                Solo no leidas
+                Solo no leídas
               </button>
             </div>
 
@@ -2956,10 +3010,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     <button
                       key={item._id}
                       type="button"
-                      onClick={() => {
-                        setSelectedTaskId(item.task._id);
-                        setNotificationsOpen(false);
-                      }}
+                      onClick={() => void handleOpenNotification(item)}
                       className={cn(
                         "flex w-full gap-3 rounded-none border p-3 text-left transition hover:bg-gray-50",
                         item.is_unread
@@ -2989,7 +3040,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           {!isProjectScoped && item.proyecto_nombre && <span>{item.proyecto_nombre}</span>}
                           <span>{item.task.status}</span>
                           <span>Prioridad {priorityDisplayName(item.task.prioridad)}</span>
-                          {item.task.fecha_limite && <span>Limite {formatDate(item.task.fecha_limite)}</span>}
+                          {item.task.fecha_limite && <span>Límite {formatDate(item.task.fecha_limite)}</span>}
                         </div>
                       </div>
                       {item.is_unread && <span className="mt-3 h-2 w-2 shrink-0 rounded-full bg-blue-400" />}
@@ -3026,15 +3077,17 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 </div>
                 <SheetTitle className="text-left text-2xl font-normal break-words">{selectedTask.titulo}</SheetTitle>
                 <SheetDescription className="text-left">
-                  {!isProjectScoped && `${selectedTask.proyecto_nombre || "Sin proyecto"} Â· `}
-                  {selectedTask.categoria || "General"} Â· Creada por {selectedTask.created_by_name} Â· {formatDateTime(selectedTask.created_at)}
+                  {!isProjectScoped && `${selectedTask.proyecto_nombre || "Sin proyecto"} · `}
+                  {selectedTask.categoria || "General"} · Creada por {selectedTask.created_by_name} · {formatDateTime(selectedTask.created_at)}
                 </SheetDescription>
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <Button variant="outline" size="sm" onClick={() => openEditDialog(selectedTask)} className="gap-2">
-                    <Pencil className="h-4 w-4" />
-                    Editar
-                  </Button>
-                  {(currentUser?.role === "admin" || currentUser?._id === selectedTask.created_by_id) && (
+                  {canManageTask(selectedTask) && (
+                    <Button variant="outline" size="sm" onClick={() => openEditDialog(selectedTask)} className="gap-2">
+                      <Pencil className="h-4 w-4" />
+                      Editar
+                    </Button>
+                  )}
+                  {canManageTask(selectedTask) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -3051,19 +3104,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <div className="space-y-6 p-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="border border-gray-200 p-3">
-                    <p className="text-xs text-gray-500">Fecha limite</p>
+                    <p className="text-xs text-gray-500">Fecha límite</p>
                     <p className="mt-1 text-sm font-medium text-gray-900">{formatDate(selectedTask.fecha_limite)}</p>
                   </div>
                   <div className="border border-gray-200 p-3">
-                    <p className="text-xs text-gray-500">Ultima actualizacion</p>
+                    <p className="text-xs text-gray-500">Última actualización</p>
                     <p className="mt-1 text-sm font-medium text-gray-900">{formatDateTime(selectedTask.updated_at || selectedTask.created_at)}</p>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-900">Descripcion</h3>
+                  <h3 className="text-sm font-medium text-gray-900">Descripción</h3>
                   <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-gray-600">
-                    {selectedTask.descripcion || "Sin descripcion."}
+                    {selectedTask.descripcion || "Sin descripción."}
                   </p>
                 </div>
 
@@ -3138,7 +3191,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         );
                       }) : (
                         <div className="border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
-                          Aun no hay comentarios en esta tarea.
+                          Aún no hay comentarios en esta tarea.
                         </div>
                       )}
                     </div>
@@ -3154,13 +3207,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           <div>
                             <p className="text-sm break-words text-gray-900">{historyLabel(item)}</p>
                             <p className="mt-1 text-xs text-gray-500">
-                              {item.changed_by_name} Â· {formatDateTime(item.created_at)}
+                              {item.changed_by_name} · {formatDateTime(item.created_at)}
                             </p>
                           </div>
                         </div>
                       )) : (
                         <div className="border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
-                          Aun no hay historial registrado.
+                          Aún no hay historial registrado.
                         </div>
                       )}
                     </div>
@@ -3175,6 +3228,123 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={filtersDialogOpen} onOpenChange={setFiltersDialogOpen}>
+        <DialogContent className="max-w-3xl w-[90vw]">
+          <DialogHeader>
+            <DialogTitle>Más filtros</DialogTitle>
+            <DialogDescription className="sr-only">
+              Ajusta los filtros adicionales de tareas.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-5 py-2 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Prioridad</Label>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Prioridad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las prioridades</SelectItem>
+                  {effectivePriorityLabels.map((priority) => (
+                    <SelectItem key={priority.id} value={priority.label}>
+                      {priority.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Categoría</Label>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {categoryFilterOptions.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Vista</Label>
+              <Select value={ownershipFilter} onValueChange={(value) => setOwnershipFilter(value as typeof ownershipFilter)}>
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Vista" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las tareas</SelectItem>
+                  <SelectItem value="mine">Mis tareas</SelectItem>
+                  <SelectItem value="created">Creadas por mí</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Partida</Label>
+              <Select value={partidaFilter} onValueChange={setPartidaFilter}>
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Partida" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las partidas</SelectItem>
+                  {partidaFilterOptions.map((partida) => (
+                    <SelectItem key={partida._id} value={partida._id}>
+                      {partidaDisplayName(partida)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!isProjectScoped && (
+              <div className="space-y-2 md:col-span-2">
+                <Label>Proyecto</Label>
+                <Select value={projectFilter} onValueChange={setProjectFilter}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Proyecto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los proyectos</SelectItem>
+                    {proyectos.map((project) => (
+                      <SelectItem key={project._id} value={project._id}>
+                        {project.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setPriorityFilter("all");
+                setCategoryFilter("all");
+                setOwnershipFilter("all");
+                setPartidaFilter("all");
+                if (!isProjectScoped) setProjectFilter("all");
+              }}
+              className="rounded-none"
+            >
+              Limpiar filtros
+            </Button>
+            <Button type="button" onClick={() => setFiltersDialogOpen(false)} className="rounded-none">
+              Aplicar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-y-auto">
@@ -3224,7 +3394,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-description">Descripcion</Label>
+              <Label htmlFor="task-description">Descripción</Label>
               <Textarea
                 id="task-description"
                 value={form.descripcion}
@@ -3245,7 +3415,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {priorityLabels.map((priority) => (
+                    {effectivePriorityLabels.map((priority) => (
                       <SelectItem key={priority.id} value={priority.label}>
                         {priority.label}
                       </SelectItem>
@@ -3272,7 +3442,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="task-date">Fecha limite</Label>
+                <Label htmlFor="task-date">Fecha límite</Label>
                 <Input
                   id="task-date"
                   type="date"
@@ -3293,7 +3463,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {statusLabels.map((status) => (
+                    {effectiveStatusLabels.map((status) => (
                       <SelectItem key={status.id} value={status.label}>
                         {status.label}
                       </SelectItem>
@@ -3386,8 +3556,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             <AlertDialogTitle>{taskToDelete?.parent_task ? "Eliminar subtarea" : "Eliminar tarea"}</AlertDialogTitle>
             <AlertDialogDescription>
               {taskToDelete?.parent_task
-                ? "Esta accion eliminara esta subtarea, sus comentarios e historial. No se puede deshacer."
-                : "Esta accion eliminara la tarea, sus subtareas, comentarios e historial. No se puede deshacer."}
+                ? "Esta acción eliminará esta subtarea, sus comentarios e historial. No se puede deshacer."
+                : "Esta acción eliminará la tarea, sus subtareas, comentarios e historial. No se puede deshacer."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

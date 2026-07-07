@@ -657,6 +657,14 @@ export default defineSchema({
     proyecto: v.id("desarrollos"),
     last_read_at: v.number(),
   }).index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
+
+  tarea_notification_reads: defineTable({
+    user_id: v.id("users"),
+    tarea_history_id: v.id("tarea_history"),
+    proyecto: v.id("desarrollos"),
+    read_at: v.number(),
+  }).index("by_user_history", { fields: ["user_id", "tarea_history_id"] })
+    .index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
   
   // Programa de Obra - Scheduling data per nivel 1 partida
   programa_obra: defineTable({
