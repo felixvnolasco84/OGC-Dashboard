@@ -108,6 +108,15 @@ type MonthlyOgcMovementSummary = {
     structureBreakdown: Record<string, number>;
 };
 
+const toFiniteNumber = (value: unknown) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const clamp = (value: number, min: number, max: number) => {
+    return Math.min(Math.max(value, min), max);
+};
+
 const normalizeMovementCategory = (value?: string) => normalizeReportLabel(value).replace(/\s+/g, " ");
 
 const matchesMovementGroup = (movement: Pick<OgcMovement, "categoria" | "descripcion">, labels: string[]) => {
@@ -308,17 +317,46 @@ const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rate
     );
 };
 
-const getLatestAvancePercent = async (ctx: QueryCtx, proyectoId: Doc<"desarrollos">["_id"]) => {
-    const records = await ctx.db
-        .query("weekly_avance_real")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
-        .collect();
+const getControlPhysicalProgressPercent = async (ctx: QueryCtx, proyectoId: Doc<"desarrollos">["_id"]) => {
+    const [schedules, detalles] = await Promise.all([
+        ctx.db
+            .query("programa_obra")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
+            .collect(),
+        ctx.db
+            .query("programa_obra_detalle")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
+            .collect(),
+    ]);
 
-    const latest = records
-        .filter((record) => Number.isFinite(record.avance_real))
-        .sort((a, b) => b.week_date - a.week_date)[0];
+    const scheduleProgress = schedules.map((schedule) => {
+        const childDetails = detalles.filter((detalle) => detalle.programa_obra_id === schedule._id);
+        const familiaDetails = childDetails.filter((detalle) => detalle.nivel === 2);
+        const detailsForProgress = familiaDetails.length > 0 ? familiaDetails : childDetails;
+        const progressDetails = detailsForProgress.filter((detalle) => Number.isFinite(detalle.avance_porcentaje));
+        const totalChildWeight = progressDetails.reduce((sum, detalle) => sum + Math.max(toFiniteNumber(detalle.peso), 0), 0);
+        const progress = totalChildWeight > 0
+            ? progressDetails.reduce((sum, detalle) => (
+                sum + clamp(toFiniteNumber(detalle.avance_porcentaje), 0, 100) * Math.max(toFiniteNumber(detalle.peso), 0)
+            ), 0) / totalChildWeight
+            : progressDetails.length > 0
+                ? progressDetails.reduce((sum, detalle) => sum + clamp(toFiniteNumber(detalle.avance_porcentaje), 0, 100), 0) / progressDetails.length
+                : 0;
 
-    return (latest?.avance_real || 0) / 100;
+        return {
+            progress: clamp(progress, 0, 100),
+            weight: Math.max(toFiniteNumber(schedule.peso), 0),
+        };
+    });
+
+    const totalScheduleWeight = scheduleProgress.reduce((sum, item) => sum + item.weight, 0);
+    const physicalProgressPercent = scheduleProgress.length === 0
+        ? 0
+        : totalScheduleWeight > 0
+            ? scheduleProgress.reduce((sum, item) => sum + item.progress * item.weight, 0) / totalScheduleWeight
+            : scheduleProgress.reduce((sum, item) => sum + item.progress, 0) / scheduleProgress.length;
+
+    return physicalProgressPercent / 100;
 };
 
 const getAverageWeeklyExpense = async (ctx: QueryCtx, proyectoId: Doc<"desarrollos">["_id"], now: Date) => {
@@ -530,11 +568,11 @@ const getWipFormulaTotals = async (
     const presupuesto = formulaTotals.metrics?.presupuesto_aprobado || 0;
     const costoReal = formulaTotals.metrics?.gasto_total || 0;
     const pagado = await getProjectCollectedIncome(ctx, proyecto._id, period, rates);
-    const avance = await getLatestAvancePercent(ctx, proyecto._id);
+    const avance = await getControlPhysicalProgressPercent(ctx, proyecto._id);
     const valorGanado = avance * presupuesto;
-    const restante = Math.max(presupuesto - valorGanado, 0);
+    const restante = presupuesto - costoReal;
     const cpi = costoReal > 0 ? valorGanado / costoReal : 0;
-    const eac = cpi > 0 ? costoReal + restante / cpi : 0;
+    const eac = cpi > 0 ? (costoReal + restante) / cpi : 0;
     const varianza = eac > 0 ? presupuesto - eac : 0;
     const saldo = pagado - costoReal;
     const averageWeeklyExpense = await getAverageWeeklyExpense(ctx, proyecto._id, now);
