@@ -1725,9 +1725,9 @@ export default function ProyectoRequisicionesPage() {
 
             {/* Email Notification Dialog */}
             <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-                <DialogContent className="max-w-5xl rounded-none p-0 overflow-hidden">
-                    <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr]">
-                        <div className="border-r border-gray-200 p-6 space-y-6">
+                <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-5xl rounded-none p-0 overflow-hidden">
+                    <div className="grid max-h-[calc(100dvh-2rem)] grid-cols-1 overflow-y-auto lg:grid-cols-[360px_minmax(0,1fr)] lg:overflow-hidden">
+                        <div className="space-y-5 border-b border-gray-200 p-4 sm:space-y-6 sm:p-6 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2 text-xl font-normal text-gray-900">
                                     <Mail className="h-5 w-5 text-gray-500" />
@@ -1854,16 +1854,16 @@ export default function ProyectoRequisicionesPage() {
                                 </div>
                             </div>
 
-                            <div className="flex justify-end gap-2 pt-2">
+                            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                                 <Button
                                     variant="outline"
-                                    className="rounded-none"
+                                    className="w-full rounded-none sm:w-auto"
                                     onClick={() => setEmailDialogOpen(false)}
                                 >
                                     Cancelar
                                 </Button>
                                 <Button
-                                    className="rounded-none bg-[#20243d] hover:bg-[#2e344f]"
+                                    className="w-full rounded-none bg-[#20243d] hover:bg-[#2e344f] sm:w-auto"
                                     onClick={handleSendEmailNotification}
                                     disabled={isSendingNotification || !emailRecipients || recipientsToNotifyCount === 0 || notificationRequiresMissingReq}
                                 >
@@ -1877,9 +1877,9 @@ export default function ProyectoRequisicionesPage() {
                             </div>
                         </div>
 
-                        <div className="bg-[#F3F4F6] p-8 overflow-y-auto">
+                        <div className="bg-[#F3F4F6] p-4 sm:p-8 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto">
                             <div className="mx-auto max-w-[680px] overflow-hidden rounded-xl border border-gray-200 bg-white">
-                                <div className="flex justify-center px-8 py-8">
+                                <div className="flex justify-center px-5 py-6 sm:px-8 sm:py-8">
                                     <img
                                         src="https://www.ogc.mx/_next/static/media/Logo.a1dfe6e3.svg"
                                         alt="OGC"
@@ -1887,8 +1887,8 @@ export default function ProyectoRequisicionesPage() {
                                     />
                                 </div>
                                 <div className="h-1 bg-[#20243d]" />
-                                <div className="px-8 py-14 sm:px-14">
-                                    <div className="flex items-start gap-5">
+                                <div className="px-5 py-8 sm:px-8 sm:py-14 xl:px-14">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
                                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#EEF3F1] text-sm font-medium text-[#20243d]">
                                             {(currentUser?.name || "OGC")
                                                 .split(" ")
@@ -1899,7 +1899,7 @@ export default function ProyectoRequisicionesPage() {
                                                 .toUpperCase()}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-2xl leading-relaxed text-gray-900">
+                                            <p className="text-xl leading-relaxed text-gray-900 sm:text-2xl">
                                                 <span>{currentUser?.name || "Usuario OGC"} </span>
                                                 <span className="text-[#0073EA]">{notificationCopy.action}</span>
                                                 <span> en </span>
@@ -1917,8 +1917,8 @@ export default function ProyectoRequisicionesPage() {
                                             <p className="mt-6 text-lg leading-relaxed text-gray-900">
                                                 {notificationCopy.message}
                                             </p>
-                                            <div className="mt-12 flex justify-center">
-                                                <Button className="rounded bg-[#0073EA] px-8 py-6 text-base hover:bg-[#0065cf]">
+                                            <div className="mt-8 flex justify-center sm:mt-12">
+                                                <Button className="w-full rounded bg-[#0073EA] px-6 py-6 text-base hover:bg-[#0065cf] sm:w-auto sm:px-8">
                                                     <ExternalLink className="mr-2 h-4 w-4" />
                                                     Ver requisiciones
                                                 </Button>
