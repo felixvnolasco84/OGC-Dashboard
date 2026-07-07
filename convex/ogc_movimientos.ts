@@ -323,6 +323,58 @@ export const getAll = query({
   },
 });
 
+export const getIncomeTotalsByProyecto = query({
+  args: { proyecto_id: v.id("desarrollos") },
+  handler: async (ctx, args) => {
+    const hasAccess = await checkDesarrolloAccess(ctx, args.proyecto_id);
+    if (!hasAccess) {
+      throw new Error("No tienes acceso a esta obra.");
+    }
+
+    const movements = await ctx.db
+      .query("ogc_movimientos")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+
+    const activeIncomeMovements = movements.filter((movement) => (
+      movement.tipo === "ingreso" && isActiveMovement(movement)
+    ));
+
+    const total_ingresos = activeIncomeMovements.reduce((sum, movement) => {
+      const monto = Math.abs(movement.monto || 0);
+      const moneda = (movement.moneda || "MXN").toUpperCase();
+      if (moneda === "MXN") return sum + monto;
+      return sum + monto * (movement.tipo_cambio || 0);
+    }, 0);
+
+    return {
+      proyecto: args.proyecto_id,
+      total_ingresos,
+      total_count: activeIncomeMovements.length,
+      last_updated: Date.now(),
+    };
+  },
+});
+
+export const getIncomeByProyecto = query({
+  args: { proyecto_id: v.id("desarrollos") },
+  handler: async (ctx, args) => {
+    const hasAccess = await checkDesarrolloAccess(ctx, args.proyecto_id);
+    if (!hasAccess) {
+      throw new Error("No tienes acceso a esta obra.");
+    }
+
+    const movements = await ctx.db
+      .query("ogc_movimientos")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+      .collect();
+
+    return movements
+      .filter((movement) => movement.tipo === "ingreso" && isActiveMovement(movement))
+      .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+  },
+});
+
 export const getAudit = query({
   args: {
     movimiento_id: v.id("ogc_movimientos"),

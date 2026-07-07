@@ -503,3 +503,38 @@ export const getFamiliaChartData = query({
         };
     },
 });
+
+export const getTopVariancePartidas = query({
+    args: {
+        proyecto_id: v.id("sales_projects"),
+    },
+    handler: async (ctx, args) => {
+        const partidas = await ctx.db
+            .query("sales_partidas")
+            .withIndex("by_nivel_sales_proyecto", (q) => q.eq("nivel", 1).eq("sales_proyecto", args.proyecto_id))
+            .collect();
+
+        return partidas
+            .map((partida) => {
+                const presupuesto = Number.isFinite(partida.presupuesto_aprobado) ? partida.presupuesto_aprobado : 0;
+                const pagado = Number.isFinite(partida.pagado) ? partida.pagado : 0;
+                const varianza = pagado - presupuesto;
+                const avance = presupuesto > 0 ? (pagado / presupuesto) * 100 : null;
+
+                return {
+                    id: partida._id,
+                    partida: partida.nombre?.trim() || "Sin partida",
+                    presupuesto,
+                    pagado,
+                    varianza,
+                    avance,
+                };
+            })
+            .sort((a, b) => {
+                const varianceDiff = Math.abs(b.varianza) - Math.abs(a.varianza);
+                if (varianceDiff !== 0) return varianceDiff;
+                return a.partida.localeCompare(b.partida, "es");
+            })
+            .slice(0, 5);
+    },
+});

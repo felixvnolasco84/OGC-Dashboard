@@ -30,8 +30,53 @@ import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useIngresosModal } from "@/hooks/ingresos-modal";
 import IngresosModal from "@/components/modals/ingresos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
-import { cn, formatCurrencyCompact } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
+type CurrencyMetricProps = {
+  amount: number;
+  currency: string;
+  className?: string;
+  fractionClassName?: string;
+};
+
+function getCurrencyDisplayParts(amount: number, currency: string) {
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  const formatter = new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const parts = formatter.formatToParts(safeAmount);
+  const decimalIndex = parts.findIndex((part) => part.type === "decimal");
+
+  if (decimalIndex === -1) {
+    return {
+      whole: formatter.format(safeAmount),
+      fraction: "",
+    };
+  }
+
+  return {
+    whole: parts.slice(0, decimalIndex).map((part) => part.value).join(""),
+    fraction: parts.slice(decimalIndex).map((part) => part.value).join(""),
+  };
+}
+
+function CurrencyMetric({ amount, currency, className, fractionClassName }: CurrencyMetricProps) {
+  const { whole, fraction } = getCurrencyDisplayParts(amount, currency);
+
+  return (
+    <span className={cn("inline-flex items-baseline whitespace-nowrap tabular-nums", className)}>
+      <span>{whole}</span>
+      {fraction ? (
+        <span className={cn("ml-1 text-[0.5em] leading-none", fractionClassName)}>
+          {fraction}
+        </span>
+      ) : null}
+    </span>
+  );
+}
 
 export default function PresupuestoPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
@@ -173,6 +218,11 @@ export default function PresupuestoPage() {
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
 
+  const ogcIngresosTotals = useQuery(
+    api.ogc_movimientos.getIncomeTotalsByProyecto,
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  );
+
   // Get unique partidas and familias for filters (filter out empty strings)
   const uniquePartidas = useMemo(() =>
     Array.from(new Set(allPartidas?.map(p => p.nombre).filter(n => n && n.trim() !== '') || [])),
@@ -255,6 +305,7 @@ export default function PresupuestoPage() {
   const avancePercentage = metrics && metrics.presupuesto_aprobado > 0
     ? Math.round((metrics.gasto_total / metrics.presupuesto_aprobado) * 100)
     : 0;
+  const totalIngresos = (ingresosTotals?.total_ingresos || 0) + (ogcIngresosTotals?.total_ingresos || 0);
 
 
   // Loading state
@@ -299,15 +350,21 @@ export default function PresupuestoPage() {
                   <div className="space-y-1 text-right">
                     <p className="text-sm text-muted-foreground text-right mr-0.5">Total Ingresos</p>
                     <div className="flex items-baseline space-x-2">
-                      <p className="text-3xl font-normal text-gray-900 leading-none">
-                        {formatCurrencyCompact(ingresosTotals?.total_ingresos || 0, moneda)}
-                      </p>
+                      <CurrencyMetric
+                        amount={totalIngresos}
+                        currency={moneda}
+                        className="text-3xl font-normal text-gray-900 leading-none"
+                      />
                     </div>
                     <Badge variant="secondary" className="text-[10px] text-center font-normal py-1.5 leading-none bg-gray-100 text-gray-600 rounded-xl border-gray-400 min-w-24">
                       <span className="text-center">
                         Neto
                         {" "}
-                        {formatCurrencyCompact((ingresosTotals?.total_ingresos || 0) - (metrics?.gasto_total || 0), moneda)}
+                        <CurrencyMetric
+                          amount={totalIngresos - (metrics?.gasto_total || 0)}
+                          currency={moneda}
+                          fractionClassName="ml-0.5 text-[0.75em]"
+                        />
                       </span>
                     </Badge>
                   </div>
@@ -357,7 +414,7 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Main Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-12 mb-8 px-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-12 mb-8 px-12">
 
 
           {/* Presupuesto Original */}
@@ -366,9 +423,11 @@ export default function PresupuestoPage() {
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">Presupuesto Original</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-3xl 2xl:text-4xl font-normal text-gray-900">
-                    {formatCurrencyCompact(metrics?.presupuesto_original || 0, moneda)}
-                  </p>
+                  <CurrencyMetric
+                    amount={metrics?.presupuesto_original || 0}
+                    currency={moneda}
+                    className="text-3xl 2xl:text-4xl font-normal text-gray-900"
+                  />
                 </div>
               </div>
             </CardContent>
@@ -380,9 +439,11 @@ export default function PresupuestoPage() {
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">Presupuesto aprobado</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-3xl 2xl:text-4xl font-normal text-gray-900">
-                    {formatCurrencyCompact(metrics?.presupuesto_aprobado || 0, moneda)}
-                  </p>
+                  <CurrencyMetric
+                    amount={metrics?.presupuesto_aprobado || 0}
+                    currency={moneda}
+                    className="text-3xl 2xl:text-4xl font-normal text-gray-900"
+                  />
                 </div>
                 <div className="text-lg text-gray-500">
                   <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
@@ -401,14 +462,15 @@ export default function PresupuestoPage() {
                   {dateFilter === "total" ? "Gasto Total" : `Pagado (${dateFilter === "ultima_semana" ? "Últ. 7 días" : dateFilter === "este_mes" ? "Este mes" : dateFilter === "mes_pasado" ? "Mes pasado" : "Rango"})`}
                 </p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-3xl 2xl:text-4xl font-normal text-gray-900">
-                    {formatCurrencyCompact(
+                  <CurrencyMetric
+                    amount={
                       dateFilter === "total"
                         ? (metrics?.gasto_total || 0)
-                        : (filteredPayments?.total || 0),
-                      moneda
-                    )}
-                  </p>
+                        : (filteredPayments?.total || 0)
+                    }
+                    currency={moneda}
+                    className="text-3xl 2xl:text-4xl font-normal text-gray-900"
+                  />
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
                   Avance {avancePercentage}%
@@ -423,9 +485,11 @@ export default function PresupuestoPage() {
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">Por ejercer</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-3xl 2xl:text-4xl font-normal text-gray-900">
-                    {formatCurrencyCompact(metrics?.por_gastar || 0, moneda)}
-                  </p>
+                  <CurrencyMetric
+                    amount={metrics?.por_gastar || 0}
+                    currency={moneda}
+                    className="text-3xl 2xl:text-4xl font-normal text-gray-900"
+                  />
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
                   Avance {avancePercentage}%

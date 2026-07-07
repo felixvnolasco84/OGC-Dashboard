@@ -558,6 +558,51 @@ export default defineSchema({
     last_read_at: v.number(), // Timestamp of last viewed
   }).index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
 
+  // Notification events - Parent record for system notifications
+  notification_events: defineTable({
+    proyecto: v.id("desarrollos"),
+    requisicion_id: v.optional(v.id("requisiciones")),
+    type: v.string(),
+    subject: v.string(),
+    message: v.optional(v.string()),
+    actor_id: v.id("users"),
+    actor_name: v.string(),
+    channel: v.string(),
+    status: v.string(), // pending, sent, partial, failed, no_recipients
+    recipient_count: v.number(),
+    sent_count: v.number(),
+    failed_count: v.number(),
+    created_at: v.number(),
+    sent_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_requisicion", { fields: ["requisicion_id"] })
+    .index("by_proyecto_created", { fields: ["proyecto", "created_at"] })
+    .index("by_actor", { fields: ["actor_id"] })
+    .index("by_status", { fields: ["status"] }),
+
+  // Notification deliveries - One row per recipient and channel
+  notification_deliveries: defineTable({
+    notification_event_id: v.id("notification_events"),
+    proyecto: v.id("desarrollos"),
+    requisicion_id: v.optional(v.id("requisiciones")),
+    recipient_user_id: v.optional(v.id("users")),
+    recipient_name: v.string(),
+    recipient_email: v.string(),
+    channel: v.string(), // email, in_app, sms, whatsapp, etc.
+    status: v.string(), // pending, sent, failed, read
+    provider_message_id: v.optional(v.string()),
+    error: v.optional(v.string()),
+    created_at: v.number(),
+    sent_at: v.optional(v.number()),
+    read_at: v.optional(v.number()),
+  }).index("by_event", { fields: ["notification_event_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_requisicion", { fields: ["requisicion_id"] })
+    .index("by_recipient", { fields: ["recipient_user_id"] })
+    .index("by_recipient_proyecto", { fields: ["recipient_user_id", "proyecto"] })
+    .index("by_status", { fields: ["status"] })
+    .index("by_proyecto_created", { fields: ["proyecto", "created_at"] }),
+
   // Tareas - Project task assignment and follow-up
   tareas: defineTable({
     proyecto: v.id("desarrollos"),

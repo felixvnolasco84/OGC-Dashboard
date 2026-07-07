@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useQuery, useMutation } from "convex/react";
 import { useUser } from "@clerk/clerk-react";
@@ -107,6 +107,34 @@ type IngresosExcelResponse = {
   }>;
 };
 
+type OgcIncomeMovement = Doc<"ogc_movimientos"> & {
+  tipo: "ingreso";
+};
+
+type IncomeTableRow =
+  | {
+      source: "ingresos";
+      id: Id<"ingresos">;
+      fecha: string;
+      descripcion?: string;
+      monto: number;
+      moneda: string;
+      addedBy?: string;
+      createdAt?: number;
+      ingreso: Doc<"ingresos">;
+    }
+  | {
+      source: "ogc";
+      id: Id<"ogc_movimientos">;
+      fecha: string;
+      descripcion?: string;
+      monto: number;
+      moneda: string;
+      addedBy?: string;
+      createdAt?: number;
+      ogcMovement: OgcIncomeMovement;
+    };
+
 const ALLOWED_MONEDAS = ["MXN", "USD", "EUR"];
 const DATE_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
 const LOOSE_DATE_REGEX = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
@@ -141,6 +169,7 @@ export default function IngresosModal() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingOgcMovement, setEditingOgcMovement] = useState<OgcIncomeMovement | null>(null);
   
   // Document attachment state
   const [documentFile, setDocumentFile] = useState<globalThis.File | null>(null);
@@ -171,8 +200,18 @@ export default function IngresosModal() {
     context ? { proyecto_id: context.projectId } : "skip"
   );
 
+  const ogcIngresos = useQuery(
+    api.ogc_movimientos.getIncomeByProyecto,
+    context ? { proyecto_id: context.projectId } : "skip"
+  ) as OgcIncomeMovement[] | undefined;
+
   const totals = useQuery(
     api.ingresos.getTotalsByProyecto,
+    context ? { proyecto_id: context.projectId } : "skip"
+  );
+
+  const ogcTotals = useQuery(
+    api.ogc_movimientos.getIncomeTotalsByProyecto,
     context ? { proyecto_id: context.projectId } : "skip"
   );
 
@@ -193,6 +232,8 @@ export default function IngresosModal() {
   const bulkCreateIngresos = useMutation(api.ingresos.bulkCreate);
   const updateIngreso = useMutation(api.ingresos.update);
   const deleteIngreso = useMutation(api.ingresos.remove);
+  const updateOgcMovement = useMutation(api.ogc_movimientos.update);
+  const voidOgcMovement = useMutation(api.ogc_movimientos.voidMovement);
   const generateUploadUrl = useMutation(api.ingresos_documentos.generateUploadUrl);
   const createIngresoDocument = useMutation(api.ingresos_documentos.create);
   const deleteIngresoDocuments = useMutation(api.ingresos_documentos.removeByIngreso);
@@ -202,6 +243,7 @@ export default function IngresosModal() {
   useEffect(() => {
     if (!isOpen) {
       setShowForm(false);
+      setEditingOgcMovement(null);
       resetForm();
       resetDocumentForm();
       resetBulkUpload();
@@ -400,12 +442,74 @@ export default function IngresosModal() {
     return `${day}/${month}/${year}`;
   };
 
+  const tableRows = useMemo<IncomeTableRow[]>(() => {
+    const ingresoRows: IncomeTableRow[] = (ingresos || []).map((ingreso) => ({
+      source: "ingresos",
+      id: ingreso._id,
+      fecha: ingreso.fecha,
+      descripcion: ingreso.descripcion,
+      monto: ingreso.monto,
+      moneda: ingreso.moneda,
+      addedBy: ingreso.added_by_name,
+      createdAt: ingreso.created_at,
+      ingreso,
+    }));
+
+    const ogcRows: IncomeTableRow[] = (ogcIngresos || []).map((movement) => ({
+      source: "ogc",
+      id: movement._id,
+      fecha: movement.fecha,
+      descripcion: movement.descripcion,
+      monto: movement.monto,
+      moneda: movement.moneda,
+      addedBy: movement.created_by_name,
+      createdAt: movement.created_at,
+      ogcMovement: movement,
+    }));
+
+    return [...ingresoRows, ...ogcRows].sort((a, b) => {
+      const dateA = parseDate(a.fecha)?.getTime() || a.createdAt || 0;
+      const dateB = parseDate(b.fecha)?.getTime() || b.createdAt || 0;
+      return dateB - dateA;
+    });
+  }, [ingresos, ogcIngresos]);
+
+  const isEditingOgc = Boolean(editingOgcMovement);
+  const isEditingAnyIngreso = Boolean(editingIngreso || editingOgcMovement);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!context || !user) return;
 
     setIsSubmitting(true);
     try {
+      if (editingOgcMovement) {
+        await updateOgcMovement({
+          id: editingOgcMovement._id,
+          patch: {
+            tipo: "ingreso",
+            categoria: editingOgcMovement.categoria || "OTROS",
+            monto: formData.monto,
+            fecha: formData.fecha,
+            descripcion: formData.descripcion || undefined,
+            moneda: formData.moneda,
+            tipo_cambio: editingOgcMovement.tipo_cambio,
+            proyecto: context.projectId,
+          },
+          reason: "Actualizado desde ingresos de presupuesto",
+        });
+
+        toast.success("Ingreso OGC actualizado", {
+          description: "Se actualizó el movimiento en la tabla OGC.",
+        });
+
+        setEditingOgcMovement(null);
+        resetForm();
+        resetDocumentForm();
+        setShowForm(false);
+        return;
+      }
+
       let ingresoId: Id<"ingresos">;
       
       if (editingIngreso) {
@@ -496,14 +600,30 @@ export default function IngresosModal() {
     }
   };
 
-  const handleDelete = async (id: Id<"ingresos">) => {
+  const handleDelete = async (row: IncomeTableRow) => {
+    if (row.source === "ogc") {
+      const reason = window.prompt("Motivo para anular este ingreso OGC:", "Eliminado desde presupuesto");
+      if (!reason?.trim()) return;
+
+      try {
+        await voidOgcMovement({ id: row.id, reason });
+        toast.success("Ingreso OGC anulado");
+      } catch (error) {
+        console.error("Error voiding OGC ingreso:", error);
+        toast.error("Error al anular ingreso OGC", {
+          description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
+        });
+      }
+      return;
+    }
+
     if (!confirm("¿Estás seguro de eliminar este ingreso y sus documentos?")) return;
     
     try {
       // Delete associated documents first
-      await deleteIngresoDocuments({ ingreso_id: id });
+      await deleteIngresoDocuments({ ingreso_id: row.id });
       // Then delete the ingreso
-      await deleteIngreso({ id });
+      await deleteIngreso({ id: row.id });
       toast.success("Ingreso eliminado");
     } catch (error) {
       console.error("Error deleting ingreso:", error);
@@ -511,25 +631,46 @@ export default function IngresosModal() {
     }
   };
 
-  const handleEdit = (ingreso: Doc<"ingresos">) => {
-    startEditing(ingreso);
+  const handleEdit = (row: IncomeTableRow) => {
+    resetDocumentForm();
+
+    if (row.source === "ogc") {
+      cancelEditing();
+      setEditingOgcMovement(row.ogcMovement);
+      setFormData({
+        monto: row.ogcMovement.monto,
+        fecha: row.ogcMovement.fecha,
+        descripcion: row.ogcMovement.descripcion || "",
+        moneda: row.ogcMovement.moneda || "MXN",
+        documento_adjunto: "",
+        documento_nombre: "",
+      });
+      setShowForm(true);
+      return;
+    }
+
+    setEditingOgcMovement(null);
+    startEditing(row.ingreso);
     setShowForm(true);
   };
 
   const handleCancelForm = () => {
+    setEditingOgcMovement(null);
     cancelEditing();
     resetDocumentForm();
     setShowForm(false);
   };
 
   const handleAddNew = () => {
+    setEditingOgcMovement(null);
     resetForm();
     setShowForm(true);
   };
 
   // Calculate "Neto" (Total Ingresos - Gasto Total from metrics)
   // For now, just showing total ingresos since gasto_total comes from a different query
-  const totalIngresos = totals?.total_ingresos || 0;
+  const totalIngresos = (totals?.total_ingresos || 0) + (ogcTotals?.total_ingresos || 0);
+  const totalIngresosCount = (totals?.total_count || 0) + (ogcTotals?.total_count || 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -551,7 +692,7 @@ export default function IngresosModal() {
                   {formatCurrency(totalIngresos, "MXN")}
                 </p>
                 <Badge variant="secondary" className="mt-1 text-gray-600">
-                  {totals?.total_count || 0} entradas
+                  {totalIngresosCount} entradas
                 </Badge>
               </div>
             </div>
@@ -564,7 +705,7 @@ export default function IngresosModal() {
             <div className="border-b">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium">
-                  {editingIngreso ? "Editar Ingreso" : "Nuevo Ingreso"}
+                  {isEditingAnyIngreso ? "Editar Ingreso" : "Nuevo Ingreso"}
                 </h3>
                 <Button
                   variant="ghost"
@@ -597,6 +738,7 @@ export default function IngresosModal() {
                     <Select
                       value={formData.moneda}
                       onValueChange={(value) => setFormData({ moneda: value })}
+                      disabled={isEditingOgc}
                     >
                       <SelectTrigger className="h-12">
                         <SelectValue placeholder="Seleccionar moneda" />
@@ -656,7 +798,7 @@ export default function IngresosModal() {
                 </div>
 
                 {/* Document Attachment - 1:1 relationship */}
-                <div className="space-y-3 pt-4 border-t">
+                {!isEditingOgc && <div className="space-y-3 pt-4 border-t">
                   <h3 className="text-sm font-medium text-gray-900">Documento adjunto</h3>
 
                   {/* Show existing document when editing (1:1 relationship) */}
@@ -893,7 +1035,7 @@ export default function IngresosModal() {
                       )}
                     </div>
                   )}
-                </div>
+                </div>}
 
                 <div className="flex justify-end gap-2">
                   <Button
@@ -912,7 +1054,7 @@ export default function IngresosModal() {
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         {isUploadingDocument ? "Subiendo documento..." : "Guardando..."}
                       </>
-                    ) : editingIngreso ? (
+                    ) : isEditingAnyIngreso ? (
                       "Actualizar"
                     ) : (
                       "Agregar"
@@ -1166,11 +1308,12 @@ export default function IngresosModal() {
           {/* Table */}
           {
             !showForm && !showBulkUpload && <div className="flex-1 overflow-auto">
-            {ingresos && ingresos.length > 0  ? (
+            {tableRows.length > 0  ? (
               <Table>
                 <TableHeader className="sticky top-0 bg-white">
                   <TableRow>
                     <TableHead className="w-[120px]">Fecha</TableHead>
+                    <TableHead className="w-[90px]">Origen</TableHead>
                     <TableHead>Descripción</TableHead>
                     <TableHead className="text-right">Monto</TableHead>
                     <TableHead className="w-[100px]">Agregado por</TableHead>
@@ -1179,22 +1322,48 @@ export default function IngresosModal() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ingresos.map((ingreso) => (
-                    <TableRow key={ingreso._id}>
+                  {tableRows.map((row) => (
+                    <TableRow key={`${row.source}-${row.id}`}>
                       <TableCell className="font-medium">
-                        {ingreso.fecha}
+                        {row.fecha}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "text-[10px] font-normal",
+                            row.source === "ogc"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-gray-100 text-gray-600 border-gray-200"
+                          )}
+                        >
+                          {row.source === "ogc" ? "OGC" : "Ingresos"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-gray-600">
-                        {ingreso.descripcion || "-"}
+                        {row.descripcion || "-"}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(ingreso.monto, ingreso.moneda)}
+                        {formatCurrency(row.monto, row.moneda)}
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">
-                        {ingreso.added_by_name}
+                        {row.addedBy || "-"}
                       </TableCell>
                       <TableCell>
                         {(() => {
+                          if (row.source === "ogc") {
+                            const documents = row.ogcMovement.nota_recepcion_documentos || [];
+                            if (documents.length > 0) {
+                              return (
+                                <Badge variant="secondary" className="text-[10px] font-normal">
+                                  {documents.length} doc{documents.length === 1 ? "" : "s"}
+                                </Badge>
+                              );
+                            }
+                            return <span className="text-gray-300">-</span>;
+                          }
+
+                          const ingreso = row.ingreso;
                           // Check for documents in ingresos_documentos table
                           const docs = allIngresoDocuments?.filter(d => d.ingreso_id === ingreso._id) || [];
                           if (docs.length > 0) {
@@ -1240,24 +1409,24 @@ export default function IngresosModal() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(ingreso)}>
+                            <DropdownMenuItem onClick={() => handleEdit(row)}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
-                            {ingreso.documento_adjunto && (
+                            {row.source === "ingresos" && row.ingreso.documento_adjunto && (
                               <DropdownMenuItem
-                                onClick={() => window.open(ingreso.documento_adjunto, "_blank")}
+                                onClick={() => window.open(row.ingreso.documento_adjunto, "_blank")}
                               >
                                 <ExternalLink className="h-4 w-4 mr-2" />
                                 Ver documento
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
-                              onClick={() => handleDelete(ingreso._id)}
+                              onClick={() => handleDelete(row)}
                               className="text-red-600"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Eliminar
+                              {row.source === "ogc" ? "Anular" : "Eliminar"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

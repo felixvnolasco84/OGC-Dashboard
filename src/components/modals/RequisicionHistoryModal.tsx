@@ -198,6 +198,82 @@ function CreatedDetails({ entry }: { entry: HistoryEntry }) {
   );
 }
 
+function DeletedDetails({ entry }: { entry: HistoryEntry }) {
+  const data = tryParseJSON(entry.old_value);
+  if (!data) return null;
+
+  const tipo = data.tipo as string | undefined;
+  const solicitante = data.solicitante_nombre as string | undefined;
+  const status = data.status as string | undefined;
+  const statusRevision = data.status_revision as string | undefined;
+  const statusEntrega = data.status_entrega as string | undefined;
+  const fechaSolicitud = data.fecha_solicitud as string | undefined;
+  const itemsCount = data.items_count as number | undefined;
+  const documentosCount = data.documentos_count as number | undefined;
+  const totalMonto = data.total_monto as number | undefined;
+
+  return (
+    <div className="mt-2 p-3 bg-white border border-red-100 text-xs space-y-2 text-left">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        {tipo && (
+          <div>
+            <span className="text-gray-400">Tipo:</span>{" "}
+            <span className="text-gray-700 font-medium capitalize">{tipo}</span>
+          </div>
+        )}
+        {solicitante && (
+          <div>
+            <span className="text-gray-400">Solicitante:</span>{" "}
+            <span className="text-gray-700 font-medium">{solicitante}</span>
+          </div>
+        )}
+        {fechaSolicitud && (
+          <div>
+            <span className="text-gray-400">Fecha:</span>{" "}
+            <span className="text-gray-700">{fechaSolicitud}</span>
+          </div>
+        )}
+        {status && (
+          <div>
+            <span className="text-gray-400">Pago:</span>{" "}
+            <span className="text-gray-700">{status}</span>
+          </div>
+        )}
+        {statusRevision && (
+          <div>
+            <span className="text-gray-400">Revision:</span>{" "}
+            <span className="text-gray-700">{statusRevision}</span>
+          </div>
+        )}
+        {statusEntrega && (
+          <div>
+            <span className="text-gray-400">Entrega:</span>{" "}
+            <span className="text-gray-700">{statusEntrega}</span>
+          </div>
+        )}
+        {itemsCount !== undefined && (
+          <div>
+            <span className="text-gray-400">Items:</span>{" "}
+            <span className="text-gray-700">{itemsCount}</span>
+          </div>
+        )}
+        {documentosCount !== undefined && (
+          <div>
+            <span className="text-gray-400">Documentos:</span>{" "}
+            <span className="text-gray-700">{documentosCount}</span>
+          </div>
+        )}
+      </div>
+      {totalMonto !== undefined && totalMonto > 0 && (
+        <div>
+          <span className="text-gray-400">Monto total:</span>{" "}
+          <span className="text-gray-700 font-medium">{formatMonto(totalMonto)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatusChangeDetails({ entry }: { entry: HistoryEntry }) {
   const oldData = tryParseJSON(entry.old_value);
   const newData = tryParseJSON(entry.new_value);
@@ -432,19 +508,20 @@ function ResubmittedDetails({ entry }: { entry: HistoryEntry }) {
 
 export default function RequisicionHistoryModal() {
   const { isOpen, proyectoId, requisicionId, mode, close } = useRequisicionHistoryModal();
+  const currentUser = useQuery(api.users.getCurrentUser);
 
   // Fetch history based on mode
   const allHistory = useQuery(
     api.requisicion_history.getRecentWithDetails,
-    isOpen && mode === "all" && proyectoId
-      ? { proyecto: proyectoId, limit: 50 }
+    isOpen && mode === "all" && proyectoId && currentUser
+      ? { proyecto: proyectoId, limit: 50, user_id: currentUser._id, user_role: currentUser.role }
       : "skip"
   );
 
   const singleHistory = useQuery(
     api.requisicion_history.getByRequisicion,
-    isOpen && mode === "single" && requisicionId
-      ? { requisicion_id: requisicionId }
+    isOpen && mode === "single" && requisicionId && currentUser
+      ? { requisicion_id: requisicionId, user_id: currentUser._id, user_role: currentUser.role }
       : "skip"
   );
 
@@ -527,6 +604,7 @@ export default function RequisicionHistoryModal() {
 
                       {/* Action-specific details */}
                       {entry.action === "created" && <CreatedDetails entry={entry} />}
+                      {entry.action === "deleted" && <DeletedDetails entry={entry} />}
                       {(entry.action === "status_changed" || entry.action === "status_entrega_changed") && (
                         <StatusChangeDetails entry={entry} />
                       )}

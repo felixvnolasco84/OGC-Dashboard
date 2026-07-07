@@ -4,7 +4,109 @@ import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 
 const OGC_LOGO_URL = "https://www.ogc.mx/_next/static/media/Logo.a1dfe6e3.svg";
+// Convex self-references in actions can create circular inference without this narrowed escape hatch.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const convexApi = api as any;
+
+const REQUISICION_NOTIFICATION_MATRIX = [
+    {
+        type: "created",
+        actionLabel: "creo una requisicion",
+        subject: "Nueva requisicion",
+        defaultMessage: "Hay una nueva requisicion pendiente de revision en el proyecto.",
+        audience: ["project_admins", "finance_team"],
+        requiresRequisition: true,
+    },
+    {
+        type: "updated",
+        actionLabel: "actualizo una requisicion",
+        subject: "Requisicion actualizada",
+        defaultMessage: "Hay una actualizacion en una requisicion del proyecto.",
+        audience: ["project_admins", "finance_team", "requester"],
+        requiresRequisition: true,
+    },
+    {
+        type: "reviewed",
+        actionLabel: "reviso una requisicion",
+        subject: "Requisicion revisada",
+        defaultMessage: "La requisicion fue revisada. Consulta el resultado y los comentarios.",
+        audience: ["requester", "project_admins", "finance_team"],
+        requiresRequisition: true,
+    },
+    {
+        type: "assigned",
+        actionLabel: "asigno proveedor",
+        subject: "Proveedor asignado",
+        defaultMessage: "Se asigno un proveedor a la requisicion.",
+        audience: ["requester", "project_admins", "finance_team"],
+        requiresRequisition: true,
+    },
+    {
+        type: "payment",
+        actionLabel: "actualizo pago",
+        subject: "Pago actualizado",
+        defaultMessage: "El estado de pago de la requisicion fue actualizado.",
+        audience: ["requester", "project_admins", "finance_team"],
+        requiresRequisition: true,
+    },
+    {
+        type: "delivery",
+        actionLabel: "actualizo entrega",
+        subject: "Entrega actualizada",
+        defaultMessage: "El estado de entrega de la requisicion fue actualizado.",
+        audience: ["requester", "project_admins", "finance_team"],
+        requiresRequisition: true,
+    },
+] as const;
+
+type RequisicionNotificationAudience = typeof REQUISICION_NOTIFICATION_MATRIX[number]["audience"][number];
+type RequisicionEmailUser = {
+    _id: Id<"users">;
+    name: string;
+    email: string;
+    role: string;
+    allowed_desarrollos: Id<"desarrollos">[];
+    invitation_status?: string;
+};
+type RequisicionNotificationContext = {
+    proyecto: Id<"desarrollos">;
+    requisicion?: {
+        solicitante_id: Id<"users">;
+    } | null;
+};
+type RequisicionEmailRecipient = {
+    _id: Id<"users">;
+    name: string;
+    email: string;
+    role: string;
+};
+
+function getRequisicionNotificationConfig(type: string) {
+    const config = REQUISICION_NOTIFICATION_MATRIX.find((item) => item.type === type);
+    if (!config) {
+        throw new Error("Tipo de notificacion no soportado");
+    }
+    return config;
+}
+
+function canReceiveProjectNotification(user: RequisicionEmailUser, proyecto: Id<"desarrollos">) {
+    if (!user.email?.trim()) return false;
+    if (user.invitation_status === "pending") return false;
+    return user.allowed_desarrollos.includes(proyecto) || user.role === "admin" || user.role === "finance";
+}
+
+function matchesNotificationAudience(
+    audience: readonly RequisicionNotificationAudience[],
+    user: RequisicionEmailUser,
+    context: RequisicionNotificationContext
+) {
+    return audience.some((audienceKey) => {
+        if (audienceKey === "project_admins") return user.role === "admin";
+        if (audienceKey === "finance_team") return user.role === "finance";
+        if (audienceKey === "requester") return context.requisicion?.solicitante_id === user._id;
+        return false;
+    });
+}
 
 const requisicionStatusDocumentValidator = v.object({
     storage_id: v.id("_storage"),
@@ -142,6 +244,9 @@ function renderRequisicionEmail(args: {
 export const getEmailRecipients = query({
     args: {
         proyecto: v.id("desarrollos"),
+        requisicion_id: v.optional(v.id("requisiciones")),
+        notification_type: v.optional(v.string()),
+        exclude_current_user: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -167,19 +272,187 @@ export const getEmailRecipients = query({
             throw new Error("Unauthorized");
         }
 
-        const users = await ctx.db.query("users").collect();
-        return users
+        const config = args.notification_type
+            ? getRequisicionNotificationConfig(args.notification_type)
+            : null;
+        const requisicion = args.requisicion_id
+            ? await ctx.db.get(args.requisicion_id)
+            : null;
+
+        if (args.requisicion_id && (!requisicion || requisicion.proyecto !== args.proyecto)) {
+            throw new Error("La requisicion no pertenece al proyecto");
+        }
+
+        const users = (await ctx.db.query("users").collect()) as RequisicionEmailUser[];
+        const recipients = users
+            .filter((user) => canReceiveProjectNotification(user, args.proyecto))
             .filter((user) =>
-                user.email &&
-                user.allowed_desarrollos.includes(args.proyecto) &&
-                user.invitation_status !== "pending"
-            )
-            .map((user) => ({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-            }));
+                config
+                    ? matchesNotificationAudience(config.audience as readonly RequisicionNotificationAudience[], user, {
+                        proyecto: args.proyecto,
+                        requisicion,
+                    })
+                    : true
+            );
+
+        const recipientsByEmail = new Map<string, {
+            _id: Id<"users">;
+            name: string;
+            email: string;
+            role: string;
+        }>();
+        const currentUserEmail = currentUser.email.trim().toLowerCase();
+
+        for (const user of recipients) {
+            const normalizedEmail = user.email.trim().toLowerCase();
+            if (args.exclude_current_user && normalizedEmail === currentUserEmail) {
+                continue;
+            }
+            if (!recipientsByEmail.has(normalizedEmail)) {
+                recipientsByEmail.set(normalizedEmail, {
+                    _id: user._id,
+                    name: user.name,
+                    email: normalizedEmail,
+                    role: user.role,
+                });
+            }
+        }
+
+        return Array.from(recipientsByEmail.values());
+    },
+});
+
+export const createNotificationEvent = mutation({
+    args: {
+        proyecto: v.id("desarrollos"),
+        requisicion_id: v.optional(v.id("requisiciones")),
+        type: v.string(),
+        subject: v.string(),
+        message: v.optional(v.string()),
+        actor_id: v.id("users"),
+        actor_name: v.string(),
+        channel: v.string(),
+        status: v.optional(v.string()),
+        recipients: v.array(v.object({
+            recipient_user_id: v.optional(v.id("users")),
+            recipient_name: v.string(),
+            recipient_email: v.string(),
+        })),
+    },
+    handler: async (ctx, args) => {
+        const now = Date.now();
+        const eventId = await ctx.db.insert("notification_events", {
+            proyecto: args.proyecto,
+            requisicion_id: args.requisicion_id,
+            type: args.type,
+            subject: args.subject,
+            message: args.message,
+            actor_id: args.actor_id,
+            actor_name: args.actor_name,
+            channel: args.channel,
+            status: args.status ?? "pending",
+            recipient_count: args.recipients.length,
+            sent_count: 0,
+            failed_count: 0,
+            created_at: now,
+        });
+
+        const deliveries = await Promise.all(
+            args.recipients.map(async (recipient) => {
+                const deliveryId = await ctx.db.insert("notification_deliveries", {
+                    notification_event_id: eventId,
+                    proyecto: args.proyecto,
+                    requisicion_id: args.requisicion_id,
+                    recipient_user_id: recipient.recipient_user_id,
+                    recipient_name: recipient.recipient_name,
+                    recipient_email: recipient.recipient_email,
+                    channel: args.channel,
+                    status: "pending",
+                    created_at: now,
+                });
+
+                return {
+                    delivery_id: deliveryId,
+                    recipient_email: recipient.recipient_email,
+                };
+            })
+        );
+
+        return { eventId, deliveries };
+    },
+});
+
+export const finalizeNotificationEvent = mutation({
+    args: {
+        event_id: v.id("notification_events"),
+        deliveries: v.array(v.object({
+            delivery_id: v.id("notification_deliveries"),
+            status: v.string(),
+            provider_message_id: v.optional(v.string()),
+            error: v.optional(v.string()),
+            sent_at: v.optional(v.number()),
+        })),
+    },
+    handler: async (ctx, args) => {
+        const now = Date.now();
+        let sentCount = 0;
+        let failedCount = 0;
+
+        for (const delivery of args.deliveries) {
+            if (delivery.status === "sent") sentCount += 1;
+            if (delivery.status === "failed") failedCount += 1;
+
+            await ctx.db.patch(delivery.delivery_id, {
+                status: delivery.status,
+                provider_message_id: delivery.provider_message_id,
+                error: delivery.error,
+                sent_at: delivery.sent_at,
+            });
+        }
+
+        const event = await ctx.db.get(args.event_id);
+        const status =
+            (event?.recipient_count ?? args.deliveries.length) === 0
+                ? "no_recipients"
+                : sentCount > 0 && failedCount > 0
+                    ? "partial"
+                    : sentCount > 0
+                        ? "sent"
+                        : "failed";
+
+        await ctx.db.patch(args.event_id, {
+            status,
+            sent_count: sentCount,
+            failed_count: failedCount,
+            sent_at: now,
+        });
+
+        return { status, sentCount, failedCount };
+    },
+});
+
+export const getNotificationEventsByProyecto = query({
+    args: {
+        proyecto: v.id("desarrollos"),
+        limit: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const events = await ctx.db
+            .query("notification_events")
+            .withIndex("by_proyecto_created", (q) => q.eq("proyecto", args.proyecto))
+            .order("desc")
+            .take(args.limit ?? 10);
+
+        return await Promise.all(
+            events.map(async (event) => {
+                const deliveries = await ctx.db
+                    .query("notification_deliveries")
+                    .withIndex("by_event", (q) => q.eq("notification_event_id", event._id))
+                    .collect();
+
+                return { ...event, deliveries };
+            })
+        );
     },
 });
 
@@ -191,16 +464,7 @@ export const sendEmailNotification = action({
         message: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const resendApiKey = process.env.RESEND_API_KEY;
-        const resendFromEmail = process.env.RESEND_FROM_EMAIL;
-        const appUrl = (process.env.APP_URL || process.env.SITE_URL || "").replace(/\/$/, "");
-
-        if (!resendApiKey || !resendFromEmail) {
-            throw new Error("Missing RESEND_API_KEY or RESEND_FROM_EMAIL Convex environment variable");
-        }
-        if (!appUrl) {
-            throw new Error("Missing APP_URL Convex environment variable");
-        }
+        const config = getRequisicionNotificationConfig(args.notification_type);
 
         const currentUser = await ctx.runQuery(convexApi.users.getCurrentUser);
         if (!currentUser) {
@@ -212,46 +476,90 @@ export const sendEmailNotification = action({
             throw new Error("Project not found");
         }
 
-        const recipients: { name: string; email: string; role: string }[] = await ctx.runQuery(convexApi.requisiciones.getEmailRecipients, {
-            proyecto: args.proyecto,
-        });
-
-        const recipientsToNotify = recipients.filter((recipient) => recipient.email !== currentUser.email);
-        if (recipientsToNotify.length === 0) {
-            return { success: true, sent: 0 };
-        }
-
         const requisicion = args.requisicion_id
             ? await ctx.runQuery(convexApi.requisiciones.getById, { id: args.requisicion_id })
             : null;
 
-        const actionByType: Record<string, string> = {
-            created: "creo una requisicion",
-            updated: "actualizo una requisicion",
-            reviewed: "reviso una requisicion",
-            assigned: "asigno proveedor",
-            payment: "actualizo pago",
-            delivery: "actualizo entrega",
-        };
+        if (config.requiresRequisition && !requisicion) {
+            throw new Error("Selecciona una requisicion para este tipo de notificacion");
+        }
 
-        const subjectByType: Record<string, string> = {
-            created: "Nueva requisicion",
-            updated: "Requisicion actualizada",
-            reviewed: "Requisicion revisada",
-            assigned: "Proveedor asignado",
-            payment: "Pago actualizado",
-            delivery: "Entrega actualizada",
-        };
+        if (requisicion && requisicion.proyecto !== args.proyecto) {
+            throw new Error("La requisicion no pertenece al proyecto");
+        }
 
+        const recipients: RequisicionEmailRecipient[] = await ctx.runQuery(convexApi.requisiciones.getEmailRecipients, {
+            proyecto: args.proyecto,
+            requisicion_id: args.requisicion_id,
+            notification_type: args.notification_type,
+            exclude_current_user: true,
+        });
+
+        const actorEmail = currentUser.email?.trim().toLowerCase();
+        const recipientsToNotify = recipients.filter((recipient) => recipient.email.trim().toLowerCase() !== actorEmail);
         const requisicionTitle = requisicion
             ? `${requisicion.tipo === "equipo" ? "Equipo" : "Material"} solicitado`
             : "Requisiciones";
         const statusLabel = requisicion?.status_revision || requisicion?.status || "On Going";
-        const message = args.message?.trim() || requisicion?.descripcion || "Hay una actualizacion en las requisiciones del proyecto.";
+        const message = args.message?.trim() || requisicion?.descripcion || config.defaultMessage;
+        const subject = `${config.subject} - ${proyecto.nombre}`;
+
+        const notificationEvent: {
+            eventId: Id<"notification_events">;
+            deliveries: Array<{
+                delivery_id: Id<"notification_deliveries">;
+                recipient_email: string;
+            }>;
+        } = await ctx.runMutation(convexApi.requisiciones.createNotificationEvent, {
+            proyecto: args.proyecto,
+            requisicion_id: args.requisicion_id,
+            type: args.notification_type,
+            subject,
+            message,
+            actor_id: currentUser._id,
+            actor_name: currentUser.name || currentUser.email,
+            channel: "email",
+            status: recipientsToNotify.length === 0 ? "no_recipients" : "pending",
+            recipients: recipientsToNotify.map((recipient) => ({
+                recipient_user_id: recipient._id,
+                recipient_name: recipient.name,
+                recipient_email: recipient.email,
+            })),
+        });
+
+        if (recipientsToNotify.length === 0) {
+            await ctx.runMutation(convexApi.requisiciones.finalizeNotificationEvent, {
+                event_id: notificationEvent.eventId,
+                deliveries: [],
+            });
+            return { success: true, sent: 0, failed: 0, emailIds: [], failures: [] };
+        }
+
+        const resendApiKey = process.env.RESEND_API_KEY;
+        const resendFromEmail = process.env.RESEND_FROM_EMAIL;
+        const appUrl = (process.env.APP_URL || process.env.SITE_URL || "").replace(/\/$/, "");
+        const configurationError = !resendApiKey || !resendFromEmail
+            ? "Missing RESEND_API_KEY or RESEND_FROM_EMAIL Convex environment variable"
+            : !appUrl
+                ? "Missing APP_URL Convex environment variable"
+                : null;
+
+        if (configurationError) {
+            await ctx.runMutation(convexApi.requisiciones.finalizeNotificationEvent, {
+                event_id: notificationEvent.eventId,
+                deliveries: notificationEvent.deliveries.map((delivery) => ({
+                    delivery_id: delivery.delivery_id,
+                    status: "failed",
+                    error: configurationError,
+                })),
+            });
+            throw new Error(configurationError);
+        }
+
         const ctaUrl = `${appUrl}/proyecto/${args.proyecto}/requisiciones`;
         const html = renderRequisicionEmail({
             actorName: currentUser.name || currentUser.email,
-            actionLabel: actionByType[args.notification_type] || "envio una notificacion",
+            actionLabel: config.actionLabel,
             projectName: proyecto.nombre,
             requisicionTitle,
             statusLabel,
@@ -259,8 +567,13 @@ export const sendEmailNotification = action({
             ctaUrl,
         });
 
-        const emailResults = await Promise.all(
-            recipientsToNotify.map(async (recipient) => {
+        const emailResults = await Promise.allSettled(
+            notificationEvent.deliveries.map(async (delivery) => {
+                const recipient = recipientsToNotify.find((item) => item.email === delivery.recipient_email);
+                if (!recipient) {
+                    throw new Error(`Destinatario no encontrado para ${delivery.recipient_email}`);
+                }
+
                 const emailResponse = await fetch("https://api.resend.com/emails", {
                     method: "POST",
                     headers: {
@@ -270,23 +583,57 @@ export const sendEmailNotification = action({
                     body: JSON.stringify({
                         from: resendFromEmail,
                         to: [recipient.email],
-                        subject: `${subjectByType[args.notification_type] || "Notificacion"} - ${proyecto.nombre}`,
+                        subject,
                         html,
                     }),
                 });
 
-                const emailResult = await emailResponse.json();
+                const emailResult = await emailResponse.json().catch(() => null);
                 if (!emailResponse.ok) {
                     throw new Error(emailResult?.message || `Unable to send requisicion email notification to ${recipient.email}`);
                 }
-                return emailResult;
+                return { delivery_id: delivery.delivery_id, emailResult };
             })
         );
 
+        const sentResults = emailResults.filter((result) => result.status === "fulfilled");
+        const failedResults = emailResults.filter((result) => result.status === "rejected");
+        const sentAt = Date.now();
+
+        await ctx.runMutation(convexApi.requisiciones.finalizeNotificationEvent, {
+            event_id: notificationEvent.eventId,
+            deliveries: emailResults.map((result, index) => {
+                const delivery = notificationEvent.deliveries[index];
+                if (result.status === "fulfilled") {
+                    return {
+                        delivery_id: result.value.delivery_id,
+                        status: "sent",
+                        provider_message_id: result.value.emailResult?.id,
+                        sent_at: sentAt,
+                    };
+                }
+
+                return {
+                    delivery_id: delivery.delivery_id,
+                    status: "failed",
+                    error: result.reason instanceof Error ? result.reason.message : "Error desconocido",
+                };
+            }),
+        });
+
+        if (sentResults.length === 0 && failedResults.length > 0) {
+            const firstFailure = failedResults[0];
+            throw new Error(firstFailure.reason instanceof Error ? firstFailure.reason.message : "No se pudo enviar la notificacion");
+        }
+
         return {
             success: true,
-            sent: recipientsToNotify.length,
-            emailIds: emailResults.map((result) => result.id).filter(Boolean),
+            sent: sentResults.length,
+            failed: failedResults.length,
+            emailIds: sentResults.map((result) => result.value?.emailResult?.id).filter(Boolean),
+            failures: failedResults.map((result) =>
+                result.reason instanceof Error ? result.reason.message : "Error desconocido"
+            ),
         };
     },
 });
@@ -513,6 +860,7 @@ export const create = mutation({
             action: "created",
             new_value: JSON.stringify({
                 tipo: args.tipo,
+                solicitante_id: args.solicitante_id,
                 solicitante: args.solicitante_nombre,
                 fecha_solicitud: args.fecha_solicitud,
                 items_count: items.length,
@@ -890,7 +1238,7 @@ export const update = mutation({
     },
 });
 
-// Delete requisicion and all related items/documents
+// Delete requisicion and operational line items while preserving audit history.
 export const deleteRequisicion = mutation({
     args: {
         id: v.id("requisiciones"),
@@ -900,8 +1248,20 @@ export const deleteRequisicion = mutation({
     handler: async (ctx, args) => {
         const requisicion = await ctx.db.get(args.id);
         if (!requisicion) throw new Error("Requisicion not found");
-        
-        // Log history before deletion
+
+        const items = await ctx.db
+            .query("requisicion_items")
+            .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.id))
+            .collect();
+
+        const documentos = await ctx.db
+            .query("requisicion_documentos")
+            .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.id))
+            .collect();
+
+        const totalMonto = items.reduce((sum, item) => sum + (item.monto || 0), 0);
+
+        // Log history before deletion and keep it for audit after the requisicion is gone.
         await ctx.db.insert("requisicion_history", {
             proyecto: requisicion.proyecto,
             requisicion_id: args.id,
@@ -909,47 +1269,39 @@ export const deleteRequisicion = mutation({
             old_value: JSON.stringify({
                 tipo: requisicion.tipo,
                 status: requisicion.status,
+                status_revision: requisicion.status_revision,
+                status_entrega: requisicion.status_entrega,
+                solicitante_id: requisicion.solicitante_id,
                 solicitante_nombre: requisicion.solicitante_nombre,
+                fecha_solicitud: requisicion.fecha_solicitud,
+                descripcion: requisicion.descripcion || null,
+                items_count: items.length,
+                documentos_count: documentos.length,
+                total_monto: totalMonto,
+                documentos: documentos.map((doc) => ({
+                    nombre: doc.nombre,
+                    type: doc.type,
+                    size: doc.size,
+                })),
             }),
             changed_by_id: args.changed_by_id,
             changed_by_name: args.changed_by_name,
             created_at: Date.now(),
         });
-        
-        // Delete all items
-        const items = await ctx.db
-            .query("requisicion_items")
-            .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.id))
-            .collect();
-        
+
+        // Delete operational items. Documents and history stay available for audit context.
         for (const item of items) {
             await ctx.db.delete(item._id);
-        }
-        
-        // Delete all documents
-        const documentos = await ctx.db
-            .query("requisicion_documentos")
-            .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.id))
-            .collect();
-        
-        for (const doc of documentos) {
-            await ctx.db.delete(doc._id);
-        }
-        
-        // Delete all history entries for this requisicion
-        const historyEntries = await ctx.db
-            .query("requisicion_history")
-            .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.id))
-            .collect();
-        
-        for (const entry of historyEntries) {
-            await ctx.db.delete(entry._id);
         }
         
         // Delete the requisicion
         await ctx.db.delete(args.id);
         
-        return { success: true };
+        return {
+            success: true,
+            preserved_history: true,
+            preserved_documentos: documentos.length,
+        };
     },
 });
 

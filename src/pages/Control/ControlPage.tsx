@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 // import { Button } from "@/components/ui/button";
 import ProgressChart from "@/components/Charts/ProgressChart";
 import FamiliaChart from "@/components/Charts/FamiliaChart";
+import TopVariancePartidasTable from "@/components/Charts/TopVariancePartidasTable";
 import AutorizacionesObraPage from "../AutorizacionesObra/AutorizacionesObraPage";
 import ChartConfigModal from "@/components/Charts/ChartConfigModal";
 import { useChartConfig } from "@/hooks/useChartConfig";
@@ -16,6 +17,7 @@ import { useChartConfig } from "@/hooks/useChartConfig";
 // import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 
 import { Id } from "convex/_generated/dataModel";
+import { cn } from "@/lib/utils";
 
 const CHART_PERIODO = "Diario";
 const CHART_RANGO_FECHA = "Todo el tiempo";
@@ -52,6 +54,52 @@ const formatCurrencyCompact = (amount: number) => {
 
     return `${sign}$${formatNumber(Math.round(absoluteAmount))}`;
 };
+
+type CurrencyMetricProps = {
+    amount: number;
+    currency?: string;
+    className?: string;
+    fractionClassName?: string;
+};
+
+function getCurrencyDisplayParts(amount: number, currency: string) {
+    const safeAmount = toFiniteNumber(amount);
+    const formatter = new Intl.NumberFormat("es-MX", {
+        style: "currency",
+        currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+    const parts = formatter.formatToParts(safeAmount);
+    const decimalIndex = parts.findIndex((part) => part.type === "decimal");
+
+    if (decimalIndex === -1) {
+        return {
+            whole: formatter.format(safeAmount),
+            fraction: "",
+        };
+    }
+
+    return {
+        whole: parts.slice(0, decimalIndex).map((part) => part.value).join(""),
+        fraction: parts.slice(decimalIndex).map((part) => part.value).join(""),
+    };
+}
+
+function CurrencyMetric({ amount, currency = "MXN", className, fractionClassName }: CurrencyMetricProps) {
+    const { whole, fraction } = getCurrencyDisplayParts(amount, currency);
+
+    return (
+        <span className={cn("inline-flex items-baseline whitespace-nowrap tabular-nums", className)}>
+            <span>{whole}</span>
+            {fraction ? (
+                <span className={cn("ml-1 text-[0.5em] leading-none", fractionClassName)}>
+                    {fraction}
+                </span>
+            ) : null}
+        </span>
+    );
+}
 
 const formatDecimalMetric = (value: number | null) => {
     if (value === null || !Number.isFinite(value)) return "N/D";
@@ -129,6 +177,12 @@ export default function ControlPage() {
         proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
     );
 
+    const currencyInfo = useQuery(
+        api.currency_helpers.getProjectDefaultCurrency,
+        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+    );
+    const moneda = currencyInfo?.defaultCurrency || "MXN";
+
     // Fetch all partidas for the table with pagination
     // const { results: allPartidas } = usePaginatedQuery(
     //     api.partida.getByProjectPaginated,
@@ -177,6 +231,11 @@ export default function ControlPage() {
                 sub_partidas: chart2Config.config.sub_partidas,
             }
             : "skip"
+    );
+
+    const topVariancePartidas = useQuery(
+        api.transacciones.getTopVariancePartidas,
+        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
     );
 
     // Get current chart config for modal
@@ -272,9 +331,11 @@ export default function ControlPage() {
                             <div className="space-y-2">
                                 <p className="text-xs text-[#777770]">Presupuesto aprobado</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl text-gray-900">
-                                        ${formatNumber(Math.round(budgetMetrics.presupuesto_aprobado || 0))}
-                                    </span>
+                                    <CurrencyMetric
+                                        amount={budgetMetrics.presupuesto_aprobado || 0}
+                                        currency={moneda}
+                                        className="text-4xl text-gray-900"
+                                    />
                                 </div>
 
                                 {/* <div className="text-lg text-gray-500">
@@ -290,9 +351,11 @@ export default function ControlPage() {
                             <div className="space-y-2">
                                 <p className="text-xs text-[#777770]">Gasto total</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl text-[#802424]">
-                                        ${formatNumber(Math.round(budgetMetrics.gasto_total || 0))}
-                                    </span>
+                                    <CurrencyMetric
+                                        amount={budgetMetrics.gasto_total || 0}
+                                        currency={moneda}
+                                        className="text-4xl text-[#802424]"
+                                    />
                                 </div>
                                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
                                     Avance {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.gasto_total / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
@@ -307,9 +370,11 @@ export default function ControlPage() {
                             <div className="space-y-2">
                                 <p className="text-xs text-[#777770]">Por gastar</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl text-[#1A5D21]">
-                                        ${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}
-                                    </span>
+                                    <CurrencyMetric
+                                        amount={budgetMetrics.por_gastar || 0}
+                                        currency={moneda}
+                                        className="text-4xl text-[#1A5D21]"
+                                    />
                                 </div>
                                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
                                     Pendiente {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.por_gastar / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
@@ -456,6 +521,14 @@ export default function ControlPage() {
                                 onConfigClick={() => setActiveChartId("control-chart-2")}
                             />
                         )}
+                    </div>
+
+                    <div className="lg:col-span-4">
+                        <TopVariancePartidasTable
+                            rows={topVariancePartidas || []}
+                            isLoading={Boolean(proyectoId) && topVariancePartidas === undefined}
+                            currency={moneda}
+                        />
                     </div>
 
                     {/* Tabs Section */}

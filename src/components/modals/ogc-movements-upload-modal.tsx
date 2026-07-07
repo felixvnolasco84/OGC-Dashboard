@@ -628,7 +628,8 @@ export function OgcMovementsUploadModal({
   };
 
   const parseFile = async (selectedFile: File) => {
-    let lastError = "No se pudo procesar el archivo.";
+    const defaultError = "No se pudo procesar el archivo.";
+    let lastError = defaultError;
 
     for (const endpoint of OGC_UPLOAD_ENDPOINTS) {
       const formData = new FormData();
@@ -637,10 +638,17 @@ export function OgcMovementsUploadModal({
       try {
         const response = await fetch(endpoint, { method: "POST", body: formData });
         const data = await response.json().catch(() => null);
-        if (response.ok && data) return data as OgcUploadResult;
+        if (response.ok && data) {
+          const parsed = data as OgcUploadResult;
+          if (parsed.success && parsed.movimientos?.length) return parsed;
+          lastError = parsed.message || parsed.errors?.[0]?.error || lastError;
+          continue;
+        }
         lastError = data?.message || data?.error || lastError;
       } catch (error) {
-        lastError = error instanceof Error ? error.message : lastError;
+        if (lastError === defaultError) {
+          lastError = error instanceof Error ? error.message : lastError;
+        }
       }
     }
 

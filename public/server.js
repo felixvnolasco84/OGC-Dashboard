@@ -1467,6 +1467,7 @@ function normalizeOgcCategoria(value, tipo) {
     if (normalized.includes('transporte')) return 'TRANSPORTE';
     if (normalized.includes('renta')) return 'RENTA';
     if (normalized.includes('disp')) return 'DISP HONORARIOS';
+    if (normalized.includes('otro')) return 'OTROS';
 
     return tipo === 'ingreso' ? 'HONORARIOS' : 'OTROS';
 }

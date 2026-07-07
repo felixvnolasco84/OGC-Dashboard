@@ -589,7 +589,7 @@ function WorkInProgressView({
         />
       </div>
 
-      <div className="border-t border-[#AFAEA2] pt-6 space-y-6">
+      <div className="border-t border-[#AFAEA2] pt-12 space-y-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <h2 className="text-lg text-gray-900">OBRAS ACTIVAS - ESTADO AL CORTE</h2>
           <div className="text-left md:text-right">

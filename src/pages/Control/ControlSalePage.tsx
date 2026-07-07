@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ProgressChart from "@/components/Charts/ProgressChart";
 import FamiliaChart from "@/components/Charts/FamiliaChart";
+import TopVariancePartidasTable from "@/components/Charts/TopVariancePartidasTable";
 import { DashboardTable } from "../Dashboard/DashboardTable";
 import { useChartConfig } from "@/hooks/useSaleChartConfig";
 
@@ -125,6 +126,11 @@ export default function ControlSalePage() {
                 sub_partidas: chart2Config.config.sub_partidas,
             }
             : "skip"
+    );
+
+    const topVariancePartidas = useQuery(
+        api.sales_transacciones.getTopVariancePartidas,
+        proyectoId ? { proyecto_id: proyectoId as Id<"sales_projects"> } : "skip"
     );
 
     // Fetch filtered metrics based on selected date range
@@ -393,6 +399,13 @@ export default function ControlSalePage() {
                                 onConfigClick={() => setActiveChartId("sales-control-chart-2")}
                             />
                         )}
+                    </div>
+
+                    <div className="lg:col-span-4">
+                        <TopVariancePartidasTable
+                            rows={topVariancePartidas || []}
+                            isLoading={Boolean(proyectoId) && topVariancePartidas === undefined}
+                        />
                     </div>
 
                     <div className="col-span-4 py-12">

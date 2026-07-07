@@ -1,7 +1,7 @@
 "use client";
 
 import { Doc } from "convex/_generated/dataModel";
-import { MoreHorizontal, Pencil, CreditCard, MoreHorizontalIcon, FileText } from "lucide-react";
+import { MoreHorizontal, Pencil, CreditCard, MoreHorizontalIcon, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -72,6 +72,11 @@ export default function DropdownMenuComponentPartida({
 
   // Select the appropriate payments based on level
   const payments = level === 0 ? level0Payments : level === 1 ? level1Payments : level2Payments;
+  const shouldLoadPayments =
+    (level === 0 && Boolean(partida.nombre)) ||
+    (level === 1 && Boolean(partida.familia && partida.nombre)) ||
+    isRealPartida;
+  const isLoadingPayments = shouldLoadPayments && payments === undefined;
 
   // For level 1 (familia), check if it has any sub-partidas (nivel 3 items)
   // Query all partidas in this project with the same partida name and familia
@@ -149,6 +154,8 @@ export default function DropdownMenuComponentPartida({
   };
 
   const handleViewTransactions = () => {
+    if (isLoadingPayments) return;
+
     // Calculate amounts based on level
     // Use presupuesto_aprobado from the actual partida record for level 2 (nivel 3)
     // For aggregated levels (0 and 1), use the calculated totals from rowData
@@ -197,9 +204,15 @@ export default function DropdownMenuComponentPartida({
               variant="ghost"
               className="w-full justify-start flex items-center gap-2 text-wrap "
               onClick={handleViewTransactions}
+              disabled={isLoadingPayments}
+              aria-busy={isLoadingPayments}
             >
-              <CreditCard className="h-4 w-4" />
-              {level === 2 ? 'Ver pagos' : `Ver transacciones`}
+              {isLoadingPayments ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
+              {isLoadingPayments ? "Cargando..." : level === 2 ? 'Ver pagos' : `Ver transacciones`}
               {/* Ver transacciones */}
             </Button>
 

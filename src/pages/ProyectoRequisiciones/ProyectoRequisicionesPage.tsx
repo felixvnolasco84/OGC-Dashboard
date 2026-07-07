@@ -45,6 +45,11 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    getRequisicionNotificationConfig,
+    REQUISICION_NOTIFICATION_MATRIX,
+    type RequisicionNotificationType,
+} from "@/lib/requisicionNotificationMatrix";
 
 type PipelineStageKey = "aprobadas" | "pagadas" | "recibidas";
 type StatusHistoryDocument = {
@@ -69,7 +74,7 @@ export default function ProyectoRequisicionesPage() {
     const [activeTab, setActiveTab] = useState<"por_revisar" | "aprobadas" | "pagadas" | "recibidas">("por_revisar");
     const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
     const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-    const [notificationType, setNotificationType] = useState("created");
+    const [notificationType, setNotificationType] = useState<RequisicionNotificationType>("created");
     const [selectedNotificationReqId, setSelectedNotificationReqId] = useState<string>("latest");
     const [notificationMessage, setNotificationMessage] = useState("");
     const [isSendingNotification, setIsSendingNotification] = useState(false);
@@ -108,10 +113,6 @@ export default function ProyectoRequisicionesPage() {
 
     // Fetch all proveedores
     const proveedores = useQuery(api.proveedores.getAll);
-    const emailRecipients = useQuery(
-        api.requisiciones.getEmailRecipients,
-        proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
-    );
 
     // Provider dialog state
     const [providerDialogOpen, setProviderDialogOpen] = useState(false);
@@ -279,41 +280,76 @@ export default function ProyectoRequisicionesPage() {
         return [...requisiciones].sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0];
     }, [requisiciones, selectedNotificationReqId]);
 
-    const notificationCopy = useMemo(() => {
-        const actionByType: Record<string, string> = {
-            created: "creo una requisicion",
-            updated: "actualizo una requisicion",
-            reviewed: "reviso una requisicion",
-            assigned: "asigno proveedor",
-            payment: "actualizo pago",
-            delivery: "actualizo entrega",
-        };
-        const titleByType: Record<string, string> = {
-            created: "Nueva requisicion",
-            updated: "Requisicion actualizada",
-            reviewed: "Revision de requisicion",
-            assigned: "Proveedor asignado",
-            payment: "Pago actualizado",
-            delivery: "Entrega actualizada",
-        };
+    useEffect(() => {
+        if (!requisiciones || selectedNotificationReqId === "latest") return;
+        const stillExists = requisiciones.some((req) => req._id === selectedNotificationReqId);
+        if (!stillExists) {
+            setSelectedNotificationReqId("latest");
+        }
+    }, [requisiciones, selectedNotificationReqId]);
 
+    const selectedNotificationConfig = getRequisicionNotificationConfig(notificationType);
+    const emailRecipients = useQuery(
+        api.requisiciones.getEmailRecipients,
+        proyectoId && currentUser
+            ? {
+                proyecto: proyectoId as Id<"desarrollos">,
+                notification_type: notificationType,
+                exclude_current_user: true,
+                ...(selectedNotificationReq?._id ? { requisicion_id: selectedNotificationReq._id } : {}),
+            }
+            : "skip"
+    );
+    const notificationEvents = useQuery(
+        api.requisiciones.getNotificationEventsByProyecto,
+        proyectoId
+            ? {
+                proyecto: proyectoId as Id<"desarrollos">,
+                limit: 5,
+            }
+            : "skip"
+    );
+    const recipientsToNotifyCount = emailRecipients?.length ?? 0;
+    const notificationRequiresMissingReq = selectedNotificationConfig.requiresRequisition && !selectedNotificationReq;
+
+    const notificationCopy = useMemo(() => {
         const requisicionTitle = selectedNotificationReq
             ? `${selectedNotificationReq.tipo === "equipo" ? "Equipo" : "Material"} solicitado`
             : "Requisiciones";
         const statusLabel = selectedNotificationReq?.status_revision || selectedNotificationReq?.status || "On Going";
-        const message = notificationMessage.trim() || selectedNotificationReq?.descripcion || "Hay una actualizacion en las requisiciones del proyecto.";
+        const message = notificationMessage.trim() || selectedNotificationReq?.descripcion || selectedNotificationConfig.defaultMessage;
 
         return {
-            action: actionByType[notificationType] || "envio una notificacion",
-            title: titleByType[notificationType] || "Notificacion",
+            action: selectedNotificationConfig.actionLabel,
+            title: selectedNotificationConfig.subject,
             requisicionTitle,
             statusLabel,
             message,
         };
-    }, [notificationMessage, notificationType, selectedNotificationReq]);
+    }, [notificationMessage, selectedNotificationConfig, selectedNotificationReq]);
+
+    const formatNotificationDate = (timestamp?: number) => {
+        if (!timestamp) return "Pendiente";
+        return new Date(timestamp).toLocaleString("es-MX", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    };
 
     const handleSendEmailNotification = async () => {
         if (!proyectoId) return;
+        if (notificationRequiresMissingReq) {
+            toast.error("Selecciona una requisicion para este tipo de notificacion");
+            return;
+        }
+        if (recipientsToNotifyCount === 0) {
+            toast.warning("No hay destinatarios para esta notificacion", {
+                description: "Revisa la audiencia definida en la matriz BA.",
+            });
+            return;
+        }
         setIsSendingNotification(true);
         try {
             const result = await sendEmailNotification({
@@ -322,9 +358,15 @@ export default function ProyectoRequisicionesPage() {
                 notification_type: notificationType,
                 message: notificationMessage.trim() || undefined,
             });
-            toast.success("Notificacion enviada", {
-                description: `Se envio a ${result.sent} destinatario${result.sent === 1 ? "" : "s"}.`,
-            });
+            if (result.failed > 0) {
+                toast.warning("Notificacion enviada parcialmente", {
+                    description: `Se envio a ${result.sent} destinatario${result.sent === 1 ? "" : "s"} y fallo ${result.failed}.`,
+                });
+            } else {
+                toast.success("Notificacion enviada", {
+                    description: `Se envio a ${result.sent} destinatario${result.sent === 1 ? "" : "s"}.`,
+                });
+            }
             setEmailDialogOpen(false);
             setNotificationMessage("");
         } catch (error) {
@@ -1698,19 +1740,39 @@ export default function ProyectoRequisicionesPage() {
 
                             <div className="space-y-2">
                                 <Label>Tipo de notificación</Label>
-                                <Select value={notificationType} onValueChange={setNotificationType}>
+                                <Select value={notificationType} onValueChange={(value) => setNotificationType(value as RequisicionNotificationType)}>
                                     <SelectTrigger className="rounded-none h-10">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="created">Nueva requisición</SelectItem>
-                                        <SelectItem value="updated">Actualización</SelectItem>
-                                        <SelectItem value="reviewed">Revisión</SelectItem>
-                                        <SelectItem value="assigned">Proveedor asignado</SelectItem>
-                                        <SelectItem value="payment">Pago</SelectItem>
-                                        <SelectItem value="delivery">Entrega</SelectItem>
+                                        {REQUISICION_NOTIFICATION_MATRIX.map((item) => (
+                                            <SelectItem key={item.type} value={item.type}>
+                                                {item.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
+                            </div>
+
+                            <div className="border border-[#E7E7E4] bg-[#FBFBFB] p-4 text-sm">
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                    <div>
+                                        <p className="text-xs text-gray-400">Audiencia</p>
+                                        <p className="mt-1 text-gray-800">{selectedNotificationConfig.audienceLabel}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-400">Canal</p>
+                                        <p className="mt-1 text-gray-800">{selectedNotificationConfig.channelsLabel}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-400">Prioridad</p>
+                                        <p className="mt-1 text-gray-800">{selectedNotificationConfig.priorityLabel}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-400">SLA</p>
+                                        <p className="mt-1 text-gray-800">{selectedNotificationConfig.slaLabel}</p>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -1742,8 +1804,54 @@ export default function ProyectoRequisicionesPage() {
 
                             <div className="border border-gray-200 bg-[#FBFBFB] p-4">
                                 <p className="text-sm text-gray-500">Destinatarios</p>
-                                <p className="mt-1 text-2xl text-gray-900">{emailRecipients?.filter((recipient) => recipient.email !== currentUser?.email).length ?? 0}</p>
-                                <p className="mt-1 text-xs text-gray-500">Usuarios activos con acceso al proyecto.</p>
+                                <p className="mt-1 text-2xl text-gray-900">{recipientsToNotifyCount}</p>
+                                <p className="mt-1 text-xs text-gray-500">Usuarios activos que coinciden con la audiencia definida.</p>
+                                {notificationRequiresMissingReq && (
+                                    <p className="mt-2 text-xs text-red-600">Este tipo requiere seleccionar una requisición.</p>
+                                )}
+                            </div>
+
+                            <div className="border border-gray-200 bg-white p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm font-medium text-gray-700">Eventos recientes</p>
+                                    <Badge variant="outline" className="rounded-none text-[10px]">
+                                        notification_events
+                                    </Badge>
+                                </div>
+                                <div className="mt-3 space-y-3">
+                                    {!notificationEvents ? (
+                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            Cargando eventos...
+                                        </div>
+                                    ) : notificationEvents.length === 0 ? (
+                                        <p className="text-xs text-gray-500">Aun no hay envios registrados para este proyecto.</p>
+                                    ) : (
+                                        notificationEvents.map((event) => {
+                                            const readCount = event.deliveries.filter((delivery) => Boolean(delivery.read_at)).length;
+                                            return (
+                                                <div key={event._id} className="border border-gray-100 bg-[#FBFBFB] p-3">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <p className="truncate text-sm font-medium text-gray-800">{event.subject}</p>
+                                                            <p className="mt-1 text-xs text-gray-500">
+                                                                {event.actor_name} · {formatNotificationDate(event.sent_at || event.created_at)}
+                                                            </p>
+                                                        </div>
+                                                        <Badge variant="secondary" className="shrink-0 rounded-none text-[10px] uppercase">
+                                                            {event.status}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-gray-600">
+                                                        <span>Enviados: {event.sent_count}</span>
+                                                        <span>Fallidos: {event.failed_count}</span>
+                                                        <span>Leidos: {readCount}</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex justify-end gap-2 pt-2">
@@ -1757,7 +1865,7 @@ export default function ProyectoRequisicionesPage() {
                                 <Button
                                     className="rounded-none bg-[#20243d] hover:bg-[#2e344f]"
                                     onClick={handleSendEmailNotification}
-                                    disabled={isSendingNotification || !emailRecipients || emailRecipients.length === 0}
+                                    disabled={isSendingNotification || !emailRecipients || recipientsToNotifyCount === 0 || notificationRequiresMissingReq}
                                 >
                                     {isSendingNotification ? (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1830,8 +1938,8 @@ export default function ProyectoRequisicionesPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Eliminar requisición?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Se eliminará la requisición, todos sus items
-                            y documentos asociados de forma permanente.
+                            Esta acción no se puede deshacer. Se eliminará la requisición y sus items operativos,
+                            pero se conservará el historial y los documentos asociados como respaldo de auditoría.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
