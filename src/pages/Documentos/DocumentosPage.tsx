@@ -73,14 +73,6 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -449,19 +441,19 @@ export default function DocumentosPage() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-white text-left">
-        <div className="border-b border-gray-200 px-12 py-8">
+        <div className="border-b border-gray-200 px-4 py-6 sm:px-6 lg:px-12 lg:py-8">
           <div className="flex flex-col gap-6">
-            <div className="flex items-end justify-between gap-6">
-              <div>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+              <div className="min-w-0">
                 <p className="mb-1 text-base text-gray-500">Gestion documental</p>
                 <h1 className="text-2xl font-normal text-gray-900">Documentos</h1>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex lg:items-center lg:gap-3">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="rounded-none py-6 text-gray-500"
+                  className="w-full rounded-none py-6 text-gray-500"
                   onClick={handleOrganizeDocuments}
                   disabled={isOrganizing}
                 >
@@ -475,7 +467,7 @@ export default function DocumentosPage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="rounded-none py-6 text-gray-500"
+                  className="w-full rounded-none py-6 text-gray-500"
                   onClick={() => {
                     setDraftName("");
                     setFolderDialogParentId(undefined);
@@ -487,7 +479,7 @@ export default function DocumentosPage() {
                 </Button>
                 <Button
                   size="lg"
-                  className="rounded-none py-6"
+                  className="w-full rounded-none py-6"
                   onClick={() => uploadModal.onOpen()}
                 >
                   Subir documentos
@@ -496,7 +488,7 @@ export default function DocumentosPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(280px,1fr)_220px_220px_auto]">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(160px,220px)_minmax(140px,220px)_auto]">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <Input
@@ -594,8 +586,8 @@ export default function DocumentosPage() {
             visibleLimit={12}
           />
 
-          <main className="min-w-0 flex-1 px-12 py-8">
-            <div className="mb-6 flex items-center justify-between gap-4">
+          <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-12 lg:py-8">
+            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
                   <button
@@ -840,90 +832,142 @@ function DocumentList({
   onDelete: (target: MenuTarget) => void;
 }) {
   return (
-    <div className="border border-gray-200">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="h-12 px-6 font-normal text-gray-500">Nombre</TableHead>
-            <TableHead className="h-12 font-normal text-gray-500">Proyecto</TableHead>
-            <TableHead className="h-12 font-normal text-gray-500">Tipo</TableHead>
-            <TableHead className="h-12 font-normal text-gray-500">Modificado</TableHead>
-            <TableHead className="h-12 font-normal text-gray-500">Tamano</TableHead>
-            <TableHead className="h-12 w-12" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className="overflow-hidden border border-gray-200">
+      <table className="w-full table-fixed border-collapse text-sm">
+        <colgroup>
+          <col className="w-[32%]" />
+          <col className="w-[20%]" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
+          <col className="w-[8%]" />
+          <col className="w-[12%]" />
+        </colgroup>
+        <thead className="hidden border-b border-gray-200 lg:table-header-group">
+          <tr className="hover:bg-transparent">
+            <th className="h-12 px-4 text-left font-normal text-gray-500 lg:px-6">Nombre</th>
+            <th className="h-12 px-3 text-left font-normal text-gray-500">Proyecto</th>
+            <th className="h-12 px-3 text-left font-normal text-gray-500">Tipo</th>
+            <th className="h-12 px-3 text-left font-normal text-gray-500">Modificado</th>
+            <th className="h-12 px-3 text-left font-normal text-gray-500">Tamano</th>
+            <th className="h-12 px-2" />
+          </tr>
+        </thead>
+        <tbody className="block divide-y divide-gray-200 lg:table-row-group">
           {folders.map((folder) => (
-            <TableRow
+            <tr
               key={folder._id}
-              className="cursor-pointer hover:bg-gray-50"
+              className="block cursor-pointer p-4 hover:bg-gray-50 lg:table-row lg:p-0"
               onDoubleClick={() => onOpenFolder(folder._id)}
               onContextMenu={(event) => onContextMenu(event, { kind: "folder", item: folder })}
             >
-              <TableCell className="px-6 py-4">
-                <button className="flex min-w-0 items-center gap-3" onClick={() => onOpenFolder(folder._id)}>
+              <td className="block pb-4 lg:table-cell lg:px-6 lg:py-4">
+                <button className="flex min-w-0 items-center gap-3 text-left" onClick={() => onOpenFolder(folder._id)}>
                   <Folder className="h-5 w-5 shrink-0 fill-gray-700 text-gray-700" />
                   <span className="min-w-0">
-                    <span className="block truncate font-medium text-gray-900">{folder.nombre}</span>
+                    <span className="block break-words font-medium text-gray-900 lg:line-clamp-2">{folder.nombre}</span>
                     <span className="block truncate text-xs text-gray-400">
                       {folderItemCount.get(folder._id) || 0} elementos
                     </span>
                   </span>
                 </button>
-              </TableCell>
-              <TableCell className="text-gray-500">Biblioteca</TableCell>
-              <TableCell className="text-gray-500">Carpeta</TableCell>
-              <TableCell className="text-gray-500">{formatDate(folder.updated_at || folder.created_at)}</TableCell>
-              <TableCell className="text-gray-500">--</TableCell>
-              <TableCell>
+              </td>
+              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+                  Proyecto
+                </span>
+                <span className="min-w-0 break-words text-right lg:text-left">Biblioteca</span>
+              </td>
+              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+                  Tipo
+                </span>
+                <span className="min-w-0 break-words text-right lg:text-left">Carpeta</span>
+              </td>
+              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+                  Modificado
+                </span>
+                <span className="min-w-0 break-words text-right lg:text-left">
+                  {formatDate(folder.updated_at || folder.created_at)}
+                </span>
+              </td>
+              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+                  Tamano
+                </span>
+                <span className="min-w-0 break-words text-right lg:text-left">--</span>
+              </td>
+              <td className="block pt-3 lg:table-cell lg:px-2 lg:py-4">
                 <InlineActions
                   target={{ kind: "folder", item: folder }}
                   onRename={onRename}
                   onMove={onMove}
                   onDelete={onDelete}
                 />
-              </TableCell>
-            </TableRow>
+              </td>
+            </tr>
           ))}
 
           {documents.map((doc) => (
-            <TableRow
+            <tr
               key={doc._id}
-              className="hover:bg-gray-50"
+              className="block p-4 hover:bg-gray-50 lg:table-row lg:p-0"
               onContextMenu={(event) => onContextMenu(event, { kind: "document", item: doc })}
             >
-              <TableCell className="px-6 py-4">
-                <div className="flex min-w-0 items-center gap-3">
+              <td className="block pb-4 lg:table-cell lg:px-6 lg:py-4">
+                <div className="flex min-w-0 items-start gap-3">
                   {getFileIcon(doc)}
                   <div className="min-w-0">
                     <button
-                      className="truncate text-sm font-medium text-gray-900 hover:underline"
+                      className="break-words text-left text-sm font-medium text-gray-900 hover:underline lg:line-clamp-2"
                       onClick={() => doc.url && window.open(doc.url, "_blank")}
                     >
                       {doc.nombre}
                     </button>
-                    <p className="truncate text-xs text-gray-400">{doc.descripcion || doc.type}</p>
+                    <p className="line-clamp-2 break-words text-xs text-gray-400">{doc.descripcion || doc.type}</p>
                   </div>
                 </div>
-              </TableCell>
-              <TableCell className="text-gray-600">
-                {projectById.get(doc.proyecto || doc.sales_proyecto || "") || "--"}
-              </TableCell>
-              <TableCell className="text-gray-500">{doc.type || "--"}</TableCell>
-              <TableCell className="text-gray-500">{formatDate(doc.uploaded_at || doc._creationTime)}</TableCell>
-              <TableCell className="text-gray-500">{formatBytes(doc.size)}</TableCell>
-              <TableCell>
+              </td>
+              <td className="flex items-start justify-between gap-4 py-2 text-gray-600 lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+                  Proyecto
+                </span>
+                <span className="min-w-0 break-words text-right lg:text-left">
+                  {projectById.get(doc.proyecto || doc.sales_proyecto || "") || "--"}
+                </span>
+              </td>
+              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+                  Tipo
+                </span>
+                <span className="min-w-0 break-words text-right lg:text-left">{doc.type || "--"}</span>
+              </td>
+              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+                  Modificado
+                </span>
+                <span className="min-w-0 break-words text-right lg:text-left">
+                  {formatDate(doc.uploaded_at || doc._creationTime)}
+                </span>
+              </td>
+              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+                  Tamano
+                </span>
+                <span className="min-w-0 break-words text-right lg:text-left">{formatBytes(doc.size)}</span>
+              </td>
+              <td className="block pt-3 lg:table-cell lg:px-2 lg:py-4">
                 <InlineActions
                   target={{ kind: "document", item: doc }}
                   onRename={onRename}
                   onMove={onMove}
                   onDelete={onDelete}
                 />
-              </TableCell>
-            </TableRow>
+              </td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -1129,7 +1173,7 @@ function InlineActions({
   onDelete: (target: MenuTarget) => void;
 }) {
   return (
-    <div className="flex items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+    <div className="flex flex-wrap items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onRename(target)}>

@@ -1,9 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Doc } from "convex/_generated/dataModel";
 import { MoreHorizontal, Pencil, CreditCard, MoreHorizontalIcon, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../ui/dialog";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { useSeePaymentDetailsModal } from "@/hooks/see-transactions-details";
 import { useAggregatedDetailsModal } from "@/hooks/aggregated-details-modal";
@@ -31,6 +39,8 @@ export default function DropdownMenuComponentPartida({
 }: DropdownMenuComponentPartidaProps) {
   const seePaymentDetailsModal = useSeePaymentDetailsModal();
   const aggregatedDetailsModal = useAggregatedDetailsModal();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const navigate = useNavigate();
   const currentUser = useQuery(api.users.getCurrentUser);
@@ -131,6 +141,11 @@ export default function DropdownMenuComponentPartida({
 
   const labels = getContextualLabels();
 
+  const handleOpenEdit = () => {
+    setIsMenuOpen(false);
+    setIsEditOpen(true);
+  };
+
   //Navigate to cost details with react router
   const handleViewDetails = () => {
     // Navigate to detail page for:
@@ -154,6 +169,7 @@ export default function DropdownMenuComponentPartida({
         avance: rowData.avance,
       });
     }
+    setIsMenuOpen(false);
   };
 
   const handleViewTransactions = () => {
@@ -178,14 +194,15 @@ export default function DropdownMenuComponentPartida({
     };
 
     seePaymentDetailsModal.onOpen(paymentContext);
+    setIsMenuOpen(false);
   };
 
   return (
-    <Dialog>
-      <Popover>
+    <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+      <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <PopoverTrigger asChild>
           <Button
-            className="border-none border-transparent"
+            className="h-8 w-8 border-none border-transparent text-[#898982] hover:bg-gray-100 hover:text-gray-900"
             variant="ghost"
             size={"icon"}
             data-viewer-readonly-allow="true"
@@ -194,51 +211,49 @@ export default function DropdownMenuComponentPartida({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-56 p-1 text-wrap">
-          <div className="space-y-1">
-            {/* Show edit option for all levels - each level now has its own database record */}
-            {canEdit && (
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start flex items-center gap-2 text-wrap"
-                >
-                  <Pencil className="h-4 w-4" />
-                  Editar {labels.title.toLowerCase()}
-                </Button>
-              </DialogTrigger>
-            )}
-
-            {/* View payments option */}
-            <Button
-              variant="ghost"
-              className="w-full justify-start flex items-center gap-2 text-wrap "
-              onClick={handleViewTransactions}
-              disabled={isLoadingPayments}
-              aria-busy={isLoadingPayments}
-              data-viewer-readonly-allow="true"
-            >
-              {isLoadingPayments ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CreditCard className="h-4 w-4" />
+        <PopoverContent align="end" sideOffset={6} className="w-64 overflow-hidden border-gray-200 bg-white p-1 text-gray-900 shadow-xl">
+          <Command className="bg-white text-gray-900">
+            <CommandList>
+              {canEdit && (
+                <>
+                  <CommandGroup>
+                    <CommandItem
+                      onSelect={handleOpenEdit}
+                      className="data-[selected=true]:bg-gray-100"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Editar {labels.title.toLowerCase()}
+                    </CommandItem>
+                  </CommandGroup>
+                  <CommandSeparator className="bg-gray-200" />
+                </>
               )}
-              {isLoadingPayments ? "Cargando..." : level === 2 ? 'Ver pagos' : `Ver transacciones`}
-              {/* Ver transacciones */}
-            </Button>
-
-            {/* View details option */}
-            <Button
-              variant="ghost"
-              className="w-full justify-start flex items-center gap-2 text-wrap"
-              onClick={handleViewDetails}
-              data-viewer-readonly-allow="true"
-            >
-              {/* Show FileText icon for leaf nodes (level 2 or level 1 without sub-partidas) */}
-              {(level === 2 || (level === 1 && !hasSubPartidas)) ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}
-              {labels.viewDetailsText}
-            </Button>
-          </div>
+              <CommandGroup>
+                <CommandItem
+                  onSelect={handleViewTransactions}
+                  disabled={isLoadingPayments}
+                  aria-busy={isLoadingPayments}
+                  data-viewer-readonly-allow="true"
+                  className="data-[selected=true]:bg-gray-100"
+                >
+                  {isLoadingPayments ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-4 w-4" />
+                  )}
+                  {isLoadingPayments ? "Cargando..." : level === 2 ? 'Ver pagos' : `Ver transacciones`}
+                </CommandItem>
+                <CommandItem
+                  onSelect={handleViewDetails}
+                  data-viewer-readonly-allow="true"
+                  className="data-[selected=true]:bg-gray-100"
+                >
+                  {(level === 2 || (level === 1 && !hasSubPartidas)) ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}
+                  {labels.viewDetailsText}
+                </CommandItem>
+              </CommandGroup>
+            </CommandList>
+          </Command>
         </PopoverContent>
       </Popover>
       {/* Edit dialog for all levels */}

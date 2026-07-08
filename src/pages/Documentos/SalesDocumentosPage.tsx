@@ -124,31 +124,33 @@ export default function SalesDocumentosPage() {
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-full mx-auto py-8 text-left">
-        <div className="flex flex-col gap-4 px-12">
-          <div className="mb-8 flex items-start justify-between">
-            <div>
+        <div className="flex flex-col gap-4 px-4 sm:px-6 lg:px-12">
+          <div className="mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
               <h1 className="text-3xl font-normal text-gray-900 mb-2">Documentos de Ventas</h1>
               <p className="text-sm text-gray-500">
                 Gestiona los documentos asociados a las transacciones de ventas
               </p>
             </div>
-            <Button onClick={handleUploadClick}>
-              <Upload className="mr-2 h-4 w-4" />
-              Subir Documentos
-            </Button>
-            <Button
-              onClick={() => toast.info("Funcionalidad de agregar documento próximamente")}
-              variant="outline"
-              size="lg"
-              className="flex items-center gap-2 rounded-none text-gray-500 py-6"
-            >
-              Agregar Documento
-              <Plus className="h-6 w-6 rounded-full shadow-none" />
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Button onClick={handleUploadClick} className="w-full sm:w-auto">
+                <Upload className="mr-2 h-4 w-4" />
+                Subir Documentos
+              </Button>
+              <Button
+                onClick={() => toast.info("Funcionalidad de agregar documento próximamente")}
+                variant="outline"
+                size="lg"
+                className="flex w-full items-center justify-center gap-2 rounded-none py-6 text-gray-500 sm:w-auto"
+              >
+                Agregar Documento
+                <Plus className="h-6 w-6 rounded-full shadow-none" />
+              </Button>
+            </div>
           </div>
 
           {/* Search and Filter */}
-          <div className="mb-8 grid grid-cols-2 gap-4">
+          <div className="mb-6 grid grid-cols-1 gap-4 lg:mb-8 md:grid-cols-2">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <Input
@@ -191,35 +193,40 @@ export default function SalesDocumentosPage() {
         </div>
 
         {/* Table */}
-        <div className="border border-gray-200 rounded-none">
-          <table className="w-full">
-            <thead className="border-b border-gray-200">
+        <div className="mx-4 overflow-hidden border border-gray-200 rounded-none sm:mx-6 lg:mx-12">
+          <table className="w-full table-fixed border-collapse">
+            <colgroup>
+              <col className="w-[42%]" />
+              <col className="w-[24%]" />
+              <col className="w-[16%]" />
+              <col className="w-[18%]" />
+            </colgroup>
+            <thead className="hidden border-b border-gray-200 md:table-header-group">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                <th className="border-r border-gray-200 px-4 py-4 text-left text-sm font-normal text-gray-600 lg:px-6">
                   Documento
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                <th className="border-r border-gray-200 px-4 py-4 text-left text-sm font-normal text-gray-600 lg:px-6">
                   Cliente
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                <th className="border-r border-gray-200 px-4 py-4 text-left text-sm font-normal text-gray-600 lg:px-6">
                   Tipo
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                <th className="px-4 py-4 text-left text-sm font-normal text-gray-600 lg:px-6">
                   Transacción
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="block divide-y divide-gray-200 md:table-row-group">
               {!documentos ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <tr className="block md:table-row">
+                  <td colSpan={4} className="block px-6 py-12 text-center text-gray-500 md:table-cell">
                     Cargando documentos...
                   </td>
                 </tr>
               ) : filteredDocumentos && filteredDocumentos.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <tr className="block md:table-row">
+                  <td colSpan={4} className="block px-6 py-12 text-center text-gray-500 md:table-cell">
                     No se encontraron documentos
                   </td>
                 </tr>
@@ -229,13 +236,13 @@ export default function SalesDocumentosPage() {
                   return (
                     <tr
                       key={doc._id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="block p-4 transition-colors hover:bg-gray-50 md:table-row md:p-0"
                     >
-                      <td className="px-6 py-4 border-r border-gray-200">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-gray-400" />
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
+                      <td className="block pb-4 md:table-cell md:border-r md:border-gray-200 md:px-4 md:py-4 lg:px-6">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <FileText className="mt-0.5 h-5 w-5 flex-none text-gray-400" />
+                          <div className="min-w-0">
+                            <div className="break-words text-sm font-medium text-gray-900">
                               {doc.nombre}
                             </div>
                             <div className="text-xs text-gray-400">
@@ -244,46 +251,34 @@ export default function SalesDocumentosPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                        {transaction?.nombre_cliente || "-"}
+                      <td className="flex items-start justify-between gap-4 py-2 text-sm text-gray-900 md:table-cell md:border-r md:border-gray-200 md:px-4 md:py-4 lg:px-6">
+                        <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 md:hidden">
+                          Cliente
+                        </span>
+                        <span className="min-w-0 break-words text-right md:text-left">
+                          {transaction?.nombre_cliente || "-"}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 border-r border-gray-200">
+                      <td className="flex items-start justify-between gap-4 py-2 md:table-cell md:border-r md:border-gray-200 md:px-4 md:py-4 lg:px-6">
+                        <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 md:hidden">
+                          Tipo
+                        </span>
                         <Badge
                           variant="outline"
                           className={`${getTipoBadgeColor(
                             doc.type
-                          )} px-3 py-1 text-xs font-normal capitalize rounded-none`}
+                          )} max-w-full break-words px-3 py-1 text-xs font-normal capitalize rounded-none whitespace-normal`}
                         >
                           {doc.type}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                        {transaction?.factura || transaction?.codigo_referencia || "-"}
-                      </td>
-                      <td className="px-6 py-4 border-r border-gray-200">
-                        {/* <div className="flex items-center gap-2">
-                          {
-                            doc.image ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                            onClick={() => window.open(getFileUrl(doc.image), "_blank")}
-                          >
-                            <Download className="h-4 w-4 text-gray-400" />
-                          </Button>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={() => openDeleteDialog(doc._id)}
-                              >
-                            <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-600" />
-                          </Button>
-                            )
-                          }
-                        </div> */}
+                      <td className="flex items-start justify-between gap-4 pt-2 text-sm text-gray-900 md:table-cell md:px-4 md:py-4 lg:px-6">
+                        <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 md:hidden">
+                          Transacción
+                        </span>
+                        <span className="min-w-0 break-words text-right md:text-left">
+                          {transaction?.factura || transaction?.codigo_referencia || "-"}
+                        </span>
                       </td>
                     </tr>
                   );

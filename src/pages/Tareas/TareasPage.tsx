@@ -105,7 +105,11 @@ const TASK_UI_COLORS = {
   itemBg: "#FBFBFB",
   itemBorder: "#E6E6E6",
 };
-const TASK_TABLE_GRID = "grid-cols-[minmax(360px,1.6fr)_minmax(220px,1fr)_180px_160px_160px_minmax(220px,1fr)_48px]";
+const TASK_TABLE_GRID = "grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)_minmax(0,0.74fr)_minmax(0,0.7fr)_minmax(0,0.72fr)_minmax(0,1fr)_32px]";
+const TASK_TITLE_CELL = "min-w-0 md:col-span-3 xl:col-span-1";
+const TASK_FIELD_CELL = "min-w-0 space-y-1 xl:space-y-0";
+const TASK_ACTION_CELL = "flex min-w-0 justify-end md:col-span-3 xl:col-span-1";
+const TASK_MOBILE_LABEL = "block text-xs font-medium text-[#A5A5A0] xl:hidden";
 const TASK_VALUE_TEXT = "text-[#A3A39E]";
 const TASK_COLUMN_TEXT = "text-[#A5A5A0]";
 
@@ -387,7 +391,7 @@ function InlineDatePicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-6 w-44 justify-start rounded-none border-0 bg-transparent px-0 text-left text-sm font-normal shadow-none hover:bg-transparent",
+            "h-6 w-full min-w-0 justify-start rounded-none border-0 bg-transparent px-0 text-left text-sm font-normal shadow-none hover:bg-transparent",
             overdue ? "font-medium text-red-600" : TASK_VALUE_TEXT
           )}
         >
@@ -490,7 +494,7 @@ function InlineLabelPicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "h-8 w-36 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
+            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
             open && "border-[#E6E6E6] bg-white text-[#898982] ring-1 ring-[#E6E6E6]"
           )}
         >
@@ -660,7 +664,7 @@ function InlinePriorityPicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-8 w-36 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
+            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
             open && "border-[#E6E6E6] bg-white text-[#898982] ring-1 ring-[#E6E6E6]"
           )}
         >
@@ -830,7 +834,7 @@ function InlineAssigneePicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "flex h-6 w-full min-w-44 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            "flex h-6 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
@@ -976,7 +980,7 @@ function InlinePartidaPicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "flex h-6 w-full min-w-44 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            "flex h-6 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
@@ -1122,7 +1126,7 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
           type="button"
           disabled={disabled}
           className={cn(
-            "flex h-6 w-full min-w-44 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            "flex h-6 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
@@ -1267,7 +1271,7 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
           type="button"
           disabled={disabled}
           className={cn(
-            "flex h-6 w-full min-w-44 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            "flex h-6 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
@@ -2142,11 +2146,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           setContextMenu({ task, x: event.clientX, y: event.clientY });
         }}
         className={cn(
-          "grid min-h-[44px] items-center gap-4 px-6 py-1.5 transition",
+          "grid min-h-[44px] items-center gap-4 px-4 py-3 transition xl:px-6 xl:py-1.5",
           TASK_TABLE_GRID
         )}
       >
-        <div className="flex items-center gap-2" style={{ paddingLeft: level * 26 }}>
+        <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)} style={{ paddingLeft: level * 26 }}>
           <button
             type="button"
             draggable={canEditTask}
@@ -2186,39 +2190,54 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             </div>
           </div>
         </div>
-        <InlineAssigneePicker
-          task={task}
-          assignableUsers={assignableUsersByProject?.[task.proyecto]}
-          disabled={!canEditTask || isSaving}
-          onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
-        />
-        <InlineDatePicker
-          value={task.fecha_limite}
-          disabled={!canEditTask || isSaving}
-          overdue={overdue}
-          onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
-        />
-        <InlinePriorityPicker
-          value={task.prioridad}
-          labels={effectivePriorityLabels}
-          disabled={!canEditTask || isSaving}
-          onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
-          onLabelsChange={setPriorityLabels}
-        />
-        <InlineLabelPicker
-          value={task.status}
-          labels={effectiveStatusLabels}
-          disabled={isSaving || !canEditStatus}
-          onSelect={(value) => handleStatusChange(task, value)}
-          onLabelsChange={setStatusLabels}
-        />
-        <InlinePartidaPicker
-          task={task}
-          projectPartidas={partidasByProject?.[task.proyecto]}
-          disabled={!canEditTask || isSaving}
-          onChange={(partidas) => handleInlineUpdate(task, { partidas })}
-        />
-        <div className="flex justify-end">
+        <div className={TASK_FIELD_CELL}>
+          <span className={TASK_MOBILE_LABEL}>Responsable</span>
+          <InlineAssigneePicker
+            task={task}
+            assignableUsers={assignableUsersByProject?.[task.proyecto]}
+            disabled={!canEditTask || isSaving}
+            onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
+          />
+        </div>
+        <div className={TASK_FIELD_CELL}>
+          <span className={TASK_MOBILE_LABEL}>Fecha vencimiento</span>
+          <InlineDatePicker
+            value={task.fecha_limite}
+            disabled={!canEditTask || isSaving}
+            overdue={overdue}
+            onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
+          />
+        </div>
+        <div className={TASK_FIELD_CELL}>
+          <span className={TASK_MOBILE_LABEL}>Prioridad</span>
+          <InlinePriorityPicker
+            value={task.prioridad}
+            labels={effectivePriorityLabels}
+            disabled={!canEditTask || isSaving}
+            onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
+            onLabelsChange={setPriorityLabels}
+          />
+        </div>
+        <div className={TASK_FIELD_CELL}>
+          <span className={TASK_MOBILE_LABEL}>Estado</span>
+          <InlineLabelPicker
+            value={task.status}
+            labels={effectiveStatusLabels}
+            disabled={isSaving || !canEditStatus}
+            onSelect={(value) => handleStatusChange(task, value)}
+            onLabelsChange={setStatusLabels}
+          />
+        </div>
+        <div className={TASK_FIELD_CELL}>
+          <span className={TASK_MOBILE_LABEL}>Partida</span>
+          <InlinePartidaPicker
+            task={task}
+            projectPartidas={partidasByProject?.[task.proyecto]}
+            disabled={!canEditTask || isSaving}
+            onChange={(partidas) => handleInlineUpdate(task, { partidas })}
+          />
+        </div>
+        <div className={TASK_ACTION_CELL}>
           <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
             <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
@@ -2255,7 +2274,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             setContextMenu({ task, x: event.clientX, y: event.clientY });
           }}
           className={cn(
-            "group bg-transparent px-8 py-1",
+            "group bg-transparent px-4 py-1 sm:px-8",
             draggingTaskId === task._id && "opacity-50",
             draggingTaskId && draggingTaskId !== task._id && "data-[drop=true]:bg-blue-50"
           )}
@@ -2264,8 +2283,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             className="overflow-hidden rounded-md border bg-[#FBFBFB] transition group-hover:bg-[#F1F1F1]"
             style={{ borderColor: TASK_UI_COLORS.itemBorder }}
           >
-            <div className={cn("grid min-h-[44px] items-center gap-4 px-6 py-1.5", TASK_TABLE_GRID)}>
-              <div className="flex items-center gap-2">
+            <div className={cn("grid min-h-[44px] items-center gap-4 px-4 py-3 xl:px-6 xl:py-1.5", TASK_TABLE_GRID)}>
+              <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
                 <button
                   type="button"
                   draggable={canEditTask}
@@ -2343,39 +2362,54 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   </div>
                 </div>
               </div>
-              <InlineAssigneePicker
-                task={task}
-                assignableUsers={assignableUsersByProject?.[task.proyecto]}
-                disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
-                onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
-              />
-              <InlineDatePicker
-                value={task.fecha_limite}
-                disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
-                overdue={isOverdue(task)}
-                onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
-              />
-              <InlinePriorityPicker
-                value={task.prioridad}
-                labels={effectivePriorityLabels}
-                disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
-                onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
-                onLabelsChange={setPriorityLabels}
-              />
-              <InlineLabelPicker
-                value={task.status}
-                labels={effectiveStatusLabels}
-                disabled={inlineSavingId === task._id || updatingStatusId === task._id || !canEditStatus}
-                onSelect={(value) => handleStatusChange(task, value)}
-              onLabelsChange={setStatusLabels}
-            />
-              <InlinePartidaPicker
-                task={task}
-                projectPartidas={partidasByProject?.[task.proyecto]}
-                disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
-                onChange={(partidas) => handleInlineUpdate(task, { partidas })}
-              />
-              <div className="flex justify-end">
+              <div className={TASK_FIELD_CELL}>
+                <span className={TASK_MOBILE_LABEL}>Responsable</span>
+                <InlineAssigneePicker
+                  task={task}
+                  assignableUsers={assignableUsersByProject?.[task.proyecto]}
+                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
+                />
+              </div>
+              <div className={TASK_FIELD_CELL}>
+                <span className={TASK_MOBILE_LABEL}>Fecha vencimiento</span>
+                <InlineDatePicker
+                  value={task.fecha_limite}
+                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  overdue={isOverdue(task)}
+                  onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
+                />
+              </div>
+              <div className={TASK_FIELD_CELL}>
+                <span className={TASK_MOBILE_LABEL}>Prioridad</span>
+                <InlinePriorityPicker
+                  value={task.prioridad}
+                  labels={effectivePriorityLabels}
+                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
+                  onLabelsChange={setPriorityLabels}
+                />
+              </div>
+              <div className={TASK_FIELD_CELL}>
+                <span className={TASK_MOBILE_LABEL}>Estado</span>
+                <InlineLabelPicker
+                  value={task.status}
+                  labels={effectiveStatusLabels}
+                  disabled={inlineSavingId === task._id || updatingStatusId === task._id || !canEditStatus}
+                  onSelect={(value) => handleStatusChange(task, value)}
+                  onLabelsChange={setStatusLabels}
+                />
+              </div>
+              <div className={TASK_FIELD_CELL}>
+                <span className={TASK_MOBILE_LABEL}>Partida</span>
+                <InlinePartidaPicker
+                  task={task}
+                  projectPartidas={partidasByProject?.[task.proyecto]}
+                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  onChange={(partidas) => handleInlineUpdate(task, { partidas })}
+                />
+              </div>
+              <div className={TASK_ACTION_CELL}>
                 <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>
@@ -2406,10 +2440,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             {!isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
               <>
                 <div className="border-t border-[#E6E6E6]" />
-                <div className="px-6 py-2">
+                <div className="px-4 py-2 xl:px-6">
                   {addingSubtaskFor === task._id ? (
-                    <div className={cn("grid min-h-[44px] items-center gap-4 subtask-creation-form", TASK_TABLE_GRID)} style={{ paddingLeft: 26 }}>
-                      <div className="flex items-center gap-2">
+                    <div className={cn("grid min-h-[44px] items-center gap-4 subtask-creation-form", TASK_TABLE_GRID)}>
+                      <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)} style={{ paddingLeft: 26 }}>
                         <Checkbox disabled className="h-4 w-4" />
                         <Input
                           autoFocus
@@ -2454,36 +2488,51 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-gray-900 shadow-none focus-visible:ring-0"
                         />
                       </div>
-                      <InlineAssigneePickerForCreate
-                        assignableUsers={assignableUsersByProject?.[task.proyecto]}
-                        value={subtaskAssignees}
-                        disabled={submitting}
-                        onChange={setSubtaskAssignees}
-                      />
-                      <InlineDatePicker
-                        value={subtaskDueDate}
-                        disabled={submitting}
-                        overdue={false}
-                        onChange={setSubtaskDueDate}
-                      />
-                      <InlinePriorityPicker
-                        value={subtaskPriority}
-                        labels={effectivePriorityLabels}
-                        disabled={submitting}
-                        onSelect={setSubtaskPriority}
-                        onLabelsChange={setPriorityLabels}
-                      />
-                      <div className="flex items-center">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: labelForValue(task.status, effectiveStatusLabels).color }} />
-                        <span className="ml-2 text-sm text-[#A3A39E]">{task.status}</span>
+                      <div className={TASK_FIELD_CELL}>
+                        <span className={TASK_MOBILE_LABEL}>Responsable</span>
+                        <InlineAssigneePickerForCreate
+                          assignableUsers={assignableUsersByProject?.[task.proyecto]}
+                          value={subtaskAssignees}
+                          disabled={submitting}
+                          onChange={setSubtaskAssignees}
+                        />
                       </div>
-                      <InlinePartidaPickerForCreate
-                        projectPartidas={partidasByProject?.[task.proyecto]}
-                        value={subtaskPartidas}
-                        disabled={submitting}
-                        onChange={setSubtaskPartidas}
-                      />
-                      <div className="flex items-center justify-end">
+                      <div className={TASK_FIELD_CELL}>
+                        <span className={TASK_MOBILE_LABEL}>Fecha vencimiento</span>
+                        <InlineDatePicker
+                          value={subtaskDueDate}
+                          disabled={submitting}
+                          overdue={false}
+                          onChange={setSubtaskDueDate}
+                        />
+                      </div>
+                      <div className={TASK_FIELD_CELL}>
+                        <span className={TASK_MOBILE_LABEL}>Prioridad</span>
+                        <InlinePriorityPicker
+                          value={subtaskPriority}
+                          labels={effectivePriorityLabels}
+                          disabled={submitting}
+                          onSelect={setSubtaskPriority}
+                          onLabelsChange={setPriorityLabels}
+                        />
+                      </div>
+                      <div className={TASK_FIELD_CELL}>
+                        <span className={TASK_MOBILE_LABEL}>Estado</span>
+                        <div className="flex min-w-0 items-center">
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: labelForValue(task.status, effectiveStatusLabels).color }} />
+                          <span className="ml-2 truncate text-sm text-[#A3A39E]">{task.status}</span>
+                        </div>
+                      </div>
+                      <div className={TASK_FIELD_CELL}>
+                        <span className={TASK_MOBILE_LABEL}>Partida</span>
+                        <InlinePartidaPickerForCreate
+                          projectPartidas={partidasByProject?.[task.proyecto]}
+                          value={subtaskPartidas}
+                          disabled={submitting}
+                          onChange={setSubtaskPartidas}
+                        />
+                      </div>
+                      <div className={cn(TASK_ACTION_CELL, "items-center")}>
                         {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
                       </div>
                     </div>
@@ -2637,7 +2686,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             type="button"
             variant="outline"
             onClick={() => setFiltersDialogOpen(true)}
-            className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-base text-gray-900 shadow-none hover:bg-white hover:text-gray-900"
+            className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-base  shadow-none hover:bg-white"
           >
             Más filtros
             {additionalFilterCount > 0 && (
@@ -2677,20 +2726,20 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       </button>
                     )}
                     {!isCollapsed && (
-                      <div className="overflow-x-auto w-full">
-                        <div className="w-max min-w-full">
+                      <div className="w-full min-w-0 overflow-hidden">
+                        <div className="min-w-0">
                         {getStatusSections(group.tasks, group.tasks.length === 0).map((section) => {
                             const sectionKey = `${group.projectId}:${section.label.id}`;
                             const isStatusCollapsed = collapsedStatusSections.has(sectionKey);
 
                             return (
                               <div key={sectionKey}>
-                                <div className={cn("px-8 pb-2", isProjectScoped ? "pt-8" : "pt-10")}>
+                                <div className={cn("px-4 pb-2 sm:px-8", isProjectScoped ? "pt-8" : "pt-10")}>
                                     <div className={cn("grid items-center gap-4 text-sm", TASK_COLUMN_TEXT, TASK_TABLE_GRID)}>
                                       <button
                                         type="button"
                                         onClick={() => toggleStatusCollapse(sectionKey)}
-                                        className="flex min-w-0 items-center gap-2 text-left text-[#898982] hover:text-[#898982]"
+                                        className={cn("flex min-w-0 items-center gap-2 text-left text-[#898982] hover:text-[#898982]", "md:col-span-3 xl:col-span-1")}
                                         aria-expanded={!isStatusCollapsed}
                                       >
                                         <ChevronDown className={cn("h-4 w-4 text-[#898982] transition-transform", isStatusCollapsed && "-rotate-90")} />
@@ -2698,22 +2747,22 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                         <span>{section.label.label}</span>
                                         <span className="text-xs text-[#A3A39E]">{section.tasks.length}</span>
                                       </button>
-                                      <span className="text-base text-[#A5A5A0]">Responsable</span>
-                                      <span className="text-base text-[#A5A5A0]">Fecha vencimiento</span>
-                                      <span className="text-base text-[#A5A5A0]">Prioridad</span>
-                                      <span className="text-base text-[#A5A5A0]">Estado</span>
-                                      <span className="text-base text-[#A5A5A0]">Partida</span>
-                                      <span />
+                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Responsable</span>
+                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Fecha vencimiento</span>
+                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Prioridad</span>
+                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Estado</span>
+                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Partida</span>
+                                      <span className="hidden xl:block" />
                                     </div>
                                 </div>
                                 {!isStatusCollapsed && (
                                   <>
                                     {section.tasks.map((task) => renderTaskRow(task))}
                                     {canCreate && (
-                                      <div className="px-8 py-2">
+                                      <div className="px-4 py-2 sm:px-8">
                                         {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.id ? (
                                           <div className={cn("grid min-h-[44px] items-center gap-4 task-creation-form", TASK_TABLE_GRID)}>
-                                            <div className="flex items-center gap-2">
+                                            <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
                                               <Checkbox disabled className="h-4 w-4" />
                                               <Input
                                                 autoFocus
@@ -2758,36 +2807,51 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                 className="h-6 border-0 bg-transparent px-0 text-sm font-medium text-gray-900 shadow-none focus-visible:ring-0"
                                               />
                                             </div>
-                                            <InlineAssigneePickerForCreate
-                                              assignableUsers={assignableUsersByProject?.[group.projectId]}
-                                              value={newTaskAssignees}
-                                              disabled={submitting}
-                                              onChange={setNewTaskAssignees}
-                                            />
-                                            <InlineDatePicker
-                                              value={newTaskDueDate}
-                                              disabled={submitting}
-                                              overdue={false}
-                                              onChange={setNewTaskDueDate}
-                                            />
-                                            <InlinePriorityPicker
-                                              value={newTaskPriority}
-                                              labels={effectivePriorityLabels}
-                                              disabled={submitting}
-                                              onSelect={setNewTaskPriority}
-                                              onLabelsChange={setPriorityLabels}
-                                            />
-                                            <div className="flex items-center">
-                                              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: section.label.color }} />
-                                              <span className="ml-2 text-sm text-[#A3A39E]">{section.label.label}</span>
+                                            <div className={TASK_FIELD_CELL}>
+                                              <span className={TASK_MOBILE_LABEL}>Responsable</span>
+                                              <InlineAssigneePickerForCreate
+                                                assignableUsers={assignableUsersByProject?.[group.projectId]}
+                                                value={newTaskAssignees}
+                                                disabled={submitting}
+                                                onChange={setNewTaskAssignees}
+                                              />
                                             </div>
-                                            <InlinePartidaPickerForCreate
-                                              projectPartidas={partidasByProject?.[group.projectId]}
-                                              value={newTaskPartidas}
-                                              disabled={submitting}
-                                              onChange={setNewTaskPartidas}
-                                            />
-                                            <div className="flex items-center justify-end">
+                                            <div className={TASK_FIELD_CELL}>
+                                              <span className={TASK_MOBILE_LABEL}>Fecha vencimiento</span>
+                                              <InlineDatePicker
+                                                value={newTaskDueDate}
+                                                disabled={submitting}
+                                                overdue={false}
+                                                onChange={setNewTaskDueDate}
+                                              />
+                                            </div>
+                                            <div className={TASK_FIELD_CELL}>
+                                              <span className={TASK_MOBILE_LABEL}>Prioridad</span>
+                                              <InlinePriorityPicker
+                                                value={newTaskPriority}
+                                                labels={effectivePriorityLabels}
+                                                disabled={submitting}
+                                                onSelect={setNewTaskPriority}
+                                                onLabelsChange={setPriorityLabels}
+                                              />
+                                            </div>
+                                            <div className={TASK_FIELD_CELL}>
+                                              <span className={TASK_MOBILE_LABEL}>Estado</span>
+                                              <div className="flex min-w-0 items-center">
+                                                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: section.label.color }} />
+                                                <span className="ml-2 truncate text-sm text-[#A3A39E]">{section.label.label}</span>
+                                              </div>
+                                            </div>
+                                            <div className={TASK_FIELD_CELL}>
+                                              <span className={TASK_MOBILE_LABEL}>Partida</span>
+                                              <InlinePartidaPickerForCreate
+                                                projectPartidas={partidasByProject?.[group.projectId]}
+                                                value={newTaskPartidas}
+                                                disabled={submitting}
+                                                onChange={setNewTaskPartidas}
+                                              />
+                                            </div>
+                                            <div className={cn(TASK_ACTION_CELL, "items-center")}>
                                               {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
                                             </div>
                                           </div>
@@ -3575,4 +3639,3 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 export default function TareasPage() {
   return <TareasBoard />;
 }
-

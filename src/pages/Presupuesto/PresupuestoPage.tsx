@@ -8,6 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -21,6 +28,8 @@ import {
   ChevronRight,
   RefreshCw,
   CalendarIcon,
+  CreditCard,
+  MoreHorizontal,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
@@ -90,6 +99,7 @@ export default function PresupuestoPage() {
   const [familiaSearchTerm, setFamiliaSearchTerm] = useState("");
   const [isPartidaOpen, setIsPartidaOpen] = useState(false);
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -107,6 +117,7 @@ export default function PresupuestoPage() {
       addPaymentModal.onOpen({
         projectId: proyecto._id,
       });
+      setIsActionsOpen(false);
     }
   };
 
@@ -117,6 +128,17 @@ export default function PresupuestoPage() {
         projectId: proyecto._id,
         projectName: proyecto.nombre,
       });
+      setIsActionsOpen(false);
+    }
+  };
+
+  const handleOpenAddPartida = () => {
+    if (proyecto) {
+      addPartidaModal.onOpen({
+        proyecto: proyecto._id,
+        projectName: proyecto.nombre
+      });
+      setIsActionsOpen(false);
     }
   };
 
@@ -134,6 +156,7 @@ export default function PresupuestoPage() {
       console.error("Sync failed:", error);
     } finally {
       setIsSyncing(false);
+      setIsActionsOpen(false);
     }
   };
 
@@ -185,10 +208,14 @@ export default function PresupuestoPage() {
   );
   const moneda = currencyInfo?.defaultCurrency || "MXN";
 
-  // Get payments filtered by date range
+  const shouldFetchFilteredPayments =
+    dateFilter !== "total" && Boolean(proyectoId) && Boolean(dateRange.start || dateRange.end);
+
+  // Get payments filtered by date range. The "total" view already uses cached metrics,
+  // so avoid asking Convex to scan every transaction/payment in the project.
   const filteredPayments = useQuery(
     api.pagos.getPaymentsByDateRange,
-    proyectoId
+    shouldFetchFilteredPayments && proyectoId
       ? {
         proyecto_id: proyectoId as Id<"desarrollos">,
         start_date: dateRange.start,
@@ -346,7 +373,7 @@ export default function PresupuestoPage() {
 
               {/* Total Ingresos - Based on image reference */}
               <Card className="bg-transparent shadow-none border-none col-span-1 md:col-span-2 lg:col-span-1 mr-4">
-                <CardContent className="p-0 text-left" onClick={handleOpenIngresos}>
+                <CardContent className="p-0 text-left cursor-pointer rounded-md transition-colors hover:bg-gray-50" onClick={handleOpenIngresos}>
                   <div className="space-y-1 text-right">
                     <p className="text-sm text-muted-foreground text-right mr-0.5">Total Ingresos</p>
                     <div className="flex items-baseline space-x-2">
@@ -372,43 +399,59 @@ export default function PresupuestoPage() {
               </Card>
 
 
-              {/* handle sync button */}
-              <Button
-                onClick={handleSync}
-                variant={"outline"}
-                size={"lg"}
-                disabled={!proyecto || isSyncing}
-                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
-              >
-                {isSyncing ? "Sincronizando..." : "Sincronizar"}
-                <RefreshCw className={cn("h-5 w-5", isSyncing && "animate-spin")} />
-              </Button>
-
-              {/* handleOpenAddPayment */}
-              <Button
-                onClick={handleOpenAddPayment}
-                variant={"outline"}
-                size={"lg"}
-                disabled={!proyecto}
-                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
-              >
-                Nuevo pago
-                <Plus className="h-6 w-6 rounded-full shadow-none" />
-              </Button>
-
-              <Button
-                onClick={() => proyecto && addPartidaModal.onOpen({
-                  proyecto: proyecto._id,
-                  projectName: proyecto.nombre
-                })}
-                variant={"outline"}
-                size={"lg"}
-                disabled={!proyecto}
-                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
-              >
-                Agregar Partida
-                <Plus className="h-6 w-6 rounded-full shadow-none" />
-              </Button>
+              <Popover open={isActionsOpen} onOpenChange={setIsActionsOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={!proyecto}
+                    className="h-10 w-10 text-[#898982] hover:bg-gray-100 hover:text-gray-900"
+                  >
+                    <span className="sr-only">Abrir acciones de presupuesto</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" sideOffset={6} className="w-64 overflow-hidden border-gray-200 bg-white p-1 text-gray-900 shadow-xl">
+                  <Command className="bg-white text-gray-900">
+                    <CommandList>
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={handleOpenIngresos}
+                          className="data-[selected=true]:bg-gray-100"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          Gestionar ingresos
+                        </CommandItem>
+                        <CommandItem
+                          onSelect={handleOpenAddPayment}
+                          className="data-[selected=true]:bg-gray-100"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          Nuevo pago
+                        </CommandItem>
+                        <CommandItem
+                          onSelect={handleOpenAddPartida}
+                          className="data-[selected=true]:bg-gray-100"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Agregar partida
+                        </CommandItem>
+                      </CommandGroup>
+                      <CommandSeparator className="bg-gray-200" />
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={() => { void handleSync(); }}
+                          disabled={isSyncing}
+                          className="data-[selected=true]:bg-gray-100"
+                        >
+                          <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
+                          {isSyncing ? "Sincronizando..." : "Sincronizar datos"}
+                        </CommandItem>
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
