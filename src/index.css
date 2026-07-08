@@ -11,6 +11,11 @@
   opacity: 0.55;
 }
 
+[data-viewer-readonly="true"] [data-viewer-readonly-allow="true"] {
+  pointer-events: auto;
+  opacity: 1;
+}
+
 /* Helvetica Neue Font Faces */
 @font-face {
   font-family: 'Helvetica Neue';

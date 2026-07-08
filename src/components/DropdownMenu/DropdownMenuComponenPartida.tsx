@@ -33,6 +33,9 @@ export default function DropdownMenuComponentPartida({
   const aggregatedDetailsModal = useAggregatedDetailsModal();
 
   const navigate = useNavigate();
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const isViewer = currentUser?.role === "viewer";
+  const canEdit = currentUser !== undefined && currentUser !== null && !isViewer;
 
   // Query payments based on level with proper proyecto filtering
   // Note: level 0 = nivel 1 (partida), level 1 = nivel 2 (familia), level 2 = nivel 3 (sub-partida)
@@ -181,7 +184,12 @@ export default function DropdownMenuComponentPartida({
     <Dialog>
       <Popover>
         <PopoverTrigger asChild>
-          <Button className="border-none border-transparent" variant="ghost" size={"icon"}>
+          <Button
+            className="border-none border-transparent"
+            variant="ghost"
+            size={"icon"}
+            data-viewer-readonly-allow="true"
+          >
             <span className="sr-only">Open menu</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
@@ -189,15 +197,17 @@ export default function DropdownMenuComponentPartida({
         <PopoverContent className="w-56 p-1 text-wrap">
           <div className="space-y-1">
             {/* Show edit option for all levels - each level now has its own database record */}
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start flex items-center gap-2 text-wrap"
-              >
-                <Pencil className="h-4 w-4" />
-                Editar {labels.title.toLowerCase()}
-              </Button>
-            </DialogTrigger>
+            {canEdit && (
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start flex items-center gap-2 text-wrap"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar {labels.title.toLowerCase()}
+                </Button>
+              </DialogTrigger>
+            )}
 
             {/* View payments option */}
             <Button
@@ -206,6 +216,7 @@ export default function DropdownMenuComponentPartida({
               onClick={handleViewTransactions}
               disabled={isLoadingPayments}
               aria-busy={isLoadingPayments}
+              data-viewer-readonly-allow="true"
             >
               {isLoadingPayments ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -221,6 +232,7 @@ export default function DropdownMenuComponentPartida({
               variant="ghost"
               className="w-full justify-start flex items-center gap-2 text-wrap"
               onClick={handleViewDetails}
+              data-viewer-readonly-allow="true"
             >
               {/* Show FileText icon for leaf nodes (level 2 or level 1 without sub-partidas) */}
               {(level === 2 || (level === 1 && !hasSubPartidas)) ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}

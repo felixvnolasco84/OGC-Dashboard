@@ -373,6 +373,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                             size="sm"
                             onClick={() => toggleExpanded(item.uniqueId)}
                             className="p-0 h-auto hover:bg-transparent"
+                            data-viewer-readonly-allow="true"
                           >
                             {item.expanded ? (
                               <ChevronDown className="h-4 w-4 text-[#AFAEA2]" />
@@ -475,6 +476,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
             variant="outline"
             onClick={() => loadMore(100)}
             disabled={status !== "CanLoadMore"}
+            data-viewer-readonly-allow="true"
           >
             Cargar más partidas
           </Button>
