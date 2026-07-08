@@ -458,7 +458,14 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                       <DropdownMenuComponentPartida
                         partida={item.originalDoc!}
                         level={item.level}
-                        rowData={item}
+                        rowData={{
+                          displayName: item.displayName,
+                          presupuestoOriginal: item.presupuestoOriginal,
+                          presupuestoAprobado: item.presupuestoAprobado,
+                          pagado: item.pagado,
+                          avance: item.avance,
+                          hasChildren: Boolean(item.children?.length),
+                        }}
                       />
                     </TableCell>
                   </TableRow>

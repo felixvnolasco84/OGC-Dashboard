@@ -29,6 +29,7 @@ interface DropdownMenuComponentPartidaProps {
     presupuestoAprobado: number;
     pagado: number;
     avance: number;
+    hasChildren: boolean;
   };
 }
 
@@ -50,18 +51,19 @@ export default function DropdownMenuComponentPartida({
   // Query payments based on level with proper proyecto filtering
   // Note: level 0 = nivel 1 (partida), level 1 = nivel 2 (familia), level 2 = nivel 3 (sub-partida)
   const isRealPartida = level === 2 && partida._id && !partida._id.toString().startsWith("temp-");
+  const shouldPrimePayments = isMenuOpen;
 
   // Level 2 (nivel 3): Get payments by partida_id (specific sub-partida)
   const level2Payments = useQuery(
     api.pagos.getByPartidaId,
-    isRealPartida ? { partida_id: partida._id } : "skip"
+    shouldPrimePayments && isRealPartida ? { partida_id: partida._id } : "skip"
   );
 
   // Level 0 (nivel 1): Get all payments for this partida name
   // For nivel 1 items, partida.nombre is the partida name
   const level0Payments = useQuery(
     api.pagos.getByPartidaName,
-    level === 0 && partida.nombre
+    shouldPrimePayments && level === 0 && partida.nombre
       ? {
         partida_name: partida.nombre,
         proyecto_id: partida.proyecto
@@ -74,7 +76,7 @@ export default function DropdownMenuComponentPartida({
   // For actual DB records: use partida_nombre to find the parent partida
   const level1Payments = useQuery(
     api.pagos.getByFamilia,
-    level === 1 && partida.familia && partida.nombre
+    shouldPrimePayments && level === 1 && partida.familia && partida.nombre
       ? {
         partida_name: partida.nombre, // For aggregated rows, nombre IS the partida name
         familia_name: partida.familia,
@@ -89,24 +91,9 @@ export default function DropdownMenuComponentPartida({
     (level === 0 && Boolean(partida.nombre)) ||
     (level === 1 && Boolean(partida.familia && partida.nombre)) ||
     isRealPartida;
-  const isLoadingPayments = shouldLoadPayments && payments === undefined;
+  const isLoadingPayments = shouldPrimePayments && shouldLoadPayments && payments === undefined;
 
-  // For level 1 (familia), check if it has any sub-partidas (nivel 3 items)
-  // Query all partidas in this project with the same partida name and familia
-  const allPartidas = useQuery(
-    api.partida.getByProject,
-    level === 1 && partida.proyecto ? { projectId: partida.proyecto } : "skip"
-  );
-
-  // Check if this familia has any sub-partidas
-  const hasSubPartidas = level === 1 && allPartidas
-    ? allPartidas.some(
-        (p: Doc<"partidas">) =>
-          p.nivel === 3 && // nivel 3 = sub-partida
-          p.nombre === partida.nombre && // same partida
-          p.familia === partida.familia // same familia
-      )
-    : false;
+  const hasSubPartidas = level === 1 && rowData.hasChildren;
 
   // Get context-aware labels based on level
   const getContextualLabels = () => {
