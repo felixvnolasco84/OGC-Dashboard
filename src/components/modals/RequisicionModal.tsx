@@ -226,19 +226,21 @@ export default function RequisicionModal() {
     subPartida: ReturnType<typeof getSubPartidasForFamilia>[number],
     index: number
   ): SubPartidaItem => {
+    const cantidad = subPartida.cantidad || 0;
     const precioUnitario = subPartida.precio_unitario;
+    const hasValidPrice = precioUnitario !== undefined && precioUnitario > 0;
 
     return {
       id: `${subPartida._id}-${Date.now()}-${index}`,
       sub_partida: subPartida.sub_partida,
-      cantidad: 0,
+      cantidad,
       unidad: subPartida.unidad || "",
       partida_id: subPartida._id,
       presupuesto_aprobado: subPartida.presupuesto_aprobado,
       pagado: subPartida.pagado,
       por_gastar: subPartida.por_gastar ?? (subPartida.presupuesto_aprobado - subPartida.pagado),
       precio_unitario: precioUnitario,
-      monto: undefined,
+      monto: hasValidPrice && cantidad > 0 ? cantidad * precioUnitario : undefined,
     };
   };
 
