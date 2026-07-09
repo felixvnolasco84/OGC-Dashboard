@@ -1,5 +1,5 @@
 import { Plus, Trash2, Upload, Loader2, Check, CalendarIcon, FileText, ExternalLink, Package, Clock } from "lucide-react";
-import { useRequisicionModal, RequisicionItem } from "../../hooks/nueva-requisicion-modal";
+import { useRequisicionModal, RequisicionItem, SubPartidaItem } from "../../hooks/nueva-requisicion-modal";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useState, useRef, useEffect, Fragment } from "react";
@@ -206,9 +206,40 @@ export default function RequisicionModal() {
   // Get sub-partidas for a given partida + familia
   const getSubPartidasForFamilia = (partidaNombre: string, familia: string) => {
     if (!allPartidas) return [];
-    return allPartidas.filter(
+    const subPartidas = allPartidas.filter(
       p => p.nivel === 3 && p.partida_nombre === partidaNombre && p.familia === familia
     );
+
+    return Array.from(
+      new Map(subPartidas.map((subPartida) => [subPartida.sub_partida, subPartida])).values()
+    );
+  };
+
+  const createBlankSubPartida = (): SubPartidaItem => ({
+    id: Date.now().toString() + Math.random(),
+    sub_partida: "",
+    cantidad: 0,
+    unidad: "",
+  });
+
+  const createSubPartidaFromBudget = (
+    subPartida: ReturnType<typeof getSubPartidasForFamilia>[number],
+    index: number
+  ): SubPartidaItem => {
+    const precioUnitario = subPartida.precio_unitario;
+
+    return {
+      id: `${subPartida._id}-${Date.now()}-${index}`,
+      sub_partida: subPartida.sub_partida,
+      cantidad: 0,
+      unidad: subPartida.unidad || "",
+      partida_id: subPartida._id,
+      presupuesto_aprobado: subPartida.presupuesto_aprobado,
+      pagado: subPartida.pagado,
+      por_gastar: subPartida.por_gastar ?? (subPartida.presupuesto_aprobado - subPartida.pagado),
+      precio_unitario: precioUnitario,
+      monto: undefined,
+    };
   };
 
   // Get budget info for selection
@@ -242,11 +273,14 @@ export default function RequisicionModal() {
     };
   };
 
-  // Handle familia selection change - detect if it's a custom item (no sub-partidas)
+  // Handle familia selection change and prefill all budgeted sub-partidas.
   const handleFamiliaChange = (itemId: string, familia: string) => {
     const budgetInfo = getBudgetInfo(selectedPartida.nombre, familia);
     const subPartidasList = getSubPartidasForFamilia(selectedPartida.nombre, familia);
     const isCustomItem = subPartidasList.length === 0;
+    const subPartidas = isCustomItem
+      ? [createBlankSubPartida()]
+      : subPartidasList.map(createSubPartidaFromBudget);
 
     // Set current familia to trigger sub-partidas query
     setCurrentFamiliaForSubPartidas({
@@ -261,6 +295,7 @@ export default function RequisicionModal() {
       por_gastar: budgetInfo?.por_gastar,
       isCustomItem,
       partida_id: budgetInfo?.partida_id,
+      subPartidas,
     });
   };
 
@@ -322,22 +357,23 @@ export default function RequisicionModal() {
     return sp.sub_partida;
   };
 
+  const isRequestedSubPartidaValid = (sp: RequisicionItem["subPartidas"][number]) => {
+    if (!(sp.cantidad > 0)) return false;
+    if (!sp.unidad || !resolveSubPartidaName(sp)) return false;
+    if (sp.sub_partida === "OTRO" && !(sp.descripcion_otro && sp.descripcion_otro.trim())) {
+      return false;
+    }
+    return true;
+  };
+
   // Check if form is valid
   const isFormValid = () => {
     if (!selectedPartida.nombre) return false;
     if (items.length === 0) return false;
-    return items.every(item =>
-      item.familia &&
-      item.subPartidas.length > 0 &&
-      item.subPartidas.every(sp => {
-        if (!(sp.cantidad > 0) || !sp.unidad) return false;
-        // When OTRO is selected, the custom description is required.
-        if (sp.sub_partida === "OTRO" && !(sp.descripcion_otro && sp.descripcion_otro.trim())) {
-          return false;
-        }
-        return true;
-      })
+    const requestedSubPartidas = items.flatMap(item =>
+      item.familia ? item.subPartidas.filter(sp => sp.cantidad > 0) : []
     );
+    return requestedSubPartidas.length > 0 && requestedSubPartidas.every(isRequestedSubPartidaValid);
   };
 
   // Handle price per unit change with auto-calculation (now for sub-partidas)
@@ -403,7 +439,7 @@ export default function RequisicionModal() {
 
         // Flatten nested sub-partidas into individual items
         const flattenedItems = items.flatMap(item =>
-          item.subPartidas.map(sp => ({
+          item.subPartidas.filter(sp => sp.cantidad > 0).map(sp => ({
             partida_id: (sp.partida_id || item.partida_id || selectedPartida.id) as Id<"partidas">,
             familia: item.familia,
             sub_partida: resolveSubPartidaName(sp) || undefined,
@@ -450,7 +486,7 @@ export default function RequisicionModal() {
 
         // Flatten nested sub-partidas into individual items
         const flattenedItems = items.flatMap(item =>
-          item.subPartidas.map(sp => ({
+          item.subPartidas.filter(sp => sp.cantidad > 0).map(sp => ({
             partida_id: (sp.partida_id || item.partida_id || selectedPartida.id) as Id<"partidas">,
             familia: item.familia,
             sub_partida: resolveSubPartidaName(sp) || undefined,
@@ -921,7 +957,11 @@ export default function RequisicionModal() {
                                         type="text"
                                         value={sp.unidad || ""}
                                         onChange={(e) => updateSubPartida(item.id, sp.id, { unidad: e.target.value })}
-                                        className="bg-white text-center text-sm"
+                                        disabled={Boolean(sp.partida_id)}
+                                        className={cn(
+                                          "text-center text-sm",
+                                          sp.partida_id ? "bg-gray-100 text-gray-500" : "bg-white"
+                                        )}
                                         placeholder="PZA"
                                       />
                                     </div>
@@ -931,7 +971,11 @@ export default function RequisicionModal() {
                                         type="number"
                                         value={sp.precio_unitario || ""}
                                         onChange={(e) => handlePrecioUnitarioChange(item.id, sp.id, parseFloat(e.target.value) || 0)}
-                                        className="bg-white text-right"
+                                        disabled={Boolean(sp.partida_id)}
+                                        className={cn(
+                                          "text-right",
+                                          sp.partida_id ? "bg-gray-100 text-gray-500" : "bg-white"
+                                        )}
                                         placeholder="$0.00"
                                       />
                                     </div>

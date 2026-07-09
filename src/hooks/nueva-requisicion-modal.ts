@@ -101,7 +101,7 @@ type RequisicionModalStore = {
     // Familia (item) operations
     addItem: () => void;
     removeItem: (itemId: string) => void;
-    updateItem: (itemId: string, data: Partial<Omit<RequisicionItem, 'subPartidas'>>) => void;
+    updateItem: (itemId: string, data: Partial<RequisicionItem>) => void;
     
     // Sub-partida operations within a familia
     addSubPartida: (itemId: string) => void;
@@ -190,7 +190,7 @@ export const useRequisicionModal = create<RequisicionModalStore>((set) => ({
         items: state.items.filter(item => item.id !== itemId)
     })),
     
-    updateItem: (itemId: string, data: Partial<Omit<RequisicionItem, 'subPartidas'>>) => set((state) => ({
+    updateItem: (itemId: string, data: Partial<RequisicionItem>) => set((state) => ({
         items: state.items.map(item => 
             item.id === itemId ? { ...item, ...data } : item
         )
