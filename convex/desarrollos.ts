@@ -67,7 +67,17 @@ const matchesAnyReportLabel = (value: string | undefined, labels: string[]) => {
 };
 
 const HONORARIOS_LABELS = ["honorarios"];
-const INDIRECTOS_LABELS = ["indirectos", "indirecto"];
+const DISP_HONORARIOS_LABELS = ["disp honorarios", "dispersion honorarios"];
+const INDIRECTOS_LABELS = [
+    "indirectos",
+    "indirecto",
+    "general conditions",
+    "general condition",
+    "condiciones generales",
+    "condicion general",
+    "viaticos",
+    "viatico",
+];
 const STRUCTURE_COST_GROUPS = [
     { key: "nomina", label: "NÓMINA", labels: ["nomina", "residente", "residentes", "sueldos"] },
     { key: "transporte", label: "TRANSPORTE", labels: ["transporte"] },
@@ -132,21 +142,35 @@ const getMovementGroupKey = (movement: Pick<OgcMovement, "categoria" | "descripc
     return OGC_STRUCTURE_COST_GROUPS.find((group) => matchesMovementGroup(movement, group.labels))?.key || "otros";
 };
 
+const createReportDate = (year: number, month: number, day: number) => {
+    const parsed = new Date(year, month - 1, day);
+    if (
+        parsed.getFullYear() !== year ||
+        parsed.getMonth() !== month - 1 ||
+        parsed.getDate() !== day
+    ) {
+        return null;
+    }
+    return parsed;
+};
+
 const parseReportDate = (date?: string) => {
     if (!date) return null;
 
-    if (date.includes("/")) {
-        const [day, month, year] = date.split("/").map(Number);
-        const parsed = new Date(year, month - 1, day);
-        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    const trimmedDate = date.trim();
+    const isoDateMatch = trimmedDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (isoDateMatch) {
+        const [, year, month, day] = isoDateMatch.map(Number);
+        return createReportDate(year, month, day);
     }
 
-    if (date.includes("-")) {
-        const parsed = new Date(date);
-        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    const dayFirstMatch = trimmedDate.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    if (dayFirstMatch) {
+        const [, day, month, year] = dayFirstMatch.map(Number);
+        return createReportDate(year, month, day);
     }
 
-    const parsed = new Date(date);
+    const parsed = new Date(trimmedDate);
     return Number.isFinite(parsed.getTime()) ? parsed : null;
 };
 
@@ -200,6 +224,11 @@ const isDateWithinPeriod = (date: Date | null, period: PnlPeriod) => {
     return date.getTime() >= period.start.getTime() && date.getTime() <= period.end.getTime();
 };
 
+const isDateOnOrBeforeCutoff = (date: Date | null, period: PnlPeriod) => {
+    if (!date) return false;
+    return date.getTime() <= period.end.getTime();
+};
+
 const emptyStructureBreakdownMap = () => {
     return OGC_STRUCTURE_COST_GROUPS.reduce((acc, group) => {
         acc[group.key] = 0;
@@ -242,14 +271,6 @@ const mergeMonthlySummaries = (
 const getMonthlyStructureTotal = (summary?: MonthlyOgcMovementSummary) => {
     if (!summary) return 0;
     return Object.values(summary.structureBreakdown || {}).reduce((sum, amount) => sum + (amount || 0), 0);
-};
-
-const getStructureGroupsWithMovements = (summary: Pick<MonthlyOgcMovementSummary, "structureBreakdown">) => {
-    return new Set(
-        Object.entries(summary.structureBreakdown || {})
-            .filter(([, amount]) => (amount || 0) > 0)
-            .map(([key]) => key)
-    );
 };
 
 const getAccessibleOgcMovements = async (ctx: QueryCtx, proyectos: Doc<"desarrollos">[]) => {
@@ -359,24 +380,35 @@ const getControlPhysicalProgressPercent = async (ctx: QueryCtx, proyectoId: Doc<
     return physicalProgressPercent / 100;
 };
 
-const getAverageWeeklyExpense = async (ctx: QueryCtx, proyectoId: Doc<"desarrollos">["_id"], now: Date) => {
-    const fourWeeksAgo = now.getTime() - 1000 * 60 * 60 * 24 * 28;
+const getAverageMonthlyExpense = async (
+    ctx: QueryCtx,
+    proyectoId: Doc<"desarrollos">["_id"],
+    period: PnlPeriod,
+    rates: ExchangeRates
+) => {
     const transactions = await ctx.db
         .query("transacciones")
         .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
         .collect();
 
-    const totalLastFourWeeks = transactions
+    const monthlyExpenses = transactions
         .filter((transaction) => transaction.status === "Pagado")
-        .filter((transaction) => {
+        .reduce((totals, transaction) => {
             const parsedDate = parseReportDate(transaction.fecha);
-            if (!parsedDate) return false;
-            const timestamp = parsedDate.getTime();
-            return timestamp >= fourWeeksAgo && timestamp <= now.getTime();
-        })
-        .reduce((sum, transaction) => sum + (transaction.monto_total || 0), 0);
+            if (!parsedDate || !isDateOnOrBeforeCutoff(parsedDate, period)) return totals;
 
-    return totalLastFourWeeks / 4;
+            const monthKey = `${parsedDate.getFullYear()}-${parsedDate.getMonth() + 1}`;
+            const amount = Math.abs(
+                convertToMxn(transaction.monto_total || 0, transaction.moneda, transaction.tipo_cambio, rates)
+            );
+            totals.set(monthKey, (totals.get(monthKey) || 0) + amount);
+            return totals;
+        }, new Map<string, number>());
+
+    if (monthlyExpenses.size === 0) return 0;
+
+    const totalExpenses = Array.from(monthlyExpenses.values()).reduce((sum, amount) => sum + amount, 0);
+    return totalExpenses / monthlyExpenses.size;
 };
 
 const getProjectCollectedIncome = async (
@@ -391,7 +423,7 @@ const getProjectCollectedIncome = async (
         .collect();
 
     return ingresos
-        .filter((ingreso) => isDateWithinPeriod(parseReportDate(ingreso.fecha), period))
+        .filter((ingreso) => isDateOnOrBeforeCutoff(parseReportDate(ingreso.fecha), period))
         .reduce((sum, ingreso) => sum + Math.abs(convertToMxn(ingreso.monto || 0, ingreso.moneda, undefined, rates)), 0);
 };
 
@@ -399,8 +431,7 @@ const summarizeProjectPayments = async (
     ctx: QueryCtx,
     proyecto: Doc<"desarrollos">,
     period: PnlPeriod,
-    rates: ExchangeRates,
-    suppressedStructureGroups = new Set<string>()
+    rates: ExchangeRates
 ) => {
     const [metrics, partidas, transactions] = await Promise.all([
         ctx.db
@@ -418,14 +449,30 @@ const summarizeProjectPayments = async (
     ]);
 
     const partidasById = new Map(partidas.map((partida) => [partida._id as string, partida]));
+    const excludedPartidaIds = new Set((proyecto.excluded_partidas_honorarios || []).map(String));
+    const excludedPartidaNames = new Set(
+        partidas
+            .filter((partida) => excludedPartidaIds.has(String(partida._id)))
+            .map((partida) => normalizeReportLabel(partida.nombre))
+    );
+
+    partidas.forEach((partida) => {
+        if (
+            excludedPartidaNames.has(normalizeReportLabel(partida.nombre)) ||
+            excludedPartidaNames.has(normalizeReportLabel(partida.partida_nombre))
+        ) {
+            excludedPartidaIds.add(String(partida._id));
+        }
+    });
+
+    const honorariosRate = Math.max(toFiniteNumber(proyecto.honorarios_porcentaje), 0) / 100;
+    const usesAutomaticHonorarios = honorariosRate > 0;
     const summary = {
         metrics,
         honorarios: 0,
         indirectos: 0,
         totalPagado: 0,
         costosDirectosObra: 0,
-        costosEstructura: 0,
-        structureBreakdown: emptyStructureBreakdownMap(),
         monthly: {} as Record<string, MonthlyOgcMovementSummary>,
     };
 
@@ -450,11 +497,26 @@ const summarizeProjectPayments = async (
 
             summary.totalPagado += amount;
 
+            const isHonorariosPayment = [partida.nombre, partida.familia, partida.sub_partida].some((label) => (
+                matchesAnyReportLabel(label, HONORARIOS_LABELS) &&
+                !matchesAnyReportLabel(label, DISP_HONORARIOS_LABELS)
+            ));
+
             if (
-                matchesAnyReportLabel(partida.nombre, HONORARIOS_LABELS) ||
-                matchesAnyReportLabel(partida.familia, HONORARIOS_LABELS) ||
-                matchesAnyReportLabel(partida.sub_partida, HONORARIOS_LABELS)
+                usesAutomaticHonorarios &&
+                !isHonorariosPayment &&
+                !excludedPartidaIds.has(String(partida._id))
             ) {
+                const calculatedHonorarios = amount * honorariosRate;
+                summary.honorarios += calculatedHonorarios;
+                addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
+                    monthlySummary.honorarios += calculatedHonorarios;
+                });
+            }
+
+            if (isHonorariosPayment) {
+                if (usesAutomaticHonorarios) continue;
+
                 summary.honorarios += amount;
                 addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
                     monthlySummary.honorarios += amount;
@@ -474,22 +536,8 @@ const summarizeProjectPayments = async (
                 continue;
             }
 
-            const structureGroup = OGC_STRUCTURE_COST_GROUPS.find((group) => (
-                matchesAnyReportLabel(partida.nombre, group.labels) ||
-                matchesAnyReportLabel(partida.familia, group.labels) ||
-                matchesAnyReportLabel(partida.sub_partida, group.labels)
-            ));
-
-            if (structureGroup && !suppressedStructureGroups.has(structureGroup.key)) {
-                summary.costosEstructura += amount;
-                summary.structureBreakdown[structureGroup.key] = (summary.structureBreakdown[structureGroup.key] || 0) + amount;
-                addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
-                    monthlySummary.structureBreakdown[structureGroup.key] =
-                        (monthlySummary.structureBreakdown[structureGroup.key] || 0) + amount;
-                });
-                continue;
-            }
-
+            // Project payments remain project costs. OGC structure is sourced only
+            // from active ogc_movimientos to avoid mixing or duplicating costs.
             summary.costosDirectosObra += amount;
             addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
                 monthlySummary.costosDirectosObra += amount;
@@ -508,8 +556,7 @@ const getOgcFormulaTotals = async (
     ogcMovements: OgcMovement[] = []
 ) => {
     const movementSummary = summarizeOgcMovements(ogcMovements, period, rates);
-    const suppressedStructureGroups = getStructureGroupsWithMovements(movementSummary);
-    const projectPaymentSummary = await summarizeProjectPayments(ctx, proyecto, period, rates, suppressedStructureGroups);
+    const projectPaymentSummary = await summarizeProjectPayments(ctx, proyecto, period, rates);
     const monthlyOgcMovements = {} as Record<string, MonthlyOgcMovementSummary>;
     mergeMonthlySummaries(monthlyOgcMovements, projectPaymentSummary.monthly);
     mergeMonthlySummaries(monthlyOgcMovements, movementSummary.monthly);
@@ -522,12 +569,10 @@ const getOgcFormulaTotals = async (
     const mergedStructureBreakdown = OGC_STRUCTURE_COST_GROUPS.map((group) => ({
         key: group.key,
         label: group.label,
-        amount:
-            (projectPaymentSummary.structureBreakdown[group.key] || 0) +
-            (movementSummary.structureBreakdown[group.key] || 0),
+        amount: movementSummary.structureBreakdown[group.key] || 0,
     }));
     const costosDirectosObra = projectPaymentSummary.costosDirectosObra;
-    const costosEstructuraOgc = projectPaymentSummary.costosEstructura + movementSummary.costosEstructura;
+    const costosEstructuraOgc = movementSummary.costosEstructura;
     const costosEstructuraMasIndirectos = costosEstructuraOgc + indirectos;
     const margenBruto = ingresosOgc - costosDirectosObra - costosEstructuraOgc;
     const ebitda = ingresosOgc - costosEstructuraMasIndirectos;
@@ -549,10 +594,6 @@ const getOgcFormulaTotals = async (
         structureBreakdown: mergedStructureBreakdown,
         hasOgcIncomeMovements: movementSummary.hasIncomeMovements,
         hasOgcStructureMovements: movementSummary.hasStructureMovements,
-        hasLegacyStructureSuppressed: suppressedStructureGroups.size > 0,
-        legacyStructureSuppressedGroups: OGC_STRUCTURE_COST_GROUPS
-            .filter((group) => suppressedStructureGroups.has(group.key))
-            .map(({ key, label }) => ({ key, label })),
         monthlyOgcMovements,
     };
 };
@@ -561,7 +602,6 @@ const getWipFormulaTotals = async (
     ctx: QueryCtx,
     proyecto: Doc<"desarrollos">,
     formulaTotals: Awaited<ReturnType<typeof getOgcFormulaTotals>>,
-    now: Date,
     period: PnlPeriod,
     rates: ExchangeRates
 ) => {
@@ -575,7 +615,8 @@ const getWipFormulaTotals = async (
     const eac = cpi > 0 ? (costoReal + restante) / cpi : 0;
     const varianza = eac > 0 ? presupuesto - eac : 0;
     const saldo = pagado - costoReal;
-    const averageWeeklyExpense = await getAverageWeeklyExpense(ctx, proyecto._id, now);
+    const averageMonthlyExpense = await getAverageMonthlyExpense(ctx, proyecto._id, period, rates);
+    const averageWeeklyExpense = averageMonthlyExpense * 12 / 52;
     const runway = saldo > 0 && averageWeeklyExpense > 0 ? saldo / averageWeeklyExpense : 0;
 
     return {
@@ -590,7 +631,7 @@ const getWipFormulaTotals = async (
         pagado,
         saldo,
         runway,
-        averageWeeklyExpense,
+        averageMonthlyExpense,
     };
 };
 
@@ -666,6 +707,10 @@ export const getPnlSummary = query({
     totals.ingresosOgc += companyOnlyMovementSummary.honorarios + companyOnlyMovementSummary.indirectos;
     totals.costosEstructuraOgc += companyOnlyMovementSummary.costosEstructura;
     totals.costosEstructuraMasIndirectos += companyOnlyMovementSummary.costosEstructura + companyOnlyMovementSummary.indirectos;
+    totals.margenBruto +=
+        companyOnlyMovementSummary.honorarios +
+        companyOnlyMovementSummary.indirectos -
+        companyOnlyMovementSummary.costosEstructura;
     totals.ebitda += companyOnlyMovementSummary.honorarios - companyOnlyMovementSummary.costosEstructura;
     Object.entries(companyOnlyMovementSummary.structureBreakdown).forEach(([key, amount]) => {
         totals.structureBreakdown[key] = (totals.structureBreakdown[key] || 0) + amount;
@@ -725,7 +770,6 @@ export const getProfitabilitySummary = query({
     const rates = normalizeExchangeRates(args);
     const ogcMovements = await getAccessibleOgcMovements(ctx, proyectos);
     const allMovementSummary = summarizeOgcMovements(ogcMovements, period, rates);
-    const companyOnlyMovementSummary = summarizeOgcMovements(ogcMovements.filter((movement) => !movement.proyecto), period, rates);
 
     const projects = await Promise.all(
         proyectos.map(async (proyecto) => {
@@ -736,12 +780,16 @@ export const getProfitabilitySummary = query({
                 rates,
                 ogcMovements.filter((movement) => movement.proyecto === proyecto._id)
             );
-            const wip = await getWipFormulaTotals(ctx, proyecto, formulaTotals, now, period, rates);
+            const wip = await getWipFormulaTotals(ctx, proyecto, formulaTotals, period, rates);
             const ingresosOgc = formulaTotals.ingresosOgc;
-            const costosOgc = formulaTotals.costosDirectosObra + formulaTotals.costosEstructuraAsignadaOgc;
+            // Project profitability compares the operating income charged to the
+            // client against that same indirect component plus administrative OGC
+            // costs explicitly assigned to the project. Construction costs stay in WIP.
+            const costosOgc = formulaTotals.indirectos + formulaTotals.costosEstructuraAsignadaOgc;
+            const margen = ingresosOgc - costosOgc;
             const currentMonthSummary = formulaTotals.monthlyOgcMovements[period.currentMonthKey];
             const currentMonthIngresos = (currentMonthSummary?.honorarios || 0) + (currentMonthSummary?.indirectos || 0);
-            const currentMonthCostos = (currentMonthSummary?.costosDirectosObra || 0) + getMonthlyStructureTotal(currentMonthSummary);
+            const currentMonthCostos = (currentMonthSummary?.indirectos || 0) + getMonthlyStructureTotal(currentMonthSummary);
 
             return {
                 id: proyecto._id,
@@ -756,16 +804,14 @@ export const getProfitabilitySummary = query({
                 structureBreakdown: formulaTotals.structureBreakdown,
                 ebitda: formulaTotals.ebitda,
                 ebitdaMargin: formulaTotals.ebitdaMargin,
-                margen: formulaTotals.margenBruto,
-                margenPercent: formulaTotals.margenBrutoPercent,
+                margen,
+                margenPercent: ingresosOgc > 0 ? margen / ingresosOgc : 0,
                 monthlyOgcMovements: formulaTotals.monthlyOgcMovements,
                 currentMonthIngresos,
                 currentMonthCostos,
                 currentMonthMargen: currentMonthIngresos - currentMonthCostos,
                 currentMonthMargenPercent:
                     currentMonthIngresos > 0 ? (currentMonthIngresos - currentMonthCostos) / currentMonthIngresos : 0,
-                hasLegacyStructureSuppressed: formulaTotals.hasLegacyStructureSuppressed,
-                legacyStructureSuppressedGroups: formulaTotals.legacyStructureSuppressedGroups,
                 wip,
             };
         })
@@ -773,10 +819,12 @@ export const getProfitabilitySummary = query({
 
     const totals = projects.reduce(
         (acc, project) => {
-            acc.wip.presupuesto += project.wip.presupuesto;
-            acc.wip.costoReal += project.wip.costoReal;
-            acc.wip.pagado += project.wip.pagado;
-            acc.wip.saldo += project.wip.saldo;
+            if (project.status !== "Cancelado") {
+                acc.wip.presupuesto += project.wip.presupuesto;
+                acc.wip.costoReal += project.wip.costoReal;
+                acc.wip.pagado += project.wip.pagado;
+                acc.wip.saldo += project.wip.saldo;
+            }
             acc.ingresosOgc += project.ingresosOgc;
             acc.costosOgc += project.costosOgc;
             acc.honorarios += project.honorarios;
@@ -816,23 +864,6 @@ export const getProfitabilitySummary = query({
             },
         }
     );
-
-    totals.honorarios += companyOnlyMovementSummary.honorarios;
-    totals.indirectos += companyOnlyMovementSummary.indirectos;
-    totals.ingresosOgc += companyOnlyMovementSummary.honorarios + companyOnlyMovementSummary.indirectos;
-    totals.costosEstructuraOgc += companyOnlyMovementSummary.costosEstructura;
-    totals.costosEstructuraMasIndirectos += companyOnlyMovementSummary.costosEstructura + companyOnlyMovementSummary.indirectos;
-    totals.ebitda += companyOnlyMovementSummary.honorarios - companyOnlyMovementSummary.costosEstructura;
-    Object.entries(companyOnlyMovementSummary.structureBreakdown).forEach(([key, amount]) => {
-        totals.structureBreakdown[key] = (totals.structureBreakdown[key] || 0) + amount;
-    });
-    mergeMonthlySummaries(totals.monthlyOgcMovements, companyOnlyMovementSummary.monthly);
-    const companyCurrentMonth = companyOnlyMovementSummary.monthly[period.currentMonthKey];
-    const companyCurrentMonthIngresos = (companyCurrentMonth?.honorarios || 0) + (companyCurrentMonth?.indirectos || 0);
-    const companyCurrentMonthCostos = getMonthlyStructureTotal(companyCurrentMonth);
-    totals.currentMonthIngresos += companyCurrentMonthIngresos;
-    totals.currentMonthCostos += companyCurrentMonthCostos;
-    totals.currentMonthMargen += companyCurrentMonthIngresos - companyCurrentMonthCostos;
 
     return {
         projects,

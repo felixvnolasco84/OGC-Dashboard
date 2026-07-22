@@ -57,8 +57,6 @@ type ProfitabilityProject = {
   margenPercent: number;
   ebitda: number;
   ebitdaMargin: number;
-  hasLegacyStructureSuppressed?: boolean;
-  legacyStructureSuppressedGroups?: Array<{ key: string; label: string }>;
   wip: {
     presupuesto: number;
     costoReal: number;
@@ -71,7 +69,7 @@ type ProfitabilityProject = {
     pagado: number;
     saldo: number;
     runway: number;
-    averageWeeklyExpense: number;
+    averageMonthlyExpense: number;
   };
 };
 
@@ -208,6 +206,17 @@ type PnlSummary = {
     };
   };
 };
+
+type AnnualPnlTotals = Pick<
+  PnlSummary["totals"],
+  | "honorarios"
+  | "indirectos"
+  | "ingresosOgc"
+  | "costosEstructuraOgc"
+  | "ebitda"
+  | "ebitdaMargin"
+  | "structureBreakdown"
+>;
 
 const PNL_TABS: Array<{ id: PnlTab; label: string }> = [
   { id: "pnl", label: "P&L Mensual" },
@@ -426,10 +435,10 @@ const buildMonthlyDataNote = (months: PnlMonth[], pnlSummary?: PnlSummary) => {
     safeNumber(pnlSummary.totals.ingresosOgc) > 0 || safeNumber(pnlSummary.totals.costosEstructuraOgc) > 0;
 
   if (hasPeriodActivity && monthsWithMovements < months.length) {
-    return `Datos mensuales parciales: ${monthsWithMovements}/${months.length} meses tienen movimientos fechados. No se prorratea linealmente.`;
+    return `Honorarios calculados con el porcentaje de cada obra sobre sus pagos; indirectos, viáticos y general conditions según la fecha del pago. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
   }
 
-  return "Solo movimientos fechados; sin prorrateo lineal entre meses.";
+  return "Honorarios calculados con el porcentaje de cada obra sobre sus pagos; indirectos, viáticos y general conditions según la fecha del pago, sin prorrateo lineal.";
 };
 
 function MonthlyPnlTable({
@@ -593,8 +602,10 @@ function WorkInProgressView({
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <h2 className="text-lg text-gray-900">OBRAS ACTIVAS - ESTADO AL CORTE</h2>
           <div className="text-left md:text-right">
-            <p className="text-sm text-gray-400">Costo real - Saldo y runway de Tesoreria</p>
-            {/* <p className="mt-1 text-xs text-[#777770]">Cobrado sale de la tabla ingresos; no de ingresos OGC.</p> */}
+            <p className="text-sm text-gray-400">Costo real - Saldo y runway de Tesorería</p>
+            <p className="mt-1 text-xs text-[#777770]">
+              Saldo = cobrado acumulado - costo real. Runway = saldo disponible al ritmo semanal del promedio histórico de egresos.
+            </p>
           </div>
         </div>
 
@@ -661,6 +672,134 @@ function WorkInProgressView({
   );
 }
 
+function AnnualPnlSummaryTables({
+  totals,
+  periodLabel,
+  showDataNote = false,
+}: {
+  totals: AnnualPnlTotals;
+  periodLabel: string;
+  showDataNote?: boolean;
+}) {
+  const estructuraRows = totals.structureBreakdown.map((row) => ({
+    ...row,
+    percent: safeDivide(row.amount, totals.costosEstructuraOgc),
+  }));
+  const costosEstructuraMasIndirectos = totals.costosEstructuraOgc + totals.indirectos;
+
+  return (
+    <div className="grid grid-cols-1 gap-10 xl:grid-cols-2">
+      <div className="space-y-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <h2 className="text-lg text-gray-900">COSTO ESTRUCTURA OGC</h2>
+          <div className="text-left md:text-right">
+            <p className="text-sm text-gray-400">Acumulado {periodLabel}</p>
+            {showDataNote && (
+              <p className="mt-1 text-xs text-[#777770]">
+                Solo movimientos OGC cargados, distribuidos por la fecha capturada.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto border border-gray-200 bg-white">
+          <table className="w-full min-w-[620px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-gray-200 text-sm text-gray-500">
+                <th className="px-8 py-4 font-normal">Categoría</th>
+                <th className="px-8 py-4 text-center font-normal">Monto</th>
+                <th className="px-8 py-4 text-center font-normal">% estructura</th>
+              </tr>
+            </thead>
+            <tbody>
+              {estructuraRows.map((row) => (
+                <tr key={row.key} className="border-b border-gray-200 bg-white">
+                  <td className="px-8 py-6 align-middle text-base text-gray-900">{row.label}</td>
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                    {formatTableCurrency(row.amount)}
+                  </td>
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                    {formatWholePercent(row.percent)}
+                  </td>
+                </tr>
+              ))}
+              <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
+                <td className="px-8 py-6 align-middle text-base text-gray-900">TOTAL ESTRUCTURA</td>
+                <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                  {formatTableCurrency(totals.costosEstructuraOgc)}
+                </td>
+                <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                  {formatWholePercent(safeDivide(totals.costosEstructuraOgc, totals.ingresosOgc))}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <h2 className="text-lg text-gray-900">EBITDA OGC</h2>
+          <p className="text-sm text-gray-400">Acumulado {periodLabel}</p>
+        </div>
+
+        <div className="overflow-x-auto border border-gray-200 bg-white">
+          <table className="w-full min-w-[620px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-gray-200 text-sm text-gray-500">
+                <th className="px-8 py-4 font-normal">Concepto</th>
+                <th className="px-8 py-4 text-center font-normal">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-gray-200 bg-white">
+                <td className="px-8 py-6 align-middle text-base text-gray-900">HONORARIOS OGC</td>
+                <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                  {formatTableCurrency(totals.honorarios)}
+                </td>
+              </tr>
+              <tr className="border-b border-gray-200 bg-white">
+                <td className="px-8 py-6 align-middle text-base text-gray-900">INDIRECTOS OGC</td>
+                <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                  {formatTableCurrency(totals.indirectos)}
+                </td>
+              </tr>
+              <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
+                <td className="px-8 py-6 align-middle text-base text-gray-900">INGRESOS OGC</td>
+                <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                  {formatTableCurrency(totals.ingresosOgc)}
+                </td>
+              </tr>
+              <tr className="border-b border-gray-200 bg-white">
+                <td className="px-8 py-6 align-middle text-base text-gray-900">COSTO ESTRUCTURA + INDIRECTOS</td>
+                <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                  {formatAccountingCurrency(-Math.abs(costosEstructuraMasIndirectos))}
+                </td>
+              </tr>
+              <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
+                <td className="px-8 py-6 align-middle text-base text-gray-900">
+                  <div className="flex flex-col gap-1">
+                    <span>EBITDA</span>
+                    <span className="text-sm text-gray-500">%</span>
+                  </div>
+                </td>
+                <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
+                  <div className="flex flex-col gap-1">
+                    <span className={totals.ebitda >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
+                      {formatTableCurrency(totals.ebitda)}
+                    </span>
+                    <span className="text-sm text-gray-500">{formatPercent(totals.ebitdaMargin)}</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProjectProfitabilityView({
   summary,
   currentMonthLabel,
@@ -679,15 +818,6 @@ function ProjectProfitabilityView({
   const honorariosOgc = totals.honorarios;
   const indirectosOgc = totals.indirectos;
   const ebitda = totals.ebitda;
-  const projectsWithSuppressedLegacy = projects.filter((project) => project.hasLegacyStructureSuppressed);
-  const suppressedLegacyNote = projectsWithSuppressedLegacy.length
-    ? `Estructura legacy sustituida solo en categorias con movimientos OGC cargados: ${projectsWithSuppressedLegacy
-        .map((project) => {
-          const groups = project.legacyStructureSuppressedGroups?.map((group) => group.label).join(", ");
-          return groups ? `${project.nombre} (${groups})` : project.nombre;
-        })
-        .join("; ")}.`
-    : undefined;
 
   return (
     <>
@@ -723,8 +853,7 @@ function ProjectProfitabilityView({
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <h2 className="text-lg text-gray-900">RENTABILIDAD POR OBRA - ACUMULADO AL CORTE</h2>
             <div className="text-left md:text-right">
-              <p className="text-sm text-gray-400">Ingresos OGC vs. costos directos</p>
-              {suppressedLegacyNote && <p className="mt-1 text-xs text-[#777770]">{suppressedLegacyNote}</p>}
+              <p className="text-sm text-gray-400">Ingresos por obra vs. indirectos y costos administrativos asignados</p>
             </div>
           </div>
 
@@ -733,8 +862,14 @@ function ProjectProfitabilityView({
               <thead>
                 <tr className="border-b border-gray-200 text-sm text-gray-500">
                   <th className="w-[420px] px-8 py-4 font-normal">Obra</th>
-                  <th className="px-8 py-4 text-center font-normal">Ingresos OGC</th>
-                  <th className="px-8 py-4 text-center font-normal">Costos OGC</th>
+                  <th className="px-8 py-4 text-center font-normal">
+                    <span className="block">Ingresos OGC</span>
+                    <span className="mt-1 block text-xs text-gray-400">Honorarios + indirectos / viáticos / general conditions</span>
+                  </th>
+                  <th className="px-8 py-4 text-center font-normal">
+                    <span className="block">Costos OGC</span>
+                    <span className="mt-1 block text-xs text-gray-400">Indirectos + costos administrativos asignados</span>
+                  </th>
                   <th className="px-8 py-4 text-center font-normal">Margen</th>
                 </tr>
               </thead>
@@ -795,7 +930,10 @@ function ProjectProfitabilityView({
           <div className="space-y-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <h2 className="text-lg text-gray-900">COSTO ESTRUCTURA OGC</h2>
-              <p className="text-sm text-gray-400">Acumulado {periodLabel}</p>
+              <div className="text-left md:text-right">
+                <p className="text-sm text-gray-400">Acumulado {periodLabel}</p>
+                <p className="mt-1 text-xs text-[#777770]">Solo movimientos OGC cargados, distribuidos por la fecha capturada.</p>
+              </div>
             </div>
 
             <div className="overflow-x-auto border border-gray-200 bg-white">
@@ -1773,7 +1911,7 @@ export default function ProfitAndLossPage() {
               </div>
             </div>
 
-            <div className="border-t border-[#AFAEA2] pt-12">
+            <div className="space-y-12 border-t border-[#AFAEA2] pt-12">
               <MonthlyPnlTable
                 months={months}
                 rows={rows}
@@ -1781,6 +1919,7 @@ export default function ProfitAndLossPage() {
                 periodLabel={periodLabel}
                 dataQualityNote={monthlyDataNote}
               />
+              <AnnualPnlSummaryTables totals={pnlSummary.totals} periodLabel={periodLabel} />
             </div>
           </>
         ) : activeTab === "wip" ? (
