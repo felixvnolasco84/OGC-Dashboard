@@ -49,6 +49,7 @@ import {
   BookCheck,
   BookDashed,
   File,
+  FolderOpen,
   LogOut,
   Home,
   Upload,
@@ -57,7 +58,8 @@ import {
   // Settings,
 } from "lucide-react";
 import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
-import { ForwardRefExoticComponent, RefAttributes } from "react";
+import { ForwardRefExoticComponent, RefAttributes, useMemo } from "react";
+import { useProjectDocumentNavigation } from "@/hooks/project-document-navigation";
 
 
 
@@ -237,6 +239,113 @@ function OrganizationProjectGroups({
         );
       })}
     </SidebarMenu>
+  );
+}
+
+type ProjectDocumentFolder = {
+  _id: Id<"document_folders">;
+  nombre: string;
+  parent_folder_id?: Id<"document_folders">;
+};
+
+function ProjectDocumentFolderNavigation({
+  activeFolderId,
+  documentCountsByFolder,
+  folders,
+  isLoading,
+  onFolderSelect,
+}: {
+  activeFolderId?: Id<"document_folders">;
+  documentCountsByFolder: Record<string, number>;
+  folders: ProjectDocumentFolder[];
+  isLoading: boolean;
+  onFolderSelect: (folderId?: Id<"document_folders">) => void;
+}) {
+  const flattenedFolders = useMemo(() => {
+    const foldersByParent = new Map<string, ProjectDocumentFolder[]>();
+
+    folders.forEach((folder) => {
+      const parentKey = folder.parent_folder_id || "root";
+      const siblings = foldersByParent.get(parentKey) || [];
+      siblings.push(folder);
+      foldersByParent.set(parentKey, siblings);
+    });
+
+    foldersByParent.forEach((siblings) => {
+      siblings.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    });
+
+    const result: Array<{ folder: ProjectDocumentFolder; level: number }> = [];
+    const walk = (parentId: string, level: number) => {
+      (foldersByParent.get(parentId) || []).forEach((folder) => {
+        result.push({ folder, level });
+        walk(folder._id, level + 1);
+      });
+    };
+
+    walk("root", 0);
+    return result;
+  }, [folders]);
+
+  const childFolderCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    folders.forEach((folder) => {
+      const parentKey = folder.parent_folder_id || "root";
+      counts.set(parentKey, (counts.get(parentKey) || 0) + 1);
+    });
+    return counts;
+  }, [folders]);
+
+  const getItemCount = (folderId: string) =>
+    (documentCountsByFolder[folderId] || 0) + (childFolderCounts.get(folderId) || 0);
+
+  return (
+    <SidebarMenuSub className="mt-1 max-h-[min(45vh,28rem)] overflow-y-auto pr-1">
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton asChild size="sm" isActive={!activeFolderId}>
+          <button type="button" onClick={() => onFolderSelect(undefined)}>
+            <FolderOpen />
+            <span>Biblioteca</span>
+            <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+              {getItemCount("root")}
+            </span>
+          </button>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+
+      {isLoading ? (
+        <SidebarMenuSubItem className="px-2 py-1 text-xs text-gray-400">
+          Cargando carpetas...
+        </SidebarMenuSubItem>
+      ) : flattenedFolders.length === 0 ? (
+        <SidebarMenuSubItem className="px-2 py-1 text-xs text-gray-400">
+          Sin carpetas
+        </SidebarMenuSubItem>
+      ) : (
+        flattenedFolders.map(({ folder, level }) => (
+          <SidebarMenuSubItem key={folder._id}>
+            <SidebarMenuSubButton
+              asChild
+              size="sm"
+              isActive={activeFolderId === folder._id}
+            >
+              <button
+                type="button"
+                onClick={() => onFolderSelect(folder._id)}
+                style={{ paddingLeft: `${0.5 + level * 0.75}rem` }}
+                title={folder.nombre}
+              >
+                <Folder />
+                <span>{folder.nombre}</span>
+                <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+                  {getItemCount(folder._id)}
+                </span>
+              </button>
+            </SidebarMenuSubButton>
+          </SidebarMenuSubItem>
+        ))
+      )}
+    </SidebarMenuSub>
   );
 }
 
@@ -487,6 +596,7 @@ export default function SidebarComponent() {
   const currentUser = useQuery(api.users.getCurrentUser);
   const isSuperAdmin = currentUser?.is_super_admin === true;
   const allUsers = useQuery(api.users.getAllUsers, isSuperAdmin ? {} : "skip");
+  const documentNavigation = useProjectDocumentNavigation();
 
   const navigate = useNavigate();
 
@@ -524,6 +634,20 @@ export default function SidebarComponent() {
     : currentSalesProject
       ? "sales"
       : null;
+  const isCurrentProjectDocuments = Boolean(
+    currentProject &&
+      location.pathname.startsWith(`/proyecto/${currentProject._id}/documentos`),
+  );
+  const documentMetadata = useQuery(
+    api.documentos.getProjectFileManagerMetadata,
+    isCurrentProjectDocuments && currentProject
+      ? { proyecto: currentProject._id }
+      : "skip",
+  );
+  const activeDocumentFolderId =
+    documentNavigation.projectId === currentProject?._id
+      ? documentNavigation.folderId
+      : undefined;
 
   // Get role-appropriate menu items for regular projects
   const currentProjectMenuItems = currentUser?.role === "contratista"
@@ -713,6 +837,19 @@ export default function SidebarComponent() {
 
                       </Link>
                     </SidebarMenuButton>
+                    {item.id === "documentos" && isCurrentProjectDocuments && (
+                      <ProjectDocumentFolderNavigation
+                        activeFolderId={activeDocumentFolderId}
+                        documentCountsByFolder={
+                          (documentMetadata?.documentCountsByFolder || {}) as Record<string, number>
+                        }
+                        folders={(documentMetadata?.folders || []) as ProjectDocumentFolder[]}
+                        isLoading={documentMetadata === undefined}
+                        onFolderSelect={(folderId) =>
+                          documentNavigation.setCurrentFolder(currentProject._id, folderId)
+                        }
+                      />
+                    )}
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -73,11 +73,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import {
-  DocumentFolderSidebar,
-  MoveLocationDialog,
-} from "@/components/documents/DocumentFolderNavigation";
+import { MoveLocationDialog } from "@/components/documents/DocumentFolderNavigation";
 import { useUploadProyectoDocumentsModal } from "@/hooks/upload-proyecto-documents-modal";
+import { useProjectDocumentNavigation } from "@/hooks/project-document-navigation";
 
 type FolderId = Id<"document_folders">;
 type DocumentId = Id<"documentos">;
@@ -138,9 +136,17 @@ export default function ProyectoDocumentosPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const projectId = proyectoId as Id<"desarrollos"> | undefined;
   const uploadModal = useUploadProyectoDocumentsModal();
+  const documentNavigation = useProjectDocumentNavigation();
+  const currentFolderId =
+    documentNavigation.projectId === projectId
+      ? documentNavigation.folderId
+      : undefined;
+  const setCurrentFolderId = (folderId?: FolderId) => {
+    if (projectId) documentNavigation.setCurrentFolder(projectId, folderId);
+  };
+  const dragDepthRef = useRef(0);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentFolderId, setCurrentFolderId] = useState<FolderId | undefined>();
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -153,6 +159,7 @@ export default function ProyectoDocumentosPage() {
   const [targetFolderId, setTargetFolderId] = useState<string>(ROOT_VALUE);
   const [page, setPage] = useState(1);
   const [isOrganizing, setIsOrganizing] = useState(false);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
 
   const proyecto = useQuery(api.desarrollos.getById, projectId ? { id: projectId } : "skip");
   const metadata = useQuery(
@@ -201,7 +208,10 @@ export default function ProyectoDocumentosPage() {
     }
   }, [documentosPage, page]);
 
-  const folders = (metadata?.folders || []) as FolderItem[];
+  const folders = useMemo(
+    () => (metadata?.folders || []) as FolderItem[],
+    [metadata?.folders],
+  );
   const documentos = (documentosPage?.documents || []) as DocumentItem[];
 
   const folderById = useMemo(() => new Map(folders.map((folder) => [folder._id, folder])), [folders]);
@@ -258,7 +268,43 @@ export default function ProyectoDocumentosPage() {
   const selectedTargetLabel = selectedTarget?.item.nombre || "";
 
   const handleUploadClick = () => {
-    if (projectId) uploadModal.onOpen(projectId);
+    if (projectId) {
+      uploadModal.onOpen(projectId, { folderId: currentFolderId });
+    }
+  };
+
+  const handleDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!Array.from(event.dataTransfer.types).includes("Files")) return;
+    event.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDraggingFiles(true);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!Array.from(event.dataTransfer.types).includes("Files")) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!isDraggingFiles) return;
+    event.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDraggingFiles(false);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDraggingFiles(false);
+
+    const droppedFiles = Array.from(event.dataTransfer.files).filter((file) => file.size > 0);
+    if (!projectId || droppedFiles.length === 0) return;
+
+    uploadModal.onOpen(projectId, {
+      files: droppedFiles,
+      folderId: currentFolderId,
+    });
   };
 
   const openContextMenu = (event: React.MouseEvent, target: MenuTarget) => {
@@ -457,16 +503,55 @@ export default function ProyectoDocumentosPage() {
 
   return (
     <TooltipProvider>
-    <div className="min-h-screen bg-white text-left">
-      <div className="border-b border-gray-200 px-12 py-8">
+    <div
+      className="relative min-h-screen bg-white text-left"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {isDraggingFiles && (
+        <div className="pointer-events-none absolute inset-3 z-40 flex items-center justify-center border-2 border-dashed border-gray-900 bg-white/95">
+          <div className="max-w-md px-6 text-center">
+            <Upload className="mx-auto mb-4 h-12 w-12 text-gray-700" />
+            <p className="text-xl text-gray-900">Suelta los documentos para agregarlos</p>
+            <p className="mt-2 text-sm text-gray-500">
+              Se subirán a {currentFolder?.nombre || "Biblioteca"}.
+            </p>
+          </div>
+        </div>
+      )}
+      <div className="border-b border-gray-200 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 xl:px-10">
         <div className="flex flex-col gap-6">
-          <div className="flex items-end justify-between gap-6">
-            <div>
-              <p className="mb-1 text-sm text-gray-500">Documentos del proyecto</p>
-              <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+            <div className="min-w-0">
+              {currentFolder && (
+                <div className="mb-2 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 text-sm text-gray-500">
+                  <button
+                    className="shrink-0 hover:text-gray-900"
+                    onClick={() => setCurrentFolderId(undefined)}
+                  >
+                    Biblioteca
+                  </button>
+                  {breadcrumbs.slice(0, -1).map((folder) => (
+                    <span key={folder._id} className="flex min-w-0 items-center gap-2">
+                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
+                      <button
+                        className="max-w-48 truncate hover:text-gray-900"
+                        onClick={() => setCurrentFolderId(folder._id)}
+                      >
+                        {folder.nombre}
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <h1 className="break-words text-2xl font-normal text-gray-900 sm:text-3xl">
+                {currentFolder?.nombre || "Biblioteca"}
+              </h1>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 variant="outline"
                 size="lg"
@@ -550,45 +635,7 @@ export default function ProyectoDocumentosPage() {
         </div>
       </div>
 
-      <div className="flex min-h-[calc(100vh-225px)]">
-        <DocumentFolderSidebar
-          activeFolderId={currentFolderId}
-          folderOptions={folderOptions
-            .filter((f) => f.level > 0)
-            .map((f) => ({ ...f, level: f.level - 1 }))}
-          folderItemCount={folderItemCount}
-          foldersCount={folders.length}
-          hideRoot
-          onFolderSelect={setCurrentFolderId}
-          onFolderContextMenu={(event, id) => {
-            const item = folderById.get(id);
-            if (item) openContextMenu(event, { kind: "folder", item });
-          }}
-          visibleLimit={20}
-        />
-
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
-                {breadcrumbs.map((folder, index) => (
-                  <span key={folder._id} className="flex min-w-0 items-center gap-2">
-                    {index > 0 && <ChevronRight className="h-4 w-4 text-gray-300" />}
-                    <button
-                      className="truncate hover:text-gray-900"
-                      onClick={() => setCurrentFolderId(folder._id)}
-                    >
-                      {folder.nombre}
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <h2 className="text-3xl font-normal text-gray-900">
-                {currentFolder?.nombre || "Biblioteca del proyecto"}
-              </h2>
-            </div>
-          </div>
-
+      <main className="min-h-[calc(100vh-225px)] min-w-0 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
           {isLoading ? (
             <div className="flex min-h-[360px] items-center justify-center text-gray-500">
               Cargando documentos...
@@ -641,8 +688,7 @@ export default function ProyectoDocumentosPage() {
               )}
             </>
           )}
-        </main>
-      </div>
+      </main>
 
       {contextMenu && (
         <div

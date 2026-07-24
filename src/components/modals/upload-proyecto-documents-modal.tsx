@@ -40,6 +40,15 @@ type FileUpload = {
     error?: string;
 };
 
+const createFileUploads = (files: File[]): FileUpload[] =>
+    files.map((file) => ({
+        file,
+        nombre: file.name,
+        descripcion: "",
+        type: "Otro",
+        status: "pending",
+    }));
+
 const DOCUMENT_TYPES = [
     "Factura",
     "Comprobante",
@@ -51,11 +60,19 @@ const DOCUMENT_TYPES = [
 ];
 
 export default function UploadProyectoDocumentsModal() {
-    const { isOpen, onClose, proyectoId, transactionId: initialTransactionId } = useUploadProyectoDocumentsModal();
+    const {
+        folderId,
+        initialFiles,
+        isOpen,
+        onClose,
+        proyectoId,
+        transactionId: initialTransactionId,
+    } = useUploadProyectoDocumentsModal();
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     const [files, setFiles] = useState<FileUpload[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragActive, setIsDragActive] = useState(false);
     const [selectedTransactionId, setSelectedTransactionId] = useState<Id<"transacciones"> | undefined>(undefined);
 
     // Queries - Only fetch transactions for the specific project
@@ -69,6 +86,11 @@ export default function UploadProyectoDocumentsModal() {
         proyectoId ? { id: proyectoId } : "skip"
     );
 
+    const documentMetadata = useQuery(
+        api.documentos.getProjectFileManagerMetadata,
+        proyectoId ? { proyecto: proyectoId } : "skip"
+    );
+
     // Mutations
     const generateUploadUrl = useMutation(api.documentos.generateUploadUrl);
     const createDocument = useMutation(api.documentos.createWithStorage);
@@ -77,8 +99,10 @@ export default function UploadProyectoDocumentsModal() {
     useEffect(() => {
         if (isOpen) {
             setSelectedTransactionId(initialTransactionId);
+            setFiles(createFileUploads(initialFiles));
+            setIsDragActive(false);
         }
-    }, [isOpen, initialTransactionId]);
+    }, [initialFiles, initialTransactionId, isOpen]);
 
     // Filter and format transactions for display
     const formattedTransactions = useMemo(() => {
@@ -91,24 +115,46 @@ export default function UploadProyectoDocumentsModal() {
         }));
     }, [transactions]);
 
+    const destinationFolder = folderId
+        ? documentMetadata?.folders.find((folder) => folder?._id === folderId)
+        : undefined;
+    const destinationLabel = folderId
+        ? destinationFolder?.nombre || "Carpeta seleccionada"
+        : "Biblioteca";
+
+    const addFiles = (selectedFiles: File[]) => {
+        const validFiles = selectedFiles.filter((file) => file.size > 0);
+        if (validFiles.length === 0) return;
+
+        setFiles((previousFiles) => {
+            const existingKeys = new Set(
+                previousFiles.map(
+                    ({ file }) => `${file.name}:${file.size}:${file.lastModified}`,
+                ),
+            );
+            const uniqueFiles = validFiles.filter(
+                (file) => !existingKeys.has(`${file.name}:${file.size}:${file.lastModified}`),
+            );
+            return [...previousFiles, ...createFileUploads(uniqueFiles)];
+        });
+    };
+
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFiles = event.target.files;
-        if (!selectedFiles) return;
-
-        const newFiles: FileUpload[] = Array.from(selectedFiles).map(file => ({
-            file,
-            nombre: file.name,
-            descripcion: "",
-            type: "Otro",
-            status: "pending" as const,
-        }));
-
-        setFiles(prev => [...prev, ...newFiles]);
+        if (event.target.files) {
+            addFiles(Array.from(event.target.files));
+        }
         
         // Reset input
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
+    };
+
+    const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsDragActive(false);
+        addFiles(Array.from(event.dataTransfer.files));
     };
 
     const updateFile = (index: number, updates: Partial<FileUpload>) => {
@@ -122,8 +168,8 @@ export default function UploadProyectoDocumentsModal() {
     };
 
     const uploadSingleFile = async (fileUpload: FileUpload, index: number): Promise<boolean> => {
-        if (!selectedTransactionId || !proyectoId) {
-            updateFile(index, { status: "error", error: "Missing transaction or project ID" });
+        if (!proyectoId) {
+            updateFile(index, { status: "error", error: "Missing project ID" });
             return false;
         }
 
@@ -136,7 +182,9 @@ export default function UploadProyectoDocumentsModal() {
             // Step 2: Upload file to Convex storage
             const result = await fetch(uploadUrl, {
                 method: "POST",
-                headers: { "Content-Type": fileUpload.file.type },
+                headers: {
+                    "Content-Type": fileUpload.file.type || "application/octet-stream",
+                },
                 body: fileUpload.file,
             });
 
@@ -155,6 +203,7 @@ export default function UploadProyectoDocumentsModal() {
                 size: fileUpload.file.size,
                 proyecto: proyectoId,
                 transaccion_id: selectedTransactionId,
+                folder_id: folderId,
             });
 
             updateFile(index, { status: "success" });
@@ -175,11 +224,6 @@ export default function UploadProyectoDocumentsModal() {
             return;
         }
 
-        if (!selectedTransactionId) {
-            toast.error("Por favor selecciona una transacción");
-            return;
-        }
-
         if (files.length === 0) {
             toast.error("No hay archivos para subir");
             return;
@@ -193,12 +237,28 @@ export default function UploadProyectoDocumentsModal() {
 
         let successCount = 0;
         let errorCount = 0;
+        let nextFileIndex = 0;
 
-        for (const { file, index } of pendingFiles) {
-            const success = await uploadSingleFile(file, index);
-            if (success) successCount++;
-            else errorCount++;
-        }
+        const uploadWorker = async () => {
+            while (nextFileIndex < pendingFiles.length) {
+                const pendingFile = pendingFiles[nextFileIndex];
+                nextFileIndex += 1;
+
+                const success = await uploadSingleFile(
+                    pendingFile.file,
+                    pendingFile.index,
+                );
+                if (success) successCount += 1;
+                else errorCount += 1;
+            }
+        };
+
+        await Promise.all(
+            Array.from(
+                { length: Math.min(3, pendingFiles.length) },
+                () => uploadWorker(),
+            ),
+        );
 
         setIsUploading(false);
 
@@ -214,6 +274,7 @@ export default function UploadProyectoDocumentsModal() {
 
     const handleClose = () => {
         setFiles([]);
+        setIsDragActive(false);
         setSelectedTransactionId(undefined);
         onClose();
     };
@@ -237,8 +298,8 @@ export default function UploadProyectoDocumentsModal() {
         return (bytes / (1024 * 1024)).toFixed(1) + " MB";
     };
 
-    const canUpload = proyectoId && selectedTransactionId && files.length > 0 && !isUploading;
     const pendingCount = files.filter(f => f.status === "pending").length;
+    const canUpload = Boolean(proyectoId && pendingCount > 0 && !isUploading);
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -247,6 +308,9 @@ export default function UploadProyectoDocumentsModal() {
                     <DialogTitle className="text-2xl font-normal">Subir Documentos</DialogTitle>
                     <DialogDescription>
                         Proyecto: <span className="font-medium text-gray-900">{proyecto?.nombre}</span>
+                        <span className="mt-1 block">
+                            Destino: <span className="font-medium text-gray-900">{destinationLabel}</span>
+                        </span>
                     </DialogDescription>
                 </DialogHeader>
 
@@ -254,17 +318,22 @@ export default function UploadProyectoDocumentsModal() {
                     {/* Transaction Selection */}
                     <div className="space-y-2">
                         <Label htmlFor="transaction-select">
-                            Transacción <span className="text-red-500">*</span>
+                            Transacción <span className="font-normal text-gray-400">(opcional)</span>
                         </Label>
                         <Select
-                            value={selectedTransactionId}
-                            onValueChange={(value) => setSelectedTransactionId(value as Id<"transacciones">)}
+                            value={selectedTransactionId || "none"}
+                            onValueChange={(value) =>
+                                setSelectedTransactionId(
+                                    value === "none" ? undefined : value as Id<"transacciones">,
+                                )
+                            }
                             disabled={isUploading}
                         >
                             <SelectTrigger id="transaction-select">
-                                <SelectValue placeholder="Selecciona una transacción" />
+                                <SelectValue placeholder="Sin transacción" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="none">Sin transacción</SelectItem>
                                 {formattedTransactions.length === 0 ? (
                                     <div className="px-2 py-4 text-sm text-gray-500 text-center">
                                         No hay transacciones disponibles
@@ -281,18 +350,40 @@ export default function UploadProyectoDocumentsModal() {
                     </div>
 
                     {/* Upload Area */}
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+                    <div
+                        className={cn(
+                            "rounded-lg border-2 border-dashed p-8 text-center transition-colors",
+                            isDragActive
+                                ? "border-gray-900 bg-gray-50"
+                                : "border-gray-300 hover:border-gray-400",
+                        )}
+                        onDragEnter={(event) => {
+                            event.preventDefault();
+                            setIsDragActive(true);
+                        }}
+                        onDragLeave={(event) => {
+                            event.preventDefault();
+                            setIsDragActive(false);
+                        }}
+                        onDragOver={(event) => {
+                            event.preventDefault();
+                            event.dataTransfer.dropEffect = "copy";
+                        }}
+                        onDrop={handleDrop}
+                    >
                         <input
                             ref={fileInputRef}
                             type="file"
                             multiple
                             onChange={handleFileSelect}
                             className="hidden"
-                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.rar,.7z"
                         />
                         <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-sm text-gray-600 mb-2">
-                            Arrastra archivos aquí o haz clic para seleccionar
+                            {isDragActive
+                                ? "Suelta los archivos para agregarlos"
+                                : "Arrastra varios archivos aquí o selecciónalos desde tu equipo"}
                         </p>
                         <Button
                             type="button"
