@@ -1,19 +1,19 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import {
     useQuery,
 } from "convex/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-// import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import ProgressChart from "@/components/Charts/ProgressChart";
 import FamiliaChart from "@/components/Charts/FamiliaChart";
 import TopVariancePartidasTable from "@/components/Charts/TopVariancePartidasTable";
 import AutorizacionesObraPage from "../AutorizacionesObra/AutorizacionesObraPage";
 import ChartConfigModal from "@/components/Charts/ChartConfigModal";
 import { useChartConfig } from "@/hooks/useChartConfig";
-// import { Plus } from "lucide-react";
+import { FileText } from "lucide-react";
 // import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 
 import { Id } from "convex/_generated/dataModel";
@@ -134,6 +134,7 @@ function ControlMetricCard({ label, value, tone = "default" }: ControlMetricCard
 
 export default function ControlPage() {
     const { proyectoId } = useParams<{ proyectoId: string }>();
+    const navigate = useNavigate();
 
     // Tab state
     const [activeTab] = useState<"permisos" | "presupuestos" | "imss">("permisos");
@@ -303,11 +304,18 @@ export default function ControlPage() {
             <div className="max-w-full mx-auto space-y-6">
                 {/* Header */}
                 <div className="rounded-lg py-6">
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex flex-col text-left">
                             <p className="text-sm text-gray-500 mb-1">Proyecto</p>
                             <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
                         </div>
+                        <Button
+                            variant="outline"
+                            onClick={() => navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances,program`)}
+                        >
+                            <FileText className="mr-2 h-4 w-4" />
+                            Reporte
+                        </Button>
                         {/* {selectedDesarrollo && (
                             <Button
                                 onClick={() => addPartidaModal.onOpen({

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import { useQuery, usePaginatedQuery, useMutation } from "convex/react";
 
@@ -29,6 +29,7 @@ import {
   RefreshCw,
   CalendarIcon,
   CreditCard,
+  FileText,
   MoreHorizontal,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -89,6 +90,7 @@ function CurrencyMetric({ amount, currency, className, fractionClassName }: Curr
 
 export default function PresupuestoPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
+  const navigate = useNavigate();
 
   const [selectedPartidas, setSelectedPartidas] = useState<string[]>([]);
   const [selectedFamilias, setSelectedFamilias] = useState<string[]>([]);
@@ -415,6 +417,16 @@ export default function PresupuestoPage() {
                   <Command className="bg-white text-gray-900">
                     <CommandList>
                       <CommandGroup>
+                        <CommandItem
+                          onSelect={() => {
+                            setIsActionsOpen(false);
+                            navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances`);
+                          }}
+                          className="data-[selected=true]:bg-gray-100"
+                        >
+                          <FileText className="h-4 w-4" />
+                          Crear reporte financiero
+                        </CommandItem>
                         <CommandItem
                           onSelect={handleOpenIngresos}
                           className="data-[selected=true]:bg-gray-100"

@@ -8,3 +8,7 @@
 # Dependencies
 .DS_Store
 dist/
+
+# Local Convex migration snapshots, manifests, and deploy credentials
+.migration/
+.env.saas*

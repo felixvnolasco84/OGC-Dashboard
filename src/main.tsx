@@ -30,6 +30,7 @@ import ProyectoFlujoPage from "./pages/ProyectoFlujo/ProyectoFlujoPage.tsx";
 import UserManagementPage from "./pages/UserManagement/UserManagementPage.tsx";
 import NewUserPage from "./pages/UserManagement/NewUserPage.tsx";
 import ProtectedRoute from "./components/Auth/ProtectedRoute.tsx";
+import ReportesPage from "./pages/Reportes/ReportesPage.tsx";
 import SalesProyectosTablePage from "./pages/SalesProyectosTable/SalesProyectosTablePage.tsx";
 import SalesProyectoDocumentosPage from "./pages/SalesProyectoDocumentos/SalesProyectoDocumentosPage.tsx";
 import SalesProyectoTransaccionesPage from "./pages/SalesProyectoTransacciones/SalesProyectoTransaccionesPage.tsx";
@@ -132,6 +133,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/proyecto/:proyectoId/control" element={
                   <ProtectedRoute requiredRole="viewer">
                     <ControlPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/reportes" element={
+                  <ProtectedRoute requiredRole="contratista">
+                    <ReportesPage />
                   </ProtectedRoute>
                 } />
                 

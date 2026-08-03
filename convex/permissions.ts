@@ -1,5 +1,5 @@
-import { ActionCtx, QueryCtx, MutationCtx } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import type { ActionCtx, QueryCtx, MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
 const SUPER_ADMIN_EMAILS = new Set([
   "ops@ogc.mx",
@@ -36,6 +36,50 @@ export function withComputedPermissions<T extends { role: string; email: string;
     role: isSuperAdmin ? "admin" : user.role,
     is_super_admin: isSuperAdmin,
   };
+}
+
+type ProjectAccessUser = {
+  role: string;
+  email: string;
+  organization_id?: string;
+  allowed_desarrollos: Id<"desarrollos">[];
+};
+
+type ProjectAccessRecord = {
+  _id: Id<"desarrollos">;
+  organization_id?: string;
+};
+
+/**
+ * Fuente única de verdad para acceso a proyectos. También se usa al volver a
+ * validar destinatarios justo antes de enviar un reporte programado.
+ */
+export function canUserAccessDesarrollo(
+  user: ProjectAccessUser,
+  desarrollo: ProjectAccessRecord,
+): boolean {
+  if (hasGlobalAdminAccess(user)) return true;
+
+  if (
+    hasAdminAccess(user) &&
+    Boolean(user.organization_id) &&
+    desarrollo.organization_id === user.organization_id
+  ) {
+    return true;
+  }
+
+  return user.allowed_desarrollos.includes(desarrollo._id);
+}
+
+export function canUserReceiveProjectReport(
+  user: ProjectAccessUser & { invitation_status?: string },
+  desarrollo: ProjectAccessRecord,
+): boolean {
+  return Boolean(
+    user.email.trim() &&
+    user.invitation_status !== "pending" &&
+    canUserAccessDesarrollo(user, desarrollo),
+  );
 }
 
 // Get current user or throw error
@@ -78,18 +122,8 @@ export async function checkDesarrolloAccess(
     return false;
   }
 
-  if (hasAdminAccess(user)) {
-    if (hasGlobalAdminAccess(user)) {
-      return true;
-    }
-
-    const desarrollo = await ctx.db.get(desarrolloId);
-    return desarrollo?.organization_id === user.organization_id ||
-      user.allowed_desarrollos.includes(desarrolloId);
-  }
-
-  // Check if desarrollo is in allowed list
-  return user.allowed_desarrollos.includes(desarrolloId);
+  const desarrollo = await ctx.db.get(desarrolloId);
+  return desarrollo ? canUserAccessDesarrollo(user, desarrollo) : false;
 }
 
 // Get all desarrollos the user has access to

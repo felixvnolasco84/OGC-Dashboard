@@ -1028,6 +1028,10 @@ export const deleteProject = rawMutation({
         let deletedWeeklyTotals = 0;
         let deletedBitacora = 0;
         let deletedPhotoComments = 0;
+        let deletedReportSubscriptions = 0;
+        let deletedReportRuns = 0;
+        let deletedReportArtifacts = 0;
+        let deletedReportDeliveries = 0;
         const appwriteFileIds: string[] = [];
 
         // 1. Delete pagos in batches (paginate to avoid too many reads)
@@ -1188,7 +1192,73 @@ export const deleteProject = rawMutation({
                 .take(BATCH_SIZE);
         }
 
-        // 8. Finally, delete the proyecto itself
+        // 8. Delete financial report history and its Convex Storage files.
+        // Deliveries reference artifacts/runs, so remove them first.
+        let reportDeliveries = await ctx.db
+            .query("report_deliveries")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .take(BATCH_SIZE);
+        while (reportDeliveries.length > 0) {
+            for (const delivery of reportDeliveries) {
+                await ctx.db.delete(delivery._id);
+                deletedReportDeliveries++;
+            }
+            reportDeliveries = await ctx.db
+                .query("report_deliveries")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .take(BATCH_SIZE);
+        }
+
+        let reportArtifacts = await ctx.db
+            .query("report_artifacts")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .take(BATCH_SIZE);
+        while (reportArtifacts.length > 0) {
+            for (const artifact of reportArtifacts) {
+                if (artifact.storage_id) await ctx.storage.delete(artifact.storage_id);
+                if (artifact.snapshot_storage_id) {
+                    await ctx.storage.delete(artifact.snapshot_storage_id);
+                }
+                await ctx.db.delete(artifact._id);
+                deletedReportArtifacts++;
+            }
+            reportArtifacts = await ctx.db
+                .query("report_artifacts")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .take(BATCH_SIZE);
+        }
+
+        let reportRuns = await ctx.db
+            .query("report_runs")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .take(BATCH_SIZE);
+        while (reportRuns.length > 0) {
+            for (const run of reportRuns) {
+                await ctx.db.delete(run._id);
+                deletedReportRuns++;
+            }
+            reportRuns = await ctx.db
+                .query("report_runs")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .take(BATCH_SIZE);
+        }
+
+        let reportSubscriptions = await ctx.db
+            .query("report_subscriptions")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+            .take(BATCH_SIZE);
+        while (reportSubscriptions.length > 0) {
+            for (const subscription of reportSubscriptions) {
+                await ctx.db.delete(subscription._id);
+                deletedReportSubscriptions++;
+            }
+            reportSubscriptions = await ctx.db
+                .query("report_subscriptions")
+                .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
+                .take(BATCH_SIZE);
+        }
+
+        // 9. Finally, delete the proyecto itself
         await ctx.db.delete(args.id);
 
         return {
@@ -1202,6 +1272,10 @@ export const deleteProject = rawMutation({
             deletedWeeklyTotals,
             deletedBitacora,
             deletedPhotoComments,
+            deletedReportSubscriptions,
+            deletedReportRuns,
+            deletedReportArtifacts,
+            deletedReportDeliveries,
             appwriteFileIds,
         };
     },

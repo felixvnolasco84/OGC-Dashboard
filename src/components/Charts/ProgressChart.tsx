@@ -3,6 +3,10 @@ import { AxisOptions, Chart } from "react-charts";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import {
+    excelSerialToIsoDate,
+    parseProjectDate,
+} from "../../../convex/reportingUtils";
 // import { Settings } from "lucide-react";
 // import { Button } from "@/components/ui/button";
 // import { useWeeklyAvanceModal } from "@/hooks/weekly-avance-modal";
@@ -111,37 +115,16 @@ export default function ProgressChart({
         return [];
     }, [data, projectedData]);
 
-    // Convert Excel serial date to formatted date string
+    // All chart joins use ISO calendar dates. This is the same normalization
+    // used by report snapshots and prevents locale parsing from changing totals.
     const excelDateToString = (serial: number): string => {
-        const date = new Date((serial - 25569) * 86400 * 1000);
-        const day = date.getDate();
-        const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        const monthName = monthNames[date.getMonth()];
-        const year = date.getFullYear();
-        return `${String(day).padStart(2, '0')} ${monthName} ${year}`;
+        return excelSerialToIsoDate(serial) || "";
     };
 
     // Helper to parse date string to Date object
     const parseDateFromLabel = (dateLabel: string | undefined): Date => {
-        // Safety check for undefined/null
-        if (!dateLabel) {
-            console.warn('parseDateFromLabel called with undefined/null dateLabel');
-            return new Date();
-        }
-
-        const parts = dateLabel.split(' ');
-        const monthMap: { [key: string]: number } = {
-            'Ene': 0, 'Feb': 1, 'Mar': 2, 'Abr': 3, 'May': 4, 'Jun': 5,
-            'Jul': 6, 'Ago': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dic': 11
-        };
-
-        if (parts.length === 3) {
-            const day = parseInt(parts[0], 10);
-            const month = monthMap[parts[1]] ?? 0;
-            const year = parseInt(parts[2], 10);
-            return new Date(year, month, day);
-        }
-        return new Date();
+        const iso = parseProjectDate(dateLabel);
+        return iso ? new Date(`${iso}T12:00:00`) : new Date(Number.NaN);
     };
 
     // Deduplicate and aggregate data points with the same date
@@ -149,18 +132,20 @@ export default function ProgressChart({
         // Process actual transaction data
         const actualDataMap = new Map<string, ChartDataPoint>();
         rawData.forEach((point) => {
-            const existing = actualDataMap.get(point.date);
+            const normalizedDate = parseProjectDate(point.date);
+            if (!normalizedDate) return;
+            const existing = actualDataMap.get(normalizedDate);
             if (existing) {
                 // Keep the highest values for duplicate dates (cumulative should be increasing)
-                actualDataMap.set(point.date, {
-                    date: point.date,
+                actualDataMap.set(normalizedDate, {
+                    date: normalizedDate,
                     gastoProgramado: 0,
                     gastoTotal: Math.max(existing.gastoTotal || 0, point.gastoTotal || 0),
                     // avanceReal: Math.max(existing.avanceReal || 0, point.avanceReal || 0),
                 });
             } else {
-                actualDataMap.set(point.date, {
-                    date: point.date,
+                actualDataMap.set(normalizedDate, {
+                    date: normalizedDate,
                     gastoProgramado: 0,
                     gastoTotal: point.gastoTotal || 0,
                     avanceReal: point.avanceReal || 0,
@@ -183,7 +168,8 @@ export default function ProgressChart({
         if (projectedData && projectedData.length > 0) {
             // Filter projected data by date range - always limit to endDate (today) to prevent future projections
             const filteredProjections = projectedData.filter((projection) => {
-                const projDate = new Date((projection.week_date - 25569) * 86400 * 1000);
+                const isoDate = excelSerialToIsoDate(projection.week_date);
+                const projDate = isoDate ? new Date(`${isoDate}T12:00:00`) : new Date(Number.NaN);
                 // Always filter by endDate to prevent showing future projections
                 if (getDateRangeFilter.endDate && projDate > getDateRangeFilter.endDate) {
                     return false;
@@ -205,8 +191,8 @@ export default function ProgressChart({
                 // Group by month
                 const monthlyMap = new Map<string, typeof filteredProjections[0]>();
                 filteredProjections.forEach((projection) => {
-                    const projDate = new Date((projection.week_date - 25569) * 86400 * 1000);
-                    const monthKey = `${projDate.getFullYear()}-${projDate.getMonth()}`;
+                    const isoDate = excelSerialToIsoDate(projection.week_date);
+                    const monthKey = isoDate?.slice(0, 7) || "invalid";
 
                     // Keep the last week of each month (highest cumulative)
                     const existing = monthlyMap.get(monthKey);
@@ -267,49 +253,13 @@ export default function ProgressChart({
     const transformedDataWithOrder = React.useMemo(() => {
         if (chartData.length === 0) return { series: [] as ReactChartsSeries[], isRealLarger: false };
 
-        // Parse dates from string format "DD Mon YYYY"
         const parseDateString = (dateStr: string | undefined): Date => {
-            // Safety check for undefined/null
-            if (!dateStr) {
-                console.warn('parseDateString called with undefined/null dateStr');
-                return new Date();
-            }
-
-            const parts = dateStr.split(' ');
-            const monthMap: { [key: string]: number } = {
-                'Ene': 0, 'Enero': 0, 'Jan': 0, 'January': 0,
-                'Feb': 1, 'Febrero': 1, 'February': 1,
-                'Mar': 2, 'Marzo': 2, 'March': 2,
-                'Abr': 3, 'Abril': 3, 'Apr': 3, 'April': 3,
-                'May': 4, 'Mayo': 4,
-                'Jun': 5, 'Junio': 5, 'June': 5,
-                'Jul': 6, 'Julio': 6, 'July': 6,
-                'Ago': 7, 'Agosto': 7, 'Aug': 7, 'August': 7,
-                'Sep': 8, 'Septiembre': 8, 'September': 8,
-                'Oct': 9, 'Octubre': 9, 'October': 9,
-                'Nov': 10, 'Noviembre': 10, 'November': 10,
-                'Dic': 11, 'Diciembre': 11, 'Dec': 11, 'December': 11
-            };
-
-            if (parts.length === 3) {
-                // Format: "DD Mon YYYY"
-                const day = parseInt(parts[0], 10);
-                const month = monthMap[parts[1]] ?? 0;
-                const year = parseInt(parts[2], 10);
-                return new Date(year, month, day);
-            } else if (parts.length === 2) {
-                // Legacy format: "DD Mon" (assume 2025)
-                const day = parseInt(parts[0], 10);
-                const month = monthMap[parts[1]] ?? 0;
-                return new Date(2025, month, day);
-            }
-
-            // Fallback: return current date
-            return new Date();
+            return parseDateFromLabel(dateStr);
         };
 
         // Filter out any data points with invalid dates first
-        const validData = chartData.filter(d => d.date && typeof d.date === 'string' && d.date.trim() !== '');
+        const validData = chartData.filter((d) =>
+            Boolean(parseProjectDate(d.date)));
 
         // Sort data by date to prevent vertical spikes
         const sortedData = [...validData].sort((a, b) => {

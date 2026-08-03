@@ -891,4 +891,92 @@ export default defineSchema({
     soporte_uploaded_at: v.optional(v.number()),
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_parent", { fields: ["parent_type", "parent_id"] }),
+
+  // Programaciones de reportes financieros por proyecto. Los destinatarios
+  // siempre son usuarios de la plataforma; no se admiten correos externos.
+  report_subscriptions: defineTable({
+    proyecto: v.id("desarrollos"),
+    owner_user_id: v.id("users"),
+    frequency: v.string(),
+    timezone: v.string(),
+    local_hour: v.number(),
+    local_minute: v.number(),
+    day_of_week: v.optional(v.number()),
+    day_of_month: v.optional(v.number()),
+    sections: v.array(v.string()),
+    recipient_user_ids: v.array(v.id("users")),
+    active: v.boolean(),
+    next_run_at: v.number(),
+    lease_until: v.optional(v.number()),
+    last_run_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_owner", { fields: ["owner_user_id"] })
+    .index("by_active_next_run", { fields: ["active", "next_run_at"] }),
+
+  report_runs: defineTable({
+    proyecto: v.id("desarrollos"),
+    subscription_id: v.optional(v.id("report_subscriptions")),
+    requested_by_user_id: v.id("users"),
+    source: v.string(),
+    period_start: v.string(),
+    period_end: v.string(),
+    period_key: v.string(),
+    subscription_period_key: v.optional(v.string()),
+    sections: v.array(v.string()),
+    status: v.string(),
+    error: v.optional(v.string()),
+    warning: v.optional(v.string()),
+    started_at: v.optional(v.number()),
+    completed_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_subscription", { fields: ["subscription_id"] })
+    .index("by_subscription_period", { fields: ["subscription_period_key"] })
+    .index("by_status", { fields: ["status"] }),
+
+  report_artifacts: defineTable({
+    proyecto: v.id("desarrollos"),
+    run_id: v.id("report_runs"),
+    visibility_profile: v.string(),
+    storage_id: v.optional(v.id("_storage")),
+    snapshot_storage_id: v.optional(v.id("_storage")),
+    file_name: v.optional(v.string()),
+    size: v.optional(v.number()),
+    snapshot_json: v.string(),
+    snapshot_hash: v.string(),
+    insights_json: v.optional(v.string()),
+    ai_provider: v.optional(v.string()),
+    ai_model: v.optional(v.string()),
+    ai_response_id: v.optional(v.string()),
+    input_tokens: v.optional(v.number()),
+    output_tokens: v.optional(v.number()),
+    status: v.string(),
+    error: v.optional(v.string()),
+    created_at: v.number(),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_run", { fields: ["run_id"] })
+    .index("by_run_profile", { fields: ["run_id", "visibility_profile"] }),
+
+  report_deliveries: defineTable({
+    proyecto: v.id("desarrollos"),
+    run_id: v.id("report_runs"),
+    artifact_id: v.optional(v.id("report_artifacts")),
+    recipient_user_id: v.id("users"),
+    recipient_email: v.string(),
+    visibility_profile: v.string(),
+    status: v.string(),
+    attempts: v.number(),
+    idempotency_key: v.string(),
+    provider_message_id: v.optional(v.string()),
+    error: v.optional(v.string()),
+    sent_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_run", { fields: ["run_id"] })
+    .index("by_recipient", { fields: ["recipient_user_id"] })
+    .index("by_run_recipient", { fields: ["run_id", "recipient_user_id"] }),
 });
