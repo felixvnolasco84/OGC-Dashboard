@@ -60,7 +60,7 @@ import {
   // Settings,
 } from "lucide-react";
 import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
-import { ForwardRefExoticComponent, RefAttributes, useMemo } from "react";
+import { ForwardRefExoticComponent, RefAttributes, useMemo, useState } from "react";
 import { useProjectDocumentNavigation } from "@/hooks/project-document-navigation";
 
 
@@ -255,14 +255,20 @@ function ProjectDocumentFolderNavigation({
   documentCountsByFolder,
   folders,
   isLoading,
+  isVisible,
   onFolderSelect,
 }: {
   activeFolderId?: Id<"document_folders">;
   documentCountsByFolder: Record<string, number>;
   folders: ProjectDocumentFolder[];
   isLoading: boolean;
+  isVisible: boolean;
   onFolderSelect: (folderId?: Id<"document_folders">) => void;
 }) {
+  const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(
+    () => new Set()
+  );
+
   const flattenedFolders = useMemo(() => {
     const foldersByParent = new Map<string, ProjectDocumentFolder[]>();
 
@@ -281,13 +287,15 @@ function ProjectDocumentFolderNavigation({
     const walk = (parentId: string, level: number) => {
       (foldersByParent.get(parentId) || []).forEach((folder) => {
         result.push({ folder, level });
-        walk(folder._id, level + 1);
+        if (!collapsedFolderIds.has(folder._id)) {
+          walk(folder._id, level + 1);
+        }
       });
     };
 
     walk("root", 0);
     return result;
-  }, [folders]);
+  }, [collapsedFolderIds, folders]);
 
   const childFolderCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -301,21 +309,65 @@ function ProjectDocumentFolderNavigation({
   const getItemCount = (folderId: string) =>
     (documentCountsByFolder[folderId] || 0) + (childFolderCounts.get(folderId) || 0);
 
+  const toggleFolder = (folderId: string) => {
+    setCollapsedFolderIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+
+      return next;
+    });
+  };
+
   return (
-    <SidebarMenuSub className="mt-1 max-h-[min(45vh,28rem)] overflow-y-auto pr-1">
+    <SidebarMenuSub
+      className={cn(
+        "mt-1 max-h-[min(45vh,28rem)] overflow-y-auto pr-1",
+        !isVisible && "hidden"
+      )}
+    >
       <SidebarMenuSubItem>
         <SidebarMenuSubButton asChild size="sm" isActive={!activeFolderId}>
-          <button type="button" onClick={() => onFolderSelect(undefined)}>
-            <FolderOpen />
-            <span>Biblioteca</span>
-            <span className="ml-auto text-[10px] tabular-nums text-gray-400">
-              {getItemCount("root")}
-            </span>
-          </button>
+          <div className="gap-0 px-1">
+            {childFolderCounts.has("root") ? (
+              <button
+                type="button"
+                className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                onClick={() => toggleFolder("root")}
+                aria-expanded={!collapsedFolderIds.has("root")}
+                aria-label={`${collapsedFolderIds.has("root") ? "Expandir" : "Colapsar"} Biblioteca`}
+              >
+                <ChevronRight
+                  className={cn(
+                    "size-3.5 transition-transform",
+                    !collapsedFolderIds.has("root") && "rotate-90"
+                  )}
+                />
+              </button>
+            ) : (
+              <span className="size-6 shrink-0" aria-hidden="true" />
+            )}
+
+            <button
+              type="button"
+              className="flex h-full min-w-0 flex-1 items-center gap-2 px-1 text-left text-xs"
+              onClick={() => onFolderSelect(undefined)}
+            >
+              <FolderOpen className="size-4 shrink-0" />
+              <span className="truncate">Biblioteca</span>
+              <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+                {getItemCount("root")}
+              </span>
+            </button>
+          </div>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
 
-      {isLoading ? (
+      {!collapsedFolderIds.has("root") && (isLoading ? (
         <SidebarMenuSubItem className="px-2 py-1 text-xs text-gray-400">
           Cargando carpetas...
         </SidebarMenuSubItem>
@@ -324,29 +376,58 @@ function ProjectDocumentFolderNavigation({
           Sin carpetas
         </SidebarMenuSubItem>
       ) : (
-        flattenedFolders.map(({ folder, level }) => (
-          <SidebarMenuSubItem key={folder._id}>
-            <SidebarMenuSubButton
-              asChild
-              size="sm"
-              isActive={activeFolderId === folder._id}
-            >
-              <button
-                type="button"
-                onClick={() => onFolderSelect(folder._id)}
-                style={{ paddingLeft: `${0.5 + level * 0.75}rem` }}
-                title={folder.nombre}
+        flattenedFolders.map(({ folder, level }) => {
+          const hasChildren = (childFolderCounts.get(folder._id) || 0) > 0;
+          const isExpanded = !collapsedFolderIds.has(folder._id);
+
+          return (
+            <SidebarMenuSubItem key={folder._id}>
+              <SidebarMenuSubButton
+                asChild
+                size="sm"
+                isActive={activeFolderId === folder._id}
               >
-                <Folder />
-                <span>{folder.nombre}</span>
-                <span className="ml-auto text-[10px] tabular-nums text-gray-400">
-                  {getItemCount(folder._id)}
-                </span>
-              </button>
-            </SidebarMenuSubButton>
-          </SidebarMenuSubItem>
-        ))
-      )}
+                <div
+                  className="gap-0 px-1"
+                  style={{ paddingLeft: `${0.25 + level * 0.75}rem` }}
+                >
+                  {hasChildren ? (
+                    <button
+                      type="button"
+                      className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                      onClick={() => toggleFolder(folder._id)}
+                      aria-expanded={isExpanded}
+                      aria-label={`${isExpanded ? "Colapsar" : "Expandir"} ${folder.nombre}`}
+                    >
+                      <ChevronRight
+                        className={cn(
+                          "size-3.5 transition-transform",
+                          isExpanded && "rotate-90"
+                        )}
+                      />
+                    </button>
+                  ) : (
+                    <span className="size-6 shrink-0" aria-hidden="true" />
+                  )}
+
+                  <button
+                    type="button"
+                    className="flex h-full min-w-0 flex-1 items-center gap-2 px-1 text-left text-xs"
+                    onClick={() => onFolderSelect(folder._id)}
+                    title={folder.nombre}
+                  >
+                    <Folder className="size-4 shrink-0" />
+                    <span className="truncate">{folder.nombre}</span>
+                    <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+                      {getItemCount(folder._id)}
+                    </span>
+                  </button>
+                </div>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          );
+        })
+      ))}
     </SidebarMenuSub>
   );
 }
@@ -603,6 +684,7 @@ function SidebarUserCard({ role }: { role?: string }) {
 export default function SidebarComponent() {
   const location = useLocation();
   const { proyectoId, salesProyectoId } = useParams<{ proyectoId?: string; salesProyectoId?: string }>();
+  const [isDocumentsNavigationExpanded, setIsDocumentsNavigationExpanded] = useState(true);
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const desarrollos = useQuery(api.desarrollos.getAll);
   const salesProjects = useQuery(api.sales_projects.getAll);
@@ -824,49 +906,81 @@ export default function SidebarComponent() {
             </SidebarGroupLabel> */}
             <SidebarGroupContent>
               <SidebarMenu>
-                {currentProjectMenuItems.map((item) => (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.label}
-                      className={cn(
-                        "px-3 py-2 text-sm transition-colors",
-                        item.disabled ? "text-gray-400 cursor-not-allowed" : "",
-                        isActive(`/proyecto/${currentProject._id}/${item.path}`)
-                          ? "text-gray-900 bg-gray-100 font-medium"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      )}
-                    >
-                      <Link to={`/proyecto/${currentProject._id}/${item.path}`}>
-                        <item.icon className="w-4 h-4" />
-                        <span className="flex items-center justify-between w-full">
-                          {item.label}
-                          {item.id === "requisiciones" && (
-                            <RequisicionNotificationDot
-                              proyectoId={currentProject._id}
-                              userId={currentUser?._id}
-                              userRole={currentUser?.role}
-                            />
-                          )}
-                        </span>
+                {currentProjectMenuItems.map((item) => {
+                  const isExpandableDocumentsItem =
+                    item.id === "documentos" && isCurrentProjectDocuments;
 
-                      </Link>
-                    </SidebarMenuButton>
-                    {item.id === "documentos" && isCurrentProjectDocuments && (
-                      <ProjectDocumentFolderNavigation
-                        activeFolderId={activeDocumentFolderId}
-                        documentCountsByFolder={
-                          (documentMetadata?.documentCountsByFolder || {}) as Record<string, number>
-                        }
-                        folders={(documentMetadata?.folders || []) as ProjectDocumentFolder[]}
-                        isLoading={documentMetadata === undefined}
-                        onFolderSelect={(folderId) =>
-                          documentNavigation.setCurrentFolder(currentProject._id, folderId)
-                        }
-                      />
-                    )}
-                  </SidebarMenuItem>
-                ))}
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.label}
+                        className={cn(
+                          "px-3 py-2 text-sm transition-colors",
+                          isExpandableDocumentsItem && "gap-0",
+                          item.disabled ? "text-gray-400 cursor-not-allowed" : "",
+                          isActive(`/proyecto/${currentProject._id}/${item.path}`)
+                            ? "text-gray-900 bg-gray-100 font-medium"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        {isExpandableDocumentsItem ? (
+                          <div>
+                            <Link
+                              className="flex h-full min-w-0 flex-1 items-center gap-2 text-sm"
+                              to={`/proyecto/${currentProject._id}/${item.path}`}
+                            >
+                              <item.icon className="size-4 shrink-0" />
+                              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                            </Link>
+                            <button
+                              type="button"
+                              className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                              onClick={() => setIsDocumentsNavigationExpanded((current) => !current)}
+                              aria-expanded={isDocumentsNavigationExpanded}
+                              aria-label={`${isDocumentsNavigationExpanded ? "Colapsar" : "Expandir"} Documentos`}
+                            >
+                              <ChevronRight
+                                className={cn(
+                                  "size-3.5 transition-transform",
+                                  isDocumentsNavigationExpanded && "rotate-90"
+                                )}
+                              />
+                            </button>
+                          </div>
+                        ) : (
+                          <Link to={`/proyecto/${currentProject._id}/${item.path}`}>
+                            <item.icon className="w-4 h-4" />
+                            <span className="flex items-center justify-between w-full">
+                              {item.label}
+                              {item.id === "requisiciones" && (
+                                <RequisicionNotificationDot
+                                  proyectoId={currentProject._id}
+                                  userId={currentUser?._id}
+                                  userRole={currentUser?.role}
+                                />
+                              )}
+                            </span>
+                          </Link>
+                        )}
+                      </SidebarMenuButton>
+                      {isExpandableDocumentsItem && (
+                        <ProjectDocumentFolderNavigation
+                          activeFolderId={activeDocumentFolderId}
+                          documentCountsByFolder={
+                            (documentMetadata?.documentCountsByFolder || {}) as Record<string, number>
+                          }
+                          folders={(documentMetadata?.folders || []) as ProjectDocumentFolder[]}
+                          isLoading={documentMetadata === undefined}
+                          isVisible={isDocumentsNavigationExpanded}
+                          onFolderSelect={(folderId) =>
+                            documentNavigation.setCurrentFolder(currentProject._id, folderId)
+                          }
+                        />
+                      )}
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
