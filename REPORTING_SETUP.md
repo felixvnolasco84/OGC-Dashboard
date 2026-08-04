@@ -29,10 +29,10 @@ programación, evita ejecuciones duplicadas.
 - Superadmin: acceso global.
 - Admin con organización: proyectos de su organización o asignados.
 - Otros roles: proyectos incluidos en `allowed_desarrollos`.
-- Cualquier usuario con acceso puede generar reportes y administrar sus propias
-  programaciones.
-- Sólo un admin puede agregar otros destinatarios o administrar programaciones
-  ajenas.
+- Sólo los administradores pueden abrir Reportes, generar ejecuciones y
+  administrar programaciones.
+- Los destinatarios pueden pertenecer a otros roles; cada uno recibe el PDF
+  limitado a su perfil vigente.
 
 Los destinatarios siempre son IDs de `users`; no se aceptan correos externos.
 Antes de cada envío se vuelve a validar el acceso al proyecto, el rol, el estado

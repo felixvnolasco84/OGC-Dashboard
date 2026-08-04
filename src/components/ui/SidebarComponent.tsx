@@ -365,9 +365,10 @@ const projectMenuItems: ProjectMenuItem[] = [
   // { id: "proveedores", label: "Proveedores", path: "proveedores", disabled: false },
 ];
 
+const userProjectMenuItems = projectMenuItems.filter((item) => item.id !== "reportes");
+
 // Restricted menu items for contratista role (Bitacora + Requisiciones)
 const contratistaMenuItems: ProjectMenuItem[] = [
-  { id: "reportes", label: "Reportes", path: "reportes", disabled: false, icon: FileText },
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: Bookmark },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
@@ -375,7 +376,6 @@ const contratistaMenuItems: ProjectMenuItem[] = [
 
 // Restricted menu items for finance role (only Requisiciones)
 const financeMenuItems: ProjectMenuItem[] = [
-  { id: "reportes", label: "Reportes", path: "reportes", disabled: false, icon: FileText },
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
 ];
@@ -383,7 +383,6 @@ const financeMenuItems: ProjectMenuItem[] = [
 const viewerMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
-  { id: "reportes", label: "Reportes", path: "reportes", disabled: false, icon: FileText },
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: BookCheck },
@@ -660,7 +659,9 @@ export default function SidebarComponent() {
       ? financeMenuItems
       : currentUser?.role === "viewer"
         ? viewerMenuItems
-        : projectMenuItems;
+        : currentUser?.role === "admin"
+          ? projectMenuItems
+          : userProjectMenuItems;
 
   const getFirstMenuItem = (type: "proyecto" | "sales") => {
     if (type === "proyecto") {

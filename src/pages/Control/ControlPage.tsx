@@ -135,6 +135,8 @@ function ControlMetricCard({ label, value, tone = "default" }: ControlMetricCard
 export default function ControlPage() {
     const { proyectoId } = useParams<{ proyectoId: string }>();
     const navigate = useNavigate();
+    const currentUser = useQuery(api.users.getCurrentUser);
+    const isAdmin = currentUser?.role === "admin";
 
     // Tab state
     const [activeTab] = useState<"permisos" | "presupuestos" | "imss">("permisos");
@@ -309,13 +311,15 @@ export default function ControlPage() {
                             <p className="text-sm text-gray-500 mb-1">Proyecto</p>
                             <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
                         </div>
-                        <Button
-                            variant="outline"
-                            onClick={() => navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances,program`)}
-                        >
-                            <FileText className="mr-2 h-4 w-4" />
-                            Reporte
-                        </Button>
+                        {isAdmin ? (
+                            <Button
+                                variant="outline"
+                                onClick={() => navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances,program`)}
+                            >
+                                <FileText className="mr-2 h-4 w-4" />
+                                Reporte
+                            </Button>
+                        ) : null}
                         {/* {selectedDesarrollo && (
                             <Button
                                 onClick={() => addPartidaModal.onOpen({

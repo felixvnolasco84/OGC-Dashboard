@@ -91,6 +91,8 @@ function CurrencyMetric({ amount, currency, className, fractionClassName }: Curr
 export default function PresupuestoPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const navigate = useNavigate();
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const isAdmin = currentUser?.role === "admin";
 
   const [selectedPartidas, setSelectedPartidas] = useState<string[]>([]);
   const [selectedFamilias, setSelectedFamilias] = useState<string[]>([]);
@@ -417,16 +419,18 @@ export default function PresupuestoPage() {
                   <Command className="bg-white text-gray-900">
                     <CommandList>
                       <CommandGroup>
-                        <CommandItem
-                          onSelect={() => {
-                            setIsActionsOpen(false);
-                            navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances`);
-                          }}
-                          className="data-[selected=true]:bg-gray-100"
-                        >
-                          <FileText className="h-4 w-4" />
-                          Crear reporte financiero
-                        </CommandItem>
+                        {isAdmin ? (
+                          <CommandItem
+                            onSelect={() => {
+                              setIsActionsOpen(false);
+                              navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances`);
+                            }}
+                            className="data-[selected=true]:bg-gray-100"
+                          >
+                            <FileText className="h-4 w-4" />
+                            Crear reporte financiero
+                          </CommandItem>
+                        ) : null}
                         <CommandItem
                           onSelect={handleOpenIngresos}
                           className="data-[selected=true]:bg-gray-100"

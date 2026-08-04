@@ -56,6 +56,9 @@ function intersectSections(requested: string[], role: string) {
 
 async function requireProject(ctx: any, proyecto: Id<"desarrollos">) {
   const currentUser = await getCurrentUserOrThrow(ctx);
+  if (currentUser.role !== "admin") {
+    throw new Error("Sólo los administradores pueden acceder a Reportes");
+  }
   const project = await ctx.db.get(proyecto);
   if (!project || !canUserAccessDesarrollo(currentUser, project)) {
     throw new Error("Proyecto no encontrado o sin acceso");
