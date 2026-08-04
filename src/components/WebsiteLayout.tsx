@@ -11,6 +11,7 @@ import { Toaster } from "sonner";
 import { ModalProvider } from "./providers/modal-provider";
 import { TooltipProvider } from "./ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "./ui/Sidebar";
+import MentionNotificationCenter from "@/pages/Planos/MentionNotificationCenter";
 
 const queryClient = new QueryClient()
 function WebsiteLayout() {
@@ -24,8 +25,9 @@ function WebsiteLayout() {
         <SidebarProvider className="bg-white overflow-x-hidden">
           <AppSidebar />
           <main className="flex-1 h-screen overflow-auto">
-            <div className="sticky top-0 z-10 flex items-center h-10 px-2 bg-white border-b border-gray-200">
+            <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b border-gray-200 bg-white px-2">
               <SidebarTrigger />
+          {currentUser && <MentionNotificationCenter iconOnly />}
             </div>
             <div data-viewer-readonly={isViewer ? "true" : undefined}>
               <Outlet />

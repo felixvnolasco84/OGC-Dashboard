@@ -665,6 +665,232 @@ export default defineSchema({
     read_at: v.number(),
   }).index("by_user_history", { fields: ["user_id", "tarea_history_id"] })
     .index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
+
+  // RFIs - Formal requests for information
+  rfis: defineTable({
+    proyecto: v.id("desarrollos"),
+    number: v.number(),
+    prefix: v.string(),
+    revision_number: v.number(),
+    previous_revision_id: v.optional(v.id("rfis")),
+    subject: v.string(),
+    background: v.optional(v.string()),
+    question: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("pending_manager_review"),
+      v.literal("open"),
+      v.literal("closed"),
+    ),
+    creator_id: v.id("users"),
+    received_from_id: v.optional(v.id("users")),
+    rfi_manager_id: v.optional(v.id("users")),
+    assignee_ids: v.array(v.id("users")),
+    required_assignee_ids: v.array(v.id("users")),
+    distribution_user_ids: v.array(v.id("users")),
+    due_date: v.optional(v.string()),
+    location: v.optional(v.string()),
+    drawing_number: v.optional(v.string()),
+    spec_section: v.optional(v.string()),
+    partida_id: v.optional(v.id("partidas")),
+    familia: v.optional(v.string()),
+    sub_partida: v.optional(v.string()),
+    project_stage: v.optional(v.string()),
+    cost_impact: v.union(
+      v.literal("yes"),
+      v.literal("unknown"),
+      v.literal("no"),
+      v.literal("na"),
+    ),
+    cost_impact_amount: v.optional(v.number()),
+    schedule_impact: v.union(
+      v.literal("yes"),
+      v.literal("unknown"),
+      v.literal("no"),
+      v.literal("na"),
+    ),
+    schedule_impact_days: v.optional(v.number()),
+    is_private: v.boolean(),
+    created_at: v.number(),
+    updated_at: v.number(),
+    opened_at: v.optional(v.number()),
+    closed_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proyecto_number", { fields: ["proyecto", "number", "revision_number"] })
+    .index("by_proyecto_status", { fields: ["proyecto", "status"] })
+    .index("by_manager", { fields: ["rfi_manager_id"] })
+    .index("by_due_date", { fields: ["due_date"] }),
+
+  rfi_responses: defineTable({
+    rfi_id: v.id("rfis"),
+    proyecto: v.id("desarrollos"),
+    author_id: v.id("users"),
+    author_name: v.string(),
+    body: v.string(),
+    is_official: v.boolean(),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_rfi", { fields: ["rfi_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_author", { fields: ["author_id"] }),
+
+  rfi_attachments: defineTable({
+    rfi_id: v.id("rfis"),
+    proyecto: v.id("desarrollos"),
+    response_id: v.optional(v.id("rfi_responses")),
+    history_id: v.optional(v.id("rfi_history")),
+    storage_id: v.id("_storage"),
+    nombre: v.string(),
+    type: v.string(),
+    size: v.number(),
+    uploaded_by_id: v.id("users"),
+    uploaded_at: v.number(),
+  }).index("by_rfi", { fields: ["rfi_id"] })
+    .index("by_response", { fields: ["response_id"] })
+    .index("by_history", { fields: ["history_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] }),
+
+  rfi_history: defineTable({
+    rfi_id: v.id("rfis"),
+    proyecto: v.id("desarrollos"),
+    action: v.string(),
+    field_changed: v.optional(v.string()),
+    old_value: v.optional(v.string()),
+    new_value: v.optional(v.string()),
+    actor_id: v.id("users"),
+    actor_name: v.string(),
+    created_at: v.number(),
+  }).index("by_rfi", { fields: ["rfi_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_actor", { fields: ["actor_id"] }),
+
+  rfi_read_status: defineTable({
+    rfi_id: v.id("rfis"),
+    proyecto: v.id("desarrollos"),
+    user_id: v.id("users"),
+    last_read_at: v.number(),
+  }).index("by_rfi_user", { fields: ["rfi_id", "user_id"] })
+    .index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
+
+  // Planos arquitectónicos, anotaciones, conversaciones y menciones por proyecto.
+  plano_carpetas: defineTable({
+    proyecto: v.id("desarrollos"),
+    nombre: v.string(),
+    created_by_id: v.id("users"),
+    created_by_name: v.string(),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proyecto_created", { fields: ["proyecto", "created_at"] }),
+
+  planos: defineTable({
+    proyecto: v.id("desarrollos"),
+    carpeta_id: v.optional(v.id("plano_carpetas")),
+    ruta_relativa: v.optional(v.string()),
+    storage_id: v.id("_storage"),
+    nombre_archivo: v.string(),
+    titulo: v.string(),
+    numero: v.optional(v.string()),
+    disciplina: v.optional(v.string()),
+    revision: v.optional(v.string()),
+    status: v.string(),
+    type: v.string(),
+    size: v.number(),
+    uploaded_by_id: v.id("users"),
+    uploaded_by_name: v.string(),
+    annotation_count: v.optional(v.number()),
+    open_annotation_count: v.optional(v.number()),
+    comment_count: v.optional(v.number()),
+    deleting_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proyecto_created", { fields: ["proyecto", "created_at"] })
+    .index("by_carpeta", { fields: ["carpeta_id"] })
+    .index("by_uploaded_by", { fields: ["uploaded_by_id"] }),
+
+  plano_anotaciones: defineTable({
+    plano_id: v.id("planos"),
+    proyecto: v.id("desarrollos"),
+    pagina: v.number(),
+    tipo: v.union(
+      v.literal("pin"),
+      v.literal("rectangle"),
+      v.literal("cloud"),
+      v.literal("freehand"),
+    ),
+    x: v.optional(v.number()),
+    y: v.optional(v.number()),
+    width: v.optional(v.number()),
+    height: v.optional(v.number()),
+    puntos: v.optional(v.array(v.object({
+      x: v.number(),
+      y: v.number(),
+    }))),
+    comentario: v.string(),
+    mentioned_user_ids: v.optional(v.array(v.id("users"))),
+    mentioned_users: v.optional(v.array(v.object({
+      user_id: v.id("users"),
+      name: v.string(),
+      email: v.string(),
+      start: v.optional(v.number()),
+      end: v.optional(v.number()),
+      label: v.optional(v.string()),
+    }))),
+    status: v.string(),
+    created_by_id: v.id("users"),
+    created_by_name: v.string(),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+    resolved_at: v.optional(v.number()),
+    resolved_by_id: v.optional(v.id("users")),
+    deleting_at: v.optional(v.number()),
+  }).index("by_plano", { fields: ["plano_id"] })
+    .index("by_plano_pagina", { fields: ["plano_id", "pagina"] })
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_created_by", { fields: ["created_by_id"] }),
+
+  plano_comentarios: defineTable({
+    plano_id: v.id("planos"),
+    anotacion_id: v.optional(v.id("plano_anotaciones")),
+    proyecto: v.id("desarrollos"),
+    user_id: v.id("users"),
+    user_name: v.string(),
+    comentario: v.string(),
+    mentioned_user_ids: v.optional(v.array(v.id("users"))),
+    mentioned_users: v.optional(v.array(v.object({
+      user_id: v.id("users"),
+      name: v.string(),
+      email: v.string(),
+      start: v.optional(v.number()),
+      end: v.optional(v.number()),
+      label: v.optional(v.string()),
+    }))),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  }).index("by_plano", { fields: ["plano_id"] })
+    .index("by_anotacion", { fields: ["anotacion_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_user", { fields: ["user_id"] }),
+
+  plano_mention_notifications: defineTable({
+    proyecto: v.id("desarrollos"),
+    plano_id: v.id("planos"),
+    anotacion_id: v.optional(v.id("plano_anotaciones")),
+    comentario_id: v.optional(v.id("plano_comentarios")),
+    recipient_user_id: v.id("users"),
+    actor_id: v.id("users"),
+    actor_name: v.string(),
+    comment_excerpt: v.string(),
+    created_at: v.number(),
+    read_at: v.optional(v.number()),
+  }).index("by_recipient", { fields: ["recipient_user_id"] })
+    .index("by_recipient_project", { fields: ["recipient_user_id", "proyecto"] })
+    .index("by_recipient_read", { fields: ["recipient_user_id", "read_at"] })
+    .index("by_recipient_project_read", { fields: ["recipient_user_id", "proyecto", "read_at"] })
+    .index("by_comment", { fields: ["comentario_id"] })
+    .index("by_annotation", { fields: ["anotacion_id"] })
+    .index("by_plano", { fields: ["plano_id"] }),
   
   // Programa de Obra - Scheduling data per nivel 1 partida
   programa_obra: defineTable({

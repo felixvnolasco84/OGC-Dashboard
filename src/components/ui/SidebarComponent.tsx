@@ -55,6 +55,8 @@ import {
   Upload,
   Users,
   ListTodo,
+  FileQuestion,
+  PanelsTopLeft,
   // Settings,
 } from "lucide-react";
 import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
@@ -359,6 +361,8 @@ const projectMenuItems: ProjectMenuItem[] = [
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
   { id: "bitacora", label: "Bitácora", path: "bitacora", disabled: false, icon: BookCheck },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: BookDashed },
+  { id: "rfis", label: "RFIs", path: "rfis", disabled: false, icon: FileQuestion },
+  { id: "planos", label: "Planos", path: "planos", disabled: false, icon: PanelsTopLeft },
   // { id: "autorizaciones", label: "Autorizaciones", path: "autorizaciones", disabled: false, icon: BookCheck },
   { id: "documentos", label: "Documentos", path: "documentos", disabled: false, icon: File },
   { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false, icon: BookDashed },
@@ -372,12 +376,16 @@ const contratistaMenuItems: ProjectMenuItem[] = [
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: Bookmark },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
+  { id: "rfis", label: "RFIs", path: "rfis", disabled: false, icon: FileQuestion },
+  { id: "planos", label: "Planos", path: "planos", disabled: false, icon: PanelsTopLeft },
 ];
 
 // Restricted menu items for finance role (only Requisiciones)
 const financeMenuItems: ProjectMenuItem[] = [
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
+  { id: "rfis", label: "RFIs", path: "rfis", disabled: false, icon: FileQuestion },
+  { id: "planos", label: "Planos", path: "planos", disabled: false, icon: PanelsTopLeft },
 ];
 
 const viewerMenuItems: ProjectMenuItem[] = [
@@ -386,6 +394,8 @@ const viewerMenuItems: ProjectMenuItem[] = [
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
   { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: BookCheck },
+  { id: "rfis", label: "RFIs", path: "rfis", disabled: false, icon: FileQuestion },
+  { id: "planos", label: "Planos", path: "planos", disabled: false, icon: PanelsTopLeft },
 ];
 
 const salesProjectMenuItems: ProjectMenuItem[] = [

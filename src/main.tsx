@@ -49,6 +49,10 @@ import ProyectoRequisicionesPage from "./pages/ProyectoRequisiciones/ProyectoReq
 import AutorizacionesObraPage from "./pages/AutorizacionesObra/AutorizacionesObraPage.tsx";
 import TareasPage from "./pages/Tareas/TareasPage.tsx";
 import ProyectoTareasPage from "./pages/Tareas/ProyectoTareasPage.tsx";
+import PlanosPage from "./pages/Planos/PlanosPage.tsx";
+import RFIListPage from "./pages/RFIs/RFIListPage.tsx";
+import RFINewPage from "./pages/RFIs/RFINewPage.tsx";
+import RFIDetailPage from "./pages/RFIs/RFIDetailPage.tsx";
 import ProfitAndLossPage from "./pages/ProfitAndLoss/ProfitAndLossPage.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
@@ -151,6 +155,16 @@ createRoot(document.getElementById("root")!).render(
                     <ProyectoTareasPage />
                   </ProtectedRoute>
                 } />
+                <Route path="/proyecto/:proyectoId/planos/:planoId" element={
+                  <ProtectedRoute requiredRole="contratista">
+                    <PlanosPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/planos" element={
+                  <ProtectedRoute requiredRole="contratista">
+                    <PlanosPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/proyecto/:proyectoId/documentos" element={
                   <ProtectedRoute requiredRole="user">
                     <ProyectoDocumentosPage />
@@ -184,6 +198,26 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/proyecto/:proyectoId/requisiciones" element={
                   <ProtectedRoute requiredRole="contratista">
                     <ProyectoRequisicionesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/rfis/nueva" element={
+                  <ProtectedRoute requiredRole="contratista">
+                    <RFINewPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/rfis/:rfiId/editar" element={
+                  <ProtectedRoute requiredRole="contratista">
+                    <RFINewPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/rfis/:rfiId" element={
+                  <ProtectedRoute requiredRole="contratista">
+                    <RFIDetailPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/proyecto/:proyectoId/rfis" element={
+                  <ProtectedRoute requiredRole="contratista">
+                    <RFIListPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/proyecto/:proyectoId/autorizaciones" element={

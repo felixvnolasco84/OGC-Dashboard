@@ -16,6 +16,27 @@
   opacity: 1;
 }
 
+[data-rfi-entry-form="true"] input:not([type="checkbox"]):not([type="file"]),
+[data-rfi-entry-form="true"] textarea {
+  border-color: #B9B9B4;
+  border-radius: 4px;
+  background: #FFFFFF;
+  color: #282822;
+  box-shadow: none;
+}
+
+[data-rfi-entry-form="true"] input:not([type="checkbox"]):not([type="file"]):focus-visible,
+[data-rfi-entry-form="true"] textarea:focus-visible {
+  border-color: #777770;
+  box-shadow: 0 0 0 2px rgba(119, 119, 112, 0.12);
+  outline: none;
+}
+
+[data-rfi-entry-form="true"] input::placeholder,
+[data-rfi-entry-form="true"] textarea::placeholder {
+  color: #9A9995;
+}
+
 /* Helvetica Neue Font Faces */
 @font-face {
   font-family: 'Helvetica Neue';
