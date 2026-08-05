@@ -8,6 +8,7 @@ export type ScheduleData = Doc<"programa_obra">;
 export type DetalleData = Doc<"programa_obra_detalle">;
 export type PonderacionData = Doc<"programa_obra_ponderacion">;
 export type AvanceRealData = Doc<"avance_real">;
+export type AvanceHistorialData = Doc<"programa_obra_avance_historial">;
 export type ComentarioData = Doc<"programa_obra_comentarios">;
 
 export type ProgramaItem = {
@@ -26,7 +27,13 @@ export type ProgramaItem = {
   parentPartidaDbId?: Id<"partidas">; // Parent partida DB ID
   ponderacion?: number; // weight %
   avanceReal?: number; // avance real % (computed for 0/1, user-entered for 2)
+  isComplete?: boolean; // exact completion state, independent of display rounding
   financiero?: number; // pagado/presupuesto % (only nivel 0)
+  hasReportedProgress?: boolean; // whether a positive progress value has ever been recorded
+  progressStartedAt?: number; // timestamp of the first known positive progress entry
+  progressStartKnown?: boolean; // false when progress predates the available history
+  completedAt?: number; // timestamp of the last transition to 100%
+  completionKnown?: boolean; // false when completion predates the available history
   maxChildEndDate?: string; // farthest familia end date (only nivel 0, for red extension)
   comentarios?: ComentarioData[];
   children: ProgramaItem[];

@@ -23,7 +23,12 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
 import { Id } from "../../../convex/_generated/dataModel";
-import { type ScheduleData, type ProgramaItem, parseDate } from "./programa-obra-types";
+import {
+  type AvanceHistorialData,
+  type ScheduleData,
+  type ProgramaItem,
+  parseDate,
+} from "./programa-obra-types";
 import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
 import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 import ProgramaObraComentarios from "./ProgramaObraComentarios";
@@ -70,6 +75,56 @@ const WEEK_WIDTH = 32; // px per week column
 const getMonthWidth = (weeks: number) => weeks * WEEK_WIDTH;
 
 const API_BASE_URL = "https://ogc-excel-reader.vercel.app";
+
+type ProgressTiming = {
+  hasReportedProgress: boolean;
+  progressStartedAt?: number;
+  progressStartKnown: boolean;
+  completedAt?: number;
+  completionKnown: boolean;
+};
+
+/**
+ * Derive auditable start/completion dates from the progress change log.
+ * When an existing positive value predates the log, the date is deliberately
+ * left unknown so the UI does not claim a delay that cannot be proven.
+ */
+function getProgressTiming(
+  currentProgress: number,
+  history: AvanceHistorialData[]
+): ProgressTiming {
+  const sortedHistory = [...history].sort((a, b) => a.created_at - b.created_at);
+  const firstEntry = sortedHistory[0];
+  const progressPredatesHistory = (firstEntry?.old_value ?? 0) > 0;
+  const firstPositiveEntry = sortedHistory.find((entry) => entry.new_value > 0);
+  const hasReportedProgress = currentProgress > 0 || progressPredatesHistory || firstPositiveEntry != null;
+
+  let progressStartedAt: number | undefined;
+  let progressStartKnown = !hasReportedProgress;
+  if (hasReportedProgress && !progressPredatesHistory && firstPositiveEntry) {
+    progressStartedAt = firstPositiveEntry.created_at;
+    progressStartKnown = true;
+  }
+
+  let completedAt: number | undefined;
+  let completionKnown = currentProgress < 100;
+  if (currentProgress >= 100) {
+    const completionEntries = sortedHistory.filter((entry) => entry.new_value >= 100);
+    const lastCompletionEntry = completionEntries[completionEntries.length - 1];
+    if (lastCompletionEntry) {
+      completedAt = lastCompletionEntry.created_at;
+      completionKnown = true;
+    }
+  }
+
+  return {
+    hasReportedProgress,
+    progressStartedAt,
+    progressStartKnown,
+    completedAt,
+    completionKnown,
+  };
+}
 
 /** Convert a Date object to a pixel offset within a multi-year timeline */
 function dateToPx(date: Date, months: TimelineMonth[]): number {
@@ -127,6 +182,13 @@ export default function ProgramaObra() {
   const [ponderacionItem, setPonderacionItem] = useState<ProgramaItem | null>(null);
   const [savingPonderacion, setSavingPonderacion] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  // Refresh time-based delay bars while the page remains open.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setCurrentTime(Date.now()), 60 * 60 * 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const currentUser = useQuery(api.users.getCurrentUser);
   const canEditPesos = currentUser?.role === "admin";
@@ -188,6 +250,16 @@ export default function ProgramaObra() {
     return map;
   }, [schedules]);
 
+  const avanceHistorialMap = useMemo(() => {
+    const map = new Map<string, AvanceHistorialData[]>();
+    avanceHistorial?.forEach((entry) => {
+      const entries = map.get(entry.detalle_id) ?? [];
+      entries.push(entry);
+      map.set(entry.detalle_id, entries);
+    });
+    return map;
+  }, [avanceHistorial]);
+
   // ============================================================
   // Build hierarchical tree: nivel 1 partidas + detalle children
   // ============================================================
@@ -214,22 +286,28 @@ export default function ProgramaObra() {
         .sort((a, b) => (a.orden ?? Infinity) - (b.orden ?? Infinity));
 
       // Build familia (level 1) items from nivel 2 detalles
-      const familiaItems: ProgramaItem[] = familiaDetalles.map((fam) => ({
-        id: `fam-${p1.nombre}-${fam.familia}`,
-        partida: fam.familia,
-        presupuesto: 0,
-        pagado: 0,
-        expanded: false,
-        level: 1,
-        parentPartidaNombre: p1.nombre,
-        parentPartidaDbId: p1._id,
-        familiaName: fam.familia,
-        schedule, // inherit parent schedule for gray background
-        detalleSchedule: fam,
-        ponderacion: fam.peso,
-        avanceReal: fam.avance_porcentaje ?? 0,
-        children: [],
-      } as ProgramaItem));
+      const familiaItems: ProgramaItem[] = familiaDetalles.map((fam) => {
+        const avanceReal = fam.avance_porcentaje ?? 0;
+        const timing = getProgressTiming(avanceReal, avanceHistorialMap.get(fam._id) ?? []);
+        return {
+          id: `fam-${p1.nombre}-${fam.familia}`,
+          partida: fam.familia,
+          presupuesto: 0,
+          pagado: 0,
+          expanded: false,
+          level: 1,
+          parentPartidaNombre: p1.nombre,
+          parentPartidaDbId: p1._id,
+          familiaName: fam.familia,
+          schedule, // inherit parent schedule for gray background
+          detalleSchedule: fam,
+          ponderacion: fam.peso,
+          avanceReal,
+          isComplete: avanceReal >= 100,
+          ...timing,
+          children: [],
+        } as ProgramaItem;
+      });
 
       // Financiero = pagado/presupuesto for nivel 1
       const financiero =
@@ -239,8 +317,8 @@ export default function ProgramaObra() {
 
       // Compute partida-level avance as weighted average of familias
       let partidaAvance = 0;
+      const totalWeight = familiaItems.reduce((s, c) => s + (c.ponderacion || 0), 0);
       if (familiaItems.length > 0) {
-        const totalWeight = familiaItems.reduce((s, c) => s + (c.ponderacion || 0), 0);
         if (totalWeight > 0) {
           partidaAvance = familiaItems.reduce(
             (s, c) => s + (c.avanceReal ?? 0) * (c.ponderacion || 0),
@@ -250,6 +328,33 @@ export default function ProgramaObra() {
           partidaAvance = familiaItems.reduce((s, c) => s + (c.avanceReal ?? 0), 0) / familiaItems.length;
         }
       }
+
+      // A parent activity starts with the first positive child progress entry.
+      // Its completion is the last relevant child to reach 100%.
+      const startedFamilias = familiaItems.filter((item) => item.hasReportedProgress);
+      const hasReportedProgress = startedFamilias.length > 0;
+      const progressStartKnown =
+        !hasReportedProgress ||
+        startedFamilias.every((item) => item.progressStartKnown && item.progressStartedAt != null);
+      const progressStartedAt = progressStartKnown && hasReportedProgress
+        ? Math.min(...startedFamilias.map((item) => item.progressStartedAt!))
+        : undefined;
+
+      const relevantFamilias = totalWeight > 0
+        ? familiaItems.filter((item) => (item.ponderacion ?? 0) > 0)
+        : familiaItems;
+      const isPartidaComplete = partidaAvance >= 100 && relevantFamilias.length > 0;
+      const completionKnown =
+        !isPartidaComplete ||
+        relevantFamilias.every(
+          (item) =>
+            (item.avanceReal ?? 0) >= 100 &&
+            item.completionKnown &&
+            item.completedAt != null
+        );
+      const completedAt = isPartidaComplete && completionKnown
+        ? Math.max(...relevantFamilias.map((item) => item.completedAt!))
+        : undefined;
 
       // Find the farthest familia effective end date that extends beyond the partida's end.
       // Must account for tiempo_extra: for new records fecha_fin is the base (add extension),
@@ -296,12 +401,18 @@ export default function ProgramaObra() {
         schedule,
         ponderacion: schedule?.peso,
         avanceReal: Math.round(partidaAvance * 100) / 100,
+        isComplete: isPartidaComplete,
         financiero,
+        hasReportedProgress,
+        progressStartedAt,
+        progressStartKnown,
+        completedAt,
+        completionKnown,
         maxChildEndDate,
         children: familiaItems,
       } as ProgramaItem;
     });
-  }, [nivel1Partidas, scheduleMap, detalles]);
+  }, [nivel1Partidas, scheduleMap, detalles, avanceHistorialMap]);
 
   // Attach comentarios to items
   const programaDataWithComentarios = useMemo(() => {
@@ -461,8 +572,27 @@ export default function ProgramaObra() {
     schedules?.forEach((s) => { extractDate(s.fecha_inicio); extractDate(s.fecha_fin); extractDate(s.anticipo_fecha); extractDate(s.suministro_fecha); });
     detalles?.forEach((d) => { extractDate(d.fecha_inicio); extractDate(d.fecha_fin); });
     comentarios?.forEach((c) => { extractDate(c.fecha_inicio); extractDate(c.fecha_fin); });
+    const now = new Date(currentTime);
+    const collectDelayDates = (items: ProgramaItem[]) => {
+      items.forEach((item) => {
+        if (item.progressStartedAt != null) dates.push(new Date(item.progressStartedAt));
+        if (item.completedAt != null) dates.push(new Date(item.completedAt));
+        extractDate(item.maxChildEndDate);
+
+        const effectiveSchedule = item.level === 1 && item.detalleSchedule
+          ? item.detalleSchedule
+          : item.schedule;
+        const plannedEnd = parseDate(effectiveSchedule?.fecha_fin);
+        const isComplete = item.isComplete ?? (item.avanceReal ?? 0) >= 100;
+        if (plannedEnd && !isComplete && now > plannedEnd) {
+          dates.push(now);
+        }
+        collectDelayDates(item.children);
+      });
+    };
+    collectDelayDates(programaDataWithComentarios);
     if (dates.length === 0) {
-      const cy = new Date().getFullYear();
+      const cy = now.getFullYear();
       return { startYear: cy, endYear: cy, startMonth: 0, endMonth: 11 };
     }
     let minDate = dates[0];
@@ -477,7 +607,7 @@ export default function ProgramaObra() {
       startMonth: minDate.getMonth(),
       endMonth: maxDate.getMonth(),
     };
-  }, [schedules, detalles, comentarios]);
+  }, [schedules, detalles, comentarios, programaDataWithComentarios, currentTime]);
 
   // Timeline months spanning the full data range
   const timelineMonths = useMemo(
@@ -493,14 +623,14 @@ export default function ProgramaObra() {
 
   // Today line position
   const todayPosition = useMemo(() => {
-    const now = new Date();
+    const now = new Date(currentTime);
     const cy = now.getFullYear();
     const cm = now.getMonth();
     if (cy < yearRange.startYear || cy > yearRange.endYear) return null;
     if (cy === yearRange.startYear && cm < yearRange.startMonth) return null;
     if (cy === yearRange.endYear && cm > yearRange.endMonth) return null;
     return dateToPx(now, timelineMonths);
-  }, [yearRange, timelineMonths]);
+  }, [yearRange, timelineMonths, currentTime]);
 
   // Excel upload state
   const [uploading, setUploading] = useState(false);
@@ -1233,6 +1363,7 @@ export default function ProgramaObra() {
                     item={item}
                     columnWidth={WEEK_WIDTH}
                     timelineMonths={timelineMonths}
+                    currentTime={currentTime}
                     forceShowMilestones={exporting}
                   />
                 </div>
