@@ -9,6 +9,8 @@
     "typecheck:convex": "tsc -p convex/tsconfig.json --noEmit",
     "typecheck:convex-saas": "tsc -p convex-SAAS/tsconfig.json --noEmit",
     "test:reports": "node --experimental-strip-types scripts/test-reporting-rules.mjs",
+    "test:chatbot": "node --experimental-strip-types scripts/test-assistant-rules.mjs",
+    "eval:chatbot": "node scripts/evaluate-assistant.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

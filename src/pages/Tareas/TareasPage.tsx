@@ -1,5 +1,6 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { useSearchParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import {
@@ -1368,6 +1369,8 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
 });
 
 export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
+  const [searchParams] = useSearchParams();
+  const openedDeepLinkTaskRef = useRef<string>();
   const isProjectScoped = Boolean(proyectoId);
   const proyecto = useQuery(
     api.desarrollos.getById,
@@ -1447,6 +1450,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   );
   const taskNotificationSummary = isProjectScoped ? projectNotificationSummary : globalNotificationSummary;
   const currentUser = useQuery(api.users.getCurrentUser);
+
+  useEffect(() => {
+    const requestedTaskId = searchParams.get("tarea");
+    if (!requestedTaskId || openedDeepLinkTaskRef.current === requestedTaskId || !tareas?.some((task) => task._id === requestedTaskId)) return;
+    openedDeepLinkTaskRef.current = requestedTaskId;
+    setSelectedTaskId(requestedTaskId as Id<"tareas">);
+  }, [searchParams, tareas]);
 
   const createTask = useMutation(api.tareas.create);
   const updateTask = useMutation(api.tareas.update);

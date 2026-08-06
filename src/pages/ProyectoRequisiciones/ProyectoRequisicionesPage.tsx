@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { useParams } from "react-router";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useParams, useSearchParams } from "react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,8 @@ type StatusHistoryDocument = {
 
 export default function ProyectoRequisicionesPage() {
     const { proyectoId } = useParams<{ proyectoId: string }>();
+    const [searchParams] = useSearchParams();
+    const openedDeepLinkRef = useRef<string>();
     const [searchTerm, setSearchTerm] = useState("");
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [requisicionToDelete, setRequisicionToDelete] = useState<Id<"requisiciones"> | null>(null);
@@ -154,6 +156,18 @@ export default function ProyectoRequisicionesPage() {
 
     const requisicionModal = useRequisicionModal();
     const historyModal = useRequisicionHistoryModal();
+
+    useEffect(() => {
+        const requestedId = searchParams.get("requisicion");
+        if (!requestedId || openedDeepLinkRef.current === requestedId || !proyectoId || !requisiciones) return;
+        const requisicion = requisiciones.find((item) => item._id === requestedId);
+        if (!requisicion) return;
+        openedDeepLinkRef.current = requestedId;
+        requisicionModal.onOpen({
+            projectId: proyectoId as Id<"desarrollos">,
+            requisicionId: requisicion._id,
+        }, "view");
+    }, [proyectoId, requisicionModal, requisiciones, searchParams]);
 
     // Mark requisiciones as read when page loads
     useEffect(() => {

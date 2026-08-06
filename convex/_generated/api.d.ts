@@ -13,6 +13,9 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as assistant from "../assistant.js";
+import type * as assistantRules from "../assistantRules.js";
+import type * as assistantTypes from "../assistantTypes.js";
 import type * as autorizaciones_obra from "../autorizaciones_obra.js";
 import type * as bitacora from "../bitacora.js";
 import type * as chart_configurations from "../chart_configurations.js";
@@ -76,6 +79,9 @@ import type * as weekly_projected_totals from "../weekly_projected_totals.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  assistant: typeof assistant;
+  assistantRules: typeof assistantRules;
+  assistantTypes: typeof assistantTypes;
   autorizaciones_obra: typeof autorizaciones_obra;
   bitacora: typeof bitacora;
   chart_configurations: typeof chart_configurations;

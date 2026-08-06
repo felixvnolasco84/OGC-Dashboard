@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send, X } from "lucide-react";
 import type { CommentMentionDraft, MentionableUser } from "./planosTypes";
+import { getActiveMention, rebaseMentionRanges } from "@/lib/mentionRanges";
 
 const COLORS = {
   surface: "#FBFBFB",
@@ -13,16 +14,6 @@ const COLORS = {
   muted: "#A3A39E",
 };
 const MAX_MENTIONS = 20;
-
-type ActiveMention = { start: number; end: number; query: string };
-
-function getActiveMention(value: string, caret: number): ActiveMention | undefined {
-  const beforeCaret = value.slice(0, caret);
-  const match = beforeCaret.match(/(^|[\s(])@([^\s@]*)$/);
-  if (!match) return undefined;
-  const query = match[2] || "";
-  return { start: caret - query.length - 1, end: caret, query };
-}
 
 function mentionToken(user: MentionableUser) {
   return `@${user.name.trim() || user.email.trim()}`;
@@ -53,52 +44,6 @@ function roleLabel(role: string) {
     finance: "Finanzas",
   };
   return labels[role] || role;
-}
-
-function rebaseMentions(
-  previousValue: string,
-  nextValue: string,
-  mentions: CommentMentionDraft[],
-) {
-  if (previousValue === nextValue) return mentions;
-  let changeStart = 0;
-  while (
-    changeStart < previousValue.length &&
-    changeStart < nextValue.length &&
-    previousValue[changeStart] === nextValue[changeStart]
-  ) {
-    changeStart += 1;
-  }
-  let previousEnd = previousValue.length;
-  let nextEnd = nextValue.length;
-  while (
-    previousEnd > changeStart &&
-    nextEnd > changeStart &&
-    previousValue[previousEnd - 1] === nextValue[nextEnd - 1]
-  ) {
-    previousEnd -= 1;
-    nextEnd -= 1;
-  }
-
-  const delta = nextEnd - previousEnd;
-  return mentions.flatMap((mention) => {
-    if (previousEnd <= mention.start) {
-      const shifted = {
-        ...mention,
-        start: mention.start + delta,
-        end: mention.end + delta,
-      };
-      return nextValue.slice(shifted.start, shifted.end) === shifted.label
-        ? [shifted]
-        : [];
-    }
-    if (changeStart >= mention.end) {
-      return nextValue.slice(mention.start, mention.end) === mention.label
-        ? [mention]
-        : [];
-    }
-    return [];
-  });
 }
 
 export default function MentionCommentComposer({
@@ -161,7 +106,7 @@ export default function MentionCommentComposer({
   };
 
   const handleValueChange = (nextValue: string, nextCaret: number) => {
-    onChange(nextValue, rebaseMentions(value, nextValue, mentions));
+    onChange(nextValue, rebaseMentionRanges(value, nextValue, mentions));
     setCaret(nextCaret);
     setSelectedSuggestion(0);
   };
@@ -173,7 +118,7 @@ export default function MentionCommentComposer({
     const nextValue =
       value.slice(0, activeMention.start) + token + value.slice(activeMention.end);
     const nextCaret = activeMention.start + token.length;
-    const retainedMentions = rebaseMentions(value, nextValue, mentions);
+    const retainedMentions = rebaseMentionRanges(value, nextValue, mentions);
     onChange(
       nextValue,
       [
@@ -204,7 +149,7 @@ export default function MentionCommentComposer({
       value.slice(0, mention.start) + replacement + value.slice(mention.end);
     onChange(
       nextValue,
-      rebaseMentions(
+      rebaseMentionRanges(
         value,
         nextValue,
         mentions.filter((item) => item.user_id !== userId),

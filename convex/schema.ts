@@ -1,5 +1,9 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import {
+  assistantAnswerValidator,
+  assistantReferenceValidator,
+} from "./assistantTypes";
 
 export default defineSchema({
   users: defineTable({
@@ -1205,4 +1209,41 @@ export default defineSchema({
     .index("by_run", { fields: ["run_id"] })
     .index("by_recipient", { fields: ["recipient_user_id"] })
     .index("by_run_recipient", { fields: ["run_id", "recipient_user_id"] }),
+
+  assistant_conversations: defineTable({
+    owner_user_id: v.id("users"),
+    title: v.string(),
+    project_ids: v.array(v.id("desarrollos")),
+    created_at: v.number(),
+    updated_at: v.number(),
+    archived_at: v.optional(v.number()),
+  }).index("by_owner_updated", { fields: ["owner_user_id", "updated_at"] })
+    .index("by_owner_archived", { fields: ["owner_user_id", "archived_at"] }),
+
+  assistant_messages: defineTable({
+    conversation_id: v.id("assistant_conversations"),
+    owner_user_id: v.id("users"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    content: v.string(),
+    references: v.array(assistantReferenceValidator),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("complete"),
+      v.literal("failed"),
+    ),
+    client_request_id: v.optional(v.string()),
+    reply_to_message_id: v.optional(v.id("assistant_messages")),
+    answer: v.optional(assistantAnswerValidator),
+    model: v.optional(v.string()),
+    response_id: v.optional(v.string()),
+    input_tokens: v.optional(v.number()),
+    output_tokens: v.optional(v.number()),
+    tool_names: v.optional(v.array(v.string())),
+    duration_ms: v.optional(v.number()),
+    error: v.optional(v.string()),
+    error_code: v.optional(v.string()),
+    created_at: v.number(),
+  }).index("by_conversation_created", { fields: ["conversation_id", "created_at"] })
+    .index("by_owner_request", { fields: ["owner_user_id", "client_request_id"] })
+    .index("by_reply", { fields: ["reply_to_message_id"] }),
 });

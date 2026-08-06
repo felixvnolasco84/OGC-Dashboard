@@ -470,8 +470,7 @@ function drawVarianceTable(doc: jsPDF, snapshot: ReportSnapshotV1, y: number) {
   const rowHeight = 11;
   const tableWidth = widths.reduce((sum, width) => sum + width, 0);
   doc.setFillColor(...COLORS.white);
-  doc.setDrawColor(...COLORS.border);
-  doc.rect(MARGIN, y, tableWidth, rowHeight * (rows.length + 1), "FD");
+  doc.rect(MARGIN, y, tableWidth, rowHeight * (rows.length + 1), "F");
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.8);
   doc.setTextColor(...COLORS.secondary);
@@ -479,17 +478,13 @@ function drawVarianceTable(doc: jsPDF, snapshot: ReportSnapshotV1, y: number) {
   headers.forEach((header, index) => {
     doc.text(header, x + 4, y + 7);
     x += widths[index];
-    if (index < headers.length - 1) doc.line(x, y, x, y + rowHeight * (rows.length + 1));
   });
-  doc.line(MARGIN, y + rowHeight, MARGIN + tableWidth, y + rowHeight);
   rows.forEach((row, rowIndex) => {
     const rowY = y + rowHeight * (rowIndex + 1);
     if (rowIndex % 2 === 0) {
       doc.setFillColor(...COLORS.background);
       doc.rect(MARGIN, rowY, tableWidth, rowHeight, "F");
     }
-    doc.setDrawColor(...COLORS.border);
-    doc.line(MARGIN, rowY + rowHeight, MARGIN + tableWidth, rowY + rowHeight);
     const values = [
       row.name,
       currency(row.approved_budget, snapshot.project.currency),
@@ -509,6 +504,21 @@ function drawVarianceTable(doc: jsPDF, snapshot: ReportSnapshotV1, y: number) {
       doc.text(doc.splitTextToSize(value, widths[index] - 8)[0] || "", cellX + 4, rowY + 7);
       cellX += widths[index];
     });
+  });
+
+  // Draw the grid last so alternating row fills cannot cover cell borders.
+  const tableHeight = rowHeight * (rows.length + 1);
+  doc.setDrawColor(...COLORS.border);
+  doc.setLineWidth(0.25);
+  doc.rect(MARGIN, y, tableWidth, tableHeight, "S");
+  for (let rowIndex = 1; rowIndex <= rows.length; rowIndex += 1) {
+    const lineY = y + rowHeight * rowIndex;
+    doc.line(MARGIN, lineY, MARGIN + tableWidth, lineY);
+  }
+  x = MARGIN;
+  widths.slice(0, -1).forEach((width) => {
+    x += width;
+    doc.line(x, y, x, y + tableHeight);
   });
   return y + rowHeight * (rows.length + 1);
 }
@@ -557,22 +567,44 @@ function drawPhotoCard(
   doc.roundedRect(x, y, width, height, 0.8, 0.8, "FD");
   const imageHeight = height - 15;
   if (asset) {
+    let graphicsStateSaved = false;
     try {
       const targetX = x + 0.4;
       const targetY = y + 0.4;
       const targetWidth = width - 0.8;
       const targetHeight = imageHeight - 0.4;
+
+      const properties = doc.getImageProperties(asset.data);
+      const sourceRatio = properties.width / Math.max(1, properties.height);
+      const targetRatio = targetWidth / targetHeight;
+      const renderedWidth = sourceRatio > targetRatio
+        ? targetHeight * sourceRatio
+        : targetWidth;
+      const renderedHeight = sourceRatio > targetRatio
+        ? targetHeight
+        : targetWidth / Math.max(0.01, sourceRatio);
+      const renderedX = targetX + (targetWidth - renderedWidth) / 2;
+      const renderedY = targetY + (targetHeight - renderedHeight) / 2;
+
+      doc.saveGraphicsState();
+      graphicsStateSaved = true;
+      doc.roundedRect(targetX, targetY, targetWidth, targetHeight, 0.6, 0.6, null);
+      doc.clip();
+      doc.discardPath();
       doc.addImage(
         asset.data,
         asset.format,
-        targetX,
-        targetY,
-        targetWidth,
-        targetHeight,
+        renderedX,
+        renderedY,
+        renderedWidth,
+        renderedHeight,
         undefined,
         "FAST",
       );
+      doc.restoreGraphicsState();
+      graphicsStateSaved = false;
     } catch {
+      if (graphicsStateSaved) doc.restoreGraphicsState();
       doc.setFillColor(...COLORS.hover);
       doc.rect(x + 0.4, y + 0.4, width - 0.8, imageHeight - 0.4, "F");
     }
@@ -591,6 +623,19 @@ function drawPhotoCard(
   doc.setTextColor(...COLORS.text);
   const caption = photo?.caption || "Sin comentario registrado";
   doc.text(doc.splitTextToSize(caption, width - 6)[0] || "", x + 3, y + imageHeight + 10);
+}
+
+function logbookPhotoCardHeight(width: number) {
+  const imageWidth = width - 0.8;
+  const imageHeight = imageWidth * 9 / 16;
+  return imageHeight + 15.4;
+}
+
+function logbookSectionHeight(section: ReportLogbookSection) {
+  const textHeight = section.incident ? 42 : 36;
+  const gap = 2.5;
+  const photoWidth = (CONTENT_WIDTH - gap * 2) / 3;
+  return textHeight + 3 + logbookPhotoCardHeight(photoWidth);
 }
 
 function drawLogbookSection(
@@ -634,12 +679,13 @@ function drawLogbookSection(
   const photoY = y + textHeight + 3;
   const gap = 2.5;
   const photoWidth = (CONTENT_WIDTH - gap * 2) / 3;
+  const photoHeight = logbookPhotoCardHeight(photoWidth);
   for (let index = 0; index < 3; index += 1) {
     const photo = section.photos[index];
     const asset = photo?.url ? assets.get(photo.url) : undefined;
-    drawPhotoCard(doc, photo, asset, MARGIN + index * (photoWidth + gap), photoY, photoWidth, 36);
+    drawPhotoCard(doc, photo, asset, MARGIN + index * (photoWidth + gap), photoY, photoWidth, photoHeight);
   }
-  return photoY + 36;
+  return photoY + photoHeight;
 }
 
 function drawInsightCards(doc: jsPDF, insights: ReportInsights, y: number) {
@@ -802,6 +848,7 @@ export async function renderReportPdf(
     ], { height: 27 });
   }
 
+  let renderedLogbookSections = 0;
   if (selected(sections, "variances") || selected(sections, "logbook")) {
     newPage(doc, "Variaciones y bitácora");
     sectionTitle(doc, "Top 5 partidas con mayor varianza", 29, "Rojo: excedente de pago · Verde: ahorro o monto pendiente por ejercer");
@@ -810,7 +857,11 @@ export async function renderReportPdf(
     doc.setTextColor(...COLORS.secondary);
     doc.text("El avance proviene del Programa de Obra; no se infiere a partir del porcentaje ejercido del presupuesto.", MARGIN, tableEnd + 5);
     if (selected(sections, "logbook") && logbookSections[0]) {
-      drawLogbookSection(doc, logbookSections[0], assets, tableEnd + 11);
+      const logbookY = tableEnd + 11;
+      if (logbookY + logbookSectionHeight(logbookSections[0]) <= PAGE_HEIGHT - 13) {
+        drawLogbookSection(doc, logbookSections[0], assets, logbookY);
+        renderedLogbookSections = 1;
+      }
     } else if (selected(sections, "logbook")) {
       roundedCard(doc, MARGIN, tableEnd + 11, CONTENT_WIDTH, 35);
       doc.setFontSize(8);
@@ -820,14 +871,10 @@ export async function renderReportPdf(
   }
 
   if (selected(sections, "logbook")) {
-    const remaining = logbookSections.slice(1);
-    for (let index = 0; index < remaining.length; index += 2) {
+    const remaining = logbookSections.slice(renderedLogbookSections);
+    for (const section of remaining) {
       newPage(doc, "Bitácora y evidencia fotográfica");
-      let y = 25;
-      y = drawLogbookSection(doc, remaining[index], assets, y) + 8;
-      if (remaining[index + 1] && y + 78 < PAGE_HEIGHT - 13) {
-        drawLogbookSection(doc, remaining[index + 1], assets, y);
-      }
+      drawLogbookSection(doc, section, assets, 25);
     }
   }
 
