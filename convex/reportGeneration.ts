@@ -171,7 +171,7 @@ export const generateRun = internalAction({
         if (insightResult.insights.warning) {
           warnings.push(insightResult.insights.warning);
         }
-        const pdf = renderReportPdf(snapshot, insightResult.insights, sections);
+        const pdf = await renderReportPdf(snapshot, insightResult.insights, sections);
         const safeProject = context.project.nombre
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
@@ -323,7 +323,7 @@ export const retryInsightsForRun = internalAction({
         const allowed = new Set<string>(allowedSectionsForRole(role));
         const sections = claimed.sections
           .filter((section) => allowed.has(section)) as ReportSection[];
-        const pdf = renderReportPdf(snapshot, insightResult.insights, sections);
+        const pdf = await renderReportPdf(snapshot, insightResult.insights, sections);
         const storageId = await ctx.storage.store(
           new Blob([pdf], { type: "application/pdf" }),
         );

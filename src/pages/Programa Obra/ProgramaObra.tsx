@@ -343,7 +343,12 @@ export default function ProgramaObra() {
       const relevantFamilias = totalWeight > 0
         ? familiaItems.filter((item) => (item.ponderacion ?? 0) > 0)
         : familiaItems;
-      const isPartidaComplete = partidaAvance >= 100 && relevantFamilias.length > 0;
+      // Determine completion from the underlying families instead of the
+      // weighted average. Decimal weights can produce 99.99999999999999 even
+      // when every relevant family is exactly at 100%.
+      const isPartidaComplete =
+        relevantFamilias.length > 0 &&
+        relevantFamilias.every((item) => (item.avanceReal ?? 0) >= 100);
       const completionKnown =
         !isPartidaComplete ||
         relevantFamilias.every(

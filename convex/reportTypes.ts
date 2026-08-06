@@ -110,6 +110,57 @@ export type ReportVariance = {
   actual_cost: number;
   variance: number;
   exercised_percent: number;
+  program_progress_percent?: number | null;
+};
+
+export type ReportProgramActivity = {
+  id: string;
+  name: string;
+  group: string;
+  level: number;
+  start: string | null;
+  end: string | null;
+  parent_start?: string | null;
+  parent_end?: string | null;
+  extension_end?: string | null;
+  actual_progress_percent: number;
+  planned_progress_percent: number | null;
+  financial_progress_percent?: number | null;
+  delayed: boolean;
+  milestones?: Array<{
+    type: "advance" | "supply" | "closeout";
+    date: string;
+    percentage?: number | null;
+  }>;
+};
+
+export type ReportWorkforcePoint = {
+  date: string;
+  total: number;
+};
+
+export type ReportLaborCostPoint = {
+  date: string;
+  cumulative: number;
+};
+
+export type ReportLogbookPhoto = {
+  id: string;
+  url?: string | null;
+  caption: string;
+  author: string;
+  date: string;
+};
+
+export type ReportLogbookSection = {
+  id: string;
+  title: string;
+  author: string;
+  period_start: string;
+  period_end: string;
+  bullets: string[];
+  incident?: string;
+  photos: ReportLogbookPhoto[];
 };
 
 export type ReportDataQualityIssue = {
@@ -127,6 +178,7 @@ export type ReportSnapshotV1 = {
     id: string;
     name: string;
     currency: string;
+    status?: string;
   };
   period: {
     start: string;
@@ -182,11 +234,21 @@ export type ReportSnapshotV1 = {
     delayed_activities: number;
     physical_progress_percent: number;
     planned_progress_percent: number;
+    activities?: ReportProgramActivity[];
+  };
+  workforce?: {
+    total: number | null;
+    roles: Array<{ label: string; count: number | null }>;
+    weekly: ReportWorkforcePoint[];
+    labor_cost_total: number;
+    labor_cost_timeline: ReportLaborCostPoint[];
+    source: "captured" | "not_available";
   };
   logbook: {
     entries_in_period: number;
     incidents_in_period: number;
     incident_summaries: string[];
+    sections?: ReportLogbookSection[];
   };
   data_quality: {
     score: number;
@@ -195,4 +257,3 @@ export type ReportSnapshotV1 = {
   source_counts: Record<string, number>;
   methodology: string[];
 };
-

@@ -23,6 +23,19 @@ const numberValue = (value: unknown) => {
 const percent = (numerator: number, denominator: number) =>
   denominator > 0 ? (numerator / denominator) * 100 : 0;
 
+const normalizeLabel = (value: unknown) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLocaleLowerCase("es-MX")
+  .replace(/[^a-z0-9]+/g, " ")
+  .trim();
+
+const isLaborLabel = (value: unknown) => {
+  const normalized = normalizeLabel(value);
+  return ["mano de obra", "albanil", "carpinter", "fierrer", "ayudante", "cuadrilla"]
+    .some((token) => normalized.includes(token));
+};
+
 function plannedProgress(startValue: unknown, endValue: unknown, asOf: string) {
   const start = parseProjectDate(startValue);
   const end = parseProjectDate(endValue);
@@ -33,6 +46,22 @@ function plannedProgress(startValue: unknown, endValue: unknown, asOf: string) {
   const endMs = Date.parse(`${end}T00:00:00Z`);
   const asOfMs = Date.parse(`${asOf}T00:00:00Z`);
   return ((asOfMs - startMs) / Math.max(86_400_000, endMs - startMs)) * 100;
+}
+
+function addScheduleExtension(
+  endValue: unknown,
+  amountValue: unknown,
+  unitValue: unknown,
+) {
+  const end = parseProjectDate(endValue);
+  const amount = Math.max(0, Math.floor(numberValue(amountValue)));
+  if (!end || amount <= 0) return null;
+  const date = new Date(`${end}T00:00:00Z`);
+  const unit = String(unitValue || "dias").toLocaleLowerCase("es-MX");
+  if (unit === "semanas") date.setUTCDate(date.getUTCDate() + amount * 7);
+  else if (unit === "meses") date.setUTCMonth(date.getUTCMonth() + amount);
+  else date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
 }
 
 function metricIssue(
@@ -126,6 +155,7 @@ function applyVisibilityProfile(
     };
     result.financial.approved_commitments = 0;
     result.financial.pending_payments = 0;
+    result.logbook.sections = [];
   }
 
   if (profile === "finance") {
@@ -152,11 +182,13 @@ function applyVisibilityProfile(
       delayed_activities: 0,
       physical_progress_percent: 0,
       planned_progress_percent: 0,
+      activities: [],
     };
     result.logbook = {
       entries_in_period: 0,
       incidents_in_period: 0,
       incident_summaries: [],
+      sections: [],
     };
   }
 
@@ -195,13 +227,17 @@ function applyVisibilityProfile(
     result.variances = [];
     result.concentration = { top_five_spend: 0, top_five_share_percent: 0 };
     result.requisitions.approved_commitments = 0;
+    if (result.workforce) {
+      result.workforce.labor_cost_total = 0;
+      result.workforce.labor_cost_timeline = [];
+    }
   }
 
   return result;
 }
 
 export async function buildReportSnapshot(
-  ctx: { db: any },
+  ctx: { db: any; storage?: { getUrl: (storageId: string) => Promise<string | null> } },
   args: {
     proyecto: string;
     periodStart: string;
@@ -210,7 +246,7 @@ export async function buildReportSnapshot(
     profile: ReportVisibilityProfile;
   },
 ): Promise<ReportSnapshotV1> {
-  const [project, partidas, metrics, transactions, incomes, requisitions, schedules, details, projections, weeklyProgress, logs] =
+  const [project, partidas, metrics, transactions, incomes, requisitions, schedules, details, projections, weeklyProgress, logs, documents] =
     await Promise.all([
       ctx.db.get(args.proyecto),
       ctx.db.query("partidas").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
@@ -223,6 +259,7 @@ export async function buildReportSnapshot(
       ctx.db.query("weekly_projected_totals").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("weekly_avance_real").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("bitacora").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
+      ctx.db.query("documentos").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
     ]);
 
   if (!project) throw new Error("Project not found");
@@ -232,6 +269,16 @@ export async function buildReportSnapshot(
       requisitions.map((requisition: any) =>
         ctx.db.query("requisicion_items")
           .withIndex("by_requisicion", (q: any) => q.eq("requisicion_id", requisition._id))
+          .collect(),
+      ),
+    )
+  ).flat();
+
+  const paymentItems = (
+    await Promise.all(
+      transactions.map((transaction: any) =>
+        ctx.db.query("pagos")
+          .withIndex("by_transaccion", (q: any) => q.eq("transaccion_id", transaction._id))
           .collect(),
       ),
     )
@@ -315,6 +362,132 @@ export async function buildReportSnapshot(
     plannedProgressPercent,
   });
 
+  const partidaById = new Map<string, any>(partidas.map((row: any) => [String(row._id), row]));
+  const scheduleById = new Map<string, any>(schedules.map((row: any) => [String(row._id), row]));
+  const detailsBySchedule = new Map<string, any[]>();
+  for (const detail of details) {
+    const key = String(detail.programa_obra_id);
+    const values = detailsBySchedule.get(key) || [];
+    values.push(detail);
+    detailsBySchedule.set(key, values);
+  }
+
+  const programProgressByPartida = new Map<string, number>();
+  const parentActivities = schedules.map((schedule: any) => {
+    const children = detailsBySchedule.get(String(schedule._id)) || [];
+    const progressRows = children.filter((row: any) => Number.isFinite(row.avance_porcentaje));
+    const childWeight = progressRows.reduce((sum: number, row: any) => sum + Math.max(0, numberValue(row.peso)), 0);
+    const actual = progressRows.length
+      ? childWeight > 0
+        ? progressRows.reduce((sum: number, row: any) =>
+          sum + Math.min(100, Math.max(0, numberValue(row.avance_porcentaje))) * Math.max(0, numberValue(row.peso)), 0) / childWeight
+        : progressRows.reduce((sum: number, row: any) => sum + Math.min(100, Math.max(0, numberValue(row.avance_porcentaje))), 0) / progressRows.length
+      : 0;
+    const partida = partidaById.get(String(schedule.partida_id));
+    const name = sanitizeReportText(partida?.nombre || "Partida", 90) || "Partida";
+    programProgressByPartida.set(normalizeLabel(name), actual);
+    const end = parseProjectDate(schedule.fecha_fin);
+    const milestones = [
+      schedule.anticipo_fecha ? {
+        type: "advance" as const,
+        date: parseProjectDate(schedule.anticipo_fecha),
+        percentage: Number.isFinite(schedule.anticipo_porcentaje) ? schedule.anticipo_porcentaje : null,
+      } : null,
+      schedule.suministro_fecha ? {
+        type: "supply" as const,
+        date: parseProjectDate(schedule.suministro_fecha),
+        percentage: null,
+      } : null,
+      schedule.finiquito_fecha ? {
+        type: "closeout" as const,
+        date: parseProjectDate(schedule.finiquito_fecha),
+        percentage: Number.isFinite(schedule.finiquito_porcentaje) ? schedule.finiquito_porcentaje : null,
+      } : null,
+    ].filter((milestone): milestone is NonNullable<typeof milestone> => Boolean(milestone?.date))
+      .map((milestone) => ({ ...milestone, date: milestone.date as string }));
+    return {
+      id: String(schedule._id),
+      name,
+      group: name,
+      level: 1,
+      start: parseProjectDate(schedule.fecha_inicio),
+      end,
+      actual_progress_percent: actual,
+      planned_progress_percent: plannedProgress(schedule.fecha_inicio, schedule.fecha_fin, args.periodEnd),
+      financial_progress_percent: percent(numberValue(partida?.pagado), numberValue(partida?.presupuesto_aprobado)),
+      delayed: Boolean(end && end < args.periodEnd && actual < 100),
+      milestones,
+      order: numberValue(schedule.orden),
+    };
+  });
+  const detailActivities = details.map((detail: any) => {
+    const parent = scheduleById.get(String(detail.programa_obra_id));
+    const parentPartida = parent ? partidaById.get(String(parent.partida_id)) : null;
+    const group = sanitizeReportText(detail.partida || parentPartida?.nombre || "Partida", 90) || "Partida";
+    const name = sanitizeReportText(
+      detail.nivel === 3 && detail.subpartida ? detail.subpartida : detail.familia,
+      90,
+    ) || group;
+    const actual = Math.min(100, Math.max(0, numberValue(detail.avance_porcentaje)));
+    const end = parseProjectDate(detail.fecha_fin);
+    return {
+      id: String(detail._id),
+      name,
+      group,
+      level: numberValue(detail.nivel) || 2,
+      start: parseProjectDate(detail.fecha_inicio),
+      end,
+      parent_start: parseProjectDate(parent?.fecha_inicio),
+      parent_end: parseProjectDate(parent?.fecha_fin),
+      extension_end: addScheduleExtension(
+        detail.fecha_fin,
+        detail.tiempo_extra_cantidad,
+        detail.tiempo_extra_unidad,
+      ),
+      actual_progress_percent: actual,
+      planned_progress_percent: plannedProgress(detail.fecha_inicio, detail.fecha_fin, args.periodEnd),
+      delayed: Boolean(end && end < args.periodEnd && actual < 100),
+      order: numberValue(detail.orden),
+    };
+  });
+  const programActivities = [...parentActivities, ...detailActivities]
+    .sort((a, b) => a.group.localeCompare(b.group, "es") || a.order - b.order || a.level - b.level)
+    .map((activity) => ({
+      id: activity.id,
+      name: activity.name,
+      group: activity.group,
+      level: activity.level,
+      start: activity.start,
+      end: activity.end,
+      parent_start: activity.parent_start,
+      parent_end: activity.parent_end,
+      extension_end: activity.extension_end,
+      actual_progress_percent: activity.actual_progress_percent,
+      planned_progress_percent: activity.planned_progress_percent,
+      financial_progress_percent: activity.financial_progress_percent,
+      delayed: activity.delayed,
+      milestones: activity.milestones,
+    }));
+
+  const transactionById = new Map<string, any>(transactions.map((row: any) => [String(row._id), row]));
+  const laborByDate = new Map<string, number>();
+  for (const payment of paymentItems) {
+    const transaction = transactionById.get(String(payment.transaccion_id));
+    const partida = partidaById.get(String(payment.partida_id));
+    if (!transaction || transaction.status !== "Pagado" || !partida) continue;
+    if (![partida.nombre, partida.familia, partida.sub_partida, partida.partida_nombre].some(isLaborLabel)) continue;
+    const date = parseProjectDate(transaction.fecha);
+    if (!date || date > args.periodEnd) continue;
+    laborByDate.set(date, (laborByDate.get(date) || 0) + numberValue(payment.monto));
+  }
+  let cumulativeLaborCost = 0;
+  const laborCostTimeline = [...laborByDate.entries()]
+    .sort(([left], [right]) => compareIsoDates(left, right))
+    .map(([date, amount]) => {
+      cumulativeLaborCost += amount;
+      return { date, cumulative: cumulativeLaborCost };
+    });
+
   const timeline = buildTimeline(transactions, projections, weeklyProgress, args.periodEnd);
   const lastTimeline = timeline.at(-1);
   const projectedToDate = lastTimeline?.projected_cumulative ?? null;
@@ -329,6 +502,7 @@ export async function buildReportSnapshot(
       actual_cost: numberValue(row.pagado),
       variance: numberValue(row.presupuesto_aprobado) - numberValue(row.pagado),
       exercised_percent: percent(numberValue(row.pagado), numberValue(row.presupuesto_aprobado)),
+      program_progress_percent: programProgressByPartida.get(normalizeLabel(row.nombre)) ?? null,
     }))
     .sort(
       (a: { variance: number }, b: { variance: number }) =>
@@ -360,6 +534,62 @@ export async function buildReportSnapshot(
     const status = String(row.status || "").toLocaleLowerCase("es-MX");
     return Boolean(row.comentarios) || status.includes("retras") || status.includes("proble");
   });
+
+  const photosByLog = new Map<string, any[]>();
+  for (const document of documents) {
+    if (document.type !== "bitacora_foto" || !document.bitacora_id) continue;
+    const key = String(document.bitacora_id);
+    const values = photosByLog.get(key) || [];
+    values.push(document);
+    photosByLog.set(key, values);
+  }
+  const logsByCategory = new Map<string, any[]>();
+  for (const log of periodLogs) {
+    const category = sanitizeReportText(log.categoria || "Generales", 60) || "Generales";
+    const values = logsByCategory.get(category) || [];
+    values.push(log);
+    logsByCategory.set(category, values);
+  }
+  const logbookSections = await Promise.all(
+    [...logsByCategory.entries()].map(async ([title, categoryLogs]) => {
+      const sortedLogs = [...categoryLogs].sort((left, right) =>
+        compareIsoDates(parseProjectDate(left.fecha) || "", parseProjectDate(right.fecha) || ""));
+      const dates = sortedLogs.map((row) => parseProjectDate(row.fecha)).filter(Boolean) as string[];
+      const authors = [...new Set(sortedLogs
+        .map((row) => sanitizeReportText(row.responsable, 60))
+        .filter(Boolean))];
+      const bullets = sortedLogs
+        .flatMap((row) => String(row.avance_dia || "").split(/\r?\n|[•]+/))
+        .map((item) => sanitizeReportText(item, 190))
+        .filter(Boolean)
+        .slice(0, 6);
+      const incident = sortedLogs
+        .map((row) => sanitizeReportText(row.comentarios, 220))
+        .find(Boolean);
+      const photoRecords = sortedLogs
+        .flatMap((log) => (photosByLog.get(String(log._id)) || []).map((photo) => ({ log, photo })))
+        .slice(0, 6);
+      const photos = await Promise.all(photoRecords.map(async ({ log, photo }) => ({
+        id: String(photo._id),
+        url: photo.storage_id && ctx.storage
+          ? await ctx.storage.getUrl(photo.storage_id)
+          : null,
+        caption: sanitizeReportText(photo.comment || photo.descripcion || "Evidencia fotográfica", 120),
+        author: sanitizeReportText(log.responsable || "Equipo de obra", 60),
+        date: parseProjectDate(log.fecha) || args.periodEnd,
+      })));
+      return {
+        id: normalizeLabel(title).replace(/\s+/g, "-") || "general",
+        title,
+        author: authors.length > 1 ? "Equipo de obra" : authors[0] || "Equipo de obra",
+        period_start: dates.at(0) || args.periodStart,
+        period_end: dates.at(-1) || args.periodEnd,
+        bullets,
+        incident,
+        photos,
+      };
+    }),
+  );
 
   const invalidTransactionDates = transactions.filter(
     (row: any) => row.fecha && !parseProjectDate(row.fecha),
@@ -403,6 +633,11 @@ export async function buildReportSnapshot(
       projections.length ? 0 : 1,
       "No existe una proyección semanal cargada.",
     ),
+    metricIssue(
+      "missing_workforce",
+      1,
+      "El proyecto no cuenta todavía con captura estructurada de cuadrillas por oficio.",
+    ),
   ].filter((issue): issue is ReportDataQualityIssue => Boolean(issue));
 
   const fullSnapshot: ReportSnapshotV1 = {
@@ -413,6 +648,7 @@ export async function buildReportSnapshot(
       id: String(project._id),
       name: sanitizeReportText(project.nombre, 120) || "Proyecto",
       currency: project.moneda_principal || "MXN",
+      status: sanitizeReportText(project.status || "Obra activa", 40),
     },
     period: {
       start: args.periodStart,
@@ -471,6 +707,20 @@ export async function buildReportSnapshot(
       delayed_activities: delayedActivities,
       physical_progress_percent: physicalProgressPercent,
       planned_progress_percent: plannedProgressPercent,
+      activities: programActivities,
+    },
+    workforce: {
+      total: null,
+      roles: [
+        { label: "Oficiales albañiles", count: null },
+        { label: "Oficial carpintero", count: null },
+        { label: "Oficial fierrero", count: null },
+        { label: "Ayudantes", count: null },
+      ],
+      weekly: [],
+      labor_cost_total: cumulativeLaborCost,
+      labor_cost_timeline: laborCostTimeline,
+      source: "not_available",
     },
     logbook: {
       entries_in_period: periodLogs.length,
@@ -479,6 +729,7 @@ export async function buildReportSnapshot(
         .map((row: any) => sanitizeReportText(row.comentarios || row.avance_dia))
         .filter(Boolean)
         .slice(0, 8),
+      sections: logbookSections,
     },
     data_quality: {
       score: Math.max(0, 100 - qualityIssues.reduce((sum, issue) => sum + Math.min(25, issue.count * 5), 0)),
@@ -492,6 +743,8 @@ export async function buildReportSnapshot(
       program_rows: scheduleRows.length,
       logbook_entries: logs.length,
       projection_rows: projections.length,
+      labor_cost_rows: laborCostTimeline.length,
+      logbook_photos: documents.filter((row: any) => row.type === "bitacora_foto").length,
     },
     methodology: [
       "Los importes se calculan de forma determinista desde los registros del proyecto.",
