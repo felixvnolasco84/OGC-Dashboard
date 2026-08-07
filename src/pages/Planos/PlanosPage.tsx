@@ -51,6 +51,8 @@ import {
   FileImage,
   FileText,
   Focus,
+  Folder,
+  FolderOpen,
   FolderUp,
   Loader2,
   MessageSquare,
@@ -121,6 +123,27 @@ function formatBytes(bytes: number) {
 
 function fileTitle(fileName: string) {
   return fileName.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
+}
+
+function pathSegments(path?: string) {
+  return (path || "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function planDirectorySegments(plan: Pick<PlanoListItem, "ruta_relativa">) {
+  const segments = pathSegments(plan.ruta_relativa);
+  return segments.length > 0 ? segments.slice(0, -1) : [];
+}
+
+function pathsMatch(left: string[], right: string[]) {
+  return left.length === right.length && left.every((segment, index) => segment === right[index]);
+}
+
+function pathStartsWith(path: string[], prefix: string[]) {
+  return prefix.every((segment, index) => path[index] === segment);
 }
 
 function getInitials(name: string) {
@@ -265,7 +288,8 @@ export default function PlanosPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [folderFilter, setFolderFilter] = useState("all");
+  const [currentFolderId, setCurrentFolderId] = useState<Id<"plano_carpetas">>();
+  const [currentFolderPath, setCurrentFolderPath] = useState<string[]>([]);
   const [libraryTab, setLibraryTab] = useState<"all" | "open" | "resolved">("all");
   const [folderUploadOpen, setFolderUploadOpen] = useState(false);
   const [folderUploadEntries, setFolderUploadEntries] = useState<IncomingPlanFile[]>([]);
@@ -362,6 +386,19 @@ export default function PlanosPage() {
     });
   }, [editOpen, planDetail]);
 
+  useEffect(() => {
+    if (!selectedPlanId || !planDetail) return;
+    setCurrentFolderId(planDetail.carpeta_id);
+    setCurrentFolderPath(planDirectorySegments(planDetail));
+  }, [planDetail, selectedPlanId]);
+
+  useEffect(() => {
+    if (!currentFolderId || !planFolders) return;
+    if (planFolders.some((folder) => folder._id === currentFolderId)) return;
+    setCurrentFolderId(undefined);
+    setCurrentFolderPath([]);
+  }, [currentFolderId, planFolders]);
+
   const stats = useMemo(() => {
     const allPlans = plans || [];
     return {
@@ -371,17 +408,63 @@ export default function PlanosPage() {
     };
   }, [plans]);
   const folderById = useMemo(() => new Map((planFolders || []).map((folder) => [folder._id, folder])), [planFolders]);
+  const currentFolder = currentFolderId ? folderById.get(currentFolderId) : undefined;
+  const visibleFolders = useMemo(() => {
+    const normalizedSearch = search.trim().toLocaleLowerCase("es");
+    if (!currentFolderId) {
+      return (planFolders || [])
+        .filter((folder) => !normalizedSearch || folder.nombre.toLocaleLowerCase("es").includes(normalizedSearch))
+        .map((folder) => ({
+          key: folder._id,
+          name: folder.nombre,
+          planCount: folder.plan_count,
+          updatedAt: folder.updated_at || folder.created_at,
+          onOpen: () => {
+            setCurrentFolderId(folder._id);
+            setCurrentFolderPath([]);
+            setSearch("");
+          },
+        }));
+    }
+
+    const childFolders = new Map<string, { planCount: number; updatedAt: number }>();
+    for (const plan of plans || []) {
+      if (plan.carpeta_id !== currentFolderId) continue;
+      const directory = planDirectorySegments(plan);
+      if (!pathStartsWith(directory, currentFolderPath) || directory.length <= currentFolderPath.length) continue;
+      const childName = directory[currentFolderPath.length];
+      const current = childFolders.get(childName);
+      childFolders.set(childName, {
+        planCount: (current?.planCount || 0) + 1,
+        updatedAt: Math.max(current?.updatedAt || 0, plan.updated_at || plan.created_at),
+      });
+    }
+
+    return Array.from(childFolders, ([name, metadata]) => ({
+      key: `${currentFolderId}/${[...currentFolderPath, name].join("/")}`,
+      name,
+      ...metadata,
+      onOpen: () => {
+        setCurrentFolderPath((current) => [...current, name]);
+        setSearch("");
+      },
+    }))
+      .filter((folder) => !normalizedSearch || folder.name.toLocaleLowerCase("es").includes(normalizedSearch))
+      .sort((left, right) => left.name.localeCompare(right.name, "es"));
+  }, [currentFolderId, currentFolderPath, planFolders, plans, search]);
   const filteredPlans = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("es");
     return (plans || []).filter((plan) => {
       const folder = plan.carpeta_id ? folderById.get(plan.carpeta_id) : undefined;
       const matchesSearch = !normalizedSearch || [plan.titulo, plan.numero, plan.disciplina, plan.revision, plan.nombre_archivo, plan.ruta_relativa, folder?.nombre].some((value) => value?.toLocaleLowerCase("es").includes(normalizedSearch));
       const matchesStatus = statusFilter === "all" || plan.status === statusFilter;
-      const matchesFolder = folderFilter === "all" || (folderFilter === "root" && !plan.carpeta_id) || plan.carpeta_id === folderFilter;
+      const matchesFolder = currentFolderId
+        ? plan.carpeta_id === currentFolderId && pathsMatch(planDirectorySegments(plan), currentFolderPath)
+        : !plan.carpeta_id;
       const matchesTab = libraryTab === "all" || (libraryTab === "open" && plan.open_annotation_count > 0) || (libraryTab === "resolved" && plan.annotation_count > 0 && plan.open_annotation_count === 0);
       return matchesSearch && matchesStatus && matchesFolder && matchesTab;
     });
-  }, [folderById, folderFilter, libraryTab, plans, search, statusFilter]);
+  }, [currentFolderId, currentFolderPath, folderById, libraryTab, plans, search, statusFilter]);
   const handlePageCountChange = useCallback((count: number) => setPageCount(Math.max(1, count)), []);
 
   const openUploadDialog = () => {
@@ -429,6 +512,7 @@ export default function PlanosPage() {
   const handleFileSelection = (file?: File) => {
     if (!file) return;
     if (!ACCEPTED_TYPES.includes(file.type)) return toast.error("Usa un archivo PDF, JPG, PNG o WebP");
+    if (currentFolderId && file.type !== "application/pdf") return toast.error("Las carpetas de planos solo admiten archivos PDF");
     if (file.size <= 0) return toast.error("El archivo está vacío");
     if (file.size > MAX_FILE_SIZE) return toast.error("El archivo no puede superar 50 MB");
     setUploadFile(file);
@@ -444,6 +528,10 @@ export default function PlanosPage() {
       const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
       const newPlanId = await createPlan({
         proyecto: projectId,
+        carpeta_id: currentFolderId,
+        ruta_relativa: currentFolderId
+          ? [...currentFolderPath, uploadFile.name].join("/")
+          : undefined,
         storage_id: storageId,
         nombre_archivo: uploadFile.name,
         titulo: uploadForm.titulo,
@@ -806,6 +894,12 @@ export default function PlanosPage() {
     );
   }
 
+  const currentLocationName = currentFolderPath[currentFolderPath.length - 1]
+    || currentFolder?.nombre
+    || `Planos ${project?.nombre}`;
+  const hasVisibleItems = visibleFolders.length > 0 || filteredPlans.length > 0;
+  const hasActiveFilters = Boolean(search.trim()) || statusFilter !== "all" || libraryTab !== "all";
+
   return (
     <div className="relative min-h-screen bg-white text-left" onDragEnter={handleFolderDragEnter} onDragLeave={handleFolderDragLeave} onDragOver={handleFolderDragOver} onDrop={(event) => void handleFolderDrop(event)}>
       {isDraggingFolder && (
@@ -815,7 +909,60 @@ export default function PlanosPage() {
       )}
       <div className="border-b border-gray-200 px-6 py-8 lg:px-16">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div><p className="text-sm text-gray-500">Proyecto</p><h1 className="mt-1 text-3xl font-normal text-gray-900">Planos {project?.nombre}</h1><p className="mt-2 text-sm" style={{ color: UI_COLORS.muted }}>Revisa documentos, marca observaciones y concentra la conversación técnica.</p></div>
+          <div className="min-w-0">
+            {currentFolder && (
+              <div className="mb-2 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 text-sm" style={{ color: UI_COLORS.textSoft }}>
+                <button
+                  type="button"
+                  className="shrink-0 hover:text-gray-900"
+                  onClick={() => {
+                    setCurrentFolderId(undefined);
+                    setCurrentFolderPath([]);
+                    setSearch("");
+                  }}
+                >
+                  Planos {project?.nombre}
+                </button>
+                {currentFolderPath.length > 0 && (
+                  <>
+                    <ChevronRight className="h-4 w-4 shrink-0" style={{ color: UI_COLORS.itemBorder }} />
+                    <button
+                      type="button"
+                      className="max-w-48 shrink-0 truncate hover:text-gray-900"
+                      onClick={() => {
+                        setCurrentFolderPath([]);
+                        setSearch("");
+                      }}
+                    >
+                      {currentFolder.nombre}
+                    </button>
+                  </>
+                )}
+                {currentFolderPath.slice(0, -1).map((segment, index) => (
+                  <span key={`${segment}-${index}`} className="flex min-w-0 items-center gap-2">
+                    <ChevronRight className="h-4 w-4 shrink-0" style={{ color: UI_COLORS.itemBorder }} />
+                    <button
+                      type="button"
+                      className="max-w-48 truncate hover:text-gray-900"
+                      onClick={() => {
+                        setCurrentFolderPath(currentFolderPath.slice(0, index + 1));
+                        setSearch("");
+                      }}
+                    >
+                      {segment}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {!currentFolder && <p className="text-sm text-gray-500">Proyecto</p>}
+            <h1 className="mt-1 break-words text-3xl font-normal text-gray-900">{currentLocationName}</h1>
+            <p className="mt-2 text-sm" style={{ color: UI_COLORS.muted }}>
+              {currentFolder
+                ? "Explora los planos de esta ubicación y abre un archivo para revisarlo."
+                : "Revisa documentos, marca observaciones y concentra la conversación técnica."}
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2 self-start lg:self-auto">
             <MentionNotificationCenter projectId={projectId} />
             {canWrite && (
@@ -837,23 +984,43 @@ export default function PlanosPage() {
             <button key={item.id} type="button" onClick={() => setLibraryTab(item.id)} className={cn("flex min-w-max items-center gap-4 px-4 py-4 text-sm text-gray-600", libraryTab === item.id && "border-b-2 border-gray-900 text-gray-900")}><span>{item.label}</span><span className="flex h-7 min-w-7 items-center justify-center rounded-sm px-2 text-xs" style={{ backgroundColor: UI_COLORS.itemBg }}>{item.value}</span></button>
           ))}
         </div>
-        <div className="grid gap-4 rounded-sm border bg-white p-4 lg:grid-cols-[minmax(280px,1fr)_240px_240px]" style={{ borderColor: UI_COLORS.itemBorder }}>
-          <div className="relative"><Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2" style={{ color: UI_COLORS.muted }} /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por título, número, carpeta, disciplina o revisión" className="h-9 rounded-sm bg-white pl-14 text-base font-normal shadow-none" style={{ borderColor: UI_COLORS.itemBorder }} /></div>
+        <div className="grid gap-4 rounded-sm border bg-white p-4 lg:grid-cols-[minmax(280px,1fr)_240px]" style={{ borderColor: UI_COLORS.itemBorder }}>
+          <div className="relative"><Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2" style={{ color: UI_COLORS.muted }} /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar en esta ubicación" className="h-9 rounded-sm bg-white pl-14 text-base font-normal shadow-none" style={{ borderColor: UI_COLORS.itemBorder }} /></div>
           <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-9 rounded-sm bg-white px-5 text-base shadow-none" style={{ borderColor: UI_COLORS.itemBorder }}><SelectValue placeholder="Estado" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los estados</SelectItem><SelectItem value="Vigente">Vigentes</SelectItem><SelectItem value="Borrador">Borradores</SelectItem><SelectItem value="Archivado">Archivados</SelectItem></SelectContent></Select>
-          <Select value={folderFilter} onValueChange={setFolderFilter}><SelectTrigger className="h-9 rounded-sm bg-white px-5 text-base shadow-none" style={{ borderColor: UI_COLORS.itemBorder }}><SelectValue placeholder="Carpeta" /></SelectTrigger><SelectContent><SelectItem value="all">Todas las carpetas</SelectItem><SelectItem value="root">Sin carpeta</SelectItem>{planFolders.map((folder) => <SelectItem key={folder._id} value={folder._id}>{folder.nombre} ({folder.plan_count})</SelectItem>)}</SelectContent></Select>
         </div>
         <div className="overflow-hidden rounded-sm border bg-white" style={{ borderColor: UI_COLORS.itemBorder }}>
-          <div className="hidden grid-cols-[minmax(0,1.4fr)_0.8fr_0.7fr_0.8fr_38px] gap-4 border-b px-6 py-4 text-sm lg:grid" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.label }}><span>Plano</span><span>Revisión</span><span>Estado</span><span>Actividad</span><span /></div>
-          {filteredPlans.length > 0 ? filteredPlans.map((plan) => (
+          <div className="hidden grid-cols-[minmax(0,1.4fr)_0.8fr_0.7fr_0.8fr_38px] gap-4 border-b px-6 py-4 text-sm lg:grid" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.label }}><span>Nombre</span><span>Revisión</span><span>Estado</span><span>Actividad</span><span /></div>
+          {hasVisibleItems ? (
+            <>
+              {visibleFolders.map((folder) => (
+                <button key={folder.key} type="button" onClick={folder.onOpen} className="grid w-full gap-4 border-b px-5 py-5 text-left transition hover:bg-[#FBFBFB] lg:grid-cols-[minmax(0,1.4fr)_0.8fr_0.7fr_0.8fr_38px] lg:items-center lg:px-6" style={{ borderColor: UI_COLORS.itemBorder }}>
+                  <div className="flex min-w-0 items-center gap-4">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>
+                      <Folder className="h-5 w-5 fill-current" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-gray-900">{folder.name}</span>
+                      <span className="mt-1 block text-xs" style={{ color: UI_COLORS.muted }}>{folder.planCount} plano{folder.planCount === 1 ? "" : "s"}</span>
+                    </span>
+                  </div>
+                  <div><span className="text-xs lg:hidden" style={{ color: UI_COLORS.label }}>Revisión</span><p className="mt-1 text-sm lg:mt-0" style={{ color: UI_COLORS.muted }}>—</p></div>
+                  <div><span className="text-xs lg:hidden" style={{ color: UI_COLORS.label }}>Estado</span><p className="mt-1 text-sm lg:mt-0" style={{ color: UI_COLORS.textSoft }}>Carpeta</p></div>
+                  <div><span className="text-xs lg:hidden" style={{ color: UI_COLORS.label }}>Actividad</span><p className="mt-1 text-sm lg:mt-0" style={{ color: UI_COLORS.textSoft }}>{formatDateTime(folder.updatedAt)}</p></div>
+                  <ChevronRight className="hidden h-4 w-4 lg:block" style={{ color: UI_COLORS.muted }} />
+                </button>
+              ))}
+              {filteredPlans.map((plan) => (
             <button key={plan._id} type="button" onClick={() => navigate(`/proyecto/${projectId}/planos/${plan._id}`)} className="grid w-full gap-4 border-b px-5 py-5 text-left transition last:border-b-0 hover:bg-[#FBFBFB] lg:grid-cols-[minmax(0,1.4fr)_0.8fr_0.7fr_0.8fr_38px] lg:items-center lg:px-6" style={{ borderColor: UI_COLORS.itemBorder }}>
-              <div className="flex min-w-0 items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{plan.type === "application/pdf" ? <FileText className="h-5 w-5" /> : <FileImage className="h-5 w-5" />}</span><span className="min-w-0"><span className="block truncate text-sm font-medium text-gray-900">{plan.titulo}</span>{plan.carpeta_id && <span className="mt-1 block truncate text-xs" style={{ color: UI_COLORS.textSoft }}>{folderById.get(plan.carpeta_id)?.nombre || "Carpeta"}{plan.ruta_relativa ? ` / ${plan.ruta_relativa}` : ""}</span>}<span className="mt-1 block truncate text-xs" style={{ color: UI_COLORS.muted }}>{[plan.numero, plan.disciplina, formatBytes(plan.size)].filter(Boolean).join(" · ")}</span></span></div>
+              <div className="flex min-w-0 items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{plan.type === "application/pdf" ? <FileText className="h-5 w-5" /> : <FileImage className="h-5 w-5" />}</span><span className="min-w-0"><span className="block truncate text-sm font-medium text-gray-900">{plan.titulo}</span><span className="mt-1 block truncate text-xs" style={{ color: UI_COLORS.muted }}>{[plan.numero, plan.disciplina, formatBytes(plan.size)].filter(Boolean).join(" · ")}</span></span></div>
               <div className="min-w-0"><span className="text-xs lg:hidden" style={{ color: UI_COLORS.label }}>Revisión</span><p className="mt-1 truncate text-sm lg:mt-0" style={{ color: UI_COLORS.textSoft }}>{plan.revision || "Sin revisión"}</p></div>
               <div><span className="text-xs lg:hidden" style={{ color: UI_COLORS.label }}>Estado</span><span className="mt-1 flex items-center gap-2 text-sm lg:mt-0" style={{ color: UI_COLORS.textSoft }}><span className="h-2 w-2 rounded-sm" style={{ backgroundColor: planStatusColor(plan.status) }} />{plan.status}</span></div>
               <div><span className="text-xs lg:hidden" style={{ color: UI_COLORS.label }}>Actividad</span><p className="mt-1 text-sm lg:mt-0" style={{ color: UI_COLORS.textSoft }}>{plan.open_annotation_count > 0 ? `${plan.open_annotation_count} abierta${plan.open_annotation_count === 1 ? "" : "s"}` : `${plan.annotation_count} anotación${plan.annotation_count === 1 ? "" : "es"}`}</p><p className="mt-0.5 text-xs" style={{ color: UI_COLORS.muted }}>{plan.comment_count} comentario{plan.comment_count === 1 ? "" : "s"}</p></div>
               <ChevronRight className="hidden h-4 w-4 lg:block" style={{ color: UI_COLORS.muted }} />
             </button>
-          )) : (
-            <div className="px-6 py-16 text-center"><FileText className="mx-auto h-8 w-8" style={{ color: UI_COLORS.muted }} /><p className="mt-4 text-sm font-medium text-gray-900">{plans.length === 0 ? "Aún no hay planos" : "No hay resultados"}</p><p className="mt-1 text-sm" style={{ color: UI_COLORS.muted }}>{plans.length === 0 ? "Carga el primer plano para comenzar la revisión colaborativa." : "Ajusta la búsqueda o los filtros seleccionados."}</p>{canWrite && plans.length === 0 && <div className="mt-5 flex flex-wrap justify-center gap-2"><Button type="button" variant="outline" onClick={openUploadDialog} className="gap-2 rounded-sm bg-white shadow-none" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.textSoft }}><Upload className="h-4 w-4" />Cargar plano</Button><Button type="button" onClick={openFolderUploadDialog} className="gap-2 rounded-sm shadow-none"><FolderUp className="h-4 w-4" />Cargar carpeta</Button></div>}</div>
+              ))}
+            </>
+          ) : (
+            <div className="px-6 py-16 text-center"><FolderOpen className="mx-auto h-8 w-8" style={{ color: UI_COLORS.muted }} /><p className="mt-4 text-sm font-medium text-gray-900">{hasActiveFilters ? "No hay resultados" : plans.length === 0 && planFolders.length === 0 ? "Aún no hay planos" : "Esta ubicación está vacía"}</p><p className="mt-1 text-sm" style={{ color: UI_COLORS.muted }}>{hasActiveFilters ? "Ajusta la búsqueda o los filtros seleccionados." : plans.length === 0 && planFolders.length === 0 ? "Carga el primer plano para comenzar la revisión colaborativa." : "Regresa a la carpeta anterior o carga un plano en esta ubicación."}</p>{canWrite && plans.length === 0 && planFolders.length === 0 && <div className="mt-5 flex flex-wrap justify-center gap-2"><Button type="button" variant="outline" onClick={openUploadDialog} className="gap-2 rounded-sm bg-white shadow-none" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.textSoft }}><Upload className="h-4 w-4" />Cargar plano</Button><Button type="button" onClick={openFolderUploadDialog} className="gap-2 rounded-sm shadow-none"><FolderUp className="h-4 w-4" />Cargar carpeta</Button></div>}</div>
           )}
         </div>
       </div>
@@ -861,13 +1028,13 @@ export default function PlanosPage() {
       <FolderPlanUploadDialog open={folderUploadOpen} onOpenChange={setFolderUploadOpen} projectId={projectId} initialEntries={folderUploadEntries} />
       <Dialog open={uploadOpen} onOpenChange={(open) => !uploading && setUploadOpen(open)}>
         <DialogContent className="max-w-2xl rounded-sm">
-          <DialogHeader><DialogTitle>Cargar plano</DialogTitle><DialogDescription>PDF, JPG, PNG o WebP de hasta 50 MB. Las anotaciones conservarán su posición en cada página.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Cargar plano</DialogTitle><DialogDescription>{currentFolderId ? `Se cargará en ${currentLocationName}. Las carpetas admiten archivos PDF de hasta 50 MB.` : "PDF, JPG, PNG o WebP de hasta 50 MB. Las anotaciones conservarán su posición en cada página."}</DialogDescription></DialogHeader>
           <div className="space-y-2">
             <Label>Archivo</Label>
             <button type="button" onClick={() => fileInputRef.current?.click()} className="flex min-h-28 w-full items-center justify-center gap-3 border border-dashed bg-white p-5 text-sm" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }}>
               {uploadFile ? <>{uploadFile.type === "application/pdf" ? <FileText className="h-6 w-6" /> : <FileImage className="h-6 w-6" />}<span className="min-w-0 text-left"><span className="block truncate font-medium text-gray-900">{uploadFile.name}</span><span className="block text-xs" style={{ color: UI_COLORS.muted }}>{formatBytes(uploadFile.size)} · Clic para reemplazar</span></span></> : <><Upload className="h-6 w-6" /><span>Seleccionar archivo</span></>}
             </button>
-            <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => handleFileSelection(event.target.files?.[0])} />
+            <input ref={fileInputRef} type="file" accept={currentFolderId ? ".pdf,application/pdf" : ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"} className="sr-only" onChange={(event) => handleFileSelection(event.target.files?.[0])} />
           </div>
           <PlanFormFields form={uploadForm} setForm={setUploadForm} prefix="plan" />
           <DialogFooter><Button type="button" variant="outline" onClick={() => setUploadOpen(false)} disabled={uploading}>Cancelar</Button><Button type="button" onClick={handleUpload} disabled={uploading || !uploadFile || !uploadForm.titulo.trim()}>{uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Cargar plano</Button></DialogFooter>

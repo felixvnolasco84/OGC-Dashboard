@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { type ProgramaItem, parseDate } from "./programa-obra-types";
 import { Check, MessageSquare } from "lucide-react";
 
@@ -26,6 +27,13 @@ function dateToPixel(date: Date, weekWidth: number, months: TimelineMonth[]): nu
   }
   if (months.length > 0 && (dy < months[0].year || (dy === months[0].year && dm < months[0].month))) return 0;
   return offset;
+}
+
+function formatRecordedStart(timestamp: number): string {
+  const date = new Date(timestamp);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getFullYear()}`;
 }
 
 // ============================================================
@@ -198,6 +206,21 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
     ? Math.max(level0ExtensionEndPx - parentEndPx0, 0)
     : 0;
 
+  const hasDelay = item.level === 0
+    ? lateStartWidth > 0 || level0ExtensionWidth > 0
+    : item.level === 1 && (lateStartWidth > 0 || extensionWidth > 0);
+  const recordedStartOffset = item.hasReportedProgress === true &&
+    item.progressStartKnown &&
+    item.progressStartedAt != null
+    ? dateToPixel(new Date(item.progressStartedAt), columnWidth, timelineMonths) - startPx
+    : null;
+  const showRecordedStartMarker = hasDelay &&
+    recordedStartOffset != null &&
+    recordedStartOffset >= 0;
+  const recordedStartLabel = item.progressStartedAt != null
+    ? formatRecordedStart(item.progressStartedAt)
+    : null;
+
   // Milestone positions (relative to bar start)
   const anticipoPx = anticipoDate ? dateToPixel(anticipoDate, columnWidth, timelineMonths) : null;
   const suministroPx = suministroDate ? dateToPixel(suministroDate, columnWidth, timelineMonths) : null;
@@ -268,11 +291,17 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               style={{ left: `${barWidth}px`, width: `${level0ExtensionWidth}px` }}
             />
             <div
-              className="absolute top-0 h-[6.5px] bg-[#B17C7C] z-[5]"
+              className={cn(
+                "absolute top-0 h-[6.5px] bg-[#B17C7C] z-[5]",
+                item.hasReportedProgress === true && "opacity-60"
+              )}
               style={{ left: `${barWidth}px`, width: `${level0ExtensionWidth}px` }}
             />
             <div
-              className="absolute top-[6.5px] h-[5px] bg-[#CCA7A9] z-[5]"
+              className={cn(
+                "absolute top-[6.5px] h-[5px] bg-[#CCA7A9] z-[5]",
+                item.hasReportedProgress === true && "opacity-60"
+              )}
               style={{ left: `${barWidth}px`, width: `${level0ExtensionWidth}px` }}
             />
           </>
@@ -328,7 +357,10 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               style={{ left: `${barWidth}px`, width: `${extensionWidth}px` }}
             />
             <div
-              className="absolute top-0 h-[3px] bg-[#B17C7C] z-[5]"
+              className={cn(
+                "absolute top-0 h-[3px] bg-[#B17C7C] z-[5]",
+                item.hasReportedProgress === true && "opacity-60"
+              )}
               style={{ left: `${barWidth}px`, width: `${extensionWidth}px` }}
             />
           </>
@@ -346,6 +378,29 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               style={{ left: 0, width: `${lateStartWidth}px` }}
             />
           </>
+        )}
+
+        {/* Exact first positive progress, shown only when the history proves it. */}
+        {showRecordedStartMarker && recordedStartOffset != null && recordedStartLabel && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="absolute inset-y-0 z-[15] w-2 -translate-x-1/2 cursor-help border-0 bg-transparent p-0"
+                style={{ left: `${recordedStartOffset}px` }}
+                aria-label={`Inicio registrado: ${recordedStartLabel} · primer avance`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <span
+                  className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-[#B17C7C]"
+                  style={{ boxShadow: "0 0 0 1px #fff" }}
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" sideOffset={4}>
+              Inicio registrado: {recordedStartLabel} · primer avance
+            </TooltipContent>
+          </Tooltip>
         )}
 
         {/* === Single bar for nivel 2 (sub-partida) — lighter === */}
