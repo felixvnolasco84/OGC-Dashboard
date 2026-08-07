@@ -32,6 +32,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useProjectPlanNavigation } from "@/hooks/project-plan-navigation";
+import {
+  planDirectorySegments,
+  planPathsMatch,
+  planPathStartsWith,
+} from "@/lib/plan-folder-navigation";
 import {
   Select,
   SelectContent,
@@ -100,6 +106,7 @@ const UI_COLORS = {
 };
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const EMPTY_FOLDER_PATH: string[] = [];
 const TOOL_OPTIONS: Array<{ id: AnnotationTool; label: string; icon: typeof MousePointer2 }> = [
   { id: "select", label: "Seleccionar", icon: MousePointer2 },
   { id: "cloud", label: "Nube", icon: Cloud },
@@ -123,27 +130,6 @@ function formatBytes(bytes: number) {
 
 function fileTitle(fileName: string) {
   return fileName.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
-}
-
-function pathSegments(path?: string) {
-  return (path || "")
-    .replace(/\\/g, "/")
-    .split("/")
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-}
-
-function planDirectorySegments(plan: Pick<PlanoListItem, "ruta_relativa">) {
-  const segments = pathSegments(plan.ruta_relativa);
-  return segments.length > 0 ? segments.slice(0, -1) : [];
-}
-
-function pathsMatch(left: string[], right: string[]) {
-  return left.length === right.length && left.every((segment, index) => segment === right[index]);
-}
-
-function pathStartsWith(path: string[], prefix: string[]) {
-  return prefix.every((segment, index) => path[index] === segment);
 }
 
 function getInitials(name: string) {
@@ -267,6 +253,10 @@ export default function PlanosPage() {
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderDragDepthRef = useRef(0);
+  const planNavigationProjectId = useProjectPlanNavigation((state) => state.projectId);
+  const planNavigationFolderId = useProjectPlanNavigation((state) => state.folderId);
+  const planNavigationPath = useProjectPlanNavigation((state) => state.path);
+  const setPlanNavigationLocation = useProjectPlanNavigation((state) => state.setCurrentLocation);
   const currentUser = useQuery(api.users.getCurrentUser);
   const projectId = proyectoId as Id<"desarrollos"> | undefined;
   const selectedPlanId = planoId as Id<"planos"> | undefined;
@@ -288,8 +278,12 @@ export default function PlanosPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [currentFolderId, setCurrentFolderId] = useState<Id<"plano_carpetas">>();
-  const [currentFolderPath, setCurrentFolderPath] = useState<string[]>([]);
+  const currentFolderId = planNavigationProjectId === projectId
+    ? planNavigationFolderId
+    : undefined;
+  const currentFolderPath = planNavigationProjectId === projectId
+    ? planNavigationPath
+    : EMPTY_FOLDER_PATH;
   const [libraryTab, setLibraryTab] = useState<"all" | "open" | "resolved">("all");
   const [folderUploadOpen, setFolderUploadOpen] = useState(false);
   const [folderUploadEntries, setFolderUploadEntries] = useState<IncomingPlanFile[]>([]);
@@ -323,6 +317,9 @@ export default function PlanosPage() {
   const [deleting, setDeleting] = useState(false);
   const linkedAnnotationId = searchParams.get("annotation");
   const linkedTab = searchParams.get("tab");
+  const setCurrentPlanLocation = useCallback((folderId?: Id<"plano_carpetas">, path: string[] = []) => {
+    if (projectId) setPlanNavigationLocation(projectId, folderId, path);
+  }, [projectId, setPlanNavigationLocation]);
 
   const canWrite = Boolean(currentUser && currentUser.role !== "viewer");
   const canManagePlan = Boolean(planDetail && currentUser && (currentUser.role === "admin" || currentUser._id === planDetail.uploaded_by_id));
@@ -388,16 +385,14 @@ export default function PlanosPage() {
 
   useEffect(() => {
     if (!selectedPlanId || !planDetail) return;
-    setCurrentFolderId(planDetail.carpeta_id);
-    setCurrentFolderPath(planDirectorySegments(planDetail));
-  }, [planDetail, selectedPlanId]);
+    setCurrentPlanLocation(planDetail.carpeta_id, planDirectorySegments(planDetail));
+  }, [planDetail, selectedPlanId, setCurrentPlanLocation]);
 
   useEffect(() => {
     if (!currentFolderId || !planFolders) return;
     if (planFolders.some((folder) => folder._id === currentFolderId)) return;
-    setCurrentFolderId(undefined);
-    setCurrentFolderPath([]);
-  }, [currentFolderId, planFolders]);
+    setCurrentPlanLocation();
+  }, [currentFolderId, planFolders, setCurrentPlanLocation]);
 
   const stats = useMemo(() => {
     const allPlans = plans || [];
@@ -420,8 +415,7 @@ export default function PlanosPage() {
           planCount: folder.plan_count,
           updatedAt: folder.updated_at || folder.created_at,
           onOpen: () => {
-            setCurrentFolderId(folder._id);
-            setCurrentFolderPath([]);
+            setCurrentPlanLocation(folder._id);
             setSearch("");
           },
         }));
@@ -431,7 +425,7 @@ export default function PlanosPage() {
     for (const plan of plans || []) {
       if (plan.carpeta_id !== currentFolderId) continue;
       const directory = planDirectorySegments(plan);
-      if (!pathStartsWith(directory, currentFolderPath) || directory.length <= currentFolderPath.length) continue;
+      if (!planPathStartsWith(directory, currentFolderPath) || directory.length <= currentFolderPath.length) continue;
       const childName = directory[currentFolderPath.length];
       const current = childFolders.get(childName);
       childFolders.set(childName, {
@@ -445,13 +439,13 @@ export default function PlanosPage() {
       name,
       ...metadata,
       onOpen: () => {
-        setCurrentFolderPath((current) => [...current, name]);
+        setCurrentPlanLocation(currentFolderId, [...currentFolderPath, name]);
         setSearch("");
       },
     }))
       .filter((folder) => !normalizedSearch || folder.name.toLocaleLowerCase("es").includes(normalizedSearch))
       .sort((left, right) => left.name.localeCompare(right.name, "es"));
-  }, [currentFolderId, currentFolderPath, planFolders, plans, search]);
+  }, [currentFolderId, currentFolderPath, planFolders, plans, search, setCurrentPlanLocation]);
   const filteredPlans = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("es");
     return (plans || []).filter((plan) => {
@@ -459,7 +453,7 @@ export default function PlanosPage() {
       const matchesSearch = !normalizedSearch || [plan.titulo, plan.numero, plan.disciplina, plan.revision, plan.nombre_archivo, plan.ruta_relativa, folder?.nombre].some((value) => value?.toLocaleLowerCase("es").includes(normalizedSearch));
       const matchesStatus = statusFilter === "all" || plan.status === statusFilter;
       const matchesFolder = currentFolderId
-        ? plan.carpeta_id === currentFolderId && pathsMatch(planDirectorySegments(plan), currentFolderPath)
+        ? plan.carpeta_id === currentFolderId && planPathsMatch(planDirectorySegments(plan), currentFolderPath)
         : !plan.carpeta_id;
       const matchesTab = libraryTab === "all" || (libraryTab === "open" && plan.open_annotation_count > 0) || (libraryTab === "resolved" && plan.annotation_count > 0 && plan.open_annotation_count === 0);
       return matchesSearch && matchesStatus && matchesFolder && matchesTab;
@@ -916,8 +910,7 @@ export default function PlanosPage() {
                   type="button"
                   className="shrink-0 hover:text-gray-900"
                   onClick={() => {
-                    setCurrentFolderId(undefined);
-                    setCurrentFolderPath([]);
+                    setCurrentPlanLocation();
                     setSearch("");
                   }}
                 >
@@ -930,7 +923,7 @@ export default function PlanosPage() {
                       type="button"
                       className="max-w-48 shrink-0 truncate hover:text-gray-900"
                       onClick={() => {
-                        setCurrentFolderPath([]);
+                        setCurrentPlanLocation(currentFolderId);
                         setSearch("");
                       }}
                     >
@@ -945,7 +938,7 @@ export default function PlanosPage() {
                       type="button"
                       className="max-w-48 truncate hover:text-gray-900"
                       onClick={() => {
-                        setCurrentFolderPath(currentFolderPath.slice(0, index + 1));
+                        setCurrentPlanLocation(currentFolderId, currentFolderPath.slice(0, index + 1));
                         setSearch("");
                       }}
                     >

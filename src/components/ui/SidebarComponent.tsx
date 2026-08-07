@@ -62,6 +62,8 @@ import {
 import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
 import { ForwardRefExoticComponent, RefAttributes, useMemo, useState } from "react";
 import { useProjectDocumentNavigation } from "@/hooks/project-document-navigation";
+import { useProjectPlanNavigation } from "@/hooks/project-plan-navigation";
+import { planDirectorySegments, planPathsMatch } from "@/lib/plan-folder-navigation";
 
 
 
@@ -432,6 +434,240 @@ function ProjectDocumentFolderNavigation({
   );
 }
 
+type ProjectPlanFolder = {
+  _id: Id<"plano_carpetas">;
+  nombre: string;
+};
+
+type ProjectPlan = {
+  carpeta_id?: Id<"plano_carpetas">;
+  ruta_relativa?: string;
+};
+
+type ProjectPlanFolderNode = {
+  folderId: Id<"plano_carpetas">;
+  key: string;
+  level: number;
+  name: string;
+  path: string[];
+};
+
+function ProjectPlanFolderNavigation({
+  activeFolderId,
+  activePath,
+  folders,
+  isLoading,
+  isVisible,
+  onLocationSelect,
+  plans,
+}: {
+  activeFolderId?: Id<"plano_carpetas">;
+  activePath: string[];
+  folders: ProjectPlanFolder[];
+  isLoading: boolean;
+  isVisible: boolean;
+  onLocationSelect: (folderId?: Id<"plano_carpetas">, path?: string[]) => void;
+  plans: ProjectPlan[];
+}) {
+  const [collapsedFolderKeys, setCollapsedFolderKeys] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  const navigation = useMemo(() => {
+    const childrenByParent = new Map<string, ProjectPlanFolderNode[]>();
+    const directPlanCounts = new Map<string, number>();
+    const nodeByKey = new Map<string, ProjectPlanFolderNode>();
+
+    const addChild = (parentKey: string, node: ProjectPlanFolderNode) => {
+      const siblings = childrenByParent.get(parentKey) || [];
+      if (!siblings.some((sibling) => sibling.key === node.key)) {
+        siblings.push(node);
+        childrenByParent.set(parentKey, siblings);
+      }
+      nodeByKey.set(node.key, node);
+    };
+
+    folders.forEach((folder) => {
+      addChild("root", {
+        folderId: folder._id,
+        key: folder._id,
+        level: 0,
+        name: folder.nombre,
+        path: [],
+      });
+    });
+
+    plans.forEach((plan) => {
+      if (!plan.carpeta_id) {
+        directPlanCounts.set("root", (directPlanCounts.get("root") || 0) + 1);
+        return;
+      }
+
+      const rootNode = nodeByKey.get(plan.carpeta_id);
+      if (!rootNode) return;
+      const directory = planDirectorySegments(plan);
+      if (directory.length === 0) {
+        directPlanCounts.set(rootNode.key, (directPlanCounts.get(rootNode.key) || 0) + 1);
+        return;
+      }
+
+      let parentKey = rootNode.key;
+      directory.forEach((segment, index) => {
+        const path = directory.slice(0, index + 1);
+        const key = `${plan.carpeta_id}/${path.join("/")}`;
+        const existingNode = nodeByKey.get(key);
+        if (!existingNode) {
+          addChild(parentKey, {
+            folderId: plan.carpeta_id!,
+            key,
+            level: index + 1,
+            name: segment,
+            path,
+          });
+        }
+        parentKey = key;
+      });
+      directPlanCounts.set(parentKey, (directPlanCounts.get(parentKey) || 0) + 1);
+    });
+
+    childrenByParent.forEach((siblings) => {
+      siblings.sort((left, right) => left.name.localeCompare(right.name, "es"));
+    });
+
+    const flattenedNodes: ProjectPlanFolderNode[] = [];
+    const walk = (parentKey: string) => {
+      (childrenByParent.get(parentKey) || []).forEach((node) => {
+        flattenedNodes.push(node);
+        if (!collapsedFolderKeys.has(node.key)) walk(node.key);
+      });
+    };
+    walk("root");
+
+    const getItemCount = (key: string) =>
+      (directPlanCounts.get(key) || 0) + (childrenByParent.get(key)?.length || 0);
+
+    return {
+      childCounts: new Map(
+        Array.from(childrenByParent, ([key, children]) => [key, children.length])
+      ),
+      flattenedNodes,
+      getItemCount,
+    };
+  }, [collapsedFolderKeys, folders, plans]);
+
+  const toggleFolder = (key: string) => {
+    setCollapsedFolderKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  return (
+    <SidebarMenuSub
+      className={cn(
+        "mt-1 max-h-[min(45vh,28rem)] overflow-y-auto pr-1",
+        !isVisible && "hidden"
+      )}
+    >
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton asChild size="sm" isActive={!activeFolderId}>
+          <div className="gap-0 px-1">
+            {(navigation.childCounts.get("root") || 0) > 0 ? (
+              <button
+                type="button"
+                className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                onClick={() => toggleFolder("root")}
+                aria-expanded={!collapsedFolderKeys.has("root")}
+                aria-label={`${collapsedFolderKeys.has("root") ? "Expandir" : "Colapsar"} Biblioteca de planos`}
+              >
+                <ChevronRight
+                  className={cn(
+                    "size-3.5 transition-transform",
+                    !collapsedFolderKeys.has("root") && "rotate-90"
+                  )}
+                />
+              </button>
+            ) : (
+              <span className="size-6 shrink-0" aria-hidden="true" />
+            )}
+            <button
+              type="button"
+              className="flex h-full min-w-0 flex-1 items-center gap-2 px-1 text-left text-xs"
+              onClick={() => onLocationSelect()}
+            >
+              <FolderOpen className="size-4 shrink-0" />
+              <span className="truncate">Biblioteca</span>
+              <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+                {navigation.getItemCount("root")}
+              </span>
+            </button>
+          </div>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+
+      {!collapsedFolderKeys.has("root") && (isLoading ? (
+        <SidebarMenuSubItem className="px-2 py-1 text-xs text-gray-400">
+          Cargando carpetas...
+        </SidebarMenuSubItem>
+      ) : navigation.flattenedNodes.length === 0 ? (
+        <SidebarMenuSubItem className="px-2 py-1 text-xs text-gray-400">
+          Sin carpetas
+        </SidebarMenuSubItem>
+      ) : (
+        navigation.flattenedNodes.map((node) => {
+          const hasChildren = (navigation.childCounts.get(node.key) || 0) > 0;
+          const isExpanded = !collapsedFolderKeys.has(node.key);
+          const isActive = activeFolderId === node.folderId && planPathsMatch(activePath, node.path);
+
+          return (
+            <SidebarMenuSubItem key={node.key}>
+              <SidebarMenuSubButton asChild size="sm" isActive={isActive}>
+                <div
+                  className="gap-0 px-1"
+                  style={{ paddingLeft: `${0.25 + node.level * 0.75}rem` }}
+                >
+                  {hasChildren ? (
+                    <button
+                      type="button"
+                      className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                      onClick={() => toggleFolder(node.key)}
+                      aria-expanded={isExpanded}
+                      aria-label={`${isExpanded ? "Colapsar" : "Expandir"} ${node.name}`}
+                    >
+                      <ChevronRight
+                        className={cn(
+                          "size-3.5 transition-transform",
+                          isExpanded && "rotate-90"
+                        )}
+                      />
+                    </button>
+                  ) : (
+                    <span className="size-6 shrink-0" aria-hidden="true" />
+                  )}
+                  <button
+                    type="button"
+                    className="flex h-full min-w-0 flex-1 items-center gap-2 px-1 text-left text-xs"
+                    onClick={() => onLocationSelect(node.folderId, node.path)}
+                    title={node.name}
+                  >
+                    <Folder className="size-4 shrink-0" />
+                    <span className="truncate">{node.name}</span>
+                    <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+                      {navigation.getItemCount(node.key)}
+                    </span>
+                  </button>
+                </div>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          );
+        })
+      ))}
+    </SidebarMenuSub>
+  );
+}
+
 
 const projectMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
@@ -685,6 +921,7 @@ export default function SidebarComponent() {
   const location = useLocation();
   const { proyectoId, salesProyectoId } = useParams<{ proyectoId?: string; salesProyectoId?: string }>();
   const [isDocumentsNavigationExpanded, setIsDocumentsNavigationExpanded] = useState(true);
+  const [isPlansNavigationExpanded, setIsPlansNavigationExpanded] = useState(true);
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const desarrollos = useQuery(api.desarrollos.getAll);
   const salesProjects = useQuery(api.sales_projects.getAll);
@@ -692,6 +929,7 @@ export default function SidebarComponent() {
   const isSuperAdmin = currentUser?.is_super_admin === true;
   const allUsers = useQuery(api.users.getAllUsers, isSuperAdmin ? {} : "skip");
   const documentNavigation = useProjectDocumentNavigation();
+  const planNavigation = useProjectPlanNavigation();
 
   const navigate = useNavigate();
 
@@ -743,6 +981,30 @@ export default function SidebarComponent() {
     documentNavigation.projectId === currentProject?._id
       ? documentNavigation.folderId
       : undefined;
+  const isCurrentProjectPlans = Boolean(
+    currentProject &&
+      location.pathname.startsWith(`/proyecto/${currentProject._id}/planos`),
+  );
+  const planFolders = useQuery(
+    api.planos.getFoldersByProject,
+    isCurrentProjectPlans && currentProject
+      ? { proyecto: currentProject._id }
+      : "skip",
+  );
+  const projectPlans = useQuery(
+    api.planos.getByProject,
+    isCurrentProjectPlans && currentProject
+      ? { proyecto: currentProject._id }
+      : "skip",
+  );
+  const activePlanFolderId =
+    planNavigation.projectId === currentProject?._id
+      ? planNavigation.folderId
+      : undefined;
+  const activePlanPath =
+    planNavigation.projectId === currentProject?._id
+      ? planNavigation.path
+      : [];
 
   // Get role-appropriate menu items for regular projects
   const currentProjectMenuItems = currentUser?.role === "contratista"
@@ -909,6 +1171,12 @@ export default function SidebarComponent() {
                 {currentProjectMenuItems.map((item) => {
                   const isExpandableDocumentsItem =
                     item.id === "documentos" && isCurrentProjectDocuments;
+                  const isExpandablePlansItem =
+                    item.id === "planos" && isCurrentProjectPlans;
+                  const isExpandableItem = isExpandableDocumentsItem || isExpandablePlansItem;
+                  const isNavigationExpanded = isExpandableDocumentsItem
+                    ? isDocumentsNavigationExpanded
+                    : isPlansNavigationExpanded;
 
                   return (
                     <SidebarMenuItem key={item.id}>
@@ -917,14 +1185,14 @@ export default function SidebarComponent() {
                         tooltip={item.label}
                         className={cn(
                           "px-3 py-2 text-sm transition-colors",
-                          isExpandableDocumentsItem && "gap-0",
+                          isExpandableItem && "gap-0",
                           item.disabled ? "text-gray-400 cursor-not-allowed" : "",
                           isActive(`/proyecto/${currentProject._id}/${item.path}`)
                             ? "text-gray-900 bg-gray-100 font-medium"
                             : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        {isExpandableDocumentsItem ? (
+                        {isExpandableItem ? (
                           <div>
                             <Link
                               className="flex h-full min-w-0 flex-1 items-center gap-2 text-sm"
@@ -936,14 +1204,20 @@ export default function SidebarComponent() {
                             <button
                               type="button"
                               className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-                              onClick={() => setIsDocumentsNavigationExpanded((current) => !current)}
-                              aria-expanded={isDocumentsNavigationExpanded}
-                              aria-label={`${isDocumentsNavigationExpanded ? "Colapsar" : "Expandir"} Documentos`}
+                              onClick={() => {
+                                if (isExpandableDocumentsItem) {
+                                  setIsDocumentsNavigationExpanded((current) => !current);
+                                } else {
+                                  setIsPlansNavigationExpanded((current) => !current);
+                                }
+                              }}
+                              aria-expanded={isNavigationExpanded}
+                              aria-label={`${isNavigationExpanded ? "Colapsar" : "Expandir"} ${item.label}`}
                             >
                               <ChevronRight
                                 className={cn(
                                   "size-3.5 transition-transform",
-                                  isDocumentsNavigationExpanded && "rotate-90"
+                                  isNavigationExpanded && "rotate-90"
                                 )}
                               />
                             </button>
@@ -976,6 +1250,20 @@ export default function SidebarComponent() {
                           onFolderSelect={(folderId) =>
                             documentNavigation.setCurrentFolder(currentProject._id, folderId)
                           }
+                        />
+                      )}
+                      {isExpandablePlansItem && (
+                        <ProjectPlanFolderNavigation
+                          activeFolderId={activePlanFolderId}
+                          activePath={activePlanPath}
+                          folders={(planFolders || []) as ProjectPlanFolder[]}
+                          isLoading={planFolders === undefined || projectPlans === undefined}
+                          isVisible={isPlansNavigationExpanded}
+                          plans={(projectPlans || []) as ProjectPlan[]}
+                          onLocationSelect={(folderId, path) => {
+                            planNavigation.setCurrentLocation(currentProject._id, folderId, path);
+                            navigate(`/proyecto/${currentProject._id}/planos`);
+                          }}
                         />
                       )}
                     </SidebarMenuItem>
