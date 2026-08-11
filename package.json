@@ -9,6 +9,8 @@
     "typecheck:convex": "tsc -p convex/tsconfig.json --noEmit",
     "typecheck:convex-saas": "tsc -p convex-SAAS/tsconfig.json --noEmit",
     "test:reports": "node --experimental-strip-types scripts/test-reporting-rules.mjs",
+    "test:providers": "node --experimental-strip-types scripts/test-provider-transaction-rules.mjs",
+    "test:labor-import": "node --experimental-strip-types scripts/test-labor-payment-import-rules.mjs",
     "test:chatbot": "node --experimental-strip-types scripts/test-assistant-rules.mjs",
     "eval:chatbot": "node scripts/evaluate-assistant.mjs",
     "lint": "eslint .",
@@ -67,6 +69,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "wx-react-gantt": "^1.3.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.24.3",
     "zustand": "^5.0.3"
   },

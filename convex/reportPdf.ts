@@ -417,13 +417,23 @@ function drawLineChartCard(
     doc.text(axisType === "currency" ? axisCurrency(gridValue) : number(gridValue, 0), chartX - 2, gridY + 1.5, { align: "right" });
   }
   doc.setLineDashPattern([], 0);
-  if (points.length < 2) {
+  if (points.length === 0) {
     doc.setFontSize(8.2);
     doc.setTextColor(...COLORS.text);
     doc.text("Sin datos para mostrar", chartX + chartWidth / 2, chartY + chartHeight / 2 - 1, { align: "center" });
     doc.setFontSize(6.4);
     doc.setTextColor(...COLORS.secondary);
     doc.text("Ajusta los filtros para ver informacion.", chartX + chartWidth / 2, chartY + chartHeight / 2 + 4, { align: "center" });
+    return;
+  }
+  if (points.length === 1) {
+    const pointX = chartX + chartWidth / 2;
+    const pointY = chartY + chartHeight - points[0].value / maxValue * chartHeight;
+    doc.setFillColor(...COLORS.greenDark);
+    doc.circle(pointX, pointY, 1.15, "F");
+    doc.setFontSize(6.2);
+    doc.setTextColor(...COLORS.secondary);
+    doc.text(formatChartDate(points[0].date), pointX, y + height - 5, { align: "center" });
     return;
   }
   const plotted = points.map((point, index) => ({
@@ -461,6 +471,26 @@ function drawLineChartCard(
       align: tick === 0 ? "left" : tick === tickCount - 1 ? "right" : "center",
     });
   }
+}
+
+function summarizeWorkforceRoles(
+  roles: Array<{ label: string; count: number | null }>,
+) {
+  if (roles.length <= 4) return roles;
+  const sorted = [...roles].sort((left, right) => (right.count || 0) - (left.count || 0));
+  const explicit = sorted.filter((role) => !/no desglosado|otros/i.test(role.label));
+  const primary = explicit.slice(0, 3);
+  const primarySet = new Set(primary);
+  const remaining = sorted.filter((role) => !primarySet.has(role));
+  return [
+    ...primary,
+    {
+      label: "Otros/No desglosado",
+      count: remaining.some((role) => role.count === null)
+        ? null
+        : remaining.reduce((sum, role) => sum + (role.count || 0), 0),
+    },
+  ];
 }
 
 function drawVarianceTable(doc: jsPDF, snapshot: ReportSnapshotV1, y: number) {
@@ -810,15 +840,23 @@ export async function renderReportPdf(
     ], { height: 26 });
     doc.setDrawColor(...COLORS.border);
     doc.line(MARGIN, 151, PAGE_WIDTH - MARGIN, 151);
-    sectionTitle(doc, "Fuerza de trabajo semanal", 163, workforce?.source === "captured" ? "Captura del periodo" : "Pendiente de captura estructurada");
+    sectionTitle(
+      doc,
+      "Fuerza de trabajo semanal",
+      163,
+      workforce?.source === "captured" && workforce.as_of
+        ? `Corte ${formatDate(workforce.as_of)}`
+        : "Pendiente de captura estructurada",
+    );
+    const displayedRoles = summarizeWorkforceRoles(workforce?.roles || [
+      { label: "Oficiales albañiles", count: null },
+      { label: "Oficial carpintero", count: null },
+      { label: "Oficial fierrero", count: null },
+      { label: "Ayudantes", count: null },
+    ]);
     drawMetricStrip(doc, 169, [
       { label: "Personal en obra", value: workforce?.total === null || workforce?.total === undefined ? "Sin captura" : String(workforce.total) },
-      ...(workforce?.roles || [
-        { label: "Oficiales albañiles", count: null },
-        { label: "Oficial carpintero", count: null },
-        { label: "Oficial fierrero", count: null },
-        { label: "Ayudantes", count: null },
-      ]).slice(0, 4).map((role) => ({ label: role.label, value: role.count === null ? "-" : String(role.count) })),
+      ...displayedRoles.map((role) => ({ label: role.label, value: role.count === null ? "-" : String(role.count) })),
     ], { height: 24 });
   }
 

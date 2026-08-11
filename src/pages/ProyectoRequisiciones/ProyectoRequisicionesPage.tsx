@@ -50,6 +50,7 @@ import {
     REQUISICION_NOTIFICATION_MATRIX,
     type RequisicionNotificationType,
 } from "@/lib/requisicionNotificationMatrix";
+import ProviderFormDialog, { type ProviderWithMeta } from "@/components/providers/ProviderFormDialog";
 
 type PipelineStageKey = "aprobadas" | "pagadas" | "recibidas";
 type StatusHistoryDocument = {
@@ -118,6 +119,8 @@ export default function ProyectoRequisicionesPage() {
 
     // Provider dialog state
     const [providerDialogOpen, setProviderDialogOpen] = useState(false);
+    const [commonProviderFormOpen, setCommonProviderFormOpen] = useState(false);
+    const [commonProviderForEdit, setCommonProviderForEdit] = useState<ProviderWithMeta | null>(null);
     const [selectedRequisicionForProvider, setSelectedRequisicionForProvider] = useState<Id<"requisiciones"> | null>(null);
     const [providerMode, setProviderMode] = useState<"select" | "create">("select");
     const [selectedProviderId, setSelectedProviderId] = useState<string>("");
@@ -893,7 +896,7 @@ export default function ProyectoRequisicionesPage() {
 
     // Handle create new provider
     const handleCreateProvider = async () => {
-        if (!selectedRequisicionForProvider || !newProviderData.razon_social || !newProviderData.rfc || !currentUser) return;
+        if (!selectedRequisicionForProvider || !newProviderData.razon_social || !currentUser) return;
 
         setIsSubmittingProvider(true);
         try {
@@ -923,7 +926,7 @@ export default function ProyectoRequisicionesPage() {
         const searchLower = providerSearchTerm.toLowerCase();
         return proveedores.filter(p =>
             p.razon_social.toLowerCase().includes(searchLower) ||
-            p.rfc.toLowerCase().includes(searchLower) ||
+            p.rfc?.toLowerCase().includes(searchLower) ||
             p.nombre_contacto?.toLowerCase().includes(searchLower)
         );
     }, [proveedores, providerSearchTerm]);
@@ -950,13 +953,13 @@ export default function ProyectoRequisicionesPage() {
             setIsEditingProvider(false);
             setEditProviderData({
                 razon_social: provider.razon_social,
-                rfc: provider.rfc,
-                direccion: provider.direccion,
-                nombre_contacto: provider.nombre_contacto,
-                telefono_contacto: provider.telefono_contacto,
-                cuenta: provider.cuenta,
-                clabe: provider.clabe,
-                banco: provider.banco,
+                rfc: provider.rfc || "",
+                direccion: provider.direccion || "",
+                nombre_contacto: provider.nombre_contacto || "",
+                telefono_contacto: provider.telefono_contacto || "",
+                cuenta: provider.cuenta || "",
+                clabe: provider.clabe || "",
+                banco: provider.banco || "",
             });
         }
     };
@@ -964,7 +967,26 @@ export default function ProyectoRequisicionesPage() {
     // Start editing provider
     const startEditingProvider = () => {
         if (viewingProvider && canEditProvider(viewingProvider)) {
-            setIsEditingProvider(true);
+            setCommonProviderForEdit(viewingProvider);
+            setCommonProviderFormOpen(true);
+        }
+    };
+
+    const handleCommonProviderSaved = async (providerId: Id<"proveedores">) => {
+        if (commonProviderForEdit || !selectedRequisicionForProvider || !currentUser) return;
+        try {
+            await updateRequisicionProveedor({
+                id: selectedRequisicionForProvider,
+                proveedor_id: providerId,
+                changed_by_id: currentUser._id,
+                changed_by_name: currentUser.name,
+            });
+            toast.success("Proveedor asignado a la requisición");
+            setProviderDialogOpen(false);
+        } catch (error) {
+            toast.error("El proveedor se creó, pero no pudo asignarse", {
+                description: error instanceof Error ? error.message : "Error inesperado",
+            });
         }
     };
 
@@ -2013,7 +2035,7 @@ export default function ProyectoRequisicionesPage() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>RFC *</Label>
+                                            <Label>RFC</Label>
                                             <Input
                                                 value={editProviderData.rfc}
                                                 onChange={(e) => setEditProviderData(prev => ({ ...prev, rfc: e.target.value }))}
@@ -2072,7 +2094,7 @@ export default function ProyectoRequisicionesPage() {
                                         </Button>
                                         <Button
                                             onClick={handleSaveProviderEdit}
-                                            disabled={!editProviderData.razon_social || !editProviderData.rfc || isSubmittingProvider}
+                                            disabled={!editProviderData.razon_social || isSubmittingProvider}
                                         >
                                             {isSubmittingProvider && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                                             Guardar Cambios
@@ -2178,9 +2200,12 @@ export default function ProyectoRequisicionesPage() {
                                     Seleccionar existente
                                 </Button>
                                 <Button
-                                    variant={providerMode === "create" ? "default" : "outline"}
+                                    variant="outline"
                                     size="sm"
-                                    onClick={() => setProviderMode("create")}
+                                    onClick={() => {
+                                        setCommonProviderForEdit(null);
+                                        setCommonProviderFormOpen(true);
+                                    }}
                                     className="flex-1 rounded-none"
                                 >
                                     <Plus className="h-4 w-4 mr-2" />
@@ -2238,8 +2263,8 @@ export default function ProyectoRequisicionesPage() {
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        openProviderView(proveedor._id);
-                                                                        setTimeout(() => setIsEditingProvider(true), 100);
+                                                                        setCommonProviderForEdit(proveedor);
+                                                                        setCommonProviderFormOpen(true);
                                                                     }}
                                                                     className="p-1.5 hover:bg-gray-200 rounded"
                                                                     title="Editar"
@@ -2279,7 +2304,7 @@ export default function ProyectoRequisicionesPage() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>RFC *</Label>
+                                                <Label>RFC</Label>
                                             <Input
                                                 value={newProviderData.rfc}
                                                 onChange={(e) => setNewProviderData(prev => ({ ...prev, rfc: e.target.value }))}
@@ -2345,7 +2370,7 @@ export default function ProyectoRequisicionesPage() {
                                         </Button>
                                         <Button
                                             onClick={handleCreateProvider}
-                                            disabled={!newProviderData.razon_social || !newProviderData.rfc || isSubmittingProvider}
+                                            disabled={!newProviderData.razon_social || isSubmittingProvider}
                                         >
                                             {isSubmittingProvider && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                                             Crear y Asignar
@@ -2357,6 +2382,16 @@ export default function ProyectoRequisicionesPage() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <ProviderFormDialog
+                open={commonProviderFormOpen}
+                onOpenChange={(open) => {
+                    setCommonProviderFormOpen(open);
+                    if (!open) setCommonProviderForEdit(null);
+                }}
+                provider={commonProviderForEdit}
+                onSaved={handleCommonProviderSaved}
+            />
 
             {/* Requisicion Modal */}
             <RequisicionModal />

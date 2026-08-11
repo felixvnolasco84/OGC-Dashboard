@@ -1,8 +1,26 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Input } from "@/components/ui/input";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { Archive, Edit2, Merge, MoreVertical, Plus, RotateCcw, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -10,249 +28,235 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, MoreVertical } from "lucide-react";
-import { Id } from "../../../convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import ProviderFormDialog, {
+  type ProviderWithMeta,
+} from "@/components/providers/ProviderFormDialog";
+
+type ProviderRow = ProviderWithMeta & {
+  transaccionesCount: number;
+  totalAmount: number;
+  proyectosCount: number;
+};
+
+type StatusFilter = "all" | "active" | "archived" | "incomplete" | "generic";
 
 export default function ProveedoresTablePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
-  
-  const proveedores = useQuery(api.proveedores.getAll);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<ProviderRow | null>(null);
+  const [mergeSource, setMergeSource] = useState<ProviderRow | null>(null);
+  const [mergeTarget, setMergeTarget] = useState<Id<"proveedores"> | "">("");
+
+  const providers = useQuery(api.proveedores.getAllWithStats, {
+    include_archived: true,
+    proyecto_id: selectedProyecto || undefined,
+  });
   const proyectos = useQuery(api.desarrollos.getAll);
-  const allTransacciones = useQuery(api.transacciones.getAllWithDetails);
+  const archiveProvider = useMutation(api.proveedores.archive);
+  const reactivateProvider = useMutation(api.proveedores.reactivate);
+  const mergeProviders = useMutation(api.proveedores.merge);
 
-  // Filter proveedores by selected project if applicable
-  const proveedoresData = useMemo(() => {
-    if (!proveedores || !allTransacciones) return [];
+  const filtered = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return ((providers || []) as ProviderRow[]).filter((provider) => {
+      const matchesSearch =
+        !term ||
+        provider.razon_social.toLowerCase().includes(term) ||
+        provider.rfc?.toLowerCase().includes(term) ||
+        provider.nombre_contacto?.toLowerCase().includes(term) ||
+        provider.banco?.toLowerCase().includes(term);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && !provider.is_archived) ||
+        (statusFilter === "archived" && provider.is_archived) ||
+        (statusFilter === "incomplete" && !provider.is_complete && provider.tipo !== "generico") ||
+        (statusFilter === "generic" && provider.tipo === "generico");
+      return matchesSearch && matchesStatus;
+    });
+  }, [providers, searchTerm, statusFilter]);
 
-    if (!selectedProyecto) {
-      // Show all proveedores with stats across all projects
-      return proveedores.map(prov => {
-        const provTransacciones = allTransacciones.filter(t => t.banco === prov.banco);
-        return {
-          ...prov,
-          transaccionesCount: provTransacciones.length,
-          totalAmount: provTransacciones.reduce((sum, t) => sum + t.monto_total, 0),
-        };
-      });
-    } else {
-      // Filter by project
-      const projectTransacciones = allTransacciones.filter(t => t.proyecto === selectedProyecto);
-      const bancosInProject = new Set(projectTransacciones.filter(t => t.banco).map(t => t.banco!));
-      
-      return proveedores
-        .filter(prov => bancosInProject.has(prov.banco))
-        .map(prov => {
-          const provTransacciones = projectTransacciones.filter(t => t.banco === prov.banco);
-          return {
-            ...prov,
-            transaccionesCount: provTransacciones.length,
-            totalAmount: provTransacciones.reduce((sum, t) => sum + t.monto_total, 0),
-          };
-        });
-    }
-  }, [proveedores, allTransacciones, selectedProyecto]);
-
-  const filteredProveedores = proveedoresData.filter((proveedor) =>
-    proveedor.razon_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    proveedor.rfc?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    proveedor.nombre_contacto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    proveedor.banco?.toLowerCase().includes(searchTerm.toLowerCase())
+  const activeMergeTargets = ((providers || []) as ProviderRow[]).filter(
+    (provider) => !provider.is_archived && provider._id !== mergeSource?._id
   );
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-MX", {
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("es-MX", {
       style: "currency",
       currency: "MXN",
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
     }).format(amount);
+
+  const handleArchive = async (provider: ProviderRow) => {
+    try {
+      await archiveProvider({ id: provider._id });
+      toast.success("Proveedor archivado", {
+        description: "Las relaciones históricas se conservaron.",
+      });
+    } catch (error) {
+      toast.error("No se pudo archivar", {
+        description: error instanceof Error ? error.message : "Error inesperado",
+      });
+    }
+  };
+
+  const handleReactivate = async (provider: ProviderRow) => {
+    try {
+      await reactivateProvider({ id: provider._id });
+      toast.success("Proveedor reactivado");
+    } catch (error) {
+      toast.error("No se pudo reactivar", {
+        description: error instanceof Error ? error.message : "Error inesperado",
+      });
+    }
+  };
+
+  const handleMerge = async () => {
+    if (!mergeSource || !mergeTarget) return;
+    try {
+      const result = await mergeProviders({
+        source_id: mergeSource._id,
+        target_id: mergeTarget,
+      });
+      toast.success("Proveedores fusionados", {
+        description: `${result.transacciones_actualizadas} transacciones y ${result.requisiciones_actualizadas} requisiciones reasignadas.`,
+      });
+      setMergeSource(null);
+      setMergeTarget("");
+    } catch (error) {
+      toast.error("No se pudieron fusionar", {
+        description: error instanceof Error ? error.message : "Error inesperado",
+      });
+    }
   };
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-full mx-auto py-8 text-left">
-        <div className="flex flex-col gap-4 px-12">
-          <div className="mb-8 flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-normal text-gray-900 mb-2">Proveedores</h1>
-              <p className="text-sm text-gray-500">
-                Gestiona y consulta todos los proveedores registrados en el sistema
-              </p>
-            </div>
-            <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
-              <span className="text-sm font-normal">
-                Total: {proveedoresData.length}
-              </span>
-            </Badge>
+    <div className="min-h-screen bg-white">
+      <div className="flex flex-col gap-5 px-12 py-8">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-normal text-gray-900">Proveedores</h1>
+            <p className="text-sm text-gray-500">Catálogo global vinculado directamente a transacciones y requisiciones.</p>
           </div>
-
-          {/* Search and Filter */}
-          <div className="mb-8 grid grid-cols-2 gap-4">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <Input
-                type="text"
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 rounded-none border-gray-300 h-12"
-              />
-            </div>
-
-            {/* Project Filter */}
-            <Select
-              value={selectedProyecto || undefined}
-              onValueChange={(value) => {
-                if (value === "clear") {
-                  setSelectedProyecto("");
-                } else {
-                  setSelectedProyecto(value as Id<"desarrollos">);
-                }
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="rounded-none px-4 py-2">Total: {filtered.length}</Badge>
+            <Button
+              onClick={() => {
+                setEditingProvider(null);
+                setFormOpen(true);
               }}
             >
-              <SelectTrigger className="rounded-none h-12">
-                <SelectValue placeholder="Todos los proyectos" />
-              </SelectTrigger>
-              <SelectContent>
-                {selectedProyecto && (
-                  <SelectItem value="clear">
-                    <span className="text-gray-500">Limpiar filtro</span>
-                  </SelectItem>
-                )}
-                {proyectos?.map((proyecto) => (
-                  <SelectItem key={proyecto._id} value={proyecto._id}>
-                    {proyecto.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Plus className="mr-2 h-4 w-4" /> Nuevo proveedor
+            </Button>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="border border-gray-200 rounded-none">
-          <table className="w-full">
-            <thead className="border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Razón Social
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  RFC
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Dirección
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Nombre Contacto
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Teléfono Contacto
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Cuenta
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  CLABE
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Banco
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Transacciones
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
-                  Monto Total
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {!proveedoresData ? (
-                <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
-                    Cargando proveedores...
-                  </td>
-                </tr>
-              ) : filteredProveedores && filteredProveedores.length === 0 ? (
-                <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
-                    No se encontraron proveedores
-                  </td>
-                </tr>
-              ) : (
-                filteredProveedores?.map((proveedor) => (
-                  <tr
-                    key={proveedor._id}
-                    className="hover: transition-colors"
-                  >
-                    <td className="px-6 py-4 border-r border-gray-200">
-                      <div className="text-sm font-normal text-gray-900">
-                        {proveedor.razon_social}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                      {proveedor.rfc}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                      <div className="max-w-xs truncate">
-                        {proveedor.direccion}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                      {proveedor.nombre_contacto}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                      {proveedor.telefono_contacto}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                      {proveedor.cuenta}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                      {proveedor.clabe}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                      {proveedor.banco}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900 border-r border-gray-200">
-                      <Badge variant="outline" className="px-2 py-1 text-xs">
-                        {proveedor.transaccionesCount || 0}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900 border-r border-gray-200">
-                      {formatCurrency(proveedor.totalAmount || 0)}
-                    </td>
-                    <td className="px-6 py-4 border-r border-gray-200">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4 text-gray-400" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <Input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="h-12 rounded-none pl-12" placeholder="Buscar razón social, RFC, contacto o banco" />
+          </div>
+          <Select value={selectedProyecto || "all"} onValueChange={(value) => setSelectedProyecto(value === "all" ? "" : value as Id<"desarrollos">)}>
+            <SelectTrigger className="h-12 rounded-none"><SelectValue placeholder="Todos los proyectos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los proyectos</SelectItem>
+              {proyectos?.map((project) => <SelectItem key={project._id} value={project._id}>{project.nombre}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+            <SelectTrigger className="h-12 rounded-none"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="active">Activos</SelectItem>
+              <SelectItem value="archived">Archivados</SelectItem>
+              <SelectItem value="incomplete">Incompletos</SelectItem>
+              <SelectItem value="generic">Genéricos</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
+
+      <div className="overflow-x-auto border border-gray-200">
+        <table className="w-full min-w-[1200px]">
+          <thead className="border-b border-gray-200">
+            <tr>
+              {[
+                "Razón social", "RFC", "Estado", "Contacto", "Banco", "Transacciones", "Proyectos", "Monto total", "",
+              ].map((header) => <th key={header} className="border-r px-5 py-4 text-left text-sm font-normal text-gray-600">{header}</th>)}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {!providers ? (
+              <tr><td colSpan={9} className="px-6 py-12 text-center text-gray-500">Cargando proveedores...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={9} className="px-6 py-12 text-center text-gray-500">No se encontraron proveedores</td></tr>
+            ) : filtered.map((provider) => (
+              <tr key={provider._id} className="hover:bg-gray-50">
+                <td className="border-r px-5 py-4 text-sm font-medium">{provider.razon_social}</td>
+                <td className="border-r px-5 py-4 text-sm">{provider.rfc || "—"}</td>
+                <td className="border-r px-5 py-4">
+                  <div className="flex flex-wrap gap-1">
+                    {provider.is_archived && <Badge variant="outline">Archivado</Badge>}
+                    <Badge variant="outline">
+                      {provider.tipo === "generico" ? "Genérico" : provider.is_complete ? "Completo" : "Incompleto"}
+                    </Badge>
+                  </div>
+                </td>
+                <td className="border-r px-5 py-4 text-sm">{provider.nombre_contacto || "—"}</td>
+                <td className="border-r px-5 py-4 text-sm">{provider.banco || "—"}</td>
+                <td className="border-r px-5 py-4 text-center text-sm">{provider.transaccionesCount}</td>
+                <td className="border-r px-5 py-4 text-center text-sm">{provider.proyectosCount}</td>
+                <td className="border-r px-5 py-4 text-sm font-semibold">{formatCurrency(provider.totalAmount)}</td>
+                <td className="px-4 py-4">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {!provider.is_archived && (
+                        <DropdownMenuItem onClick={() => { setEditingProvider(provider); setFormOpen(true); }}>
+                          <Edit2 className="mr-2 h-4 w-4" /> Editar / completar
+                        </DropdownMenuItem>
+                      )}
+                      {!provider.is_archived && (
+                        <DropdownMenuItem onClick={() => { setMergeSource(provider); setMergeTarget(""); }}>
+                          <Merge className="mr-2 h-4 w-4" /> Fusionar
+                        </DropdownMenuItem>
+                      )}
+                      {provider.is_archived ? (
+                        <DropdownMenuItem onClick={() => handleReactivate(provider)}><RotateCcw className="mr-2 h-4 w-4" /> Reactivar</DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem className="text-red-600" onClick={() => handleArchive(provider)}><Archive className="mr-2 h-4 w-4" /> Archivar</DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <ProviderFormDialog open={formOpen} onOpenChange={setFormOpen} provider={editingProvider} />
+      <Dialog open={Boolean(mergeSource)} onOpenChange={(open) => !open && setMergeSource(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Fusionar proveedor</DialogTitle>
+            <DialogDescription>
+              Las transacciones y requisiciones de {mergeSource?.razon_social} se moverán al proveedor destino. El origen quedará archivado.
+            </DialogDescription>
+          </DialogHeader>
+          <Select value={mergeTarget || undefined} onValueChange={(value) => setMergeTarget(value as Id<"proveedores">)}>
+            <SelectTrigger><SelectValue placeholder="Selecciona el proveedor destino" /></SelectTrigger>
+            <SelectContent>
+              {activeMergeTargets.map((provider) => <SelectItem key={provider._id} value={provider._id}>{provider.razon_social} {provider.rfc ? `· ${provider.rfc}` : ""}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeSource(null)}>Cancelar</Button>
+            <Button onClick={handleMerge} disabled={!mergeTarget}>Fusionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

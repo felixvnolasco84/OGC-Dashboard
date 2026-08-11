@@ -417,3 +417,30 @@ export const MAX_REPORT_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 export function shouldAttachReportPdf(size: number): boolean {
   return size < MAX_REPORT_ATTACHMENT_BYTES;
 }
+
+export function selectWorkforceCaptures(
+  captures: Array<{
+    capture_date: string;
+    total_people: number;
+    roles: Array<{ label: string; count: number }>;
+    status?: string;
+  }>,
+  periodEnd: string,
+) {
+  const eligible = captures
+    .filter((capture) => capture.status !== "superseded" && capture.capture_date <= periodEnd)
+    .sort((left, right) => compareIsoDates(left.capture_date, right.capture_date));
+  const latest = eligible.at(-1) || null;
+  const ageDays = latest
+    ? Math.floor((Date.parse(`${periodEnd}T00:00:00Z`) - Date.parse(`${latest.capture_date}T00:00:00Z`)) / 86_400_000)
+    : null;
+  return {
+    latest,
+    weekly: eligible.map((capture) => ({
+      date: capture.capture_date,
+      total: capture.total_people,
+    })),
+    stale: ageDays !== null && ageDays > 7,
+    ageDays,
+  };
+}

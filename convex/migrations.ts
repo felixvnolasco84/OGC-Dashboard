@@ -1,4 +1,10 @@
 import { internalMutation } from "./functions";
+import {
+  cleanOptional,
+  isGenericProviderName,
+  normalizeProviderName,
+  normalizeRfc,
+} from "./providerUtils";
 
 /**
  * One-time migration: Populate moneda_principal field for all existing projects
@@ -120,5 +126,53 @@ export const populateMonedaPrincipal = internalMutation({
     console.log(JSON.stringify(summary, null, 2));
     
     return summary;
+  },
+});
+
+/**
+ * Backfills normalized provider identity fields without merging records.
+ * Collisions are returned for explicit administrative review.
+ */
+export const normalizeExistingProviders = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const providers = await ctx.db.query("proveedores").collect();
+    const names = new Map<string, string[]>();
+    const rfcs = new Map<string, string[]>();
+
+    for (const provider of providers) {
+      const normalizedName = normalizeProviderName(provider.razon_social);
+      const normalizedRfc = normalizeRfc(provider.rfc);
+      const tipo = provider.tipo || (isGenericProviderName(provider.razon_social) ? "generico" : "regular");
+      await ctx.db.patch(provider._id, {
+        razon_social: provider.razon_social.trim(),
+        razon_social_normalizada: normalizedName,
+        rfc: cleanOptional(provider.rfc),
+        rfc_normalizado: normalizedRfc,
+        direccion: cleanOptional(provider.direccion),
+        nombre_contacto: cleanOptional(provider.nombre_contacto),
+        telefono_contacto: cleanOptional(provider.telefono_contacto),
+        cuenta: cleanOptional(provider.cuenta),
+        clabe: cleanOptional(provider.clabe),
+        banco: cleanOptional(provider.banco),
+        tipo,
+        updated_at: Date.now(),
+      });
+
+      names.set(normalizedName, [...(names.get(normalizedName) || []), provider._id]);
+      if (normalizedRfc) {
+        rfcs.set(normalizedRfc, [...(rfcs.get(normalizedRfc) || []), provider._id]);
+      }
+    }
+
+    return {
+      updated: providers.length,
+      name_collisions: [...names.entries()]
+        .filter(([, ids]) => ids.length > 1)
+        .map(([value, ids]) => ({ value, ids })),
+      rfc_collisions: [...rfcs.entries()]
+        .filter(([, ids]) => ids.length > 1)
+        .map(([value, ids]) => ({ value, ids })),
+    };
   },
 });

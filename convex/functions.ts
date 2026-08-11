@@ -501,17 +501,14 @@ async function updateHonorariosMonto(
     // If there are excluded partidas, subtract their amounts from the total
     let excludedAmount = 0;
     if (excludedPartidasIds.length > 0) {
-      // Get the excluded nivel 1 partidas to find their names
-      const excludedNivel1Partidas = await ctx.db
-        .query("partidas")
-        .filter((q: any) => {
-          let condition = q.eq(q.field("_id"), excludedPartidasIds[0]);
-          for (let i = 1; i < excludedPartidasIds.length; i++) {
-            condition = q.or(condition, q.eq(q.field("_id"), excludedPartidasIds[i]));
-          }
-          return condition;
-        })
-        .collect();
+      // Read the explicitly excluded partidas by ID. A filter on `_id` still scans
+      // the entire table in Convex and can exceed the per-function read limit.
+      const excludedNivel1Partidas = (await Promise.all(
+        excludedPartidasIds.map((partidaId: any) => ctx.db.get(partidaId))
+      )).filter(
+        (partida: any) =>
+          partida && partida.proyecto === proyectoId && partida.nivel === 1
+      );
       
       // Get the names of excluded nivel 1 partidas
       const excludedPartidasNames = excludedNivel1Partidas.map((p: any) => p.nombre);
@@ -599,14 +596,12 @@ async function updateHonorariosPartida(
   console.log(`Updating HONORARIOS partida for proyecto: ${proyectoId}`);
   
   try {
-    // Get all nivel 1 partidas for this project and find honorarios with case-insensitive match
+    // Restrict the scan to nivel 1 partidas in this project. Using `.filter()`
+    // here used to scan the complete global partidas table on every transaction.
     const nivel1Partidas = await ctx.db
       .query("partidas")
-      .filter((q: any) => 
-        q.and(
-          q.eq(q.field("nivel"), 1),
-          q.eq(q.field("proyecto"), proyectoId)
-        )
+      .withIndex("by_nivel_proyecto", (q: any) =>
+        q.eq("nivel", 1).eq("proyecto", proyectoId)
       )
       .collect();
     

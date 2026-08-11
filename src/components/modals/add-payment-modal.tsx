@@ -19,6 +19,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import ProviderFormDialog from "@/components/providers/ProviderFormDialog";
 
 export default function AddPaymentModal() {
     // Store hooks
@@ -51,6 +52,8 @@ export default function AddPaymentModal() {
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     });
     const [banco, setBanco] = useState("");
+    const [proveedorId, setProveedorId] = useState<Id<"proveedores"> | "">("");
+    const [providerFormOpen, setProviderFormOpen] = useState(false);
     const [numeroCuenta, setNumeroCuenta] = useState("");
     const [codigoReferencia, setCodigoReferencia] = useState("");
     const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -62,6 +65,7 @@ export default function AddPaymentModal() {
     const createTransaction = useMutation(api.transacciones.createTransaction);
     const generateUploadUrl = useMutation(api.documentos.generateUploadUrl);
     const createDocumentWithStorage = useMutation(api.documentos.createWithStorage);
+    const providers = useQuery(api.proveedores.getAll);
 
     // Fetch all partidas for this project
     const allPartidas = useQuery(
@@ -218,6 +222,7 @@ export default function AddPaymentModal() {
             // Create a single transaction with all line items
             const result = await createTransaction({
                 proyecto: paymentContext.projectId,
+                proveedor_id: proveedorId || undefined,
                 monto_total: calculateTotalAmount(),
                 fecha,
                 tipo_pago: tipoPago,
@@ -293,6 +298,7 @@ export default function AddPaymentModal() {
                 setFecha(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
             }
             setBanco("");
+            setProveedorId("");
             setNumeroCuenta("");
             setCodigoReferencia("");
             setDocumentFile(null);
@@ -352,6 +358,7 @@ export default function AddPaymentModal() {
     }, 0), 0);
 
     return (
+        <>
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-[800px] sm:max-w-[800px] overflow-y-auto">
                 <SheetHeader>
@@ -404,6 +411,32 @@ export default function AddPaymentModal() {
                                 )}>Por pagar</span>
                             </button>
                         </div>
+                    </div>
+
+                    <div className="space-y-2 border p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-medium text-gray-900">Proveedor</h3>
+                                <p className="text-xs text-gray-500">Opcional; puede asignarse o modificarse después.</p>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" onClick={() => setProviderFormOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4" /> Nuevo
+                            </Button>
+                        </div>
+                        <Select
+                            value={proveedorId || "none"}
+                            onValueChange={(value) => setProveedorId(value === "none" ? "" : value as Id<"proveedores">)}
+                        >
+                            <SelectTrigger><SelectValue placeholder="Sin proveedor" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Sin proveedor</SelectItem>
+                                {providers?.map((provider) => (
+                                    <SelectItem key={provider._id} value={provider._id}>
+                                        {provider.razon_social}{provider.rfc ? ` · ${provider.rfc}` : " · RFC pendiente"}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Hierarchical Partida/Familia/SubPartida Selection */}
@@ -834,5 +867,7 @@ export default function AddPaymentModal() {
                 </form>
             </SheetContent>
         </Sheet>
+        <ProviderFormDialog open={providerFormOpen} onOpenChange={setProviderFormOpen} />
+        </>
     )
 }

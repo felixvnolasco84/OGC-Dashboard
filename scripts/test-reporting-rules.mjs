@@ -10,6 +10,7 @@ import {
   previousPeriod,
   reportSubscriptionPeriodKey,
   sanitizeReportText,
+  selectWorkforceCaptures,
   shouldAttachReportPdf,
   zonedDateTimeToTimestamp,
 } from "../convex/reportingUtils.ts";
@@ -172,6 +173,26 @@ assert.equal(
 );
 assert.equal(shouldAttachReportPdf(25 * 1024 * 1024 - 1), true);
 assert.equal(shouldAttachReportPdf(25 * 1024 * 1024), false);
+
+const workforceCaptures = [
+  { capture_date: "2026-05-11", total_people: 18, roles: [], status: "active" },
+  { capture_date: "2026-05-18", total_people: 23, roles: [], status: "active" },
+  { capture_date: "2026-05-25", total_people: 21, roles: [], status: "active" },
+  { capture_date: "2026-05-18", total_people: 99, roles: [], status: "superseded" },
+];
+assert.deepEqual(selectWorkforceCaptures([], "2026-05-18"), {
+  latest: null,
+  weekly: [],
+  stale: false,
+  ageDays: null,
+});
+const currentWorkforce = selectWorkforceCaptures(workforceCaptures, "2026-05-18");
+assert.equal(currentWorkforce.latest?.total_people, 23);
+assert.deepEqual(currentWorkforce.weekly.map((point) => point.total), [18, 23]);
+assert.equal(currentWorkforce.stale, false);
+assert.equal(selectWorkforceCaptures(workforceCaptures, "2026-05-20").latest?.capture_date, "2026-05-18");
+assert.equal(selectWorkforceCaptures(workforceCaptures, "2026-05-27").stale, false);
+assert.equal(selectWorkforceCaptures(workforceCaptures, "2026-06-03").stale, true);
 
 console.log(
   "Reporting rules passed: mixed dates, leap years, timezone periods, scheduling, earned value, and sanitization.",

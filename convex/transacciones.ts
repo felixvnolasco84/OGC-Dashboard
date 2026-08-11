@@ -1,12 +1,52 @@
 import { query, mutation as baseMutation } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, updatePagadoForHierarchy, updateMeticasPresupuesto, updateHonorariosMonto, updateProyectoMonedaPrincipal } from "./functions";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
+import { assertAdmin, assertCanWrite, checkDesarrolloAccess } from "./permissions";
+import { isProviderComplete } from "./providerUtils";
+
+async function validateTransactionWrite(
+  ctx: MutationCtx,
+  proyecto: Id<"desarrollos">,
+  proveedorId?: Id<"proveedores"> | null
+) {
+  await assertCanWrite(ctx);
+  if (!(await checkDesarrolloAccess(ctx, proyecto))) {
+    throw new Error("No tienes acceso para modificar este proyecto.");
+  }
+  if (!proveedorId) return null;
+  const proveedor = await ctx.db.get(proveedorId);
+  if (!proveedor || proveedor.merged_into) throw new Error("Proveedor no encontrado.");
+  if (proveedor.archived_at) throw new Error("No se puede asignar un proveedor archivado.");
+  return proveedor;
+}
+
+async function providerSummary(ctx: QueryCtx, proveedorId?: Id<"proveedores">) {
+  if (!proveedorId) return null;
+  const proveedor = await ctx.db.get(proveedorId);
+  if (!proveedor) return null;
+  const tipo = proveedor.tipo || "regular";
+  return {
+    _id: proveedor._id,
+    razon_social: proveedor.razon_social,
+    rfc: proveedor.rfc,
+    tipo,
+    is_complete: isProviderComplete({ ...proveedor, tipo }),
+    is_archived: Boolean(proveedor.archived_at),
+  };
+}
 
 // Create a transaction with multiple line items (concepts)
 export const createTransaction = mutation({
   args: {
     proyecto: v.id("desarrollos"),
+    proveedor_id: v.optional(v.id("proveedores")),
+    import_batch_id: v.optional(v.id("transaction_import_batches")),
+    import_source_key: v.optional(v.string()),
+    import_signature: v.optional(v.string()),
+    allow_duplicate_signature: v.optional(v.boolean()),
     monto_total: v.number(),
     fecha: v.string(),
     tipo_pago: v.string(),
@@ -34,7 +74,28 @@ export const createTransaction = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { lineItems, ...transactionData } = args;
+    await validateTransactionWrite(ctx, args.proyecto, args.proveedor_id);
+    const { lineItems, allow_duplicate_signature, ...transactionData } = args;
+
+    if (transactionData.import_batch_id && transactionData.import_source_key) {
+      const existing = await ctx.db
+        .query("transacciones")
+        .withIndex("by_import_batch_source", (q) =>
+          q.eq("import_batch_id", transactionData.import_batch_id)
+            .eq("import_source_key", transactionData.import_source_key)
+        )
+        .first();
+      if (existing) return { transaccionId: existing._id, pagoIds: [], duplicate: true };
+    }
+    if (transactionData.import_signature && !allow_duplicate_signature) {
+      const duplicate = await ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto_import_signature", (q) =>
+          q.eq("proyecto", args.proyecto).eq("import_signature", transactionData.import_signature)
+        )
+        .first();
+      if (duplicate) throw new Error("La transacción coincide con una importación existente.");
+    }
 
     // Normalize fecha to DD/MM/YYYY if it arrives as YYYY-MM-DD (from HTML date input)
     if (transactionData.fecha && transactionData.fecha.includes("-")) {
@@ -77,6 +138,7 @@ export const createTransaction = mutation({
     return {
       transaccionId,
       pagoIds,
+      duplicate: false,
     };
   },
 });
@@ -87,6 +149,11 @@ export const createTransaction = mutation({
 export const createTransactionBulk = baseMutation({
   args: {
     proyecto: v.id("desarrollos"),
+    proveedor_id: v.optional(v.id("proveedores")),
+    import_batch_id: v.optional(v.id("transaction_import_batches")),
+    import_source_key: v.optional(v.string()),
+    import_signature: v.optional(v.string()),
+    allow_duplicate_signature: v.optional(v.boolean()),
     monto_total: v.number(),
     fecha: v.string(),
     tipo_pago: v.string(),
@@ -113,7 +180,28 @@ export const createTransactionBulk = baseMutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { lineItems, ...transactionData } = args;
+    await validateTransactionWrite(ctx, args.proyecto, args.proveedor_id);
+    const { lineItems, allow_duplicate_signature, ...transactionData } = args;
+
+    if (transactionData.import_batch_id && transactionData.import_source_key) {
+      const existing = await ctx.db
+        .query("transacciones")
+        .withIndex("by_import_batch_source", (q) =>
+          q.eq("import_batch_id", transactionData.import_batch_id)
+            .eq("import_source_key", transactionData.import_source_key)
+        )
+        .first();
+      if (existing) return { transaccionId: existing._id, pagoIds: [], duplicate: true };
+    }
+    if (transactionData.import_signature && !allow_duplicate_signature) {
+      const duplicate = await ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto_import_signature", (q) =>
+          q.eq("proyecto", args.proyecto).eq("import_signature", transactionData.import_signature)
+        )
+        .first();
+      if (duplicate) throw new Error("La transacción coincide con una importación existente.");
+    }
 
     // Normalize fecha to DD/MM/YYYY if it arrives as YYYY-MM-DD
     let normalizedFecha = transactionData.fecha;
@@ -167,7 +255,7 @@ export const createTransactionBulk = baseMutation({
 
     console.log(`[Bulk] Created transaction with ${pagoIds.length} line items, updated ${uniqueHierarchies.size} hierarchies`);
 
-    return { transaccionId, pagoIds };
+    return { transaccionId, pagoIds, duplicate: false };
   },
 });
 
@@ -175,6 +263,7 @@ export const createTransactionBulk = baseMutation({
 export const updateTransaction = mutation({
   args: {
     id: v.id("transacciones"),
+    proveedor_id: v.optional(v.union(v.id("proveedores"), v.null())),
     monto_total: v.optional(v.number()),
     fecha: v.optional(v.string()),
     tipo_pago: v.optional(v.string()),
@@ -198,14 +287,62 @@ export const updateTransaction = mutation({
     if (!existingTransaction) {
       throw new Error("Transaction not found");
     }
+    await validateTransactionWrite(ctx, existingTransaction.proyecto, updateData.proveedor_id);
 
     // Filter out undefined values
-    const cleanUpdateData = Object.fromEntries(
+    const cleanUpdateData: Record<string, unknown> = Object.fromEntries(
       Object.entries(updateData).filter(([, value]) => value !== undefined)
     );
+    if (updateData.proveedor_id === null) {
+      cleanUpdateData.proveedor_id = undefined;
+    }
 
-    await ctx.db.patch(id, cleanUpdateData);
+    await ctx.db.patch(
+      id,
+      cleanUpdateData as Partial<
+        Omit<Doc<"transacciones">, "_id" | "_creationTime" | "proyecto">
+      >
+    );
     return id;
+  },
+});
+
+export const assignProviderBulk = baseMutation({
+  args: {
+    ids: v.array(v.id("transacciones")),
+    proveedor_id: v.union(v.id("proveedores"), v.null()),
+  },
+  handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+    const ids = [...new Set(args.ids)];
+    if (ids.length === 0) return { updated: 0 };
+
+    if (args.proveedor_id) {
+      const provider = await ctx.db.get(args.proveedor_id);
+      if (!provider || provider.merged_into) throw new Error("Proveedor no encontrado.");
+      if (provider.archived_at) throw new Error("No se puede asignar un proveedor archivado.");
+    }
+
+    const transactions = await Promise.all(ids.map((id) => ctx.db.get(id)));
+    if (transactions.some((transaction) => !transaction)) {
+      throw new Error("Una o más transacciones ya no existen.");
+    }
+    const projectIds = new Set(
+      transactions.flatMap((transaction) => transaction ? [transaction.proyecto] : [])
+    );
+    for (const projectId of projectIds) {
+      if (!(await checkDesarrolloAccess(ctx, projectId))) {
+        throw new Error("No tienes acceso a uno de los proyectos seleccionados.");
+      }
+    }
+
+    for (const transaction of transactions) {
+      if (!transaction) continue;
+      await ctx.db.patch(transaction._id, {
+        proveedor_id: args.proveedor_id || undefined,
+      });
+    }
+    return { updated: transactions.length };
   },
 });
 
@@ -218,6 +355,10 @@ export const deleteTransaction = mutation({
     const existingTransaction = await ctx.db.get(args.id);
     if (!existingTransaction) {
       throw new Error("Transaction not found");
+    }
+    await assertCanWrite(ctx);
+    if (!(await checkDesarrolloAccess(ctx, existingTransaction.proyecto))) {
+      throw new Error("No tienes acceso para modificar este proyecto.");
     }
 
     // Delete all line items (pagos) associated with this transaction
@@ -245,6 +386,181 @@ export const deleteTransaction = mutation({
   },
 });
 
+export const startImportBatch = baseMutation({
+  args: {
+    proyecto: v.id("desarrollos"),
+    file_name: v.string(),
+    file_hash: v.string(),
+    total_transactions: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await assertCanWrite(ctx);
+    if (!(await checkDesarrolloAccess(ctx, args.proyecto))) {
+      throw new Error("No tienes acceso para importar en este proyecto.");
+    }
+    const existing = await ctx.db
+      .query("transaction_import_batches")
+      .withIndex("by_proyecto_file_hash", (q) =>
+        q.eq("proyecto", args.proyecto).eq("file_hash", args.file_hash)
+      )
+      .first();
+    if (existing?.status === "completed") {
+      throw new Error("Este archivo ya fue importado en el proyecto.");
+    }
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        status: "processing",
+        total_transactions: args.total_transactions,
+        updated_at: Date.now(),
+        error: undefined,
+      });
+      return { batch_id: existing._id, resumed: true };
+    }
+    const batchId = await ctx.db.insert("transaction_import_batches", {
+      proyecto: args.proyecto,
+      file_name: args.file_name,
+      file_hash: args.file_hash,
+      status: "processing",
+      total_transactions: args.total_transactions,
+      imported_transactions: 0,
+      failed_transactions: 0,
+      created_by: user._id,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    });
+    return { batch_id: batchId, resumed: false };
+  },
+});
+
+export const completeImportBatch = baseMutation({
+  args: {
+    batch_id: v.id("transaction_import_batches"),
+    imported_transactions: v.number(),
+    failed_transactions: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+    const batch = await ctx.db.get(args.batch_id);
+    if (!batch) throw new Error("Lote de importación no encontrado.");
+    if (!(await checkDesarrolloAccess(ctx, batch.proyecto))) {
+      throw new Error("No tienes acceso a este lote.");
+    }
+    await ctx.db.patch(args.batch_id, {
+      status: "completed",
+      imported_transactions: args.imported_transactions,
+      failed_transactions: args.failed_transactions,
+      updated_at: Date.now(),
+      completed_at: Date.now(),
+      error: undefined,
+    });
+    return args.batch_id;
+  },
+});
+
+export const failImportBatch = baseMutation({
+  args: { batch_id: v.id("transaction_import_batches"), error: v.string() },
+  handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+    const batch = await ctx.db.get(args.batch_id);
+    if (!batch) return null;
+    if (!(await checkDesarrolloAccess(ctx, batch.proyecto))) {
+      throw new Error("No tienes acceso a este lote.");
+    }
+    await ctx.db.patch(args.batch_id, {
+      status: "failed",
+      error: args.error.slice(0, 500),
+      updated_at: Date.now(),
+    });
+    return args.batch_id;
+  },
+});
+
+export const checkImportSignatures = query({
+  args: { proyecto: v.id("desarrollos"), signatures: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    if (!(await checkDesarrolloAccess(ctx, args.proyecto))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
+    const duplicates: string[] = [];
+    for (const signature of [...new Set(args.signatures)]) {
+      const existing = await ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto_import_signature", (q) =>
+          q.eq("proyecto", args.proyecto).eq("import_signature", signature)
+        )
+        .first();
+      if (existing) duplicates.push(signature);
+    }
+    return duplicates;
+  },
+});
+
+export const inspectImportCandidates = query({
+  args: {
+    proyecto: v.id("desarrollos"),
+    file_hash: v.string(),
+    candidates: v.array(v.object({
+      signature: v.string(),
+      source_key: v.string(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    if (!(await checkDesarrolloAccess(ctx, args.proyecto))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
+
+    const existingBatch = await ctx.db
+      .query("transaction_import_batches")
+      .withIndex("by_proyecto_file_hash", (q) =>
+        q.eq("proyecto", args.proyecto).eq("file_hash", args.file_hash)
+      )
+      .first();
+
+    if (existingBatch?.status === "completed") {
+      return {
+        file_status: "completed" as const,
+        batch_id: existingBatch._id,
+        duplicate_signatures: [] as string[],
+        resumable_source_keys: [] as string[],
+      };
+    }
+
+    const duplicateSignatures = new Set<string>();
+    const resumableSourceKeys = new Set<string>();
+
+    for (const candidate of args.candidates) {
+      if (existingBatch) {
+        const existingSource = await ctx.db
+          .query("transacciones")
+          .withIndex("by_import_batch_source", (q) =>
+            q.eq("import_batch_id", existingBatch._id)
+              .eq("import_source_key", candidate.source_key)
+          )
+          .first();
+        if (existingSource) {
+          resumableSourceKeys.add(candidate.source_key);
+          continue;
+        }
+      }
+
+      const existingSignature = await ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto_import_signature", (q) =>
+          q.eq("proyecto", args.proyecto).eq("import_signature", candidate.signature)
+        )
+        .first();
+      if (existingSignature) duplicateSignatures.add(candidate.signature);
+    }
+
+    return {
+      file_status: existingBatch?.status || "new" as const,
+      batch_id: existingBatch?._id,
+      duplicate_signatures: [...duplicateSignatures],
+      resumable_source_keys: [...resumableSourceKeys],
+    };
+  },
+});
+
 // Get transaction with all its line items and documents
 export const getTransactionById = query({
   args: {
@@ -254,6 +570,9 @@ export const getTransactionById = query({
     const transaction = await ctx.db.get(args.id);
     if (!transaction) {
       return null;
+    }
+    if (!(await checkDesarrolloAccess(ctx, transaction.proyecto))) {
+      throw new Error("No tienes acceso a este proyecto.");
     }
 
     // Get all line items for this transaction
@@ -284,8 +603,11 @@ export const getTransactionById = query({
       .withIndex("by_transaccion", (q) => q.eq("transaccion_id", args.id))
       .collect();
 
+    const proveedor = await providerSummary(ctx, transaction.proveedor_id);
+
     return {
       ...transaction,
+      proveedor,
       lineItems,
       documents,
     };
@@ -299,6 +621,9 @@ export const listByProyecto = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
+    if (!(await checkDesarrolloAccess(ctx, args.proyecto_id))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
     const result = await ctx.db
       .query("transacciones")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -336,6 +661,9 @@ export const getByProyecto = query({
     proyecto_id: v.id("desarrollos"),
   },
   handler: async (ctx, args) => {
+    if (!(await checkDesarrolloAccess(ctx, args.proyecto_id))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
     const transactions = await ctx.db
       .query("transacciones")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -351,6 +679,9 @@ export const getByProyectoWithDetails = query({
     proyecto_id: v.id("desarrollos"),
   },
   handler: async (ctx, args) => {
+    if (!(await checkDesarrolloAccess(ctx, args.proyecto_id))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
     const transactions = await ctx.db
       .query("transacciones")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -360,6 +691,7 @@ export const getByProyectoWithDetails = query({
     // For each transaction, count related data and get partida info
     const transactionsWithDetails = await Promise.all(
       transactions.map(async (transaction) => {
+        const proveedor = await providerSummary(ctx, transaction.proveedor_id);
         // Get line items with partida details
         const lineItems = await ctx.db
           .query("pagos")
@@ -398,6 +730,7 @@ export const getByProyectoWithDetails = query({
 
         return {
           ...transaction,
+          proveedor,
           lineItemsCount: lineItems.length,
           documentsCount: documents.length,
           partidaNames: partidaNames.slice(0, 3), // First 3 partida names
@@ -537,6 +870,7 @@ export const getByPartidaId = query({
 export const getAllWithDetails = query({
   args: {},
   handler: async (ctx) => {
+    await assertAdmin(ctx);
     const transactions = await ctx.db
       .query("transacciones")
       .order("desc")
@@ -547,6 +881,7 @@ export const getAllWithDetails = query({
       transactions.map(async (transaction) => {
         // Get project name
         const proyecto = await ctx.db.get(transaction.proyecto);
+        const proveedor = await providerSummary(ctx, transaction.proveedor_id);
         
         // Count line items
         const lineItems = await ctx.db
@@ -566,6 +901,7 @@ export const getAllWithDetails = query({
 
         return {
           ...transaction,
+          proveedor,
           proyectoNombre: proyecto?.nombre,
           lineItemsCount: lineItems.length,
           documentsCount: documents.length,

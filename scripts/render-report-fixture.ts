@@ -186,16 +186,18 @@ const snapshot: ReportSnapshotV1 = {
     activities,
   },
   workforce: {
-    total: 14,
+    total: 23,
+    as_of: "2026-08-03",
     roles: [
-      { label: "Oficiales albañiles", count: 3 },
-      { label: "Oficial carpintero", count: 2 },
-      { label: "Oficial fierrero", count: 2 },
-      { label: "Ayudantes", count: 7 },
+      { label: "Oficial albañil", count: 10 },
+      { label: "Ayudante de albañil", count: 8 },
+      { label: "Cabo de oficios", count: 1 },
+      { label: "Oficial fierrero", count: 1 },
+      { label: "No desglosado", count: 3 },
     ],
     weekly: Array.from({ length: 17 }, (_, index) => ({
       date: new Date(Date.UTC(2026, 6, 18 + index)).toISOString().slice(0, 10),
-      total: Math.min(14, 9 + Math.floor((index + 2) / 3)),
+      total: Math.min(23, 15 + Math.floor((index + 1) / 2)),
     })),
     labor_cost_total: 4_200_000,
     labor_cost_timeline: Array.from({ length: 14 }, (_, index) => ({
@@ -239,6 +241,20 @@ const snapshot: ReportSnapshotV1 = {
   ],
 };
 
+const workforceVariant = process.env.REPORT_WORKFORCE_VARIANT || "multiple";
+if (snapshot.workforce && workforceVariant === "zero") {
+  snapshot.workforce.total = null;
+  snapshot.workforce.as_of = null;
+  snapshot.workforce.roles = [];
+  snapshot.workforce.weekly = [];
+  snapshot.workforce.source = "not_available";
+} else if (snapshot.workforce && workforceVariant === "one") {
+  const point = snapshot.workforce.weekly.at(-1);
+  snapshot.workforce.weekly = point ? [point] : [];
+  snapshot.workforce.total = point?.total ?? null;
+  snapshot.workforce.as_of = point?.date ?? null;
+}
+
 const insights: ReportInsights = {
   executive_summary:
     "Esta semana el proyecto avanzó en los frentes de Acabados, Instalaciones y Albañilerías. El avance físico real se ubica en 68% frente a 72% planeado, con un CPI de 0.96. Se reportó una incidencia de seguridad y cuatro entregas vencidas que requieren seguimiento.",
@@ -269,8 +285,8 @@ const insights: ReportInsights = {
   ],
 };
 
-const outputDirectory = resolve("output", "pdf");
+const outputDirectory = resolve(process.env.REPORT_FIXTURE_OUTPUT_DIR || resolve("output", "pdf"));
 mkdirSync(outputDirectory, { recursive: true });
-const outputPath = resolve(outputDirectory, "reporte-financiero-fixture.pdf");
+const outputPath = resolve(outputDirectory, `reporte-financiero-fixture-${workforceVariant}.pdf`);
 writeFileSync(outputPath, await renderReportPdf(snapshot, insights, REPORT_SECTIONS));
 console.log(outputPath);

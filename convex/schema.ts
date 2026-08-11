@@ -99,6 +99,12 @@ export default defineSchema({
   // Parent transaction that holds all payment details and documents
   transacciones: defineTable({
     proyecto: v.id("desarrollos"),
+    proveedor_id: v.optional(v.id("proveedores")),
+    proveedor: v.optional(v.string()),
+    import_batch_id: v.optional(v.id("transaction_import_batches")),
+    labor_import_id: v.optional(v.id("labor_payment_imports")),
+    import_source_key: v.optional(v.string()),
+    import_signature: v.optional(v.string()),
     monto_total: v.number(), // Total amount of all line items
     fecha: v.string(),
     tipo_pago: v.string(), // efectivo, transferencia, tarjeta, cheque
@@ -117,6 +123,11 @@ export default defineSchema({
     comprobante: v.optional(v.string()),
     presupuesto_archivo: v.optional(v.string()),
   }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proveedor", { fields: ["proveedor_id"] })
+    .index("by_proyecto_proveedor", { fields: ["proyecto", "proveedor_id"] })
+    .index("by_import_batch_source", { fields: ["import_batch_id", "import_source_key"] })
+    .index("by_labor_import", { fields: ["labor_import_id"] })
+    .index("by_proyecto_import_signature", { fields: ["proyecto", "import_signature"] })
     .index("by_status", { fields: ["status"] })
     .index("by_fecha", { fields: ["fecha"] }),
   
@@ -150,6 +161,8 @@ export default defineSchema({
     transaccion_id: v.id("transacciones"), // Foreign key to parent transaction
     partida_id: v.id("partidas"), // Reference to specific partida/familia/sub-partida
     monto: v.number(), // Individual line item amount
+    numero_personas_origen: v.optional(v.number()),
+    source_row: v.optional(v.number()),
   }).index("by_transaccion", { fields: ["transaccion_id"] })
     .index("by_partida_id", { fields: ["partida_id"] }),
   
@@ -215,18 +228,78 @@ export default defineSchema({
   }).index("by_sales_proyecto", { fields: ["sales_proyecto"] }),
   proveedores: defineTable({
     razon_social: v.string(),
-    rfc: v.string(),
-    direccion: v.string(),
-    nombre_contacto: v.string(),
-    telefono_contacto: v.string(),
-    cuenta: v.string(),
-    clabe: v.string(),
-    banco: v.string(),
+    razon_social_normalizada: v.optional(v.string()),
+    rfc: v.optional(v.string()),
+    rfc_normalizado: v.optional(v.string()),
+    direccion: v.optional(v.string()),
+    nombre_contacto: v.optional(v.string()),
+    telefono_contacto: v.optional(v.string()),
+    cuenta: v.optional(v.string()),
+    clabe: v.optional(v.string()),
+    banco: v.optional(v.string()),
+    tipo: v.optional(v.union(v.literal("regular"), v.literal("generico"))),
+    archived_at: v.optional(v.number()),
+    archived_by: v.optional(v.id("users")),
+    reactivated_at: v.optional(v.number()),
+    reactivated_by: v.optional(v.id("users")),
+    merged_into: v.optional(v.id("proveedores")),
     created_by: v.optional(v.id("users")), // User who created this provider
     created_at: v.optional(v.number()), // Timestamp when created
+    updated_at: v.optional(v.number()),
   }).index("by_rfc", { fields: ["rfc"] })
+    .index("by_rfc_normalizado", { fields: ["rfc_normalizado"] })
     .index("by_razon_social", { fields: ["razon_social"] })
+    .index("by_razon_social_normalizada", { fields: ["razon_social_normalizada"] })
+    .index("by_archived_at", { fields: ["archived_at"] })
     .index("by_created_by", { fields: ["created_by"] }),
+
+  transaction_import_batches: defineTable({
+    proyecto: v.id("desarrollos"),
+    file_name: v.string(),
+    file_hash: v.string(),
+    status: v.union(
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    total_transactions: v.optional(v.number()),
+    imported_transactions: v.optional(v.number()),
+    failed_transactions: v.optional(v.number()),
+    created_by: v.optional(v.id("users")),
+    created_at: v.number(),
+    updated_at: v.number(),
+    completed_at: v.optional(v.number()),
+    error: v.optional(v.string()),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proyecto_file_hash", { fields: ["proyecto", "file_hash"] }),
+
+  labor_payment_imports: defineTable({
+    proyecto: v.id("desarrollos"),
+    capture_date: v.string(),
+    total_people: v.number(),
+    roles: v.array(v.object({
+      key: v.string(),
+      label: v.string(),
+      count: v.number(),
+    })),
+    source_file_name: v.string(),
+    source_file_hash: v.string(),
+    source_sheet_name: v.string(),
+    source_administration: v.string(),
+    source_currency: v.string(),
+    source_row_count: v.number(),
+    transaction_count: v.number(),
+    amount_total: v.number(),
+    warnings: v.array(v.string()),
+    status: v.union(v.literal("active"), v.literal("superseded")),
+    imported_by: v.id("users"),
+    imported_at: v.number(),
+    superseded_at: v.optional(v.number()),
+    superseded_by_user: v.optional(v.id("users")),
+    superseded_by_import: v.optional(v.id("labor_payment_imports")),
+  }).index("by_proyecto_fecha_estado", { fields: ["proyecto", "capture_date", "status"] })
+    .index("by_proyecto_estado_fecha", { fields: ["proyecto", "status", "capture_date"] })
+    .index("by_proyecto_file_hash", { fields: ["proyecto", "source_file_hash"] }),
   
   // Projected transactions from Excel upload (weekly cash flow projections)
   projected_transactions: defineTable({
@@ -501,6 +574,7 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.optional(v.number()),
   }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_proveedor", { fields: ["proveedor_id"] })
     .index("by_solicitante", { fields: ["solicitante_id"] })
     .index("by_status", { fields: ["status"] })
     .index("by_proyecto_status", { fields: ["proyecto", "status"] })

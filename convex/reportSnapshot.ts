@@ -13,6 +13,7 @@ import {
   isDateInRange,
   parseProjectDate,
   sanitizeReportText,
+  selectWorkforceCaptures,
 } from "./reportingUtils";
 
 const numberValue = (value: unknown) => {
@@ -246,7 +247,7 @@ export async function buildReportSnapshot(
     profile: ReportVisibilityProfile;
   },
 ): Promise<ReportSnapshotV1> {
-  const [project, partidas, metrics, transactions, incomes, requisitions, schedules, details, projections, weeklyProgress, logs, documents] =
+  const [project, partidas, metrics, transactions, incomes, requisitions, schedules, details, projections, weeklyProgress, logs, documents, laborImports] =
     await Promise.all([
       ctx.db.get(args.proyecto),
       ctx.db.query("partidas").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
@@ -260,6 +261,10 @@ export async function buildReportSnapshot(
       ctx.db.query("weekly_avance_real").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("bitacora").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("documentos").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
+      ctx.db.query("labor_payment_imports")
+        .withIndex("by_proyecto_estado_fecha", (q: any) =>
+          q.eq("proyecto", args.proyecto).eq("status", "active"))
+        .collect(),
     ]);
 
   if (!project) throw new Error("Project not found");
@@ -487,6 +492,7 @@ export async function buildReportSnapshot(
       cumulativeLaborCost += amount;
       return { date, cumulative: cumulativeLaborCost };
     });
+  const selectedWorkforce = selectWorkforceCaptures(laborImports, args.periodEnd);
 
   const timeline = buildTimeline(transactions, projections, weeklyProgress, args.periodEnd);
   const lastTimeline = timeline.at(-1);
@@ -635,8 +641,13 @@ export async function buildReportSnapshot(
     ),
     metricIssue(
       "missing_workforce",
-      1,
+      selectedWorkforce.latest ? 0 : 1,
       "El proyecto no cuenta todavía con captura estructurada de cuadrillas por oficio.",
+    ),
+    metricIssue(
+      "stale_workforce",
+      selectedWorkforce.stale ? 1 : 0,
+      `El último corte de personal tiene ${selectedWorkforce.ageDays || 0} días de antigüedad.`,
     ),
   ].filter((issue): issue is ReportDataQualityIssue => Boolean(issue));
 
@@ -710,17 +721,21 @@ export async function buildReportSnapshot(
       activities: programActivities,
     },
     workforce: {
-      total: null,
-      roles: [
+      total: selectedWorkforce.latest?.total_people ?? null,
+      as_of: selectedWorkforce.latest?.capture_date ?? null,
+      roles: selectedWorkforce.latest?.roles.map((role: any) => ({
+        label: sanitizeReportText(role.label, 60) || "Puesto",
+        count: role.count,
+      })) || [
         { label: "Oficiales albañiles", count: null },
         { label: "Oficial carpintero", count: null },
         { label: "Oficial fierrero", count: null },
         { label: "Ayudantes", count: null },
       ],
-      weekly: [],
+      weekly: selectedWorkforce.weekly,
       labor_cost_total: cumulativeLaborCost,
       labor_cost_timeline: laborCostTimeline,
-      source: "not_available",
+      source: selectedWorkforce.latest ? "captured" : "not_available",
     },
     logbook: {
       entries_in_period: periodLogs.length,
@@ -744,6 +759,7 @@ export async function buildReportSnapshot(
       logbook_entries: logs.length,
       projection_rows: projections.length,
       labor_cost_rows: laborCostTimeline.length,
+      workforce_captures: selectedWorkforce.weekly.length,
       logbook_photos: documents.filter((row: any) => row.type === "bitacora_foto").length,
     },
     methodology: [

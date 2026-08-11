@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar, DollarSign, CreditCard, FileText, Building2, Hash } from "lucide-react";
 import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
+import { Link } from "react-router";
 
 export default function TransactionDetailsModal() {
   const { isOpen, onClose, transactionId } = useTransactionDetailsModal();
@@ -118,6 +119,33 @@ export default function TransactionDetailsModal() {
               <h3 className="text-lg font-medium text-gray-900">Información de Pago</h3>
               
               <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-gray-400" />
+                    <label className="text-sm font-medium text-gray-600">Proveedor</label>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {transaction.proveedor?.razon_social || "Sin proveedor"}
+                  </p>
+                  {transaction.proveedor && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-gray-500">
+                        {transaction.proveedor.is_archived
+                          ? "Proveedor archivado"
+                          : transaction.proveedor.tipo === "generico"
+                            ? "Proveedor genérico"
+                            : transaction.proveedor.is_complete ? "Datos completos" : "RFC pendiente"}
+                      </p>
+                      <Link
+                        to={`/proyecto/${transaction.proyecto}/proveedores`}
+                        onClick={onClose}
+                        className="inline-block text-xs text-blue-600 hover:underline"
+                      >
+                        Ver proveedor
+                      </Link>
+                    </div>
+                  )}
+                </div>
                 {/* Factura */}
                 {transaction.factura && (
                   <div className="space-y-1">

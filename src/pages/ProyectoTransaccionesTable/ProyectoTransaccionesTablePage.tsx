@@ -30,6 +30,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { type DateRange } from "react-day-picker";
+import AssignProviderDialog from "@/components/providers/AssignProviderDialog";
 
 export default function ProyectoTransaccionesTablePage() {
 
@@ -49,6 +50,13 @@ export default function ProyectoTransaccionesTablePage() {
     const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
     const [categoriaFilter, setCategoriaFilter] = useState<string>("all");
     const [monedaFilter, setMonedaFilter] = useState<string>("all");
+    const [proveedorFilter, setProveedorFilter] = useState<string>("all");
+    const [assigningTransaction, setAssigningTransaction] = useState<{
+        id: Id<"transacciones">;
+        proveedorId?: Id<"proveedores">;
+    } | null>(null);
+    const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<Id<"transacciones">>>(new Set());
+    const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
     const [sortField, setSortField] = useState<"monto_total" | "fecha">("fecha");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [showFilters, setShowFilters] = useState(false);
@@ -58,6 +66,10 @@ export default function ProyectoTransaccionesTablePage() {
 
     // Fetch transactions for this specific project with details
     const transacciones = useQuery(api.transacciones.getByProyectoWithDetails, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
+    const proveedores = useQuery(
+        api.proveedores.getByProyectoWithStats,
+        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+    );
 
     const deleteTransaction = useMutation(api.transacciones.deleteTransaction);
     const syncTransactionsWithDocuments = useMutation(api.sync.syncTransactionsWithDocuments);
@@ -88,7 +100,8 @@ export default function ProyectoTransaccionesTablePage() {
                 transaccion.codigo_referencia?.toLowerCase().includes(searchLower) ||
                 transaccion.tipo_pago?.toLowerCase().includes(searchLower) ||
                 transaccion.categoria?.toLowerCase().includes(searchLower) ||
-                transaccion.banco?.toLowerCase().includes(searchLower);
+                transaccion.banco?.toLowerCase().includes(searchLower) ||
+                transaccion.proveedor?.razon_social.toLowerCase().includes(searchLower);
             
             // Amount range filter
             const minAmt = minAmount ? parseFloat(minAmount) : null;
@@ -114,10 +127,13 @@ export default function ProyectoTransaccionesTablePage() {
             
             // Moneda filter
             const matchesMoneda = monedaFilter === "all" || transaccion.moneda === monedaFilter;
+            const matchesProveedor = proveedorFilter === "all" ||
+                (proveedorFilter === "unassigned" && !transaccion.proveedor_id) ||
+                transaccion.proveedor_id === proveedorFilter;
             
             return matchesSearch && matchesMinAmount && matchesMaxAmount && 
                    matchesStartDate && matchesEndDate && matchesStatus && 
-                   matchesTipoPago && matchesCategoria && matchesMoneda;
+                   matchesTipoPago && matchesCategoria && matchesMoneda && matchesProveedor;
         });
         
         // Sort results
@@ -132,7 +148,7 @@ export default function ProyectoTransaccionesTablePage() {
         });
         
         return filtered;
-    }, [transacciones, searchTerm, minAmount, maxAmount, dateRange, statusFilter, tipoPagoFilter, categoriaFilter, monedaFilter, sortField, sortDirection]);
+    }, [transacciones, searchTerm, minAmount, maxAmount, dateRange, statusFilter, tipoPagoFilter, categoriaFilter, monedaFilter, proveedorFilter, sortField, sortDirection]);
     
     // Clear all filters
     const clearFilters = () => {
@@ -144,6 +160,7 @@ export default function ProyectoTransaccionesTablePage() {
         setTipoPagoFilter("all");
         setCategoriaFilter("all");
         setMonedaFilter("all");
+        setProveedorFilter("all");
         setSortField("fecha");
         setSortDirection("desc");
     };
@@ -160,7 +177,7 @@ export default function ProyectoTransaccionesTablePage() {
     
     // Check if any filter is active
     const hasActiveFilters = searchTerm || minAmount || maxAmount || dateRange?.from || dateRange?.to || 
-        statusFilter !== "all" || tipoPagoFilter !== "all" || categoriaFilter !== "all" || monedaFilter !== "all";
+        statusFilter !== "all" || tipoPagoFilter !== "all" || categoriaFilter !== "all" || monedaFilter !== "all" || proveedorFilter !== "all";
 
 
     const formatCurrency = (amount: number) => {
@@ -193,6 +210,29 @@ export default function ProyectoTransaccionesTablePage() {
     const openDeleteDialog = (transactionId: Id<"transacciones">) => {
         setTransactionToDelete(transactionId);
         setDeleteDialogOpen(true);
+    };
+
+    const toggleSelectedTransaction = (transactionId: Id<"transacciones">, checked: boolean) => {
+        setSelectedTransactionIds((current) => {
+            const next = new Set(current);
+            if (checked) next.add(transactionId);
+            else next.delete(transactionId);
+            return next;
+        });
+    };
+
+    const visibleTransactionIds = filteredTransacciones.map((transaction) => transaction._id);
+    const allVisibleSelected = visibleTransactionIds.length > 0 &&
+        visibleTransactionIds.every((id) => selectedTransactionIds.has(id));
+    const toggleAllVisible = (checked: boolean) => {
+        setSelectedTransactionIds((current) => {
+            const next = new Set(current);
+            for (const id of visibleTransactionIds) {
+                if (checked) next.add(id);
+                else next.delete(id);
+            }
+            return next;
+        });
     };
 
     const handleSync = async () => {
@@ -455,6 +495,24 @@ export default function ProyectoTransaccionesTablePage() {
                                     </Select>
                                 </div>
                             </div>
+
+                            <div className="max-w-sm space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Proveedor</label>
+                                <Select value={proveedorFilter} onValueChange={setProveedorFilter}>
+                                    <SelectTrigger className="rounded-none h-10">
+                                        <SelectValue placeholder="Todos los proveedores" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todos los proveedores</SelectItem>
+                                        <SelectItem value="unassigned">Sin proveedor</SelectItem>
+                                        {proveedores?.map((provider) => (
+                                            <SelectItem key={provider._id} value={provider._id}>
+                                                {provider.razon_social}{provider.is_archived ? " (Archivado)" : ""}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             
                             {/* Sort Controls */}
                             <div className="flex items-center gap-4 pt-2 border-t border-gray-200">
@@ -487,6 +545,21 @@ export default function ProyectoTransaccionesTablePage() {
                             </div>
                         </div>
                     )}
+                    {selectedTransactionIds.size > 0 && (
+                        <div className="mb-4 flex items-center justify-between border bg-gray-50 px-4 py-3">
+                            <span className="text-sm text-gray-600">
+                                {selectedTransactionIds.size} transacciones seleccionadas
+                            </span>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => setSelectedTransactionIds(new Set())}>
+                                    Limpiar
+                                </Button>
+                                <Button size="sm" onClick={() => setBulkAssignOpen(true)}>
+                                    Asignar proveedor
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Table */}
@@ -494,8 +567,19 @@ export default function ProyectoTransaccionesTablePage() {
                     <table className="w-full">
                         <thead className="border-b border-gray-200">
                             <tr>
+                                <th className="px-4 py-4 text-center border-r border-gray-200">
+                                    <input
+                                        type="checkbox"
+                                        aria-label="Seleccionar transacciones visibles"
+                                        checked={allVisibleSelected}
+                                        onChange={(event) => toggleAllVisible(event.target.checked)}
+                                    />
+                                </th>
                                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
                                     Factura
+                                </th>
+                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
+                                    Proveedor
                                 </th>
                                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
                                     Monto Total
@@ -521,13 +605,13 @@ export default function ProyectoTransaccionesTablePage() {
                         <tbody className="divide-y divide-gray-200">
                             {!transacciones ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -537,6 +621,14 @@ export default function ProyectoTransaccionesTablePage() {
                                         key={transaccion._id}
                                         className="hover:bg-gray-50 transition-colors"
                                     >
+                                        <td className="px-4 py-4 text-center border-r border-gray-200">
+                                            <input
+                                                type="checkbox"
+                                                aria-label={`Seleccionar transacción ${transaccion.factura || transaccion._id}`}
+                                                checked={selectedTransactionIds.has(transaccion._id)}
+                                                onChange={(event) => toggleSelectedTransaction(transaccion._id, event.target.checked)}
+                                            />
+                                        </td>
                                         {/* Factura */}
                                         <td className="px-6 py-4 border-r border-gray-200">
                                             <div className="flex items-start gap-2">
@@ -559,6 +651,30 @@ export default function ProyectoTransaccionesTablePage() {
                                                     )}
                                                 </div>
                                             </div>
+                                        </td>
+                                        {/* Proveedor */}
+                                        <td className="px-6 py-4 border-r border-gray-200">
+                                            <button
+                                                type="button"
+                                                className="text-left"
+                                                onClick={() => setAssigningTransaction({
+                                                    id: transaccion._id,
+                                                    proveedorId: transaccion.proveedor_id,
+                                                })}
+                                            >
+                                                <span className="block text-sm font-medium text-gray-900">
+                                                    {transaccion.proveedor?.razon_social || "Sin proveedor"}
+                                                </span>
+                                                {transaccion.proveedor && (
+                                                    <span className="block text-xs text-gray-400">
+                                                        {transaccion.proveedor.is_archived
+                                                            ? "Archivado"
+                                                            : transaccion.proveedor.tipo === "generico"
+                                                            ? "Genérico"
+                                                            : transaccion.proveedor.is_complete ? "Completo" : "Incompleto"}
+                                                    </span>
+                                                )}
+                                            </button>
                                         </td>
                                         {/* Monto Total */}
                                         <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
@@ -614,6 +730,12 @@ export default function ProyectoTransaccionesTablePage() {
                                                     <Button variant={"ghost"} onClick={() => documentosModal.onOpen(transaccion._id)}>
                                                         Ver documentos
                                                     </Button>
+                                                    <Button variant={"ghost"} onClick={() => setAssigningTransaction({
+                                                        id: transaccion._id,
+                                                        proveedorId: transaccion.proveedor_id,
+                                                    })}>
+                                                        Asignar / cambiar proveedor
+                                                    </Button>
                                                     <Button variant={"ghost"} className="text-red-600" onClick={() => openDeleteDialog(transaccion._id)}>
                                                         Eliminar
                                                     </Button>
@@ -650,6 +772,21 @@ export default function ProyectoTransaccionesTablePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <AssignProviderDialog
+                open={Boolean(assigningTransaction)}
+                onOpenChange={(open) => !open && setAssigningTransaction(null)}
+                transactionId={assigningTransaction?.id || null}
+                currentProviderId={assigningTransaction?.proveedorId}
+            />
+            <AssignProviderDialog
+                open={bulkAssignOpen}
+                onOpenChange={(open) => {
+                    setBulkAssignOpen(open);
+                    if (!open) setSelectedTransactionIds(new Set());
+                }}
+                transactionId={null}
+                transactionIds={[...selectedTransactionIds]}
+            />
         </div>
     );
 }

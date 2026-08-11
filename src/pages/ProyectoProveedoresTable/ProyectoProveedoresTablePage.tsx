@@ -1,16 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useParams } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
-import { Search, MoreVertical } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Search } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,40 +14,11 @@ export default function ProyectoProveedoresTablePage() {
   // Fetch project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
   
-  // Fetch all transactions for this project
-  const transacciones = useQuery(api.transacciones.getByProyecto, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
-  
-  // Fetch all proveedores
-  const allProveedores = useQuery(api.proveedores.getAll);
-
-  // Get unique proveedores (bancos) from transactions in this project
-  const proyectoProveedoresData = useMemo(() => {
-    if (!transacciones || !allProveedores) return [];
-
-    // Get unique banco names from transactions
-    const bancosInProject = new Set(
-      transacciones
-        .filter(t => t.banco)
-        .map(t => t.banco!)
-    );
-
-    // Match proveedores by banco name and calculate stats
-    const proveedoresWithStats = allProveedores
-      .filter(prov => bancosInProject.has(prov.banco))
-      .map(proveedor => {
-        // Count transactions and sum amounts for this proveedor
-        const provTransacciones = transacciones.filter(t => t.banco === proveedor.banco);
-        const totalAmount = provTransacciones.reduce((sum, t) => sum + t.monto_total, 0);
-        
-        return {
-          ...proveedor,
-          transaccionesCount: provTransacciones.length,
-          totalAmount,
-        };
-      });
-
-    return proveedoresWithStats;
-  }, [transacciones, allProveedores]);
+  const proyectoProveedoresQuery = useQuery(
+    api.proveedores.getByProyectoWithStats,
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  );
+  const proyectoProveedoresData = proyectoProveedoresQuery || [];
 
   const filteredProveedores = proyectoProveedoresData.filter((proveedor) =>
     proveedor.razon_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -146,19 +110,18 @@ export default function ProyectoProveedoresTablePage() {
                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
                   Monto Total
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {!proyectoProveedoresData ? (
                 <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                     Cargando proveedores...
                   </td>
                 </tr>
               ) : filteredProveedores.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                     No se encontraron proveedores en este proyecto
                   </td>
                 </tr>
@@ -203,19 +166,6 @@ export default function ProyectoProveedoresTablePage() {
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900 border-r border-gray-200">
                       {formatCurrency(proveedor.totalAmount)}
-                    </td>
-                    <td className="px-6 py-4 border-r border-gray-200">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4 text-gray-400" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                          <DropdownMenuItem>Ver transacciones</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </td>
                   </tr>
                 ))

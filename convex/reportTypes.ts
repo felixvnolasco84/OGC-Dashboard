@@ -238,6 +238,7 @@ export type ReportSnapshotV1 = {
   };
   workforce?: {
     total: number | null;
+    as_of: string | null;
     roles: Array<{ label: string; count: number | null }>;
     weekly: ReportWorkforcePoint[];
     labor_cost_total: number;

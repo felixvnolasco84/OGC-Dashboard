@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Circle } from "lucide-react";
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
@@ -28,6 +28,7 @@ export default function EditTransactionModal() {
     const [editedLineItems, setEditedLineItems] = useState<Record<string, number>>({});
     const updateTransaction = useMutation(api.transacciones.updateTransaction);
     const updatePago = useMutation(api.pagos.updatePago);
+    const providers = useQuery(api.proveedores.getAll);
 
     const handleInputChange = (field: string, value: string) => {
         updateFormData({ [field]: value });
@@ -80,6 +81,7 @@ export default function EditTransactionModal() {
             // Update transaction details with new total
             await updateTransaction({
                 id: transactionContext.transaction._id,
+                proveedor_id: formData.proveedor_id || null,
                 monto_total: newTotalAmount,
                 fecha: convertDateToDDMMYYYY(formData.fecha),
                 tipo_pago: formData.tipo_pago.toUpperCase(),
@@ -199,6 +201,25 @@ export default function EditTransactionModal() {
                     {/* Payment Details - Two Columns */}
                     <div className="space-y-3">
                         <h3 className="text-base font-semibold text-gray-900">Detalles del pago</h3>
+
+                        <Select
+                            value={formData.proveedor_id || "none"}
+                            onValueChange={(value) => updateFormData({
+                                proveedor_id: value === "none" ? "" : value as Id<"proveedores">,
+                            })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sin proveedor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Sin proveedor</SelectItem>
+                                {providers?.map((provider) => (
+                                    <SelectItem key={provider._id} value={provider._id}>
+                                        {provider.razon_social}{provider.rfc ? ` · ${provider.rfc}` : " · RFC pendiente"}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">

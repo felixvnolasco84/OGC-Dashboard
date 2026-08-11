@@ -1,4 +1,4 @@
-import { Doc } from "../../convex/_generated/dataModel";
+import { Doc, Id } from "../../convex/_generated/dataModel";
 import { create } from "zustand";
 
 type EditTransactionContext = {
@@ -14,6 +14,7 @@ type EditTransactionContext = {
 };
 
 type TransactionFormData = {
+    proveedor_id: Id<"proveedores"> | "";
     fecha: string;
     tipo_pago: string;
     banco: string;
@@ -40,6 +41,7 @@ type EditTransactionModalStore = {
 };
 
 const initialFormData: TransactionFormData = {
+    proveedor_id: "",
     fecha: "",
     tipo_pago: "efectivo",
     moneda: "MXN",
@@ -80,6 +82,7 @@ export const useEditTransactionModal = create<EditTransactionModalStore>((set) =
         };
         
         const prefilledData: TransactionFormData = {
+            proveedor_id: transaction.proveedor_id || "",
             fecha: convertDateToISO(transaction.fecha || ""),
             tipo_pago: (transaction.tipo_pago || "efectivo").toLowerCase(),
             banco: transaction.banco || "",
