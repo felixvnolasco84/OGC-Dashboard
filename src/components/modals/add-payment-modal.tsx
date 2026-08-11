@@ -7,7 +7,7 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet"
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ export default function AddPaymentModal() {
     // Store hooks
     const paymentContext = useAddPaymentModal((state) => state.paymentContext);
     const isOpen = useAddPaymentModal((state) => state.isOpen);
+    const { isAuthenticated } = useConvexAuth();
     const partidas = useAddPaymentModal((state) => state.partidas);
     const onClose = useAddPaymentModal((state) => state.onClose);
     const addPartida = useAddPaymentModal((state) => state.addPartida);
@@ -65,7 +66,10 @@ export default function AddPaymentModal() {
     const createTransaction = useMutation(api.transacciones.createTransaction);
     const generateUploadUrl = useMutation(api.documentos.generateUploadUrl);
     const createDocumentWithStorage = useMutation(api.documentos.createWithStorage);
-    const providers = useQuery(api.proveedores.getAll);
+    const providers = useQuery(
+        api.proveedores.getAll,
+        isOpen && isAuthenticated ? {} : "skip"
+    );
 
     // Fetch all partidas for this project
     const allPartidas = useQuery(

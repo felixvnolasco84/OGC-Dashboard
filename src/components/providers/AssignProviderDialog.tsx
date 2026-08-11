@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Loader2, Plus, Search } from "lucide-react";
@@ -31,7 +31,11 @@ export default function AssignProviderDialog({
   transactionIds?: Id<"transacciones">[];
   currentProviderId?: Id<"proveedores">;
 }) {
-  const providers = useQuery(api.proveedores.getAll);
+  const { isAuthenticated } = useConvexAuth();
+  const providers = useQuery(
+    api.proveedores.getAll,
+    open && isAuthenticated ? {} : "skip"
+  );
   const updateTransaction = useMutation(api.transacciones.updateTransaction);
   const assignProviderBulk = useMutation(api.transacciones.assignProviderBulk);
   const [selected, setSelected] = useState<Id<"proveedores"> | "">("");

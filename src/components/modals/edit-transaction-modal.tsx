@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Circle } from "lucide-react";
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
@@ -20,6 +20,7 @@ import { Doc, Id } from "../../../convex/_generated/dataModel";
 export default function EditTransactionModal() {
     const transactionContext = useEditTransactionModal((state) => state.transactionContext);
     const isOpen = useEditTransactionModal((state) => state.isOpen);
+    const { isAuthenticated } = useConvexAuth();
     const onClose = useEditTransactionModal((state) => state.onClose);
     const formData = useEditTransactionModal((state) => state.formData);
     const updateFormData = useEditTransactionModal((state) => state.updateFormData);
@@ -28,7 +29,10 @@ export default function EditTransactionModal() {
     const [editedLineItems, setEditedLineItems] = useState<Record<string, number>>({});
     const updateTransaction = useMutation(api.transacciones.updateTransaction);
     const updatePago = useMutation(api.pagos.updatePago);
-    const providers = useQuery(api.proveedores.getAll);
+    const providers = useQuery(
+        api.proveedores.getAll,
+        isOpen && isAuthenticated ? {} : "skip"
+    );
 
     const handleInputChange = (field: string, value: string) => {
         updateFormData({ [field]: value });

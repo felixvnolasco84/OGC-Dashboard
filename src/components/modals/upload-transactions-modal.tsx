@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useUploadTransactionsModal } from "@/hooks/upload-transactions-modal";
@@ -25,8 +25,12 @@ import { FileSpreadsheet } from "lucide-react";
 
 export default function UploadTransactionsModal() {
   const { isOpen, onClose } = useUploadTransactionsModal();
+  const { isAuthenticated } = useConvexAuth();
   const projectUploader = useUploadProjectTransactionsModal();
-  const proyectos = useQuery(api.desarrollos.getAll);
+  const proyectos = useQuery(
+    api.desarrollos.getAll,
+    isOpen && isAuthenticated ? {} : "skip"
+  );
   const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
 
   const handleClose = () => {
