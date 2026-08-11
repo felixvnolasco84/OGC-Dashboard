@@ -6,6 +6,7 @@ import {
   canUserAccessDesarrollo,
   getCurrentUserOrThrow,
 } from "./permissions";
+import { canDeleteRfi, canEditRfi, nextRfiNumber } from "./rfiRules";
 
 const CREATE_ROLES = new Set(["admin", "user", "contratista"]);
 const RESPONSIBLE_ROLES = new Set(["admin", "user"]);
@@ -110,14 +111,6 @@ function canManageRfi(user: RfiUser, rfi: Doc<"rfis">) {
   );
 }
 
-function canEditRfi(user: RfiUser, rfi: Doc<"rfis">) {
-  return (
-    (rfi.status === "draft" &&
-      (user.role === "admin" || rfi.creator_id === user._id)) ||
-    (rfi.status === "pending_manager_review" && canManageRfi(user, rfi))
-  );
-}
-
 function canRespondToRfi(user: RfiUser, rfi: Doc<"rfis">) {
   if (rfi.status !== "open") return false;
   if (user.role === "admin" || rfi.assignee_ids.includes(user._id)) return true;
@@ -177,6 +170,31 @@ async function getRfiOrThrow(ctx: RfiContext, id: Id<"rfis">) {
     throw new Error("No tienes acceso a esta RFI privada");
   }
   return { rfi, user };
+}
+
+async function reserveRfiNumber(
+  ctx: MutationCtx,
+  proyecto: Id<"desarrollos">,
+  number: number,
+) {
+  const sequence = await ctx.db
+    .query("rfi_number_sequences")
+    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto))
+    .unique();
+  if (!sequence) {
+    await ctx.db.insert("rfi_number_sequences", {
+      proyecto,
+      last_number: number,
+      updated_at: Date.now(),
+    });
+    return;
+  }
+  if (sequence.last_number < number) {
+    await ctx.db.patch(sequence._id, {
+      last_number: number,
+      updated_at: Date.now(),
+    });
+  }
 }
 
 async function ensureUsersBelongToProject(
@@ -511,6 +529,7 @@ export const getDetail = query({
         can_close: rfi.status === "open" && canManageRfi(user, rfi),
         can_reopen: rfi.status === "closed" && canManageRfi(user, rfi),
         can_attach: canAttachToRfi(user, rfi),
+        can_delete: canDeleteRfi(user, rfi),
       },
     };
   },
@@ -582,17 +601,23 @@ export const create = mutation({
     ]);
     ensureResponsibleRole(args.rfi_manager_id, rolesByUser);
 
-    const existing = await ctx.db
-      .query("rfis")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
-      .collect();
-    const nextNumber =
-      Math.max(
-        0,
-        ...existing
-          .filter((rfi) => rfi.revision_number === 0)
-          .map((rfi) => rfi.number),
-      ) + 1;
+    const [existing, numberSequence] = await Promise.all([
+      ctx.db
+        .query("rfis")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
+        .collect(),
+      ctx.db
+        .query("rfi_number_sequences")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
+        .unique(),
+    ]);
+    const nextNumber = nextRfiNumber(
+      existing
+        .filter((rfi) => rfi.revision_number === 0)
+        .map((rfi) => rfi.number),
+      numberSequence?.last_number,
+    );
+    await reserveRfiNumber(ctx, args.proyecto, nextNumber);
     const now = Date.now();
     const status = args.submit_for_review
       ? "pending_manager_review" as const
@@ -682,11 +707,7 @@ export const updateDraft = mutation({
   },
   handler: async (ctx, args) => {
     const { rfi, user } = await getRfiOrThrow(ctx, args.id);
-    const canEdit =
-      (rfi.status === "draft" &&
-        (user.role === "admin" || rfi.creator_id === user._id)) ||
-      (rfi.status === "pending_manager_review" && canManageRfi(user, rfi));
-    if (!canEdit) {
+    if (!canEditRfi(user, rfi)) {
       throw new Error("Esta RFI ya no puede editarse");
     }
 
@@ -832,6 +853,64 @@ export const updateDraft = mutation({
       });
     }
     return rfi._id;
+  },
+});
+
+export const deleteRfi = mutation({
+  args: { id: v.id("rfis") },
+  handler: async (ctx, args) => {
+    const { rfi, user } = await getRfiOrThrow(ctx, args.id);
+    if (!canDeleteRfi(user, rfi)) {
+      throw new Error("Solo el creador o un administrador pueden eliminar un borrador");
+    }
+
+    const dependentRevision = await ctx.db
+      .query("rfis")
+      .withIndex("by_previous_revision", (q) =>
+        q.eq("previous_revision_id", rfi._id),
+      )
+      .first();
+    if (dependentRevision) {
+      throw new Error("No se puede eliminar una RFI que tiene revisiones posteriores");
+    }
+
+    const [responses, attachments, history, readStatuses] = await Promise.all([
+      ctx.db
+        .query("rfi_responses")
+        .withIndex("by_rfi", (q) => q.eq("rfi_id", rfi._id))
+        .collect(),
+      ctx.db
+        .query("rfi_attachments")
+        .withIndex("by_rfi", (q) => q.eq("rfi_id", rfi._id))
+        .collect(),
+      ctx.db
+        .query("rfi_history")
+        .withIndex("by_rfi", (q) => q.eq("rfi_id", rfi._id))
+        .collect(),
+      ctx.db
+        .query("rfi_read_status")
+        .withIndex("by_rfi_user", (q) => q.eq("rfi_id", rfi._id))
+        .collect(),
+    ]);
+
+    await reserveRfiNumber(ctx, rfi.proyecto, rfi.number);
+
+    for (const attachment of attachments) {
+      await ctx.storage.delete(attachment.storage_id);
+      await ctx.db.delete(attachment._id);
+    }
+    for (const response of responses) {
+      await ctx.db.delete(response._id);
+    }
+    for (const item of history) {
+      await ctx.db.delete(item._id);
+    }
+    for (const readStatus of readStatuses) {
+      await ctx.db.delete(readStatus._id);
+    }
+    await ctx.db.delete(rfi._id);
+
+    return { success: true };
   },
 });
 

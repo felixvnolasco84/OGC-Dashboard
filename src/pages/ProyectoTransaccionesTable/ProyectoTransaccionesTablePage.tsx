@@ -1,12 +1,20 @@
 import { useState, useMemo } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, FileText, Upload, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon } from "lucide-react";
+import { Search, MoreVertical, FileText, Upload, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon, Eye, Layers, Files, UserCog, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -32,12 +40,25 @@ import { es } from "date-fns/locale";
 import { type DateRange } from "react-day-picker";
 import AssignProviderDialog from "@/components/providers/AssignProviderDialog";
 
+function searchDate(value: string | null) {
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+    const parsed = new Date(`${value}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
 export default function ProyectoTransaccionesTablePage() {
 
     const uploadProjectTransactionsModal = useUploadProjectTransactionsModal();
 
     const { proyectoId } = useParams<{ proyectoId: string }>();
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchParams, setSearchParams] = useSearchParams();
+    const initialConcept = searchParams.get("concepto") || "";
+    const initialStatus = searchParams.get("status") || "all";
+    const initialCurrency = searchParams.get("moneda") || "all";
+    const initialProvider = searchParams.get("proveedor") || "all";
+    const initialFrom = searchDate(searchParams.get("desde"));
+    const initialTo = searchDate(searchParams.get("hasta"));
+    const [searchTerm, setSearchTerm] = useState(initialConcept);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Id<"transacciones"> | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -45,12 +66,14 @@ export default function ProyectoTransaccionesTablePage() {
     // Advanced search filters
     const [minAmount, setMinAmount] = useState<string>("");
     const [maxAmount, setMaxAmount] = useState<string>("");
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(
+        initialFrom || initialTo ? { from: initialFrom, to: initialTo } : undefined
+    );
+    const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
     const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
     const [categoriaFilter, setCategoriaFilter] = useState<string>("all");
-    const [monedaFilter, setMonedaFilter] = useState<string>("all");
-    const [proveedorFilter, setProveedorFilter] = useState<string>("all");
+    const [monedaFilter, setMonedaFilter] = useState<string>(initialCurrency);
+    const [proveedorFilter, setProveedorFilter] = useState<string>(initialProvider);
     const [assigningTransaction, setAssigningTransaction] = useState<{
         id: Id<"transacciones">;
         proveedorId?: Id<"proveedores">;
@@ -59,7 +82,9 @@ export default function ProyectoTransaccionesTablePage() {
     const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
     const [sortField, setSortField] = useState<"monto_total" | "fecha">("fecha");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-    const [showFilters, setShowFilters] = useState(false);
+    const [showFilters, setShowFilters] = useState(
+        Boolean(initialConcept || initialFrom || initialTo || initialStatus !== "all" || initialCurrency !== "all" || initialProvider !== "all")
+    );
 
     // Fetch project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -74,9 +99,11 @@ export default function ProyectoTransaccionesTablePage() {
     const deleteTransaction = useMutation(api.transacciones.deleteTransaction);
     const syncTransactionsWithDocuments = useMutation(api.sync.syncTransactionsWithDocuments);
 
-    const detailsModal = useTransactionDetailsModal();
-    const conceptosModal = useTransactionConceptosModal();
-    const documentosModal = useTransactionDocumentosModal();
+    // Subscribe only to the stable actions. Subscribing this large table to the
+    // complete modal stores caused every modal open/close to rerender all rows.
+    const openDetailsModal = useTransactionDetailsModal((state) => state.onOpen);
+    const openConceptosModal = useTransactionConceptosModal((state) => state.onOpen);
+    const openDocumentosModal = useTransactionDocumentosModal((state) => state.onOpen);
 
     // Parse date from DD/MM/YYYY format to comparable value
     const parseDateForSort = (dateStr: string): number => {
@@ -101,7 +128,8 @@ export default function ProyectoTransaccionesTablePage() {
                 transaccion.tipo_pago?.toLowerCase().includes(searchLower) ||
                 transaccion.categoria?.toLowerCase().includes(searchLower) ||
                 transaccion.banco?.toLowerCase().includes(searchLower) ||
-                transaccion.proveedor?.razon_social.toLowerCase().includes(searchLower);
+                transaccion.proveedor?.razon_social.toLowerCase().includes(searchLower) ||
+                transaccion.costConcepts?.some((concepto) => concepto.toLowerCase().includes(searchLower));
             
             // Amount range filter
             const minAmt = minAmount ? parseFloat(minAmount) : null;
@@ -163,6 +191,7 @@ export default function ProyectoTransaccionesTablePage() {
         setProveedorFilter("all");
         setSortField("fecha");
         setSortDirection("desc");
+        setSearchParams({});
     };
     
     // Toggle sort
@@ -568,11 +597,10 @@ export default function ProyectoTransaccionesTablePage() {
                         <thead className="border-b border-gray-200">
                             <tr>
                                 <th className="px-4 py-4 text-center border-r border-gray-200">
-                                    <input
-                                        type="checkbox"
+                                    <Checkbox
                                         aria-label="Seleccionar transacciones visibles"
                                         checked={allVisibleSelected}
-                                        onChange={(event) => toggleAllVisible(event.target.checked)}
+                                        onCheckedChange={(checked) => toggleAllVisible(checked === true)}
                                     />
                                 </th>
                                 <th className="px-6 py-4 text-left text-sm font-normal text-gray-500 border-r border-gray-200">
@@ -622,11 +650,10 @@ export default function ProyectoTransaccionesTablePage() {
                                         className="hover:bg-gray-50 transition-colors"
                                     >
                                         <td className="px-4 py-4 text-center border-r border-gray-200">
-                                            <input
-                                                type="checkbox"
+                                            <Checkbox
                                                 aria-label={`Seleccionar transacción ${transaccion.factura || transaccion._id}`}
                                                 checked={selectedTransactionIds.has(transaccion._id)}
-                                                onChange={(event) => toggleSelectedTransaction(transaccion._id, event.target.checked)}
+                                                onCheckedChange={(checked) => toggleSelectedTransaction(transaccion._id, checked === true)}
                                             />
                                         </td>
                                         {/* Factura */}
@@ -709,38 +736,51 @@ export default function ProyectoTransaccionesTablePage() {
                                         </td>
                                         {/* Docs */}
                                         <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                                            {String(transaccion.documentsCount || 0).padStart(2, '0')}
+                                            {transaccion.documentsCount ?? 0}
                                         </td>
                                         {/* Actions */}
                                         <td className="px-6 py-4">
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                        <MoreVertical className="h-4 w-4 text-gray-400" />
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 rounded-none"
+                                                        aria-label={`Acciones para ${transaccion.factura || "la transacción"}`}
+                                                    >
+                                                        <MoreVertical className="h-4 w-4 text-gray-500" />
                                                     </Button>
-                                                </PopoverTrigger>
-                                                {/* button actions */}
-                                                <PopoverContent className="flex flex-col space-y-1" align="end">
-                                                    <Button variant={"ghost"} onClick={() => detailsModal.onOpen(transaccion._id)}>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-64 rounded-none">
+                                                    <DropdownMenuItem onClick={() => openDetailsModal(transaccion._id)}>
+                                                        <Eye className="h-4 w-4" />
                                                         Ver detalles
-                                                    </Button>
-                                                    <Button variant={"ghost"} onClick={() => conceptosModal.onOpen(transaccion._id)}>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => openConceptosModal(transaccion._id)}>
+                                                        <Layers className="h-4 w-4" />
                                                         Ver conceptos
-                                                    </Button>
-                                                    <Button variant={"ghost"} onClick={() => documentosModal.onOpen(transaccion._id)}>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => openDocumentosModal(transaccion._id)}>
+                                                        <Files className="h-4 w-4" />
                                                         Ver documentos
-                                                    </Button>
-                                                    <Button variant={"ghost"} onClick={() => setAssigningTransaction({
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => setAssigningTransaction({
                                                         id: transaccion._id,
                                                         proveedorId: transaccion.proveedor_id,
                                                     })}>
+                                                        <UserCog className="h-4 w-4" />
                                                         Asignar / cambiar proveedor
-                                                    </Button>
-                                                    <Button variant={"ghost"} className="text-red-600" onClick={() => openDeleteDialog(transaccion._id)}>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        className="text-red-600 focus:text-red-700"
+                                                        onClick={() => openDeleteDialog(transaccion._id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
                                                         Eliminar
-                                                    </Button>
-                                                </PopoverContent>
-                                            </Popover>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </td>
                                     </tr>
                                 ))

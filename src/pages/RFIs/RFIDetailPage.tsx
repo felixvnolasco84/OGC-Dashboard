@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +38,7 @@ import {
   Paperclip,
   RotateCcw,
   Send,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -48,6 +58,7 @@ type RfiDetailProps = {
   projectIdOverride?: Id<"desarrollos">;
   rfiIdOverride?: Id<"rfis">;
   onEdit?: () => void;
+  onDeleted?: () => void;
 };
 
 export default function RFIDetailPage({
@@ -55,7 +66,9 @@ export default function RFIDetailPage({
   projectIdOverride,
   rfiIdOverride,
   onEdit,
+  onDeleted,
 }: RfiDetailProps = {}) {
+  const navigate = useNavigate();
   const { proyectoId, rfiId } = useParams<{
     proyectoId: string;
     rfiId: string;
@@ -87,12 +100,14 @@ export default function RFIDetailPage({
   const markOfficial = useMutation(api.rfis.markResponseOfficial);
   const closeRfi = useMutation(api.rfis.closeRfi);
   const reopenRfi = useMutation(api.rfis.reopenRfi);
+  const deleteRfi = useMutation(api.rfis.deleteRfi);
   const generateUploadUrl = useMutation(api.rfis.generateUploadUrl);
   const addAttachment = useMutation(api.rfis.addAttachment);
 
   const [responseBody, setResponseBody] = useState("");
   const [responseFiles, setResponseFiles] = useState<File[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const loadedRfiId = detail?.rfi._id;
 
   useEffect(() => {
@@ -162,6 +177,26 @@ export default function RFIDetailPage({
       },
       "Respuesta agregada",
     );
+  };
+
+  const handleDelete = async () => {
+    if (!id || !detail || busyAction !== null) return;
+    const targetProjectId = detail.rfi.proyecto;
+    setBusyAction("delete");
+    try {
+      await deleteRfi({ id });
+      toast.success("Borrador de RFI eliminado");
+      setDeleteDialogOpen(false);
+      if (embedded) {
+        onDeleted?.();
+      } else {
+        navigate(`/proyecto/${targetProjectId}/rfis`, { replace: true });
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar la RFI");
+    } finally {
+      setBusyAction(null);
+    }
   };
 
   if (!projectId || !id) {
@@ -256,6 +291,18 @@ export default function RFIDetailPage({
                     </Link>
                   </Button>
                 )
+              )}
+              {permissions.can_delete && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 min-w-[154px] rounded-[4px] border-[#E75F79] bg-white font-normal text-[#C93F5B] shadow-none hover:bg-[#FFF5F7] hover:text-[#B52F4A]"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  disabled={busyAction !== null}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Eliminar borrador
+                </Button>
               )}
               {permissions.can_submit && (
                 <ActionButton
@@ -552,6 +599,40 @@ export default function RFIDetailPage({
             </TabsContent>
           </Tabs>
       </div>
+
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          if (busyAction !== "delete") setDeleteDialogOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar {rfi.code}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará permanentemente “{rfi.code}: {rfi.subject}”, junto con
+              sus adjuntos e historial. El folio no volverá a utilizarse y esta
+              acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busyAction === "delete"}>
+              Cancelar
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              className="bg-[#C93F5B] text-white hover:bg-[#B52F4A]"
+              onClick={() => void handleDelete()}
+              disabled={busyAction !== null}
+            >
+              {busyAction === "delete" && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Eliminar permanentemente
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

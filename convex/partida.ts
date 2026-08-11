@@ -1072,6 +1072,7 @@ export const syncProjectData = mutation({
           console.log(`Skipping pago (status=${txStatus}): ${pago.monto}`);
           continue;
         }
+        if (!pago.partida_id) continue;
         
         const current = pagosByPartidaId.get(pago.partida_id) || 0;
         pagosByPartidaId.set(pago.partida_id, current + (pago.monto || 0));
@@ -1231,7 +1232,7 @@ export const syncProjectData = mutation({
         // Get pagos that belong to excluded partidas
         const excludedPagos = allPagos.filter(pago =>
           transactionIds.includes(pago.transaccion_id) &&
-          allExcludedPartidasIds.includes(pago.partida_id)
+          Boolean(pago.partida_id && allExcludedPartidasIds.includes(pago.partida_id))
         );
 
         excludedAmount = excludedPagos.reduce(

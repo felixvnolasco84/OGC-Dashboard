@@ -26,7 +26,7 @@ triggers.register("pagos", async (ctx, change) => {
     
     // Fetch related data from partidas and transacciones tables
     // (pagos table is now simplified and doesn't store these fields)
-    const partidaDoc = await ctx.db.get(payment.partida_id);
+    const partidaDoc = payment.partida_id ? await ctx.db.get(payment.partida_id) : null;
     if (!partidaDoc || partidaDoc === null) {
       console.log("Partida not found, skipping trigger");
       return;
@@ -41,6 +41,10 @@ triggers.register("pagos", async (ctx, change) => {
     // Type assertion to access fields
     const partida = partidaDoc as any;
     const transaction = transactionDoc as any;
+    if (partida.proyecto !== transaction.proyecto) {
+      console.warn("Payment references a partida from another project; skipping budget rollup", payment._id);
+      return;
+    }
     
     const context = {
       partida: partida.partida_nombre || partida.nombre || "",
@@ -667,6 +671,29 @@ async function updateProyectoMonedaPrincipal(ctx: { db: any }, proyectoId: strin
   console.log(`✅ Updated proyecto ${proyectoId} currency to ${dominantCurrency}`);
 }
 
+async function refreshTransactionHierarchies(ctx: { db: any }, transaction: any) {
+  const payments = await ctx.db
+    .query("pagos")
+    .withIndex("by_transaccion", (q: any) => q.eq("transaccion_id", transaction._id))
+    .collect();
+  const hierarchies = new Map<string, { partida: string; familia: string; sub_partida: string; nivel: number; proyecto: string }>();
+  for (const payment of payments) {
+    if (!payment.partida_id) continue;
+    const partida = await ctx.db.get(payment.partida_id);
+    if (!partida || partida.proyecto !== transaction.proyecto) continue;
+    const context = {
+      partida: partida.partida_nombre || partida.nombre || "",
+      familia: partida.familia || "",
+      sub_partida: partida.sub_partida || "",
+      nivel: partida.nivel,
+      proyecto: transaction.proyecto,
+    };
+    hierarchies.set(`${context.partida}|${context.familia}|${context.sub_partida}`, context);
+  }
+  for (const context of hierarchies.values()) await updatePagadoForHierarchy(ctx, context);
+  await updateMeticasPresupuesto(ctx, transaction.proyecto);
+}
+
 // Register trigger for transacciones table to update honorarios monto and currency
 triggers.register("transacciones", async (ctx, change) => {
   console.log("Transaction changed:", change.operation, change.id);
@@ -685,19 +712,25 @@ triggers.register("transacciones", async (ctx, change) => {
       return;
     }
     
-    // For updates, only recalculate if monto_total or moneda changed
+    // Recalculate all derived cost data when any financial classification can
+    // change. Payment inserts/updates handle line-item changes separately.
     if (change.operation === "update" && change.oldDoc) {
       const montoChanged = change.oldDoc.monto_total !== change.newDoc.monto_total;
       const monedaChanged = change.oldDoc.moneda !== change.newDoc.moneda;
+      const statusChanged = change.oldDoc.status !== change.newDoc.status;
+      const fechaChanged = change.oldDoc.fecha !== change.newDoc.fecha;
       
-      if (!montoChanged && !monedaChanged) {
-        console.log("monto_total and moneda not changed, skipping updates");
+      if (!montoChanged && !monedaChanged && !statusChanged && !fechaChanged) {
+        console.log("No financial transaction fields changed, skipping updates");
         return;
       }
       
       // Update currency if moneda changed
       if (monedaChanged) {
         await updateProyectoMonedaPrincipal(ctx, transaction.proyecto);
+      }
+      if (statusChanged || monedaChanged) {
+        await refreshTransactionHierarchies(ctx, transaction);
       }
     } else if (change.operation === "insert") {
       // On insert, always update currency

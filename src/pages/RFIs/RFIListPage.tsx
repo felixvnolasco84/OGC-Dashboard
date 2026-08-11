@@ -592,6 +592,10 @@ export default function RFIListPage() {
               projectIdOverride={projectId}
               rfiIdOverride={selectedRfiId}
               onEdit={() => setSheetMode("edit")}
+              onDeleted={() => {
+                setSelectedRfiId(null);
+                setSheetMode("detail");
+              }}
             />
           ) : selectedRfiId ? (
             <RFINewPage

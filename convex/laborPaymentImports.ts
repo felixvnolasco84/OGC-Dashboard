@@ -13,6 +13,7 @@ import {
   getCurrentUserOrThrow,
 } from "./permissions";
 import { isGenericProviderName, normalizeProviderName } from "./providerUtils";
+import { mostSpecificCostLabel, normalizeCostText } from "./costRules";
 
 const MAX_ROWS = 1_000;
 const MONEY_TOLERANCE = 0.01;
@@ -306,7 +307,7 @@ export const replaceLaborPaymentImport = mutation({
             .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
             .collect();
           for (const payment of payments) {
-            const partida = await ctx.db.get(payment.partida_id);
+            const partida = payment.partida_id ? await ctx.db.get(payment.partida_id) : null;
             if (partida) {
               const key = `${partida.nombre}|${partida.familia}|${partida.sub_partida}`;
               affectedHierarchies.set(key, {
@@ -391,24 +392,43 @@ export const replaceLaborPaymentImport = mutation({
           factura: transaction.factura.trim(),
         });
         for (const item of transaction.line_items) {
+          const partida = partidaDocs.get(String(item.partida_id));
+          if (!partida || partida.proyecto !== args.proyecto) {
+            throw new Error("Una partida de la importación no pertenece al proyecto.");
+          }
+          const partidaNombre = String(
+            partida.nivel === 1 ? partida.nombre : partida.partida_nombre || partida.nombre || "",
+          ).trim();
+          const familia = String(partida.familia || "").trim();
+          const subPartida = String(partida.sub_partida || "").trim();
+          const concepto = mostSpecificCostLabel({
+            sub_partida: subPartida,
+            familia,
+            partida: partidaNombre,
+            nombre: partida.nombre,
+          });
           await ctx.db.insert("pagos", {
             transaccion_id: transactionId,
             partida_id: item.partida_id,
+            proyecto_id: args.proyecto,
+            concepto,
+            concepto_normalizado: normalizeCostText(concepto),
+            partida_nombre_snapshot: partidaNombre,
+            familia_snapshot: familia,
+            sub_partida_snapshot: subPartida,
+            classification_status: "mapped",
             monto: Math.round(item.monto * 100) / 100,
             numero_personas_origen: item.numero_personas_origen,
             source_row: item.source_row,
           });
-          const partida = partidaDocs.get(String(item.partida_id));
-          if (partida) {
-            const key = `${item.partida}|${item.familia}|${item.sub_partida}`;
-            affectedHierarchies.set(key, {
-              partida: item.partida,
-              familia: item.familia,
-              sub_partida: item.sub_partida,
-              nivel: partida.nivel,
-              proyecto: String(args.proyecto),
-            });
-          }
+          const key = `${partidaNombre}|${familia}|${subPartida}`;
+          affectedHierarchies.set(key, {
+            partida: partidaNombre,
+            familia,
+            sub_partida: subPartida,
+            nivel: partida.nivel,
+            proyecto: String(args.proyecto),
+          });
         }
         importedTransactions += 1;
       }

@@ -1,6 +1,12 @@
 export const assistantEvalCases = [
   { id: "executive-current", question: "Dame el estado ejecutivo de @Proyecto.", expectedTools: ["get_project_overview"] },
   { id: "budget-current", question: "¿Cuál es el presupuesto, gasto y saldo disponible de @Proyecto?", expectedTools: ["get_project_overview"] },
+  { id: "cost-material", question: "¿Cuánto he gastado en PEGAMARMOL en @Proyecto?", expectedTools: ["query_project_costs"] },
+  { id: "cost-family", question: "¿Cuánto he gastado en ACERO en @Proyecto?", expectedTools: ["query_project_costs"] },
+  { id: "cost-provider", question: "¿Cuánto he pagado a @Proveedor en @Proyecto?", expectedTools: ["query_project_costs"] },
+  { id: "cost-pending", question: "¿Cuánto tengo por pagar de ACERO en @Proyecto?", expectedTools: ["query_project_costs"] },
+  { id: "cost-period", question: "¿Cuánto gasté en materiales del 01/07/2026 al 31/07/2026 en @Proyecto?", expectedTools: ["query_project_costs"] },
+  { id: "cost-comparison", question: "Compara el gasto en ACERO de @Proyecto A, @Proyecto B y @Proyecto C.", expectedTools: ["query_project_costs"] },
   { id: "earned-value", question: "Explícame el CPI, SPI y la proyección al término de @Proyecto.", expectedTools: ["get_project_overview"] },
   { id: "cashflow", question: "¿Cómo va el flujo real contra la proyección de @Proyecto?", expectedTools: ["get_project_overview"] },
   { id: "data-quality", question: "¿Qué tan confiables son los datos de @Proyecto y qué falta capturar?", expectedTools: ["get_project_overview"] },

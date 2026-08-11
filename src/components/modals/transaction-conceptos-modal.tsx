@@ -8,6 +8,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Loader2, Layers } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
 
@@ -21,8 +30,13 @@ type Partida = {
 
 type LineItem = {
   _id: Id<"pagos">;
-  partida_id: Id<"partidas">;
+  partida_id?: Id<"partidas">;
   monto: number;
+  concepto?: string;
+  partida_nombre_snapshot?: string;
+  familia_snapshot?: string;
+  sub_partida_snapshot?: string;
+  classification_status?: "mapped" | "custom" | "unresolved";
   partida?: Partida;
 };
 
@@ -39,14 +53,15 @@ export default function TransactionConceptosModal() {
   const { isOpen, onClose, transactionId } = useTransactionConceptosModal();
   
   const transaction = useQuery(
-    api.transacciones.getTransactionById,
-    transactionId ? { id: transactionId } : "skip"
+    api.transacciones.getTransactionConceptosById,
+    isOpen && transactionId ? { id: transactionId } : "skip"
   );
 
   const formatCurrency = (amount: number) => {
+    const currency = /^[A-Z]{3}$/.test(transaction?.moneda || "") ? transaction!.moneda : "MXN";
     return new Intl.NumberFormat("es-MX", {
       style: "currency",
-      currency: "MXN",
+      currency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -54,22 +69,22 @@ export default function TransactionConceptosModal() {
 
   // Group line items by partida
   const groupedItems = transaction?.lineItems?.reduce((acc: GroupedItems, item: LineItem) => {
-    const partidaId = item.partida_id;
-    if (!acc[partidaId]) {
-      acc[partidaId] = {
-        partida: item.partida?.nombre || "N/A",
-        familia: item.partida?.familia || "N/A",
+    const groupKey = String(item.partida_id || item.partida_nombre_snapshot || item.concepto || item._id);
+    if (!acc[groupKey]) {
+      acc[groupKey] = {
+        partida: item.partida_nombre_snapshot || item.partida?.nombre || item.concepto || "Sin partida",
+        familia: item.familia_snapshot || item.partida?.familia || "Concepto personalizado",
         items: [],
         total: 0,
       };
     }
-    acc[partidaId].items.push(item);
-    acc[partidaId].total += item.monto;
+    acc[groupKey].items.push(item);
+    acc[groupKey].total += item.monto;
     return acc;
   }, {} as GroupedItems);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Conceptos de Transacción</DialogTitle>
@@ -120,70 +135,70 @@ export default function TransactionConceptosModal() {
                 No hay conceptos registrados para esta transacción
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-none">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+              <div className="overflow-hidden border border-gray-200 bg-white">
+                <Table>
+                  <TableHeader className="bg-white">
+                    <TableRow className="border-b border-gray-200">
+                      <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                         #
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      </TableHead>
+                      <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                         Partida
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      </TableHead>
+                      <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                         Familia
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      </TableHead>
+                      <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
                         Sub-partida
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      </TableHead>
+                      <TableHead className="px-6 py-4 text-right text-base font-medium text-muted-foreground">
                         Monto
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {transaction.lineItems.map((item, index: number) => (
-                      <tr key={item._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 text-sm text-gray-500">
+                      <TableRow key={item._id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <TableCell className="px-4 py-4 text-base text-gray-500 border-r border-gray-100 last:border-r-0">
                           {index + 1}
-                        </td>
-                        <td className="px-6 py-4">
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0">
                           <div className="flex items-center gap-2">
                             <Layers className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm font-medium text-gray-900">
-                              {item.partida?.nombre || "N/A"}
+                            <span className="font-medium text-gray-900">
+                              {item.partida_nombre_snapshot || item.partida?.nombre || item.concepto || "Sin partida"}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {item.partida?.familia || "N/A"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {item.partida?.sub_partida || "N/A"}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-sm font-semibold text-gray-900">
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0">
+                          {item.familia_snapshot || item.partida?.familia || "N/A"}
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0">
+                          {item.sub_partida_snapshot || item.partida?.sub_partida || item.concepto || "N/A"}
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-right text-base text-gray-900">
+                          <span className="font-medium text-gray-900">
                             {formatCurrency(item.monto)}
                           </span>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                  <tfoot className="bg-gray-50 border-t-2 border-gray-300">
-                    <tr>
-                      <td colSpan={4} className="px-6 py-4 text-right text-sm font-medium text-gray-900">
+                  </TableBody>
+                  <TableFooter className="border-t border-gray-200 bg-white">
+                    <TableRow className="hover:bg-gray-50">
+                      <TableCell colSpan={4} className="px-4 py-4 text-right text-base font-medium text-gray-900 border-r border-gray-100">
                         Total:
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-lg font-bold text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-right text-base">
+                        <span className="font-semibold text-gray-900">
                           {formatCurrency(
                             transaction.lineItems.reduce((sum: number, item: LineItem) => sum + item.monto, 0)
                           )}
                         </span>
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
               </div>
             )}
 

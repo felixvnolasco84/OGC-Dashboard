@@ -159,12 +159,27 @@ export default defineSchema({
   // Line items (concepts) that reference a parent transaction
   pagos: defineTable({
     transaccion_id: v.id("transacciones"), // Foreign key to parent transaction
-    partida_id: v.id("partidas"), // Reference to specific partida/familia/sub-partida
+    // Optional for historical/custom concepts that cannot be mapped safely to
+    // the current project budget. New mapped writes always include this field.
+    partida_id: v.optional(v.id("partidas")),
+    proyecto_id: v.optional(v.id("desarrollos")),
+    concepto: v.optional(v.string()),
+    concepto_normalizado: v.optional(v.string()),
+    partida_nombre_snapshot: v.optional(v.string()),
+    familia_snapshot: v.optional(v.string()),
+    sub_partida_snapshot: v.optional(v.string()),
+    classification_status: v.optional(v.union(
+      v.literal("mapped"),
+      v.literal("custom"),
+      v.literal("unresolved"),
+    )),
     monto: v.number(), // Individual line item amount
     numero_personas_origen: v.optional(v.number()),
     source_row: v.optional(v.number()),
   }).index("by_transaccion", { fields: ["transaccion_id"] })
-    .index("by_partida_id", { fields: ["partida_id"] }),
+    .index("by_partida_id", { fields: ["partida_id"] })
+    .index("by_proyecto", { fields: ["proyecto_id"] })
+    .index("by_proyecto_concepto", { fields: ["proyecto_id", "concepto_normalizado"] }),
   
   // Sales line items that reference a parent sales transaction
   sales_pagos: defineTable({
@@ -796,8 +811,15 @@ export default defineSchema({
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_proyecto_number", { fields: ["proyecto", "number", "revision_number"] })
     .index("by_proyecto_status", { fields: ["proyecto", "status"] })
+    .index("by_previous_revision", { fields: ["previous_revision_id"] })
     .index("by_manager", { fields: ["rfi_manager_id"] })
     .index("by_due_date", { fields: ["due_date"] }),
+
+  rfi_number_sequences: defineTable({
+    proyecto: v.id("desarrollos"),
+    last_number: v.number(),
+    updated_at: v.number(),
+  }).index("by_proyecto", { fields: ["proyecto"] }),
 
   rfi_responses: defineTable({
     rfi_id: v.id("rfis"),

@@ -19,6 +19,19 @@ import {
   rebaseMentionRanges,
 } from "../src/lib/mentionRanges.ts";
 import { assistantEvalCases, scoreAssistantEval } from "./assistant-eval-cases.mjs";
+import {
+  buildCostItemReferenceId,
+  canonicalTransactionStatus,
+  compactCostText,
+  inferCostGroupBy,
+  inferCostPaymentScope,
+  isCostIntent,
+  normalizeCostCurrency,
+  normalizeCostText,
+  parseCostItemReferenceId,
+  resolveCostCandidates,
+  resolveCostDateRange,
+} from "../convex/costRules.ts";
 
 assert.deepEqual(getActiveMention("Compara @Proy", 13), {
   start: 8,
@@ -81,6 +94,42 @@ assert.deepEqual(resolveAssistantCutoff("Estatus al 2026-07-15", "2026-08-06"), 
 assert.equal(isOperationallyOverdue({ active: true, dueDate: "2026-07-01", asOf: "2026-08-06" }), true);
 assert.equal(isOperationallyOverdue({ active: false, dueDate: "2026-07-01", asOf: "2026-08-06" }), false);
 
+assert.equal(normalizeCostText("  PEGA-MÁRMOL  "), "pega marmol");
+assert.equal(compactCostText("PEGA MÁRMOL"), "pegamarmol");
+assert.equal(normalizeCostCurrency(" mxn "), "MXN");
+assert.equal(normalizeCostCurrency("pesos"), "SIN_MONEDA");
+assert.equal(normalizeCostCurrency(undefined), "SIN_MONEDA");
+assert.equal(isCostIntent("¿Cuánto he gastado en acero?"), true);
+assert.equal(inferCostPaymentScope("¿Cuánto tengo por pagar?"), "pending");
+assert.equal(inferCostPaymentScope("Compara lo pagado y por pagar"), "all");
+assert.equal(inferCostGroupBy("Desglosa el gasto por proveedor"), "provider");
+assert.deepEqual(resolveCostDateRange("Gasto al 2026-07-15", "2026-08-06"), {
+  date_from: undefined,
+  date_to: "2026-07-15",
+  explicit: true,
+});
+assert.deepEqual(resolveCostDateRange("Gasto del 01/07/2026 al 31/07/2026", "2026-08-06"), {
+  date_from: "2026-07-01",
+  date_to: "2026-07-31",
+  explicit: true,
+});
+const aceroId = buildCostItemReferenceId("family", "ACERO");
+assert.deepEqual(parseCostItemReferenceId(aceroId), { kind: "family", normalized: "acero" });
+assert.deepEqual(
+  resolveCostCandidates("¿Cuánto he gastado en ACERO?", [
+    { id: aceroId, kind: "family", label: "ACERO" },
+    { id: aceroId, kind: "family", label: "ACERO" },
+  ]).status,
+  "exact",
+);
+assert.equal(resolveCostCandidates("PEGAMARMOL", [
+  { id: buildCostItemReferenceId("concept", "PEGAMARMOL"), kind: "concept", label: "PEGAMARMOL" },
+  { id: "provider:p1", kind: "provider", label: "PEGAMARMOL" },
+]).status, "ambiguous");
+assert.equal(canonicalTransactionStatus("Pagado"), "paid");
+assert.equal(canonicalTransactionStatus("Pendiente"), "pending");
+assert.equal(canonicalTransactionStatus("Cancelado"), "other");
+
 assert.equal(deterministicAssistantStatus({ hasData: false, hasCriticalInsight: true, hasAttentionInsight: true, hasBlockedOrOverdueWork: true }), "insufficient_data");
 assert.equal(deterministicAssistantStatus({ hasData: true, hasCriticalInsight: true, hasAttentionInsight: false, hasBlockedOrOverdueWork: false }), "critical");
 assert.equal(deterministicAssistantStatus({ hasData: true, hasCriticalInsight: false, hasAttentionInsight: true, hasBlockedOrOverdueWork: false }), "attention");
@@ -93,6 +142,8 @@ assert.equal(conversationTitle("  Estado   ejecutivo del proyecto  "), "Estado e
 assert.equal(conversationTitle("a".repeat(80)).length, 60);
 
 const validAnswer = {
+  schema_version: 2,
+  answer_status: "answered",
   overall_status: "attention",
   summary: "Hay una entrega vencida.",
   metrics: [{ label: "Entregas vencidas", value: "1", evidence_ids: ["metric:p1:overdue"] }],

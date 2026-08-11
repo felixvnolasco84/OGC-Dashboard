@@ -50,7 +50,7 @@ export const getByProyecto = query({
 
       // Enrich each pago with transaction and partida data
       for (const pago of pagos) {
-        const partida = await ctx.db.get(pago.partida_id);
+        const partida = pago.partida_id ? await ctx.db.get(pago.partida_id) : null;
         allPayments.push({
           ...pago,
           // Transaction data
@@ -90,7 +90,7 @@ export const getByPartidaId = query({
     const paymentsWithTransactions = await Promise.all(
       payments.map(async (pago) => {
         const transaction = await ctx.db.get(pago.transaccion_id);
-        const partida = await ctx.db.get(pago.partida_id);
+        const partida = pago.partida_id ? await ctx.db.get(pago.partida_id) : null;
         return {
           ...pago,
           // Transaction data
@@ -213,7 +213,7 @@ export const getAll = query({
     const enrichedPagos = await Promise.all(
       allPagos.map(async (pago) => {
         const transaction = await ctx.db.get(pago.transaccion_id);
-        const partida = await ctx.db.get(pago.partida_id);
+        const partida = pago.partida_id ? await ctx.db.get(pago.partida_id) : null;
         
         // Get proyecto name
         let proyectoNombre = "";

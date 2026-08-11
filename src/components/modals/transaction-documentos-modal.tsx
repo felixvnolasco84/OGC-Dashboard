@@ -30,23 +30,16 @@ type Document = {
     sales_proyecto?: Id<"sales_projects">; // Optional: may reference sales project
     size?: number;
     uploaded_at?: number;
+    url?: string | null;
 };
 
 export default function TransactionDocumentosModal() {
     const { isOpen, onClose, transactionId } = useTransactionDocumentosModal();
 
     const transaction = useQuery(
-        api.transacciones.getTransactionById,
-        transactionId ? { id: transactionId } : "skip"
+        api.transacciones.getTransactionDocumentsById,
+        isOpen && transactionId ? { id: transactionId } : "skip"
     );
-
-    const getDocumentUrl = (documentUrl: string) => {
-        return documentUrl;
-    };
-
-    const getDocumentDownloadUrl = (documentUrl: string) => {
-        return documentUrl;
-    };
 
     const getDocumentTypeColor = (type?: string) => {
         switch (type?.toLowerCase()) {
@@ -65,7 +58,7 @@ export default function TransactionDocumentosModal() {
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-normal">Documentos de Transacción</DialogTitle>
@@ -112,11 +105,14 @@ export default function TransactionDocumentosModal() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {transaction.documents.map((doc: Document) => (
-                                    <div
+                                {transaction.documents.map((doc: Document) => {
+                                    const documentUrl = doc.url || doc.image;
+
+                                    return (
+                                      <div
                                         key={doc._id}
                                         className="border border-gray-200 rounded-none p-4 hover:bg-gray-50 transition-colors"
-                                    >
+                                      >
                                         <div className="flex items-start justify-between">
                                             <div className="flex items-start gap-4 flex-1">
                                                 <div className="p-3 bg-gray-100 rounded-none">
@@ -124,7 +120,18 @@ export default function TransactionDocumentosModal() {
                                                 </div>
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-2">
-                                                        <h4 className="text-sm font-medium text-gray-900">{doc.nombre}</h4>
+                                                        {documentUrl ? (
+                                                            <a
+                                                                href={documentUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-sm font-medium text-gray-900 underline-offset-4 hover:underline"
+                                                            >
+                                                                {doc.nombre}
+                                                            </a>
+                                                        ) : (
+                                                            <h4 className="text-sm font-medium text-gray-900">{doc.nombre}</h4>
+                                                        )}
                                                         <Badge
                                                             variant="outline"
                                                             className={`${getDocumentTypeColor(doc.type)} rounded-none px-2 py-0.5 text-xs`}
@@ -136,33 +143,29 @@ export default function TransactionDocumentosModal() {
                                                         <p className="text-sm text-gray-600 mb-3">{doc.descripcion}</p>
                                                     )}
                                                     <div className="flex items-center gap-3">
-                                                        {doc.image && (
+                                                        {documentUrl && (
                                                             <>
-
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
                                                                     className="rounded-none"
-                                                                    onClick={() => window.open(getDocumentUrl(doc.image!), '_blank')}
+                                                                    asChild
                                                                 >
-                                                                    <ExternalLink className="h-4 w-4 mr-2" />
-                                                                    Ver documento
+                                                                    <a href={documentUrl} target="_blank" rel="noopener noreferrer">
+                                                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                                                        Ver documento
+                                                                    </a>
                                                                 </Button>
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
                                                                     className="rounded-none"
-                                                                    onClick={() => {
-                                                                        (async () => {
-                                                                            const downloadUrl = await getDocumentDownloadUrl(doc.image!);
-                                                                            if (downloadUrl) {
-                                                                                window.open(downloadUrl, '_blank');
-                                                                            }
-                                                                        })();
-                                                                    }}
+                                                                    asChild
                                                                 >
-                                                                    <Download className="h-4 w-4 mr-2" />
-                                                                    Descargar
+                                                                    <a href={documentUrl} download={doc.nombre} target="_blank" rel="noopener noreferrer">
+                                                                        <Download className="h-4 w-4 mr-2" />
+                                                                        Descargar
+                                                                    </a>
                                                                 </Button>
                                                             </>
                                                         )}
@@ -170,8 +173,9 @@ export default function TransactionDocumentosModal() {
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                      </div>
+                                    );
+                                })}
                             </div>
                         )}
 

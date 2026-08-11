@@ -45,6 +45,13 @@ const STATUS_META: Record<AssistantAnswer["overall_status"], { label: string; cl
   insufficient_data: { label: "Datos insuficientes", className: "border-gray-200 bg-gray-50 text-gray-600" },
 };
 
+const ANSWER_STATUS_META: Record<AssistantAnswer["answer_status"], { label: string; className: string }> = {
+  answered: { label: "Respondido", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  partial: { label: "Respuesta parcial", className: "border-amber-200 bg-amber-50 text-amber-700" },
+  ambiguous: { label: "Requiere precisión", className: "border-blue-200 bg-blue-50 text-blue-700" },
+  insufficient_data: { label: "Datos insuficientes", className: "border-gray-200 bg-gray-50 text-gray-600" },
+};
+
 function newRequestId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -88,13 +95,22 @@ function EvidenceCitations({
 
 function AnswerView({ answer, onFollowUp }: { answer: AssistantAnswer; onFollowUp: (prompt: string) => void }) {
   const evidence = new Map(answer.evidence.map((item) => [item.id, item]));
-  const status = STATUS_META[answer.overall_status];
+  const answerStatusKey = answer.answer_status ||
+    (answer.overall_status === "insufficient_data" ? "insufficient_data" : "answered");
+  const answerStatus = ANSWER_STATUS_META[answerStatusKey];
+  const projectStatus = STATUS_META[answer.overall_status];
+  const hasProjectHealthEvidence = answer.evidence.some((item) => item.type === "metric");
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className={cn("rounded-full font-medium", status.className)}>
-          <CircleGauge className="mr-1 h-3.5 w-3.5" /> {status.label}
+        <Badge variant="outline" className={cn("rounded-full font-medium", answerStatus.className)}>
+          <CircleGauge className="mr-1 h-3.5 w-3.5" /> {answerStatus.label}
         </Badge>
+        {hasProjectHealthEvidence && (
+          <Badge variant="outline" className={cn("rounded-full font-medium", projectStatus.className)}>
+            Proyecto: {projectStatus.label}
+          </Badge>
+        )}
       </div>
       <p className="whitespace-pre-wrap text-sm leading-6 text-gray-800">{answer.summary}</p>
 

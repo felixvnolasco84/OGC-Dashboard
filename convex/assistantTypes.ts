@@ -8,6 +8,8 @@ export const ASSISTANT_REFERENCE_TYPES = [
   "task",
   "requisition",
   "rfi",
+  "cost_item",
+  "provider",
 ] as const;
 
 export type AssistantReferenceType = (typeof ASSISTANT_REFERENCE_TYPES)[number];
@@ -29,6 +31,8 @@ export const assistantReferenceValidator = v.object({
     v.literal("task"),
     v.literal("requisition"),
     v.literal("rfi"),
+    v.literal("cost_item"),
+    v.literal("provider"),
   ),
   id: v.string(),
   project_id: v.string(),
@@ -45,7 +49,7 @@ export type AssistantOverallStatus =
 
 export type AssistantEvidence = {
   id: string;
-  type: "metric" | "task" | "requisition" | "rfi";
+  type: "metric" | "task" | "requisition" | "rfi" | "cost";
   label: string;
   project_id: string;
   observed_value?: string;
@@ -53,7 +57,11 @@ export type AssistantEvidence = {
   url: string;
 };
 
+export type AssistantAnswerStatus = "answered" | "partial" | "ambiguous" | "insufficient_data";
+
 export type AssistantAnswer = {
+  schema_version: 2;
+  answer_status: AssistantAnswerStatus;
   overall_status: AssistantOverallStatus;
   summary: string;
   metrics: Array<{ label: string; value: string; evidence_ids: string[] }>;
@@ -80,6 +88,7 @@ export const assistantEvidenceValidator = v.object({
     v.literal("task"),
     v.literal("requisition"),
     v.literal("rfi"),
+    v.literal("cost"),
   ),
   label: v.string(),
   project_id: v.string(),
@@ -89,6 +98,14 @@ export const assistantEvidenceValidator = v.object({
 });
 
 export const assistantAnswerValidator = v.object({
+  // Optional only for persisted V1 messages. Every newly generated answer is V2.
+  schema_version: v.optional(v.literal(2)),
+  answer_status: v.optional(v.union(
+    v.literal("answered"),
+    v.literal("partial"),
+    v.literal("ambiguous"),
+    v.literal("insufficient_data"),
+  )),
   overall_status: v.union(
     v.literal("on_track"),
     v.literal("attention"),
@@ -125,7 +142,7 @@ export const assistantAnswerValidator = v.object({
 
 const evidenceSchema = z.object({
   id: z.string().min(1).max(160),
-  type: z.enum(["metric", "task", "requisition", "rfi"]),
+  type: z.enum(["metric", "task", "requisition", "rfi", "cost"]),
   label: z.string().min(1).max(180),
   project_id: z.string().min(1).max(80),
   observed_value: z.string().max(220).optional(),
@@ -134,6 +151,8 @@ const evidenceSchema = z.object({
 }).strict();
 
 export const assistantAnswerSchema = z.object({
+  schema_version: z.literal(2),
+  answer_status: z.enum(["answered", "partial", "ambiguous", "insufficient_data"]),
   overall_status: z.enum(["on_track", "attention", "critical", "insufficient_data"]),
   summary: z.string().min(1).max(1400),
   metrics: z.array(z.object({
@@ -161,6 +180,8 @@ export const assistantStructuredOutputJsonSchema = {
   type: "object",
   additionalProperties: false,
   required: [
+    "schema_version",
+    "answer_status",
     "overall_status",
     "summary",
     "metrics",
@@ -171,6 +192,11 @@ export const assistantStructuredOutputJsonSchema = {
     "limitations",
   ],
   properties: {
+    schema_version: { type: "integer", enum: [2] },
+    answer_status: {
+      type: "string",
+      enum: ["answered", "partial", "ambiguous", "insufficient_data"],
+    },
     overall_status: {
       type: "string",
       enum: ["on_track", "attention", "critical", "insufficient_data"],
@@ -246,7 +272,7 @@ export const assistantStructuredOutputJsonSchema = {
         required: ["id", "type", "label", "project_id", "observed_value", "as_of", "url"],
         properties: {
           id: { type: "string", minLength: 1, maxLength: 160 },
-          type: { type: "string", enum: ["metric", "task", "requisition", "rfi"] },
+          type: { type: "string", enum: ["metric", "task", "requisition", "rfi", "cost"] },
           label: { type: "string", minLength: 1, maxLength: 180 },
           project_id: { type: "string", minLength: 1, maxLength: 80 },
           observed_value: { type: "string", maxLength: 220 },

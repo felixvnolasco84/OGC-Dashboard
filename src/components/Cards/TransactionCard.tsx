@@ -61,7 +61,7 @@ export default function TransactionCard({
         transaccion_id: item.transaccion_id,
         partida_id: item.partida_id,
         monto: item.monto,
-        partida: item.partida && item.familia && item.sub_partida ? {
+        partida: item.partida_id && item.partida && item.familia && item.sub_partida ? {
           _id: item.partida_id,
           nombre: item.partida,
           familia: item.familia,

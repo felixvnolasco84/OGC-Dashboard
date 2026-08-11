@@ -30,6 +30,8 @@ const TYPE_LABELS: Record<AssistantReference["type"], string> = {
   task: "Tareas",
   requisition: "Requisiciones",
   rfi: "RFIs",
+  cost_item: "Conceptos de costo",
+  provider: "Proveedores",
 };
 
 export default function AssistantComposer({

@@ -22,6 +22,7 @@ import {
   selectAssistantFunctionCalls,
   validateReferenceRanges,
   type AssistantAnswer,
+  type AssistantAnswerStatus,
   type AssistantEvidence,
   type AssistantOverallStatus,
   type AssistantReference,
@@ -39,6 +40,23 @@ import {
   resolveAssistantCutoff,
   resolveAssistantProjectContext,
 } from "./assistantRules";
+import {
+  buildCostItemReferenceId,
+  canonicalTransactionStatus,
+  compactCostText,
+  inferCostGroupBy,
+  inferCostPaymentScope,
+  isCostIntent,
+  mostSpecificCostLabel,
+  normalizeCostCurrency,
+  normalizeCostText,
+  parseCostDate,
+  parseCostItemReferenceId,
+  resolveCostCandidates,
+  resolveCostDateRange,
+  type CostCandidate,
+  type CostDimensionKind,
+} from "./costRules";
 
 const MAX_TOOL_CALLS = 4;
 const MAX_PROJECTS = 3;
@@ -51,6 +69,7 @@ type ToolResult = {
   data: unknown;
   evidence: AssistantEvidence[];
   statuses?: AssistantOverallStatus[];
+  answerStatuses?: AssistantAnswerStatus[];
   limitations?: string[];
   truncated?: boolean;
 };
@@ -73,6 +92,18 @@ const toolArgsSchema = z.object({
 const detailArgsSchema = z.object({
   entity_type: z.enum(["task", "requisition", "rfi"]),
   ids: z.array(z.string()).min(1).max(10),
+}).strict();
+
+const costToolArgsSchema = z.object({
+  project_ids: z.array(z.string()).min(1).max(3),
+  search: z.string().max(4000).nullable().optional(),
+  cost_item_ids: z.array(z.string()).max(10).optional(),
+  provider_ids: z.array(z.string()).max(10).optional(),
+  date_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  payment_scope: z.enum(["paid", "pending", "all"]),
+  group_by: z.enum(["concept", "family", "partida", "provider", "none"]),
+  limit: z.number().int().min(1).max(20),
 }).strict();
 
 function todayInMexicoCity() {
@@ -147,7 +178,7 @@ async function assertProjectAccess(
   return project;
 }
 
-function normalizeId<Table extends "desarrollos" | "users" | "tareas" | "requisiciones" | "rfis">(
+function normalizeId<Table extends "desarrollos" | "users" | "tareas" | "requisiciones" | "rfis" | "proveedores">(
   ctx: { db: any },
   table: Table,
   value: string,
@@ -155,6 +186,15 @@ function normalizeId<Table extends "desarrollos" | "users" | "tareas" | "requisi
   const id = ctx.db.normalizeId(table, value);
   if (!id) throw new Error("La referencia contiene un identificador inválido");
   return id as Id<Table>;
+}
+
+function partidaDimensionLabel(
+  partida: Doc<"partidas">,
+  kind: Exclude<CostDimensionKind, "provider">,
+) {
+  if (kind === "concept") return String(partida.sub_partida || "").trim();
+  if (kind === "family") return String(partida.familia || "").trim();
+  return String(partida.nivel === 1 ? partida.nombre : partida.partida_nombre || "").trim();
 }
 
 async function validateReferences(
@@ -203,6 +243,46 @@ async function validateReferences(
       continue;
     }
 
+    if (reference.type === "provider") {
+      const providerId = normalizeId(ctx, "proveedores", reference.id);
+      const provider = await ctx.db.get(providerId) as Doc<"proveedores"> | null;
+      const usedInProject = provider && await ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto_proveedor", (q: any) =>
+          q.eq("proyecto", projectId).eq("proveedor_id", providerId)
+        )
+        .first();
+      if (!provider || !usedInProject || reference.label !== `@${provider.razon_social.trim()}`) {
+        throw new Error("El proveedor referenciado no es válido para este proyecto");
+      }
+      continue;
+    }
+
+    if (reference.type === "cost_item") {
+      const parsedCostItem = parseCostItemReferenceId(reference.id);
+      if (!parsedCostItem) throw new Error("El concepto de costo referenciado no es válido");
+      const partidas = await ctx.db
+        .query("partidas")
+        .withIndex("by_proyecto", (q: any) => q.eq("proyecto", projectId))
+        .collect() as Doc<"partidas">[];
+      const labels = partidas
+        .map((partida) => partidaDimensionLabel(partida, parsedCostItem.kind))
+        .filter((label) => label && normalizeCostText(label) === parsedCostItem.normalized);
+      if (parsedCostItem.kind === "concept") {
+        const historical = await ctx.db
+          .query("pagos")
+          .withIndex("by_proyecto_concepto", (q: any) =>
+            q.eq("proyecto_id", projectId).eq("concepto_normalizado", parsedCostItem.normalized)
+          )
+          .take(1);
+        if (historical[0]?.concepto) labels.push(historical[0].concepto);
+      }
+      if (!labels.includes(reference.label.slice(1))) {
+        throw new Error("El concepto de costo referenciado ya no coincide con el proyecto");
+      }
+      continue;
+    }
+
     if (reference.type === "task") {
       const id = normalizeId(ctx, "tareas", reference.id);
       const entity = await ctx.db.get(id) as Doc<"tareas"> | null;
@@ -235,6 +315,8 @@ async function validateReferences(
 
 function contextRequiredAnswer(): AssistantAnswer {
   return {
+    schema_version: 2,
+    answer_status: "insufficient_data",
     overall_status: "insufficient_data",
     summary: "Selecciona un proyecto con @Proyecto o abre el asistente desde la ruta de un proyecto antes de hacer una consulta factual.",
     metrics: [],
@@ -289,7 +371,7 @@ function formatMetric(key: string, value: number | string, currency: string) {
 }
 
 function assistantInstructions(asOf: string) {
-  return `Eres el asistente de control de proyectos de OGC. Responde en español y sólo con datos de las herramientas y del contexto verificado. Fecha de corte: ${asOf}. Conserva el periodo predeterminado salvo que el usuario haya escrito fechas inequívocas; no elijas otro periodo por tu cuenta. La consulta es estrictamente de lectura. No evalúes el desempeño de personas; sólo enumera pendientes asociados. No inventes cifras, riesgos ni hechos. Cada indicador, riesgo y recomendación debe citar uno o más evidence_ids exactos disponibles. Si una cifra no existe, declárala como limitación. Prioriza una conclusión breve, indicadores, riesgos y próximos pasos. Genera como máximo tres preguntas de seguimiento editables. No uses conocimiento externo ni sugieras haber modificado registros.`;
+  return `Eres el asistente de control de proyectos de OGC. Responde en español y sólo con datos de las herramientas y del contexto verificado. Fecha de corte: ${asOf}. Conserva el periodo predeterminado salvo que el usuario haya escrito fechas inequívocas; no elijas otro periodo por tu cuenta. La consulta es estrictamente de lectura. Para gasto realizado usa exclusivamente query_project_costs con payment_scope=paid; las requisiciones representan solicitudes o compromisos y nunca prueban un gasto. No sumes monedas distintas ni apliques tipo de cambio por tu cuenta. No evalúes el desempeño de personas; sólo enumera pendientes asociados. No inventes cifras, riesgos ni hechos. Cada indicador, riesgo y recomendación debe citar uno o más evidence_ids exactos disponibles. Si una cifra no existe, declárala como limitación. answer_status describe si la pregunta fue respondida; overall_status describe únicamente la salud determinista del proyecto cuando exista ese contexto. Prioriza una conclusión breve, indicadores, riesgos y próximos pasos. Genera como máximo tres preguntas de seguimiento editables. No uses conocimiento externo ni sugieras haber modificado registros.`;
 }
 
 const toolDefinitions = [
@@ -314,6 +396,38 @@ const toolDefinitions = [
         impact_only: { type: "boolean" },
         due_within_range: { type: "boolean" },
         limit: { type: "integer", minimum: 1, maximum: 50 },
+      },
+    },
+  },
+  {
+    type: "function",
+    name: "query_project_costs",
+    description: "Consulta gasto pagado, compromisos pendientes o ambos por concepto, familia, partida o proveedor. Devuelve agregados por moneda y nunca expone transacciones ni datos bancarios individuales.",
+    strict: true,
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "project_ids",
+        "search",
+        "cost_item_ids",
+        "provider_ids",
+        "date_from",
+        "date_to",
+        "payment_scope",
+        "group_by",
+        "limit",
+      ],
+      properties: {
+        project_ids: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } },
+        search: { type: ["string", "null"], maxLength: 4000 },
+        cost_item_ids: { type: "array", maxItems: 10, items: { type: "string" } },
+        provider_ids: { type: "array", maxItems: 10, items: { type: "string" } },
+        date_from: { type: ["string", "null"], pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+        date_to: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+        payment_scope: { type: "string", enum: ["paid", "pending", "all"] },
+        group_by: { type: "string", enum: ["concept", "family", "partida", "provider", "none"] },
+        limit: { type: "integer", minimum: 1, maximum: 20 },
       },
     },
   },
@@ -365,6 +479,7 @@ function sanitizeAnswer(
   answer: AssistantAnswer,
   evidence: AssistantEvidence[],
   statuses: AssistantOverallStatus[],
+  answerStatuses: AssistantAnswerStatus[],
 ) {
   const canonical = new Map(evidence.map((item) => [item.id, item]));
   const keepIds = (ids: string[]) => [...new Set(ids.filter((id) => canonical.has(id)))].slice(0, 5);
@@ -385,7 +500,21 @@ function sanitizeAnswer(
     }));
   const sanitized: AssistantAnswer = {
     ...answer,
-    overall_status: combineOverallStatuses(statuses),
+    schema_version: 2,
+    answer_status: answerStatuses.includes("insufficient_data")
+      ? "insufficient_data"
+      : answerStatuses.includes("ambiguous")
+        ? "ambiguous"
+        : answerStatuses.includes("partial")
+          ? "partial"
+          : answerStatuses.includes("answered")
+            ? "answered"
+            : canonical.size
+              ? answer.answer_status
+              : "insufficient_data",
+    // Project health is deterministic and separate from answerability. Cost
+    // tools intentionally return no project-health status.
+    overall_status: statuses.length ? combineOverallStatuses(statuses) : "on_track",
     metrics,
     risks: answer.risks.map((item) => ({ ...item, evidence_ids: keepIds(item.evidence_ids) }))
       .filter((item) => item.evidence_ids.length > 0),
@@ -535,6 +664,60 @@ export const searchReferences = query({
             });
           }
         }
+
+        const [partidas, transactions, tracedPayments] = await Promise.all([
+          ctx.db.query("partidas").withIndex("by_proyecto", (q) => q.eq("proyecto", project._id)).collect(),
+          ctx.db.query("transacciones").withIndex("by_proyecto", (q) => q.eq("proyecto", project._id)).collect(),
+          ctx.db.query("pagos").withIndex("by_proyecto", (q) => q.eq("proyecto_id", project._id)).take(500),
+        ]);
+        const costIdentities = new Set<string>();
+        const addCostSuggestion = (
+          kind: Exclude<CostDimensionKind, "provider">,
+          labelValue: string,
+          subtitle: string,
+        ) => {
+          const label = labelValue.trim();
+          if (!label || (search && !normalizeAssistantSearch(label).includes(search))) return;
+          const id = buildCostItemReferenceId(kind, label);
+          if (costIdentities.has(id)) return;
+          costIdentities.add(id);
+          results.push({
+            type: "cost_item",
+            id,
+            project_id: String(project._id),
+            label: `@${label}`,
+            subtitle: `${subtitle} · ${project.nombre}`,
+            url: `/proyecto/${project._id}/transacciones?concepto=${encodeURIComponent(label)}`,
+          });
+        };
+        for (const partida of partidas) {
+          if (partida.nivel === 3 && partida.sub_partida) {
+            addCostSuggestion("concept", partida.sub_partida, "Concepto");
+          } else if (partida.nivel === 2 && partida.familia) {
+            addCostSuggestion("family", partida.familia, "Familia de costo");
+          } else if (partida.nivel === 1 && partida.nombre) {
+            addCostSuggestion("partida", partida.nombre, "Partida");
+          }
+        }
+        for (const payment of tracedPayments) {
+          if (payment.concepto) addCostSuggestion("concept", payment.concepto, "Concepto histórico");
+        }
+
+        const providerIds = [...new Set(
+          transactions.flatMap((transaction) => transaction.proveedor_id ? [transaction.proveedor_id] : []),
+        )];
+        const providers = await Promise.all(providerIds.map((id) => ctx.db.get(id)));
+        for (const provider of providers) {
+          if (!provider || (search && !normalizeAssistantSearch(provider.razon_social).includes(search))) continue;
+          results.push({
+            type: "provider",
+            id: String(provider._id),
+            project_id: String(project._id),
+            label: `@${provider.razon_social.trim()}`,
+            subtitle: `Proveedor${provider.archived_at ? " archivado" : ""} · ${project.nombre}`,
+            url: `/proyecto/${project._id}/transacciones?proveedor=${provider._id}`,
+          });
+        }
       }
     }
 
@@ -568,7 +751,7 @@ export const searchReferences = query({
       }
     }
 
-    const groupOrder = ["project", "person", "metric", "task", "requisition", "rfi"];
+    const groupOrder = ["project", "cost_item", "provider", "person", "metric", "task", "requisition", "rfi"];
     const queues = new Map(groupOrder.map((type) => [type, results.filter((item) => item.type === type)]));
     const selected: typeof results = [];
     while (selected.length < 8 && [...queues.values()].some((items) => items.length > 0)) {
@@ -747,11 +930,492 @@ export const failMessage = internalMutation({
   },
 });
 
+const MAX_COST_TRANSACTIONS = 1_000;
+const MAX_COST_LINE_ITEMS = 10_000;
+
+type SafeCostLine = {
+  transaction_id: string;
+  amount: number;
+  currency: string;
+  payment_status: "paid" | "pending";
+  date: string;
+  provider_key: string;
+  provider_label: string;
+  concept: string;
+  family: string;
+  partida: string;
+  concept_id?: string;
+  family_id?: string;
+  partida_id?: string;
+  classification_status: "mapped" | "custom" | "unresolved";
+};
+
+function costCandidateId(kind: CostDimensionKind, label: string, providerKey?: string) {
+  return kind === "provider"
+    ? `provider:${providerKey || encodeURIComponent(normalizeCostText(label))}`
+    : buildCostItemReferenceId(kind, label);
+}
+
+function formatCostAmount(amount: number, currency: string) {
+  if (currency === "SIN_MONEDA") {
+    return `${new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(amount)} (moneda no registrada)`;
+  }
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function costEvidenceUrl(args: {
+  projectId: string;
+  label?: string;
+  providerId?: string;
+  scope: "paid" | "pending" | "all";
+  currency?: string;
+  dateFrom?: string | null;
+  dateTo: string;
+}) {
+  const params = new URLSearchParams();
+  if (args.label) params.set("concepto", args.label);
+  if (args.providerId) params.set("proveedor", args.providerId);
+  if (args.scope !== "all") params.set("status", args.scope === "paid" ? "Pagado" : "Por pagar");
+  if (args.currency && args.currency !== "SIN_MONEDA") params.set("moneda", args.currency);
+  if (args.dateFrom) params.set("desde", args.dateFrom);
+  params.set("hasta", args.dateTo);
+  return `/proyecto/${args.projectId}/transacciones?${params.toString()}`;
+}
+
+async function executeCostTool(args: {
+  ctx: any;
+  user: AdminUser;
+  parsed: z.infer<typeof costToolArgsSchema>;
+  allowedProjectIds: Set<string>;
+  allowedCostItemIds: Set<string>;
+  allowedProviderIds: Set<string>;
+}): Promise<ToolResult> {
+  const { ctx, user, parsed, allowedProjectIds, allowedCostItemIds, allowedProviderIds } = args;
+  const projectIds = parsed.project_ids.map((id) => normalizeId(ctx, "desarrollos", id));
+  if (projectIds.some((id) => !allowedProjectIds.has(String(id)))) {
+    throw new Error("La herramienta intentó consultar un proyecto fuera del contexto");
+  }
+  if ((parsed.cost_item_ids || []).some((id) => !allowedCostItemIds.has(id))) {
+    throw new Error("La herramienta intentó usar un concepto que no fue referenciado");
+  }
+  if ((parsed.provider_ids || []).some((id) => !allowedProviderIds.has(id))) {
+    throw new Error("La herramienta intentó usar un proveedor que no fue referenciado");
+  }
+  if (parsed.date_from && parsed.date_from > parsed.date_to) throw new Error("El rango de fechas no es válido");
+
+  const projects: unknown[] = [];
+  const evidence: AssistantEvidence[] = [];
+  const limitations: string[] = [];
+  const answerStatuses: AssistantAnswerStatus[] = [];
+
+  for (const projectId of projectIds) {
+    const project = await assertProjectAccess(ctx, user, projectId);
+    const transactions = await ctx.db
+      .query("transacciones")
+      .withIndex("by_proyecto", (q: any) => q.eq("proyecto", projectId))
+      .take(MAX_COST_TRANSACTIONS + 1) as Doc<"transacciones">[];
+    if (transactions.length > MAX_COST_TRANSACTIONS) {
+      projects.push({
+        project_id: String(projectId),
+        project_name: project.nombre,
+        resolution: { status: "capacity_exceeded", matches: [], suggestions: [] },
+        totals: [],
+        breakdown: [],
+        quality: { capacity_exceeded: true },
+      });
+      limitations.push(`${project.nombre}: la consulta supera ${MAX_COST_TRANSACTIONS.toLocaleString("es-MX")} transacciones; no se calculó un total parcial.`);
+      answerStatuses.push("insufficient_data");
+      continue;
+    }
+
+    const paymentGroups = await Promise.all(transactions.map((transaction) =>
+      ctx.db.query("pagos")
+        .withIndex("by_transaccion", (q: any) => q.eq("transaccion_id", transaction._id))
+        .collect() as Promise<Doc<"pagos">[]>
+    ));
+    const payments = paymentGroups.flat();
+    if (payments.length > MAX_COST_LINE_ITEMS) {
+      projects.push({
+        project_id: String(projectId),
+        project_name: project.nombre,
+        resolution: { status: "capacity_exceeded", matches: [], suggestions: [] },
+        totals: [],
+        breakdown: [],
+        quality: { capacity_exceeded: true },
+      });
+      limitations.push(`${project.nombre}: la consulta supera ${MAX_COST_LINE_ITEMS.toLocaleString("es-MX")} conceptos; no se calculó un total parcial.`);
+      answerStatuses.push("insufficient_data");
+      continue;
+    }
+
+    const [projectPartidas, providerDocs, referencedPartidas] = await Promise.all([
+      ctx.db.query("partidas").withIndex("by_proyecto", (q: any) => q.eq("proyecto", projectId)).collect() as Promise<Doc<"partidas">[]>,
+      Promise.all([...new Set(transactions.flatMap((transaction) => transaction.proveedor_id ? [transaction.proveedor_id] : []))]
+        .map((id) => ctx.db.get(id))) as Promise<Array<Doc<"proveedores"> | null>>,
+      Promise.all([...new Set(payments.flatMap((payment) => payment.partida_id ? [payment.partida_id] : []))]
+        .map((id) => ctx.db.get(id))) as Promise<Array<Doc<"partidas"> | null>>,
+    ]);
+    const providerById = new Map(
+      providerDocs.filter((provider): provider is Doc<"proveedores"> => Boolean(provider))
+        .map((provider) => [String(provider._id), provider]),
+    );
+    const partidaById = new Map(
+      referencedPartidas.filter((partida): partida is Doc<"partidas"> => Boolean(partida))
+        .map((partida) => [String(partida._id), partida]),
+    );
+    const transactionById = new Map(transactions.map((transaction) => [String(transaction._id), transaction]));
+    const paymentSumByTransaction = new Map<string, number>();
+    const lines: SafeCostLine[] = [];
+    const quality = {
+      invalid_dates: 0,
+      noncanonical_statuses: 0,
+      transactions_without_payments: 0,
+      total_mismatches: 0,
+      cross_project_partidas: 0,
+      missing_partidas: 0,
+      unresolved_line_items: 0,
+      negative_adjustments: 0,
+      unclassified_amount_by_currency: {} as Record<string, number>,
+      reconciliation_delta_by_currency: {} as Record<string, number>,
+    };
+
+    for (const [index, transaction] of transactions.entries()) {
+      const transactionPayments = paymentGroups[index];
+      if (!transactionPayments.length) quality.transactions_without_payments += 1;
+      const lineTotal = transactionPayments.reduce((sum, payment) => sum + Number(payment.monto || 0), 0);
+      paymentSumByTransaction.set(String(transaction._id), lineTotal);
+      const delta = Math.round((Number(transaction.monto_total || 0) - lineTotal) * 100) / 100;
+      const currency = normalizeCostCurrency(transaction.moneda);
+      if (Math.abs(delta) > 0.01) {
+        quality.total_mismatches += 1;
+        quality.reconciliation_delta_by_currency[currency] =
+          (quality.reconciliation_delta_by_currency[currency] || 0) + delta;
+      }
+      if (!parseCostDate(transaction.fecha)) quality.invalid_dates += 1;
+      if (canonicalTransactionStatus(transaction.status) === "other") quality.noncanonical_statuses += 1;
+    }
+
+    for (const payment of payments) {
+      const transaction = transactionById.get(String(payment.transaccion_id));
+      if (!transaction) continue;
+      const paymentStatus = canonicalTransactionStatus(transaction.status);
+      const date = parseCostDate(transaction.fecha);
+      if (paymentStatus === "other" || !date) continue;
+      const partida = payment.partida_id ? partidaById.get(String(payment.partida_id)) : undefined;
+      if (payment.partida_id && !partida) quality.missing_partidas += 1;
+      if (partida && partida.proyecto !== projectId) quality.cross_project_partidas += 1;
+      const partidaLabel = String(
+        payment.partida_nombre_snapshot ||
+        (partida ? (partida.nivel === 1 ? partida.nombre : partida.partida_nombre || partida.nombre) : "") ||
+        "Sin partida",
+      ).trim();
+      const family = String(payment.familia_snapshot || partida?.familia || "Sin familia").trim();
+      const subPartida = String(payment.sub_partida_snapshot || partida?.sub_partida || "").trim();
+      const concept = String(payment.concepto || mostSpecificCostLabel({
+        sub_partida: subPartida,
+        familia: family,
+        partida: partidaLabel,
+      })).trim();
+      const provider = transaction.proveedor_id
+        ? providerById.get(String(transaction.proveedor_id))
+        : undefined;
+      const providerLabel = String(provider?.razon_social || transaction.proveedor || "Sin proveedor").trim();
+      const providerKey = transaction.proveedor_id
+        ? String(transaction.proveedor_id)
+        : `legacy:${encodeURIComponent(normalizeCostText(providerLabel))}`;
+      const classification = payment.classification_status ||
+        (partida && partida.proyecto === projectId ? "mapped" : concept && concept !== "Concepto sin clasificar" ? "custom" : "unresolved");
+      const hasSpecificConcept = Boolean(subPartida) || classification === "custom" ||
+        (Boolean(payment.concepto) && normalizeCostText(concept) !== normalizeCostText(family));
+      if (classification === "unresolved") quality.unresolved_line_items += 1;
+      if (payment.monto < 0) quality.negative_adjustments += 1;
+      lines.push({
+        transaction_id: String(transaction._id),
+        amount: Number(payment.monto || 0),
+        currency: normalizeCostCurrency(transaction.moneda),
+        payment_status: paymentStatus,
+        date,
+        provider_key: providerKey,
+        provider_label: providerLabel,
+        concept,
+        family,
+        partida: partidaLabel,
+        concept_id: hasSpecificConcept ? buildCostItemReferenceId("concept", concept) : undefined,
+        family_id: buildCostItemReferenceId("family", family),
+        partida_id: buildCostItemReferenceId("partida", partidaLabel),
+        classification_status: classification,
+      });
+    }
+
+    const candidateMap = new Map<string, CostCandidate>();
+    const addCandidate = (candidate: CostCandidate) => {
+      if (candidate.label.trim()) candidateMap.set(candidate.id, candidate);
+    };
+    for (const partida of projectPartidas) {
+      if (partida.sub_partida) addCandidate({ id: buildCostItemReferenceId("concept", partida.sub_partida), kind: "concept", label: partida.sub_partida });
+      if (partida.familia) addCandidate({ id: buildCostItemReferenceId("family", partida.familia), kind: "family", label: partida.familia });
+      const parent = String(partida.nivel === 1 ? partida.nombre : partida.partida_nombre || "").trim();
+      if (parent) addCandidate({ id: buildCostItemReferenceId("partida", parent), kind: "partida", label: parent });
+    }
+    for (const line of lines) {
+      if (line.concept_id) addCandidate({ id: line.concept_id, kind: "concept", label: line.concept });
+      addCandidate({ id: line.family_id!, kind: "family", label: line.family });
+      addCandidate({ id: line.partida_id!, kind: "partida", label: line.partida });
+      addCandidate({ id: costCandidateId("provider", line.provider_label, line.provider_key), kind: "provider", label: line.provider_label });
+    }
+
+    const explicitCostIds = new Set(parsed.cost_item_ids || []);
+    const explicitProviderIds = new Set(parsed.provider_ids || []);
+    let resolvedCostIds = new Set(explicitCostIds);
+    let resolvedProviderKeys = new Set([...explicitProviderIds]);
+    let resolution: {
+      status: "exact" | "ambiguous" | "not_found" | "all";
+      matches: Array<{ id: string; kind: CostDimensionKind; label: string }>;
+      suggestions: Array<{ id: string; kind: CostDimensionKind; label: string }>;
+    } = { status: "all", matches: [], suggestions: [] };
+
+    if (!explicitCostIds.size && !explicitProviderIds.size && parsed.search?.trim()) {
+      const preferredKind = parsed.group_by === "none" ? undefined : parsed.group_by;
+      const candidates = [...candidateMap.values()].filter((candidate) =>
+        !preferredKind || candidate.kind === preferredKind
+      );
+      const resolved = resolveCostCandidates(parsed.search, candidates);
+      resolution = {
+        status: resolved.status,
+        matches: resolved.matches.map(({ id, kind, label }) => ({ id, kind, label })),
+        suggestions: resolved.suggestions.map(({ id, kind, label }) => ({ id, kind, label })),
+      };
+      if (resolved.status === "exact") {
+        resolvedCostIds = new Set(resolved.matches.filter((item) => item.kind !== "provider").map((item) => item.id));
+        resolvedProviderKeys = new Set(resolved.matches
+          .filter((item) => item.kind === "provider")
+          .map((item) => item.id.slice("provider:".length)));
+      }
+    } else if (explicitCostIds.size || explicitProviderIds.size) {
+      const matches = [
+        ...[...explicitCostIds].flatMap((id) => candidateMap.has(id) ? [candidateMap.get(id)!] : []),
+        ...[...explicitProviderIds].flatMap((id) => {
+          const candidate = candidateMap.get(`provider:${id}`);
+          return candidate ? [candidate] : [];
+        }),
+      ];
+      resolution = {
+        status: matches.length === explicitCostIds.size + explicitProviderIds.size ? "exact" : "not_found",
+        matches: matches.map(({ id, kind, label }) => ({ id, kind, label })),
+        suggestions: [],
+      };
+    }
+
+    if (resolution.status === "ambiguous" || resolution.status === "not_found") {
+      projects.push({
+        project_id: String(projectId),
+        project_name: project.nombre,
+        resolution,
+        period: { date_from: parsed.date_from || null, date_to: parsed.date_to },
+        payment_scope: parsed.payment_scope,
+        totals: [],
+        breakdown: [],
+        quality,
+      });
+      answerStatuses.push(resolution.status === "ambiguous" ? "ambiguous" : "insufficient_data");
+      limitations.push(resolution.status === "ambiguous"
+        ? `${project.nombre}: el término coincide con más de una dimensión; selecciona una referencia @ específica.`
+        : `${project.nombre}: no se encontró un concepto o proveedor verificable para la consulta.`);
+      continue;
+    }
+
+    const statusAllowed = (status: "paid" | "pending") =>
+      parsed.payment_scope === "all" || parsed.payment_scope === status;
+    const dateAllowed = (date: string) =>
+      date <= parsed.date_to && (!parsed.date_from || date >= parsed.date_from);
+    const lineMatchesCost = (line: SafeCostLine) => !resolvedCostIds.size ||
+      [line.concept_id, line.family_id, line.partida_id].some((id) => id && resolvedCostIds.has(id));
+    const lineMatchesProvider = (line: SafeCostLine) => !resolvedProviderKeys.size ||
+      resolvedProviderKeys.has(line.provider_key);
+    const selectedLines = lines.filter((line) =>
+      statusAllowed(line.payment_status) && dateAllowed(line.date) &&
+      lineMatchesCost(line) && lineMatchesProvider(line)
+    );
+
+    const providerOnly = resolvedProviderKeys.size > 0 && resolvedCostIds.size === 0;
+    const effectiveGroupBy = parsed.group_by === "none"
+      ? resolution.matches[0]?.kind === "family"
+        ? "partida"
+        : resolution.matches[0]?.kind === "provider"
+          ? "provider"
+          : "concept"
+      : parsed.group_by;
+    const useParentTotals = providerOnly || (
+      resolvedCostIds.size === 0 && resolvedProviderKeys.size === 0 &&
+      ["none", "provider"].includes(parsed.group_by)
+    );
+    const totalsMap = new Map<string, { status: "paid" | "pending"; currency: string; amount: number; transactionIds: Set<string>; lineCount: number }>();
+    const breakdownMap = new Map<string, { label: string; currency: string; status: "paid" | "pending"; amount: number; transactionIds: Set<string>; lineCount: number }>();
+
+    if (useParentTotals) {
+      for (const transaction of transactions) {
+        const status = canonicalTransactionStatus(transaction.status);
+        const date = parseCostDate(transaction.fecha);
+        if (status === "other" || !date || !statusAllowed(status) || !dateAllowed(date)) continue;
+        const provider = transaction.proveedor_id ? providerById.get(String(transaction.proveedor_id)) : undefined;
+        const providerLabel = String(provider?.razon_social || transaction.proveedor || "Sin proveedor").trim();
+        const providerKey = transaction.proveedor_id ? String(transaction.proveedor_id) : `legacy:${encodeURIComponent(normalizeCostText(providerLabel))}`;
+        if (resolvedProviderKeys.size && !resolvedProviderKeys.has(providerKey)) continue;
+        const currency = normalizeCostCurrency(transaction.moneda);
+        const key = `${status}|${currency}`;
+        const total = totalsMap.get(key) || { status, currency, amount: 0, transactionIds: new Set<string>(), lineCount: 0 };
+        total.amount += Number(transaction.monto_total || 0);
+        total.transactionIds.add(String(transaction._id));
+        total.lineCount += paymentGroups[transactions.indexOf(transaction)]?.length || 0;
+        totalsMap.set(key, total);
+        if (effectiveGroupBy === "provider") {
+          const breakdownKey = `${providerKey}|${status}|${currency}`;
+          const row = breakdownMap.get(breakdownKey) || { label: providerLabel, currency, status, amount: 0, transactionIds: new Set<string>(), lineCount: 0 };
+          row.amount += Number(transaction.monto_total || 0);
+          row.transactionIds.add(String(transaction._id));
+          row.lineCount += paymentGroups[transactions.indexOf(transaction)]?.length || 0;
+          breakdownMap.set(breakdownKey, row);
+        }
+        const delta = Number(transaction.monto_total || 0) - (paymentSumByTransaction.get(String(transaction._id)) || 0);
+        if (Math.abs(delta) > 0.01) {
+          quality.unclassified_amount_by_currency[currency] =
+            (quality.unclassified_amount_by_currency[currency] || 0) + delta;
+        }
+      }
+    } else {
+      for (const line of selectedLines) {
+        const key = `${line.payment_status}|${line.currency}`;
+        const total = totalsMap.get(key) || { status: line.payment_status, currency: line.currency, amount: 0, transactionIds: new Set<string>(), lineCount: 0 };
+        total.amount += line.amount;
+        total.transactionIds.add(line.transaction_id);
+        total.lineCount += 1;
+        totalsMap.set(key, total);
+        const label = effectiveGroupBy === "partida"
+          ? line.partida
+          : effectiveGroupBy === "family"
+            ? line.family
+            : effectiveGroupBy === "provider"
+              ? line.provider_label
+              : line.concept;
+        const breakdownKey = `${normalizeCostText(label)}|${line.payment_status}|${line.currency}`;
+        const row = breakdownMap.get(breakdownKey) || { label, currency: line.currency, status: line.payment_status, amount: 0, transactionIds: new Set<string>(), lineCount: 0 };
+        row.amount += line.amount;
+        row.transactionIds.add(line.transaction_id);
+        row.lineCount += 1;
+        breakdownMap.set(breakdownKey, row);
+      }
+    }
+
+    const totals = [...totalsMap.values()].map((total) => ({
+      status: total.status,
+      currency: total.currency,
+      amount: Math.round(total.amount * 100) / 100,
+      transaction_count: total.transactionIds.size,
+      line_item_count: total.lineCount,
+    })).sort((left, right) => left.currency.localeCompare(right.currency) || left.status.localeCompare(right.status));
+    const breakdownRows = [...breakdownMap.values()]
+      .map((row) => ({
+        label: row.label,
+        status: row.status,
+        currency: row.currency,
+        amount: Math.round(row.amount * 100) / 100,
+        transaction_count: row.transactionIds.size,
+        line_item_count: row.lineCount,
+      }))
+      .sort((left, right) => Math.abs(right.amount) - Math.abs(left.amount));
+    const truncated = breakdownRows.length > parsed.limit;
+    const selectedBreakdown = breakdownRows.slice(0, parsed.limit);
+    const primaryMatch = resolution.matches[0];
+    const providerIdForUrl = primaryMatch?.kind === "provider" && !primaryMatch.id.includes("legacy:")
+      ? primaryMatch.id.slice("provider:".length)
+      : undefined;
+    const evidenceLabel = primaryMatch?.label || (parsed.group_by === "provider" ? "Gasto por proveedor" : "Gasto acumulado");
+
+    if (totals.length) {
+      for (const total of totals) {
+        const evidenceId = `cost:${projectId}:${compactCostText(evidenceLabel).slice(0, 45) || "all"}:${total.status}:${total.currency}`;
+        evidence.push({
+          id: evidenceId,
+          type: "cost",
+          label: `${project.nombre} · ${evidenceLabel} · ${total.status === "paid" ? "Pagado" : "Por pagar"}`,
+          project_id: String(projectId),
+          observed_value: `${formatCostAmount(total.amount, total.currency)} · ${total.transaction_count} transacciones · ${total.line_item_count} conceptos`,
+          as_of: parsed.date_to,
+          url: costEvidenceUrl({
+            projectId: String(projectId),
+            label: primaryMatch?.kind !== "provider" ? primaryMatch?.label : undefined,
+            providerId: providerIdForUrl,
+            scope: parsed.payment_scope,
+            currency: total.currency,
+            dateFrom: parsed.date_from,
+            dateTo: parsed.date_to,
+          }),
+        });
+      }
+    } else {
+      evidence.push({
+        id: `cost:${projectId}:${compactCostText(evidenceLabel).slice(0, 45) || "all"}:empty`,
+        type: "cost",
+        label: `${project.nombre} · ${evidenceLabel}`,
+        project_id: String(projectId),
+        observed_value: "Sin pagos coincidentes en el periodo y estado consultados",
+        as_of: parsed.date_to,
+        url: costEvidenceUrl({
+          projectId: String(projectId),
+          label: primaryMatch?.kind !== "provider" ? primaryMatch?.label : undefined,
+          providerId: providerIdForUrl,
+          scope: parsed.payment_scope,
+          dateFrom: parsed.date_from,
+          dateTo: parsed.date_to,
+        }),
+      });
+    }
+
+    const hasQualityLimitations = quality.invalid_dates > 0 || quality.noncanonical_statuses > 0 ||
+      quality.total_mismatches > 0 || quality.cross_project_partidas > 0 ||
+      quality.missing_partidas > 0 || quality.unresolved_line_items > 0;
+    answerStatuses.push(hasQualityLimitations || truncated ? "partial" : "answered");
+    if (quality.invalid_dates) limitations.push(`${project.nombre}: ${quality.invalid_dates} transacciones con fecha inválida fueron excluidas.`);
+    if (quality.noncanonical_statuses) limitations.push(`${project.nombre}: ${quality.noncanonical_statuses} transacciones tienen un estado de pago no reconocido.`);
+    if (quality.total_mismatches) limitations.push(`${project.nombre}: ${quality.total_mismatches} transacciones no concilian con la suma de sus conceptos.`);
+    if (quality.cross_project_partidas || quality.missing_partidas || quality.unresolved_line_items) {
+      limitations.push(`${project.nombre}: existen conceptos sin clasificación confiable; ejecuta la auditoría de trazabilidad de costos.`);
+    }
+
+    projects.push({
+      project_id: String(projectId),
+      project_name: project.nombre,
+      resolution,
+      period: { date_from: parsed.date_from || null, date_to: parsed.date_to },
+      payment_scope: parsed.payment_scope,
+      totals,
+      breakdown: selectedBreakdown,
+      quality,
+      truncated,
+    });
+  }
+
+  return {
+    data: { projects },
+    evidence: evidence.slice(0, 30),
+    statuses: [],
+    answerStatuses,
+    limitations: [...new Set(limitations)].slice(0, 8),
+    truncated: projects.some((project: any) => project.truncated),
+  };
+}
+
 export const executeTool = internalQuery({
   args: {
     owner_user_id: v.id("users"),
     allowed_project_ids: v.array(v.id("desarrollos")),
     allowed_person_ids: v.array(v.id("users")),
+    allowed_cost_item_ids: v.array(v.string()),
+    allowed_provider_ids: v.array(v.id("proveedores")),
     name: v.string(),
     arguments_json: v.string(),
     as_of: v.string(),
@@ -762,6 +1426,20 @@ export const executeTool = internalQuery({
     assertAdminUser(user);
     const allowed = new Set(args.allowed_project_ids.map(String));
     const allowedPeople = new Set(args.allowed_person_ids.map(String));
+    const allowedCostItems = new Set(args.allowed_cost_item_ids);
+    const allowedProviders = new Set(args.allowed_provider_ids.map(String));
+
+    if (args.name === "query_project_costs") {
+      const parsed = costToolArgsSchema.parse(JSON.parse(args.arguments_json));
+      return await executeCostTool({
+        ctx,
+        user,
+        parsed,
+        allowedProjectIds: allowed,
+        allowedCostItemIds: allowedCostItems,
+        allowedProviderIds: allowedProviders,
+      });
+    }
 
     if (args.name === "get_entity_detail") {
       const parsed = detailArgsSchema.parse(JSON.parse(args.arguments_json));
@@ -795,7 +1473,12 @@ export const executeTool = internalQuery({
           evidence.push({ id: `rfi:${id}`, type: "rfi", label: `${rfiLabel(item).slice(1)} · ${item.subject}`, project_id: String(item.proyecto), observed_value: `${item.status}${item.due_date ? ` · vence ${item.due_date}` : ""}`, as_of: args.as_of, url: `/proyecto/${item.proyecto}/rfis/${id}` });
         }
       }
-      return { data: { items: details, total: details.length, truncated: false }, evidence, statuses: [] };
+      return {
+        data: { items: details, total: details.length, truncated: false },
+        evidence,
+        statuses: [],
+        answerStatuses: [details.length ? "answered" : "insufficient_data"],
+      };
     }
 
     const parsed = toolArgsSchema.parse(JSON.parse(args.arguments_json));
@@ -911,7 +1594,13 @@ export const executeTool = internalQuery({
           missing_sources: missingSources,
         });
       }
-      return { data: { projects, as_of: to }, evidence: allEvidence.slice(0, 30), statuses, limitations };
+      return {
+        data: { projects, as_of: to },
+        evidence: allEvidence.slice(0, 30),
+        statuses,
+        answerStatuses: [statuses.includes("insufficient_data") ? "partial" : "answered"],
+        limitations,
+      };
     }
 
     const evidence: AssistantEvidence[] = [];
@@ -981,6 +1670,7 @@ export const executeTool = internalQuery({
       data: { items: selected, total: items.length, truncated: items.length > limit },
       evidence: evidence.filter((item) => selectedIds.has(item.id.split(":")[1])).slice(0, limit),
       statuses: items.some((item) => item.overdue || item.blocked) ? ["attention"] : [],
+      answerStatuses: ["answered"],
       truncated: items.length > limit,
     };
   },
@@ -1013,40 +1703,69 @@ export const sendMessage = action({
 
       const currentDate = todayInMexicoCity();
       const cutoff = resolveAssistantCutoff(args.text, currentDate);
-      const asOf = cutoff.activity_through;
+      const costDates = resolveCostDateRange(args.text, currentDate);
+      const costReferences = args.references.filter((reference) => reference.type === "cost_item");
+      const providerReferences = args.references.filter((reference) => reference.type === "provider");
+      const costQuery = isCostIntent(args.text) || costReferences.length > 0 || providerReferences.length > 0;
+      const asOf = costQuery ? costDates.date_to : cutoff.activity_through;
       const defaultStart = cutoff.activity_from;
-      const baseArgs = JSON.stringify({
-        project_ids: prepared.context_project_ids.map(String),
-        date_from: defaultStart,
-        date_to: asOf,
-      });
       const allowedPersonIds = args.references
         .filter((reference) => reference.type === "person")
         .map((reference) => reference.id as Id<"users">);
-      const overview = await ctx.runQuery((internal as any).assistant.executeTool, {
+      const allowedCostItemIds = costReferences.map((reference) => reference.id);
+      const allowedProviderIds = providerReferences.map((reference) => reference.id as Id<"proveedores">);
+      const referencedCostKind = costReferences[0]
+        ? parseCostItemReferenceId(costReferences[0].id)?.kind
+        : undefined;
+      const initialToolName = costQuery ? "query_project_costs" : "get_project_overview";
+      const initialArguments = costQuery
+        ? JSON.stringify({
+            project_ids: prepared.context_project_ids.map(String),
+            search: args.text.trim(),
+            cost_item_ids: allowedCostItemIds,
+            provider_ids: allowedProviderIds.map(String),
+            date_from: costDates.date_from || null,
+            date_to: costDates.date_to,
+            payment_scope: inferCostPaymentScope(args.text),
+            group_by: providerReferences.length
+              ? "provider"
+              : referencedCostKind === "family"
+                ? "partida"
+                : inferCostGroupBy(args.text),
+            limit: 20,
+          })
+        : JSON.stringify({
+            project_ids: prepared.context_project_ids.map(String),
+            date_from: defaultStart,
+            date_to: asOf,
+          });
+      const initialContext = await ctx.runQuery((internal as any).assistant.executeTool, {
         owner_user_id: actor.user_id,
         allowed_project_ids: prepared.context_project_ids,
         allowed_person_ids: allowedPersonIds,
-        name: "get_project_overview",
-        arguments_json: baseArgs,
+        allowed_cost_item_ids: allowedCostItemIds,
+        allowed_provider_ids: allowedProviderIds,
+        name: initialToolName,
+        arguments_json: initialArguments,
         as_of: asOf,
         default_start: defaultStart,
       }) as ToolResult;
-      toolNames.push("get_project_overview");
-      const evidence = [...overview.evidence];
-      const statuses = [...(overview.statuses || [])];
-      const canonicalLimitations = [...(overview.limitations || [])];
-      let anyToolResultTruncated = Boolean(overview.truncated);
+      toolNames.push(initialToolName);
+      const evidence = [...initialContext.evidence];
+      const statuses = [...(initialContext.statuses || [])];
+      const answerStatuses = [...(initialContext.answerStatuses || [])];
+      const canonicalLimitations = [...(initialContext.limitations || [])];
+      let anyToolResultTruncated = Boolean(initialContext.truncated);
       const history = await ctx.runQuery((internal as any).assistant.recentHistory, { owner_user_id: actor.user_id, conversation_id: prepared.conversation_id });
       const historyInput = history
         .filter((message: any) => message._id !== prepared.user_message_id)
         .map((message: any) => ({
           role: message.role,
-          content: [{ type: message.role === "assistant" ? "output_text" : "input_text", text: message.role === "assistant" && message.answer ? JSON.stringify({ summary: message.answer.summary, overall_status: message.answer.overall_status, follow_up_prompts: message.answer.follow_up_prompts }) : sanitizeReportText(message.content) }],
+          content: [{ type: message.role === "assistant" ? "output_text" : "input_text", text: message.role === "assistant" && message.answer ? JSON.stringify({ summary: message.answer.summary, answer_status: message.answer.answer_status, overall_status: message.answer.overall_status, follow_up_prompts: message.answer.follow_up_prompts }) : sanitizeReportText(message.content) }],
         }));
       const input: any[] = [
         ...historyInput,
-        { role: "developer", content: [{ type: "input_text", text: `CONTEXTO VERIFICADO INICIAL:\n${JSON.stringify({ data: overview.data, evidence: overview.evidence })}` }] },
+        { role: "developer", content: [{ type: "input_text", text: `CONTEXTO VERIFICADO INICIAL (${initialToolName}):\n${JSON.stringify({ data: initialContext.data, evidence: initialContext.evidence })}` }] },
         { role: "user", content: [{ type: "input_text", text: JSON.stringify({ question: sanitizeReportText(args.text.trim()), references: args.references, default_period: { accumulated_through: asOf, activity_from: defaultStart, activity_through: asOf } }) }] },
       ];
       const safetyIdentifier = await stableSafetyIdentifier(identity.subject);
@@ -1071,6 +1790,8 @@ export const sendMessage = action({
             owner_user_id: actor.user_id,
             allowed_project_ids: prepared.context_project_ids,
             allowed_person_ids: allowedPersonIds,
+            allowed_cost_item_ids: allowedCostItemIds,
+            allowed_provider_ids: allowedProviderIds,
             name: call.name,
             arguments_json: call.arguments,
             as_of: asOf,
@@ -1083,6 +1804,7 @@ export const sendMessage = action({
           toolNames.push(call.name);
           evidence.push(...result.evidence);
           statuses.push(...(result.statuses || []));
+          answerStatuses.push(...(result.answerStatuses || []));
           canonicalLimitations.push(...(result.limitations || []));
           anyToolResultTruncated = anyToolResultTruncated || Boolean(result.truncated);
           outputs.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify({ ...result.data as object, truncated: result.truncated || false, evidence: result.evidence }) });
@@ -1094,7 +1816,7 @@ export const sendMessage = action({
       }
 
       const parsed = assistantAnswerSchema.parse(JSON.parse(extractAssistantResponseText(response)));
-      const answer = sanitizeAnswer(parsed, evidence, statuses);
+      const answer = sanitizeAnswer(parsed, evidence, statuses, answerStatuses);
       answer.limitations = [...new Set([...canonicalLimitations, ...answer.limitations])].slice(0, 5);
       if (anyToolResultTruncated) {
         answer.limitations = [

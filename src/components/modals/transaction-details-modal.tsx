@@ -15,8 +15,8 @@ export default function TransactionDetailsModal() {
   const { isOpen, onClose, transactionId } = useTransactionDetailsModal();
     
   const transaction = useQuery(
-    api.transacciones.getTransactionById,
-    transactionId ? { id: transactionId } : "skip"
+    api.transacciones.getTransactionDetailsById,
+    isOpen && transactionId ? { id: transactionId } : "skip"
   );
 
   const formatCurrency = (amount: number, currency: string = "MXN") => {
@@ -55,7 +55,7 @@ export default function TransactionDetailsModal() {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Detalles de Transacción</DialogTitle>
@@ -229,13 +229,13 @@ export default function TransactionDetailsModal() {
               <div className="space-y-1">
                 <label className="text-sm font-medium text-gray-600">Conceptos (Line Items)</label>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {transaction.lineItems?.length || 0}
+                  {transaction.lineItemsCount}
                 </p>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-gray-600">Documentos</label>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {transaction.documents?.length || 0}
+                  {transaction.documentsCount}
                 </p>
               </div>
             </div>

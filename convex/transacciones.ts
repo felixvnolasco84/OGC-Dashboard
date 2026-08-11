@@ -6,6 +6,84 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { assertAdmin, assertCanWrite, checkDesarrolloAccess } from "./permissions";
 import { isProviderComplete } from "./providerUtils";
+import { moneyDelta, mostSpecificCostLabel, normalizeCostText } from "./costRules";
+
+type TransactionLineItemInput = {
+  partida_id: Id<"partidas">;
+  partida: string;
+  familia: string;
+  sub_partida: string;
+  monto: number;
+};
+
+type PreparedTransactionLineItem = TransactionLineItemInput & {
+  partidaDoc: Doc<"partidas">;
+  concepto: string;
+  partida_nombre_snapshot: string;
+  familia_snapshot: string;
+  sub_partida_snapshot: string;
+};
+
+function assertTransactionTotal(montoTotal: number, lineItems: Array<{ monto: number }>) {
+  if (!Number.isFinite(montoTotal)) throw new Error("El monto total no es válido.");
+  if (!lineItems.length) throw new Error("La transacción debe incluir al menos un concepto.");
+  if (lineItems.some((item) => !Number.isFinite(item.monto))) {
+    throw new Error("Todos los conceptos deben tener un monto válido.");
+  }
+  const lineItemsTotal = lineItems.reduce((sum, item) => sum + item.monto, 0);
+  if (Math.abs(moneyDelta(montoTotal, lineItemsTotal)) > 0.01) {
+    throw new Error("El monto total debe coincidir con la suma de los conceptos.");
+  }
+}
+
+async function prepareTransactionLineItems(
+  ctx: MutationCtx,
+  proyecto: Id<"desarrollos">,
+  montoTotal: number,
+  lineItems: TransactionLineItemInput[],
+): Promise<PreparedTransactionLineItem[]> {
+  assertTransactionTotal(montoTotal, lineItems);
+  const partidaIds = [...new Set(lineItems.map((item) => item.partida_id))];
+  const partidas = await Promise.all(partidaIds.map((id) => ctx.db.get(id)));
+  const partidasById = new Map(
+    partidas
+      .filter((partida): partida is Doc<"partidas"> => Boolean(partida))
+      .map((partida) => [String(partida._id), partida]),
+  );
+
+  return lineItems.map((item) => {
+    const partidaDoc = partidasById.get(String(item.partida_id));
+    if (!partidaDoc || partidaDoc.proyecto !== proyecto) {
+      throw new Error("Uno de los conceptos no pertenece al proyecto de la transacción.");
+    }
+    const partidaNombre = String(
+      partidaDoc.nivel === 1
+        ? partidaDoc.nombre
+        : partidaDoc.partida_nombre || partidaDoc.nombre || "",
+    ).trim();
+    const familia = String(partidaDoc.familia || "").trim();
+    const subPartida = String(partidaDoc.sub_partida || "").trim();
+    const concepto = mostSpecificCostLabel({
+      sub_partida: subPartida,
+      familia,
+      partida: partidaNombre,
+      nombre: partidaDoc.nombre,
+    });
+    return {
+      ...item,
+      // Derive hierarchy labels from Convex. Client labels are display-only and
+      // are intentionally ignored for persistence and rollup updates.
+      partida: partidaNombre,
+      familia,
+      sub_partida: subPartida,
+      partidaDoc,
+      concepto,
+      partida_nombre_snapshot: partidaNombre,
+      familia_snapshot: familia,
+      sub_partida_snapshot: subPartida,
+    };
+  });
+}
 
 async function validateTransactionWrite(
   ctx: MutationCtx,
@@ -96,6 +174,12 @@ export const createTransaction = mutation({
         .first();
       if (duplicate) throw new Error("La transacción coincide con una importación existente.");
     }
+    const preparedLineItems = await prepareTransactionLineItems(
+      ctx,
+      args.proyecto,
+      args.monto_total,
+      lineItems,
+    );
 
     // Normalize fecha to DD/MM/YYYY if it arrives as YYYY-MM-DD (from HTML date input)
     if (transactionData.fecha && transactionData.fecha.includes("-")) {
@@ -110,10 +194,17 @@ export const createTransaction = mutation({
     const pagoIds = [];
     const uniqueHierarchies = new Map<string, { partida: string; familia: string; sub_partida: string }>();
     
-    for (const item of lineItems) {
+    for (const item of preparedLineItems) {
       const pagoId = await ctx.db.insert("pagos", {
         transaccion_id: transaccionId,
         partida_id: item.partida_id,
+        proyecto_id: args.proyecto,
+        concepto: item.concepto,
+        concepto_normalizado: normalizeCostText(item.concepto),
+        partida_nombre_snapshot: item.partida_nombre_snapshot,
+        familia_snapshot: item.familia_snapshot,
+        sub_partida_snapshot: item.sub_partida_snapshot,
+        classification_status: "mapped",
         monto: item.monto,
       });
       pagoIds.push(pagoId);
@@ -202,6 +293,12 @@ export const createTransactionBulk = baseMutation({
         .first();
       if (duplicate) throw new Error("La transacción coincide con una importación existente.");
     }
+    const preparedLineItems = await prepareTransactionLineItems(
+      ctx,
+      args.proyecto,
+      args.monto_total,
+      lineItems,
+    );
 
     // Normalize fecha to DD/MM/YYYY if it arrives as YYYY-MM-DD
     let normalizedFecha = transactionData.fecha;
@@ -218,10 +315,17 @@ export const createTransactionBulk = baseMutation({
 
     // Insert all line items (raw DB, no triggers)
     const pagoIds = [];
-    for (const item of lineItems) {
+    for (const item of preparedLineItems) {
       const pagoId = await ctx.db.insert("pagos", {
         transaccion_id: transaccionId,
         partida_id: item.partida_id,
+        proyecto_id: args.proyecto,
+        concepto: item.concepto,
+        concepto_normalizado: normalizeCostText(item.concepto),
+        partida_nombre_snapshot: item.partida_nombre_snapshot,
+        familia_snapshot: item.familia_snapshot,
+        sub_partida_snapshot: item.sub_partida_snapshot,
+        classification_status: "mapped",
         monto: item.monto,
       });
       pagoIds.push(pagoId);
@@ -229,15 +333,14 @@ export const createTransactionBulk = baseMutation({
 
     // Collect unique hierarchies to avoid redundant updates
     const uniqueHierarchies = new Map<string, { partida: string; familia: string; sub_partida: string; nivel: number }>();
-    for (const item of lineItems) {
+    for (const item of preparedLineItems) {
       const hierarchyKey = `${item.partida}|${item.familia}|${item.sub_partida}`;
       if (!uniqueHierarchies.has(hierarchyKey)) {
-        const partidaDoc = await ctx.db.get(item.partida_id);
         uniqueHierarchies.set(hierarchyKey, {
           partida: item.partida,
           familia: item.familia,
           sub_partida: item.sub_partida,
-          nivel: partidaDoc?.nivel ?? 3,
+          nivel: item.partidaDoc.nivel,
         });
       }
     }
@@ -288,6 +391,13 @@ export const updateTransaction = mutation({
       throw new Error("Transaction not found");
     }
     await validateTransactionWrite(ctx, existingTransaction.proyecto, updateData.proveedor_id);
+    if (updateData.monto_total !== undefined) {
+      const lineItems = await ctx.db
+        .query("pagos")
+        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", id))
+        .collect();
+      assertTransactionTotal(updateData.monto_total, lineItems);
+    }
 
     // Filter out undefined values
     const cleanUpdateData: Record<string, unknown> = Object.fromEntries(
@@ -584,7 +694,7 @@ export const getTransactionById = query({
     // Enrich each pago with its partida data
     const lineItems = await Promise.all(
       pagos.map(async (pago) => {
-        const partida = await ctx.db.get(pago.partida_id);
+        const partida = pago.partida_id ? await ctx.db.get(pago.partida_id) : null;
         return {
           ...pago,
           partida: partida ? {
@@ -610,6 +720,120 @@ export const getTransactionById = query({
       proveedor,
       lineItems,
       documents,
+    };
+  },
+});
+
+// Lightweight transaction details for the details modal. Keeping counts here
+// avoids loading and enriching every line item when the modal only needs a
+// summary.
+export const getTransactionDetailsById = query({
+  args: {
+    id: v.id("transacciones"),
+  },
+  handler: async (ctx, args) => {
+    const transaction = await ctx.db.get(args.id);
+    if (!transaction) return null;
+    if (!(await checkDesarrolloAccess(ctx, transaction.proyecto))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
+
+    const [lineItems, documents, proveedor] = await Promise.all([
+      ctx.db
+        .query("pagos")
+        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", args.id))
+        .collect(),
+      ctx.db
+        .query("documentos")
+        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", args.id))
+        .collect(),
+      providerSummary(ctx, transaction.proveedor_id),
+    ]);
+
+    return {
+      ...transaction,
+      proveedor,
+      lineItemsCount: lineItems.length,
+      documentsCount: documents.length,
+    };
+  },
+});
+
+// Load only the enriched concepts needed by the concepts modal.
+export const getTransactionConceptosById = query({
+  args: {
+    id: v.id("transacciones"),
+  },
+  handler: async (ctx, args) => {
+    const transaction = await ctx.db.get(args.id);
+    if (!transaction) return null;
+    if (!(await checkDesarrolloAccess(ctx, transaction.proyecto))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
+
+    const pagos = await ctx.db
+      .query("pagos")
+      .withIndex("by_transaccion", (q) => q.eq("transaccion_id", args.id))
+      .collect();
+
+    const partidaIds = [...new Set(
+      pagos.flatMap((pago) => pago.partida_id ? [pago.partida_id] : []),
+    )];
+    const partidas = await Promise.all(partidaIds.map((partidaId) => ctx.db.get(partidaId)));
+    const partidasById = new Map(
+      partidas
+        .filter((partida): partida is NonNullable<typeof partida> => partida !== null)
+        .map((partida) => [partida._id, partida])
+    );
+    const lineItems = pagos.map((pago) => {
+      const partida = pago.partida_id ? partidasById.get(pago.partida_id) : undefined;
+      return {
+        ...pago,
+        partida: partida ? {
+          _id: partida._id,
+          nombre: partida.nombre,
+          familia: partida.familia,
+          sub_partida: partida.sub_partida,
+        } : undefined,
+      };
+    });
+
+    return {
+      ...transaction,
+      lineItems,
+    };
+  },
+});
+
+// Load transaction documents with their actual storage URLs so the document
+// modal can open both current Convex files and legacy URL-backed files.
+export const getTransactionDocumentsById = query({
+  args: {
+    id: v.id("transacciones"),
+  },
+  handler: async (ctx, args) => {
+    const transaction = await ctx.db.get(args.id);
+    if (!transaction) return null;
+    if (!(await checkDesarrolloAccess(ctx, transaction.proyecto))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
+
+    const documents = await ctx.db
+      .query("documentos")
+      .withIndex("by_transaccion", (q) => q.eq("transaccion_id", args.id))
+      .collect();
+    const documentsWithUrls = await Promise.all(
+      documents.map(async (document) => ({
+        ...document,
+        url: document.storage_id
+          ? await ctx.storage.getUrl(document.storage_id)
+          : document.image || null,
+      }))
+    );
+
+    return {
+      ...transaction,
+      documents: documentsWithUrls,
     };
   },
 });
@@ -702,11 +926,22 @@ export const getByProyectoWithDetails = query({
 
         // Get partida names for display
         const partidaNames: string[] = [];
+        const costConcepts: string[] = [];
         for (const item of lineItems) {
-          const partida = await ctx.db.get(item.partida_id);
-          if (partida) {
-            partidaNames.push(partida.sub_partida || partida.familia || partida.nombre || "Sin nombre");
-          }
+          const partida = item.partida_id ? await ctx.db.get(item.partida_id) : null;
+          const label = item.concepto || partida?.sub_partida || partida?.familia || partida?.nombre || "Sin nombre";
+          partidaNames.push(label);
+          costConcepts.push(
+            ...[
+              item.concepto,
+              item.sub_partida_snapshot,
+              item.familia_snapshot,
+              item.partida_nombre_snapshot,
+              partida?.sub_partida,
+              partida?.familia,
+              partida?.nombre,
+            ].flatMap((value) => value?.trim() ? [value.trim()] : []),
+          );
         }
 
         // Get documents with URLs
@@ -734,6 +969,7 @@ export const getByProyectoWithDetails = query({
           lineItemsCount: lineItems.length,
           documentsCount: documents.length,
           partidaNames: partidaNames.slice(0, 3), // First 3 partida names
+          costConcepts: [...new Set(costConcepts)],
           documentUrl: firstDocumentUrl, // URL to open the document
         };
       })
