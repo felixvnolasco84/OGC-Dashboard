@@ -7,7 +7,7 @@ Created a complete flujo (cash flow) projection upload system for **sales_projec
 
 ### 1. **Backend - Convex Mutations & Queries**
 **File:** `/convex/sales_projected_transactions.ts`
-
+ 
 **Mutations:**
 - `uploadSalesProjections`: Uploads weekly cash flow projections from Excel API
   - Deletes existing projections for the sales project
