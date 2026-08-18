@@ -1682,12 +1682,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     const ensureGroup = (key: string, task: Task) => {
       const isGeneral = key.startsWith(`${GENERAL_SCOPE}:`);
       const organizationId = isGeneral ? key.slice(GENERAL_SCOPE.length + 1) : projectOrganizations.get(key);
-      const organizationLabel = organizationScopes?.find((scope) => scope.id === organizationId)?.label;
       const group = groups.get(key) || {
         projectId: key,
-        projectName: isGeneral
-          ? `General${organizationScopes && organizationScopes.length > 1 && organizationLabel ? ` · ${organizationLabel}` : ""}`
-          : task.proyecto_nombre || projectNames.get(key) || "Proyecto",
+        projectName: isGeneral ? "General" : task.proyecto_nombre || projectNames.get(key) || "Proyecto",
         tasks: [],
         organizationId,
         isGeneral,
@@ -1809,7 +1806,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const handleSubmit = async () => {
     const targetProjectId = form.proyecto || undefined;
     if (!targetProjectId && !selectedFormOrganizationId) {
-      toast.error("Selecciona una organización para el alcance General");
+      toast.error("No se pudo determinar el alcance General para tu cuenta");
       return;
     }
     if (!form.titulo.trim()) {
@@ -3529,18 +3526,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               </div>
             )}
 
-            {!selectedFormProjectId && (organizationScopes?.length || 0) > 1 && (
-              <div className="space-y-2">
-                <Label>Organización</Label>
-                <Select value={selectedFormOrganizationId || ""} onValueChange={(value) => setForm((current) => ({ ...current, organization_id: value, asignados: new Set() }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecciona la organización" /></SelectTrigger>
-                  <SelectContent>
-                    {(organizationScopes || []).map((scope) => <SelectItem key={scope.id} value={scope.id}>{scope.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label>Alcance</Label>
               <Select
@@ -3666,7 +3651,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-gray-200 p-3">
                 {!selectedFormProjectId && !selectedFormOrganizationId && (
                   <div className="py-4 text-center text-sm text-gray-500">
-                    Selecciona una organización para ver usuarios disponibles.
+                    No se encontraron usuarios disponibles para el alcance General.
                   </div>
                 )}
                 {(selectedFormProjectId || selectedFormOrganizationId) && !assignableUsers && (
