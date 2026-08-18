@@ -9,5 +9,11 @@ crons.interval(
   internal.reportes.scanDueSubscriptions,
 );
 
-export default crons;
+crons.weekly(
+  "create weekly organization minutes",
+  { dayOfWeek: "monday", hourUTC: 12, minuteUTC: 0 },
+  internal.tareas.generateWeeklyMinutes,
+  {},
+);
 
+export default crons;

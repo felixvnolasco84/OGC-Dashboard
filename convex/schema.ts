@@ -698,14 +698,18 @@ export default defineSchema({
 
   // Tareas - Project task assignment and follow-up
   tareas: defineTable({
-    proyecto: v.id("desarrollos"),
+    proyecto: v.optional(v.id("desarrollos")),
+    organization_id: v.optional(v.string()),
+    tipo: v.optional(v.union(v.literal("tarea"), v.literal("minuta"))),
+    origen: v.optional(v.union(v.literal("usuario"), v.literal("sistema"))),
+    week_start: v.optional(v.string()),
     parent_task: v.optional(v.id("tareas")),
     position: v.optional(v.number()),
     titulo: v.string(),
     descripcion: v.optional(v.string()),
     asignados: v.array(v.id("users")),
     partidas: v.optional(v.array(v.id("partidas"))),
-    created_by_id: v.id("users"),
+    created_by_id: v.optional(v.id("users")),
     created_by_name: v.string(),
     status: v.string(), // Pendiente, En progreso, Bloqueada, Completada, Cancelada
     prioridad: v.string(), // Baja, Media, Alta, Urgente
@@ -715,13 +719,16 @@ export default defineSchema({
     updated_at: v.optional(v.number()),
     completed_at: v.optional(v.number()),
   }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_organization", { fields: ["organization_id"] })
+    .index("by_organization_week", { fields: ["organization_id", "week_start"] })
     .index("by_parent_task", { fields: ["parent_task"] })
     .index("by_status", { fields: ["status"] })
     .index("by_created_by", { fields: ["created_by_id"] }),
 
   tarea_comments: defineTable({
     tarea_id: v.id("tareas"),
-    proyecto: v.id("desarrollos"),
+    proyecto: v.optional(v.id("desarrollos")),
+    organization_id: v.optional(v.string()),
     user_id: v.id("users"),
     user_name: v.string(),
     comment: v.string(),
@@ -729,35 +736,42 @@ export default defineSchema({
     updated_at: v.optional(v.number()),
   }).index("by_tarea", { fields: ["tarea_id"] })
     .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_organization", { fields: ["organization_id"] })
     .index("by_user", { fields: ["user_id"] }),
 
   tarea_history: defineTable({
     tarea_id: v.id("tareas"),
-    proyecto: v.id("desarrollos"),
+    proyecto: v.optional(v.id("desarrollos")),
+    organization_id: v.optional(v.string()),
     action: v.string(),
     field_changed: v.optional(v.string()),
     old_value: v.optional(v.string()),
     new_value: v.optional(v.string()),
-    changed_by_id: v.id("users"),
+    changed_by_id: v.optional(v.id("users")),
     changed_by_name: v.string(),
     created_at: v.number(),
   }).index("by_tarea", { fields: ["tarea_id"] })
     .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_organization", { fields: ["organization_id"] })
     .index("by_changed_by", { fields: ["changed_by_id"] }),
 
   tarea_read_status: defineTable({
     user_id: v.id("users"),
-    proyecto: v.id("desarrollos"),
+    proyecto: v.optional(v.id("desarrollos")),
+    organization_id: v.optional(v.string()),
     last_read_at: v.number(),
-  }).index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
+  }).index("by_user_proyecto", { fields: ["user_id", "proyecto"] })
+    .index("by_user_organization", { fields: ["user_id", "organization_id"] }),
 
   tarea_notification_reads: defineTable({
     user_id: v.id("users"),
     tarea_history_id: v.id("tarea_history"),
-    proyecto: v.id("desarrollos"),
+    proyecto: v.optional(v.id("desarrollos")),
+    organization_id: v.optional(v.string()),
     read_at: v.number(),
   }).index("by_user_history", { fields: ["user_id", "tarea_history_id"] })
-    .index("by_user_proyecto", { fields: ["user_id", "proyecto"] }),
+    .index("by_user_proyecto", { fields: ["user_id", "proyecto"] })
+    .index("by_user_organization", { fields: ["user_id", "organization_id"] }),
 
   // RFIs - Formal requests for information
   rfis: defineTable({

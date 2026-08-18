@@ -18,7 +18,11 @@ export type PartidaSummary = {
 
 export type Task = {
   _id: Id<"tareas">;
-  proyecto: Id<"desarrollos">;
+  proyecto?: Id<"desarrollos">;
+  organization_id?: string;
+  tipo?: "tarea" | "minuta";
+  origen?: "usuario" | "sistema";
+  week_start?: string;
   parent_task?: Id<"tareas">;
   position?: number;
   proyecto_nombre?: string;
@@ -30,7 +34,7 @@ export type Task = {
   prioridad: string;
   fecha_limite?: string;
   categoria?: string;
-  created_by_id: Id<"users">;
+  created_by_id?: Id<"users">;
   created_by_name: string;
   created_at: number;
   updated_at?: number;
@@ -76,6 +80,7 @@ export type TaskNotification = TaskHistory & {
 export type ProjectOption = {
   _id: Id<"desarrollos">;
   nombre: string;
+  organization_id?: string;
 };
 
 export type TaskLabelOption = {
@@ -94,6 +99,8 @@ export type TaskGroup = {
   projectId: string;
   projectName: string;
   tasks: Task[];
+  organizationId?: string;
+  isGeneral?: boolean;
 };
 
 export type TaskContextMenu = {

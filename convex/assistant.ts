@@ -648,7 +648,7 @@ export const searchReferences = query({
               project_id: String(project._id),
               label: `@${person.name.trim()}`,
               subtitle: `Persona · ${project.nombre}`,
-              url: `/proyecto/${project._id}/tareas`,
+              url: `/tareas?proyecto=${project._id}`,
             });
           }
         }
@@ -733,7 +733,7 @@ export const searchReferences = query({
       for (const task of tasks) {
         if (!search || normalizeAssistantSearch(task.titulo).includes(search)) results.push({
           type: "task", id: String(task._id), project_id: String(project._id), label: `@${task.titulo}`,
-          subtitle: `Tarea · ${project.nombre}`, url: `/proyecto/${project._id}/tareas?tarea=${task._id}`,
+          subtitle: `Tarea · ${project.nombre}`, url: `/tareas?proyecto=${project._id}&tarea=${task._id}`,
         });
       }
       for (const requisition of requisitions) {
@@ -1449,12 +1449,12 @@ export const executeTool = internalQuery({
         if (parsed.entity_type === "task") {
           const id = normalizeId(ctx, "tareas", rawId);
           const item = await ctx.db.get(id) as Doc<"tareas"> | null;
-          if (!item || !allowed.has(String(item.proyecto))) continue;
+          if (!item || !item.proyecto || !allowed.has(String(item.proyecto))) continue;
           await assertProjectAccess(ctx, user, item.proyecto);
           const project = await ctx.db.get(item.proyecto);
           const due = parseProjectDate(item.fecha_limite);
           details.push({ id, project_id: item.proyecto, project: project?.nombre, title: item.titulo, description: item.descripcion, status: item.status, priority: item.prioridad, due_date: due, assignee_ids: item.asignados.map(String) });
-          evidence.push({ id: `task:${id}`, type: "task", label: item.titulo, project_id: String(item.proyecto), observed_value: `${item.status} · ${item.prioridad}${due ? ` · vence ${due}` : ""}`, as_of: args.as_of, url: `/proyecto/${item.proyecto}/tareas?tarea=${id}` });
+          evidence.push({ id: `task:${id}`, type: "task", label: item.titulo, project_id: String(item.proyecto), observed_value: `${item.status} · ${item.prioridad}${due ? ` · vence ${due}` : ""}`, as_of: args.as_of, url: `/tareas?proyecto=${item.proyecto}&tarea=${id}` });
         } else if (parsed.entity_type === "requisition") {
           const id = normalizeId(ctx, "requisiciones", rawId);
           const item = await ctx.db.get(id) as Doc<"requisiciones"> | null;
@@ -1535,9 +1535,9 @@ export const executeTool = internalQuery({
         ];
         const perProjectEvidenceLimit = Math.max(1, Math.floor(30 / projectIds.length));
         const operationalEvidence = [
-          { key: "operational.blocked_tasks", label: "Tareas bloqueadas", value: blockedTasks.length, url: `/proyecto/${projectId}/tareas` },
-          { key: "operational.overdue_tasks", label: "Tareas vencidas", value: overdueTasks.length, url: `/proyecto/${projectId}/tareas` },
-          { key: "operational.urgent_tasks", label: "Tareas urgentes activas", value: urgentTasks.length, url: `/proyecto/${projectId}/tareas` },
+          { key: "operational.blocked_tasks", label: "Tareas bloqueadas", value: blockedTasks.length, url: `/tareas?proyecto=${projectId}` },
+          { key: "operational.overdue_tasks", label: "Tareas vencidas", value: overdueTasks.length, url: `/tareas?proyecto=${projectId}` },
+          { key: "operational.urgent_tasks", label: "Tareas urgentes activas", value: urgentTasks.length, url: `/tareas?proyecto=${projectId}` },
           { key: "operational.overdue_rfis", label: "RFIs vencidas", value: overdueRfis.length, url: `/proyecto/${projectId}/rfis` },
           { key: "operational.impacted_rfis", label: "RFIs con impacto registrado", value: impactedRfis.length, url: `/proyecto/${projectId}/rfis` },
         ]
@@ -1622,7 +1622,7 @@ export const executeTool = internalQuery({
           if (parsed.open_only && !active) continue;
           if (parsed.due_within_range && (!due || due < from || due > to)) continue;
           items.push({ id: item._id, project_id: projectId, project: project?.nombre, title: item.titulo, status: item.status, priority: item.prioridad, due_date: due, active, blocked, overdue, assignee_ids: item.asignados.map(String), updated_at: item.updated_at || item.created_at });
-          evidence.push({ id: `task:${item._id}`, type: "task", label: `${project?.nombre} · ${item.titulo}`, project_id: String(projectId), observed_value: `${item.status} · ${item.prioridad}${due ? ` · vence ${due}` : ""}`, as_of: to, url: `/proyecto/${projectId}/tareas?tarea=${item._id}` });
+          evidence.push({ id: `task:${item._id}`, type: "task", label: `${project?.nombre} · ${item.titulo}`, project_id: String(projectId), observed_value: `${item.status} · ${item.prioridad}${due ? ` · vence ${due}` : ""}`, as_of: to, url: `/tareas?proyecto=${projectId}&tarea=${item._id}` });
         }
       }
     } else if (args.name === "list_requisitions") {

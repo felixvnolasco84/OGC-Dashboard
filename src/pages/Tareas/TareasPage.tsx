@@ -98,7 +98,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const CATEGORY_OPTIONS = ["General", "Obra", "Finanzas", "Documentos", "Requisicion", "Bitacora"];
+const CATEGORY_OPTIONS = ["General", "Acabados", "Instalaciones", "Obra", "Finanzas", "Documentos", "Requisicion", "Bitacora"];
+const GENERAL_SCOPE = "__general__";
 const TASK_UI_COLORS = {
   pending: "#ADADAD",
   blue: "#76AFD9",
@@ -167,6 +168,8 @@ const DEFAULT_PRIORITY_LABELS: TaskLabelOption[] = [
 
 function emptyForm() {
   return {
+    tipo: "tarea" as "tarea" | "minuta",
+    organization_id: "",
     proyecto: "",
     titulo: "",
     descripcion: "",
@@ -177,6 +180,14 @@ function emptyForm() {
     asignados: new Set<string>(),
     partidas: new Set<string>(),
   };
+}
+
+function suggestedMinuteTitle() {
+  const date = new Date();
+  const daysSinceMonday = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - daysSinceMonday);
+  const month = new Intl.DateTimeFormat("es-MX", { month: "long" }).format(date);
+  return `Minuta Semana ${date.getDate()} ${month.charAt(0).toUpperCase()}${month.slice(1)}`;
 }
 
 function isOverdue(task: Task) {
@@ -1368,28 +1379,20 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
   );
 });
 
+void InlineLabelPicker;
+void InlinePartidaPicker;
+void InlinePartidaPickerForCreate;
+
 export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [searchParams] = useSearchParams();
   const openedDeepLinkTaskRef = useRef<string>();
-  const isProjectScoped = Boolean(proyectoId);
-  const proyecto = useQuery(
-    api.desarrollos.getById,
-    proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip"
-  );
+  const isProjectScoped = false;
+  const proyecto = undefined;
+  const currentUser = useQuery(api.users.getCurrentUser);
   const proyectos = useQuery(api.desarrollos.getAll) as ProjectOption[] | undefined;
-  const projectTasks = useQuery(
-    api.tareas.getByProyecto,
-    proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
-  ) as Task[] | undefined;
-  const globalTasks = useQuery(
-    api.tareas.getAllAccessible,
-    proyectoId ? "skip" : {}
-  ) as Task[] | undefined;
-  const tareas = isProjectScoped ? projectTasks : globalTasks;
-  const taskCatalogs = useQuery(
-    api.tareas.getCatalogs,
-    proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : {}
-  ) as TaskCatalogs | undefined;
+  const tareas = useQuery(api.tareas.getAllAccessible, {}) as Task[] | undefined;
+  const taskCatalogs = useQuery(api.tareas.getCatalogs, {}) as TaskCatalogs | undefined;
+  const organizationScopes = useQuery(api.tareas.getOrganizationScopes, {});
   const [search, setSearch] = useState("");
   const [taskTab, setTaskTab] = useState<"all" | "open" | "overdue" | "done">("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -1398,29 +1401,34 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [partidaFilter, setPartidaFilter] = useState("all");
   const [ownershipFilter, setOwnershipFilter] = useState<"all" | "mine" | "created">("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
-  const [projectFilter, setProjectFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState(() => searchParams.get("proyecto") || "all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<Id<"tareas"> | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [addingSubtaskFor, setAddingSubtaskFor] = useState<Id<"tareas"> | null>(null);
+  const [subtaskProjectId, setSubtaskProjectId] = useState("");
   const [addingTaskInSection, setAddingTaskInSection] = useState<{projectId: string; statusLabel: string} | null>(null);
-  const selectedFormProjectId = proyectoId || form.proyecto;
+  const selectedFormProjectId = form.proyecto;
+  const selectedFormOrganizationId = selectedFormProjectId
+    ? proyectos?.find((project) => project._id === selectedFormProjectId)?.organization_id
+    : form.organization_id || currentUser?.organization_id || organizationScopes?.[0]?.id;
   const lookupProjectIds = useMemo(() => {
     const ids = new Set<string>();
 
-    if (proyectoId) ids.add(proyectoId);
     if (selectedFormProjectId) ids.add(selectedFormProjectId);
-    if (!isProjectScoped && projectFilter !== "all") ids.add(projectFilter);
-    if (addingTaskInSection?.projectId) ids.add(addingTaskInSection.projectId);
+    if (subtaskProjectId) ids.add(subtaskProjectId);
+    if (projectFilter !== "all" && projectFilter !== GENERAL_SCOPE) ids.add(projectFilter);
+    if (addingTaskInSection?.projectId && addingTaskInSection.projectId !== GENERAL_SCOPE) ids.add(addingTaskInSection.projectId);
 
     for (const task of tareas || []) {
-      ids.add(task.proyecto);
+      if (task.proyecto) ids.add(task.proyecto);
     }
 
     return Array.from(ids) as Id<"desarrollos">[];
-  }, [addingTaskInSection, isProjectScoped, projectFilter, proyectoId, selectedFormProjectId, tareas]);
+  }, [addingTaskInSection, projectFilter, selectedFormProjectId, subtaskProjectId, tareas]);
   const assignableUsersByProject = useQuery(
     api.tareas.getAssignableUsersByProjects,
     lookupProjectIds.length ? { proyectos: lookupProjectIds } : "skip"
@@ -1429,27 +1437,33 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     api.partida.getByProjects,
     lookupProjectIds.length ? { projectIds: lookupProjectIds } : "skip"
   ) as ProjectLookupMap<PartidaSummary> | undefined;
-  const assignableUsers = selectedFormProjectId ? assignableUsersByProject?.[selectedFormProjectId] : undefined;
+  const organizationAssignableUsers = useQuery(
+    api.tareas.getAssignableUsersForOrganization,
+    !selectedFormProjectId && selectedFormOrganizationId
+      ? { organization_id: selectedFormOrganizationId }
+      : "skip"
+  ) as UserSummary[] | undefined;
+  const activeSubtaskParent = (tareas || []).find((task) => task._id === addingSubtaskFor);
+  const subtaskOrganizationId = subtaskProjectId
+    ? proyectos?.find((project) => project._id === subtaskProjectId)?.organization_id
+    : activeSubtaskParent?.organization_id;
+  const subtaskOrganizationUsers = useQuery(
+    api.tareas.getAssignableUsersForOrganization,
+    !subtaskProjectId && subtaskOrganizationId
+      ? { organization_id: subtaskOrganizationId }
+      : "skip"
+  ) as UserSummary[] | undefined;
+  const assignableUsers = selectedFormProjectId
+    ? assignableUsersByProject?.[selectedFormProjectId]
+    : organizationAssignableUsers;
   const formPartidas = selectedFormProjectId ? partidasByProject?.[selectedFormProjectId] : undefined;
-  const projectNotifications = useQuery(
-    api.tareas.getNotifications,
-    proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, limit: 60 } : "skip"
-  ) as TaskNotification[] | undefined;
-  const globalNotifications = useQuery(
-    api.tareas.getAllNotifications,
-    proyectoId ? "skip" : { limit: 60 }
-  ) as TaskNotification[] | undefined;
-  const taskNotifications = isProjectScoped ? projectNotifications : globalNotifications;
-  const projectNotificationSummary = useQuery(
-    api.tareas.getUnreadSummary,
-    proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip"
-  );
-  const globalNotificationSummary = useQuery(
-    api.tareas.getAllUnreadSummary,
-    proyectoId ? "skip" : {}
-  );
-  const taskNotificationSummary = isProjectScoped ? projectNotificationSummary : globalNotificationSummary;
-  const currentUser = useQuery(api.users.getCurrentUser);
+  const taskNotifications = useQuery(api.tareas.getAllNotifications, { limit: 60 }) as TaskNotification[] | undefined;
+  const taskNotificationSummary = useQuery(api.tareas.getAllUnreadSummary, {});
+
+  useEffect(() => {
+    const requestedProject = searchParams.get("proyecto") || "all";
+    setProjectFilter(requestedProject);
+  }, [searchParams]);
 
   useEffect(() => {
     const requestedTaskId = searchParams.get("tarea");
@@ -1478,7 +1492,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [notificationSearch, setNotificationSearch] = useState("");
   const [onlyUnreadNotifications, setOnlyUnreadNotifications] = useState(false);
   const [contextMenu, setContextMenu] = useState<TaskContextMenu>(null);
-  const [addingSubtaskFor, setAddingSubtaskFor] = useState<Id<"tareas"> | null>(null);
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [subtaskAssignees, setSubtaskAssignees] = useState<Id<"users">[]>([]);
   const [subtaskDueDate, setSubtaskDueDate] = useState<string>("");
@@ -1496,7 +1509,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [draggingTaskId, setDraggingTaskId] = useState<Id<"tareas"> | null>(null);
   const skipSubtaskCreateOnBlur = useRef(false);
   const skipNewTaskCreateOnBlur = useRef(false);
-  const [statusLabels, setStatusLabels] = useState<TaskLabelOption[]>(() =>
+  const [statusLabels] = useState<TaskLabelOption[]>(() =>
     normalizeStoredLabels(window.localStorage.getItem("tareas.statusLabels"), DEFAULT_STATUS_LABELS)
   );
   const [priorityLabels, setPriorityLabels] = useState<TaskLabelOption[]>(() =>
@@ -1521,8 +1534,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const canComment = canCreate && selectedTask;
   const unreadNotificationCount = taskNotificationSummary?.total || 0;
   const canManageTask = useCallback(
-    (task: Task) => currentUser?.role === "admin" || currentUser?._id === task.created_by_id,
-    [currentUser?._id, currentUser?.role]
+    (task: Task) => currentUser?.role === "admin" || currentUser?._id === task.created_by_id ||
+      Boolean(canCreate && task.tipo === "minuta" && task.origen === "sistema" && task.organization_id === currentUser?.organization_id),
+    [canCreate, currentUser?._id, currentUser?.organization_id, currentUser?.role]
   );
   const canChangeTaskStatus = useCallback(
     (task: Task) => Boolean(canCreate && (canManageTask(task) || (currentUser?._id && task.asignados.includes(currentUser._id)))),
@@ -1586,16 +1600,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     window.localStorage.setItem("tareas.priorityLabels", JSON.stringify(priorityLabels));
   }, [priorityLabels]);
 
-  const stats = useMemo(() => {
-    const list = tareas || [];
-    return {
-      total: list.length,
-      pending: list.filter((task) => task.status !== "Completada" && task.status !== "Cancelada").length,
-      overdue: list.filter(isOverdue).length,
-      done: list.filter((task) => task.status === "Completada").length,
-    };
-  }, [tareas]);
-
   const filteredTasks = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (tareas || []).filter((task) => {
@@ -1619,10 +1623,32 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         (ownershipFilter === "mine" && Boolean(currentUser?._id && task.asignados.includes(currentUser._id))) ||
         (ownershipFilter === "created" && currentUser?._id === task.created_by_id);
       const matchesAssignee = assigneeFilter === "all" || task.asignados.includes(assigneeFilter as Id<"users">);
-      const matchesProject = projectFilter === "all" || task.proyecto === projectFilter;
+      const matchesProject = projectFilter === "all" ||
+        (projectFilter === GENERAL_SCOPE ? !task.proyecto : task.proyecto === projectFilter);
       return matchesSearch && matchesTab && matchesStatus && matchesPriority && matchesCategory && matchesPartida && matchesOwnership && matchesAssignee && matchesProject;
     });
   }, [assigneeFilter, categoryFilter, currentUser?._id, ownershipFilter, partidaFilter, priorityFilter, projectFilter, search, statusFilter, taskTab, tareas]);
+
+  const tasksRelevantToScope = useMemo(() => {
+    const list = tareas || [];
+    if (projectFilter === "all") return list;
+    const directIds = new Set(
+      list
+        .filter((task) => projectFilter === GENERAL_SCOPE ? !task.proyecto : task.proyecto === projectFilter)
+        .map((task) => task._id)
+    );
+    for (const task of list) {
+      if (task.parent_task && directIds.has(task._id)) directIds.add(task.parent_task);
+    }
+    return list.filter((task) => directIds.has(task._id));
+  }, [projectFilter, tareas]);
+
+  const stats = useMemo(() => ({
+    total: tasksRelevantToScope.length,
+    pending: tasksRelevantToScope.filter((task) => task.status !== "Completada" && task.status !== "Cancelada").length,
+    overdue: tasksRelevantToScope.filter(isOverdue).length,
+    done: tasksRelevantToScope.filter((task) => task.status === "Completada").length,
+  }), [tasksRelevantToScope]);
 
   const additionalFilterCount = useMemo(() => {
     return [
@@ -1634,57 +1660,77 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     ].filter(Boolean).length;
   }, [categoryFilter, isProjectScoped, ownershipFilter, partidaFilter, priorityFilter, projectFilter]);
 
-  const childrenByParent = useMemo(() => {
-    const map = new Map<string, Task[]>();
-    for (const task of filteredTasks) {
-      if (!task.parent_task) continue;
-      const children = map.get(task.parent_task) || [];
-      children.push(task);
-      map.set(task.parent_task, children);
-    }
-    return map;
-  }, [filteredTasks]);
-
-  const groupedTasks = useMemo<TaskGroup[]>(() => {
+  const { groupedTasks, projectedChildrenByGroup } = useMemo(() => {
     const projectNames = new Map<string, string>();
+    const projectOrganizations = new Map<string, string | undefined>();
     for (const project of proyectos || []) {
       projectNames.set(project._id, project.nombre);
+      projectOrganizations.set(project._id, project.organization_id);
     }
+    const filteredIds = new Set(filteredTasks.map((task) => task._id));
+    const allTasksById = new Map((tareas || []).map((task) => [task._id, task]));
+    const allChildren = new Map<string, Task[]>();
+    for (const task of tareas || []) {
+      if (!task.parent_task) continue;
+      const children = allChildren.get(task.parent_task) || [];
+      children.push(task);
+      allChildren.set(task.parent_task, children);
+    }
+    const groups = new Map<string, TaskGroup>();
+    const projectedChildren = new Map<string, Task[]>();
+    const groupKeyForTask = (task: Task) => task.proyecto || `${GENERAL_SCOPE}:${task.organization_id || "legacy"}`;
+    const ensureGroup = (key: string, task: Task) => {
+      const isGeneral = key.startsWith(`${GENERAL_SCOPE}:`);
+      const organizationId = isGeneral ? key.slice(GENERAL_SCOPE.length + 1) : projectOrganizations.get(key);
+      const organizationLabel = organizationScopes?.find((scope) => scope.id === organizationId)?.label;
+      const group = groups.get(key) || {
+        projectId: key,
+        projectName: isGeneral
+          ? `General${organizationScopes && organizationScopes.length > 1 && organizationLabel ? ` · ${organizationLabel}` : ""}`
+          : task.proyecto_nombre || projectNames.get(key) || "Proyecto",
+        tasks: [],
+        organizationId,
+        isGeneral,
+      };
+      groups.set(key, group);
+      return group;
+    };
 
-    if ((tareas || []).length === 0 && filteredTasks.length === 0) {
-      if (isProjectScoped && proyectoId) {
-        return [{
-          projectId: proyectoId,
-          projectName: proyecto?.nombre || projectNames.get(proyectoId) || "Proyecto",
-          tasks: [],
-        }];
+    for (const task of tareas || []) {
+      if (task.parent_task) continue;
+      const children = allChildren.get(task._id) || [];
+      const behavesAsMinute = task.tipo === "minuta" || /^minuta\b/i.test(task.titulo) || children.length > 0;
+      if (!behavesAsMinute) {
+        if (!filteredIds.has(task._id)) continue;
+        ensureGroup(groupKeyForTask(task), task).tasks.push(task);
+        continue;
       }
 
-      const visibleProjects = (proyectos || []).filter((project) => projectFilter === "all" || project._id === projectFilter);
-      return visibleProjects.map((project) => ({
-        projectId: project._id,
-        projectName: project.nombre,
-        tasks: [],
-      }));
+      const matchingChildren = children.filter((child) => filteredIds.has(child._id));
+      const scopeKeys = new Set(matchingChildren.map(groupKeyForTask));
+      if (filteredIds.has(task._id)) scopeKeys.add(groupKeyForTask(task));
+      for (const scopeKey of scopeKeys) {
+        const isGeneral = scopeKey.startsWith(`${GENERAL_SCOPE}:`);
+        const matchesSelectedScope = projectFilter === "all" ||
+          (projectFilter === GENERAL_SCOPE ? isGeneral : scopeKey === projectFilter);
+        if (!matchesSelectedScope) continue;
+        const scopedChildren = matchingChildren.filter((child) => groupKeyForTask(child) === scopeKey);
+        if (!filteredIds.has(task._id) && scopedChildren.length === 0) continue;
+        ensureGroup(scopeKey, task).tasks.push(task);
+        projectedChildren.set(`${scopeKey}:${task._id}`, scopedChildren);
+      }
     }
 
-    const filteredIds = new Set(filteredTasks.map((task) => task._id));
-
-    const groups = new Map<string, TaskGroup>();
     for (const task of filteredTasks) {
-      if (task.parent_task && filteredIds.has(task.parent_task)) continue;
-      const projectId = task.proyecto;
-      const group = groups.get(projectId) || {
-        projectId,
-        projectName: task.proyecto_nombre || projectNames.get(projectId) || "Sin proyecto",
-        tasks: [],
-      };
-      group.tasks.push(task);
-      groups.set(projectId, group);
+      if (!task.parent_task || allTasksById.has(task.parent_task)) continue;
+      ensureGroup(groupKeyForTask(task), task).tasks.push(task);
     }
 
-    return Array.from(groups.values()).sort((a, b) => a.projectName.localeCompare(b.projectName));
-  }, [filteredTasks, isProjectScoped, projectFilter, proyecto, proyectoId, proyectos, tareas]);
+    return {
+      groupedTasks: Array.from(groups.values()).sort((a, b) => a.projectName.localeCompare(b.projectName, "es")),
+      projectedChildrenByGroup: projectedChildren,
+    };
+  }, [filteredTasks, organizationScopes, projectFilter, proyectos, tareas]);
 
   const filteredNotifications = useMemo(() => {
     const term = notificationSearch.trim().toLowerCase();
@@ -1707,9 +1753,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
   const openCreateDialog = () => {
     setEditingTask(null);
+    const initialProject = projectFilter !== "all" && projectFilter !== GENERAL_SCOPE ? projectFilter : "";
     setForm({
       ...emptyForm(),
-      proyecto: proyectoId || "",
+      proyecto: initialProject,
+      organization_id: initialProject
+        ? proyectos?.find((project) => project._id === initialProject)?.organization_id || ""
+        : currentUser?.organization_id || organizationScopes?.[0]?.id || "",
     });
     setDialogOpen(true);
   };
@@ -1717,7 +1767,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const openEditDialog = (task: Task) => {
     setEditingTask(task);
     setForm({
-      proyecto: task.proyecto,
+      tipo: task.tipo || (/^minuta\b/i.test(task.titulo) && !task.parent_task ? "minuta" : "tarea"),
+      organization_id: task.organization_id || "",
+      proyecto: task.proyecto || "",
       titulo: task.titulo,
       descripcion: task.descripcion || "",
       prioridad: task.prioridad,
@@ -1755,16 +1807,16 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   };
 
   const handleSubmit = async () => {
-    const targetProjectId = proyectoId || form.proyecto;
-    if (!targetProjectId) {
-      toast.error("Selecciona un proyecto para la tarea");
+    const targetProjectId = form.proyecto || undefined;
+    if (!targetProjectId && !selectedFormOrganizationId) {
+      toast.error("Selecciona una organización para el alcance General");
       return;
     }
     if (!form.titulo.trim()) {
       toast.error("Agrega un título para la tarea");
       return;
     }
-    if (form.asignados.size === 0) {
+    if (form.tipo === "tarea" && form.asignados.size === 0) {
       toast.error("Asigna al menos un responsable");
       return;
     }
@@ -1774,7 +1826,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       titulo: form.titulo,
       descripcion: form.descripcion || undefined,
       asignados: Array.from(form.asignados) as Id<"users">[],
-      partidas: Array.from(form.partidas) as Id<"partidas">[],
+      partidas: targetProjectId ? Array.from(form.partidas) as Id<"partidas">[] : [],
       prioridad: form.prioridad,
       fecha_limite: form.fecha_limite || undefined,
       categoria: form.categoria,
@@ -1784,7 +1836,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       if (editingTask) {
         await updateTask({
           id: editingTask._id,
-          proyecto: targetProjectId as Id<"desarrollos">,
+          proyecto: targetProjectId as Id<"desarrollos"> | undefined,
+          organization_id: selectedFormOrganizationId,
+          tipo: form.tipo,
           ...payload,
           status: form.status,
           parent_task: editingTask.parent_task,
@@ -1792,7 +1846,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         toast.success("Tarea actualizada");
       } else {
         const taskId = await createTask({
-          proyecto: targetProjectId as Id<"desarrollos">,
+          proyecto: targetProjectId as Id<"desarrollos"> | undefined,
+          organization_id: selectedFormOrganizationId,
+          tipo: form.tipo,
           ...payload,
         });
         setSelectedTaskId(taskId);
@@ -1827,7 +1883,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
   const handleInlineUpdate = async (
     task: Task,
-    changes: Partial<Pick<Task, "titulo" | "fecha_limite" | "prioridad" | "status" | "categoria" | "proyecto" | "asignados" | "partidas">>
+    changes: Omit<Partial<Pick<Task, "titulo" | "fecha_limite" | "prioridad" | "status" | "categoria" | "asignados" | "partidas">>, "proyecto"> & {
+      proyecto?: Id<"desarrollos"> | null;
+    }
   ) => {
     const changedKeys = Object.keys(changes);
     if (changedKeys.length === 1 && changes.status !== undefined) {
@@ -1846,25 +1904,29 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       return;
     }
     const nextAssignees = changes.asignados ?? task.asignados;
-    if (nextAssignees.length === 0) {
+    if (nextAssignees.length === 0 && task.tipo !== "minuta") {
       toast.error("Asigna al menos un responsable");
       return;
     }
 
     setInlineSavingId(task._id);
     try {
+      const hasProjectChange = Object.prototype.hasOwnProperty.call(changes, "proyecto");
+      const nextProject = hasProjectChange ? changes.proyecto || undefined : task.proyecto;
       await updateTask({
         id: task._id,
-        proyecto: changes.proyecto ?? task.proyecto,
+        proyecto: nextProject,
+        organization_id: task.organization_id,
+        tipo: task.tipo,
         titulo: nextTitle,
         descripcion: task.descripcion || undefined,
         asignados: nextAssignees,
-        partidas: changes.partidas ?? task.partidas ?? [],
+        partidas: hasProjectChange ? [] : changes.partidas ?? task.partidas ?? [],
         status: changes.status ?? task.status,
         prioridad: changes.prioridad ?? task.prioridad,
         fecha_limite: changes.fecha_limite || undefined,
         categoria: changes.categoria ?? task.categoria ?? "General",
-        parent_task: changes.proyecto && changes.proyecto !== task.proyecto ? undefined : task.parent_task,
+        parent_task: task.parent_task,
       });
     } catch (error) {
       console.error("Error updating task:", error);
@@ -1878,7 +1940,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     const title = (titleOverride ?? subtaskTitle).trim();
     if (!title || submitting) return;
     const { openDetails = true } = options;
-    const assignees = subtaskAssignees.length ? subtaskAssignees : parent.asignados;
+    const sameScope = (subtaskProjectId || "") === (parent.proyecto || "");
+    const assignees = subtaskAssignees.length ? subtaskAssignees : sameScope ? parent.asignados : [];
     if (assignees.length === 0) {
       toast.error("Asigna al menos un responsable");
       return;
@@ -1887,18 +1950,21 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     setSubmitting(true);
     try {
       const taskId = await createTask({
-        proyecto: parent.proyecto,
+        proyecto: subtaskProjectId ? subtaskProjectId as Id<"desarrollos"> : undefined,
+        organization_id: parent.organization_id,
+        tipo: "tarea",
         parent_task: parent._id,
         titulo: title,
         descripcion: undefined,
         asignados: assignees,
-        partidas: subtaskPartidas.length ? subtaskPartidas : parent.partidas || [],
+        partidas: subtaskProjectId ? subtaskPartidas : [],
         prioridad: subtaskPriority || parent.prioridad,
         status: parent.status,
         fecha_limite: subtaskDueDate || undefined,
         categoria: parent.categoria || "General",
       });
       setSubtaskTitle("");
+      setSubtaskProjectId("");
       setSubtaskAssignees([]);
       setSubtaskDueDate("");
       setSubtaskPriority("Media");
@@ -1975,13 +2041,15 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   };
 
   const copyTaskUrl = async (task: Task) => {
-    const url = `${window.location.origin}/proyecto/${task.proyecto}/tareas?task=${task._id}`;
+    const scope = task.proyecto ? `proyecto=${task.proyecto}&` : "";
+    const url = `${window.location.origin}/tareas?${scope}tarea=${task._id}`;
     await navigator.clipboard.writeText(url);
     toast.success("URL copiada");
   };
 
   const openProjectTaskRoute = (task: Task) => {
-    window.open(`/proyecto/${task.proyecto}/tareas?task=${task._id}`, "_blank", "noopener,noreferrer");
+    const scope = task.proyecto ? `proyecto=${task.proyecto}&` : "";
+    window.open(`/tareas?${scope}tarea=${task._id}`, "_blank", "noopener,noreferrer");
   };
 
   const toggleProjectCollapse = (projectId: string) => {
@@ -2037,9 +2105,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       return;
     }
 
-    const siblings = targetTask.parent_task
-      ? (childrenByParent.get(targetTask.parent_task) || [])
-      : (groupedTasks.find((group) => group.projectId === targetTask.proyecto)?.tasks || []);
+    const siblings = (tareas || []).filter((task) =>
+      (task.parent_task || null) === (targetTask.parent_task || null) &&
+      task.proyecto === targetTask.proyecto &&
+      task.organization_id === targetTask.organization_id
+    );
     if (!siblings.every(canManageTask)) {
       toast.error("Solo el creador o un admin pueden reordenar estas tareas");
       setDraggingTaskId(null);
@@ -2204,7 +2274,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           <span className={TASK_MOBILE_LABEL}>Responsable</span>
           <InlineAssigneePicker
             task={task}
-            assignableUsers={assignableUsersByProject?.[task.proyecto]}
+            assignableUsers={task.proyecto ? assignableUsersByProject?.[task.proyecto] : organizationAssignableUsers}
             disabled={!canEditTask || isSaving}
             onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
           />
@@ -2229,23 +2299,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           />
         </div>
         <div className={TASK_FIELD_CELL}>
-          <span className={TASK_MOBILE_LABEL}>Estado</span>
-          <InlineLabelPicker
-            value={task.status}
-            labels={effectiveStatusLabels}
-            disabled={isSaving || !canEditStatus}
-            onSelect={(value) => handleStatusChange(task, value)}
-            onLabelsChange={setStatusLabels}
-          />
+          <span className={TASK_MOBILE_LABEL}>Especialidad</span>
+          <span className={TASK_VALUE_TEXT}>{task.categoria || "General"}</span>
         </div>
         <div className={TASK_FIELD_CELL}>
-          <span className={TASK_MOBILE_LABEL}>Partida</span>
-          <InlinePartidaPicker
-            task={task}
-            projectPartidas={partidasByProject?.[task.proyecto]}
-            disabled={!canEditTask || isSaving}
-            onChange={(partidas) => handleInlineUpdate(task, { partidas })}
-          />
+          <span className={TASK_MOBILE_LABEL}>Proyecto</span>
+          <span className={TASK_VALUE_TEXT}>{task.proyecto_nombre || "General"}</span>
         </div>
         <div className={TASK_ACTION_CELL}>
           <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
@@ -2256,8 +2315,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     );
   };
 
-  const renderTaskRow = (task: Task, level = 0) => {
-    const childTasks = childrenByParent.get(task._id) || [];
+  const renderTaskRow = (task: Task, groupProjectId: string, level = 0) => {
+    const childTasks = projectedChildrenByGroup.get(`${groupProjectId}:${task._id}`) || [];
     const hasChildren = childTasks.length > 0;
     const isTaskCollapsed = collapsedTasks.has(task._id);
     const canEditTask = canManageTask(task);
@@ -2320,7 +2379,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     >
                       <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isTaskCollapsed && "-rotate-90")} />
                     </button>
-                  ) : (
+                  ) : (task.tipo === "minuta" || /^minuta\b/i.test(task.titulo)) ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -2334,6 +2393,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         } else {
                           skipSubtaskCreateOnBlur.current = false;
                           setAddingSubtaskFor(task._id);
+                          setSubtaskProjectId(groupProjectId.startsWith(GENERAL_SCOPE) ? "" : groupProjectId);
                           setSubtaskTitle("");
                           setSubtaskAssignees([]);
                           setSubtaskDueDate("");
@@ -2351,7 +2411,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     >
                       <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", addingSubtaskFor !== task._id && "-rotate-90")} />
                     </button>
-                  )}
+                  ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -2376,7 +2436,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 <span className={TASK_MOBILE_LABEL}>Responsable</span>
                 <InlineAssigneePicker
                   task={task}
-                  assignableUsers={assignableUsersByProject?.[task.proyecto]}
+                  assignableUsers={task.proyecto ? assignableUsersByProject?.[task.proyecto] : organizationAssignableUsers}
                   disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
                   onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
                 />
@@ -2401,23 +2461,16 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 />
               </div>
               <div className={TASK_FIELD_CELL}>
-                <span className={TASK_MOBILE_LABEL}>Estado</span>
-                <InlineLabelPicker
-                  value={task.status}
-                  labels={effectiveStatusLabels}
-                  disabled={inlineSavingId === task._id || updatingStatusId === task._id || !canEditStatus}
-                  onSelect={(value) => handleStatusChange(task, value)}
-                  onLabelsChange={setStatusLabels}
-                />
+                <span className={TASK_MOBILE_LABEL}>Especialidad</span>
+                <span className={TASK_VALUE_TEXT}>{task.categoria || "General"}</span>
               </div>
               <div className={TASK_FIELD_CELL}>
-                <span className={TASK_MOBILE_LABEL}>Partida</span>
-                <InlinePartidaPicker
-                  task={task}
-                  projectPartidas={partidasByProject?.[task.proyecto]}
-                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
-                  onChange={(partidas) => handleInlineUpdate(task, { partidas })}
-                />
+                <span className={TASK_MOBILE_LABEL}>Proyecto</span>
+                <span className={TASK_VALUE_TEXT}>
+                  {groupProjectId.startsWith(GENERAL_SCOPE)
+                    ? "General"
+                    : proyectos?.find((project) => project._id === groupProjectId)?.nombre || task.proyecto_nombre || "Proyecto"}
+                </span>
               </div>
               <div className={TASK_ACTION_CELL}>
                 <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
@@ -2501,7 +2554,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       <div className={TASK_FIELD_CELL}>
                         <span className={TASK_MOBILE_LABEL}>Responsable</span>
                         <InlineAssigneePickerForCreate
-                          assignableUsers={assignableUsersByProject?.[task.proyecto]}
+                          assignableUsers={subtaskProjectId ? assignableUsersByProject?.[subtaskProjectId] : subtaskOrganizationUsers}
                           value={subtaskAssignees}
                           disabled={submitting}
                           onChange={setSubtaskAssignees}
@@ -2527,20 +2580,31 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         />
                       </div>
                       <div className={TASK_FIELD_CELL}>
-                        <span className={TASK_MOBILE_LABEL}>Estado</span>
-                        <div className="flex min-w-0 items-center">
-                          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: labelForValue(task.status, effectiveStatusLabels).color }} />
-                          <span className="ml-2 truncate text-sm text-[#A3A39E]">{task.status}</span>
-                        </div>
+                        <span className={TASK_MOBILE_LABEL}>Especialidad</span>
+                        <span className={TASK_VALUE_TEXT}>General</span>
                       </div>
                       <div className={TASK_FIELD_CELL}>
-                        <span className={TASK_MOBILE_LABEL}>Partida</span>
-                        <InlinePartidaPickerForCreate
-                          projectPartidas={partidasByProject?.[task.proyecto]}
-                          value={subtaskPartidas}
-                          disabled={submitting}
-                          onChange={setSubtaskPartidas}
-                        />
+                        <span className={TASK_MOBILE_LABEL}>Proyecto</span>
+                        <Select
+                          value={subtaskProjectId || GENERAL_SCOPE}
+                          onValueChange={(value) => {
+                            setSubtaskProjectId(value === GENERAL_SCOPE ? "" : value);
+                            setSubtaskAssignees([]);
+                            setSubtaskPartidas([]);
+                          }}
+                        >
+                          <SelectTrigger className="h-7 border-0 bg-transparent px-0 text-sm shadow-none">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={GENERAL_SCOPE}>General</SelectItem>
+                            {(proyectos || []).filter((project) =>
+                              !task.organization_id || project.organization_id === task.organization_id
+                            ).map((project) => (
+                              <SelectItem key={project._id} value={project._id}>{project.nombre}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className={cn(TASK_ACTION_CELL, "items-center")}>
                         {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
@@ -2552,6 +2616,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       onClick={() => {
                         skipSubtaskCreateOnBlur.current = false;
                         setAddingSubtaskFor(task._id);
+                        setSubtaskProjectId(groupProjectId.startsWith(GENERAL_SCOPE) ? "" : groupProjectId);
                         setSubtaskTitle("");
                         setSubtaskAssignees([]);
                         setSubtaskDueDate("");
@@ -2595,10 +2660,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       <div className="border-b border-gray-200 px-6 py-8 lg:px-16">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm text-gray-500">{isProjectScoped ? "Proyecto" : "General"}</p>
-            <h1 className="mt-1 text-3xl font-normal text-gray-900">
-              {isProjectScoped ? `Tareas ${proyecto?.nombre}` : "Tareas"}
-            </h1>
+            <p className="text-sm text-gray-500">General</p>
+            <h1 className="mt-1 text-3xl font-normal text-gray-900">Tareas</h1>
           </div>
           <div className="flex gap-2 self-start lg:self-auto">
             <Button
@@ -2732,7 +2795,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         <ChevronDown className={cn("h-4 w-4 text-[#898982] transition-transform", isCollapsed && "-rotate-90")} />
                         <span className="font-medium text-[#898982]">{group.projectName}</span>
                         <MoreHorizontal className="h-4 w-4 text-[#898982]" />
-                        <span className="ml-8 rounded-sm bg-[#FBFBFB] px-6 py-2 text-xs text-[#A3A39E]">{group.tasks.length} tareas</span>
+                        <span className="ml-8 rounded-sm bg-[#FBFBFB] px-6 py-2 text-xs text-[#A3A39E]">
+                          {group.tasks.reduce((count, task) => count + 1 + (projectedChildrenByGroup.get(`${group.projectId}:${task._id}`)?.length || 0), 0)} tareas
+                        </span>
                       </button>
                     )}
                     {!isCollapsed && (
@@ -2760,14 +2825,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                       <span className="hidden text-base text-[#A5A5A0] xl:block">Responsable</span>
                                       <span className="hidden text-base text-[#A5A5A0] xl:block">Fecha vencimiento</span>
                                       <span className="hidden text-base text-[#A5A5A0] xl:block">Prioridad</span>
-                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Estado</span>
-                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Partida</span>
+                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Especialidad</span>
+                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Proyecto</span>
                                       <span className="hidden xl:block" />
                                     </div>
                                 </div>
                                 {!isStatusCollapsed && (
                                   <>
-                                    {section.tasks.map((task) => renderTaskRow(task))}
+                                    {section.tasks.map((task) => renderTaskRow(task, group.projectId))}
                                     {canCreate && (
                                       <div className="px-4 py-2 sm:px-8">
                                         {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.id ? (
@@ -2846,20 +2911,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                               />
                                             </div>
                                             <div className={TASK_FIELD_CELL}>
-                                              <span className={TASK_MOBILE_LABEL}>Estado</span>
-                                              <div className="flex min-w-0 items-center">
-                                                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: section.label.color }} />
-                                                <span className="ml-2 truncate text-sm text-[#A3A39E]">{section.label.label}</span>
-                                              </div>
+                                              <span className={TASK_MOBILE_LABEL}>Especialidad</span>
+                                              <span className={TASK_VALUE_TEXT}>General</span>
                                             </div>
                                             <div className={TASK_FIELD_CELL}>
-                                              <span className={TASK_MOBILE_LABEL}>Partida</span>
-                                              <InlinePartidaPickerForCreate
-                                                projectPartidas={partidasByProject?.[group.projectId]}
-                                                value={newTaskPartidas}
-                                                disabled={submitting}
-                                                onChange={setNewTaskPartidas}
-                                              />
+                                              <span className={TASK_MOBILE_LABEL}>Proyecto</span>
+                                              <span className={TASK_VALUE_TEXT}>{group.projectName}</span>
                                             </div>
                                             <div className={cn(TASK_ACTION_CELL, "items-center")}>
                                               {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
@@ -2869,6 +2926,15 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                           <button
                                             type="button"
                                             onClick={() => {
+                                              if (group.isGeneral) {
+                                                setEditingTask(null);
+                                                setForm({
+                                                  ...emptyForm(),
+                                                  organization_id: group.organizationId || currentUser?.organization_id || "",
+                                                });
+                                                setDialogOpen(true);
+                                                return;
+                                              }
                                               skipNewTaskCreateOnBlur.current = false;
                                               setAddingTaskInSection({ projectId: group.projectId, statusLabel: section.label.id });
                                               setNewTaskTitle("");
@@ -2941,8 +3007,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <Copy className="h-4 w-4" />
                   Duplicar
                 </CommandItem>
-                {!contextMenu.task.parent_task && (
-                  <CommandItem onSelect={() => { setAddingSubtaskFor(contextMenu.task._id); setSubtaskTitle(""); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-gray-100">
+                {!contextMenu.task.parent_task && (contextMenu.task.tipo === "minuta" || /^minuta\b/i.test(contextMenu.task.titulo)) && (
+                  <CommandItem onSelect={() => { setAddingSubtaskFor(contextMenu.task._id); setSubtaskProjectId(contextMenu.task.proyecto || ""); setSubtaskTitle(""); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-gray-100">
                     <Plus className="h-4 w-4" />
                     Agregar subtarea
                   </CommandItem>
@@ -2956,6 +3022,18 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 <>
                   <CommandSeparator className="bg-gray-200" />
                   <CommandGroup heading="Mover a">
+                    {contextMenu.task.proyecto && (
+                      <CommandItem
+                        onSelect={() => {
+                          void handleInlineUpdate(contextMenu.task, { proyecto: null });
+                          setContextMenu(null);
+                        }}
+                        className="data-[selected=true]:bg-gray-100"
+                      >
+                        <MoveRight className="h-4 w-4" />
+                        General
+                      </CommandItem>
+                    )}
                     {proyectos.filter((project) => project._id !== contextMenu.task.proyecto).slice(0, 6).map((project) => (
                       <CommandItem
                         key={project._id}
@@ -3331,13 +3409,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             </div>
 
             <div className="space-y-2">
-              <Label>Categoría</Label>
+              <Label>Especialidad</Label>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Categoría" />
+                  <SelectValue placeholder="Especialidad" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  <SelectItem value="all">Todas las especialidades</SelectItem>
                   {categoryFilterOptions.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
@@ -3386,7 +3464,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     <SelectValue placeholder="Proyecto" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos los proyectos</SelectItem>
+                  <SelectItem value="all">Todos los proyectos</SelectItem>
+                  <SelectItem value={GENERAL_SCOPE}>General</SelectItem>
                     {proyectos.map((project) => (
                       <SelectItem key={project._id} value={project._id}>
                         {project.nombre}
@@ -3423,22 +3502,56 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingTask ? "Editar tarea" : "Nueva tarea"}</DialogTitle>
+            <DialogTitle>{editingTask ? `Editar ${form.tipo}` : `Nueva ${form.tipo}`}</DialogTitle>
             <DialogDescription>
-              Asigna responsables, prioridad y fecha limite para dar seguimiento al trabajo del proyecto.
+              Define el alcance, responsables y fechas para dar seguimiento desde la vista global.
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-5">
+            {!editingTask && (
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select
+                  value={form.tipo}
+                  onValueChange={(value: "tarea" | "minuta") => setForm((current) => ({
+                    ...current,
+                    tipo: value,
+                    titulo: value === "minuta" && !current.titulo.trim() ? suggestedMinuteTitle() : current.titulo,
+                  }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tarea">Tarea independiente</SelectItem>
+                    <SelectItem value="minuta">Minuta de obra</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {!selectedFormProjectId && (organizationScopes?.length || 0) > 1 && (
+              <div className="space-y-2">
+                <Label>Organización</Label>
+                <Select value={selectedFormOrganizationId || ""} onValueChange={(value) => setForm((current) => ({ ...current, organization_id: value, asignados: new Set() }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona la organización" /></SelectTrigger>
+                  <SelectContent>
+                    {(organizationScopes || []).map((scope) => <SelectItem key={scope.id} value={scope.id}>{scope.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label>Proyecto</Label>
+              <Label>Alcance</Label>
               <Select
-                value={selectedFormProjectId}
-                disabled={isProjectScoped}
+                value={selectedFormProjectId || GENERAL_SCOPE}
                 onValueChange={(value) =>
                   setForm((current) => ({
                     ...current,
-                    proyecto: value,
+                    proyecto: value === GENERAL_SCOPE ? "" : value,
+                    organization_id: value === GENERAL_SCOPE
+                      ? current.organization_id || currentUser?.organization_id || organizationScopes?.[0]?.id || ""
+                      : proyectos?.find((project) => project._id === value)?.organization_id || "",
                     asignados: new Set(),
                     partidas: new Set(),
                   }))
@@ -3448,6 +3561,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <SelectValue placeholder="Selecciona el proyecto" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={GENERAL_SCOPE}>General</SelectItem>
                   {proyectos.map((project) => (
                     <SelectItem key={project._id} value={project._id}>
                       {project.nombre}
@@ -3498,7 +3612,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Categoria</Label>
+                <Label>Especialidad</Label>
                 <Select
                   value={form.categoria}
                   onValueChange={(value) => setForm((current) => ({ ...current, categoria: value }))}
@@ -3548,14 +3662,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             )}
 
             <div className="space-y-2 min-w-0">
-              <Label>Asignados</Label>
+              <Label>{form.tipo === "minuta" ? "Responsables (opcional)" : "Responsables"}</Label>
               <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-gray-200 p-3">
-                {!selectedFormProjectId && (
+                {!selectedFormProjectId && !selectedFormOrganizationId && (
                   <div className="py-4 text-center text-sm text-gray-500">
-                    Selecciona un proyecto para ver usuarios disponibles.
+                    Selecciona una organización para ver usuarios disponibles.
                   </div>
                 )}
-                {selectedFormProjectId && !assignableUsers && (
+                {(selectedFormProjectId || selectedFormOrganizationId) && !assignableUsers && (
                   <div className="flex h-20 items-center justify-center text-gray-500">
                     <Loader2 className="h-5 w-5 animate-spin" />
                   </div>
@@ -3579,7 +3693,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               </div>
             </div>
 
-            <div className="space-y-2 min-w-0">
+            {selectedFormProjectId && <div className="space-y-2 min-w-0">
               <Label>Partidas</Label>
               <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-gray-200 p-3">
                 {!selectedFormProjectId && (
@@ -3609,7 +3723,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   </label>
                 ))}
               </div>
-            </div>
+            </div>}
           </div>
 
           <DialogFooter>

@@ -241,7 +241,7 @@ export const backfillProjectCostTraceability = mutation({
           sourceSnapshot.familia_snapshot,
           sourceSnapshot.sub_partida_snapshot,
         ].map(normalizeCostText).join("|");
-        const targetMatches = sourceKey.replaceAll("|", "")
+        const targetMatches = sourceKey.replace(/\|/g, "")
           ? targetByHierarchy.get(sourceKey) || []
           : [];
         if (targetMatches.length === 1) {

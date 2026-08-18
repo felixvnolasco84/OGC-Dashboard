@@ -674,7 +674,6 @@ const projectMenuItems: ProjectMenuItem[] = [
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
   { id: "reportes", label: "Reportes", path: "reportes", disabled: false, icon: FileText },
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
-  { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
   { id: "bitacora", label: "Bitácora", path: "bitacora", disabled: false, icon: BookCheck },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: BookDashed },
@@ -690,7 +689,6 @@ const userProjectMenuItems = projectMenuItems.filter((item) => item.id !== "repo
 
 // Restricted menu items for contratista role (Bitacora + Requisiciones)
 const contratistaMenuItems: ProjectMenuItem[] = [
-  { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: Bookmark },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
   { id: "rfis", label: "RFIs", path: "rfis", disabled: false, icon: FileQuestion },
@@ -699,7 +697,6 @@ const contratistaMenuItems: ProjectMenuItem[] = [
 
 // Restricted menu items for finance role (only Requisiciones)
 const financeMenuItems: ProjectMenuItem[] = [
-  { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
   { id: "rfis", label: "RFIs", path: "rfis", disabled: false, icon: FileQuestion },
   { id: "planos", label: "Planos", path: "planos", disabled: false, icon: PanelsTopLeft },
@@ -709,7 +706,6 @@ const viewerMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
   { id: "programa", label: "Programa", path: "programa", disabled: false, icon: ChartGantt },
-  { id: "tareas", label: "Tareas", path: "tareas", disabled: false, icon: ListTodo },
   { id: "bitacora", label: "Bit\u00e1cora", path: "bitacora", disabled: false, icon: BookCheck },
   { id: "rfis", label: "RFIs", path: "rfis", disabled: false, icon: FileQuestion },
   { id: "planos", label: "Planos", path: "planos", disabled: false, icon: PanelsTopLeft },
@@ -1019,7 +1015,7 @@ export default function SidebarComponent() {
 
   const getFirstMenuItem = (type: "proyecto" | "sales") => {
     if (type === "proyecto") {
-      if (currentUser?.role === "contratista") return "tareas";
+      if (currentUser?.role === "contratista") return "bitacora";
       if (currentUser?.role === "finance") return "requisiciones";
       return "presupuesto";
     }
