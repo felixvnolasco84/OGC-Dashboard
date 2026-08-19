@@ -2,7 +2,13 @@ import { internalMutation, mutation, MutationCtx, query, QueryCtx } from "./_gen
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 import { getCurrentUserOrThrow, getUserDesarrollos, hasGlobalAdminAccess } from "./permissions";
+import type { TaskEmailNotificationType } from "./taskEmailTemplates";
+
+// New internal functions are absent from generated types until `convex dev` runs once.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const convexInternal = internal as any;
 
 const WRITE_ROLES = new Set(["admin", "user", "contratista", "finance"]);
 
@@ -96,6 +102,40 @@ function canUpdateTaskStatus(user: Doc<"users">, task: Doc<"tareas">) {
 function stringifyValue(value: unknown) {
   if (value === undefined || value === null || value === "") return undefined;
   return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+async function scheduleTaskEmail(
+  ctx: MutationCtx,
+  args: {
+    taskId: Id<"tareas">;
+    type: TaskEmailNotificationType;
+    actorId?: Id<"users">;
+    recipientIds?: Id<"users">[];
+    detail?: string;
+    oldValue?: string;
+    newValue?: string;
+    occurredAt: number;
+    operationKey: string;
+  },
+) {
+  await ctx.scheduler.runAfter(0, convexInternal.taskNotifications.dispatchTaskEmail, args);
+}
+
+function notificationTypeForStatus(oldStatus: string, newStatus: string): TaskEmailNotificationType {
+  if (newStatus === "Completada") return "completed";
+  if (newStatus === "Bloqueada") return "blocked";
+  if (newStatus === "Cancelada") return "cancelled";
+  if (["Completada", "Cancelada"].includes(oldStatus) && !["Completada", "Cancelada"].includes(newStatus)) {
+    return "reopened";
+  }
+  return "status_changed";
+}
+
+function taskFollowerIds(task: Pick<Doc<"tareas">, "asignados" | "created_by_id">) {
+  return Array.from(new Set([
+    ...task.asignados,
+    ...(task.created_by_id ? [task.created_by_id] : []),
+  ]));
 }
 
 async function ensureAssignableUsersBelongToProject(
@@ -271,6 +311,17 @@ async function completeParentIfAllChildrenDone(
     old_value: parent.status,
     new_value: "Completada",
     user: args.user,
+  });
+
+  await scheduleTaskEmail(ctx, {
+    taskId: parent._id,
+    type: "completed",
+    actorId: args.user._id,
+    occurredAt: now,
+    operationKey: `auto-completed:${parent._id}:${now}`,
+    detail: "Todas las subtareas fueron completadas, por lo que la tarea principal se cerró automáticamente.",
+    oldValue: parent.status,
+    newValue: "Completada",
   });
 }
 
@@ -1058,6 +1109,17 @@ export const create = mutation({
       new_value: titulo,
     });
 
+    if (args.asignados.length > 0) {
+      await scheduleTaskEmail(ctx, {
+        taskId,
+        type: "assigned",
+        actorId: user._id,
+        recipientIds: args.asignados,
+        occurredAt: now,
+        operationKey: `created:${taskId}:${now}`,
+      });
+    }
+
     return taskId;
   },
 });
@@ -1200,6 +1262,66 @@ export const update = mutation({
       });
     }
 
+    if (changedFields.includes("asignados")) {
+      const previousIds = new Set(task.asignados);
+      const nextIds = new Set(nextTask.asignados);
+      const added = nextTask.asignados.filter((id) => !previousIds.has(id));
+      const removed = task.asignados.filter((id) => !nextIds.has(id));
+      if (added.length > 0) {
+        await scheduleTaskEmail(ctx, {
+          taskId: task._id,
+          type: "assigned",
+          actorId: user._id,
+          recipientIds: added,
+          occurredAt: now,
+          operationKey: `assigned:${task._id}:${now}`,
+        });
+      }
+      if (removed.length > 0) {
+        await scheduleTaskEmail(ctx, {
+          taskId: task._id,
+          type: "unassigned",
+          actorId: user._id,
+          recipientIds: removed,
+          occurredAt: now,
+          operationKey: `unassigned:${task._id}:${now}`,
+        });
+      }
+    }
+    if (changedFields.includes("status")) {
+      await scheduleTaskEmail(ctx, {
+        taskId: task._id,
+        type: notificationTypeForStatus(task.status, nextTask.status),
+        actorId: user._id,
+        occurredAt: now,
+        operationKey: `status:${task._id}:${now}`,
+        oldValue: task.status,
+        newValue: nextTask.status,
+      });
+    }
+    if (changedFields.includes("fecha_limite")) {
+      await scheduleTaskEmail(ctx, {
+        taskId: task._id,
+        type: "due_date_changed",
+        actorId: user._id,
+        occurredAt: now,
+        operationKey: `due-date:${task._id}:${now}`,
+        oldValue: task.fecha_limite,
+        newValue: nextTask.fecha_limite,
+      });
+    }
+    if (changedFields.includes("prioridad")) {
+      await scheduleTaskEmail(ctx, {
+        taskId: task._id,
+        type: "priority_changed",
+        actorId: user._id,
+        occurredAt: now,
+        operationKey: `priority:${task._id}:${now}`,
+        oldValue: task.prioridad,
+        newValue: nextTask.prioridad,
+      });
+    }
+
     await completeParentIfAllChildrenDone(ctx, {
       parentTaskId: nextTask.parent_task,
       user,
@@ -1251,6 +1373,17 @@ export const duplicate = mutation({
       user,
       new_value: `${task.titulo} copia`,
     });
+
+    if (task.asignados.length > 0) {
+      await scheduleTaskEmail(ctx, {
+        taskId,
+        type: "assigned",
+        actorId: user._id,
+        recipientIds: task.asignados,
+        occurredAt: now,
+        operationKey: `duplicated:${taskId}:${now}`,
+      });
+    }
 
     return taskId;
   },
@@ -1335,6 +1468,16 @@ export const updateStatus = mutation({
         new_value: args.status,
         user,
       });
+
+      await scheduleTaskEmail(ctx, {
+        taskId: task._id,
+        type: notificationTypeForStatus(task.status, args.status),
+        actorId: user._id,
+        occurredAt: now,
+        operationKey: `status:${task._id}:${now}`,
+        oldValue: task.status,
+        newValue: args.status,
+      });
     }
 
     await completeParentIfAllChildrenDone(ctx, {
@@ -1367,6 +1510,7 @@ export const addComment = mutation({
       throw new Error("El comentario es obligatorio");
     }
 
+    const now = Date.now();
     const commentId = await ctx.db.insert("tarea_comments", {
       tarea_id: args.id,
       proyecto: task.proyecto,
@@ -1374,7 +1518,7 @@ export const addComment = mutation({
       user_id: user._id,
       user_name: user.name,
       comment,
-      created_at: Date.now(),
+      created_at: now,
     });
 
     await insertHistory(ctx, {
@@ -1384,6 +1528,37 @@ export const addComment = mutation({
       new_value: comment,
       user,
     });
+
+    const followerIds = taskFollowerIds(task);
+    const followerUsers = (await Promise.all(followerIds.map((id) => ctx.db.get(id))))
+      .filter((candidate) => candidate !== null);
+    const mentionedIds = followerUsers
+      .filter((candidate) => candidate._id !== user._id && hasMention(comment, candidate))
+      .map((candidate) => candidate._id);
+    if (mentionedIds.length > 0) {
+      await scheduleTaskEmail(ctx, {
+        taskId: task._id,
+        type: "mentioned",
+        actorId: user._id,
+        recipientIds: mentionedIds,
+        detail: comment,
+        occurredAt: now,
+        operationKey: `mention:${task._id}:${commentId}`,
+      });
+    }
+    const mentionedSet = new Set(mentionedIds);
+    const commentRecipients = followerIds.filter((id) => id !== user._id && !mentionedSet.has(id));
+    if (commentRecipients.length > 0) {
+      await scheduleTaskEmail(ctx, {
+        taskId: task._id,
+        type: "comment_added",
+        actorId: user._id,
+        recipientIds: commentRecipients,
+        detail: comment,
+        occurredAt: now,
+        operationKey: `comment:${task._id}:${commentId}`,
+      });
+    }
 
     return commentId;
   },

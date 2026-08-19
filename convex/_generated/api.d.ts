@@ -70,6 +70,8 @@ import type * as seed_last_week_payments from "../seed_last_week_payments.js";
 import type * as subcontratistas from "../subcontratistas.js";
 import type * as sync from "../sync.js";
 import type * as tareas from "../tareas.js";
+import type * as taskEmailTemplates from "../taskEmailTemplates.js";
+import type * as taskNotifications from "../taskNotifications.js";
 import type * as transacciones from "../transacciones.js";
 import type * as users from "../users.js";
 import type * as weekly_avance_real from "../weekly_avance_real.js";
@@ -141,6 +143,8 @@ declare const fullApi: ApiFromModules<{
   subcontratistas: typeof subcontratistas;
   sync: typeof sync;
   tareas: typeof tareas;
+  taskEmailTemplates: typeof taskEmailTemplates;
+  taskNotifications: typeof taskNotifications;
   transacciones: typeof transacciones;
   users: typeof users;
   weekly_avance_real: typeof weekly_avance_real;

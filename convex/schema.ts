@@ -773,6 +773,26 @@ export default defineSchema({
     .index("by_user_proyecto", { fields: ["user_id", "proyecto"] })
     .index("by_user_organization", { fields: ["user_id", "organization_id"] }),
 
+  task_email_deliveries: defineTable({
+    tarea_id: v.id("tareas"),
+    type: v.string(),
+    recipient_user_id: v.id("users"),
+    recipient_email: v.string(),
+    actor_id: v.optional(v.id("users")),
+    subject: v.string(),
+    status: v.string(), // sending, sent, failed
+    dedupe_key: v.string(),
+    attempt_count: v.number(),
+    provider_message_id: v.optional(v.string()),
+    error: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+    sent_at: v.optional(v.number()),
+  }).index("by_task", { fields: ["tarea_id"] })
+    .index("by_recipient", { fields: ["recipient_user_id"] })
+    .index("by_status", { fields: ["status"] })
+    .index("by_dedupe_key", { fields: ["dedupe_key"] }),
+
   // RFIs - Formal requests for information
   rfis: defineTable({
     proyecto: v.id("desarrollos"),

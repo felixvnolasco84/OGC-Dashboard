@@ -13,6 +13,8 @@
     "test:labor-import": "node --experimental-strip-types scripts/test-labor-payment-import-rules.mjs",
     "test:chatbot": "node --experimental-strip-types scripts/test-assistant-rules.mjs",
     "test:rfi": "node --experimental-strip-types scripts/test-rfi-rules.mjs",
+    "test:task-emails": "node --experimental-strip-types scripts/test-task-email-notifications.mjs",
+    "send:task-email-mocks": "node scripts/send-task-email-mocks.mjs",
     "eval:chatbot": "node scripts/evaluate-assistant.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
