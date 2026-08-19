@@ -1022,12 +1022,10 @@ export const create = mutation({
     );
     if (args.parent_task) {
       const parent = await ctx.db.get(args.parent_task);
-      if (!parent || (parent.tipo !== "minuta" && !/^minuta\b/i.test(parent.titulo))) {
-        throw new Error("Las actividades deben pertenecer a una minuta");
-      }
+      if (!parent) throw new Error("La tarea padre no existe");
       const parentOrganization = await getTaskOrganization(ctx, parent);
       if (parentOrganization !== organizationId) {
-        throw new Error("La actividad debe pertenecer a la misma organización de la minuta");
+        throw new Error("La subtarea debe pertenecer a la misma organización que la tarea padre");
       }
     }
     await ensurePartidasBelongToProject(ctx, args.partidas, args.proyecto);
@@ -1108,7 +1106,7 @@ export const update = mutation({
       const parent = await ctx.db.get(args.parent_task);
       const parentOrganization = parent ? await getTaskOrganization(ctx, parent) : undefined;
       if (!parent || parentOrganization !== nextOrganizationId || parent._id === args.id) {
-        throw new Error("La actividad debe pertenecer a la misma organización de la minuta");
+        throw new Error("La subtarea debe pertenecer a la misma organización que la tarea padre");
       }
     }
     const nextType = args.parent_task ? "tarea" : (args.tipo || task.tipo || "tarea");

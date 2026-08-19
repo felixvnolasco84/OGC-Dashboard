@@ -81,7 +81,7 @@ import {
   Clock3,
   ExternalLink,
   Eye,
-  Flag,
+  Filter,
   GripVertical,
   History,
   ListChecks,
@@ -104,8 +104,8 @@ const TASK_UI_COLORS = {
   pending: "#ADADAD",
   blue: "#76AFD9",
   green: "#50AC66",
-  itemBg: "#FBFBFB",
-  itemBorder: "#E6E6E6",
+  itemBg: "transparent",
+  itemBorder: "#F0F0F0",
 };
 const TASK_TABLE_GRID = "grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)_minmax(0,0.74fr)_minmax(0,0.7fr)_minmax(0,0.72fr)_minmax(0,1fr)_32px]";
 const TASK_TITLE_CELL = "min-w-0 md:col-span-3 xl:col-span-1";
@@ -161,7 +161,7 @@ const DEFAULT_STATUS_LABELS: TaskLabelOption[] = [
 
 const DEFAULT_PRIORITY_LABELS: TaskLabelOption[] = [
   { id: "Urgente", label: "Urgente", color: "#E75F79" },
-  { id: "Alta", label: "Alta", color: TASK_UI_COLORS.blue },
+  { id: "Alta", label: "Alta", color: "#F4BF4F" },
   { id: "Media", label: "Media", color: TASK_UI_COLORS.green },
   { id: "Baja", label: "Baja", color: TASK_UI_COLORS.pending },
 ];
@@ -204,6 +204,21 @@ function formatDate(date?: string) {
     month: "short",
     year: "numeric",
   }).format(new Date(`${date}T00:00:00`));
+}
+
+function relativeDueDateLabel(date?: string) {
+  const dueDate = parseDateString(date);
+  if (!dueDate) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((dueDate.getTime() - today.getTime()) / 86_400_000);
+  if (Math.abs(days) > 10) return null;
+  if (days === 0) return "Vence hoy";
+  if (days > 0) return `Vence en ${days} ${days === 1 ? "día" : "días"}`;
+
+  const elapsedDays = Math.abs(days);
+  return `Venció hace ${elapsedDays} ${elapsedDays === 1 ? "día" : "días"}`;
 }
 
 function parseDateString(date?: string) {
@@ -385,15 +400,18 @@ function InlineDatePicker({
   value,
   disabled,
   overdue,
+  showRelative = false,
   onChange,
 }: {
   value?: string;
   disabled: boolean;
   overdue: boolean;
+  showRelative?: boolean;
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const selectedDate = parseDateString(value);
+  const displayValue = showRelative ? relativeDueDateLabel(value) || formatDate(value) : formatDate(value);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -407,7 +425,7 @@ function InlineDatePicker({
             overdue ? "font-medium text-red-600" : TASK_VALUE_TEXT
           )}
         >
-          {formatDate(value)}
+          {displayValue}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
@@ -680,12 +698,9 @@ function InlinePriorityPicker({
             open && "border-[#E6E6E6] bg-white text-[#898982] ring-1 ring-[#E6E6E6]"
           )}
         >
-          <Flag
-            className="h-4 w-4 shrink-0"
-            style={{
-              color: activeLabel?.color || TASK_UI_COLORS.pending,
-              fill: activeLabel?.color || "transparent",
-            }}
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: activeLabel?.color || TASK_UI_COLORS.pending }}
           />
           <span className="truncate">{activeLabel?.label || clearLabel}</span>
         </Button>
@@ -704,9 +719,9 @@ function InlinePriorityPicker({
                       onClick={() => setColorTargetId(colorTargetId === label.id ? null : label.id)}
                       className="shrink-0 rounded p-1 hover:bg-[#F5F5F3]"
                     >
-                      <Flag
-                        className="h-4 w-4"
-                        style={{ color: label.color, fill: label.color }}
+                      <span
+                        className="block h-3 w-3 rounded-full"
+                        style={{ backgroundColor: label.color }}
                       />
                     </button>
                     <Input
@@ -769,9 +784,9 @@ function InlinePriorityPicker({
                       value === label.label || value === label.id ? "bg-[#F5F5F3] font-medium" : ""
                     )}
                   >
-                    <Flag
-                      className="h-4 w-4 shrink-0"
-                      style={{ color: label.color, fill: label.color }}
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: label.color }}
                     />
                     <span>{label.label}</span>
                   </button>
@@ -794,6 +809,90 @@ function InlinePriorityPicker({
             </div>
           </>
         )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function InlineSingleSelectPicker({
+  value,
+  displayValue,
+  options,
+  disabled,
+  searchPlaceholder,
+  onSelect,
+}: {
+  value: string;
+  displayValue: string;
+  options: Array<{ value: string; label: string }>;
+  disabled: boolean;
+  searchPlaceholder: string;
+  onSelect: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredOptions = useMemo(() => {
+    const term = searchTerm.trim().toLocaleLowerCase("es");
+    if (!term) return options;
+    return options.filter((option) => option.label.toLocaleLowerCase("es").includes(term));
+  }, [options, searchTerm]);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) setSearchTerm("");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={disabled}
+          className={cn(
+            "h-8 w-full min-w-0 justify-between gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
+            open && "border-[#E6E6E6] bg-white text-[#898982] ring-1 ring-[#E6E6E6]"
+          )}
+        >
+          <span className="truncate">{displayValue}</span>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={6} className="w-72 overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+        <div className="border-b border-gray-100 p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="h-9 pl-9 text-sm"
+            />
+          </div>
+        </div>
+        <div className="max-h-64 overflow-y-auto p-2">
+          {filteredOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onSelect(option.value);
+                setOpen(false);
+              }}
+              className={cn(
+                "flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm text-[#63635E] hover:bg-[#F5F5F3]",
+                value === option.value && "bg-[#F5F5F3]"
+              )}
+            >
+              <span className="truncate">{option.label}</span>
+              {value === option.value && <CheckCircle2 className="h-4 w-4 shrink-0 text-[#898982]" />}
+            </button>
+          ))}
+          {filteredOptions.length === 0 && (
+            <p className="px-3 py-6 text-center text-sm text-[#A3A39E]">Sin resultados</p>
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -1561,6 +1660,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
     return Array.from(categories).sort((a, b) => a.localeCompare(b));
   }, [tareas, taskCatalogs?.categories]);
+  const inlineCategoryOptions = useMemo(
+    () => categoryFilterOptions.map((category) => ({ value: category, label: category })),
+    [categoryFilterOptions]
+  );
   const partidaFilterOptions = useMemo(() => {
     const partidas = new Map<string, PartidaSummary>();
     for (const task of tareas || []) {
@@ -2223,7 +2326,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           setContextMenu({ task, x: event.clientX, y: event.clientY });
         }}
         className={cn(
-          "grid min-h-[44px] items-center gap-4 px-4 py-3 transition xl:px-6 xl:py-1.5",
+          "grid min-h-[44px] items-center gap-4 py-3 transition xl:py-1.5",
           TASK_TABLE_GRID
         )}
       >
@@ -2243,7 +2346,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             <GripVertical className="h-3.5 w-3.5" />
           </button>
           <div className="relative flex h-6 shrink-0 items-center gap-2">
-            <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || isSaving} className="h-4 w-4" />
+            <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || isSaving} className="h-4 w-4 border-[#EDEDED]" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -2258,8 +2361,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
                 }}
                 className={cn(
-                  "h-6 border-transparent bg-transparent px-1 text-sm font-medium text-gray-900 shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0",
-                  level > 0 && "font-normal"
+                  "h-6 border-transparent bg-transparent px-1 text-sm font-normal text-[#63635E] shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0",
+                  level > 0 && "text-[#8D8D86]"
                 )}
               />
               {overdue && <CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-500" />}
@@ -2282,6 +2385,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             value={task.fecha_limite}
             disabled={!canEditTask || isSaving}
             overdue={overdue}
+            showRelative={task.status !== "Completada" && task.status !== "Cancelada"}
             onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
           />
         </div>
@@ -2297,11 +2401,34 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         </div>
         <div className={TASK_FIELD_CELL}>
           <span className={TASK_MOBILE_LABEL}>Especialidad</span>
-          <span className={TASK_VALUE_TEXT}>{task.categoria || "General"}</span>
+          <InlineSingleSelectPicker
+            value={task.categoria || "General"}
+            displayValue={task.categoria || "General"}
+            options={inlineCategoryOptions}
+            disabled={!canEditTask || isSaving}
+            searchPlaceholder="Buscar especialidad"
+            onSelect={(categoria) => handleInlineUpdate(task, { categoria })}
+          />
         </div>
         <div className={TASK_FIELD_CELL}>
           <span className={TASK_MOBILE_LABEL}>Proyecto</span>
-          <span className={TASK_VALUE_TEXT}>{task.proyecto_nombre || "General"}</span>
+          <InlineSingleSelectPicker
+            value={task.proyecto || GENERAL_SCOPE}
+            displayValue={task.proyecto_nombre || "General"}
+            options={[
+              { value: GENERAL_SCOPE, label: "General" },
+              ...(proyectos || [])
+                .filter((project) => !task.organization_id || project.organization_id === task.organization_id)
+                .map((project) => ({ value: project._id, label: project.nombre })),
+            ]}
+            disabled={!canEditTask || isSaving}
+            searchPlaceholder="Buscar proyecto"
+            onSelect={(projectId) =>
+              handleInlineUpdate(task, {
+                proyecto: projectId === GENERAL_SCOPE ? null : projectId as Id<"desarrollos">,
+              })
+            }
+          />
         </div>
         <div className={TASK_ACTION_CELL}>
           <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
@@ -2340,16 +2467,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             setContextMenu({ task, x: event.clientX, y: event.clientY });
           }}
           className={cn(
-            "group bg-transparent px-4 py-1 sm:px-8",
+            "group border-b bg-transparent px-4 sm:px-8 transition hover:bg-[#F1F1F1]",
             draggingTaskId === task._id && "opacity-50",
             draggingTaskId && draggingTaskId !== task._id && "data-[drop=true]:bg-blue-50"
           )}
+          style={{ borderColor: TASK_UI_COLORS.itemBorder }}
         >
-          <div
-            className="overflow-hidden rounded-md border bg-[#FBFBFB] transition group-hover:bg-[#F1F1F1]"
-            style={{ borderColor: TASK_UI_COLORS.itemBorder }}
-          >
-            <div className={cn("grid min-h-[44px] items-center gap-4 px-4 py-3 xl:px-6 xl:py-1.5", TASK_TABLE_GRID)}>
+          <div>
+            <div className={cn("grid min-h-[44px] items-center gap-4 py-3 xl:py-1.5", TASK_TABLE_GRID)}>
               <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
                 <button
                   type="button"
@@ -2366,7 +2491,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <GripVertical className="h-3.5 w-3.5" />
                 </button>
                 <div className="relative flex h-6 shrink-0 items-center gap-2">
-                  <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || inlineSavingId === task._id || updatingStatusId === task._id} className="h-4 w-4" />
+                  <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || inlineSavingId === task._id || updatingStatusId === task._id} className="h-4 w-4 border-[#EDEDED]" />
                   {hasChildren ? (
                     <button
                       type="button"
@@ -2376,7 +2501,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     >
                       <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isTaskCollapsed && "-rotate-90")} />
                     </button>
-                  ) : (task.tipo === "minuta" || /^minuta\b/i.test(task.titulo)) ? (
+                  ) : canCreate ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -2422,7 +2547,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         const value = event.currentTarget.value.trim();
                         if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
                       }}
-                      className="h-6 border-transparent bg-transparent px-1 text-sm font-medium text-gray-900 shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0"
+                      className={cn(
+                        "h-6 border-transparent bg-transparent px-1 text-sm font-normal text-[#63635E] shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0",
+                        task.parent_task && "text-[#8D8D86]"
+                      )}
                     />
                     {isOverdue(task) && <CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-500" />}
                     {(inlineSavingId === task._id || updatingStatusId === task._id) && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-gray-400" />}
@@ -2444,6 +2572,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   value={task.fecha_limite}
                   disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
                   overdue={isOverdue(task)}
+                  showRelative={task.status !== "Completada" && task.status !== "Cancelada"}
                   onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
                 />
               </div>
@@ -2459,15 +2588,34 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               </div>
               <div className={TASK_FIELD_CELL}>
                 <span className={TASK_MOBILE_LABEL}>Especialidad</span>
-                <span className={TASK_VALUE_TEXT}>{task.categoria || "General"}</span>
+                <InlineSingleSelectPicker
+                  value={task.categoria || "General"}
+                  displayValue={task.categoria || "General"}
+                  options={inlineCategoryOptions}
+                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  searchPlaceholder="Buscar especialidad"
+                  onSelect={(categoria) => handleInlineUpdate(task, { categoria })}
+                />
               </div>
               <div className={TASK_FIELD_CELL}>
                 <span className={TASK_MOBILE_LABEL}>Proyecto</span>
-                <span className={TASK_VALUE_TEXT}>
-                  {groupProjectId.startsWith(GENERAL_SCOPE)
-                    ? "General"
-                    : proyectos?.find((project) => project._id === groupProjectId)?.nombre || task.proyecto_nombre || "Proyecto"}
-                </span>
+                <InlineSingleSelectPicker
+                  value={task.proyecto || GENERAL_SCOPE}
+                  displayValue={task.proyecto_nombre || "General"}
+                  options={[
+                    { value: GENERAL_SCOPE, label: "General" },
+                    ...(proyectos || [])
+                      .filter((project) => !task.organization_id || project.organization_id === task.organization_id)
+                      .map((project) => ({ value: project._id, label: project.nombre })),
+                  ]}
+                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  searchPlaceholder="Buscar proyecto"
+                  onSelect={(projectId) =>
+                    handleInlineUpdate(task, {
+                      proyecto: projectId === GENERAL_SCOPE ? null : projectId as Id<"desarrollos">,
+                    })
+                  }
+                />
               </div>
               <div className={TASK_ACTION_CELL}>
                 <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
@@ -2479,7 +2627,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <>
                 {childTasks.map((child) => (
                   <React.Fragment key={child._id}>
-                    <div className="border-t border-[#E6E6E6]" />
+                    <div className="border-t border-[#F0F0F0]" />
                     <div
                       className={cn(draggingTaskId === child._id && "opacity-50")}
                       onDragOver={(event) => {
@@ -2499,12 +2647,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             )}
             {!isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
               <>
-                <div className="border-t border-[#E6E6E6]" />
+                <div className="border-t border-[#F0F0F0]" />
                 <div className="px-4 py-2 xl:px-6">
                   {addingSubtaskFor === task._id ? (
                     <div className={cn("grid min-h-[44px] items-center gap-4 subtask-creation-form", TASK_TABLE_GRID)}>
                       <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)} style={{ paddingLeft: 26 }}>
-                        <Checkbox disabled className="h-4 w-4" />
+                        <Checkbox disabled className="h-4 w-4 border-[#EDEDED]" />
                         <Input
                           autoFocus
                           value={subtaskTitle}
@@ -2545,7 +2693,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                             }, 100);
                           }}
                           placeholder="Nombre de la subtarea"
-                          className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-gray-900 shadow-none focus-visible:ring-0"
+                          className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-[#63635E] shadow-none focus-visible:ring-0"
                         />
                       </div>
                       <div className={TASK_FIELD_CELL}>
@@ -2620,7 +2768,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         setSubtaskPriority("Media");
                         setSubtaskPartidas([]);
                       }}
-                      className="flex h-6 items-center gap-2 text-xs text-gray-500 hover:text-gray-900"
+                      className="flex h-6 items-center gap-2 text-xs text-[#DBDBDA] hover:text-[#DBDBDA]"
                       style={{ paddingLeft: 26 }}
                     >
                       <Plus className="h-3.5 w-3.5" />
@@ -2706,7 +2854,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               )}
             >
               <span>{item.label}</span>
-              <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-[#FBFBFB] px-2 text-xs text-gray-600">
+              <span className="flex h-[24px] min-w-[24px] items-center justify-center rounded-full bg-[#DDDCD8] px-2 text-[15px] text-[#3B3B35]">
                 {item.value}
               </span>
             </button>
@@ -2720,12 +2868,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por título, descripción o asignado"
-              className="h-9 rounded-none border-[#E6E6E6] bg-white pl-14 text-base font-normal text-gray-900 shadow-none placeholder:text-[#6B7280] focus-visible:ring-[#D1D5DB]"
+              className="h-9 rounded-none border-[#E6E6E6] bg-white pl-14 text-sm font-normal text-[#989898] shadow-none placeholder:text-[#989898] focus-visible:ring-[#D1D5DB]"
             />
           </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-base  text-gray-900 shadow-none focus:ring-[#D1D5DB]">
+            <SelectTrigger className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-sm text-[#989898] shadow-none focus:ring-[#D1D5DB]">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
@@ -2739,7 +2887,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           </Select>
 
           <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-base  text-gray-900 shadow-none focus:ring-[#D1D5DB]">
+            <SelectTrigger className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-sm text-[#989898] shadow-none focus:ring-[#D1D5DB]">
               <SelectValue placeholder="Asignado" />
             </SelectTrigger>
             <SelectContent>
@@ -2756,8 +2904,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             type="button"
             variant="outline"
             onClick={() => setFiltersDialogOpen(true)}
-            className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-base  shadow-none hover:bg-white"
+            className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-sm text-[#989898] shadow-none hover:bg-white hover:text-[#989898]"
           >
+            <Filter className="h-4 w-4" />
             Más filtros
             {additionalFilterCount > 0 && (
               <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-gray-900 px-1.5 text-xs text-white">
@@ -2792,7 +2941,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         <ChevronDown className={cn("h-4 w-4 text-[#898982] transition-transform", isCollapsed && "-rotate-90")} />
                         <span className="font-medium text-[#898982]">{group.projectName}</span>
                         <MoreHorizontal className="h-4 w-4 text-[#898982]" />
-                        <span className="ml-8 rounded-sm bg-[#FBFBFB] px-6 py-2 text-xs text-[#A3A39E]">
+                        <span className="ml-8 rounded-sm bg-[#F4F4F4] px-6 py-2 text-xs text-[#B3B3AF]">
                           {group.tasks.reduce((count, task) => count + 1 + (projectedChildrenByGroup.get(`${group.projectId}:${task._id}`)?.length || 0), 0)} tareas
                         </span>
                       </button>
@@ -2829,13 +2978,20 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                 </div>
                                 {!isStatusCollapsed && (
                                   <>
-                                    {section.tasks.map((task) => renderTaskRow(task, group.projectId))}
+                                    {section.tasks.length > 0 && (
+                                      <div
+                                        className="border-t"
+                                        style={{ borderColor: TASK_UI_COLORS.itemBorder }}
+                                      >
+                                        {section.tasks.map((task) => renderTaskRow(task, group.projectId))}
+                                      </div>
+                                    )}
                                     {canCreate && (
                                       <div className="px-4 py-2 sm:px-8">
                                         {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.id ? (
                                           <div className={cn("grid min-h-[44px] items-center gap-4 task-creation-form", TASK_TABLE_GRID)}>
                                             <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
-                                              <Checkbox disabled className="h-4 w-4" />
+                                              <Checkbox disabled className="h-4 w-4 border-[#EDEDED]" />
                                               <Input
                                                 autoFocus
                                                 value={newTaskTitle}
@@ -2876,7 +3032,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                   }, 100);
                                                 }}
                                                 placeholder="Nombre de la tarea"
-                                                className="h-6 border-0 bg-transparent px-0 text-sm font-medium text-gray-900 shadow-none focus-visible:ring-0"
+                                                className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-[#63635E] shadow-none focus-visible:ring-0"
                                               />
                                             </div>
                                             <div className={TASK_FIELD_CELL}>
@@ -2940,7 +3096,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                               setNewTaskPriority("Media");
                                               setNewTaskPartidas([]);
                                             }}
-                                            className="flex h-6 items-center gap-2 text-xs text-gray-500 hover:text-gray-900"
+                                            className="flex h-6 items-center gap-2 text-xs text-[#DBDBDA] hover:text-[#DBDBDA]"
                                           >
                                             <Plus className="h-3.5 w-3.5" />
                                             Agregar tarea
@@ -3004,7 +3160,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <Copy className="h-4 w-4" />
                   Duplicar
                 </CommandItem>
-                {!contextMenu.task.parent_task && (contextMenu.task.tipo === "minuta" || /^minuta\b/i.test(contextMenu.task.titulo)) && (
+                {!contextMenu.task.parent_task && (
                   <CommandItem onSelect={() => { setAddingSubtaskFor(contextMenu.task._id); setSubtaskProjectId(contextMenu.task.proyecto || ""); setSubtaskTitle(""); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-gray-100">
                     <Plus className="h-4 w-4" />
                     Agregar subtarea
@@ -3497,10 +3653,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-y-auto text-[#A3A39E] [&_label]:font-normal [&_label]:text-[#63635E]">
           <DialogHeader>
-            <DialogTitle>{editingTask ? `Editar ${form.tipo}` : `Nueva ${form.tipo}`}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="font-normal text-[#63635E]">{editingTask ? `Editar ${form.tipo}` : `Nueva ${form.tipo}`}</DialogTitle>
+            <DialogDescription className="font-normal text-[#A3A39E]">
               Define el alcance, responsables y fechas para dar seguimiento desde la vista global.
             </DialogDescription>
           </DialogHeader>
@@ -3517,7 +3673,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     titulo: value === "minuta" && !current.titulo.trim() ? suggestedMinuteTitle() : current.titulo,
                   }))}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="font-normal text-[#A3A39E]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="tarea">Tarea independiente</SelectItem>
                     <SelectItem value="minuta">Minuta de obra</SelectItem>
@@ -3542,7 +3698,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="font-normal text-[#A3A39E]">
                   <SelectValue placeholder="Selecciona el proyecto" />
                 </SelectTrigger>
                 <SelectContent>
@@ -3563,6 +3719,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 value={form.titulo}
                 onChange={(event) => setForm((current) => ({ ...current, titulo: event.target.value }))}
                 placeholder="Ej. Revisar estimacion de instalaciones"
+                className="font-normal text-[#A3A39E] placeholder:text-[#A3A39E]"
               />
             </div>
 
@@ -3574,6 +3731,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 onChange={(event) => setForm((current) => ({ ...current, descripcion: event.target.value }))}
                 placeholder="Notas, contexto o resultado esperado"
                 rows={4}
+                className="font-normal text-[#A3A39E] placeholder:text-[#A3A39E]"
               />
             </div>
 
@@ -3584,7 +3742,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   value={form.prioridad}
                   onValueChange={(value) => setForm((current) => ({ ...current, prioridad: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="font-normal text-[#A3A39E]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3602,7 +3760,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   value={form.categoria}
                   onValueChange={(value) => setForm((current) => ({ ...current, categoria: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="font-normal text-[#A3A39E]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3621,6 +3779,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   type="date"
                   value={form.fecha_limite}
                   onChange={(event) => setForm((current) => ({ ...current, fecha_limite: event.target.value }))}
+                  className="font-normal text-[#A3A39E]"
                 />
               </div>
             </div>
@@ -3632,7 +3791,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   value={form.status}
                   onValueChange={(value) => setForm((current) => ({ ...current, status: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="font-normal text-[#A3A39E]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3650,12 +3809,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <Label>{form.tipo === "minuta" ? "Responsables (opcional)" : "Responsables"}</Label>
               <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-gray-200 p-3">
                 {!selectedFormProjectId && !selectedFormOrganizationId && (
-                  <div className="py-4 text-center text-sm text-gray-500">
+                  <div className="py-4 text-center text-sm text-[#A3A39E]">
                     No se encontraron usuarios disponibles para el alcance General.
                   </div>
                 )}
                 {(selectedFormProjectId || selectedFormOrganizationId) && !assignableUsers && (
-                  <div className="flex h-20 items-center justify-center text-gray-500">
+                  <div className="flex h-20 items-center justify-center text-[#A3A39E]">
                     <Loader2 className="h-5 w-5 animate-spin" />
                   </div>
                 )}
@@ -3669,10 +3828,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       onCheckedChange={() => toggleAssignee(user._id)}
                     />
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-medium text-gray-900">{user.name || user.email}</span>
-                      <span className="truncate text-xs text-gray-500">{user.email}</span>
+                      <span className="truncate text-sm font-normal text-[#63635E]">{user.name || user.email}</span>
+                      <span className="truncate text-xs text-[#A3A39E]">{user.email}</span>
                     </span>
-                    <span className="ml-auto text-xs text-gray-400">{user.role}</span>
+                    <span className="ml-auto text-xs text-[#A3A39E]">{user.role}</span>
                   </label>
                 ))}
               </div>
@@ -3682,12 +3841,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <Label>Partidas</Label>
               <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-gray-200 p-3">
                 {!selectedFormProjectId && (
-                  <div className="py-4 text-center text-sm text-gray-500">
+                  <div className="py-4 text-center text-sm text-[#A3A39E]">
                     Selecciona un proyecto para ver partidas disponibles.
                   </div>
                 )}
                 {selectedFormProjectId && !formPartidas && (
-                  <div className="flex h-20 items-center justify-center text-gray-500">
+                  <div className="flex h-20 items-center justify-center text-[#A3A39E]">
                     <Loader2 className="h-5 w-5 animate-spin" />
                   </div>
                 )}
@@ -3701,10 +3860,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       onCheckedChange={() => togglePartida(partida._id)}
                     />
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-medium text-gray-900">{partidaDisplayName(partida)}</span>
-                      <span className="truncate text-xs text-gray-500">{partidaContext(partida)}</span>
+                      <span className="truncate text-sm font-normal text-[#63635E]">{partidaDisplayName(partida)}</span>
+                      <span className="truncate text-xs text-[#A3A39E]">{partidaContext(partida)}</span>
                     </span>
-                    <span className="ml-auto text-xs text-gray-400">N{partida.nivel}</span>
+                    <span className="ml-auto text-xs text-[#A3A39E]">N{partida.nivel}</span>
                   </label>
                 ))}
               </div>
