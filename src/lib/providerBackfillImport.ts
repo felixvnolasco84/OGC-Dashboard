@@ -5,6 +5,10 @@ import {
 
 export const PROVIDER_BACKFILL_MAX_FILE_SIZE = 10 * 1024 * 1024;
 export const PROVIDER_BACKFILL_MAX_ROWS = 5_000;
+export const PROVIDER_BACKFILL_PREVIEW_BATCH_SIZE = 500;
+export const PROVIDER_BACKFILL_SYNC_BATCH_SIZE = 100;
+export const PROVIDER_BACKFILL_PREVIEW_ROW_LIMIT = 250;
+const PROVIDER_BACKFILL_MAX_VALIDATION_ISSUES = 100;
 
 const REQUIRED_HEADERS = [
   "administracion",
@@ -77,6 +81,19 @@ export class ProviderBackfillImportValidationError extends Error {
     this.name = "ProviderBackfillImportValidationError";
     this.issues = issues;
   }
+}
+
+export function chunkProviderBackfillCandidates<
+  TCandidate extends ProviderBackfillCandidate,
+>(candidates: readonly TCandidate[], batchSize: number): TCandidate[][] {
+  if (!Number.isInteger(batchSize) || batchSize <= 0) {
+    throw new Error("El tamaño de lote debe ser un entero mayor que cero.");
+  }
+  const batches: TCandidate[][] = [];
+  for (let index = 0; index < candidates.length; index += batchSize) {
+    batches.push(candidates.slice(index, index + batchSize));
+  }
+  return batches;
 }
 
 function normalizeHeader(value: unknown) {
@@ -190,6 +207,11 @@ export function parseProviderBackfillRows(
   }
 
   const errors: string[] = [];
+  let omittedErrorCount = 0;
+  const addError = (message: string) => {
+    if (errors.length < PROVIDER_BACKFILL_MAX_VALIDATION_ISSUES) errors.push(message);
+    else omittedErrorCount += 1;
+  };
   const parsedRows: ParsedRow[] = [];
   dataRows.forEach((row, index) => {
     const sourceRow = firstDataIndex + index + 1;
@@ -201,13 +223,13 @@ export function parseProviderBackfillRows(
     const amount = parseProviderBackfillMoney(readCell(row, headers, "monto"));
     const isoDate = parseLaborImportDate(readCell(row, headers, "fecha"));
 
-    if (!projectName) errors.push(`Fila ${sourceRow}: ADMINISTRACIÓN es obligatoria.`);
-    if (!providerName) errors.push(`Fila ${sourceRow}: PROVEEDOR es obligatorio.`);
-    if (!invoice) errors.push(`Fila ${sourceRow}: FACTURA es obligatoria.`);
-    if (!paymentType) errors.push(`Fila ${sourceRow}: TIPO DE PAGO es obligatorio.`);
-    if (!currency) errors.push(`Fila ${sourceRow}: MONEDA es obligatoria.`);
-    if (amount === null || amount <= 0) errors.push(`Fila ${sourceRow}: MONTO debe ser mayor que cero.`);
-    if (!isoDate) errors.push(`Fila ${sourceRow}: FECHA no es válida.`);
+    if (!projectName) addError(`Fila ${sourceRow}: ADMINISTRACIÓN es obligatoria.`);
+    if (!providerName) addError(`Fila ${sourceRow}: PROVEEDOR es obligatorio.`);
+    if (!invoice) addError(`Fila ${sourceRow}: FACTURA es obligatoria.`);
+    if (!paymentType) addError(`Fila ${sourceRow}: TIPO DE PAGO es obligatorio.`);
+    if (!currency) addError(`Fila ${sourceRow}: MONEDA es obligatoria.`);
+    if (amount === null || amount <= 0) addError(`Fila ${sourceRow}: MONTO debe ser mayor que cero.`);
+    if (!isoDate) addError(`Fila ${sourceRow}: FECHA no es válida.`);
 
     if (projectName && providerName && invoice && paymentType && currency && amount !== null && amount > 0 && isoDate) {
       parsedRows.push({
@@ -235,7 +257,7 @@ export function parseProviderBackfillRows(
       transactionRows.map((row) => [normalizeLaborImportText(row.providerName), row.providerName]),
     );
     if (providers.size > 1) {
-      errors.push(
+      addError(
         `Las filas ${transactionRows.map((row) => row.sourceRow).join(", ")} de la factura ${transactionRows[0].invoice} contienen proveedores distintos.`,
       );
       continue;
@@ -256,7 +278,11 @@ export function parseProviderBackfillRows(
   }
 
   if (errors.length) {
-    throw new ProviderBackfillImportValidationError([...new Set(errors)]);
+    const uniqueErrors = [...new Set(errors)];
+    if (omittedErrorCount > 0) {
+      uniqueErrors.push(`Se omitieron ${omittedErrorCount} errores adicionales del archivo.`);
+    }
+    throw new ProviderBackfillImportValidationError(uniqueErrors);
   }
 
   candidates.sort((left, right) =>

@@ -31,7 +31,12 @@ import {
 } from "@/components/ui/select";
 import {
   PROVIDER_BACKFILL_MAX_FILE_SIZE,
+  PROVIDER_BACKFILL_MAX_ROWS,
+  PROVIDER_BACKFILL_PREVIEW_BATCH_SIZE,
+  PROVIDER_BACKFILL_PREVIEW_ROW_LIMIT,
+  PROVIDER_BACKFILL_SYNC_BATCH_SIZE,
   ProviderBackfillImportValidationError,
+  chunkProviderBackfillCandidates,
   parseProviderBackfillWorkbook,
   type ProviderBackfillCandidate,
   type ProviderBackfillParseResult,
@@ -69,10 +74,13 @@ type ExcelSyncCounts = {
 type ExcelSyncRow = ProviderBackfillCandidate & {
   status: ExcelSyncStatus;
   transaction_id?: Id<"transacciones">;
+  transaction_ids?: Id<"transacciones">[];
   matched_provider_name?: string;
+  matched_project_name?: string;
   candidate_count?: number;
   matched_transaction_count?: number;
   match_mode?: "exact" | "historical_tolerance";
+  project_match_mode?: "exact" | "normalized" | "alias";
   matched_transaction_date?: string;
   matched_transaction_amount?: number;
 };
@@ -86,8 +94,6 @@ type ProjectOption = {
   _id: Id<"desarrollos">;
   nombre: string;
 };
-
-const BATCH_SIZE = 100;
 
 function emptyCounts(): ExcelSyncCounts {
   return {
@@ -163,6 +169,28 @@ function formatCurrency(value: number, currency: string) {
   }
 }
 
+function formatSourceRows(sourceRows: readonly number[]) {
+  const visible = sourceRows.slice(0, 10).join(", ");
+  return sourceRows.length > 10
+    ? `${visible} y ${sourceRows.length - 10} más`
+    : visible;
+}
+
+function toSyncCandidate(row: ExcelSyncRow) {
+  return {
+    source_key: row.source_key,
+    project_name: row.project_name,
+    amount_total: row.amount_total,
+    date: row.date,
+    provider_name: row.provider_name,
+    invoice: row.invoice,
+    payment_type: row.payment_type,
+    currency: row.currency,
+    source_rows: row.source_rows,
+    ...(row.transaction_ids?.length ? { transaction_ids: row.transaction_ids } : {}),
+  };
+}
+
 export default function ProviderExcelBackfillDialog({
   open,
   onOpenChange,
@@ -185,6 +213,7 @@ export default function ProviderExcelBackfillDialog({
   const [errors, setErrors] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [analyzed, setAnalyzed] = useState(0);
   const [processed, setProcessed] = useState(0);
 
   const resetFile = useCallback((nextFile: File | null) => {
@@ -193,6 +222,7 @@ export default function ProviderExcelBackfillDialog({
     setPreview(null);
     setResult(null);
     setErrors([]);
+    setAnalyzed(0);
     setProcessed(0);
   }, []);
 
@@ -231,19 +261,26 @@ export default function ProviderExcelBackfillDialog({
     setErrors([]);
     setPreview(null);
     setResult(null);
+    setAnalyzed(0);
     try {
       const parseResult = await parseProviderBackfillWorkbook(file);
+      setParsed(parseResult);
       const report: ExcelSyncReport = { counts: emptyCounts(), rows: [] };
-      for (let index = 0; index < parseResult.candidates.length; index += BATCH_SIZE) {
-        const batch = parseResult.candidates.slice(index, index + BATCH_SIZE);
+      const batches = chunkProviderBackfillCandidates(
+        parseResult.candidates,
+        PROVIDER_BACKFILL_PREVIEW_BATCH_SIZE,
+      );
+      let analyzedCount = 0;
+      for (const batch of batches) {
         const page: ExcelSyncReport = await convex.query(api.transacciones.previewProviderExcelSync, {
           proyecto_id: scope === "all" ? undefined : scope,
           candidates: batch,
         });
         addCounts(report.counts, page.counts);
         report.rows.push(...page.rows);
+        analyzedCount += batch.length;
+        setAnalyzed(analyzedCount);
       }
-      setParsed(parseResult);
       setPreview(report);
       if (readyCount(report.counts) > 0) {
         toast.success("Excel analizado", {
@@ -270,15 +307,25 @@ export default function ProviderExcelBackfillDialog({
     setProcessed(0);
     try {
       const completed: ExcelSyncReport = { counts: emptyCounts(), rows: [] };
-      for (let index = 0; index < parsed.candidates.length; index += BATCH_SIZE) {
-        const batch = parsed.candidates.slice(index, index + BATCH_SIZE);
+      const syncCandidates = preview.rows
+        .filter((row) =>
+          row.status === "ready_existing_provider" || row.status === "ready_new_provider"
+        )
+        .map(toSyncCandidate);
+      const batches = chunkProviderBackfillCandidates(
+        syncCandidates,
+        PROVIDER_BACKFILL_SYNC_BATCH_SIZE,
+      );
+      let processedCount = 0;
+      for (const batch of batches) {
         const page: ExcelSyncReport = await syncFromExcel({
           proyecto_id: scope === "all" ? undefined : scope,
           candidates: batch,
         });
         addCounts(completed.counts, page.counts);
         completed.rows.push(...page.rows);
-        setProcessed(Math.min(index + batch.length, parsed.candidates.length));
+        processedCount += batch.length;
+        setProcessed(processedCount);
       }
       setResult(completed);
       toast.success("Proveedores actualizados", {
@@ -303,8 +350,12 @@ export default function ProviderExcelBackfillDialog({
           .map((row) => normalizeProviderName(row.provider_name)),
       ).size
     : 0;
-  const progress = parsed?.transactionCount
-    ? Math.min(100, (processed / parsed.transactionCount) * 100)
+  const syncCandidateCount = preview ? readyCount(preview.counts) : 0;
+  const progress = syncCandidateCount
+    ? Math.min(100, (processed / syncCandidateCount) * 100)
+    : 0;
+  const analysisProgress = parsed?.transactionCount
+    ? Math.min(100, (analyzed / parsed.transactionCount) * 100)
     : 0;
 
   return (
@@ -313,7 +364,7 @@ export default function ProviderExcelBackfillDialog({
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Actualizar proveedores desde Excel</DialogTitle>
           <DialogDescription>
-            Usa el archivo original con la columna PROVEEDOR. Se actualizarán transacciones existentes y se crearán únicamente los proveedores faltantes.
+            Usa el archivo original con la columna PROVEEDOR. Se actualizarán transacciones existentes y se crearán únicamente los proveedores faltantes. Admite hasta {PROVIDER_BACKFILL_MAX_ROWS.toLocaleString("es-MX")} filas.
           </DialogDescription>
         </DialogHeader>
 
@@ -378,7 +429,13 @@ export default function ProviderExcelBackfillDialog({
           )}
 
           {isAnalyzing && (
-            <div className="flex items-center justify-center gap-2 border py-10 text-sm text-gray-600"><Loader2 className="h-5 w-5 animate-spin" /> Leyendo y comparando el Excel…</div>
+            <div className="space-y-3 border p-4 text-sm text-gray-600">
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" /> Leyendo y comparando el Excel…</span>
+                {parsed && <span>{analyzed} de {parsed.transactionCount} transacciones</span>}
+              </div>
+              {parsed && <Progress value={analysisProgress} />}
+            </div>
           )}
 
           {parsed && preview && !result && (
@@ -394,11 +451,14 @@ export default function ProviderExcelBackfillDialog({
               <div className="overflow-hidden border">
                 <div className="border-b bg-gray-50 px-4 py-3"><h4 className="font-medium">Coincidencias encontradas</h4></div>
                 <ScrollArea className="h-96">
-                  {preview.rows.map((row) => (
+                  {preview.rows.slice(0, PROVIDER_BACKFILL_PREVIEW_ROW_LIMIT).map((row) => (
                     <div key={row.source_key} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b px-4 py-3 last:border-0">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{row.invoice} · {row.provider_name}</p>
-                        <p className="text-xs text-gray-500">{row.project_name} · {row.date} · {formatCurrency(row.amount_total, row.currency)} · filas {row.source_rows.join(", ")}</p>
+                        <p className="text-xs text-gray-500">{row.project_name} · {row.date} · {formatCurrency(row.amount_total, row.currency)} · filas {formatSourceRows(row.source_rows)}</p>
+                        {row.project_match_mode === "alias" && row.matched_project_name && (
+                          <p className="text-xs text-blue-700">Proyecto detectado: {row.matched_project_name}</p>
+                        )}
                         {row.matched_provider_name && row.matched_provider_name !== row.provider_name && (
                           <p className="text-xs text-gray-500">Catálogo: {row.matched_provider_name}</p>
                         )}
@@ -412,6 +472,11 @@ export default function ProviderExcelBackfillDialog({
                       <Badge variant="outline" className={statusClassName(row.status)}>{statusLabel(row.status)}</Badge>
                     </div>
                   ))}
+                  {preview.rows.length > PROVIDER_BACKFILL_PREVIEW_ROW_LIMIT && (
+                    <div className="border-t bg-gray-50 px-4 py-3 text-center text-xs text-gray-600">
+                      Se muestran {PROVIDER_BACKFILL_PREVIEW_ROW_LIMIT.toLocaleString("es-MX")} de {preview.rows.length.toLocaleString("es-MX")} resultados para mantener ágil la vista. Los conteos incluyen todo el archivo.
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
             </>
@@ -419,7 +484,7 @@ export default function ProviderExcelBackfillDialog({
 
           {isSyncing && (
             <div className="space-y-3 border p-4">
-              <div className="flex items-center justify-between text-sm"><span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Creando proveedores y actualizando vínculos…</span><span>{processed} de {parsed?.transactionCount || 0}</span></div>
+              <div className="flex items-center justify-between text-sm"><span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Creando proveedores y actualizando vínculos…</span><span>{processed} de {syncCandidateCount} coincidencias</span></div>
               <Progress value={progress} />
             </div>
           )}

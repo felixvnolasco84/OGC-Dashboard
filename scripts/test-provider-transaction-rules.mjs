@@ -9,6 +9,11 @@ import {
   normalizeRfc,
 } from "../convex/providerUtils.ts";
 import {
+  classifyProjectMatch,
+  normalizeProjectName,
+  projectNameMatchMode,
+} from "../convex/projectMatchUtils.ts";
+import {
   buildTransactionSignature,
   getParserValidationErrors,
   getProviderName,
@@ -16,7 +21,10 @@ import {
   validateTransactionTotals,
 } from "../src/lib/transactionImport.ts";
 import {
+  PROVIDER_BACKFILL_PREVIEW_BATCH_SIZE,
+  PROVIDER_BACKFILL_SYNC_BATCH_SIZE,
   ProviderBackfillImportValidationError,
+  chunkProviderBackfillCandidates,
   parseProviderBackfillRows,
 } from "../src/lib/providerBackfillImport.ts";
 
@@ -66,6 +74,32 @@ assert.equal(
 assert.equal(
   classifyTransactionProviderMatch("Ferretería Santana", undefined, providerMatchIndex).status,
   "matched",
+);
+
+const projectCatalog = [
+  { _id: "larena-j", nombre: "Larena - Torre J" },
+  { _id: "larena-k", nombre: "Larena - Torre K" },
+  { _id: "pacifico", nombre: "Residencial Pacífico" },
+];
+assert.equal(normalizeProjectName("Tórre_J"), "TORRE J");
+assert.equal(projectNameMatchMode("TORRE_J", "Larena - Torre J"), "alias");
+assert.equal(projectNameMatchMode("Proyecto Larena Torre J", "Larena - Torre J"), "alias");
+assert.equal(classifyProjectMatch("TORRE_J", projectCatalog).project?._id, "larena-j");
+assert.equal(classifyProjectMatch("larena torre k", projectCatalog).project?._id, "larena-k");
+assert.equal(classifyProjectMatch("J", projectCatalog).status, "unmatched");
+assert.equal(
+  classifyProjectMatch("TORRE_J", [
+    ...projectCatalog,
+    { _id: "otro-j", nombre: "Otro desarrollo - Torre J" },
+  ]).status,
+  "conflict",
+);
+assert.equal(
+  classifyProjectMatch("Larena - Torre J", [
+    { _id: "duplicate-a", nombre: "Larena - Torre J" },
+    { _id: "duplicate-b", nombre: "LARENA_TORRE_J" },
+  ]).status,
+  "conflict",
 );
 
 const baseTransaction = {
@@ -178,6 +212,41 @@ assert.throws(
     ["TORRE_J", "ESTRUCTURAS_COMPLEMENTARIAS", "ACERO", "ALAMBRON", "$6,797.06", "26/06/2026", "OTRO PROVEEDOR", "APA-ACE-260626.pdf", "MATERIAL", "TRANSFERENCIA", "MXN"],
   ]),
   ProviderBackfillImportValidationError,
+);
+
+const fiveThousandRows = [
+  providerBackfillHeaders,
+  ...Array.from({ length: 5_000 }, (_, index) => [
+    "TORRE_J",
+    "ESTRUCTURAS_COMPLEMENTARIAS",
+    "ACERO",
+    `CONCEPTO ${index + 1}`,
+    "$1.00",
+    "26/06/2026",
+    `PROVEEDOR ${index % 50}`,
+    `FACTURA-${index + 1}.pdf`,
+    "MATERIAL",
+    "TRANSFERENCIA",
+    "MXN",
+  ]),
+];
+const fiveThousandBackfill = parseProviderBackfillRows(fiveThousandRows);
+assert.equal(fiveThousandBackfill.rowCount, 5_000);
+assert.equal(fiveThousandBackfill.transactionCount, 5_000);
+assert.equal(fiveThousandBackfill.providerCount, 50);
+assert.equal(
+  chunkProviderBackfillCandidates(
+    fiveThousandBackfill.candidates,
+    PROVIDER_BACKFILL_PREVIEW_BATCH_SIZE,
+  ).length,
+  10,
+);
+assert.equal(
+  chunkProviderBackfillCandidates(
+    fiveThousandBackfill.candidates,
+    PROVIDER_BACKFILL_SYNC_BATCH_SIZE,
+  ).length,
+  50,
 );
 
 console.log("Provider and transaction import rules: OK");

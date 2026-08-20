@@ -17,6 +17,10 @@ import {
   isProviderComplete,
   normalizeProviderName,
 } from "./providerUtils";
+import {
+  classifyProjectMatch,
+  type ProjectMatchMode,
+} from "./projectMatchUtils";
 import { moneyDelta, mostSpecificCostLabel, normalizeCostText } from "./costRules";
 
 type TransactionLineItemInput = {
@@ -36,7 +40,8 @@ type PreparedTransactionLineItem = TransactionLineItemInput & {
 };
 
 const PROVIDER_SYNC_PAGE_SIZE = 100;
-const PROVIDER_EXCEL_BATCH_SIZE = 100;
+const PROVIDER_EXCEL_PREVIEW_BATCH_SIZE = 500;
+const PROVIDER_EXCEL_SYNC_BATCH_SIZE = 100;
 const PROVIDER_EXCEL_DATE_TOLERANCE_DAYS = 1;
 const PROVIDER_EXCEL_AMOUNT_TOLERANCE_CENTS = 1;
 
@@ -50,6 +55,7 @@ const providerExcelCandidateValidator = v.object({
   payment_type: v.string(),
   currency: v.string(),
   source_rows: v.array(v.number()),
+  transaction_ids: v.optional(v.array(v.id("transacciones"))),
 });
 
 type ProviderExcelCandidate = {
@@ -62,6 +68,7 @@ type ProviderExcelCandidate = {
   payment_type: string;
   currency: string;
   source_rows: number[];
+  transaction_ids?: Id<"transacciones">[];
 };
 
 type ProviderExcelStatus =
@@ -84,6 +91,8 @@ type ProviderExcelResolution = {
   matchedProviderName?: string;
   candidateCount?: number;
   matchMode?: "exact" | "historical_tolerance";
+  matchedProjectName?: string;
+  projectMatchMode?: ProjectMatchMode;
   matchedTransactionDate?: string;
   matchedTransactionAmount?: number;
 };
@@ -162,10 +171,53 @@ function isWithinProviderExcelDateTolerance(left: string, right: string) {
     PROVIDER_EXCEL_DATE_TOLERANCE_DAYS * 86_400_000;
 }
 
-function assertProviderExcelCandidates(candidates: ProviderExcelCandidate[]) {
+function providerExcelTransactionMatchMode(
+  candidate: ProviderExcelCandidate,
+  transaction: Doc<"transacciones">,
+): ProviderExcelResolution["matchMode"] | null {
+  const exactCandidateKey = providerExcelTransactionKey({
+    invoice: candidate.invoice,
+    date: candidate.date,
+    amount: candidate.amount_total,
+    paymentType: candidate.payment_type,
+    currency: candidate.currency,
+  });
+  const exactTransactionKey = providerExcelTransactionKey({
+    invoice: transaction.factura,
+    date: transaction.fecha,
+    amount: transaction.monto_total,
+    paymentType: transaction.tipo_pago,
+    currency: transaction.moneda,
+  });
+  if (exactCandidateKey === exactTransactionKey) return "exact";
+
+  const candidateWithoutDate = providerExcelTransactionKeyWithoutDate({
+    invoice: candidate.invoice,
+    paymentType: candidate.payment_type,
+    currency: candidate.currency,
+  });
+  const transactionWithoutDate = providerExcelTransactionKeyWithoutDate({
+    invoice: transaction.factura,
+    paymentType: transaction.tipo_pago,
+    currency: transaction.moneda,
+  });
+  return candidateWithoutDate === transactionWithoutDate &&
+    isWithinProviderExcelDateTolerance(candidate.date, transaction.fecha) &&
+    Math.abs(
+      Math.round(candidate.amount_total * 100) -
+      Math.round(transaction.monto_total * 100)
+    ) <= PROVIDER_EXCEL_AMOUNT_TOLERANCE_CENTS
+    ? "historical_tolerance"
+    : null;
+}
+
+function assertProviderExcelCandidates(
+  candidates: ProviderExcelCandidate[],
+  maxBatchSize: number,
+) {
   if (!candidates.length) throw new Error("El archivo no contiene transacciones para revisar.");
-  if (candidates.length > PROVIDER_EXCEL_BATCH_SIZE) {
-    throw new Error(`Cada lote puede contener hasta ${PROVIDER_EXCEL_BATCH_SIZE} transacciones.`);
+  if (candidates.length > maxBatchSize) {
+    throw new Error(`Cada lote puede contener hasta ${maxBatchSize} transacciones.`);
   }
   const sourceKeys = new Set<string>();
   for (const candidate of candidates) {
@@ -185,6 +237,12 @@ function assertProviderExcelCandidates(candidates: ProviderExcelCandidate[]) {
     if (!Number.isFinite(candidate.amount_total) || candidate.amount_total <= 0) {
       throw new Error("El lote contiene un monto inválido.");
     }
+    if (
+      candidate.transaction_ids &&
+      new Set(candidate.transaction_ids).size !== candidate.transaction_ids.length
+    ) {
+      throw new Error("El lote contiene identificadores de transacción duplicados.");
+    }
   }
 }
 
@@ -192,8 +250,9 @@ async function resolveProviderExcelCandidates(
   ctx: QueryCtx | MutationCtx,
   scopeProjectId: Id<"desarrollos"> | undefined,
   candidates: ProviderExcelCandidate[],
+  maxBatchSize: number,
 ) {
-  assertProviderExcelCandidates(candidates);
+  assertProviderExcelCandidates(candidates, maxBatchSize);
   const [projects, providers] = await Promise.all([
     ctx.db.query("desarrollos").collect(),
     ctx.db.query("proveedores").collect(),
@@ -203,11 +262,6 @@ async function resolveProviderExcelCandidates(
     : undefined;
   if (scopeProjectId && !scopedProject) throw new Error("El proyecto seleccionado ya no existe.");
 
-  const projectsByName = new Map<string, Doc<"desarrollos">[]>();
-  for (const project of projects) {
-    const key = normalizeProviderName(project.nombre);
-    projectsByName.set(key, [...(projectsByName.get(key) || []), project]);
-  }
   const providersByName = buildProviderMatchIndex(providers);
   const transactionsByProject = new Map<string, {
     exact: Map<string, Doc<"transacciones">[]>;
@@ -249,59 +303,87 @@ async function resolveProviderExcelCandidates(
 
   const resolutions: ProviderExcelResolution[] = [];
   for (const candidate of candidates) {
-    const normalizedProjectName = normalizeProviderName(candidate.project_name);
     let project: Doc<"desarrollos"> | undefined;
+    let projectMatchMode: ProjectMatchMode | undefined;
     if (scopedProject) {
-      if (normalizeProviderName(scopedProject.nombre) !== normalizedProjectName) {
+      const projectMatch = classifyProjectMatch(candidate.project_name, [scopedProject]);
+      if (projectMatch.status !== "matched") {
         resolutions.push({ candidate, status: "project_mismatch" });
         continue;
       }
       project = scopedProject;
+      projectMatchMode = projectMatch.mode;
     } else {
-      const projectMatches = projectsByName.get(normalizedProjectName) || [];
-      if (!projectMatches.length) {
+      const projectMatch = classifyProjectMatch(candidate.project_name, projects);
+      if (projectMatch.status === "unmatched") {
         resolutions.push({ candidate, status: "project_not_found" });
         continue;
       }
-      if (projectMatches.length > 1) {
+      if (projectMatch.status === "conflict") {
         resolutions.push({
           candidate,
           status: "project_conflict",
-          candidateCount: projectMatches.length,
+          candidateCount: projectMatch.matches.length,
         });
         continue;
       }
-      project = projectMatches[0];
+      project = projectMatch.project;
+      projectMatchMode = projectMatch.mode;
+    }
+    if (!project) {
+      resolutions.push({ candidate, status: "project_not_found" });
+      continue;
+    }
+    const projectDetails = {
+      matchedProjectName: project.nombre,
+      projectMatchMode,
+    };
+
+    let transactionMatches: Doc<"transacciones">[] = [];
+    let matchMode: ProviderExcelResolution["matchMode"] = "exact";
+    if (candidate.transaction_ids?.length) {
+      const referencedTransactions = await Promise.all(
+        candidate.transaction_ids.map((transactionId) => ctx.db.get(transactionId)),
+      );
+      const referencedModes = referencedTransactions.map((transaction) =>
+        transaction && transaction.proyecto === project._id
+          ? providerExcelTransactionMatchMode(candidate, transaction)
+          : null
+      );
+      if (referencedTransactions.every(Boolean) && referencedModes.every(Boolean)) {
+        transactionMatches = referencedTransactions as Doc<"transacciones">[];
+        matchMode = referencedModes.includes("historical_tolerance")
+          ? "historical_tolerance"
+          : "exact";
+      }
     }
 
-    const transactionKey = providerExcelTransactionKey({
-      invoice: candidate.invoice,
-      date: candidate.date,
-      amount: candidate.amount_total,
-      paymentType: candidate.payment_type,
-      currency: candidate.currency,
-    });
-    const transactionIndexes = await getTransactions(project._id);
-    let transactionMatches = transactionIndexes.exact.get(transactionKey) || [];
-    let matchMode: ProviderExcelResolution["matchMode"] = "exact";
     if (!transactionMatches.length) {
-      const withoutDateKey = providerExcelTransactionKeyWithoutDate({
+      const transactionKey = providerExcelTransactionKey({
         invoice: candidate.invoice,
+        date: candidate.date,
+        amount: candidate.amount_total,
         paymentType: candidate.payment_type,
         currency: candidate.currency,
       });
-      transactionMatches = (transactionIndexes.withoutDate.get(withoutDateKey) || [])
-        .filter((transaction) =>
-          isWithinProviderExcelDateTolerance(candidate.date, transaction.fecha) &&
-          Math.abs(
-            Math.round(candidate.amount_total * 100) -
-            Math.round(transaction.monto_total * 100)
-          ) <= PROVIDER_EXCEL_AMOUNT_TOLERANCE_CENTS
-        );
-      matchMode = "historical_tolerance";
+      const transactionIndexes = await getTransactions(project._id);
+      transactionMatches = transactionIndexes.exact.get(transactionKey) || [];
+      matchMode = "exact";
+      if (!transactionMatches.length) {
+        const withoutDateKey = providerExcelTransactionKeyWithoutDate({
+          invoice: candidate.invoice,
+          paymentType: candidate.payment_type,
+          currency: candidate.currency,
+        });
+        transactionMatches = (transactionIndexes.withoutDate.get(withoutDateKey) || [])
+          .filter((transaction) =>
+            providerExcelTransactionMatchMode(candidate, transaction) === "historical_tolerance"
+          );
+        matchMode = "historical_tolerance";
+      }
     }
     if (!transactionMatches.length) {
-      resolutions.push({ candidate, status: "transaction_not_found" });
+      resolutions.push({ candidate, ...projectDetails, status: "transaction_not_found" });
       continue;
     }
     const firstTransaction = transactionMatches[0];
@@ -322,6 +404,7 @@ async function resolveProviderExcelCandidates(
     ) {
       resolutions.push({
         candidate,
+        ...projectDetails,
         status: "transaction_conflict",
         candidateCount: transactionMatches.length,
         matchMode,
@@ -331,6 +414,7 @@ async function resolveProviderExcelCandidates(
     if (assignedTransactions.length === transactionMatches.length) {
       resolutions.push({
         candidate,
+        ...projectDetails,
         status: "already_assigned",
         transactions: transactionMatches,
         matchMode,
@@ -349,6 +433,7 @@ async function resolveProviderExcelCandidates(
     if (providerMatch.status === "archived") {
       resolutions.push({
         candidate,
+        ...projectDetails,
         status: "provider_archived",
         transactions: transactionMatches,
         candidateCount: providerMatch.matches.length,
@@ -361,6 +446,7 @@ async function resolveProviderExcelCandidates(
     if (providerMatch.status === "conflict") {
       resolutions.push({
         candidate,
+        ...projectDetails,
         status: "provider_conflict",
         transactions: transactionMatches,
         candidateCount: providerMatch.matches.length,
@@ -373,6 +459,7 @@ async function resolveProviderExcelCandidates(
     if (providerMatch.status === "matched" && providerMatch.provider) {
       resolutions.push({
         candidate,
+        ...projectDetails,
         status: "ready_existing_provider",
         transactions: transactionMatches,
         provider: providerMatch.provider,
@@ -386,6 +473,7 @@ async function resolveProviderExcelCandidates(
     }
     resolutions.push({
       candidate,
+      ...projectDetails,
       status: "ready_new_provider",
       transactions: transactionMatches,
       matchMode,
@@ -407,8 +495,11 @@ function summarizeProviderExcelResolutions(resolutions: ProviderExcelResolution[
       ...resolution.candidate,
       status: resolution.status,
       transaction_id: resolution.transactions?.[0]?._id,
+      transaction_ids: resolution.transactions?.map((transaction) => transaction._id),
       matched_transaction_count: resolution.transactions?.length,
       matched_provider_name: resolution.matchedProviderName,
+      matched_project_name: resolution.matchedProjectName,
+      project_match_mode: resolution.projectMatchMode,
       candidate_count: resolution.candidateCount,
       match_mode: resolution.matchMode,
       matched_transaction_date: resolution.matchedTransactionDate,
@@ -1019,7 +1110,12 @@ export const previewProviderExcelSync = query({
   handler: async (ctx, args) => {
     await assertAdmin(ctx);
     return summarizeProviderExcelResolutions(
-      await resolveProviderExcelCandidates(ctx, args.proyecto_id, args.candidates),
+      await resolveProviderExcelCandidates(
+        ctx,
+        args.proyecto_id,
+        args.candidates,
+        PROVIDER_EXCEL_PREVIEW_BATCH_SIZE,
+      ),
     );
   },
 });
@@ -1036,6 +1132,7 @@ export const syncProvidersFromExcel = baseMutation({
       ctx,
       args.proyecto_id,
       args.candidates,
+      PROVIDER_EXCEL_SYNC_BATCH_SIZE,
     );
     const report = summarizeProviderExcelResolutions(resolutions);
     const createdProviders = new Map<string, Id<"proveedores">>();
