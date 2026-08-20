@@ -4,8 +4,19 @@ import { mutation, updatePagadoForHierarchy, updateMeticasPresupuesto, updateHon
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { assertAdmin, assertCanWrite, checkDesarrolloAccess } from "./permissions";
-import { isProviderComplete } from "./providerUtils";
+import {
+  assertAdmin,
+  assertCanWrite,
+  checkDesarrolloAccess,
+  getCurrentUserOrThrow,
+} from "./permissions";
+import {
+  buildProviderMatchIndex,
+  classifyTransactionProviderMatch,
+  isGenericProviderName,
+  isProviderComplete,
+  normalizeProviderName,
+} from "./providerUtils";
 import { moneyDelta, mostSpecificCostLabel, normalizeCostText } from "./costRules";
 
 type TransactionLineItemInput = {
@@ -23,6 +34,488 @@ type PreparedTransactionLineItem = TransactionLineItemInput & {
   familia_snapshot: string;
   sub_partida_snapshot: string;
 };
+
+const PROVIDER_SYNC_PAGE_SIZE = 100;
+const PROVIDER_EXCEL_BATCH_SIZE = 100;
+const PROVIDER_EXCEL_DATE_TOLERANCE_DAYS = 1;
+const PROVIDER_EXCEL_AMOUNT_TOLERANCE_CENTS = 1;
+
+const providerExcelCandidateValidator = v.object({
+  source_key: v.string(),
+  project_name: v.string(),
+  amount_total: v.number(),
+  date: v.string(),
+  provider_name: v.string(),
+  invoice: v.string(),
+  payment_type: v.string(),
+  currency: v.string(),
+  source_rows: v.array(v.number()),
+});
+
+type ProviderExcelCandidate = {
+  source_key: string;
+  project_name: string;
+  amount_total: number;
+  date: string;
+  provider_name: string;
+  invoice: string;
+  payment_type: string;
+  currency: string;
+  source_rows: number[];
+};
+
+type ProviderExcelStatus =
+  | "ready_existing_provider"
+  | "ready_new_provider"
+  | "already_assigned"
+  | "transaction_not_found"
+  | "transaction_conflict"
+  | "project_not_found"
+  | "project_conflict"
+  | "project_mismatch"
+  | "provider_archived"
+  | "provider_conflict";
+
+type ProviderExcelResolution = {
+  candidate: ProviderExcelCandidate;
+  status: ProviderExcelStatus;
+  transactions?: Doc<"transacciones">[];
+  provider?: Doc<"proveedores">;
+  matchedProviderName?: string;
+  candidateCount?: number;
+  matchMode?: "exact" | "historical_tolerance";
+  matchedTransactionDate?: string;
+  matchedTransactionAmount?: number;
+};
+
+function emptyProviderExcelCounts() {
+  return {
+    scanned: 0,
+    ready_existing_provider: 0,
+    ready_new_provider: 0,
+    already_assigned: 0,
+    transaction_not_found: 0,
+    transaction_conflict: 0,
+    project_not_found: 0,
+    project_conflict: 0,
+    project_mismatch: 0,
+    provider_archived: 0,
+    provider_conflict: 0,
+    updated: 0,
+    providers_created: 0,
+  };
+}
+
+function normalizeProviderExcelDate(value: string) {
+  const trimmed = value.trim();
+  let match = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(trimmed);
+  if (match) {
+    return `${match[3].padStart(2, "0")}/${match[2].padStart(2, "0")}/${match[1]}`;
+  }
+  match = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(trimmed);
+  if (match) {
+    return `${match[1].padStart(2, "0")}/${match[2].padStart(2, "0")}/${match[3]}`;
+  }
+  return trimmed;
+}
+
+function providerExcelTransactionKey(input: {
+  invoice?: string;
+  date: string;
+  amount: number;
+  paymentType: string;
+  currency: string;
+}) {
+  return [
+    normalizeProviderName(input.invoice || ""),
+    normalizeProviderExcelDate(input.date),
+    Math.round(input.amount * 100),
+    normalizeProviderName(input.paymentType),
+    normalizeProviderName(input.currency),
+  ].join("|");
+}
+
+function providerExcelTransactionKeyWithoutDate(input: {
+  invoice?: string;
+  paymentType: string;
+  currency: string;
+}) {
+  return [
+    normalizeProviderName(input.invoice || ""),
+    normalizeProviderName(input.paymentType),
+    normalizeProviderName(input.currency),
+  ].join("|");
+}
+
+function providerExcelDateTimestamp(value: string) {
+  const normalized = normalizeProviderExcelDate(value);
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(normalized);
+  if (!match) return null;
+  return Date.UTC(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+}
+
+function isWithinProviderExcelDateTolerance(left: string, right: string) {
+  const leftTimestamp = providerExcelDateTimestamp(left);
+  const rightTimestamp = providerExcelDateTimestamp(right);
+  if (leftTimestamp === null || rightTimestamp === null) return false;
+  return Math.abs(leftTimestamp - rightTimestamp) <=
+    PROVIDER_EXCEL_DATE_TOLERANCE_DAYS * 86_400_000;
+}
+
+function assertProviderExcelCandidates(candidates: ProviderExcelCandidate[]) {
+  if (!candidates.length) throw new Error("El archivo no contiene transacciones para revisar.");
+  if (candidates.length > PROVIDER_EXCEL_BATCH_SIZE) {
+    throw new Error(`Cada lote puede contener hasta ${PROVIDER_EXCEL_BATCH_SIZE} transacciones.`);
+  }
+  const sourceKeys = new Set<string>();
+  for (const candidate of candidates) {
+    if (!candidate.source_key.trim() || sourceKeys.has(candidate.source_key)) {
+      throw new Error("El lote contiene una clave de transacción vacía o duplicada.");
+    }
+    sourceKeys.add(candidate.source_key);
+    if (
+      !candidate.project_name.trim() ||
+      !candidate.provider_name.trim() ||
+      !candidate.invoice.trim() ||
+      !candidate.payment_type.trim() ||
+      !candidate.currency.trim()
+    ) {
+      throw new Error("El lote contiene una transacción con datos obligatorios vacíos.");
+    }
+    if (!Number.isFinite(candidate.amount_total) || candidate.amount_total <= 0) {
+      throw new Error("El lote contiene un monto inválido.");
+    }
+  }
+}
+
+async function resolveProviderExcelCandidates(
+  ctx: QueryCtx | MutationCtx,
+  scopeProjectId: Id<"desarrollos"> | undefined,
+  candidates: ProviderExcelCandidate[],
+) {
+  assertProviderExcelCandidates(candidates);
+  const [projects, providers] = await Promise.all([
+    ctx.db.query("desarrollos").collect(),
+    ctx.db.query("proveedores").collect(),
+  ]);
+  const scopedProject = scopeProjectId
+    ? projects.find((project) => project._id === scopeProjectId)
+    : undefined;
+  if (scopeProjectId && !scopedProject) throw new Error("El proyecto seleccionado ya no existe.");
+
+  const projectsByName = new Map<string, Doc<"desarrollos">[]>();
+  for (const project of projects) {
+    const key = normalizeProviderName(project.nombre);
+    projectsByName.set(key, [...(projectsByName.get(key) || []), project]);
+  }
+  const providersByName = buildProviderMatchIndex(providers);
+  const transactionsByProject = new Map<string, {
+    exact: Map<string, Doc<"transacciones">[]>;
+    withoutDate: Map<string, Doc<"transacciones">[]>;
+  }>();
+
+  const getTransactions = async (projectId: Id<"desarrollos">) => {
+    const cached = transactionsByProject.get(projectId);
+    if (cached) return cached;
+    const transactions = await ctx.db
+      .query("transacciones")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", projectId))
+      .collect();
+    const exact = new Map<string, Doc<"transacciones">[]>();
+    const withoutDate = new Map<string, Doc<"transacciones">[]>();
+    for (const transaction of transactions) {
+      const exactKey = providerExcelTransactionKey({
+        invoice: transaction.factura,
+        date: transaction.fecha,
+        amount: transaction.monto_total,
+        paymentType: transaction.tipo_pago,
+        currency: transaction.moneda,
+      });
+      exact.set(exactKey, [...(exact.get(exactKey) || []), transaction]);
+      const withoutDateKey = providerExcelTransactionKeyWithoutDate({
+        invoice: transaction.factura,
+        paymentType: transaction.tipo_pago,
+        currency: transaction.moneda,
+      });
+      withoutDate.set(withoutDateKey, [
+        ...(withoutDate.get(withoutDateKey) || []),
+        transaction,
+      ]);
+    }
+    const indexed = { exact, withoutDate };
+    transactionsByProject.set(projectId, indexed);
+    return indexed;
+  };
+
+  const resolutions: ProviderExcelResolution[] = [];
+  for (const candidate of candidates) {
+    const normalizedProjectName = normalizeProviderName(candidate.project_name);
+    let project: Doc<"desarrollos"> | undefined;
+    if (scopedProject) {
+      if (normalizeProviderName(scopedProject.nombre) !== normalizedProjectName) {
+        resolutions.push({ candidate, status: "project_mismatch" });
+        continue;
+      }
+      project = scopedProject;
+    } else {
+      const projectMatches = projectsByName.get(normalizedProjectName) || [];
+      if (!projectMatches.length) {
+        resolutions.push({ candidate, status: "project_not_found" });
+        continue;
+      }
+      if (projectMatches.length > 1) {
+        resolutions.push({
+          candidate,
+          status: "project_conflict",
+          candidateCount: projectMatches.length,
+        });
+        continue;
+      }
+      project = projectMatches[0];
+    }
+
+    const transactionKey = providerExcelTransactionKey({
+      invoice: candidate.invoice,
+      date: candidate.date,
+      amount: candidate.amount_total,
+      paymentType: candidate.payment_type,
+      currency: candidate.currency,
+    });
+    const transactionIndexes = await getTransactions(project._id);
+    let transactionMatches = transactionIndexes.exact.get(transactionKey) || [];
+    let matchMode: ProviderExcelResolution["matchMode"] = "exact";
+    if (!transactionMatches.length) {
+      const withoutDateKey = providerExcelTransactionKeyWithoutDate({
+        invoice: candidate.invoice,
+        paymentType: candidate.payment_type,
+        currency: candidate.currency,
+      });
+      transactionMatches = (transactionIndexes.withoutDate.get(withoutDateKey) || [])
+        .filter((transaction) =>
+          isWithinProviderExcelDateTolerance(candidate.date, transaction.fecha) &&
+          Math.abs(
+            Math.round(candidate.amount_total * 100) -
+            Math.round(transaction.monto_total * 100)
+          ) <= PROVIDER_EXCEL_AMOUNT_TOLERANCE_CENTS
+        );
+      matchMode = "historical_tolerance";
+    }
+    if (!transactionMatches.length) {
+      resolutions.push({ candidate, status: "transaction_not_found" });
+      continue;
+    }
+    const firstTransaction = transactionMatches[0];
+    const areExactDuplicates = transactionMatches.every((transaction) =>
+      normalizeProviderExcelDate(transaction.fecha) ===
+        normalizeProviderExcelDate(firstTransaction.fecha) &&
+      Math.round(transaction.monto_total * 100) ===
+        Math.round(firstTransaction.monto_total * 100)
+    );
+    const assignedTransactions = transactionMatches.filter(
+      (transaction) => Boolean(transaction.proveedor_id)
+    );
+    if (
+      transactionMatches.length > 1 &&
+      (!areExactDuplicates ||
+        (assignedTransactions.length > 0 &&
+          assignedTransactions.length < transactionMatches.length))
+    ) {
+      resolutions.push({
+        candidate,
+        status: "transaction_conflict",
+        candidateCount: transactionMatches.length,
+        matchMode,
+      });
+      continue;
+    }
+    if (assignedTransactions.length === transactionMatches.length) {
+      resolutions.push({
+        candidate,
+        status: "already_assigned",
+        transactions: transactionMatches,
+        matchMode,
+        matchedTransactionDate: firstTransaction.fecha,
+        matchedTransactionAmount: firstTransaction.monto_total,
+        candidateCount: transactionMatches.length,
+      });
+      continue;
+    }
+
+    const providerMatch = classifyTransactionProviderMatch(
+      candidate.provider_name,
+      undefined,
+      providersByName,
+    );
+    if (providerMatch.status === "archived") {
+      resolutions.push({
+        candidate,
+        status: "provider_archived",
+        transactions: transactionMatches,
+        candidateCount: providerMatch.matches.length,
+        matchMode,
+        matchedTransactionDate: firstTransaction.fecha,
+        matchedTransactionAmount: firstTransaction.monto_total,
+      });
+      continue;
+    }
+    if (providerMatch.status === "conflict") {
+      resolutions.push({
+        candidate,
+        status: "provider_conflict",
+        transactions: transactionMatches,
+        candidateCount: providerMatch.matches.length,
+        matchMode,
+        matchedTransactionDate: firstTransaction.fecha,
+        matchedTransactionAmount: firstTransaction.monto_total,
+      });
+      continue;
+    }
+    if (providerMatch.status === "matched" && providerMatch.provider) {
+      resolutions.push({
+        candidate,
+        status: "ready_existing_provider",
+        transactions: transactionMatches,
+        provider: providerMatch.provider,
+        matchedProviderName: providerMatch.provider.razon_social,
+        matchMode,
+        matchedTransactionDate: firstTransaction.fecha,
+        matchedTransactionAmount: firstTransaction.monto_total,
+        candidateCount: transactionMatches.length,
+      });
+      continue;
+    }
+    resolutions.push({
+      candidate,
+      status: "ready_new_provider",
+      transactions: transactionMatches,
+      matchMode,
+      matchedTransactionDate: firstTransaction.fecha,
+      matchedTransactionAmount: firstTransaction.monto_total,
+      candidateCount: transactionMatches.length,
+    });
+  }
+  return resolutions;
+}
+
+function summarizeProviderExcelResolutions(resolutions: ProviderExcelResolution[]) {
+  const counts = emptyProviderExcelCounts();
+  counts.scanned = resolutions.length;
+  for (const resolution of resolutions) counts[resolution.status] += 1;
+  return {
+    counts,
+    rows: resolutions.map((resolution) => ({
+      ...resolution.candidate,
+      status: resolution.status,
+      transaction_id: resolution.transactions?.[0]?._id,
+      matched_transaction_count: resolution.transactions?.length,
+      matched_provider_name: resolution.matchedProviderName,
+      candidate_count: resolution.candidateCount,
+      match_mode: resolution.matchMode,
+      matched_transaction_date: resolution.matchedTransactionDate,
+      matched_transaction_amount: resolution.matchedTransactionAmount,
+    })),
+  };
+}
+
+type ProviderSyncStatus =
+  | "matched"
+  | "unmatched"
+  | "archived"
+  | "conflict"
+  | "missing_name"
+  | "already_assigned";
+
+type ProviderSyncRow = {
+  status: ProviderSyncStatus;
+  providerName: string;
+  normalizedName: string;
+  providerId?: Id<"proveedores">;
+  matchedProviderName?: string;
+  candidateNames: string[];
+};
+
+function emptyProviderSyncCounts() {
+  return {
+    scanned: 0,
+    matched: 0,
+    unmatched: 0,
+    archived: 0,
+    conflict: 0,
+    missing_name: 0,
+    already_assigned: 0,
+    updated: 0,
+  };
+}
+
+function classifyTransactionProvider(
+  transaction: Doc<"transacciones">,
+  providersByName: ReadonlyMap<string, readonly Doc<"proveedores">[]>,
+): ProviderSyncRow {
+  const providerName = transaction.proveedor?.trim() || "";
+  const match = classifyTransactionProviderMatch(
+    providerName,
+    transaction.proveedor_id,
+    providersByName,
+  );
+  return {
+    status: match.status,
+    providerName: providerName || "Sin nombre de proveedor",
+    normalizedName: match.normalized,
+    providerId: transaction.proveedor_id || match.provider?._id,
+    matchedProviderName: match.provider?.razon_social,
+    candidateNames: match.matches.map((provider) => provider.razon_social),
+  };
+}
+
+function groupProviderSyncRows(rows: ProviderSyncRow[]) {
+  const groups = new Map<string, ProviderSyncRow & { transaction_count: number }>();
+  for (const row of rows) {
+    const key = [row.status, row.normalizedName, row.providerId || ""].join("|");
+    const current = groups.get(key);
+    if (current) {
+      current.transaction_count += 1;
+      continue;
+    }
+    groups.set(key, { ...row, transaction_count: 1 });
+  }
+  return [...groups.values()].map((group) => ({
+    status: group.status,
+    provider_name: group.providerName,
+    normalized_name: group.normalizedName,
+    provider_id: group.providerId,
+    matched_provider_name: group.matchedProviderName,
+    candidate_names: group.candidateNames,
+    transaction_count: group.transaction_count,
+  }));
+}
+
+async function assertProviderSyncScope(
+  ctx: QueryCtx | MutationCtx,
+  projectId?: Id<"desarrollos">,
+) {
+  await assertAdmin(ctx);
+  if (projectId && !(await ctx.db.get(projectId))) {
+    throw new Error("El proyecto seleccionado ya no existe.");
+  }
+}
+
+async function getProviderSyncPage(
+  ctx: QueryCtx | MutationCtx,
+  projectId: Id<"desarrollos"> | undefined,
+  cursor: string | null,
+) {
+  const paginationOpts = { cursor, numItems: PROVIDER_SYNC_PAGE_SIZE };
+  return projectId
+    ? await ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", projectId))
+        .order("asc")
+        .paginate(paginationOpts)
+    : await ctx.db
+        .query("transacciones")
+        .order("asc")
+        .paginate(paginationOpts);
+}
 
 function assertTransactionTotal(montoTotal: number, lineItems: Array<{ monto: number }>) {
   if (!Number.isFinite(montoTotal)) throw new Error("El monto total no es válido.");
@@ -453,6 +946,137 @@ export const assignProviderBulk = baseMutation({
       });
     }
     return { updated: transactions.length };
+  },
+});
+
+export const previewProviderSyncPage = query({
+  args: {
+    proyecto_id: v.optional(v.id("desarrollos")),
+    cursor: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, args) => {
+    await assertProviderSyncScope(ctx, args.proyecto_id);
+    const [page, providers] = await Promise.all([
+      getProviderSyncPage(ctx, args.proyecto_id, args.cursor),
+      ctx.db.query("proveedores").collect(),
+    ]);
+    const providersByName = buildProviderMatchIndex(providers);
+    const rows = page.page.map((transaction) =>
+      classifyTransactionProvider(transaction, providersByName)
+    );
+    const counts = emptyProviderSyncCounts();
+    counts.scanned = rows.length;
+    for (const row of rows) counts[row.status] += 1;
+
+    return {
+      counts,
+      groups: groupProviderSyncRows(rows),
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
+  },
+});
+
+export const syncProvidersPage = baseMutation({
+  args: {
+    proyecto_id: v.optional(v.id("desarrollos")),
+    cursor: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, args) => {
+    await assertProviderSyncScope(ctx, args.proyecto_id);
+    const [page, providers] = await Promise.all([
+      getProviderSyncPage(ctx, args.proyecto_id, args.cursor),
+      ctx.db.query("proveedores").collect(),
+    ]);
+    const providersByName = buildProviderMatchIndex(providers);
+    const rows: ProviderSyncRow[] = [];
+    const counts = emptyProviderSyncCounts();
+    counts.scanned = page.page.length;
+
+    for (const transaction of page.page) {
+      const row = classifyTransactionProvider(transaction, providersByName);
+      rows.push(row);
+      counts[row.status] += 1;
+      if (row.status !== "matched" || !row.providerId) continue;
+      await ctx.db.patch(transaction._id, { proveedor_id: row.providerId });
+      counts.updated += 1;
+    }
+
+    return {
+      counts,
+      groups: groupProviderSyncRows(rows),
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
+  },
+});
+
+export const previewProviderExcelSync = query({
+  args: {
+    proyecto_id: v.optional(v.id("desarrollos")),
+    candidates: v.array(providerExcelCandidateValidator),
+  },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    return summarizeProviderExcelResolutions(
+      await resolveProviderExcelCandidates(ctx, args.proyecto_id, args.candidates),
+    );
+  },
+});
+
+export const syncProvidersFromExcel = baseMutation({
+  args: {
+    proyecto_id: v.optional(v.id("desarrollos")),
+    candidates: v.array(providerExcelCandidateValidator),
+  },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    const user = await getCurrentUserOrThrow(ctx);
+    const resolutions = await resolveProviderExcelCandidates(
+      ctx,
+      args.proyecto_id,
+      args.candidates,
+    );
+    const report = summarizeProviderExcelResolutions(resolutions);
+    const createdProviders = new Map<string, Id<"proveedores">>();
+
+    for (const resolution of resolutions) {
+      if (
+        !resolution.transactions?.length ||
+        (resolution.status !== "ready_existing_provider" &&
+          resolution.status !== "ready_new_provider")
+      ) continue;
+
+      let providerId = resolution.provider?._id;
+      if (!providerId) {
+        const normalizedName = normalizeProviderName(resolution.candidate.provider_name);
+        providerId = createdProviders.get(normalizedName);
+        if (!providerId) {
+          providerId = await ctx.db.insert("proveedores", {
+            razon_social: resolution.candidate.provider_name.trim(),
+            razon_social_normalizada: normalizedName,
+            tipo: isGenericProviderName(resolution.candidate.provider_name)
+              ? "generico"
+              : "regular",
+            created_by: user._id,
+            created_at: Date.now(),
+            updated_at: Date.now(),
+          });
+          createdProviders.set(normalizedName, providerId);
+          report.counts.providers_created += 1;
+        }
+      }
+
+      for (const transaction of resolution.transactions) {
+        await ctx.db.patch(transaction._id, {
+          proveedor: resolution.candidate.provider_name.trim(),
+          proveedor_id: providerId,
+        });
+        report.counts.updated += 1;
+      }
+    }
+
+    return report;
   },
 });
 

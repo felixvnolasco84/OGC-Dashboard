@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { Archive, Edit2, Merge, MoreVertical, Plus, RotateCcw, Search } from "lucide-react";
+import { Archive, Edit2, FileSpreadsheet, Merge, MoreVertical, Plus, RefreshCw, RotateCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,8 @@ import {
 import ProviderFormDialog, {
   type ProviderWithMeta,
 } from "@/components/providers/ProviderFormDialog";
+import ProviderTransactionSyncDialog from "@/components/providers/ProviderTransactionSyncDialog";
+import ProviderExcelBackfillDialog from "@/components/providers/ProviderExcelBackfillDialog";
 
 type ProviderRow = ProviderWithMeta & {
   transaccionesCount: number;
@@ -48,6 +50,8 @@ export default function ProveedoresTablePage() {
   const [editingProvider, setEditingProvider] = useState<ProviderRow | null>(null);
   const [mergeSource, setMergeSource] = useState<ProviderRow | null>(null);
   const [mergeTarget, setMergeTarget] = useState<Id<"proveedores"> | "">("");
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [excelBackfillOpen, setExcelBackfillOpen] = useState(false);
 
   const providers = useQuery(api.proveedores.getAllWithStats, {
     include_archived: true,
@@ -135,12 +139,18 @@ export default function ProveedoresTablePage() {
     <div className="min-h-screen bg-white">
       <div className="flex flex-col gap-5 px-12 py-8">
         <div className="flex items-start justify-between">
-          <div>
+          <div className="text-left">
             <h1 className="mb-2 text-3xl font-normal text-gray-900">Proveedores</h1>
             <p className="text-sm text-gray-500">Catálogo global vinculado directamente a transacciones y requisiciones.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Badge variant="outline" className="rounded-none px-4 py-2">Total: {filtered.length}</Badge>
+            <Button variant="outline" onClick={() => setExcelBackfillOpen(true)}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" /> Actualizar desde Excel
+            </Button>
+            <Button variant="outline" onClick={() => setSyncOpen(true)}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Sincronizar transacciones
+            </Button>
             <Button
               onClick={() => {
                 setEditingProvider(null);
@@ -236,6 +246,24 @@ export default function ProveedoresTablePage() {
         </table>
       </div>
 
+      <ProviderTransactionSyncDialog
+        open={syncOpen}
+        onOpenChange={setSyncOpen}
+        projects={(proyectos || []).map((project) => ({
+          _id: project._id,
+          nombre: project.nombre,
+        }))}
+        initialProjectId={selectedProyecto || undefined}
+      />
+      <ProviderExcelBackfillDialog
+        open={excelBackfillOpen}
+        onOpenChange={setExcelBackfillOpen}
+        projects={(proyectos || []).map((project) => ({
+          _id: project._id,
+          nombre: project.nombre,
+        }))}
+        initialProjectId={selectedProyecto || undefined}
+      />
       <ProviderFormDialog open={formOpen} onOpenChange={setFormOpen} provider={editingProvider} />
       <Dialog open={Boolean(mergeSource)} onOpenChange={(open) => !open && setMergeSource(null)}>
         <DialogContent>

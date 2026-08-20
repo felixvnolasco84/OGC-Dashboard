@@ -1333,6 +1333,25 @@ export default function SidebarComponent() {
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
+                      tooltip="Proveedores"
+                      className={cn(
+                        "px-3 py-2 text-sm transition-colors",
+                        isActive("/proveedores")
+                          ? "text-gray-900 bg-gray-100 font-medium"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      )}
+                    >
+                      <Link to="/proveedores">
+                        <Users className="w-4 h-4" />
+                        <span className="flex items-center justify-between w-full">
+                          Proveedores
+                        </span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
                       tooltip="Documentos"
                       className={cn(
                         "px-3 py-2 text-sm transition-colors",

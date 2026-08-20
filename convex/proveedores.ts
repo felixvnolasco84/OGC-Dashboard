@@ -9,6 +9,8 @@ import {
   getCurrentUserOrThrow,
 } from "./permissions";
 import {
+  buildProviderMatchIndex,
+  classifyProviderMatch,
   cleanOptional,
   isGenericProviderName,
   isProviderComplete,
@@ -215,26 +217,18 @@ export const matchByNames = query({
   args: { names: v.array(v.string()) },
   handler: async (ctx, args) => {
     await getCurrentUserOrThrow(ctx);
+    const providersByName = buildProviderMatchIndex(
+      await ctx.db.query("proveedores").collect(),
+    );
     const results = [];
     for (const name of [...new Set(args.names.map((value) => value.trim()).filter(Boolean))]) {
-      const normalized = normalizeProviderName(name);
-      const matches = (await findByNormalizedName(ctx, normalized)).filter(
-        (provider: Doc<"proveedores">) => !provider.merged_into
-      );
-      const active = matches.filter((provider: Doc<"proveedores">) => !provider.archived_at);
-      const status = active.length === 1
-        ? "matched"
-        : active.length > 1
-          ? "conflict"
-          : matches.length > 0
-            ? "archived"
-            : "new";
+      const match = classifyProviderMatch(name, providersByName);
       results.push({
         name,
-        normalized,
-        status,
-        provider_id: active.length === 1 ? active[0]._id : undefined,
-        matches: matches.map((provider: Doc<"proveedores">) => ({
+        normalized: match.normalized,
+        status: match.status === "unmatched" ? "new" as const : match.status,
+        provider_id: match.provider?._id,
+        matches: match.matches.map((provider) => ({
           _id: provider._id,
           razon_social: provider.razon_social,
           archived: Boolean(provider.archived_at),

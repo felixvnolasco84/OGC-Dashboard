@@ -46,6 +46,17 @@ function searchDate(value: string | null) {
     return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
+function formatTransactionDate(value: string) {
+    const parts = value.split("/").map(Number);
+    if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) return value;
+    const [day, month, year] = parts;
+    return new Intl.DateTimeFormat("es-MX", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    }).format(new Date(year, month - 1, day));
+}
+
 export default function ProyectoTransaccionesTablePage() {
 
     const uploadProjectTransactionsModal = useUploadProjectTransactionsModal();
@@ -666,7 +677,7 @@ export default function ProyectoTransaccionesTablePage() {
                                                     </span>
                                                     {transaccion.fecha && (
                                                         <span className="text-xs text-gray-400">
-                                                            Subido el {(() => {
+                                                            Fecha registrada: {(() => {
                                                                 const parts = transaccion.fecha.split("/");
                                                                 if (parts.length === 3) {
                                                                     const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -709,13 +720,7 @@ export default function ProyectoTransaccionesTablePage() {
                                         </td>
                                         {/* Fecha */}
                                         <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
-                                            {transaccion.fecha
-                                                ? new Date(transaccion.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
-                                                    day: "2-digit",
-                                                    month: "short",
-                                                    year: "numeric",
-                                                })
-                                                : "-"}
+                                            {transaccion.fecha ? formatTransactionDate(transaccion.fecha) : "-"}
                                         </td>
                                         {/* Tipo de Pago */}
                                         <td className="px-6 py-4 text-sm text-gray-900 uppercase border-r border-gray-200">
