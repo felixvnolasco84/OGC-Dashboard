@@ -42,14 +42,14 @@ const STATUS_META: Record<AssistantAnswer["overall_status"], { label: string; cl
   on_track: { label: "En curso", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
   attention: { label: "Requiere atención", className: "border-amber-200 bg-amber-50 text-amber-700" },
   critical: { label: "Crítico", className: "border-red-200 bg-red-50 text-red-700" },
-  insufficient_data: { label: "Datos insuficientes", className: "border-gray-200 bg-gray-50 text-gray-600" },
+  insufficient_data: { label: "Datos insuficientes", className: "border-border bg-background text-muted-foreground" },
 };
 
 const ANSWER_STATUS_META: Record<AssistantAnswer["answer_status"], { label: string; className: string }> = {
   answered: { label: "Respondido", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
   partial: { label: "Respuesta parcial", className: "border-amber-200 bg-amber-50 text-amber-700" },
   ambiguous: { label: "Requiere precisión", className: "border-blue-200 bg-blue-50 text-blue-700" },
-  insufficient_data: { label: "Datos insuficientes", className: "border-gray-200 bg-gray-50 text-gray-600" },
+  insufficient_data: { label: "Datos insuficientes", className: "border-border bg-background text-muted-foreground" },
 };
 
 function newRequestId() {
@@ -112,16 +112,16 @@ function AnswerView({ answer, onFollowUp }: { answer: AssistantAnswer; onFollowU
           </Badge>
         )}
       </div>
-      <p className="whitespace-pre-wrap text-sm leading-6 text-gray-800">{answer.summary}</p>
+      <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{answer.summary}</p>
 
       {answer.metrics.length > 0 && (
         <section>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Indicadores</h4>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-disabled-foreground">Indicadores</h4>
           <div className="grid grid-cols-2 gap-2">
             {answer.metrics.map((metric, index) => (
-              <div key={`${metric.label}-${index}`} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500">{metric.label}<EvidenceCitations ids={metric.evidence_ids} evidence={evidence} /></p>
-                <p className="mt-1 text-sm font-semibold text-gray-900">{metric.value}</p>
+              <div key={`${metric.label}-${index}`} className="rounded-xl border border-border bg-background p-3">
+                <p className="text-xs text-subtle-foreground">{metric.label}<EvidenceCitations ids={metric.evidence_ids} evidence={evidence} /></p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{metric.value}</p>
               </div>
             ))}
           </div>
@@ -130,15 +130,15 @@ function AnswerView({ answer, onFollowUp }: { answer: AssistantAnswer; onFollowU
 
       {answer.risks.length > 0 && (
         <section>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Riesgos y atención</h4>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-disabled-foreground">Riesgos y atención</h4>
           <div className="space-y-2">
             {answer.risks.map((risk, index) => (
               <div key={`${risk.title}-${index}`} className="rounded-xl border border-amber-100 bg-amber-50/60 p-3">
                 <div className="flex items-start gap-2">
                   <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{risk.title}<EvidenceCitations ids={risk.evidence_ids} evidence={evidence} /></p>
-                    <p className="mt-1 text-xs leading-5 text-gray-600">{risk.detail}</p>
+                    <p className="text-sm font-medium text-foreground">{risk.title}<EvidenceCitations ids={risk.evidence_ids} evidence={evidence} /></p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{risk.detail}</p>
                   </div>
                 </div>
               </div>
@@ -149,11 +149,11 @@ function AnswerView({ answer, onFollowUp }: { answer: AssistantAnswer; onFollowU
 
       {answer.recommendations.length > 0 && (
         <section>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Próximos pasos sugeridos</h4>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-disabled-foreground">Próximos pasos sugeridos</h4>
           <ol className="space-y-2">
             {answer.recommendations.map((recommendation, index) => (
-              <li key={`${recommendation.action}-${index}`} className="flex gap-2 text-sm leading-5 text-gray-700">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-900 text-[10px] text-white">{index + 1}</span>
+              <li key={`${recommendation.action}-${index}`} className="flex gap-2 text-sm leading-5 text-foreground">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-inverse text-[10px] text-on-color">{index + 1}</span>
                 <span>{recommendation.action}<EvidenceCitations ids={recommendation.evidence_ids} evidence={evidence} /></span>
               </li>
             ))}
@@ -162,16 +162,16 @@ function AnswerView({ answer, onFollowUp }: { answer: AssistantAnswer; onFollowU
       )}
 
       {answer.evidence.length > 0 && (
-        <details className="group rounded-xl border border-gray-100 bg-white p-3">
-          <summary className="cursor-pointer list-none text-xs font-medium text-gray-600">
+        <details className="group rounded-xl border border-border bg-card p-3">
+          <summary className="cursor-pointer list-none text-xs font-medium text-muted-foreground">
             Evidencia consultada ({answer.evidence.length})
           </summary>
           <div className="mt-3 space-y-1.5">
             {answer.evidence.map((item) => (
-              <a key={item.id} href={item.url} className="flex items-start justify-between gap-3 rounded-lg px-2 py-2 text-xs text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+              <a key={item.id} href={item.url} className="flex items-start justify-between gap-3 rounded-lg px-2 py-2 text-xs text-muted-foreground hover:bg-background hover:text-foreground">
                 <span>
                   <span className="block font-medium">{item.label}</span>
-                  <span className="text-gray-400">{item.observed_value || item.as_of}</span>
+                  <span className="text-disabled-foreground">{item.observed_value || item.as_of}</span>
                 </span>
                 <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               </a>
@@ -181,17 +181,17 @@ function AnswerView({ answer, onFollowUp }: { answer: AssistantAnswer; onFollowU
       )}
 
       {answer.limitations.length > 0 && (
-        <div className="rounded-xl bg-gray-50 p-3 text-xs leading-5 text-gray-500">
+        <div className="rounded-xl bg-background p-3 text-xs leading-5 text-subtle-foreground">
           {answer.limitations.map((limitation, index) => <p key={`${limitation}-${index}`}>{limitation}</p>)}
         </div>
       )}
 
       {answer.follow_up_prompts.length > 0 && (
         <section>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Puedes continuar con</h4>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-disabled-foreground">Puedes continuar con</h4>
           <div className="space-y-2">
             {answer.follow_up_prompts.map((prompt) => (
-              <button key={prompt} type="button" onClick={() => onFollowUp(prompt)} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-left text-xs leading-5 text-gray-600 transition hover:border-gray-300 hover:bg-gray-50">
+              <button key={prompt} type="button" onClick={() => onFollowUp(prompt)} className="w-full rounded-xl border border-border px-3 py-2 text-left text-xs leading-5 text-muted-foreground transition hover:border-border-strong hover:bg-background">
                 {prompt}
               </button>
             ))}
@@ -284,7 +284,7 @@ export default function ProjectAssistantPanel({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[640px]">
-        <SheetHeader className="shrink-0 border-b border-gray-100 px-5 py-4 pr-12 text-left">
+        <SheetHeader className="shrink-0 border-b border-border px-5 py-4 pr-12 text-left">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               {showHistory && (
@@ -292,7 +292,7 @@ export default function ProjectAssistantPanel({
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               )}
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-900 text-white">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-inverse text-on-color">
                 <Sparkles className="h-4 w-4" />
               </span>
               <div className="min-w-0">
@@ -312,7 +312,7 @@ export default function ProjectAssistantPanel({
                 <Plus className="h-4 w-4" />
               </Button>
               {activeConversationId && !showHistory && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500" onClick={archiveCurrent} aria-label="Archivar conversación">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-subtle-foreground" onClick={archiveCurrent} aria-label="Archivar conversación">
                   <Archive className="h-4 w-4" />
                 </Button>
               )}
@@ -326,9 +326,9 @@ export default function ProjectAssistantPanel({
               <Plus className="h-4 w-4" /> Nuevo chat
             </Button>
             {conversations === undefined ? (
-              <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+              <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-disabled-foreground" /></div>
             ) : conversations.length === 0 ? (
-              <p className="py-12 text-center text-sm text-gray-500">Todavía no tienes conversaciones.</p>
+              <p className="py-12 text-center text-sm text-subtle-foreground">Todavía no tienes conversaciones.</p>
             ) : (
               <div className="space-y-2">
                 {conversations.map((conversation) => (
@@ -340,10 +340,10 @@ export default function ProjectAssistantPanel({
                       setShowHistory(false);
                       setLocalTurn(undefined);
                     }}
-                    className="w-full rounded-xl border border-gray-100 p-3 text-left transition hover:border-gray-200 hover:bg-gray-50"
+                    className="w-full rounded-xl border border-border p-3 text-left transition hover:border-border hover:bg-background"
                   >
-                    <p className="truncate text-sm font-medium text-gray-800">{conversation.title}</p>
-                    <p className="mt-1 text-xs text-gray-400">{formatConversationDate(conversation.updated_at)}</p>
+                    <p className="truncate text-sm font-medium text-foreground">{conversation.title}</p>
+                    <p className="mt-1 text-xs text-disabled-foreground">{formatConversationDate(conversation.updated_at)}</p>
                   </button>
                 ))}
               </div>
@@ -355,35 +355,35 @@ export default function ProjectAssistantPanel({
               {!activeConversationId && !localTurn ? (
                 <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center py-6">
                   <div className="mb-6 text-center">
-                    <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-700">
+                    <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-foreground">
                       <Bot className="h-6 w-6" />
                     </span>
-                    <h3 className="text-lg font-medium text-gray-900">¿Qué quieres revisar?</h3>
-                    <p className="mt-2 text-sm leading-6 text-gray-500">Puedo sintetizar el estado, comparar hasta tres proyectos y localizar pendientes respaldados por datos.</p>
+                    <h3 className="text-lg font-medium text-foreground">¿Qué quieres revisar?</h3>
+                    <p className="mt-2 text-sm leading-6 text-subtle-foreground">Puedo sintetizar el estado, comparar hasta tres proyectos y localizar pendientes respaldados por datos.</p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {STARTER_PROMPTS.map((prompt) => (
-                      <button key={prompt} type="button" onClick={() => { setText(prompt); setReferences([]); }} className="rounded-xl border border-gray-200 p-3 text-left text-sm leading-5 text-gray-600 transition hover:border-gray-300 hover:bg-gray-50">
+                      <button key={prompt} type="button" onClick={() => { setText(prompt); setReferences([]); }} className="rounded-xl border border-border p-3 text-left text-sm leading-5 text-muted-foreground transition hover:border-border-strong hover:bg-background">
                         {prompt}
                       </button>
                     ))}
                   </div>
-                  <div className="mt-5 flex items-center justify-center gap-2 text-xs text-gray-400">
+                  <div className="mt-5 flex items-center justify-center gap-2 text-xs text-disabled-foreground">
                     <ShieldCheck className="h-3.5 w-3.5" /> No modifica registros ni consulta fuentes externas
                   </div>
                 </div>
               ) : (
                 <div className="space-y-6">
                   {messages === undefined && activeConversationId ? (
-                    <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+                    <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-disabled-foreground" /></div>
                   ) : messages?.map((message) => (
                     <div key={message._id} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
                       {message.role === "user" ? (
-                        <div className="max-w-[86%] rounded-2xl rounded-br-md bg-gray-900 px-4 py-3 text-sm leading-6 text-white">{message.content}</div>
+                        <div className="max-w-[86%] rounded-2xl rounded-br-md bg-inverse px-4 py-3 text-sm leading-6 text-on-color">{message.content}</div>
                       ) : (
-                        <div className="w-full rounded-2xl rounded-bl-md border border-gray-100 bg-white p-4 shadow-sm">
+                        <div className="w-full rounded-2xl rounded-bl-md border border-border bg-card p-4 shadow-sm">
                           {message.status === "pending" ? (
-                            <div className="flex items-center gap-3 py-2 text-sm text-gray-500"><Loader2 className="h-4 w-4 animate-spin" /> Consultando datos del proyecto...</div>
+                            <div className="flex items-center gap-3 py-2 text-sm text-subtle-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Consultando datos del proyecto...</div>
                           ) : message.status === "failed" ? (
                             <div className="space-y-3">
                               <p className="text-sm text-red-700">{message.error || "No fue posible generar la respuesta."}</p>
@@ -399,7 +399,7 @@ export default function ProjectAssistantPanel({
                           ) : message.answer ? (
                             <AnswerView answer={message.answer as AssistantAnswer} onFollowUp={(prompt) => { setText(prompt); setReferences([]); }} />
                           ) : (
-                            <p className="text-sm text-gray-700">{message.content}</p>
+                            <p className="text-sm text-foreground">{message.content}</p>
                           )}
                         </div>
                       )}
@@ -409,9 +409,9 @@ export default function ProjectAssistantPanel({
                   {localTurn && (!activeConversationId || localTurn.failed) && (
                     <>
                       <div className="flex justify-end">
-                        <div className="max-w-[86%] rounded-2xl rounded-br-md bg-gray-900 px-4 py-3 text-sm leading-6 text-white">{localTurn.text}</div>
+                        <div className="max-w-[86%] rounded-2xl rounded-br-md bg-inverse px-4 py-3 text-sm leading-6 text-on-color">{localTurn.text}</div>
                       </div>
-                      <div className="rounded-2xl rounded-bl-md border border-gray-100 bg-white p-4 shadow-sm">
+                      <div className="rounded-2xl rounded-bl-md border border-border bg-card p-4 shadow-sm">
                         {localTurn.failed ? (
                           <div className="space-y-3">
                             <p className="text-sm text-red-700">La respuesta falló. El mensaje quedó guardado si el servidor alcanzó a iniciar la conversación.</p>
@@ -420,7 +420,7 @@ export default function ProjectAssistantPanel({
                             </Button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-3 py-2 text-sm text-gray-500"><Loader2 className="h-4 w-4 animate-spin" /> Consultando datos del proyecto...</div>
+                          <div className="flex items-center gap-3 py-2 text-sm text-subtle-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Consultando datos del proyecto...</div>
                         )}
                       </div>
                     </>
@@ -430,7 +430,7 @@ export default function ProjectAssistantPanel({
               )}
             </div>
 
-            <div className="shrink-0 border-t border-gray-100 bg-white p-4">
+            <div className="shrink-0 border-t border-border bg-card p-4">
               <AssistantComposer
                 value={text}
                 references={references}

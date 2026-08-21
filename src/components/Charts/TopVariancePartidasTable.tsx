@@ -62,12 +62,12 @@ export default function TopVariancePartidasTable({
 }: TopVariancePartidasTableProps) {
     return (
         <section className="w-full mt-8">
-            <h2 className="text-lg font-normal tracking-normal text-[#2f302c] mb-5">
+            <h2 className="text-lg font-normal tracking-normal text-foreground mb-5">
                 TOP 5 PARTIDAS CON MAYOR VARIANZA
             </h2>
 
-            <div className="overflow-x-auto border border-[#dddcd8] bg-[#FCFCFC]">
-                <table className="w-full min-w-[800px] table-fixed border-collapse text-[#2f302c]">
+            <div className="overflow-x-auto border border-border bg-card">
+                <table className="w-full min-w-[800px] table-fixed border-collapse text-foreground">
                     <colgroup>
                         <col className="w-[42%]" />
                         <col className="w-[18%]" />
@@ -76,7 +76,7 @@ export default function TopVariancePartidasTable({
                         <col className="w-[7%]" />
                     </colgroup>
                     <thead>
-                        <tr className="border-b border-[#dddcd8] text-sm font-normal text-[#83837d]">
+                        <tr className="border-b border-border text-sm font-normal text-muted-foreground">
                             <th className="px-6 py-4 text-left font-normal">Partida</th>
                             <th className="px-6 py-4 text-left font-normal">Presupuesto</th>
                             <th className="px-6 py-4 text-left font-normal">Pagado</th>
@@ -87,19 +87,19 @@ export default function TopVariancePartidasTable({
                     <tbody>
                         {isLoading ? (
                             <tr>
-                                <td className="px-6 py-10 text-left text-sm text-[#777770]" colSpan={5}>
+                                <td className="px-6 py-10 text-left text-sm text-muted-foreground" colSpan={5}>
                                     Cargando partidas...
                                 </td>
                             </tr>
                         ) : rows.length === 0 ? (
                             <tr>
-                                <td className="px-6 py-10 text-left text-sm text-[#777770]" colSpan={5}>
+                                <td className="px-6 py-10 text-left text-sm text-muted-foreground" colSpan={5}>
                                     Sin partidas para mostrar
                                 </td>
                             </tr>
                         ) : (
                             rows.map((row, index) => (
-                                <tr key={row.id ?? `${row.partida}-${index}`} className="border-b border-[#dddcd8] last:border-b-0">
+                                <tr key={row.id ?? `${row.partida}-${index}`} className="border-b border-border last:border-b-0">
                                     <td className="px-6 py-6 text-base  font-normal leading-snug text-left">
                                         <span className="block max-w-full truncate" title={row.partida}>
                                             {row.partida}

@@ -253,7 +253,7 @@ export default function FamiliaChart({
     );
 
     return (
-        <div className="familia-chart w-full h-full relative bg-[#FCFCFC] p-8 md:p-10 rounded-md border border-[#e4e2dc]">
+        <div className="familia-chart w-full h-full relative bg-card p-8 md:p-10 rounded-md border border-border">
             <style>
                 {`
                     .familia-chart .Axis .domain,
@@ -262,14 +262,14 @@ export default function FamiliaChart({
                     }
 
                     .familia-chart .Axis .grid line {
-                        stroke: #EAEAEA !important;
+                        stroke: hsl(var(--border)) !important;
                         stroke-width: 1;
                         stroke-dasharray: 6 8;
                         stroke-linecap: round;
                     }
 
                     .familia-chart .Axis text.tickLabel {
-                        fill: #777770 !important;
+                        fill: hsl(var(--muted-foreground)) !important;
                         font-size: 12px !important;
                         font-weight: 400;
                     }
@@ -282,20 +282,20 @@ export default function FamiliaChart({
             {/* Header with title and total */}
             <div className="mb-8 text-left space-y-8">
                 <div className="flex items-start justify-between">
-                    <h3 className="text-2xl md:text-xl leading-tight font-normal text-[#2f302c] mb-1">{title}</h3>
+                    <h3 className="text-2xl md:text-xl leading-tight font-normal text-foreground mb-1">{title}</h3>
                     {onConfigClick && (
                         <button
                             onClick={onConfigClick}
                             className="p-2 hover:bg-[#eeece6] rounded-md transition-colors"
                             title="Configurar gráfica"
                         >
-                            <Settings className="w-5 h-5 text-[#4f5a64]" />
+                            <Settings className="w-5 h-5 text-muted-foreground" />
                         </button>
                     )}
                 </div>
                 <div className="flex flex-col items-baseline">
-                    <span className="text-xs text-[#777770]">Total</span>
-                    <span className="text-lg leading-tight text-[#2f302c]">{formatNumber(total)}</span>
+                    <span className="text-xs text-muted-foreground">Total</span>
+                    <span className="text-lg leading-tight text-foreground">{formatNumber(total)}</span>
                 </div>
             </div>
 
@@ -303,7 +303,7 @@ export default function FamiliaChart({
             <div className="w-full" style={{ height: `${height}px` }}>
                 {transformedData.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center">
-                        <div className="text-gray-400 mb-2">
+                        <div className="text-disabled-foreground mb-2">
                             <svg
                                 className="w-16 h-16 mx-auto mb-4"
                                 fill="none"
@@ -318,8 +318,8 @@ export default function FamiliaChart({
                                 />
                             </svg>
                         </div>
-                        <p className="text-sm text-gray-500 font-medium">Sin datos para mostrar</p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-sm text-subtle-foreground font-medium">Sin datos para mostrar</p>
+                        <p className="text-xs text-disabled-foreground mt-1">
                             Ajusta los filtros para ver información
                         </p>
                     </div>

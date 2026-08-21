@@ -198,16 +198,16 @@ function OrganizationProjectGroups({
                   tooltip={group.title}
                   className="h-auto min-h-10 items-start py-2"
                 >
-                  <Users className="mt-0.5 h-4 w-4 text-gray-500" />
+                  <Users className="mt-0.5 h-4 w-4 text-subtle-foreground" />
                   <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-                    <span className="w-full truncate text-sm font-medium text-gray-800">
+                    <span className="w-full truncate text-sm font-medium text-foreground">
                       {group.title}
                     </span>
-                    <span className="w-full truncate text-xs font-normal text-gray-500">
+                    <span className="w-full truncate text-xs font-normal text-subtle-foreground">
                       {group.subtitle}
                     </span>
                   </span>
-                  <ChevronRight className="ml-auto mt-0.5 h-4 w-4 text-gray-400 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                  <ChevronRight className="ml-auto mt-0.5 h-4 w-4 text-disabled-foreground transition-transform group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
               </CollapsibleTrigger>
               <CollapsibleContent>
@@ -338,7 +338,7 @@ function ProjectDocumentFolderNavigation({
             {childFolderCounts.has("root") ? (
               <button
                 type="button"
-                className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                className="flex size-6 shrink-0 items-center justify-center rounded-sm text-disabled-foreground hover:bg-disabled hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                 onClick={() => toggleFolder("root")}
                 aria-expanded={!collapsedFolderIds.has("root")}
                 aria-label={`${collapsedFolderIds.has("root") ? "Expandir" : "Colapsar"} Biblioteca`}
@@ -361,7 +361,7 @@ function ProjectDocumentFolderNavigation({
             >
               <FolderOpen className="size-4 shrink-0" />
               <span className="truncate">Biblioteca</span>
-              <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+              <span className="ml-auto text-[10px] tabular-nums text-disabled-foreground">
                 {getItemCount("root")}
               </span>
             </button>
@@ -370,11 +370,11 @@ function ProjectDocumentFolderNavigation({
       </SidebarMenuSubItem>
 
       {!collapsedFolderIds.has("root") && (isLoading ? (
-        <SidebarMenuSubItem className="px-2 py-1 text-xs text-gray-400">
+        <SidebarMenuSubItem className="px-2 py-1 text-xs text-disabled-foreground">
           Cargando carpetas...
         </SidebarMenuSubItem>
       ) : flattenedFolders.length === 0 ? (
-        <SidebarMenuSubItem className="px-2 py-1 text-xs text-gray-400">
+        <SidebarMenuSubItem className="px-2 py-1 text-xs text-disabled-foreground">
           Sin carpetas
         </SidebarMenuSubItem>
       ) : (
@@ -396,7 +396,7 @@ function ProjectDocumentFolderNavigation({
                   {hasChildren ? (
                     <button
                       type="button"
-                      className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                      className="flex size-6 shrink-0 items-center justify-center rounded-sm text-disabled-foreground hover:bg-disabled hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                       onClick={() => toggleFolder(folder._id)}
                       aria-expanded={isExpanded}
                       aria-label={`${isExpanded ? "Colapsar" : "Expandir"} ${folder.nombre}`}
@@ -420,7 +420,7 @@ function ProjectDocumentFolderNavigation({
                   >
                     <Folder className="size-4 shrink-0" />
                     <span className="truncate">{folder.nombre}</span>
-                    <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+                    <span className="ml-auto text-[10px] tabular-nums text-disabled-foreground">
                       {getItemCount(folder._id)}
                     </span>
                   </button>
@@ -577,7 +577,7 @@ function ProjectPlanFolderNavigation({
             {(navigation.childCounts.get("root") || 0) > 0 ? (
               <button
                 type="button"
-                className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                className="flex size-6 shrink-0 items-center justify-center rounded-sm text-disabled-foreground hover:bg-disabled hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                 onClick={() => toggleFolder("root")}
                 aria-expanded={!collapsedFolderKeys.has("root")}
                 aria-label={`${collapsedFolderKeys.has("root") ? "Expandir" : "Colapsar"} Biblioteca de planos`}
@@ -599,7 +599,7 @@ function ProjectPlanFolderNavigation({
             >
               <FolderOpen className="size-4 shrink-0" />
               <span className="truncate">Biblioteca</span>
-              <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+              <span className="ml-auto text-[10px] tabular-nums text-disabled-foreground">
                 {navigation.getItemCount("root")}
               </span>
             </button>
@@ -608,11 +608,11 @@ function ProjectPlanFolderNavigation({
       </SidebarMenuSubItem>
 
       {!collapsedFolderKeys.has("root") && (isLoading ? (
-        <SidebarMenuSubItem className="px-2 py-1 text-xs text-gray-400">
+        <SidebarMenuSubItem className="px-2 py-1 text-xs text-disabled-foreground">
           Cargando carpetas...
         </SidebarMenuSubItem>
       ) : navigation.flattenedNodes.length === 0 ? (
-        <SidebarMenuSubItem className="px-2 py-1 text-xs text-gray-400">
+        <SidebarMenuSubItem className="px-2 py-1 text-xs text-disabled-foreground">
           Sin carpetas
         </SidebarMenuSubItem>
       ) : (
@@ -631,7 +631,7 @@ function ProjectPlanFolderNavigation({
                   {hasChildren ? (
                     <button
                       type="button"
-                      className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                      className="flex size-6 shrink-0 items-center justify-center rounded-sm text-disabled-foreground hover:bg-disabled hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                       onClick={() => toggleFolder(node.key)}
                       aria-expanded={isExpanded}
                       aria-label={`${isExpanded ? "Colapsar" : "Expandir"} ${node.name}`}
@@ -654,7 +654,7 @@ function ProjectPlanFolderNavigation({
                   >
                     <Folder className="size-4 shrink-0" />
                     <span className="truncate">{node.name}</span>
-                    <span className="ml-auto text-[10px] tabular-nums text-gray-400">
+                    <span className="ml-auto text-[10px] tabular-nums text-disabled-foreground">
                       {navigation.getItemCount(node.key)}
                     </span>
                   </button>
@@ -763,7 +763,7 @@ function RequisicionNotificationDot({
     ? "bg-green-500"
     : unreadSummary.hasUpdated
       ? "bg-blue-500"
-      : "bg-gray-400";
+      : "bg-disabled-foreground";
 
   return (
     <span
@@ -789,7 +789,7 @@ function GlobalTareaNotificationDot() {
       ? "bg-violet-500"
       : unreadSummary.hasUpdates
         ? "bg-amber-500"
-        : "bg-gray-400";
+        : "bg-disabled-foreground";
 
   return (
     <span
@@ -814,22 +814,22 @@ function SidebarUserCard({ role }: { role?: string }) {
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
-          className="w-full data-[state=open]:bg-gray-100"
+          className="w-full data-[state=open]:bg-muted"
         >
-          <div className="h-8 w-8 rounded-lg bg-gray-200 overflow-hidden shrink-0">
+          <div className="h-8 w-8 rounded-lg bg-disabled overflow-hidden shrink-0">
             {avatarUrl ? (
               <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
             ) : (
-              <div className="h-full w-full flex items-center justify-center text-xs font-medium text-gray-600">
+              <div className="h-full w-full flex items-center justify-center text-xs font-medium text-muted-foreground">
                 {displayName.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
           <div className="flex flex-col gap-0.5 leading-none text-left">
             <span className="font-semibold text-sm truncate">{displayName}</span>
-            <span className="text-xs text-gray-500 truncate">{email}</span>
+            <span className="text-xs text-subtle-foreground truncate">{email}</span>
           </div>
-          {/* <ChevronsUpDown className="ml-auto w-4 h-4 text-gray-400" /> */}
+          {/* <ChevronsUpDown className="ml-auto w-4 h-4 text-disabled-foreground" /> */}
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       {/* Dropdown menu user profile */}
@@ -841,18 +841,18 @@ function SidebarUserCard({ role }: { role?: string }) {
       >
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <div className="h-8 w-8 rounded-lg bg-gray-200 overflow-hidden shrink-0">
+            <div className="h-8 w-8 rounded-lg bg-disabled overflow-hidden shrink-0">
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
               ) : (
-                <div className="h-full w-full flex items-center justify-center text-xs font-medium text-gray-600">
+                <div className="h-full w-full flex items-center justify-center text-xs font-medium text-muted-foreground">
                   {displayName.charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
             <div className="flex flex-col gap-0.5 leading-none">
               <span className="font-semibold text-sm">{displayName}</span>
-              <span className="text-xs text-gray-500">{email}</span>
+              <span className="text-xs text-subtle-foreground">{email}</span>
             </div>
           </div>
         </DropdownMenuLabel>
@@ -1044,7 +1044,7 @@ export default function SidebarComponent() {
   }
 
   return (
-    <Sidebar collapsible="icon" className="bg-white border-r border-gray-200">
+    <Sidebar collapsible="icon" className="bg-card border-r border-border">
       {/* Header */}
       <SidebarHeader className="p-4 gap-3 group-data-[collapsible=icon]:p-2">
 
@@ -1062,14 +1062,14 @@ export default function SidebarComponent() {
                   size="lg"
                   tooltip={activeProject?.nombre || "Seleccionar proyecto"}
                   className={cn(
-                    "data-[state=open]:bg-gray-100",
+                    "data-[state=open]:bg-muted",
                     activeProject ? "w-full" : "h-9 w-9 justify-center p-0"
                   )}
                 >
                   {activeProjectType === "sales" ? (
-                    <Tag className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <Tag className="w-4 h-4 text-subtle-foreground flex-shrink-0" />
                   ) : (
-                    <Folder className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <Folder className="w-4 h-4 text-subtle-foreground flex-shrink-0" />
                   )}
                   {activeProject && (
                     <>
@@ -1077,11 +1077,11 @@ export default function SidebarComponent() {
                         <span className="font-semibold truncate text-sm ">
                           {activeProject.nombre}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-subtle-foreground">
                           {activeProjectType === "sales" ? "Ventas" : "Proyecto"}
                         </span>
                       </div>
-                      <ChevronsUpDown className="ml-auto w-4 h-4 text-gray-400 group-data-[collapsible=icon]:hidden" />
+                      <ChevronsUpDown className="ml-auto w-4 h-4 text-disabled-foreground group-data-[collapsible=icon]:hidden" />
                     </>
                   )}
                 </SidebarMenuButton>
@@ -1159,7 +1159,7 @@ export default function SidebarComponent() {
       <SidebarContent>
         {currentProject && (
           <SidebarGroup className="text-left">
-            {/* <SidebarGroupLabel className="text-xs font-medium text-gray-400 px-3">
+            {/* <SidebarGroupLabel className="text-xs font-medium text-disabled-foreground px-3">
               {currentProject.nombre.toUpperCase()}
             </SidebarGroupLabel> */}
             <SidebarGroupContent>
@@ -1182,10 +1182,10 @@ export default function SidebarComponent() {
                         className={cn(
                           "px-3 py-2 text-sm transition-colors",
                           isExpandableItem && "gap-0",
-                          item.disabled ? "text-gray-400 cursor-not-allowed" : "",
+                          item.disabled ? "text-disabled-foreground cursor-not-allowed" : "",
                           isActive(`/proyecto/${currentProject._id}/${item.path}`)
-                            ? "text-gray-900 bg-gray-100 font-medium"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            ? "text-foreground bg-muted font-medium"
+                            : "text-muted-foreground hover:text-foreground hover:bg-background"
                         )}
                       >
                         {isExpandableItem ? (
@@ -1199,7 +1199,7 @@ export default function SidebarComponent() {
                             </Link>
                             <button
                               type="button"
-                              className="flex size-6 shrink-0 items-center justify-center rounded-sm text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                              className="flex size-6 shrink-0 items-center justify-center rounded-sm text-disabled-foreground hover:bg-disabled hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                               onClick={() => {
                                 if (isExpandableDocumentsItem) {
                                   setIsDocumentsNavigationExpanded((current) => !current);
@@ -1272,7 +1272,7 @@ export default function SidebarComponent() {
 
         {currentSalesProject && (
           <SidebarGroup className="text-left">
-            <SidebarGroupLabel className="text-xs font-medium text-gray-400 px-3">
+            <SidebarGroupLabel className="text-xs font-medium text-disabled-foreground px-3">
               {currentSalesProject.nombre.toUpperCase()}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -1284,10 +1284,10 @@ export default function SidebarComponent() {
                       tooltip={item.label}
                       className={cn(
                         "px-3 py-2 text-sm transition-colors",
-                        item.disabled ? "text-gray-400 cursor-not-allowed" : "",
+                        item.disabled ? "text-disabled-foreground cursor-not-allowed" : "",
                         isActive(`/sales-proyecto/${currentSalesProject._id}/${item.path}`)
-                          ? "text-gray-900 bg-gray-100 font-medium"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          ? "text-foreground bg-muted font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background"
                       )}
                     >
                       <Link to={`/sales-proyecto/${currentSalesProject._id}/${item.path}`}>
@@ -1306,7 +1306,7 @@ export default function SidebarComponent() {
       </SidebarContent>
 
       {isAuthenticated && !authLoading && (
-        <SidebarGroup className="mt-auto border-t border-gray-200 pt-2 text-left">
+        <SidebarGroup className="mt-auto border-t border-border pt-2 text-left">
           <SidebarGroupContent>
             <SidebarMenu>
               {currentUser?.role === "admin" && (
@@ -1318,8 +1318,8 @@ export default function SidebarComponent() {
                       className={cn(
                         "px-3 py-2 text-sm transition-colors",
                         isActive("/pnl")
-                          ? "text-gray-900 bg-gray-100 font-medium"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          ? "text-foreground bg-muted font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background"
                       )}
                     >
                       <Link to="/pnl">
@@ -1337,8 +1337,8 @@ export default function SidebarComponent() {
                       className={cn(
                         "px-3 py-2 text-sm transition-colors",
                         isActive("/proveedores")
-                          ? "text-gray-900 bg-gray-100 font-medium"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          ? "text-foreground bg-muted font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background"
                       )}
                     >
                       <Link to="/proveedores">
@@ -1356,8 +1356,8 @@ export default function SidebarComponent() {
                       className={cn(
                         "px-3 py-2 text-sm transition-colors",
                         isActive("/documentos")
-                          ? "text-gray-900 bg-gray-100 font-medium"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          ? "text-foreground bg-muted font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background"
                       )}
                     >
                       <Link to="/documentos">
@@ -1377,8 +1377,8 @@ export default function SidebarComponent() {
                   className={cn(
                     "px-3 py-2 text-sm transition-colors",
                     isActive("/tareas")
-                      ? "text-gray-900 bg-gray-100 font-medium"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      ? "text-foreground bg-muted font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background"
                   )}
                 >
                   <Link to="/tareas">
@@ -1397,7 +1397,7 @@ export default function SidebarComponent() {
 
       {/* Bottom Menu - Only show for authenticated admin users */}
       {isAuthenticated && !authLoading && currentUser?.role === "admin" && (
-        <SidebarFooter className="border-t border-gray-200 p-2 mt-6">
+        <SidebarFooter className="border-t border-border p-2 mt-6">
           {/* <SidebarMenu className="space-y-1">
             {bottomProjectMenuItems.map((item) => {
               const Icon = item.icon;
@@ -1409,8 +1409,8 @@ export default function SidebarComponent() {
                     className={cn(
                       "px-3 py-2 text-sm rounded-lg transition-colors",
                       isActive(item.path)
-                        ? "text-gray-900 bg-gray-100 font-medium"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        ? "text-foreground bg-muted font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background"
                     )}
                   >
                     <Link to={item.path}>
@@ -1434,8 +1434,8 @@ export default function SidebarComponent() {
                     className={cn(
                       "px-3 py-2 text-sm rounded-lg transition-colors",
                       isActive(item.path)
-                        ? "text-gray-900 bg-gray-100 font-medium"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        ? "text-foreground bg-muted font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background"
                     )}
                   >
                     <Link to={item.path}>
@@ -1461,7 +1461,7 @@ export default function SidebarComponent() {
 
       {/* Footer for non-admin authenticated users — just user card */}
       {isAuthenticated && !authLoading && currentUser?.role !== "admin" && (
-        <SidebarFooter className="border-t border-gray-200 p-2">
+        <SidebarFooter className="border-t border-border p-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarUserCard role={currentUser?.role} />
@@ -1472,7 +1472,7 @@ export default function SidebarComponent() {
 
       {/* Unauthenticated footer */}
       {!isAuthenticated && !authLoading && (
-        <SidebarFooter className="border-t border-gray-200 p-4">
+        <SidebarFooter className="border-t border-border p-4">
           <Unauthenticated>
             <SignInButton mode="modal" />
           </Unauthenticated>

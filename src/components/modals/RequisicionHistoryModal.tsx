@@ -42,18 +42,18 @@ function HistoryCommentAndDocuments({ entry, data }: { entry: HistoryEntry; data
   if (!comentario && (!documentos || documentos.length === 0)) return null;
 
   return (
-    <div className="space-y-2 border-t border-gray-100 pt-2">
+    <div className="space-y-2 border-t border-border pt-2">
       {comentario && (
         <div>
-          <span className="text-gray-400">Comentario:</span>{" "}
-          <span className="text-gray-700">{comentario}</span>
+          <span className="text-disabled-foreground">Comentario:</span>{" "}
+          <span className="text-foreground">{comentario}</span>
         </div>
       )}
       {documentos && documentos.length > 0 && (
         <div className="space-y-1">
-          <span className="text-gray-400">Documentos:</span>
+          <span className="text-disabled-foreground">Documentos:</span>
           {documentos.map((doc, index) => (
-            <div key={`${doc.nombre}-${index}`} className="flex items-center gap-2 text-gray-700">
+            <div key={`${doc.nombre}-${index}`} className="flex items-center gap-2 text-foreground">
               <FileText className="h-3 w-3 text-cyan-600" />
               <span>{doc.nombre}</span>
             </div>
@@ -146,52 +146,52 @@ function CreatedDetails({ entry }: { entry: HistoryEntry }) {
   const fechaSolicitud = data.fecha_solicitud as string | undefined;
 
   return (
-    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-2 text-left">
+    <div className="mt-2 p-3 bg-card border border-border text-xs space-y-2 text-left">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {tipo && (
           <div>
-            <span className="text-gray-400">Tipo:</span>{" "}
+            <span className="text-disabled-foreground">Tipo:</span>{" "}
             <span className={cn(
-              "px-1.5 py-0.5 rounded-sm font-medium capitalize",
+              "px-1.5 py-0.5 rounded-none font-medium capitalize",
               tipo === "material" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
             )}>{tipo}</span>
           </div>
         )}
         {solicitante && (
           <div>
-            <span className="text-gray-400">Solicitante:</span>{" "}
-            <span className="text-gray-700 font-medium">{solicitante}</span>
+            <span className="text-disabled-foreground">Solicitante:</span>{" "}
+            <span className="text-foreground font-medium">{solicitante}</span>
           </div>
         )}
         {fechaSolicitud && (
           <div>
-            <span className="text-gray-400">Fecha:</span>{" "}
-            <span className="text-gray-700">{fechaSolicitud}</span>
+            <span className="text-disabled-foreground">Fecha:</span>{" "}
+            <span className="text-foreground">{fechaSolicitud}</span>
           </div>
         )}
         {itemsCount !== undefined && (
           <div>
-            <span className="text-gray-400">Items:</span>{" "}
-            <span className="text-gray-700">{itemsCount}</span>
+            <span className="text-disabled-foreground">Items:</span>{" "}
+            <span className="text-foreground">{itemsCount}</span>
           </div>
         )}
       </div>
       {familias && familias.length > 0 && (
         <div>
-          <span className="text-gray-400">Familias:</span>{" "}
-          <span className="text-gray-700">{familias.join(", ")}</span>
+          <span className="text-disabled-foreground">Familias:</span>{" "}
+          <span className="text-foreground">{familias.join(", ")}</span>
         </div>
       )}
       {totalMonto !== undefined && totalMonto > 0 && (
         <div>
-          <span className="text-gray-400">Monto total:</span>{" "}
-          <span className="text-gray-700 font-medium">{formatMonto(totalMonto)}</span>
+          <span className="text-disabled-foreground">Monto total:</span>{" "}
+          <span className="text-foreground font-medium">{formatMonto(totalMonto)}</span>
         </div>
       )}
       {descripcion && (
         <div>
-          <span className="text-gray-400">Descripción:</span>{" "}
-          <span className="text-gray-700">{descripcion}</span>
+          <span className="text-disabled-foreground">Descripción:</span>{" "}
+          <span className="text-foreground">{descripcion}</span>
         </div>
       )}
     </div>
@@ -213,61 +213,61 @@ function DeletedDetails({ entry }: { entry: HistoryEntry }) {
   const totalMonto = data.total_monto as number | undefined;
 
   return (
-    <div className="mt-2 p-3 bg-white border border-red-100 text-xs space-y-2 text-left">
+    <div className="mt-2 p-3 bg-card border border-red-100 text-xs space-y-2 text-left">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {tipo && (
           <div>
-            <span className="text-gray-400">Tipo:</span>{" "}
-            <span className="text-gray-700 font-medium capitalize">{tipo}</span>
+            <span className="text-disabled-foreground">Tipo:</span>{" "}
+            <span className="text-foreground font-medium capitalize">{tipo}</span>
           </div>
         )}
         {solicitante && (
           <div>
-            <span className="text-gray-400">Solicitante:</span>{" "}
-            <span className="text-gray-700 font-medium">{solicitante}</span>
+            <span className="text-disabled-foreground">Solicitante:</span>{" "}
+            <span className="text-foreground font-medium">{solicitante}</span>
           </div>
         )}
         {fechaSolicitud && (
           <div>
-            <span className="text-gray-400">Fecha:</span>{" "}
-            <span className="text-gray-700">{fechaSolicitud}</span>
+            <span className="text-disabled-foreground">Fecha:</span>{" "}
+            <span className="text-foreground">{fechaSolicitud}</span>
           </div>
         )}
         {status && (
           <div>
-            <span className="text-gray-400">Pago:</span>{" "}
-            <span className="text-gray-700">{status}</span>
+            <span className="text-disabled-foreground">Pago:</span>{" "}
+            <span className="text-foreground">{status}</span>
           </div>
         )}
         {statusRevision && (
           <div>
-            <span className="text-gray-400">Revision:</span>{" "}
-            <span className="text-gray-700">{statusRevision}</span>
+            <span className="text-disabled-foreground">Revision:</span>{" "}
+            <span className="text-foreground">{statusRevision}</span>
           </div>
         )}
         {statusEntrega && (
           <div>
-            <span className="text-gray-400">Entrega:</span>{" "}
-            <span className="text-gray-700">{statusEntrega}</span>
+            <span className="text-disabled-foreground">Entrega:</span>{" "}
+            <span className="text-foreground">{statusEntrega}</span>
           </div>
         )}
         {itemsCount !== undefined && (
           <div>
-            <span className="text-gray-400">Items:</span>{" "}
-            <span className="text-gray-700">{itemsCount}</span>
+            <span className="text-disabled-foreground">Items:</span>{" "}
+            <span className="text-foreground">{itemsCount}</span>
           </div>
         )}
         {documentosCount !== undefined && (
           <div>
-            <span className="text-gray-400">Documentos:</span>{" "}
-            <span className="text-gray-700">{documentosCount}</span>
+            <span className="text-disabled-foreground">Documentos:</span>{" "}
+            <span className="text-foreground">{documentosCount}</span>
           </div>
         )}
       </div>
       {totalMonto !== undefined && totalMonto > 0 && (
         <div>
-          <span className="text-gray-400">Monto total:</span>{" "}
-          <span className="text-gray-700 font-medium">{formatMonto(totalMonto)}</span>
+          <span className="text-disabled-foreground">Monto total:</span>{" "}
+          <span className="text-foreground font-medium">{formatMonto(totalMonto)}</span>
         </div>
       )}
     </div>
@@ -286,26 +286,26 @@ function StatusChangeDetails({ entry }: { entry: HistoryEntry }) {
   const tipo = (oldData?.tipo || newData?.tipo) as string | undefined;
 
   return (
-    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-2 text-left">
+    <div className="mt-2 p-3 bg-card border border-border text-xs space-y-2 text-left">
       {/* Which requisicion */}
       {(solicitante || tipo) && (
-        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+        <div className="flex items-center gap-2 pb-2 border-b border-border">
           {tipo && (
             <span className={cn(
-              "px-1.5 py-0.5 rounded-sm font-medium capitalize",
+              "px-1.5 py-0.5 rounded-none font-medium capitalize",
               tipo === "material" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
             )}>{tipo}</span>
           )}
           {solicitante && (
-            <span className="text-gray-600">de <span className="font-medium">{solicitante}</span></span>
+            <span className="text-muted-foreground">de <span className="font-medium">{solicitante}</span></span>
           )}
         </div>
       )}
       {/* Status transition */}
       <div className="flex items-center gap-2">
-        <span className="px-2 py-0.5 rounded-sm bg-red-50 text-red-600 line-through">{oldStatus}</span>
-        <ArrowRight className="w-3 h-3 text-gray-400" />
-        <span className="px-2 py-0.5 rounded-sm bg-green-50 text-green-700 font-medium">{newStatus}</span>
+        <span className="px-2 py-0.5 rounded-none bg-red-50 text-red-600 line-through">{oldStatus}</span>
+        <ArrowRight className="w-3 h-3 text-disabled-foreground" />
+        <span className="px-2 py-0.5 rounded-none bg-green-50 text-green-700 font-medium">{newStatus}</span>
       </div>
       <HistoryCommentAndDocuments entry={entry} data={newData} />
     </div>
@@ -317,14 +317,14 @@ function UpdatedFieldDetails({ entry }: { entry: HistoryEntry }) {
   const isItems = entry.field_changed === "items";
 
   return (
-    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-2 text-left">
-      <div className="text-gray-500 font-medium mb-1">{fieldLabel}</div>
+    <div className="mt-2 p-3 bg-card border border-border text-xs space-y-2 text-left">
+      <div className="text-subtle-foreground font-medium mb-1">{fieldLabel}</div>
       {isItems ? (
         // Items: show as lists
         <div className="space-y-2">
           {entry.old_value && (
             <div>
-              <span className="text-gray-400 text-[10px] uppercase tracking-wide">Antes:</span>
+              <span className="text-disabled-foreground text-[10px] uppercase tracking-wide">Antes:</span>
               <div className="mt-1 space-y-0.5">
                 {entry.old_value.split("; ").map((item, i) => (
                   <div key={i} className="text-red-500 line-through pl-2 border-l-2 border-red-200">{item}</div>
@@ -334,7 +334,7 @@ function UpdatedFieldDetails({ entry }: { entry: HistoryEntry }) {
           )}
           {entry.new_value && (
             <div>
-              <span className="text-gray-400 text-[10px] uppercase tracking-wide">Ahora:</span>
+              <span className="text-disabled-foreground text-[10px] uppercase tracking-wide">Ahora:</span>
               <div className="mt-1 space-y-0.5">
                 {entry.new_value.split("; ").map((item, i) => (
                   <div key={i} className="text-green-600 font-medium pl-2 border-l-2 border-green-200">{item}</div>
@@ -347,11 +347,11 @@ function UpdatedFieldDetails({ entry }: { entry: HistoryEntry }) {
         // Simple field: inline before/after
         <div className="flex items-center gap-2 flex-wrap">
           {entry.old_value && (
-            <span className="px-2 py-0.5 rounded-sm bg-red-50 text-red-500 line-through">{entry.old_value}</span>
+            <span className="px-2 py-0.5 rounded-none bg-red-50 text-red-500 line-through">{entry.old_value}</span>
           )}
-          <ArrowRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
+          <ArrowRight className="w-3 h-3 text-disabled-foreground flex-shrink-0" />
           {entry.new_value && (
-            <span className="px-2 py-0.5 rounded-sm bg-green-50 text-green-700 font-medium">{entry.new_value}</span>
+            <span className="px-2 py-0.5 rounded-none bg-green-50 text-green-700 font-medium">{entry.new_value}</span>
           )}
         </div>
       )}
@@ -384,23 +384,23 @@ function ReviewedDetails({ entry }: { entry: HistoryEntry }) {
   const items = data.items as ReviewItemDetail[] | undefined;
 
   return (
-    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-3 text-left">
+    <div className="mt-2 p-3 bg-card border border-border text-xs space-y-3 text-left">
       {/* Header: who + decision */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {tipo && (
             <span className={cn(
-              "px-1.5 py-0.5 rounded-sm font-medium capitalize",
+              "px-1.5 py-0.5 rounded-none font-medium capitalize",
               tipo === "material" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
             )}>{tipo}</span>
           )}
           {solicitante && (
-            <span className="text-gray-600">de <span className="font-medium">{solicitante}</span></span>
+            <span className="text-muted-foreground">de <span className="font-medium">{solicitante}</span></span>
           )}
         </div>
         {statusRevision && (
           <span className={cn(
-            "px-2 py-0.5 rounded-sm font-medium",
+            "px-2 py-0.5 rounded-none font-medium",
             statusRevision === "Aprobada" ? "bg-green-100 text-green-700" :
             statusRevision === "Parcialmente Aprobada" ? "bg-yellow-100 text-yellow-700" :
             "bg-red-100 text-red-700"
@@ -413,7 +413,7 @@ function ReviewedDetails({ entry }: { entry: HistoryEntry }) {
       {/* Summary counts */}
       {itemsTotal !== undefined && (
         <div className="flex items-center gap-3 text-xs">
-          <span className="text-gray-500">{itemsTotal} items</span>
+          <span className="text-subtle-foreground">{itemsTotal} items</span>
           {itemsApproved !== undefined && itemsApproved > 0 && (
             <span className="text-green-600 font-medium">✓ {itemsApproved} aprobado{itemsApproved !== 1 ? "s" : ""}</span>
           )}
@@ -425,25 +425,25 @@ function ReviewedDetails({ entry }: { entry: HistoryEntry }) {
 
       {/* Per-item breakdown */}
       {items && items.length > 0 && (
-        <div className="space-y-1 border-t border-gray-100 pt-2">
+        <div className="space-y-1 border-t border-border pt-2">
           {items.map((item, i) => (
             <div key={i} className={cn(
-              "flex items-center gap-2 py-1 px-2 rounded-sm",
+              "flex items-center gap-2 py-1 px-2 rounded-none",
               item.status_revision === "aprobado" ? "bg-green-50/50" : 
               item.status_revision === "rechazado" ? "bg-red-50/50" : ""
             )}>
               <span className={cn(
                 "text-[10px] font-medium w-16 flex-shrink-0",
                 item.status_revision === "aprobado" ? "text-green-700" :
-                item.status_revision === "rechazado" ? "text-red-700" : "text-gray-500"
+                item.status_revision === "rechazado" ? "text-red-700" : "text-subtle-foreground"
               )}>
                 {item.status_revision === "aprobado" ? "✓ Aprobado" : 
                  item.status_revision === "rechazado" ? "✕ Rechazado" : "Pendiente"}
               </span>
-              <span className="text-gray-700 flex-1 truncate">
+              <span className="text-foreground flex-1 truncate">
                 {item.familia}{item.sub_partida ? ` > ${item.sub_partida}` : ""}
               </span>
-              <span className="text-gray-500 whitespace-nowrap">
+              <span className="text-subtle-foreground whitespace-nowrap">
                 {item.cantidad_solicitada} {item.unidad}
               </span>
               {item.status_revision === "aprobado" && item.cantidad_aprobada !== undefined && 
@@ -459,7 +459,7 @@ function ReviewedDetails({ entry }: { entry: HistoryEntry }) {
 
       {/* Revision note */}
       {notaRevision && (
-        <div className="p-2 bg-gray-50 border border-gray-100 text-gray-700 italic">
+        <div className="p-2 bg-background border border-border text-foreground italic">
           "{notaRevision}"
         </div>
       )}
@@ -478,29 +478,29 @@ function ResubmittedDetails({ entry }: { entry: HistoryEntry }) {
   const tipo = oldData.tipo as string | undefined;
 
   return (
-    <div className="mt-2 p-3 bg-white border border-gray-200 text-xs space-y-2 text-left">
+    <div className="mt-2 p-3 bg-card border border-border text-xs space-y-2 text-left">
       {(solicitante || tipo) && (
-        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+        <div className="flex items-center gap-2 pb-2 border-b border-border">
           {tipo && (
             <span className={cn(
-              "px-1.5 py-0.5 rounded-sm font-medium capitalize",
+              "px-1.5 py-0.5 rounded-none font-medium capitalize",
               tipo === "material" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
             )}>{tipo}</span>
           )}
           {solicitante && (
-            <span className="text-gray-600">de <span className="font-medium">{solicitante}</span></span>
+            <span className="text-muted-foreground">de <span className="font-medium">{solicitante}</span></span>
           )}
         </div>
       )}
       <div className="flex items-center gap-2">
         {previousStatus && (
-          <span className="px-2 py-0.5 rounded-sm bg-red-50 text-red-600 line-through">{previousStatus}</span>
+          <span className="px-2 py-0.5 rounded-none bg-red-50 text-red-600 line-through">{previousStatus}</span>
         )}
-        <ArrowRight className="w-3 h-3 text-gray-400" />
-        <span className="px-2 py-0.5 rounded-sm bg-amber-50 text-amber-700 font-medium">Pendiente de revisión</span>
+        <ArrowRight className="w-3 h-3 text-disabled-foreground" />
+        <span className="px-2 py-0.5 rounded-none bg-amber-50 text-amber-700 font-medium">Pendiente de revisión</span>
       </div>
       {notaRevision && (
-        <p className="text-gray-500 italic">Nota anterior: "{notaRevision}"</p>
+        <p className="text-subtle-foreground italic">Nota anterior: "{notaRevision}"</p>
       )}
     </div>
   );
@@ -530,22 +530,22 @@ export default function RequisicionHistoryModal() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div data-square-modal="" className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-overlay/50"
         onClick={close}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-none shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
+      <div className="relative bg-card rounded-none shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="text-left">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               {mode === "all" ? "Historial de Requisiciones" : "Historial de Cambios"}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-subtle-foreground mt-1">
               {mode === "all" 
                 ? "Todos los cambios realizados en requisiciones" 
                 : "Cambios realizados en esta requisición"}
@@ -553,9 +553,9 @@ export default function RequisicionHistoryModal() {
           </div>
           <button
             onClick={close}
-            className="p-2 hover:bg-gray-100 rounded-none transition-colors"
+            className="p-2 hover:bg-muted rounded-none transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-subtle-foreground" />
           </button>
         </div>
 
@@ -563,24 +563,24 @@ export default function RequisicionHistoryModal() {
         <div className="flex-1 overflow-y-auto p-6">
           {!history ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+              <div className="animate-spin rounded-none h-8 w-8 border-b-2 border-foreground" />
             </div>
           ) : history.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-              <Clock className="w-12 h-12 mb-4 text-gray-300" />
+            <div className="flex flex-col items-center justify-center py-12 text-subtle-foreground">
+              <Clock className="w-12 h-12 mb-4 text-disabled-foreground" />
               <p className="text-sm">No hay cambios registrados</p>
             </div>
           ) : (
             <div className="space-y-3">
               {history.map((entry: HistoryEntry) => {
-                const defaultCfg = { icon: Clock, color: "text-gray-600 bg-gray-100", label: entry.action };
+                const defaultCfg = { icon: Clock, color: "text-muted-foreground bg-muted", label: entry.action };
                 const cfg = actionIcons[entry.action] || defaultCfg;
                 const Icon = cfg.icon;
 
                 return (
                   <div
                     key={entry._id}
-                    className="flex gap-3 p-4 bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100"
+                    className="flex gap-3 p-4 bg-background hover:bg-muted transition-colors border border-border"
                   >
                     {/* Icon */}
                     <div className={cn("p-2 h-fit flex-shrink-0", cfg.color)}>
@@ -591,13 +591,13 @@ export default function RequisicionHistoryModal() {
                     <div className="flex-1 min-w-0">
                       {/* Header row */}
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-foreground">
                           {cfg.label}
                           {entry.action === "updated" && entry.field_changed && (
-                            <span className="text-gray-400 font-normal"> — {FIELD_LABELS[entry.field_changed] || entry.field_changed}</span>
+                            <span className="text-disabled-foreground font-normal"> — {FIELD_LABELS[entry.field_changed] || entry.field_changed}</span>
                           )}
                         </p>
-                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                        <span className="text-xs text-disabled-foreground whitespace-nowrap">
                           {formatRelativeTime(entry.created_at)}
                         </span>
                       </div>
@@ -613,9 +613,9 @@ export default function RequisicionHistoryModal() {
                         <StatusChangeDetails entry={entry} />
                       )}
                       {entry.action === "document_added" && entry.new_value && (
-                        <div className="mt-2 p-2 bg-white border border-gray-200 text-xs flex items-center gap-2 text-left">
+                        <div className="mt-2 p-2 bg-card border border-border text-xs flex items-center gap-2 text-left">
                           <FileText className="w-3 h-3 text-cyan-500" />
-                          <span className="text-gray-700">{entry.new_value}</span>
+                          <span className="text-foreground">{entry.new_value}</span>
                         </div>
                       )}
                       {entry.action === "reviewed" && <ReviewedDetails entry={entry} />}
@@ -623,7 +623,7 @@ export default function RequisicionHistoryModal() {
 
                       {/* Requisicion info card (for all history mode) */}
                       {"requisicion" in entry && entry.requisicion && (
-                        <div className="mt-3 p-2 bg-white border border-gray-200">
+                        <div className="mt-3 p-2 bg-card border border-border">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className={cn(
@@ -634,7 +634,7 @@ export default function RequisicionHistoryModal() {
                               )}>
                                 {entry.requisicion.tipo}
                               </span>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-subtle-foreground">
                                 {entry.requisicion.solicitante_nombre}
                               </span>
                             </div>
@@ -645,11 +645,11 @@ export default function RequisicionHistoryModal() {
                                   ? "bg-green-100 text-green-700" 
                                   : entry.requisicion.status === "Cancelado"
                                     ? "bg-red-100 text-red-700"
-                                    : "bg-gray-100 text-gray-600"
+                                    : "bg-muted text-muted-foreground"
                               )}>
                                 {entry.requisicion.status}
                               </span>
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-disabled-foreground">
                                 {entry.requisicion.fecha_solicitud}
                               </span>
                             </div>
@@ -658,9 +658,9 @@ export default function RequisicionHistoryModal() {
                       )}
 
                       {/* User footer */}
-                      <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                      <p className="text-xs text-disabled-foreground mt-2 flex items-center gap-1">
                         <span>por</span>
-                        <span className="font-medium text-gray-500">{entry.changed_by_name}</span>
+                        <span className="font-medium text-subtle-foreground">{entry.changed_by_name}</span>
                       </p>
                     </div>
                   </div>
@@ -671,10 +671,10 @@ export default function RequisicionHistoryModal() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-4 flex justify-end">
+        <div className="border-t border-border p-4 flex justify-end">
           <button
             onClick={close}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-disabled transition-colors"
           >
             Cerrar
           </button>

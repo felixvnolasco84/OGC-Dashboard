@@ -221,7 +221,7 @@ export default function BitacoraPage() {
     if (!proyectoId || !proyecto) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground"></div>
             </div>
         );
     }
@@ -229,21 +229,21 @@ export default function BitacoraPage() {
     return (
         <div className="min-h-screen ">
             {/* Header */}
-            <div className="bg-white border-b border-gray-200">
+            <div className="bg-card border-b border-border">
                 <div className="px-16 py-12">
                     {/* Breadcrumb */}
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                        <span className="hover:text-gray-700 cursor-pointer">Proyecto</span>
+                    <div className="flex items-center gap-2 text-sm text-subtle-foreground mb-2">
+                        <span className="hover:text-foreground cursor-pointer">Proyecto</span>
                     </div>
 
                     {/* Title and Actions */}
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-medium text-gray-900">Bitácora {proyecto?.nombre || ""}</h1>
+                            <h1 className="text-3xl font-medium text-foreground">Bitácora {proyecto?.nombre || ""}</h1>
                         </div>
                         <div className="flex items-center gap-3">
                             {/* View Mode Toggle */}
-                            <div className="flex items-center border border-gray-300">
+                            <div className="flex items-center border border-border-strong">
                                 <Button
                                     onClick={() => setViewMode("grouped")}
                                     variant={viewMode === "grouped" ? "default" : "outline"}                                    
@@ -253,9 +253,9 @@ export default function BitacoraPage() {
                                 </Button>
                                 {/* <button
                                     onClick={() => setViewMode("list")}
-                                    className={`px-3 py-2 text-sm flex items-center gap-2 border-x border-gray-300 transition-colors ${viewMode === "list"
-                                        ? "bg-gray-900 text-white"
-                                        : "bg-white text-gray-700 hover:bg-gray-50"
+                                    className={`px-3 py-2 text-sm flex items-center gap-2 border-x border-border-strong transition-colors ${viewMode === "list"
+                                        ? "bg-inverse text-on-color"
+                                        : "bg-card text-foreground hover:bg-background"
                                         }`}
                                 >
                                     <List className="h-4 w-4" />
@@ -303,11 +303,11 @@ export default function BitacoraPage() {
 
                 {/* Grouped View (Default) */}
                 {viewMode === "grouped" && Object.entries(groupedLogs).map(([groupName, logs]) => (
-                    <div key={groupName} className="bg-[#fcfcfc] rounded-lg border border-gray-200 overflow-hidden">
+                    <div key={groupName} className="bg-card rounded-lg border border-border overflow-hidden">
                         {/* Group Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                        <div className="flex items-center justify-between p-6 border-b border-border">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-medium text-gray-900">{groupName}</h2>
+                                <h2 className="text-xl font-medium text-foreground">{groupName}</h2>
                             </div>
                             <Button
                                 variant="outline"
@@ -322,29 +322,29 @@ export default function BitacoraPage() {
                                     });
                                 }}
                             >
-                                <Plus className="h-4 w-4 text-gray-500" />
+                                <Plus className="h-4 w-4 text-subtle-foreground" />
                             </Button>
                         </div>
 
                         {/* Logs List */}
-                        <div className="divide-y divide-gray-100">
+                        <div className="divide-y divide-border">
                             {getVisibleLogs(groupName, logs).map((log) => {
                                 const isExpanded = expandedLogIds.has(log._id);
                                 return (
                                     <div key={log._id} className="">
                                         {/* Row Header (Always Visible) */}
                                         <div
-                                            className="flex items-center justify-between pl-12 p-6 cursor-pointer hover:bg-gray-50"
+                                            className="flex items-center justify-between pl-12 p-6 cursor-pointer hover:bg-background"
                                             onClick={() => toggleLog(log._id)}
                                         >
 
                                             <div className="flex gap-4 items-start">
-                                                <div className="text-gray-400">
+                                                <div className="text-disabled-foreground">
                                                     {isExpanded ? <ChevronDown className="h-6 w-6" /> : <ChevronRight className="h-6 w-6" />}
                                                 </div>
                                                                <div className="flex flex-col items-start gap-1">
                                                 
-                                                <span className="font-normal text-gray-900 text-base">
+                                                <span className="font-normal text-foreground text-base">
                                                     {formatDateDisplay(log.fecha)}
                                                 </span>
                                                 <div className="flex items-center gap-8">
@@ -357,7 +357,7 @@ export default function BitacoraPage() {
                                                             {log.status || "Sin problemas"}
                                                         </span>
                                                         {log.familias_tags && log.familias_tags.length > 0 && log.familias_tags.map((tag) => (
-                                                            <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
+                                                            <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-background text-foreground border border-border">
                                                                 {tag}
                                                             </span>
                                                         ))}
@@ -368,7 +368,7 @@ export default function BitacoraPage() {
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 onClick={(e) => e.stopPropagation()}
-                                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 transition-colors"
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-background text-foreground border border-border hover:bg-muted transition-colors"
                                                             >
                                                                 <FileText className="h-3 w-3" />
                                                                 {doc.nombre.length > 15 ? doc.nombre.substring(0, 15) + "..." : doc.nombre}
@@ -383,24 +383,24 @@ export default function BitacoraPage() {
 
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="h-7 w-7 rounded-full bg-[#dddcd8] flex items-center justify-center text-xs text-gray-700">
+                                                    <div className="h-7 w-7 rounded-full bg-disabled flex items-center justify-center text-xs text-foreground">
                                                         {log.responsable.substring(0, 1).toUpperCase()}
                                                     </div>
                                                     <span className="text-sm text-muted-foreground">{log.responsable}</span>
                                                 </div>
                                                 <div className="relative">
                                                     <button
-                                                        className="p-1 hover:bg-gray-100 rounded"
+                                                        className="p-1 hover:bg-muted rounded"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setOpenMenuId(openMenuId === log._id ? null : log._id);
                                                         }}
                                                     >
-                                                        <MoreHorizontal className="h-5 w-5 text-gray-400" />
+                                                        <MoreHorizontal className="h-5 w-5 text-disabled-foreground" />
                                                     </button>
 
                                                     {openMenuId === log._id && (
-                                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                                                        <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border py-1 z-10">
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -422,7 +422,7 @@ export default function BitacoraPage() {
                                                                     });
                                                                     setOpenMenuId(null);
                                                                 }}
-                                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-background flex items-center gap-2"
                                                             >
                                                                 <Eye className="h-4 w-4" />
                                                                 Ver detalles
@@ -449,7 +449,7 @@ export default function BitacoraPage() {
                                                                     });
                                                                     setOpenMenuId(null);
                                                                 }}
-                                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-background flex items-center gap-2"
                                                             >
                                                                 <Edit2 className="h-4 w-4" />
                                                                 Editar
@@ -502,7 +502,7 @@ export default function BitacoraPage() {
                                                         {log.fotos.slice(0, 3).map((foto, index) => (
                                                             <div
                                                                 key={foto._id}
-                                                                className="h-20 w-20 bg-gray-200 rounded-md overflow-hidden border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
+                                                                className="h-20 w-20 bg-disabled rounded-md overflow-hidden border border-border-strong cursor-pointer hover:opacity-80 transition-opacity"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     openGallery(log, index);
@@ -523,7 +523,7 @@ export default function BitacoraPage() {
                                                                     e.stopPropagation();
                                                                     openGallery(log, 0);
                                                                 }}
-                                                                className="h-20 w-20 bg-gray-800 rounded-md flex items-center justify-center text-white text-sm font-medium hover:bg-gray-700 transition-colors"
+                                                                className="h-20 w-20 bg-inverse rounded-md flex items-center justify-center text-on-color text-sm font-medium hover:bg-muted-foreground transition-colors"
                                                             >
                                                                 +{log.fotos.length - 3} más
                                                             </button>
@@ -533,7 +533,7 @@ export default function BitacoraPage() {
                                                                 e.stopPropagation();
                                                                 openGallery(log, 0);
                                                             }}
-                                                            className="h-20 px-4 bg-gray-100 rounded-md flex items-center justify-center gap-2 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300"
+                                                            className="h-20 px-4 bg-muted rounded-md flex items-center justify-center gap-2 text-muted-foreground text-sm font-medium hover:bg-disabled transition-colors border border-border-strong"
                                                         >
                                                             <Images className="h-4 w-4" />
                                                             Ver galería
@@ -549,11 +549,11 @@ export default function BitacoraPage() {
                         
                         {/* Per-category Expand/Compact Button */}
                         {logs.length > 6 && (
-                            <div className="flex justify-center py-4 border-t border-gray-100">
+                            <div className="flex justify-center py-4 border-t border-border">
                                 <Button
                                     variant="ghost"
                                     onClick={() => toggleCategoryExpansion(groupName)}
-                                    className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+                                    className="text-muted-foreground hover:text-foreground flex items-center gap-2"
                                 >
                                     <ChevronsUpDown className="h-4 w-4" />
                                     {expandedCategories.has(groupName) 
@@ -567,7 +567,7 @@ export default function BitacoraPage() {
 
                 {viewMode === "grouped" && isLoadingLogEntries && (
                     <div className="flex justify-center py-12">
-                        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                        <Loader2 className="h-6 w-6 animate-spin text-subtle-foreground" />
                     </div>
                 )}
 
@@ -587,8 +587,8 @@ export default function BitacoraPage() {
 
                 {/* Empty State (for grouped view) */}
                 {viewMode === "grouped" && !isLoadingLogEntries && logEntries.length === 0 && (
-                    <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-                        <p className="text-gray-500">No hay registros de bitácora aún.</p>
+                    <div className="text-center py-12 bg-card rounded-lg border border-border">
+                        <p className="text-subtle-foreground">No hay registros de bitácora aún.</p>
                         <Button
                             onClick={handleCreateLog}
                             variant="link"

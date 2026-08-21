@@ -265,15 +265,15 @@ export default function ProgramaObraExcelPreview({
                   <div
                     key={key}
                     className={cn(
-                      "bg-white border rounded-sm p-3 space-y-2",
+                      "bg-card border rounded-sm p-3 space-y-2",
                       currentResolution ? "border-green-300" : "border-amber-300"
                     )}
                   >
-                    <div className="text-xs text-gray-700">
+                    <div className="text-xs text-foreground">
                       <span className="font-medium">{conflict.childName}</span>
-                      <span className="text-gray-400"> (en </span>
+                      <span className="text-disabled-foreground"> (en </span>
                       <span className="font-medium">{conflict.partidaName}</span>
-                      <span className="text-gray-400">)</span>
+                      <span className="text-disabled-foreground">)</span>
                     </div>
                     <RadioGroup
                       value={currentResolution || ""}
@@ -287,7 +287,7 @@ export default function ProgramaObraExcelPreview({
                         <span className="text-xs">
                           Usar fecha del hijo:{" "}
                           <span className="font-medium text-amber-700">{formatDateStr(conflict.childEndDate)}</span>
-                          <span className="text-gray-400"> — la partida padre se extenderá a esta fecha</span>
+                          <span className="text-disabled-foreground"> — la partida padre se extenderá a esta fecha</span>
                         </span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -295,7 +295,7 @@ export default function ProgramaObraExcelPreview({
                         <span className="text-xs">
                           Usar fecha de la partida:{" "}
                           <span className="font-medium text-blue-700">{formatDateStr(conflict.partidaEndDate)}</span>
-                          <span className="text-gray-400"> — el hijo se ajustará a esta fecha</span>
+                          <span className="text-disabled-foreground"> — el hijo se ajustará a esta fecha</span>
                         </span>
                       </label>
                     </RadioGroup>
@@ -309,14 +309,14 @@ export default function ProgramaObraExcelPreview({
         {/* Data table preview */}
         <div className="flex-1 overflow-auto border rounded-sm">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 sticky top-0 z-10">
+            <thead className="bg-background sticky top-0 z-10">
               <tr className="border-b">
-                <th className="text-left px-3 py-2 font-medium text-gray-600 text-xs w-[280px]">Nombre</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600 text-xs w-[100px]">Inicio</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600 text-xs w-[100px]">Fin</th>
-                <th className="text-right px-3 py-2 font-medium text-gray-600 text-xs w-[70px]">Peso</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600 text-xs w-[100px]">Anticipo</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600 text-xs w-[100px]">Suministro</th>
+                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs w-[280px]">Nombre</th>
+                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs w-[100px]">Inicio</th>
+                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs w-[100px]">Fin</th>
+                <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs w-[70px]">Peso</th>
+                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs w-[100px]">Anticipo</th>
+                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs w-[100px]">Suministro</th>
               </tr>
             </thead>
             <tbody>
@@ -328,36 +328,36 @@ export default function ProgramaObraExcelPreview({
                     {/* Partida row */}
                     <tr
                       key={`p-${pi}`}
-                      className="border-b bg-white hover:bg-gray-50 transition-colors"
+                      className="border-b bg-card hover:bg-background transition-colors"
                     >
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1.5">
                           {hasChildren ? (
                             <button
                               onClick={() => togglePartida(pi)}
-                              className="p-0.5 hover:bg-gray-100 rounded shrink-0"
+                              className="p-0.5 hover:bg-muted rounded shrink-0"
                             >
                               {isExpanded ? (
-                                <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                                <ChevronDown className="h-3.5 w-3.5 text-disabled-foreground" />
                               ) : (
-                                <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+                                <ChevronRight className="h-3.5 w-3.5 text-disabled-foreground" />
                               )}
                             </button>
                           ) : (
                             <div className="w-4.5 shrink-0" />
                           )}
-                          <span className="font-medium text-gray-900 truncate" title={partida.partida}>
+                          <span className="font-medium text-foreground truncate" title={partida.partida}>
                             {partida.partida}
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-gray-600 text-xs">{formatDateStr(partida.fecha_inicio)}</td>
-                      <td className="px-3 py-2 text-gray-600 text-xs">{formatDateStr(partida.fecha_fin)}</td>
-                      <td className="px-3 py-2 text-gray-600 text-xs text-right">
+                      <td className="px-3 py-2 text-muted-foreground text-xs">{formatDateStr(partida.fecha_inicio)}</td>
+                      <td className="px-3 py-2 text-muted-foreground text-xs">{formatDateStr(partida.fecha_fin)}</td>
+                      <td className="px-3 py-2 text-muted-foreground text-xs text-right">
                         {partida.peso != null ? `${partida.peso}%` : "—"}
                       </td>
-                      <td className="px-3 py-2 text-gray-600 text-xs">{formatDateStr(partida.anticipo_fecha)}</td>
-                      <td className="px-3 py-2 text-gray-600 text-xs">{formatDateStr(partida.suministro_fecha)}</td>
+                      <td className="px-3 py-2 text-muted-foreground text-xs">{formatDateStr(partida.anticipo_fecha)}</td>
+                      <td className="px-3 py-2 text-muted-foreground text-xs">{formatDateStr(partida.suministro_fecha)}</td>
                     </tr>
 
                     {/* Child rows */}
@@ -375,12 +375,12 @@ export default function ProgramaObraExcelPreview({
                               "border-b transition-colors",
                               hasConflict && !resolution && "bg-amber-50/60",
                               hasConflict && resolution && "bg-green-50/40",
-                              !hasConflict && "bg-gray-50/50 hover:bg-gray-50"
+                              !hasConflict && "bg-background/50 hover:bg-background"
                             )}
                           >
                             <td className="px-3 py-2">
                               <div className="flex items-center gap-1.5 pl-6">
-                                <span className="text-gray-600 truncate" title={child.familia || child.subpartida}>
+                                <span className="text-muted-foreground truncate" title={child.familia || child.subpartida}>
                                   {child.familia || child.subpartida || "—"}
                                 </span>
                                 {hasConflict && !resolution && (
@@ -388,7 +388,7 @@ export default function ProgramaObraExcelPreview({
                                 )}
                               </div>
                             </td>
-                            <td className="px-3 py-2 text-gray-500 text-xs">
+                            <td className="px-3 py-2 text-subtle-foreground text-xs">
                               {formatDateStr(child.fecha_inicio)}
                             </td>
                             <td className={cn(
@@ -396,7 +396,7 @@ export default function ProgramaObraExcelPreview({
                               hasConflict && !resolution && "text-amber-700 font-medium",
                               hasConflict && resolution === "parent" && "text-blue-600 line-through",
                               hasConflict && resolution === "child" && "text-amber-700 font-medium",
-                              !hasConflict && "text-gray-500"
+                              !hasConflict && "text-subtle-foreground"
                             )}>
                               {formatDateStr(child.fecha_fin)}
                               {hasConflict && resolution === "parent" && (
@@ -405,13 +405,13 @@ export default function ProgramaObraExcelPreview({
                                 </span>
                               )}
                             </td>
-                            <td className="px-3 py-2 text-gray-500 text-xs text-right">
+                            <td className="px-3 py-2 text-subtle-foreground text-xs text-right">
                               {child.peso != null ? `${child.peso}%` : "—"}
                             </td>
-                            <td className="px-3 py-2 text-gray-500 text-xs">
+                            <td className="px-3 py-2 text-subtle-foreground text-xs">
                               {formatDateStr(child.anticipo_fecha)}
                             </td>
-                            <td className="px-3 py-2 text-gray-500 text-xs">
+                            <td className="px-3 py-2 text-subtle-foreground text-xs">
                               {formatDateStr(child.suministro_fecha)}
                             </td>
                           </tr>
@@ -425,7 +425,7 @@ export default function ProgramaObraExcelPreview({
         </div>
 
         {/* Summary */}
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-subtle-foreground">
           {parsedData.length} partida{parsedData.length !== 1 ? "s" : ""} ·{" "}
           {parsedData.reduce((s, p) => s + (p.children?.length ?? 0), 0)} elementos hijo
         </div>

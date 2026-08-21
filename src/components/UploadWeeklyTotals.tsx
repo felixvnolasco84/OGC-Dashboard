@@ -98,16 +98,16 @@ export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyT
       <CardContent className="space-y-6">
         {/* Statistics */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-xs text-gray-500 mb-1">Total Semanas</p>
+          <div className="bg-background p-4 rounded-lg">
+            <p className="text-xs text-subtle-foreground mb-1">Total Semanas</p>
             <p className="text-2xl font-semibold">{weeklyTotalsData.length}</p>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-xs text-gray-500 mb-1">Semanas con Datos</p>
+          <div className="bg-background p-4 rounded-lg">
+            <p className="text-xs text-subtle-foreground mb-1">Semanas con Datos</p>
             <p className="text-2xl font-semibold">{nonZeroEntries.length}</p>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-xs text-gray-500 mb-1">Total Proyectado</p>
+          <div className="bg-background p-4 rounded-lg">
+            <p className="text-xs text-subtle-foreground mb-1">Total Proyectado</p>
             <p className="text-lg font-semibold">
               ${new Intl.NumberFormat('es-MX').format(Math.round(totalAmount))}
             </p>
@@ -130,7 +130,7 @@ export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyT
         {/* Data Preview */}
         <div>
           <p className="text-sm font-medium mb-2">Vista previa de datos:</p>
-          <div className="bg-gray-50 p-4 rounded-lg max-h-48 overflow-y-auto">
+          <div className="bg-background p-4 rounded-lg max-h-48 overflow-y-auto">
             <div className="space-y-1 text-xs font-mono">
               <div className="flex justify-between border-b pb-1 mb-2">
                 <span className="font-semibold">Fecha</span>
@@ -142,7 +142,7 @@ export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyT
                   <span>{item.amount}</span>
                 </div>
               ))}
-              <p className="text-center text-gray-500 pt-2">
+              <p className="text-center text-subtle-foreground pt-2">
                 ... y {weeklyTotalsData.length - 5} semanas más
               </p>
             </div>

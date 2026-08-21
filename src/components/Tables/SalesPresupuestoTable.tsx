@@ -347,29 +347,29 @@ export default function SalesPresupuestoTable() {
 
   // Loading state
   if (!salesProyecto || !partidas) {
-    return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
+    return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-        <p className="text-gray-500">Cargando datos...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
+        <p className="text-subtle-foreground">Cargando datos...</p>
       </div>
     </div>;
   }
 
   return (
-    <div className="bg-white py-6 space-y-12">
+    <div className="bg-card py-6 space-y-12">
       <div className="max-w-full mx-auto space-y-12">
         {/* Header */}
-        <div className="py-6 border-b border-gray-200 px-12 pb-12">
+        <div className="py-6 border-b border-border px-12 pb-12">
           <div className="flex items-end justify-between">
             <div className="flex flex-col text-left">
-              <p className="text-base text-gray-500 mb-1">Presupuesto</p>
-              <h1 className="text-2xl text-gray-900">{salesProyecto.nombre}</h1>
+              <p className="text-base text-subtle-foreground mb-1">Presupuesto</p>
+              <h1 className="text-2xl text-foreground">{salesProyecto.nombre}</h1>
             </div>
             <div className="flex items-end gap-3">
               <Button
                 variant="outline"
                 size="lg"
-                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
+                className="flex justify-center items-center gap-2 rounded-none text-subtle-foreground py-6"
                 onClick={async () => {
                   if (!salesProyectoId) return;
                   setIsSyncing(true);
@@ -397,7 +397,7 @@ export default function SalesPresupuestoTable() {
               <Button
                 variant="outline"
                 size="lg"
-                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6"
+                className="flex justify-center items-center gap-2 rounded-none text-subtle-foreground py-6"
               >
                 Agregar Unidad
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
@@ -412,9 +412,9 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Total Ventas</p>
+                <p className="text-sm text-subtle-foreground">Total Ventas</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-gray-900">
+                  <p className="text-4xl font-normal text-foreground">
                     {formatCurrencyCompact(Math.round(metrics.presupuestoOriginal), defaultCurrency)}
                   </p>
                 </div>
@@ -426,13 +426,13 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Vendido</p>
+                <p className="text-sm text-subtle-foreground">Vendido</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-gray-900">
+                  <p className="text-4xl font-normal text-foreground">
                     {formatCurrencyCompact(Math.round(metrics.presupuestoAprobado), defaultCurrency)}
                   </p>
                 </div>
-                <div className="text-lg text-gray-500">
+                <div className="text-lg text-subtle-foreground">
                   <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
                     {presupuestoReduction < 0 ? 'Avance' : 'Aumento'} {Math.abs(presupuestoReduction)}%
                   </Badge>
@@ -445,9 +445,9 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Pagado</p>
+                <p className="text-sm text-subtle-foreground">Pagado</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-gray-900">
+                  <p className="text-4xl font-normal text-foreground">
                     {formatCurrencyCompact(Math.round(metrics.pagado), defaultCurrency)}
                   </p>
                 </div>
@@ -462,9 +462,9 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Por Pagar</p>
+                <p className="text-sm text-subtle-foreground">Por Pagar</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-gray-900">
+                  <p className="text-4xl font-normal text-foreground">
                     {formatCurrencyCompact(Math.round(metrics.porGastar), defaultCurrency)}
                   </p>
                 </div>
@@ -477,16 +477,16 @@ export default function SalesPresupuestoTable() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white pb-4 px-12">
+        <div className="bg-card pb-4 px-12">
           <div className="grid grid-cols-3 items-center gap-6">
             {/* Partida Filter - Multi-select */}
-            <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
-              <span className="text-sm text-gray-500">Unidad</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-border">
+              <span className="text-sm text-subtle-foreground">Unidad</span>
               <Popover open={isPartidaOpen} onOpenChange={setIsPartidaOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="border-none shadow-none px-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
+                    className="border-none shadow-none px-0 h-auto font-normal text-foreground hover:bg-transparent justify-start"
                   >
                     <span className="flex items-center gap-2">
                       {selectedPartidas.length === 0 ? (
@@ -505,7 +505,7 @@ export default function SalesPresupuestoTable() {
                       placeholder="Buscar unidades..."
                       value={partidaSearchTerm}
                       onChange={(e) => setPartidaSearchTerm(e.target.value)}
-                      className="h-8 rounded-none focus-visible:border-gray-300 focus-visible:ring-0"
+                      className="h-8 rounded-none focus-visible:border-border-strong focus-visible:ring-0"
                     />
                   </div>
                   <div className="max-h-64 overflow-y-auto p-3 space-y-2">
@@ -515,7 +515,7 @@ export default function SalesPresupuestoTable() {
                           <Checkbox
                             id={`partida-${partida}`}
                             checked={selectedPartidas.includes(partida)}
-                            className="border-gray-300"
+                            className="border-border-strong"
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 setSelectedPartidas([...selectedPartidas, partida]);
@@ -533,14 +533,14 @@ export default function SalesPresupuestoTable() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-base text-gray-500 text-center py-2">
+                      <p className="text-base text-subtle-foreground text-center py-2">
                         No se encontraron unidades
                       </p>
                     )}
                   </div>
                   {selectedPartidas.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-base text-gray-500">
+                      <span className="text-base text-subtle-foreground">
                         {selectedPartidas.length} seleccionada(s)
                       </span>
                       <Button
@@ -575,13 +575,13 @@ export default function SalesPresupuestoTable() {
             </div>
 
             {/* Familia Filter - Multi-select */}
-            <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
-              <span className="text-sm text-gray-500">Familia</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-border">
+              <span className="text-sm text-subtle-foreground">Familia</span>
               <Popover open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="border-none shadow-none px-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
+                    className="border-none shadow-none px-0 h-auto font-normal text-foreground hover:bg-transparent justify-start"
                   >
                     <span className="flex items-center gap-2">
                       {selectedFamilias.length === 0 ? (
@@ -600,7 +600,7 @@ export default function SalesPresupuestoTable() {
                       placeholder="Buscar familias..."
                       value={familiaSearchTerm}
                       onChange={(e) => setFamiliaSearchTerm(e.target.value)}
-                      className="h-8 rounded-none focus-visible:border-gray-300 focus-visible:ring-0"
+                      className="h-8 rounded-none focus-visible:border-border-strong focus-visible:ring-0"
                     />
                   </div>
                   <div className="max-h-64 overflow-y-auto p-3 space-y-2">
@@ -610,7 +610,7 @@ export default function SalesPresupuestoTable() {
                           <Checkbox
                             id={`familia-${familia}`}
                             checked={selectedFamilias.includes(familia)}
-                            className="border-gray-300"
+                            className="border-border-strong"
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 setSelectedFamilias([...selectedFamilias, familia]);
@@ -628,14 +628,14 @@ export default function SalesPresupuestoTable() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-base text-gray-500 text-center py-2">
+                      <p className="text-base text-subtle-foreground text-center py-2">
                         No se encontraron familias
                       </p>
                     )}
                   </div>
                   {selectedFamilias.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-base text-gray-500">
+                      <span className="text-base text-subtle-foreground">
                         {selectedFamilias.length} seleccionada(s)
                       </span>
                       <Button
@@ -670,10 +670,10 @@ export default function SalesPresupuestoTable() {
             </div>
 
             {/* Fecha Filter */}
-            <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
-              <span className="text-sm text-gray-500">Fecha</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-border">
+              <span className="text-sm text-subtle-foreground">Fecha</span>
               <Select value={selectedFecha} onValueChange={setSelectedFecha}>
-                <SelectTrigger className="border-none shadow-none px-0 h-auto font-normal text-gray-900 focus:ring-0">
+                <SelectTrigger className="border-none shadow-none px-0 h-auto font-normal text-foreground focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -689,32 +689,32 @@ export default function SalesPresupuestoTable() {
 
       {/* Budget Table */}
       <div className="space-y-4">
-        <div className="bg-white border border-gray-200 overflow-hidden">
+        <div className="bg-card border border-border overflow-hidden">
           <Table>
-            <TableHeader className="bg-white">
-              <TableRow className="border-b border-gray-200">
-                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+            <TableHeader className="bg-card">
+              <TableRow className="border-b border-border">
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                   Unidad
                 </TableHead>
-                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                   Total Ventas
                 </TableHead>
-                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                   Vendido
                 </TableHead>
-                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                   Pagado
                 </TableHead>
-                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                   Avance
                 </TableHead>
-                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                   Fecha inicio
                 </TableHead>
-                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                   Fecha fin
                 </TableHead>
-                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+                <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                   
                 </TableHead>
               </TableRow>
@@ -727,9 +727,9 @@ export default function SalesPresupuestoTable() {
                 return (
                   <TableRow
                     key={item.uniqueId}
-                    className="border-b border-gray-100 hover:bg-gray-50"
+                    className="border-b border-border hover:bg-background"
                   >
-                    <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                    <TableCell className="px-4 py-4 text-base text-foreground border-r border-border last:border-r-0 text-left">
                       <div
                         className="flex items-center space-x-2"
                         style={{ paddingLeft: `${item.level * 20}px` }}
@@ -742,23 +742,23 @@ export default function SalesPresupuestoTable() {
                             className="p-0 h-auto hover:bg-transparent"
                           >
                             {item.expanded ? (
-                              <ChevronDown className="h-4 w-4 text-gray-500" />
+                              <ChevronDown className="h-4 w-4 text-subtle-foreground" />
                             ) : (
-                              <ChevronRight className="h-4 w-4 text-gray-500" />
+                              <ChevronRight className="h-4 w-4 text-subtle-foreground" />
                             )}
                           </Button>
                         ) : (
                           <div className="w-4" />
                         )}
-                        <span className={`${item.level > 0 ? 'text-gray-600 text-wrap max-w-48' : 'text-gray-900 font-medium'}`}>
+                        <span className={`${item.level > 0 ? 'text-muted-foreground text-wrap max-w-48' : 'text-foreground font-medium'}`}>
                           {item.displayName}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       {formatCurrencyCompact(item.presupuestoOriginal, defaultCurrency)}
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       <div className="flex flex-col gap-2 text-left">
                         <span>{formatCurrencyCompact(item.presupuestoAprobado, defaultCurrency)}</span>
                         {!approvedDiff.isEqual && (
@@ -766,7 +766,7 @@ export default function SalesPresupuestoTable() {
                             className={cn(
                               "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
                               approvedDiff.isSavings
-                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-400'
+                                ? 'bg-muted text-foreground hover:bg-disabled border border-border-strong'
                                 : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
                             )}
                           >
@@ -775,7 +775,7 @@ export default function SalesPresupuestoTable() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       <div className="flex flex-col gap-2 text-left">
                         <span>{formatCurrencyCompact(item.pagado, defaultCurrency)}</span>
                         {!porGastarBadge.isEqual && (
@@ -783,7 +783,7 @@ export default function SalesPresupuestoTable() {
                             className={cn(
                               "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
                               porGastarBadge.isRemaining
-                                ? 'bg-[#f5f5f5] text-gray-500 hover:bg-[#f5f5f5] border border-[#b8b7ac]'
+                                ? 'bg-muted text-subtle-foreground hover:bg-muted border border-border-strong'
                                 : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
                             )}
                           >
@@ -792,16 +792,16 @@ export default function SalesPresupuestoTable() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       {item.avance}%
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-subtle-foreground text-left border-r border-border last:border-r-0">
                       {item.fechaInicio || '-'}
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-subtle-foreground text-left border-r border-border last:border-r-0">
                       {item.fechaFin || '-'}
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-500 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-subtle-foreground text-left border-r border-border last:border-r-0">
                       <DropdownMenuComponentSalesPartida
                         partida={item.originalDoc!}
                         level={item.level}

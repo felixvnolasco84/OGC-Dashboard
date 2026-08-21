@@ -48,34 +48,34 @@ export default function PaymentCard({ payment, index, formatCurrency, relatedPar
     };
 
     return (
-        <div className="bg-white overflow-hidden">
+        <div className="bg-card overflow-hidden">
             {/* Payment Header */}
-            <div className="p-4 border-b border-gray-400">
+            <div className="p-4 border-b border-border-strong">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1">
                         <div className={`w-12 h-12 rounded-md flex items-center justify-center ${isPagado ? 'bg-[#E0F0E2]' : 'bg-orange-100'
                             }`}>
                             {isPagado ? (
                                 <div className="w-fit bg-green-800 rounded-full p-0.5">
-                                    <Check className="w-4 h-4 text-white" />
+                                    <Check className="w-4 h-4 text-on-color" />
                                 </div>
                             ) : (
                                 <div className="w-fit bg-orange-800 rounded-full p-0.5">
-                                    <Lock className="w-4 h-4 text-white" />
+                                    <Lock className="w-4 h-4 text-on-color" />
                                 </div>
                             )}
                         </div>
                         <div>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium text-foreground">
                                 {status || (isPagado ? 'Aprobado' : 'Pendiente')}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                                 Pago #{String(index + 1).padStart(3, '0')}
                             </p>
                         </div>
                     </div>
                     <div className="text-right flex items-center gap-3">
-                        <p className="text-xl text-gray-900">
+                        <p className="text-xl text-foreground">
                             {formatCurrency(payment.monto)} {payment.transaction?.moneda || payment.moneda || 'MXN'}
                         </p>
 
@@ -89,28 +89,28 @@ export default function PaymentCard({ payment, index, formatCurrency, relatedPar
             <div className="p-4 space-y-3">
                 <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm">
                     <div className="flex justify-between">
-                        <span className="text-[#777770]">Fecha</span>
+                        <span className="text-muted-foreground">Fecha</span>
                         <span className="text-muted-foreground">{payment.transaction?.fecha || payment.fecha}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[#777770]">Método de pago</span>
+                        <span className="text-muted-foreground">Método de pago</span>
                         <span className="text-muted-foreground">{payment.transaction?.tipo_pago || payment.tipo_pago}</span>
                     </div>
                     {(payment.transaction?.numero_cuenta || payment.numero_cuenta) && (
                         <div className="flex justify-between">
-                            <span className="text-[#777770]">Cuenta cargo</span>
+                            <span className="text-muted-foreground">Cuenta cargo</span>
                             <span className="text-muted-foreground">{payment.transaction?.numero_cuenta || payment.numero_cuenta}</span>
                         </div>
                     )}
                     {(payment.transaction?.numero_transferencia || payment.numero_transferencia) && (
                         <div className="flex justify-between">
-                            <span className="text-[#777770]">Cuenta abono</span>
+                            <span className="text-muted-foreground">Cuenta abono</span>
                             <span className="text-muted-foreground">{payment.transaction?.numero_transferencia || payment.numero_transferencia}</span>
                         </div>
                     )}
                     {(payment.transaction?.codigo_referencia || payment.codigo_referencia) && (
                         <div className="flex justify-between">
-                            <span className="text-[#777770]">Referencia</span>
+                            <span className="text-muted-foreground">Referencia</span>
                             <span className="text-muted-foreground">{payment.transaction?.codigo_referencia || payment.codigo_referencia}</span>
                         </div>
                     )}
@@ -120,7 +120,7 @@ export default function PaymentCard({ payment, index, formatCurrency, relatedPar
                     {/* Additional Tags */}
                     <div className="space-y-2 pt-2 flex flex-wrap gap-2">
                         {(payment.transaction?.banco || payment.banco) && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-muted text-foreground">
                                 {payment.transaction?.banco || payment.banco}
                             </span>
                         )}
@@ -139,12 +139,12 @@ export default function PaymentCard({ payment, index, formatCurrency, relatedPar
                     {/* File Attachments */}
                     <div className="flex flex-col gap-2 pt-2 justify-end">
                         {(payment.transaction?.factura || payment.factura) && (
-                            <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md justify-end">
-                                <span className="text-sm text-gray-700">
+                            <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-md justify-end">
+                                <span className="text-sm text-foreground">
                                     {(payment.transaction?.factura || payment.factura)?.includes('http') ? 'Factura' : (payment.transaction?.factura || payment.factura)}
                                 </span>
                                 <div className="w-fit bg-green-800 rounded-full p-0.5">
-                                    <Check className="w-4 h-4 text-white" />
+                                    <Check className="w-4 h-4 text-on-color" />
                                 </div>
                             </div>
                         )}

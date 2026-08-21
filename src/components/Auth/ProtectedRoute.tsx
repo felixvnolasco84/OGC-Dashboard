@@ -50,10 +50,10 @@ export default function ProtectedRoute({
     (isAuthenticated && isProjectRoute && isProjectAccessLoading)
   ) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-card">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-500">Verificando permisos...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
+          <p className="text-subtle-foreground">Verificando permisos...</p>
         </div>
       </div>
     );
@@ -67,18 +67,18 @@ export default function ProtectedRoute({
   // Redirect if user doesn't have required role
   if (currentUser && !hasRequiredRole(currentUser.role, requiredRole)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-card">
         <div className="text-center max-w-md px-4">
           <div className="text-6xl mb-4">🔒</div>
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+          <h1 className="text-2xl font-semibold text-foreground mb-2">
             Acceso Denegado
           </h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-muted-foreground mb-6">
             No tienes permisos para acceder a esta página.
           </p>
           <a
             href="/proyectos"
-            className="inline-block px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+            className="inline-block px-6 py-2 bg-inverse text-on-color rounded-lg hover:bg-inverse transition-colors"
           >
             Volver al Inicio
           </a>
@@ -93,18 +93,18 @@ export default function ProtectedRoute({
     // Regular proyectos
     if (proyectoId && hasDesarrolloAccess === false) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="min-h-screen flex items-center justify-center bg-card">
           <div className="text-center max-w-md px-4">
             <div className="text-6xl mb-4">🔒</div>
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+            <h1 className="text-2xl font-semibold text-foreground mb-2">
               Acceso Denegado
             </h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               No tienes permisos para acceder a esta página.
             </p>
             <a
               href="/proyectos"
-              className="inline-block px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+              className="inline-block px-6 py-2 bg-inverse text-on-color rounded-lg hover:bg-inverse transition-colors"
             >
               Volver al Inicio
             </a>
@@ -116,18 +116,18 @@ export default function ProtectedRoute({
     // Sales proyectos
     if (salesProyectoId && hasSalesProjectAccess === false) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="min-h-screen flex items-center justify-center bg-card">
           <div className="text-center max-w-md px-4">
             <div className="text-6xl mb-4">🔒</div>
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+            <h1 className="text-2xl font-semibold text-foreground mb-2">
               Acceso Denegado
             </h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               No tienes permisos para acceder a esta página.
             </p>
             <a
               href="/sales-proyectos"
-              className="inline-block px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+              className="inline-block px-6 py-2 bg-inverse text-on-color rounded-lg hover:bg-inverse transition-colors"
             >
               Volver al Inicio
             </a>

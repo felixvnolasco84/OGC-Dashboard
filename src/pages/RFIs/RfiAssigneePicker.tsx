@@ -84,26 +84,26 @@ export function RfiAssigneePicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "flex h-10 w-full min-w-0 items-center gap-2 rounded-sm border border-gray-200 bg-white px-3 text-left hover:bg-gray-50",
+            "flex h-10 w-full min-w-0 items-center gap-2 rounded-sm border border-border bg-card px-3 text-left hover:bg-background",
             disabled && "cursor-not-allowed opacity-70",
             className,
           )}
         >
           {selectedUsers.length > 0 ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-[#DDDCD8] bg-[#DDDCD8] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-border bg-disabled text-xs font-medium text-subtle-foreground">
                 {userInitials(selectedUsers[0])}
               </span>
-              <span className="min-w-0 flex-1 truncate text-sm text-[#A3A39E]">
+              <span className="min-w-0 flex-1 truncate text-sm text-disabled-foreground">
                 {selectedUsers.map((user) => user.name || user.email).join(", ")}
               </span>
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-[#E0E0E0] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-disabled text-xs font-medium text-subtle-foreground">
                 -
               </span>
-              <span className="text-sm text-[#A3A39E]">Sin asignar</span>
+              <span className="text-sm text-disabled-foreground">Sin asignar</span>
             </>
           )}
         </button>
@@ -111,9 +111,9 @@ export function RfiAssigneePicker({
       <PopoverContent
         align="start"
         sideOffset={6}
-        className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl"
+        className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl"
       >
-        <div className="border-b border-gray-100 p-3">
+        <div className="border-b border-border p-3">
           <div className="flex flex-wrap gap-1.5">
             {selectedUsers.length > 0 ? (
               selectedUsers.map((user) => (
@@ -121,9 +121,9 @@ export function RfiAssigneePicker({
                   key={user._id}
                   type="button"
                   onClick={() => toggleUser(user._id)}
-                  className="inline-flex h-7 items-center gap-1.5 rounded-sm bg-gray-100 px-2 text-xs text-gray-700 hover:bg-gray-200"
+                  className="inline-flex h-7 items-center gap-1.5 rounded-sm bg-muted px-2 text-xs text-foreground hover:bg-disabled"
                 >
-                  <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-gray-200 bg-white text-[10px] font-medium text-gray-500">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-border bg-card text-[10px] font-medium text-subtle-foreground">
                     {userInitials(user)}
                   </span>
                   <span className="max-w-36 truncate">
@@ -133,13 +133,13 @@ export function RfiAssigneePicker({
                 </button>
               ))
             ) : (
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-disabled-foreground">
                 Selecciona responsables
               </span>
             )}
           </div>
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -149,16 +149,16 @@ export function RfiAssigneePicker({
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-gray-500">
+          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">
             Personas sugeridas
           </p>
           {!users && (
-            <div className="flex h-24 items-center justify-center text-gray-400">
+            <div className="flex h-24 items-center justify-center text-disabled-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {users && filteredUsers.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-gray-500">
+            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
               No hay usuarios con esa búsqueda.
             </div>
           )}
@@ -170,29 +170,29 @@ export function RfiAssigneePicker({
                 type="button"
                 onClick={() => toggleUser(user._id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-sm px-2 py-2 text-left text-sm hover:bg-gray-100",
-                  selected && "bg-gray-100",
+                  "flex w-full items-center gap-3 rounded-sm px-2 py-2 text-left text-sm hover:bg-muted",
+                  selected && "bg-muted",
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-gray-200 bg-gray-100 text-xs font-medium text-gray-500">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border bg-muted text-xs font-medium text-subtle-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-gray-800">
+                  <span className="block truncate font-medium text-foreground">
                     {user.name || user.email}
                   </span>
-                  <span className="block truncate text-xs text-gray-500">
+                  <span className="block truncate text-xs text-subtle-foreground">
                     {user.role}
                   </span>
                 </span>
                 {selected && (
-                  <CheckCircle2 className="h-4 w-4 text-gray-600" />
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                 )}
               </button>
             );
           })}
         </div>
-        <div className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        <div className="flex items-center gap-2 border-t border-border bg-background px-4 py-3 text-sm text-muted-foreground">
           <Bell className="h-4 w-4" />
           Se notificará a los responsables
         </div>

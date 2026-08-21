@@ -107,14 +107,14 @@ export default function SeeSalesTransactionsDetailsModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 {paymentContext && (
                     <>
 
                                             <div className="flex justify-end mt-4 items-end">
                             <Button size={"default"} variant="secondary" onClick={handleOpenAddPayment}>
                                 Nuevo Pago
-                                <Plus className="h-3 w-3 bg-gray-600 text-white p-0.5 rounded-full" />
+                                <Plus className="h-3 w-3 bg-muted-foreground text-on-color p-0.5 rounded-none" />
                             </Button>
                         </div>
                         <SheetHeader>
@@ -136,16 +136,16 @@ export default function SeeSalesTransactionsDetailsModal() {
                                         {paymentContext.relatedPartida?.nivel === 2 &&
                                             <>
                                                 <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
-                                                <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
+                                                <h4 className="text-muted-foreground">{paymentContext.relatedPartida.familia}</h4>
                                             </>}
                                         {paymentContext.relatedPartida?.nivel === 3 &&
                                             <>
                                                 <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
-                                                <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
-                                                <h5 className="text-gray-500">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
+                                                <h4 className="text-muted-foreground">{paymentContext.relatedPartida.familia}</h4>
+                                                <h5 className="text-subtle-foreground">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
                                             </>}
                                     </div>
-                                    <CardDescription className="text-gray-400 text-right text-base">
+                                    <CardDescription className="text-disabled-foreground text-right text-base">
                                         {paymentContext.relatedPartida?.nivel === 1 && 'Unidad'}
                                         {paymentContext.relatedPartida?.nivel === 2 && 'Familia'}
                                         {paymentContext.relatedPartida?.nivel === 3 && 'Sub-partida'}
@@ -172,15 +172,15 @@ export default function SeeSalesTransactionsDetailsModal() {
 
                                 <div className="grid grid-cols-3 gap-20 justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">Presupuesto aprobado</p>
+                                        <p className="text-sm font-medium text-subtle-foreground">Presupuesto aprobado</p>
                                         <p className="text-lg">{formatCurrency(paymentContext.totalAmount)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500 text-left">Pagado</p>
+                                        <p className="text-sm font-medium text-subtle-foreground text-left">Pagado</p>
                                         <p className="text-lg text-green-800 text-left">{formatCurrency(getTotalPaidAmount())}</p>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <p className="text-sm font-medium text-gray-500 text-right">Por cobrar</p>
+                                        <p className="text-sm font-medium text-subtle-foreground text-right">Por cobrar</p>
                                         {getRemainingAmount() > 0 && (
                                             <p className="text-lg text-orange-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
                                         )}
@@ -215,35 +215,35 @@ export default function SeeSalesTransactionsDetailsModal() {
                                     const lineItemsCount = group.lineItems.length;
                                     
                                     return (
-                                        <div key={group.transaction._id} className="bg-white overflow-hidden">
+                                        <div key={group.transaction._id} className="bg-card overflow-hidden">
                                             {/* Transaction Header */}
-                                            <div className="p-4 border-b border-gray-400 leading-none">
+                                            <div className="p-4 border-b border-border-strong leading-none">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3 flex-1">
-                                                        <div className={`w-12 h-12 rounded-md flex items-center justify-center ${
+                                                        <div className={`w-12 h-12 rounded-none flex items-center justify-center ${
                                                             isPagado ? 'bg-[#E0F0E2]' : 'bg-orange-100'
                                                         }`}>
                                                             {isPagado ? (
-                                                                <div className="w-fit bg-green-800 rounded-full p-0.5">
-                                                                    <Check className="w-4 h-4 text-white" />
+                                                                <div className="w-fit bg-green-800 rounded-none p-0.5">
+                                                                    <Check className="w-4 h-4 text-on-color" />
                                                                 </div>
                                                             ) : (
-                                                                <div className="w-fit bg-orange-800 rounded-full p-0.5">
-                                                                    <Lock className="w-4 h-4 text-white" />
+                                                                <div className="w-fit bg-orange-800 rounded-none p-0.5">
+                                                                    <Lock className="w-4 h-4 text-on-color" />
                                                                 </div>
                                                             )}
                                                         </div>
                                                         <div>
-                                                            <p className="font-medium text-gray-900">
+                                                            <p className="font-medium text-foreground">
                                                                 {group.transaction.status || (isPagado ? 'Aprobado' : 'Pendiente')}
                                                             </p>
-                                                            <p className="text-sm text-gray-600">
+                                                            <p className="text-sm text-muted-foreground">
                                                                 {group.transaction.nombre_cliente || 'Cliente no especificado'}
                                                             </p>
                                                         </div>
                                                     </div>
                                                     <div className="text-right flex items-center gap-3">
-                                                        <p className="text-xl text-gray-900">
+                                                        <p className="text-xl text-foreground">
                                                             {formatCurrency(group.transaction.monto_total || 0)} {group.transaction.moneda || 'MXN'}
                                                         </p>
                                                     </div>
@@ -254,16 +254,16 @@ export default function SeeSalesTransactionsDetailsModal() {
                                             <div className="p-4 space-y-3">
                                                 <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm">
                                                     <div className="flex justify-between">
-                                                        <span className="text-[#777770]">Fecha</span>
+                                                        <span className="text-muted-foreground">Fecha</span>
                                                         <span className="text-muted-foreground">{group.transaction.fecha || 'No especificada'}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-[#777770]">Método de pago</span>
+                                                        <span className="text-muted-foreground">Método de pago</span>
                                                         <span className="text-muted-foreground">{group.transaction.tipo_pago || 'No especificado'}</span>
                                                     </div>
                                                     {group.transaction.codigo_referencia && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-[#777770]">Referencia</span>
+                                                            <span className="text-muted-foreground">Referencia</span>
                                                             <span className="text-muted-foreground">{group.transaction.codigo_referencia}</span>
                                                         </div>
                                                     )}
@@ -271,21 +271,21 @@ export default function SeeSalesTransactionsDetailsModal() {
 
                                                 {/* Line Items Summary */}
                                                 {lineItemsCount > 0 && (
-                                                    <div className="mt-4 pt-3 border-t border-gray-200">
-                                                        <p className="text-xs font-medium text-gray-500 mb-2">
+                                                    <div className="mt-4 pt-3 border-t border-border">
+                                                        <p className="text-xs font-medium text-subtle-foreground mb-2">
                                                             Conceptos incluidos:
                                                         </p>
                                                         <div className="space-y-1">
                                                             {group.lineItems.map((item, idx) => (
                                                                 <div key={idx} className="flex justify-between text-sm">
-                                                                    <span className="text-gray-600 truncate">
+                                                                    <span className="text-muted-foreground truncate">
                                                                         {item.partida && item.familia && item.sub_partida
                                                                             ? `${item.partida} › ${item.familia} › ${item.sub_partida}`
                                                                             : item.partida && item.familia
                                                                             ? `${item.partida} › ${item.familia}`
                                                                             : item.partida || 'Concepto'}
                                                                     </span>
-                                                                    <span className="text-gray-900 ml-2 whitespace-nowrap">
+                                                                    <span className="text-foreground ml-2 whitespace-nowrap">
                                                                         {formatCurrency(item.monto)}
                                                                     </span>
                                                                 </div>
@@ -298,7 +298,7 @@ export default function SeeSalesTransactionsDetailsModal() {
                                                     {/* Additional Tags */}
                                                     <div className="space-y-2 pt-2 flex flex-wrap gap-2">
                                                         {group.transaction.moneda && group.transaction.moneda !== 'MXN' && (
-                                                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
+                                                            <span className="inline-flex items-center px-2 py-1 rounded-none text-xs font-medium bg-blue-100 text-blue-700">
                                                                 {group.transaction.moneda}
                                                             </span>
                                                         )}
@@ -311,7 +311,7 @@ export default function SeeSalesTransactionsDetailsModal() {
 
                             {/* Empty State */}
                             {groupedTransactions.length === 0 && (
-                                <div className="text-center py-8 text-gray-500">
+                                <div className="text-center py-8 text-subtle-foreground">
                                     <p>No hay transacciones registradas</p>
                                 </div>
                             )}

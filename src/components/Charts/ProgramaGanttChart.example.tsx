@@ -16,7 +16,7 @@ export default function ProgramaObra() {
   const [viewMode, setViewMode] = useState<'gantt' | 'table'>('table');
 
   return (
-    <div className="bg-white px-12 py-6">
+    <div className="bg-card px-12 py-6">
       <div className="max-w-full mx-auto space-y-6">
         {/* Header Section * /}
         <div className="rounded-lg py-6">
@@ -24,7 +24,7 @@ export default function ProgramaObra() {
         </div>
 
         {/* Filters Section * /}
-        <div className="bg-white border-b border-gray-200 pb-4">
+        <div className="bg-card border-b border-border pb-4">
           {/* ... existing filters ... * /}
         </div>
 
@@ -53,7 +53,7 @@ export default function ProgramaObra() {
           />
         ) : (
           // Original Table View
-          <div className="border border-gray-200 overflow-hidden bg-white">
+          <div className="border border-border overflow-hidden bg-card">
             {/* ... your existing Gantt table code ... * /}
           </div>
         )}
@@ -69,7 +69,7 @@ export default function ProgramaObra() {
   // ... your existing code ...
 
   return (
-    <div className="bg-white px-12 py-6">
+    <div className="bg-card px-12 py-6">
       <div className="max-w-full mx-auto space-y-6">
         {/* Header * /}
         <div className="rounded-lg py-6">
@@ -77,7 +77,7 @@ export default function ProgramaObra() {
         </div>
 
         {/* Filters * /}
-        <div className="bg-white border-b border-gray-200 pb-4">
+        <div className="bg-card border-b border-border pb-4">
           {/* ... filters code ... * /}
         </div>
 

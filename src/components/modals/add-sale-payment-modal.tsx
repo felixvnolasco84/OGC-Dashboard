@@ -299,10 +299,10 @@ export default function AddSalePaymentModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="w-[800px] sm:max-w-[800px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-[800px] sm:max-w-[800px] overflow-y-auto">
                 <SheetHeader>
-                    <SheetTitle className="text-xl font-medium text-gray-900">Pagos Múltiples</SheetTitle>
-                    <SheetDescription className="text-sm text-gray-600">
+                    <SheetTitle className="text-xl font-medium text-foreground">Pagos Múltiples</SheetTitle>
+                    <SheetDescription className="text-sm text-muted-foreground">
                         Registra pagos para múltiples partidas, familias y sub-partidas
                     </SheetDescription>
                 </SheetHeader>
@@ -317,17 +317,17 @@ export default function AddSalePaymentModal() {
                                 className={cn(
                                     "flex items-center gap-3 p-4 rounded-none border transition-all",
                                     status === 'Pagado'
-                                        ? "border-green-600 bg-white"
-                                        : "border-gray-300 bg-white hover:border-gray-400"
+                                        ? "border-green-600 bg-card"
+                                        : "border-border-strong bg-card hover:border-border-strong"
                                 )}
                             >
                                 <Check className={cn(
                                     "h-5 w-5",
-                                    status === 'Pagado' ? "text-green-600" : "text-gray-400"
+                                    status === 'Pagado' ? "text-green-600" : "text-disabled-foreground"
                                 )} />
                                 <span className={cn(
                                     "text-base",
-                                    status === 'Pagado' ? "text-gray-900 font-medium" : "text-gray-600"
+                                    status === 'Pagado' ? "text-foreground font-medium" : "text-muted-foreground"
                                 )}>Pagado</span>
                             </button>
                             <button
@@ -336,17 +336,17 @@ export default function AddSalePaymentModal() {
                                 className={cn(
                                     "flex items-center gap-3 p-4 rounded-none border transition-all",
                                     status === 'Por pagar'
-                                        ? "border-gray-600 bg-white"
-                                        : "border-gray-300 bg-white hover:border-gray-400"
+                                        ? "border-border-strong bg-card"
+                                        : "border-border-strong bg-card hover:border-border-strong"
                                 )}
                             >
                                 <Circle className={cn(
                                     "h-5 w-5",
-                                    status === 'Por pagar' ? "text-gray-600" : "text-gray-400"
+                                    status === 'Por pagar' ? "text-muted-foreground" : "text-disabled-foreground"
                                 )} />
                                 <span className={cn(
                                     "text-base",
-                                    status === 'Por pagar' ? "text-gray-900 font-medium" : "text-gray-600"
+                                    status === 'Por pagar' ? "text-foreground font-medium" : "text-muted-foreground"
                                 )}>Por pagar</span>
                             </button>
                         </div>
@@ -354,7 +354,7 @@ export default function AddSalePaymentModal() {
 
                     {/* Client Name */}
                     <div className="space-y-2">
-                        <label className="text-sm text-gray-700">Nombre del cliente</label>
+                        <label className="text-sm text-foreground">Nombre del cliente</label>
                         <Input
                             placeholder="Nombre del cliente"
                             value={nombreCliente}
@@ -365,10 +365,10 @@ export default function AddSalePaymentModal() {
                     </div>
 
                     {/* Hierarchical Partida/Familia/SubPartida Selection */}
-                    <div className="space-y-4 border p-4 rounded-none bg-gray-50">
+                    <div className="space-y-4 border p-4 rounded-none bg-background">
                         <div className="flex items-center justify-between">
-                            <h3 className="font-medium text-gray-900">Partidas</h3>
-                            <span className="text-sm text-gray-600">
+                            <h3 className="font-medium text-foreground">Partidas</h3>
+                            <span className="text-sm text-muted-foreground">
                                 Total: {new Intl.NumberFormat('es-MX', {
                                     style: 'currency',
                                     currency: moneda
@@ -379,13 +379,13 @@ export default function AddSalePaymentModal() {
                         {/* Partidas List */}
                         <div className="space-y-4">
                             {partidas.map((partida) => (
-                                <div key={partida.id} className="bg-white border rounded-none">
+                                <div key={partida.id} className="bg-card border rounded-none">
                                     {/* Partida Header */}
-                                    <div className="flex items-center gap-2 p-3 bg-gray-100">
+                                    <div className="flex items-center gap-2 p-3 bg-muted">
                                         <button
                                             type="button"
                                             onClick={() => togglePartidaExpanded(partida.id)}
-                                            className="text-gray-600 hover:text-gray-900"
+                                            className="text-muted-foreground hover:text-foreground"
                                         >
                                             {partida.isExpanded ? (
                                                 <ChevronDown className="h-4 w-4" />
@@ -400,7 +400,7 @@ export default function AddSalePaymentModal() {
                                             <SelectTrigger className="flex-1 h-10">
                                                 <SelectValue placeholder="Seleccionar partida" />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent data-square-modal="">
                                                 {getUniquePartidaNames().map((nombre) => (
                                                     <SelectItem key={nombre} value={nombre}>
                                                         {nombre}
@@ -425,13 +425,13 @@ export default function AddSalePaymentModal() {
                                     {partida.isExpanded && partida.partida && (
                                         <div className="p-3 space-y-3">
                                             {partida.familias.map((familia) => (
-                                                <div key={familia.id} className="border-l-2 border-gray-300 pl-4 space-y-2">
+                                                <div key={familia.id} className="border-l-2 border-border-strong pl-4 space-y-2">
                                                     {/* Familia Header */}
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => toggleFamiliaExpanded(partida.id, familia.id)}
-                                                            className="text-gray-600 hover:text-gray-900"
+                                                            className="text-muted-foreground hover:text-foreground"
                                                         >
                                                             {familia.isExpanded ? (
                                                                 <ChevronDown className="h-3 w-3" />
@@ -446,7 +446,7 @@ export default function AddSalePaymentModal() {
                                                             <SelectTrigger className="flex-1 h-9">
                                                                 <SelectValue placeholder="Seleccionar familia" />
                                                             </SelectTrigger>
-                                                            <SelectContent>
+                                                            <SelectContent data-square-modal="">
                                                                 {getAvailableFamilias(partida.partida).map((fam) => (
                                                                     <SelectItem key={fam} value={fam}>
                                                                         {fam}
@@ -475,9 +475,9 @@ export default function AddSalePaymentModal() {
                                                                 id={`direct-${familia.id}`}
                                                                 checked={familia.isDirect}
                                                                 onChange={() => toggleFamiliaDirect(partida.id, familia.id)}
-                                                                className="h-4 w-4 rounded border-gray-300"
+                                                                className="h-4 w-4 rounded-none border-border-strong"
                                                             />
-                                                            <label htmlFor={`direct-${familia.id}`} className="text-xs text-gray-600 cursor-pointer">
+                                                            <label htmlFor={`direct-${familia.id}`} className="text-xs text-muted-foreground cursor-pointer">
                                                                 Pago directo (sin sub-partidas)
                                                             </label>
                                                         </div>
@@ -522,7 +522,7 @@ export default function AddSalePaymentModal() {
                                                                                 <SelectTrigger className="flex-1 h-9 text-sm">
                                                                                     <SelectValue placeholder="Sub-partida" />
                                                                                 </SelectTrigger>
-                                                                                <SelectContent>
+                                                                                <SelectContent data-square-modal="">
                                                                                     {getAvailableSubPartidas(partida.partida, familia.familia).map((sub) => (
                                                                                         <SelectItem key={sub} value={sub}>
                                                                                             {sub}
@@ -549,7 +549,7 @@ export default function AddSalePaymentModal() {
                                                                                     onClick={() => removeSubPartida(partida.id, familia.id, subPartida.id)}
                                                                                     className="h-7 w-7 p-0"
                                                                                 >
-                                                                                    <X className="h-3 w-3 text-gray-400" />
+                                                                                    <X className="h-3 w-3 text-disabled-foreground" />
                                                                                 </Button>
                                                                             )}
                                                                         </div>
@@ -604,7 +604,7 @@ export default function AddSalePaymentModal() {
                             <SelectTrigger className="h-12">
                                 <SelectValue placeholder="Categoría (anticipo, material, estimación)" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent data-square-modal="">
                                 <SelectItem value="anticipo">Anticipo</SelectItem>
                                 <SelectItem value="material">Material</SelectItem>
                                 <SelectItem value="estimacion">Estimación</SelectItem>
@@ -616,7 +616,7 @@ export default function AddSalePaymentModal() {
                                 <SelectTrigger className="h-12">
                                     <SelectValue placeholder="Tipo de pago" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent data-square-modal="">
                                     <SelectItem value="efectivo">Efectivo</SelectItem>
                                     <SelectItem value="transferencia">Transferencia</SelectItem>
                                     <SelectItem value="tarjeta">Tarjeta</SelectItem>
@@ -627,7 +627,7 @@ export default function AddSalePaymentModal() {
                                 <SelectTrigger className="h-12">
                                     <SelectValue placeholder="Moneda" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent data-square-modal="">
                                     <SelectItem value="MXN">MXN</SelectItem>
                                     <SelectItem value="USD">USD</SelectItem>
                                     <SelectItem value="EUR">EUR</SelectItem>
@@ -643,7 +643,7 @@ export default function AddSalePaymentModal() {
                                     onChange={() => { }}
                                     currency={moneda}
                                     disabled
-                                    className="h-12 bg-gray-100"
+                                    className="h-12 bg-muted"
                                 />
                             </div>
                             <Input
@@ -683,15 +683,15 @@ export default function AddSalePaymentModal() {
 
                         {/* Document Attachment */}
                         <div className="space-y-3 pt-4 border-t">
-                            <h3 className="text-sm font-medium text-gray-900">Adjuntar documento (opcional)</h3>
+                            <h3 className="text-sm font-medium text-foreground">Adjuntar documento (opcional)</h3>
 
                             <div className="space-y-2">
-                                <label className="text-sm text-gray-700">Tipo de documento</label>
+                                <label className="text-sm text-foreground">Tipo de documento</label>
                                 <Select value={documentType} onValueChange={setDocumentType}>
                                     <SelectTrigger className="h-12">
                                         <SelectValue placeholder="Seleccionar tipo de documento" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent data-square-modal="">
                                         <SelectItem value="factura">Factura</SelectItem>
                                         <SelectItem value="comprobante">Comprobante</SelectItem>
                                         <SelectItem value="presupuesto">Presupuesto</SelectItem>
@@ -702,7 +702,7 @@ export default function AddSalePaymentModal() {
                             {documentType && (
                                 <>
                                     <div className="space-y-2">
-                                        <label className="text-sm text-gray-700">Nombre del documento</label>
+                                        <label className="text-sm text-foreground">Nombre del documento</label>
                                         <Input
                                             placeholder="Ej: Factura #12345"
                                             value={documentName}
@@ -712,7 +712,7 @@ export default function AddSalePaymentModal() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm text-gray-700">Descripción (opcional)</label>
+                                        <label className="text-sm text-foreground">Descripción (opcional)</label>
                                         <Input
                                             placeholder="Descripción del documento"
                                             value={documentDescription}
@@ -722,13 +722,13 @@ export default function AddSalePaymentModal() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm text-gray-700">Archivo</label>
+                                        <label className="text-sm text-foreground">Archivo</label>
                                         <div className="border-2 border-dashed rounded-none p-4 text-center">
                                             {documentFile ? (
                                                 <div className="space-y-2">
                                                     <File className="h-8 w-8 mx-auto text-green-600" />
                                                     <p className="text-sm font-medium">{documentFile.name}</p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-xs text-subtle-foreground">
                                                         {(documentFile.size / 1024).toFixed(2)} KB
                                                     </p>
                                                     <Button
@@ -742,8 +742,8 @@ export default function AddSalePaymentModal() {
                                                 </div>
                                             ) : (
                                                 <div className="space-y-2">
-                                                    <Upload className="h-8 w-8 mx-auto text-gray-400" />
-                                                    <p className="text-sm text-gray-600">Arrastra un archivo o haz clic</p>
+                                                    <Upload className="h-8 w-8 mx-auto text-disabled-foreground" />
+                                                    <p className="text-sm text-muted-foreground">Arrastra un archivo o haz clic</p>
                                                     <Input
                                                         type="file"
                                                         onChange={(e) => {
@@ -770,7 +770,7 @@ export default function AddSalePaymentModal() {
                         <Button
                             type="submit"
                             disabled={!isFormValid() || isSubmitting}
-                            className="bg-black hover:bg-gray-800 text-white h-11"
+                            className="bg-inverse hover:bg-inverse text-on-color h-11"
                         >
                             {isSubmitting ? 'Guardando...' : `Guardar ${totalPayments} pago(s)`}
                         </Button>

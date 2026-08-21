@@ -72,7 +72,7 @@ export default function EditPaymentModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle>Editar pago</SheetTitle>
                     <SheetDescription className="sr-only">
@@ -85,19 +85,19 @@ export default function EditPaymentModal() {
 
                  {/* Partida Information - Read Only */}
                     <div className="space-y-3">
-                        <h3 className="text-base font-semibold text-gray-900">Concepto del pago</h3>
-                        <div className="border rounded-lg p-4 bg-gray-50">
-                            <p className="text-sm text-gray-900">
+                        <h3 className="text-base font-semibold text-foreground">Concepto del pago</h3>
+                        <div className="border rounded-none p-4 bg-background">
+                            <p className="text-sm text-foreground">
                                 {relatedCost.nombre} › {relatedCost.familia} › {relatedCost.sub_partida}
                             </p>
                         </div>
                     </div>
 
                     {/* Payment Summary */}
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                        <p className="text-sm text-gray-600 mb-1">Monto del pago</p>
+                    <div className="bg-background p-4 rounded-none border">
+                        <p className="text-sm text-muted-foreground mb-1">Monto del pago</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-lg text-gray-500">$</span>
+                            <span className="text-lg text-subtle-foreground">$</span>
                             <Input
                                 type="number"
                                 step="0.01"
@@ -108,7 +108,7 @@ export default function EditPaymentModal() {
                                 required
                             />
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-subtle-foreground mt-1">
                             Pago individual
                         </p>
                     </div>
@@ -116,40 +116,40 @@ export default function EditPaymentModal() {
                     {/* Transaction Status - Read Only */}
                     {transaction && (
                         <div className="space-y-3">
-                            <h3 className="text-base font-semibold text-gray-900">Estado de la transacción</h3>
+                            <h3 className="text-base font-semibold text-foreground">Estado de la transacción</h3>
                             <div className="grid grid-cols-2 gap-3">
                                 <div
                                     className={cn(
-                                        "flex items-center gap-2 p-4 rounded-lg border-2",
+                                        "flex items-center gap-2 p-4 rounded-none border-2",
                                         transaction.status === 'Pagado'
                                             ? "border-green-500 bg-green-50"
-                                            : "border-gray-200 bg-gray-50"
+                                            : "border-border bg-background"
                                     )}
                                 >
                                     <Check className={cn(
                                         "h-5 w-5",
-                                        transaction.status === 'Pagado' ? "text-green-600" : "text-gray-400"
+                                        transaction.status === 'Pagado' ? "text-green-600" : "text-disabled-foreground"
                                     )} />
                                     <span className={cn(
                                         "font-medium",
-                                        transaction.status === 'Pagado' ? "text-green-700" : "text-gray-600"
+                                        transaction.status === 'Pagado' ? "text-green-700" : "text-muted-foreground"
                                     )}>Pagado</span>
                                 </div>
                                 <div
                                     className={cn(
-                                        "flex items-center gap-2 p-4 rounded-lg border-2",
+                                        "flex items-center gap-2 p-4 rounded-none border-2",
                                         transaction.status === 'Por pagar'
-                                            ? "border-gray-500 bg-gray-50"
-                                            : "border-gray-200 bg-gray-50"
+                                            ? "border-border-strong bg-background"
+                                            : "border-border bg-background"
                                     )}
                                 >
                                     <Circle className={cn(
                                         "h-5 w-5",
-                                        transaction.status === 'Por pagar' ? "text-gray-600" : "text-gray-400"
+                                        transaction.status === 'Por pagar' ? "text-muted-foreground" : "text-disabled-foreground"
                                     )} />
                                     <span className={cn(
                                         "font-medium",
-                                        transaction.status === 'Por pagar' ? "text-gray-700" : "text-gray-600"
+                                        transaction.status === 'Por pagar' ? "text-foreground" : "text-muted-foreground"
                                     )}>Por pagar</span>
                                 </div>
                             </div>
@@ -161,30 +161,30 @@ export default function EditPaymentModal() {
                     {/* Transaction Details - Read Only */}
                     {transaction && (
                         <div className="space-y-3">
-                            <h3 className="text-base font-semibold text-gray-900">Detalles de la transacción</h3>
-                            <div className="grid grid-cols-1 gap-2 text-sm border rounded-lg p-4 bg-gray-50">
+                            <h3 className="text-base font-semibold text-foreground">Detalles de la transacción</h3>
+                            <div className="grid grid-cols-1 gap-2 text-sm border rounded-none p-4 bg-background">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Fecha</span>
-                                    <span className="text-gray-900">{transaction.fecha}</span>
+                                    <span className="text-muted-foreground">Fecha</span>
+                                    <span className="text-foreground">{transaction.fecha}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Tipo de pago</span>
-                                    <span className="text-gray-900 capitalize">{transaction.tipo_pago}</span>
+                                    <span className="text-muted-foreground">Tipo de pago</span>
+                                    <span className="text-foreground capitalize">{transaction.tipo_pago}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Moneda</span>
-                                    <span className="text-gray-900">{transaction.moneda}</span>
+                                    <span className="text-muted-foreground">Moneda</span>
+                                    <span className="text-foreground">{transaction.moneda}</span>
                                 </div>
                                 {transaction.banco && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">Banco</span>
-                                        <span className="text-gray-900">{transaction.banco}</span>
+                                        <span className="text-muted-foreground">Banco</span>
+                                        <span className="text-foreground">{transaction.banco}</span>
                                     </div>
                                 )}
                                 {transaction.categoria && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">Categoría</span>
-                                        <span className="text-gray-900 capitalize">{transaction.categoria}</span>
+                                        <span className="text-muted-foreground">Categoría</span>
+                                        <span className="text-foreground capitalize">{transaction.categoria}</span>
                                     </div>
                                 )}
                             </div>
@@ -199,7 +199,7 @@ export default function EditPaymentModal() {
                         <Button
                             type="submit"
                             disabled={!isFormValid() || isSubmitting}
-                            className="bg-black hover:bg-gray-800 text-white"
+                            className="bg-inverse hover:bg-inverse text-on-color"
                         >
                             {isSubmitting ? 'Actualizando...' : 'Actualizar pago'}
                         </Button>

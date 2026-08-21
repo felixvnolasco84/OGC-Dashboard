@@ -440,20 +440,20 @@ export default function DocumentosPage() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-white text-left">
-        <div className="border-b border-gray-200 px-4 py-6 sm:px-6 lg:px-12 lg:py-8">
+      <div className="min-h-screen bg-card text-left">
+        <div className="border-b border-border px-4 py-6 sm:px-6 lg:px-12 lg:py-8">
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
               <div className="min-w-0">
-                <p className="mb-1 text-base text-gray-500">Gestion documental</p>
-                <h1 className="text-2xl font-normal text-gray-900">Documentos</h1>
+                <p className="mb-1 text-base text-subtle-foreground">Gestion documental</p>
+                <h1 className="text-2xl font-normal text-foreground">Documentos</h1>
               </div>
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex lg:items-center lg:gap-3">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full rounded-none py-6 text-gray-500"
+                  className="w-full rounded-none py-6 text-subtle-foreground"
                   onClick={handleOrganizeDocuments}
                   disabled={isOrganizing}
                 >
@@ -467,7 +467,7 @@ export default function DocumentosPage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full rounded-none py-6 text-gray-500"
+                  className="w-full rounded-none py-6 text-subtle-foreground"
                   onClick={() => {
                     setDraftName("");
                     setFolderDialogParentId(undefined);
@@ -490,12 +490,12 @@ export default function DocumentosPage() {
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(160px,220px)_minmax(140px,220px)_auto]">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-disabled-foreground" />
                 <Input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Buscar por nombre, tipo o descripcion"
-                  className="h-12 rounded-none border-gray-300 pl-12"
+                  className="h-12 rounded-none border-border-strong pl-12"
                 />
               </div>
 
@@ -532,14 +532,14 @@ export default function DocumentosPage() {
                 </SelectContent>
               </Select>
 
-              <div className="flex h-12 border border-gray-300">
+              <div className="flex h-12 border border-border-strong">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className={cn("h-full rounded-none", viewMode === "list" && "bg-gray-100")}
+                      className={cn("h-full rounded-none", viewMode === "list" && "bg-muted")}
                       onClick={() => setViewMode("list")}
                     >
                       <List className="h-5 w-5" />
@@ -554,7 +554,7 @@ export default function DocumentosPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className={cn("h-full rounded-none", viewMode === "grid" && "bg-gray-100")}
+                      className={cn("h-full rounded-none", viewMode === "grid" && "bg-muted")}
                       onClick={() => setViewMode("grid")}
                     >
                       <Grid2X2 className="h-5 w-5" />
@@ -589,18 +589,18 @@ export default function DocumentosPage() {
           <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-12 lg:py-8">
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
+                <div className="mb-2 flex items-center gap-2 text-sm text-subtle-foreground">
                   <button
-                    className="hover:text-gray-900"
+                    className="hover:text-foreground"
                     onClick={() => setCurrentFolderId(undefined)}
                   >
                     Biblioteca
                   </button>
                   {breadcrumbs.map((folder) => (
                     <span key={folder._id} className="flex min-w-0 items-center gap-2">
-                      <ChevronRight className="h-4 w-4 text-gray-300" />
+                      <ChevronRight className="h-4 w-4 text-disabled-foreground" />
                       <button
-                        className="truncate hover:text-gray-900"
+                        className="truncate hover:text-foreground"
                         onClick={() => setCurrentFolderId(folder._id)}
                       >
                         {folder.nombre}
@@ -608,7 +608,7 @@ export default function DocumentosPage() {
                     </span>
                   ))}
                 </div>
-                <h2 className="text-3xl font-normal text-gray-900">
+                <h2 className="text-3xl font-normal text-foreground">
                   {currentFolder?.nombre || "Biblioteca de documentos"}
                 </h2>
               </div>
@@ -616,7 +616,7 @@ export default function DocumentosPage() {
               {(searchTerm || selectedProject !== ROOT_VALUE || selectedType !== ROOT_VALUE) && (
                 <Button
                   variant="ghost"
-                  className="rounded-none text-gray-500"
+                  className="rounded-none text-subtle-foreground"
                   onClick={() => {
                     setSearchTerm("");
                     setSelectedProject(ROOT_VALUE);
@@ -630,7 +630,7 @@ export default function DocumentosPage() {
             </div>
 
             {isLoading ? (
-              <div className="flex min-h-[360px] items-center justify-center text-gray-500">
+              <div className="flex min-h-[360px] items-center justify-center text-subtle-foreground">
                 Cargando documentos...
               </div>
             ) : visibleFolders.length === 0 && visibleDocuments.length === 0 ? (
@@ -682,7 +682,7 @@ export default function DocumentosPage() {
 
         {contextMenu && (
           <div
-            className="fixed z-50 w-72 overflow-hidden border border-gray-200 bg-white shadow-lg"
+            className="fixed z-50 w-72 overflow-hidden border border-border bg-card shadow-lg"
             style={{ left: contextMenu.x, top: contextMenu.y }}
             onClick={(event) => event.stopPropagation()}
           >
@@ -798,7 +798,7 @@ export default function DocumentosPage() {
               <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
-                className="bg-red-600 text-white hover:bg-red-700"
+                className="bg-red-600 text-on-color hover:bg-red-700"
               >
                 Eliminar
               </AlertDialogAction>
@@ -832,7 +832,7 @@ function DocumentList({
   onDelete: (target: MenuTarget) => void;
 }) {
   return (
-    <div className="overflow-hidden border border-gray-200">
+    <div className="overflow-hidden border border-border">
       <table className="w-full table-fixed border-collapse text-sm">
         <colgroup>
           <col className="w-[32%]" />
@@ -842,57 +842,57 @@ function DocumentList({
           <col className="w-[8%]" />
           <col className="w-[12%]" />
         </colgroup>
-        <thead className="hidden border-b border-gray-200 lg:table-header-group">
+        <thead className="hidden border-b border-border lg:table-header-group">
           <tr className="hover:bg-transparent">
-            <th className="h-12 px-4 text-left font-normal text-gray-500 lg:px-6">Nombre</th>
-            <th className="h-12 px-3 text-left font-normal text-gray-500">Proyecto</th>
-            <th className="h-12 px-3 text-left font-normal text-gray-500">Tipo</th>
-            <th className="h-12 px-3 text-left font-normal text-gray-500">Modificado</th>
-            <th className="h-12 px-3 text-left font-normal text-gray-500">Tamano</th>
+            <th className="h-12 px-4 text-left font-normal text-subtle-foreground lg:px-6">Nombre</th>
+            <th className="h-12 px-3 text-left font-normal text-subtle-foreground">Proyecto</th>
+            <th className="h-12 px-3 text-left font-normal text-subtle-foreground">Tipo</th>
+            <th className="h-12 px-3 text-left font-normal text-subtle-foreground">Modificado</th>
+            <th className="h-12 px-3 text-left font-normal text-subtle-foreground">Tamano</th>
             <th className="h-12 px-2" />
           </tr>
         </thead>
-        <tbody className="block divide-y divide-gray-200 lg:table-row-group">
+        <tbody className="block divide-y divide-border lg:table-row-group">
           {folders.map((folder) => (
             <tr
               key={folder._id}
-              className="block cursor-pointer p-4 hover:bg-gray-50 lg:table-row lg:p-0"
+              className="block cursor-pointer p-4 hover:bg-background lg:table-row lg:p-0"
               onDoubleClick={() => onOpenFolder(folder._id)}
               onContextMenu={(event) => onContextMenu(event, { kind: "folder", item: folder })}
             >
               <td className="block pb-4 lg:table-cell lg:px-6 lg:py-4">
                 <button className="flex min-w-0 items-center gap-3 text-left" onClick={() => onOpenFolder(folder._id)}>
-                  <Folder className="h-5 w-5 shrink-0 fill-gray-700 text-gray-700" />
+                  <Folder className="h-5 w-5 shrink-0 fill-gray-700 text-foreground" />
                   <span className="min-w-0">
-                    <span className="block break-words font-medium text-gray-900 lg:line-clamp-2">{folder.nombre}</span>
-                    <span className="block truncate text-xs text-gray-400">
+                    <span className="block break-words font-medium text-foreground lg:line-clamp-2">{folder.nombre}</span>
+                    <span className="block truncate text-xs text-disabled-foreground">
                       {folderItemCount.get(folder._id) || 0} elementos
                     </span>
                   </span>
                 </button>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
-                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Proyecto
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">Biblioteca</span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
-                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Tipo
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">Carpeta</span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
-                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Modificado
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">
                   {formatDate(folder.updated_at || folder.created_at)}
                 </span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
-                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Tamano
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">--</span>
@@ -911,7 +911,7 @@ function DocumentList({
           {documents.map((doc) => (
             <tr
               key={doc._id}
-              className="block p-4 hover:bg-gray-50 lg:table-row lg:p-0"
+              className="block p-4 hover:bg-background lg:table-row lg:p-0"
               onContextMenu={(event) => onContextMenu(event, { kind: "document", item: doc })}
             >
               <td className="block pb-4 lg:table-cell lg:px-6 lg:py-4">
@@ -919,39 +919,39 @@ function DocumentList({
                   {getFileIcon(doc)}
                   <div className="min-w-0">
                     <button
-                      className="break-words text-left text-sm font-medium text-gray-900 hover:underline lg:line-clamp-2"
+                      className="break-words text-left text-sm font-medium text-foreground hover:underline lg:line-clamp-2"
                       onClick={() => doc.url && window.open(doc.url, "_blank")}
                     >
                       {doc.nombre}
                     </button>
-                    <p className="line-clamp-2 break-words text-xs text-gray-400">{doc.descripcion || doc.type}</p>
+                    <p className="line-clamp-2 break-words text-xs text-disabled-foreground">{doc.descripcion || doc.type}</p>
                   </div>
                 </div>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-gray-600 lg:table-cell lg:px-3 lg:py-4">
-                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+              <td className="flex items-start justify-between gap-4 py-2 text-muted-foreground lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Proyecto
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">
                   {projectById.get(doc.proyecto || doc.sales_proyecto || "") || "--"}
                 </span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
-                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Tipo
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">{doc.type || "--"}</span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
-                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Modificado
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">
                   {formatDate(doc.uploaded_at || doc._creationTime)}
                 </span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-gray-500 lg:table-cell lg:px-3 lg:py-4">
-                <span className="flex-none text-xs font-medium uppercase tracking-wide text-gray-400 lg:hidden">
+              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+                <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Tamano
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">{formatBytes(doc.size)}</span>
@@ -992,7 +992,7 @@ function PaginationControls({
   const pages = getPaginationPages(page, totalPages);
 
   return (
-    <div className="mt-5 flex flex-col gap-3 border border-gray-200 px-4 py-3 text-sm text-gray-500 md:flex-row md:items-center md:justify-between">
+    <div className="mt-5 flex flex-col gap-3 border border-border px-4 py-3 text-sm text-subtle-foreground md:flex-row md:items-center md:justify-between">
       <span>
         Mostrando {firstItem}-{lastItem} de {total} documentos
       </span>
@@ -1009,7 +1009,7 @@ function PaginationControls({
         </Button>
         {pages.map((item, index) =>
           item === "ellipsis" ? (
-            <span key={`${item}-${index}`} className="px-2 text-gray-400">
+            <span key={`${item}-${index}`} className="px-2 text-disabled-foreground">
               ...
             </span>
           ) : (
@@ -1063,13 +1063,13 @@ function DocumentGrid({
       {folders.map((folder) => (
         <button
           key={folder._id}
-          className="min-h-32 border border-gray-200 p-4 text-left hover:bg-gray-50"
+          className="min-h-32 border border-border p-4 text-left hover:bg-background"
           onDoubleClick={() => onOpenFolder(folder._id)}
           onClick={() => onOpenFolder(folder._id)}
           onContextMenu={(event) => onContextMenu(event, { kind: "folder", item: folder })}
         >
           <div className="mb-6 flex items-center justify-between">
-            <Folder className="h-8 w-8 fill-gray-700 text-gray-700" />
+            <Folder className="h-8 w-8 fill-gray-700 text-foreground" />
             <InlineActions
               target={{ kind: "folder", item: folder }}
               onRename={onRename}
@@ -1077,15 +1077,15 @@ function DocumentGrid({
               onDelete={onDelete}
             />
           </div>
-          <p className="truncate font-medium text-gray-900">{folder.nombre}</p>
-          <p className="mt-1 text-xs text-gray-500">{formatDate(folder.updated_at || folder.created_at)}</p>
+          <p className="truncate font-medium text-foreground">{folder.nombre}</p>
+          <p className="mt-1 text-xs text-subtle-foreground">{formatDate(folder.updated_at || folder.created_at)}</p>
         </button>
       ))}
 
       {documents.map((doc) => (
         <div
           key={doc._id}
-          className="min-h-40 border border-gray-200 p-4 hover:bg-gray-50"
+          className="min-h-40 border border-border p-4 hover:bg-background"
           onContextMenu={(event) => onContextMenu(event, { kind: "document", item: doc })}
         >
           <div className="mb-6 flex items-center justify-between">
@@ -1098,7 +1098,7 @@ function DocumentGrid({
             />
           </div>
           <button
-            className="line-clamp-2 text-left font-medium text-gray-900 hover:underline"
+            className="line-clamp-2 text-left font-medium text-foreground hover:underline"
             onClick={() => doc.url && window.open(doc.url, "_blank")}
           >
             {doc.nombre}
@@ -1107,9 +1107,9 @@ function DocumentGrid({
             <Badge variant="outline" className="rounded-xl font-normal">
               {doc.type}
             </Badge>
-            <span className="text-xs text-gray-500">{formatBytes(doc.size)}</span>
+            <span className="text-xs text-subtle-foreground">{formatBytes(doc.size)}</span>
           </div>
-          <p className="mt-3 truncate text-xs text-gray-500">
+          <p className="mt-3 truncate text-xs text-subtle-foreground">
             {projectById.get(doc.proyecto || doc.sales_proyecto || "") || "Sin proyecto"}
           </p>
         </div>
@@ -1177,7 +1177,7 @@ function InlineActions({
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onRename(target)}>
-            <Edit3 className="h-4 w-4 text-gray-500" />
+            <Edit3 className="h-4 w-4 text-subtle-foreground" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Renombrar</TooltipContent>
@@ -1185,7 +1185,7 @@ function InlineActions({
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onMove(target)}>
-            <FolderInput className="h-4 w-4 text-gray-500" />
+            <FolderInput className="h-4 w-4 text-subtle-foreground" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Mover</TooltipContent>
@@ -1195,7 +1195,7 @@ function InlineActions({
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none">
-                <MoreVertical className="h-4 w-4 text-gray-500" />
+                <MoreVertical className="h-4 w-4 text-subtle-foreground" />
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
@@ -1232,12 +1232,12 @@ function EmptyState({
   onCreateFolder: () => void;
 }) {
   return (
-    <div className="flex min-h-[360px] flex-col items-center justify-center border border-dashed border-gray-300 px-6 text-center">
-      <FolderOpen className="mb-4 h-10 w-10 text-gray-400" />
-      <h3 className="text-lg font-normal text-gray-900">
+    <div className="flex min-h-[360px] flex-col items-center justify-center border border-dashed border-border-strong px-6 text-center">
+      <FolderOpen className="mb-4 h-10 w-10 text-disabled-foreground" />
+      <h3 className="text-lg font-normal text-foreground">
         {hasFilters ? "No hay resultados" : "Esta ubicacion esta vacia"}
       </h3>
-      <p className="mt-2 max-w-md text-sm text-gray-500">
+      <p className="mt-2 max-w-md text-sm text-subtle-foreground">
         {hasFilters
           ? "Ajusta la busqueda o limpia los filtros para ver mas documentos."
           : "Crea carpetas para organizar contratos, facturas, comprobantes y soportes por flujo de trabajo."}
@@ -1324,7 +1324,7 @@ function getFileIcon(doc: DocumentItem, className = fileIconClass) {
     return <FileText className={cn(className, "text-red-600")} />;
   }
 
-  return <File className={cn(className, "text-gray-500")} />;
+  return <File className={cn(className, "text-subtle-foreground")} />;
 }
 
 function formatDate(timestamp?: number) {

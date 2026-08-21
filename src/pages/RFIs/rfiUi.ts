@@ -13,38 +13,38 @@ export const RFI_STATUS: Record<
 > = {
   draft: {
     label: "Borrador",
-    color: "#ADADAD",
-    className: "border-[#D5D5D1] bg-white text-[#7A7979]",
+    color: "hsl(var(--disabled-foreground))",
+    className: "border-border bg-card text-muted-foreground",
   },
   pending_manager_review: {
     label: "Pendiente",
-    color: "#CFCFCD",
-    className: "border-[#D5D5D1] bg-white text-[#7A7979]",
+    color: "hsl(var(--disabled-foreground))",
+    className: "border-border bg-card text-muted-foreground",
   },
   open: {
     label: "Abierto",
     color: "#50AC66",
-    className: "border-[#50AC66] bg-white text-[#50AC66]",
+    className: "border-[#50AC66] bg-card text-[#50AC66]",
   },
   closed: {
     label: "Resuelto",
     color: "#50AC66",
-    className: "border-[#50AC66] bg-white text-[#50AC66]",
+    className: "border-[#50AC66] bg-card text-[#50AC66]",
   },
   overdue: {
     label: "Vencida",
     color: "#E75F79",
-    className: "border-[#E75F79] bg-white text-[#E75F79]",
+    className: "border-[#E75F79] bg-card text-[#E75F79]",
   },
   awaiting_response: {
     label: "Pendiente",
-    color: "#CFCFCD",
-    className: "border-[#D5D5D1] bg-white text-[#7A7979]",
+    color: "hsl(var(--disabled-foreground))",
+    className: "border-border bg-card text-muted-foreground",
   },
   awaiting_official_response: {
     label: "Abierto",
     color: "#50AC66",
-    className: "border-[#50AC66] bg-white text-[#50AC66]",
+    className: "border-[#50AC66] bg-card text-[#50AC66]",
   },
 };
 

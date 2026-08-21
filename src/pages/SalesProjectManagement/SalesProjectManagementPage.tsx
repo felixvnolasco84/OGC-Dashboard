@@ -169,21 +169,21 @@ export default function SalesProjectManagementPage() {
   if (!salesProjects) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-card min-h-screen">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-normal text-gray-900 mb-2">
+            <h1 className="text-3xl font-normal text-foreground mb-2">
               Gestión de Proyectos de Ventas
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Administra los proyectos de ventas y sus configuraciones
             </p>
           </div>
@@ -208,18 +208,18 @@ export default function SalesProjectManagementPage() {
                     className={`w-full text-left p-3 rounded-lg border transition-colors ${
                       selectedProject === project._id
                         ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
+                        : "border-border hover:border-border-strong"
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5">
-                        <Building2 className="h-4 w-4 text-gray-500" />
+                        <Building2 className="h-4 w-4 text-subtle-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {project.nombre}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-subtle-foreground mt-1">
                           {project.status || "Activo"}
                         </p>
                         {project.comision_porcentaje !== undefined && (
@@ -266,7 +266,7 @@ export default function SalesProjectManagementPage() {
             </CardHeader>
             <CardContent>
               {!currentProject && !isCreating ? (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-subtle-foreground">
                   Selecciona un proyecto de la lista o crea uno nuevo
                 </div>
               ) : (
@@ -355,7 +355,7 @@ export default function SalesProjectManagementPage() {
                       disabled={!isEditing}
                       placeholder="0.00"
                     />
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-subtle-foreground">
                       Porcentaje de comisión aplicado a las ventas del proyecto
                     </p>
                   </div>
@@ -363,7 +363,7 @@ export default function SalesProjectManagementPage() {
                   {/* Metadata (read-only) */}
                   {!isCreating && currentProject && (
                     <div className="pt-4 border-t space-y-2">
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-subtle-foreground">
                         <p>
                           <span className="font-medium">Fecha de creación:</span>{" "}
                           {currentProject.fecha_creacion || "N/A"}

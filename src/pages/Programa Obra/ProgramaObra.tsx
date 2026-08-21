@@ -779,23 +779,23 @@ export default function ProgramaObra() {
   // Loading state
   if (!proyecto || !nivel1Partidas) {
     return (
-      <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
+      <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4" />
-          <p className="text-gray-500">Cargando datos...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4" />
+          <p className="text-subtle-foreground">Cargando datos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white pt-6 space-y-6">
+    <div className="bg-card pt-6 space-y-6">
       {/* Header */}
       <div className="px-12">
-        <div className="flex items-end justify-between py-6 border-b border-[#d2d1ce] pb-8">
+        <div className="flex items-end justify-between py-6 border-b border-border pb-8">
           <div className="flex flex-col text-left">
-            <p className="text-base text-gray-500 mb-1">Programa de Obra</p>
-            <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
+            <p className="text-base text-subtle-foreground mb-1">Programa de Obra</p>
+            <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
           </div>
           <div className="flex items-center gap-3">
             {/* Hidden file input */}
@@ -860,13 +860,13 @@ export default function ProgramaObra() {
                     {hasErrors && !hasSuccess ? "Error en la carga" : hasSuccess ? "Carga completada" : "Sin cambios"}
                   </span>
                   {hasSuccess && (
-                    <span className="text-gray-600">
+                    <span className="text-muted-foreground">
                       {uploadResult.created + uploadResult.updated} registro{uploadResult.created + uploadResult.updated !== 1 ? "s" : ""} procesado{uploadResult.created + uploadResult.updated !== 1 ? "s" : ""}
                     </span>
                   )}
                 </div>
                 <button
-                  className="text-xs text-gray-400 hover:text-gray-600 underline"
+                  className="text-xs text-disabled-foreground hover:text-muted-foreground underline"
                   onClick={() => setUploadResult(null)}
                 >
                   Cerrar
@@ -875,11 +875,11 @@ export default function ProgramaObra() {
 
               {/* Detail breakdown */}
               {(p || f) && (
-                <div className="border-t border-inherit px-4 py-2 flex gap-6 text-xs text-gray-600">
+                <div className="border-t border-inherit px-4 py-2 flex gap-6 text-xs text-muted-foreground">
                   {p && (
                     <div className="flex items-center gap-1.5">
-                      <span className="font-medium text-gray-700">Partidas</span>
-                      <span className="text-gray-400">({p.total} en archivo)</span>
+                      <span className="font-medium text-foreground">Partidas</span>
+                      <span className="text-disabled-foreground">({p.total} en archivo)</span>
                       {p.created > 0 && <span className="bg-green-100 text-green-700 px-1.5 py-0.5">{p.created} nueva{p.created !== 1 ? "s" : ""}</span>}
                       {p.updated > 0 && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5">{p.updated} actualizada{p.updated !== 1 ? "s" : ""}</span>}
                       {p.skipped > 0 && <span className="bg-red-100 text-red-700 px-1.5 py-0.5">{p.skipped} omitida{p.skipped !== 1 ? "s" : ""}</span>}
@@ -887,8 +887,8 @@ export default function ProgramaObra() {
                   )}
                   {f && (
                     <div className="flex items-center gap-1.5">
-                      <span className="font-medium text-gray-700">Familias</span>
-                      <span className="text-gray-400">({f.total} en archivo)</span>
+                      <span className="font-medium text-foreground">Familias</span>
+                      <span className="text-disabled-foreground">({f.total} en archivo)</span>
                       {f.created > 0 && <span className="bg-green-100 text-green-700 px-1.5 py-0.5">{f.created} nueva{f.created !== 1 ? "s" : ""}</span>}
                       {f.updated > 0 && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5">{f.updated} actualizada{f.updated !== 1 ? "s" : ""}</span>}
                       {f.skipped > 0 && <span className="bg-red-100 text-red-700 px-1.5 py-0.5">{f.skipped} omitida{f.skipped !== 1 ? "s" : ""}</span>}
@@ -924,12 +924,12 @@ export default function ProgramaObra() {
       {/* Search */}
       <div className="px-12">
         <div className="flex items-center space-x-3 text-left max-w-sm">
-          <Search className="w-4 h-4 text-gray-400 shrink-0" />
+          <Search className="w-4 h-4 text-disabled-foreground shrink-0" />
           <Input
             placeholder="Buscar partida..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="border-none shadow-none p-0 h-auto font-normal text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
       </div>
@@ -941,7 +941,7 @@ export default function ProgramaObra() {
           {/* <div className="shrink-0 w-[400px]" />/ */}
           {/* Progress bar fills only the remaining visible viewport width */}
           {/* <div className="flex-1 min-w-0 overflow-hidden"> */}
-            {/* <div className="h-2 bg-gray-100"> */}
+            {/* <div className="h-2 bg-muted"> */}
               {/* <div */}
                 {/* className="h-full bg-green-500 rounded-none transition-all duration-500" */}
                 {/* style={{ width: `${Math.min(overallProgress, 100)}%` }} */}
@@ -952,24 +952,24 @@ export default function ProgramaObra() {
 
 
         {/* Gantt Chart */}
-        <div className="flex bg-white h-screen">
+        <div className="flex bg-card h-screen">
           {/* Fixed left columns — separate scroll container, only vertical */}
           <div
-            className="shrink-0 w-[400px] bg-white z-30 overflow-y-auto overflow-x-hidden shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="shrink-0 w-[400px] bg-card z-30 overflow-y-auto overflow-x-hidden shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             ref={leftScrollRef}
             onScroll={handleLeftScroll}
           >
             <div ref={leftColumnsRef}>
               {/* Header — pt-[8px] accounts for year label that overflows above the border */}
-              <div className="sticky top-0 z-40 bg-white pt-[8px]">
-                <div className="flex border-b border-t border-[#d2d1ce] bg-white">
-                  <div className="w-72 border-r border-[#d2d1ce] px-4 h-[36px] flex items-center text-left">
-                    <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
+              <div className="sticky top-0 z-40 bg-card pt-[8px]">
+                <div className="flex border-b border-t border-border bg-card">
+                  <div className="w-72 border-r border-border px-4 h-[36px] flex items-center text-left">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Partida · Familia
                     </span>
                   </div>
-                  <div className="w-28 border-r border-[#d2d1ce] px-3 h-[36px] flex items-center justify-end text-right">
-                    <span className="text-xs font-medium text-[#777770] uppercase tracking-wider">
+                  <div className="w-28 border-r border-border px-3 h-[36px] flex items-center justify-end text-right">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Presupuesto
                     </span>
                   </div>
@@ -983,14 +983,14 @@ export default function ProgramaObra() {
                   <div
                     key={item.id}
                     className={cn(
-                      "flex border-b border-[#d2d1ce] min-h-[44px] max-h-[44px] bg-white",
-                      // item.level === 0 && "bg-white",
-                      // item.level === 1 && "bg-gray-50/50",
-                      // item.level === 2 && "bg-gray-50/30"
+                      "flex border-b border-border min-h-[44px] max-h-[44px] bg-card",
+                      // item.level === 0 && "bg-card",
+                      // item.level === 1 && "bg-background/50",
+                      // item.level === 2 && "bg-background/30"
                     )}
                   >
                     {/* Name */}
-                    <div className="w-72 border-r border-[#d2d1ce] px-2 py-3 flex items-center text-left">
+                    <div className="w-72 border-r border-border px-2 py-3 flex items-center text-left">
                       <div
                         className="flex items-center gap-1.5 flex-1 min-w-0"
                         style={{ paddingLeft: `${item.level * 16}px` }}
@@ -998,12 +998,12 @@ export default function ProgramaObra() {
                         {item.children.length > 0 ? (
                           <button
                             onClick={() => toggleExpanded(item.id)}
-                            className="p-0.5 hover:bg-gray-100 rounded shrink-0"
+                            className="p-0.5 hover:bg-muted rounded shrink-0"
                           >
                             {isExpanded ? (
-                              <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                              <ChevronDown className="h-3.5 w-3.5 text-disabled-foreground" />
                             ) : (
-                              <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+                              <ChevronRight className="h-3.5 w-3.5 text-disabled-foreground" />
                             )}
                           </button>
                         ) : (
@@ -1012,8 +1012,8 @@ export default function ProgramaObra() {
                         <span
                           className={cn(
                             "text-sm truncate",
-                            item.level === 0 && "font-medium text-gray-900",
-                            item.level === 1 && "text-gray-600"
+                            item.level === 0 && "font-medium text-foreground",
+                            item.level === 1 && "text-muted-foreground"
                           )}
                           title={item.partida}
                         >
@@ -1026,10 +1026,10 @@ export default function ProgramaObra() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
-                                  className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
+                                  className="p-1 hover:bg-muted rounded opacity-60 hover:opacity-100"
                                   title="Opciones"
                                 >
-                                  <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
+                                  <MoreHorizontal className="h-3.5 w-3.5 text-disabled-foreground" />
                                 </button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-52">
@@ -1041,7 +1041,7 @@ export default function ProgramaObra() {
                                   <DropdownMenuItem onClick={() => openPonderacionEditor(item)}>
                                     <Percent className="h-4 w-4" />
                                     Ponderación
-                                    <span className="ml-auto text-xs text-gray-400">
+                                    <span className="ml-auto text-xs text-disabled-foreground">
                                       {item.ponderacion != null ? `${item.ponderacion.toFixed(2)}%` : "Sin definir"}
                                     </span>
                                   </DropdownMenuItem>
@@ -1062,10 +1062,10 @@ export default function ProgramaObra() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
-                                  className="p-1 hover:bg-gray-100 rounded opacity-60 hover:opacity-100"
+                                  className="p-1 hover:bg-muted rounded opacity-60 hover:opacity-100"
                                   title="Opciones"
                                 >
-                                  <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
+                                  <MoreHorizontal className="h-3.5 w-3.5 text-disabled-foreground" />
                                 </button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56">
@@ -1077,7 +1077,7 @@ export default function ProgramaObra() {
                                   <DropdownMenuItem onClick={() => openPonderacionEditor(item)}>
                                     <Percent className="h-4 w-4" />
                                     Ponderación
-                                    <span className="ml-auto text-xs text-gray-400">
+                                    <span className="ml-auto text-xs text-disabled-foreground">
                                       {item.ponderacion != null ? `${item.ponderacion.toFixed(2)}%` : "Sin definir"}
                                     </span>
                                   </DropdownMenuItem>
@@ -1099,10 +1099,10 @@ export default function ProgramaObra() {
                     </div>
 
                     {/* Presupuesto / Peso / Avance */}
-                    <div className="w-28 border-r border-[#d2d1ce] px-3 py-3 flex items-center justify-end">
+                    <div className="w-28 border-r border-border px-3 py-3 flex items-center justify-end">
                       {item.level === 0 ? (
                         <div className="flex flex-col items-end gap-0.5">
-                          <span className="text-sm text-gray-700 font-medium">
+                          <span className="text-sm text-foreground font-medium">
                             {formatCurrency(item.presupuesto)}
                           </span>
                           {/* Editable peso for level 0 */}
@@ -1130,9 +1130,9 @@ export default function ProgramaObra() {
                                     setEditingPesoValue("");
                                   }
                                 }}
-                                className="w-16 h-4 text-[9px] text-right border border-gray-300 rounded-sm px-1 focus:outline-none focus:border-blue-500 bg-white"
+                                className="w-16 h-4 text-[9px] text-right border border-border-strong rounded-sm px-1 focus:outline-none focus:border-blue-500 bg-card"
                               />
-                              <span className="text-[9px] text-gray-400">%</span>
+                              <span className="text-[9px] text-disabled-foreground">%</span>
                             </div>
                           ) : (
                             <button
@@ -1178,13 +1178,13 @@ export default function ProgramaObra() {
                                     setEditingAvanceValue("");
                                   }
                                 }}
-                                className="w-16 h-5 text-[10px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
+                                className="w-16 h-5 text-[10px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-card"
                               />
-                              <span className="text-[10px] text-gray-400">%</span>
+                              <span className="text-[10px] text-disabled-foreground">%</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-0.5">
-                              <span className="text-[10px] text-black">Avance: </span>
+                              <span className="text-[10px] text-foreground">Avance: </span>
                               <button
                                 onClick={() => {
                                   editingItemRef.current = item;
@@ -1196,7 +1196,7 @@ export default function ProgramaObra() {
                                   "text-[10px] rounded-sm border-none transition-colors",
                                   (item.avanceReal ?? 0) > 0
                                     ? ""
-                                    : "text-gray-400 bg-gray-50 border-gray-200 hover:bg-gray-100"
+                                    : "text-disabled-foreground bg-background border-border hover:bg-muted"
                                 )}
                                 title="Editar avance real"
                               >
@@ -1230,9 +1230,9 @@ export default function ProgramaObra() {
                                     setEditingPesoValue("");
                                   }
                                 }}
-                                className="w-16 h-4 text-[9px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-white"
+                                className="w-16 h-4 text-[9px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-card"
                               />
-                              <span className="text-[9px] text-gray-400">%</span>
+                              <span className="text-[9px] text-disabled-foreground">%</span>
                             </div>
                           ) : (
                             <button
@@ -1261,13 +1261,13 @@ export default function ProgramaObra() {
 
           {/* Scrollable timeline — scrolls both horizontally and vertically */}
           <div
-            className="flex-1 overflow-auto bg-white"
+            className="flex-1 overflow-auto bg-card"
             ref={ganttContainerRef}
             onScroll={handleRightScroll}
           >
             <div className="shrink-0" ref={scrollContainerRef} style={{ width: totalTimelineWidth }}>
               {/* Year + Month headers */}
-              <div className="sticky top-0 z-20 min-w-max bg-white">
+              <div className="sticky top-0 z-20 min-w-max bg-card">
                 {/* Year labels + Month headers — relative wrapper for absolute year labels */}
                 <div className="relative pt-[8px]">
                   {/* Year labels — absolutely positioned to straddle the border-t */}
@@ -1282,18 +1282,18 @@ export default function ProgramaObra() {
                           className="text-left pl-2 shrink-0"
                           style={{ width: yearWidth }}
                         >
-                          <span className="text-xs font-medium text-[#777770] leading-none bg-white px-1">{y}</span>
+                          <span className="text-xs font-medium text-muted-foreground leading-none bg-card px-1">{y}</span>
                         </div>
                       );
                     })}
                   </div>
                   {/* Month labels + week sub-headers row */}
-                  <div className="flex border-t border-b border-[#d2d1ce]">
+                  <div className="flex border-t border-b border-border">
                   {timelineMonths.map((m, i) => {
                     const mw = getMonthWidth(m.weeks);
                     return (
-                      <div key={i} className="border-r border-[#d2d1ce] shrink-0 h-[36px]" style={{ width: mw }}>
-                        <div className="text-center py-1 text-[11px] font-medium text-[#777770] tracking-wider">
+                      <div key={i} className="border-r border-border shrink-0 h-[36px]" style={{ width: mw }}>
+                        <div className="text-center py-1 text-[11px] font-medium text-muted-foreground tracking-wider">
                           {m.label}
                         </div>
                         <div className="flex">
@@ -1301,8 +1301,8 @@ export default function ProgramaObra() {
                             <div
                               key={wi}
                               className={cn(
-                                "text-center text-[8px] text-gray-300 py-0.5",
-                                wi < m.weeks - 1 && "border-r border-dashed border-gray-200"
+                                "text-center text-[8px] text-disabled-foreground py-0.5",
+                                wi < m.weeks - 1 && "border-r border-dashed border-border"
                               )}
                               style={{ width: WEEK_WIDTH }}
                             >
@@ -1322,10 +1322,10 @@ export default function ProgramaObra() {
                 <div
                   key={item.id}
                   className={cn(
-                    "relative border-b border-[#d2d1ce] min-h-[44px] max-h-[44px] bg-white",
-                    // item.level === 0 && "bg-white",
-                    // item.level === 1 && "bg-gray-50/80",
-                    // item.level === 2 && "bg-gray-50/80"
+                    "relative border-b border-border min-h-[44px] max-h-[44px] bg-card",
+                    // item.level === 0 && "bg-card",
+                    // item.level === 1 && "bg-background/80",
+                    // item.level === 2 && "bg-background/80"
                   )}
                   style={{ minWidth: totalTimelineWidth }}
                 >
@@ -1336,10 +1336,10 @@ export default function ProgramaObra() {
                     if (pStart == null || pEnd == null) return null;
                     return (
                       <div
-                        className="absolute top-0 bottom-0 bg-[#f3f3f3f4] pointer-events-none z-[1]"
+                        className="absolute top-0 bottom-0 bg-muted pointer-events-none z-[1]"
                         style={{ left: pStart, width: Math.max(pEnd - pStart, 0) }}
                       >
-                        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#D4D4CF]" />
+                        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-disabled" />
                       </div>
                     );
                   })()}
@@ -1347,9 +1347,9 @@ export default function ProgramaObra() {
                   {/* Grid lines */}
                   <div className="absolute inset-0 flex pointer-events-none z-[2]">
                     {timelineMonths.map((m, i) => (
-                      <div key={i} className="border-r border-[#d2d1ce] shrink-0 flex" style={{ width: getMonthWidth(m.weeks) }}>
+                      <div key={i} className="border-r border-border shrink-0 flex" style={{ width: getMonthWidth(m.weeks) }}>
                         {Array.from({ length: m.weeks - 1 }).map((_, wi) => (
-                          <div key={wi} className="border-r border-dashed border-gray-200 shrink-0" style={{ width: WEEK_WIDTH }} />
+                          <div key={wi} className="border-r border-dashed border-border shrink-0" style={{ width: WEEK_WIDTH }} />
                         ))}
                       </div>
                     ))}
@@ -1434,7 +1434,7 @@ export default function ProgramaObra() {
 
             <div className="mt-6 space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Peso del elemento</Label>
+                <Label className="text-xs text-subtle-foreground">Peso del elemento</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -1457,7 +1457,7 @@ export default function ProgramaObra() {
                     }}
                     className="h-9 rounded-none text-sm"
                   />
-                  <span className="text-sm text-gray-500">%</span>
+                  <span className="text-sm text-subtle-foreground">%</span>
                 </div>
               </div>
 

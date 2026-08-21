@@ -87,10 +87,10 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
         <div className="mt-6 space-y-6">
           {/* Duración de actividad */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">Duración de actividad</h3>
+            <h3 className="text-sm font-medium text-foreground">Duración de actividad</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Fecha inicio</Label>
+                <Label className="text-xs text-subtle-foreground">Fecha inicio</Label>
                 <Input
                   type="date"
                   value={fechaInicio}
@@ -99,7 +99,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Fecha fin</Label>
+                <Label className="text-xs text-subtle-foreground">Fecha fin</Label>
                 <Input
                   type="date"
                   value={fechaFin}
@@ -114,13 +114,13 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
 
           {/* Anticipo */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">
+            <h3 className="text-sm font-medium text-foreground">
               Anticipo
-              <span className="text-xs text-gray-400 ml-2">(solo si aplica)</span>
+              <span className="text-xs text-disabled-foreground ml-2">(solo si aplica)</span>
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Fecha anticipo</Label>
+                <Label className="text-xs text-subtle-foreground">Fecha anticipo</Label>
                 <Input
                   type="date"
                   value={anticipoFecha}
@@ -129,7 +129,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Porcentaje %</Label>
+                <Label className="text-xs text-subtle-foreground">Porcentaje %</Label>
                 <Input
                   type="number"
                   min="0"
@@ -148,12 +148,12 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
 
           {/* Suministro */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">
+            <h3 className="text-sm font-medium text-foreground">
               Suministro / Entrega de material
-              <span className="text-xs text-gray-400 ml-2">(solo si aplica)</span>
+              <span className="text-xs text-disabled-foreground ml-2">(solo si aplica)</span>
             </h3>
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Fecha suministro</Label>
+              <Label className="text-xs text-subtle-foreground">Fecha suministro</Label>
               <Input
                 type="date"
                 value={suministroFecha}
@@ -167,13 +167,13 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
 
           {/* Finiquito */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">
+            <h3 className="text-sm font-medium text-foreground">
               Finiquito
-              <span className="text-xs text-gray-400 ml-2">(solo si aplica)</span>
+              <span className="text-xs text-disabled-foreground ml-2">(solo si aplica)</span>
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Fecha finiquito</Label>
+                <Label className="text-xs text-subtle-foreground">Fecha finiquito</Label>
                 <Input
                   type="date"
                   value={finiquitoFecha}
@@ -182,7 +182,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Porcentaje %</Label>
+                <Label className="text-xs text-subtle-foreground">Porcentaje %</Label>
                 <Input
                   type="number"
                   min="0"

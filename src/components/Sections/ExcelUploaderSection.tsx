@@ -153,8 +153,8 @@ const ExcelUploaderSection = () => {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold text-gray-900">Subir Archivo Excel</h1>
-        <p className="text-gray-600">Sube tu archivo Excel para procesarlo automáticamente</p>
+        <h1 className="text-3xl font-bold text-foreground">Subir Archivo Excel</h1>
+        <p className="text-muted-foreground">Sube tu archivo Excel para procesarlo automáticamente</p>
       </div>
 
       {/* Upload Section */}
@@ -174,7 +174,7 @@ const ExcelUploaderSection = () => {
                 ? 'border-blue-500 bg-blue-50'
                 : file
                   ? 'border-green-500 bg-green-50'
-                  : 'border-gray-300 hover:border-gray-400'
+                  : 'border-border-strong hover:border-border-strong'
               }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -186,8 +186,8 @@ const ExcelUploaderSection = () => {
                 <div className="flex items-center justify-center gap-3">
                   <FileSpreadsheet className="h-8 w-8 text-green-600" />
                   <div className="text-left">
-                    <p className="font-medium text-gray-900">{file.name}</p>
-                    <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
+                    <p className="font-medium text-foreground">{file.name}</p>
+                    <p className="text-sm text-subtle-foreground">{formatFileSize(file.size)}</p>
                   </div>
                 </div>
                 <div className="flex gap-2 justify-center">
@@ -212,13 +212,13 @@ const ExcelUploaderSection = () => {
             ) : (
               <div className="space-y-4">
                 <div className="flex justify-center">
-                  <Upload className="h-12 w-12 text-gray-400" />
+                  <Upload className="h-12 w-12 text-disabled-foreground" />
                 </div>
                 <div>
-                  <p className="text-lg font-medium text-gray-900">
+                  <p className="text-lg font-medium text-foreground">
                     Selecciona un archivo Excel
                   </p>
-                  <p className="text-gray-500">Archivos soportados: .xlsx, .xls (máx. 10MB)</p>
+                  <p className="text-subtle-foreground">Archivos soportados: .xlsx, .xls (máx. 10MB)</p>
                 </div>
                 <div>
                   <label htmlFor="file-upload">
@@ -310,7 +310,7 @@ const ExcelUploaderSection = () => {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Badge variant="outline">
                     {result.data?.fileName || file?.name}
                   </Badge>
@@ -330,7 +330,7 @@ const ExcelUploaderSection = () => {
 
                 {result.errors && result.errors.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900">Detalles del error:</h4>
+                    <h4 className="font-medium text-foreground">Detalles del error:</h4>
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-h-60 overflow-y-auto">
                       {result.errors.map((error, index) => (
                         <div key={index} className="text-sm text-red-700 mb-1">
@@ -368,7 +368,7 @@ const ExcelUploaderSection = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2 text-sm text-gray-600">
+          <ul className="space-y-2 text-sm text-muted-foreground">
             <li>• Asegúrate de que tu archivo Excel tenga el formato correcto</li>
             <li>• La primera fila debe contener los encabezados: PARTIDA, FAMILIA, SUBPARTIDA, etc.</li>
             <li>• El archivo no debe exceder los 10MB de tamaño</li>

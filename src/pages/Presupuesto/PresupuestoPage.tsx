@@ -341,23 +341,23 @@ export default function PresupuestoPage() {
 
   // Loading state
   if (!proyecto || partidasStatus === "LoadingFirstPage") {
-    return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
+    return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-        <p className="text-gray-500">Cargando datos...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
+        <p className="text-subtle-foreground">Cargando datos...</p>
       </div>
     </div>;
   }
 
   return (
-    <div className="bg-white py-6 space-y-12">
+    <div className="bg-card py-6 space-y-12">
       <div className="max-w-full mx-auto space-y-12">
         {/* Header */}
-        <div className="py-6 border-b border-gray-200 px-12 pb-12">
+        <div className="py-6 border-b border-border px-12 pb-12">
           <div className="flex items-end justify-between">
             <div className="flex flex-col text-left">
-              <p className="text-base text-gray-500 mb-1">Presupuesto</p>
-              <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
+              <p className="text-base text-subtle-foreground mb-1">Presupuesto</p>
+              <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
             </div>
             <div className="flex items-start gap-3">
               {/* <Button
@@ -368,7 +368,7 @@ export default function PresupuestoPage() {
                 variant={"outline"}
                 size={"lg"}
                 disabled={!selectedDesarrollo}
-                className="flex justify-center items-center gap-2 rounded-none text-gray-500 py-6 "
+                className="flex justify-center items-center gap-2 rounded-none text-subtle-foreground py-6 "
               >
                 Reporte
                 <Download className="h-6 w-6 rounded-full shadow-none" />
@@ -377,17 +377,17 @@ export default function PresupuestoPage() {
 
               {/* Total Ingresos - Based on image reference */}
               <Card className="bg-transparent shadow-none border-none col-span-1 md:col-span-2 lg:col-span-1 mr-4">
-                <CardContent className="p-0 text-left cursor-pointer rounded-md transition-colors hover:bg-gray-50" onClick={handleOpenIngresos}>
+                <CardContent className="p-0 text-left cursor-pointer rounded-md transition-colors hover:bg-background" onClick={handleOpenIngresos}>
                   <div className="space-y-1 text-right">
                     <p className="text-sm text-muted-foreground text-right mr-0.5">Total Ingresos</p>
                     <div className="flex items-baseline space-x-2">
                       <CurrencyMetric
                         amount={totalIngresos}
                         currency={moneda}
-                        className="text-3xl font-normal text-gray-900 leading-none"
+                        className="text-3xl font-normal text-foreground leading-none"
                       />
                     </div>
-                    <Badge variant="secondary" className="text-[10px] text-center font-normal py-1.5 leading-none bg-gray-100 text-gray-600 rounded-xl border-gray-400 min-w-24">
+                    <Badge variant="secondary" className="text-[10px] text-center font-normal py-1.5 leading-none bg-muted text-muted-foreground rounded-xl border-border-strong min-w-24">
                       <span className="text-center">
                         Neto
                         {" "}
@@ -409,14 +409,14 @@ export default function PresupuestoPage() {
                     variant="ghost"
                     size="icon"
                     disabled={!proyecto}
-                    className="h-10 w-10 text-[#898982] hover:bg-gray-100 hover:text-gray-900"
+                    className="h-10 w-10 text-subtle-foreground hover:bg-muted hover:text-foreground"
                   >
                     <span className="sr-only">Abrir acciones de presupuesto</span>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="end" sideOffset={6} className="w-64 overflow-hidden border-gray-200 bg-white p-1 text-gray-900 shadow-xl">
-                  <Command className="bg-white text-gray-900">
+                <PopoverContent align="end" sideOffset={6} className="w-64 overflow-hidden border-border bg-card p-1 text-foreground shadow-xl">
+                  <Command className="bg-card text-foreground">
                     <CommandList>
                       <CommandGroup>
                         {isAdmin ? (
@@ -425,7 +425,7 @@ export default function PresupuestoPage() {
                               setIsActionsOpen(false);
                               navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances`);
                             }}
-                            className="data-[selected=true]:bg-gray-100"
+                            className="data-[selected=true]:bg-muted"
                           >
                             <FileText className="h-4 w-4" />
                             Crear reporte financiero
@@ -433,32 +433,32 @@ export default function PresupuestoPage() {
                         ) : null}
                         <CommandItem
                           onSelect={handleOpenIngresos}
-                          className="data-[selected=true]:bg-gray-100"
+                          className="data-[selected=true]:bg-muted"
                         >
                           <CreditCard className="h-4 w-4" />
                           Gestionar ingresos
                         </CommandItem>
                         <CommandItem
                           onSelect={handleOpenAddPayment}
-                          className="data-[selected=true]:bg-gray-100"
+                          className="data-[selected=true]:bg-muted"
                         >
                           <CreditCard className="h-4 w-4" />
                           Nuevo pago
                         </CommandItem>
                         <CommandItem
                           onSelect={handleOpenAddPartida}
-                          className="data-[selected=true]:bg-gray-100"
+                          className="data-[selected=true]:bg-muted"
                         >
                           <Plus className="h-4 w-4" />
                           Agregar partida
                         </CommandItem>
                       </CommandGroup>
-                      <CommandSeparator className="bg-gray-200" />
+                      <CommandSeparator className="bg-disabled" />
                       <CommandGroup>
                         <CommandItem
                           onSelect={() => { void handleSync(); }}
                           disabled={isSyncing}
-                          className="data-[selected=true]:bg-gray-100"
+                          className="data-[selected=true]:bg-muted"
                         >
                           <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
                           {isSyncing ? "Sincronizando..." : "Sincronizar datos"}
@@ -480,12 +480,12 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Presupuesto Original</p>
+                <p className="text-sm text-subtle-foreground">Presupuesto Original</p>
                 <div className="flex items-baseline space-x-2">
                   <CurrencyMetric
                     amount={metrics?.presupuesto_original || 0}
                     currency={moneda}
-                    className="text-3xl 2xl:text-4xl font-normal text-gray-900"
+                    className="text-3xl 2xl:text-4xl font-normal text-foreground"
                   />
                 </div>
               </div>
@@ -496,15 +496,15 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none ">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Presupuesto aprobado</p>
+                <p className="text-sm text-subtle-foreground">Presupuesto aprobado</p>
                 <div className="flex items-baseline space-x-2">
                   <CurrencyMetric
                     amount={metrics?.presupuesto_aprobado || 0}
                     currency={moneda}
-                    className="text-3xl 2xl:text-4xl font-normal text-gray-900"
+                    className="text-3xl 2xl:text-4xl font-normal text-foreground"
                   />
                 </div>
-                <div className="text-lg text-gray-500">
+                <div className="text-lg text-subtle-foreground">
                   <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
                     {presupuestoReduction < 0 ? 'Reducción' : 'Aumento'} {Math.abs(presupuestoReduction)}%
                   </Badge>
@@ -517,7 +517,7 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none ">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-subtle-foreground">
                   {dateFilter === "total" ? "Gasto Total" : `Pagado (${dateFilter === "ultima_semana" ? "Últ. 7 días" : dateFilter === "este_mes" ? "Este mes" : dateFilter === "mes_pasado" ? "Mes pasado" : "Rango"})`}
                 </p>
                 <div className="flex items-baseline space-x-2">
@@ -528,10 +528,10 @@ export default function PresupuestoPage() {
                         : (filteredPayments?.total || 0)
                     }
                     currency={moneda}
-                    className="text-3xl 2xl:text-4xl font-normal text-gray-900"
+                    className="text-3xl 2xl:text-4xl font-normal text-foreground"
                   />
                 </div>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
                   Avance {avancePercentage}%
                 </Badge>
               </div>
@@ -542,15 +542,15 @@ export default function PresupuestoPage() {
           <Card className="bg-transparent shadow-none border-none ">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">Por ejercer</p>
+                <p className="text-sm text-subtle-foreground">Por ejercer</p>
                 <div className="flex items-baseline space-x-2">
                   <CurrencyMetric
                     amount={metrics?.por_gastar || 0}
                     currency={moneda}
-                    className="text-3xl 2xl:text-4xl font-normal text-gray-900"
+                    className="text-3xl 2xl:text-4xl font-normal text-foreground"
                   />
                 </div>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
                   Avance {avancePercentage}%
                 </Badge>
               </div>
@@ -560,16 +560,16 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white  pb-4 px-12">
+        <div className="bg-card  pb-4 px-12">
           <div className="grid grid-cols-3 items-center gap-6">
             {/* Partida Filter - Multi-select */}
-            <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
-              <span className="text-sm text-gray-500">Partida</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-border">
+              <span className="text-sm text-subtle-foreground">Partida</span>
               <Popover open={isPartidaOpen} onOpenChange={setIsPartidaOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="border-none shadow-none px-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
+                    className="border-none shadow-none px-0 h-auto font-normal text-foreground hover:bg-transparent justify-start"
                   >
                     <span className="flex items-center gap-2">
                       {selectedPartidas.length === 0 ? (
@@ -579,7 +579,7 @@ export default function PresupuestoPage() {
                       ) : (
                         `${selectedPartidas.length} seleccionadas`
                       )}
-                      {/* <ChevronDown className="h-4 w-4 text-gray-400" /> */}
+                      {/* <ChevronDown className="h-4 w-4 text-disabled-foreground" /> */}
                     </span>
                   </Button>
                 </PopoverTrigger>
@@ -589,7 +589,7 @@ export default function PresupuestoPage() {
                       placeholder="Buscar partidas..."
                       value={partidaSearchTerm}
                       onChange={(e) => setPartidaSearchTerm(e.target.value)}
-                      className="h-8 rounded-none focus-visible:border-gray-300 focus-visible:ring-0"
+                      className="h-8 rounded-none focus-visible:border-border-strong focus-visible:ring-0"
                     />
                   </div>
                   <div className="max-h-64 overflow-y-auto p-3 space-y-2">
@@ -599,7 +599,7 @@ export default function PresupuestoPage() {
                           <Checkbox
                             id={`partida-${partida}`}
                             checked={selectedPartidas.includes(partida)}
-                            className="border-gray-300"
+                            className="border-border-strong"
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 setSelectedPartidas([...selectedPartidas, partida]);
@@ -617,14 +617,14 @@ export default function PresupuestoPage() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-base text-gray-500 text-center py-2">
+                      <p className="text-base text-subtle-foreground text-center py-2">
                         No se encontraron partidas
                       </p>
                     )}
                   </div>
                   {selectedPartidas.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-base text-gray-500">
+                      <span className="text-base text-subtle-foreground">
                         {selectedPartidas.length} seleccionada(s)
                       </span>
                       <Button
@@ -658,13 +658,13 @@ export default function PresupuestoPage() {
             </div>
 
             {/* Familia Filter - Multi-select */}
-            <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
-              <span className="text-sm text-gray-500">Familia</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-border">
+              <span className="text-sm text-subtle-foreground">Familia</span>
               <Popover open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="border-none shadow-none px-0 h-auto font-normal text-gray-900 hover:bg-transparent justify-start"
+                    className="border-none shadow-none px-0 h-auto font-normal text-foreground hover:bg-transparent justify-start"
                   >
                     <span className="flex items-center gap-2">
                       {selectedFamilias.length === 0 ? (
@@ -674,7 +674,7 @@ export default function PresupuestoPage() {
                       ) : (
                         `${selectedFamilias.length} seleccionadas`
                       )}
-                      {/* <ChevronDown className="h-4 w-4 text-gray-400" /> */}
+                      {/* <ChevronDown className="h-4 w-4 text-disabled-foreground" /> */}
                     </span>
                   </Button>
                 </PopoverTrigger>
@@ -684,7 +684,7 @@ export default function PresupuestoPage() {
                       placeholder="Buscar familias..."
                       value={familiaSearchTerm}
                       onChange={(e) => setFamiliaSearchTerm(e.target.value)}
-                      className="h-8 rounded-none focus-visible:border-gray-300 focus-visible:ring-0"
+                      className="h-8 rounded-none focus-visible:border-border-strong focus-visible:ring-0"
                     />
                   </div>
                   <div className="max-h-64 overflow-y-auto p-3 space-y-2">
@@ -694,7 +694,7 @@ export default function PresupuestoPage() {
                           <Checkbox
                             id={`familia-${familia}`}
                             checked={selectedFamilias.includes(familia)}
-                            className="border-gray-300"
+                            className="border-border-strong"
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 setSelectedFamilias([...selectedFamilias, familia]);
@@ -712,14 +712,14 @@ export default function PresupuestoPage() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-base text-gray-500 text-center py-2">
+                      <p className="text-base text-subtle-foreground text-center py-2">
                         No se encontraron familias
                       </p>
                     )}
                   </div>
                   {selectedFamilias.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-base text-gray-500">
+                      <span className="text-base text-subtle-foreground">
                         {selectedFamilias.length} seleccionada(s)
                       </span>
                       <Button
@@ -754,10 +754,10 @@ export default function PresupuestoPage() {
             </div>
 
             {/* Fecha Filter */}
-            <div className="flex flex-col space-y-1 text-left border-b border-gray-200">
-              <span className="text-sm text-gray-500">Fecha</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-border">
+              <span className="text-sm text-subtle-foreground">Fecha</span>
               <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as typeof dateFilter)}>
-                <SelectTrigger className="border-none shadow-none px-0 h-auto font-normal text-gray-900 focus:ring-0">
+                <SelectTrigger className="border-none shadow-none px-0 h-auto font-normal text-foreground focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -778,7 +778,7 @@ export default function PresupuestoPage() {
                         !calendarRange?.from && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5 text-gray-400" />
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5 text-disabled-foreground" />
                       {calendarRange?.from ? (
                         calendarRange.to ? (
                           <>
@@ -818,7 +818,7 @@ export default function PresupuestoPage() {
 
 
         <div className="flex items-center gap-6 px-4">
-          <div onClick={togglePrecioUnitario} className="flex items-center space-x-2 w-fit text-gray-900 cursor-pointer">
+          <div onClick={togglePrecioUnitario} className="flex items-center space-x-2 w-fit text-foreground cursor-pointer">
             <small>Precio unitario</small>
             <Button
               className="text-left text-base font-medium text-muted-foreground rounded-full"

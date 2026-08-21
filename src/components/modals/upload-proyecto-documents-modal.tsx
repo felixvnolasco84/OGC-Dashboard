@@ -288,7 +288,7 @@ export default function UploadProyectoDocumentsModal() {
             case "error":
                 return <X className="h-4 w-4 text-red-500" />;
             default:
-                return <FileText className="h-4 w-4 text-gray-400" />;
+                return <FileText className="h-4 w-4 text-disabled-foreground" />;
         }
     };
 
@@ -303,13 +303,13 @@ export default function UploadProyectoDocumentsModal() {
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent data-square-modal="" className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-normal">Subir Documentos</DialogTitle>
                     <DialogDescription>
-                        Proyecto: <span className="font-medium text-gray-900">{proyecto?.nombre}</span>
+                        Proyecto: <span className="font-medium text-foreground">{proyecto?.nombre}</span>
                         <span className="mt-1 block">
-                            Destino: <span className="font-medium text-gray-900">{destinationLabel}</span>
+                            Destino: <span className="font-medium text-foreground">{destinationLabel}</span>
                         </span>
                     </DialogDescription>
                 </DialogHeader>
@@ -318,7 +318,7 @@ export default function UploadProyectoDocumentsModal() {
                     {/* Transaction Selection */}
                     <div className="space-y-2">
                         <Label htmlFor="transaction-select">
-                            Transacción <span className="font-normal text-gray-400">(opcional)</span>
+                            Transacción <span className="font-normal text-disabled-foreground">(opcional)</span>
                         </Label>
                         <Select
                             value={selectedTransactionId || "none"}
@@ -332,10 +332,10 @@ export default function UploadProyectoDocumentsModal() {
                             <SelectTrigger id="transaction-select">
                                 <SelectValue placeholder="Sin transacción" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent data-square-modal="">
                                 <SelectItem value="none">Sin transacción</SelectItem>
                                 {formattedTransactions.length === 0 ? (
-                                    <div className="px-2 py-4 text-sm text-gray-500 text-center">
+                                    <div className="px-2 py-4 text-sm text-subtle-foreground text-center">
                                         No hay transacciones disponibles
                                     </div>
                                 ) : (
@@ -352,10 +352,10 @@ export default function UploadProyectoDocumentsModal() {
                     {/* Upload Area */}
                     <div
                         className={cn(
-                            "rounded-lg border-2 border-dashed p-8 text-center transition-colors",
+                            "rounded-none border-2 border-dashed p-8 text-center transition-colors",
                             isDragActive
-                                ? "border-gray-900 bg-gray-50"
-                                : "border-gray-300 hover:border-gray-400",
+                                ? "border-foreground bg-background"
+                                : "border-border-strong hover:border-border-strong",
                         )}
                         onDragEnter={(event) => {
                             event.preventDefault();
@@ -379,8 +379,8 @@ export default function UploadProyectoDocumentsModal() {
                             className="hidden"
                             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.rar,.7z"
                         />
-                        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-sm text-gray-600 mb-2">
+                        <Upload className="h-12 w-12 text-disabled-foreground mx-auto mb-4" />
+                        <p className="text-sm text-muted-foreground mb-2">
                             {isDragActive
                                 ? "Suelta los archivos para agregarlos"
                                 : "Arrastra varios archivos aquí o selecciónalos desde tu equipo"}
@@ -403,7 +403,7 @@ export default function UploadProyectoDocumentsModal() {
                                     Archivos ({files.length})
                                 </h3>
                                 {pendingCount > 0 && (
-                                    <span className="text-sm text-gray-500">
+                                    <span className="text-sm text-subtle-foreground">
                                         {pendingCount} pendiente(s)
                                     </span>
                                 )}
@@ -414,7 +414,7 @@ export default function UploadProyectoDocumentsModal() {
                                     <div
                                         key={index}
                                         className={cn(
-                                            "border rounded-lg p-4 space-y-3",
+                                            "border rounded-none p-4 space-y-3",
                                             fileUpload.status === "success" && "bg-green-50 border-green-200",
                                             fileUpload.status === "error" && "bg-red-50 border-red-200"
                                         )}
@@ -427,7 +427,7 @@ export default function UploadProyectoDocumentsModal() {
                                                     <p className="text-sm font-medium truncate">
                                                         {fileUpload.file.name}
                                                     </p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-xs text-subtle-foreground">
                                                         {formatFileSize(fileUpload.file.size)}
                                                     </p>
                                                 </div>
@@ -477,7 +477,7 @@ export default function UploadProyectoDocumentsModal() {
                                                         <SelectTrigger id={`type-${index}`} className="h-8 text-sm">
                                                             <SelectValue />
                                                         </SelectTrigger>
-                                                        <SelectContent>
+                                                        <SelectContent data-square-modal="">
                                                             {DOCUMENT_TYPES.map((type) => (
                                                                 <SelectItem key={type} value={type}>
                                                                     {type}

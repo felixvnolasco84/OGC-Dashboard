@@ -172,7 +172,7 @@ export default function AssistantComposer({
           maxLength={4000}
           rows={3}
           placeholder="Pregunta por el estatus del proyecto. Usa @ para referenciar..."
-          className="min-h-[92px] resize-none rounded-xl border-gray-200 pr-12 shadow-none focus-visible:ring-gray-300"
+          className="min-h-[92px] resize-none rounded-xl border-border pr-12 shadow-none focus-visible:ring-ring"
           onChange={(event) => handleValueChange(event.target.value, event.target.selectionStart)}
           onClick={setCaretFromTextarea}
           onKeyUp={(event) => {
@@ -192,19 +192,19 @@ export default function AssistantComposer({
         </Button>
 
         {activeMention && (
-          <div className="absolute bottom-full left-0 right-0 z-[70] mb-2 max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl">
+          <div className="absolute bottom-full left-0 right-0 z-[70] mb-2 max-h-72 overflow-y-auto rounded-xl border border-border bg-card p-1.5 shadow-xl">
             {suggestions === undefined ? (
-              <div className="flex items-center gap-2 px-3 py-4 text-sm text-gray-500">
+              <div className="flex items-center gap-2 px-3 py-4 text-sm text-subtle-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Buscando referencias...
               </div>
             ) : visibleSuggestions.length === 0 ? (
-              <p className="px-3 py-4 text-sm text-gray-500">No hay coincidencias accesibles.</p>
+              <p className="px-3 py-4 text-sm text-subtle-foreground">No hay coincidencias accesibles.</p>
             ) : visibleSuggestions.map((suggestion, index) => {
               const showGroup = previousType !== suggestion.type;
               previousType = suggestion.type;
               return (
                 <div key={`${suggestion.type}:${suggestion.id}:${suggestion.project_id || ""}`}>
-                  {showGroup && <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{TYPE_LABELS[suggestion.type]}</p>}
+                  {showGroup && <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-disabled-foreground">{TYPE_LABELS[suggestion.type]}</p>}
                   <button
                     type="button"
                     role="option"
@@ -215,11 +215,11 @@ export default function AssistantComposer({
                     }}
                     className={cn(
                       "w-full rounded-lg px-3 py-2 text-left",
-                      selectedIndex === index ? "bg-gray-100" : "hover:bg-gray-50",
+                      selectedIndex === index ? "bg-muted" : "hover:bg-background",
                     )}
                   >
-                    <span className="block truncate text-sm font-medium text-gray-800">{suggestion.label}</span>
-                    <span className="block truncate text-xs text-gray-500">{suggestion.subtitle}</span>
+                    <span className="block truncate text-sm font-medium text-foreground">{suggestion.label}</span>
+                    <span className="block truncate text-xs text-subtle-foreground">{suggestion.subtitle}</span>
                   </button>
                 </div>
               );
@@ -231,7 +231,7 @@ export default function AssistantComposer({
       {references.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {references.map((reference) => (
-            <span key={`${reference.type}:${reference.id}:${reference.start}`} className="inline-flex max-w-full items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">
+            <span key={`${reference.type}:${reference.id}:${reference.start}`} className="inline-flex max-w-full items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
               <span className="truncate">{reference.label}</span>
               <button type="button" disabled={submitting} onClick={() => removeReference(reference)} aria-label={`Quitar ${reference.label}`}>
                 <X className="h-3 w-3" />
@@ -241,7 +241,7 @@ export default function AssistantComposer({
         </div>
       )}
 
-      <div className="flex items-center justify-between text-[11px] text-gray-400">
+      <div className="flex items-center justify-between text-[11px] text-disabled-foreground">
         <span>{references.length}/10 referencias · hasta 3 proyectos</span>
         <span>{value.length}/4000</span>
       </div>

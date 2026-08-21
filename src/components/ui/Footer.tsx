@@ -31,7 +31,7 @@ export default function Footer() {
       <div className="mx-auto mt-12 flex max-w-7xl flex-col items-start justify-between gap-12 px-4 py-12 lg:mt-24 lg:flex-row lg:items-center lg:gap-0 lg:px-12 lg:py-24">
         <div className="flex items-center gap-4">
           <NavLink to="/">
-            <h1 className="text-left text-3xl font-light text-white lg:text-4xl">
+            <h1 className="text-left text-3xl font-light text-on-color lg:text-4xl">
               Nuestro propósito <br />
               <span className="noto-serif-display italic">es acompañarte</span>
             </h1>
@@ -39,13 +39,13 @@ export default function Footer() {
         </div>
 
         <div className="grid gap-4">
-          {/* <div className="flex items-center gap-4 text-sm text-white">
+          {/* <div className="flex items-center gap-4 text-sm text-on-color">
             <a href="tel:+525558125581" target="_blank" rel="noreferrer">
               <FaPhone className="h-4 w-4 rotate-90 text-[#48A0FF]" />
             </a>
             <span>+52 (55) 5812 5581</span>
           </div> */}
-          <div className="flex gap-4 text-white">
+          <div className="flex gap-4 text-on-color">
             <ul className="flex flex-col gap-4">
               {socials.map((social, index) => (
                 <a href={social.link} target="_blank" rel="noreferrer">
@@ -59,7 +59,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="grid gap-4 text-left text-white underline">
+        <div className="grid gap-4 text-left text-on-color underline">
           <NavLink to="/legal">Legal</NavLink>
           <NavLink to="/aviso-de-privacidad">Aviso de Privacidad</NavLink>
         </div>

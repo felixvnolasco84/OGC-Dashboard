@@ -10,9 +10,9 @@ GlobalWorkerOptions.workerSrc = pdfWorker;
 
 const COLORS = {
   annotation: "#EFA3E7",
-  border: "#E6E6E6",
-  muted: "#A3A39E",
-  surface: "#FBFBFB",
+  border: "hsl(var(--border))",
+  muted: "hsl(var(--disabled-foreground))",
+  surface: "hsl(var(--card))",
 };
 const ANNOTATION_STROKE_WIDTH = 3;
 
@@ -259,18 +259,18 @@ export default function PlanCanvas({
 
   return (
     <div className="relative mx-auto" style={{ width: `${zoom * 100}%`, minWidth: zoom > 1 ? "48rem" : undefined }}>
-      <div className="relative overflow-hidden border bg-white" style={{ borderColor: COLORS.border }}>
+      <div className="relative overflow-hidden border bg-card" style={{ borderColor: COLORS.border }}>
         {isPdf ? (
           <canvas
             ref={canvasRef}
-            className={cn("block h-auto w-full bg-white", loading && "min-h-[36rem]")}
+            className={cn("block h-auto w-full bg-card", loading && "min-h-[36rem]")}
             aria-label={`Página ${page} del plano`}
           />
         ) : (
           <img
             src={url}
             alt="Plano arquitectónico"
-            className="block h-auto w-full select-none bg-white"
+            className="block h-auto w-full select-none bg-card"
             draggable={false}
             onLoad={() => setLoading(false)}
             onError={() => setError("No fue posible abrir esta imagen.")}
@@ -377,7 +377,7 @@ export default function PlanCanvas({
         </svg>
 
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+          <div className="absolute inset-0 flex items-center justify-center bg-card/80">
             <Loader2 className="h-8 w-8 animate-spin" style={{ color: COLORS.muted }} />
           </div>
         )}

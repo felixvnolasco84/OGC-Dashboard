@@ -61,7 +61,7 @@ export default function PartidaDetails() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Cargando detalles...</p>
+                    <p className="mt-4 text-muted-foreground">Cargando detalles...</p>
                 </div>
             </div>
         );
@@ -117,7 +117,7 @@ export default function PartidaDetails() {
         <div className="min-h-screen  p-6">
             <div className="max-w-2xl mx-auto">
                 {/* Header */}
-                <div className="bg-white  shadow-sm -6 mb-4 relative">
+                <div className="bg-card  shadow-sm -6 mb-4 relative">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -132,34 +132,34 @@ export default function PartidaDetails() {
                         {partida.nivel === 3 ? (
                             // Sub-partida (nivel 3)
                             <>
-                                <h1 className="text-xl text-gray-900 mb-1">{partida.nombre}</h1>
-                                <p className="text-sm text-gray-500 mb-3">
+                                <h1 className="text-xl text-foreground mb-1">{partida.nombre}</h1>
+                                <p className="text-sm text-subtle-foreground mb-3">
                                     {partida.sub_partida}
                                 </p>
                                 <div className="flex justify-end">
-                                    <span className="text-sm text-gray-500">Sub Partida</span>
+                                    <span className="text-sm text-subtle-foreground">Sub Partida</span>
                                 </div>
                             </>
                         ) : partida.nivel === 2 ? (
                             // Familia without sub-partidas (nivel 2)
                             <>
-                                <h1 className="text-xl text-gray-900 mb-1">{partida.nombre}</h1>
-                                <p className="text-sm text-gray-500 mb-3">
+                                <h1 className="text-xl text-foreground mb-1">{partida.nombre}</h1>
+                                <p className="text-sm text-subtle-foreground mb-3">
                                     {partida.familia}
                                 </p>
                                 <div className="flex justify-end">
-                                    <span className="text-sm text-gray-500">Familia</span>
+                                    <span className="text-sm text-subtle-foreground">Familia</span>
                                 </div>
                             </>
                         ) : (
                             // Fallback for other niveles
                             <>
-                                <h1 className="text-xl text-gray-900 mb-1">{partida.nombre}</h1>
-                                <p className="text-sm text-gray-500 mb-3">
+                                <h1 className="text-xl text-foreground mb-1">{partida.nombre}</h1>
+                                <p className="text-sm text-subtle-foreground mb-3">
                                     {partida.familia || partida.sub_partida}
                                 </p>
                                 <div className="flex justify-end">
-                                    <span className="text-sm text-gray-500">Partida</span>
+                                    <span className="text-sm text-subtle-foreground">Partida</span>
                                 </div>
                             </>
                         )}
@@ -173,16 +173,16 @@ export default function PartidaDetails() {
                                 });
                             }
                         }}
-                        className="bg-black hover:bg-gray-800 text-white text-sm px-4 py-2"
+                        className="bg-inverse hover:bg-inverse text-on-color text-sm px-4 py-2"
                     >
                         Nuevo Pago +
                     </Button>
                 </div>
 
                 {/* Progress Bar and Summary */}
-                <div className="bg-white  shadow-smp-6 mb-4">
+                <div className="bg-card  shadow-smp-6 mb-4">
                     {/* Progress Bar */}
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+                    <div className="w-full bg-disabled rounded-full h-2 mb-6">
                         <div
                             className="h-2 rounded-full transition-all duration-300 bg-green-500"
                             style={{ width: `${Math.min(porcentajePagado, 100)}%` }}
@@ -192,15 +192,15 @@ export default function PartidaDetails() {
                     {/* Summary */}
                     <div className="grid grid-cols-3 gap-4">
                         <div>
-                            <p className="text-xs text-gray-500 mb-1">Presupuesto Aprobado</p>
-                            <p className="text-base  text-gray-900">{formatCurrency(presupuestoAprobado.toString())}</p>
+                            <p className="text-xs text-subtle-foreground mb-1">Presupuesto Aprobado</p>
+                            <p className="text-base  text-foreground">{formatCurrency(presupuestoAprobado.toString())}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-gray-500 mb-1">Total Pagado</p>
+                            <p className="text-xs text-subtle-foreground mb-1">Total Pagado</p>
                             <p className="text-base  text-green-600">{formatCurrency(totalPagado.toString())}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-gray-500 mb-1">Por Ejercer</p>
+                            <p className="text-xs text-subtle-foreground mb-1">Por Ejercer</p>
                             <p className="text-base  text-orange-600">{formatCurrency(porEjercer.toString())}</p>
                         </div>
                     </div>
@@ -210,9 +210,9 @@ export default function PartidaDetails() {
                 {partida.pagos && partida.pagos.length > 0 ? (
                     <div className="space-y-8">
                         {partida.pagos.map((pago, index) => (
-                            <div key={index} className="bg-white">
+                            <div key={index} className="bg-card">
                                 {/* Header */}
-                                <div className="flex items-start justify-between mb-4 border-b border-gray-400 pb-4">
+                                <div className="flex items-start justify-between mb-4 border-b border-border-strong pb-4">
                                     <div className="flex items-center gap-3">
                                         {(() => {
                                             const status = pago.status || pago.transaction?.status;
@@ -229,14 +229,14 @@ export default function PartidaDetails() {
                                             );
                                         })()}
                                         <div>
-                                            <p className="text-base  text-gray-900">
+                                            <p className="text-base  text-foreground">
                                                 {pago.status || pago.transaction?.status || (pago.monto > 0 ? 'Aprobado' : 'Pendiente')}
                                             </p>
-                                            <p className="text-left text-sm text-gray-500">Pago #{String(index + 1).padStart(3, '0')}</p>
+                                            <p className="text-left text-sm text-subtle-foreground">Pago #{String(index + 1).padStart(3, '0')}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <p className="text-xl text-gray-900">
+                                        <p className="text-xl text-foreground">
                                             {formatCurrency(pago.monto.toString())} {pago.moneda || pago.transaction?.moneda || 'MXN'}
                                         </p>
                                         <Popover>
@@ -291,43 +291,43 @@ export default function PartidaDetails() {
                                 <div className="flex flex-col space-y-2 text-sm mb-4 p-4">
                                     {/* Show transaction ID if available */}
                                     {pago.transaction?._id && (
-                                        <div className="flex justify-between pb-2 mb-2 border-b border-gray-100">
-                                            <span className="text-gray-500 text-xs">Transacción</span>
-                                            <p className="text-gray-900 text-right text-xs font-mono">
+                                        <div className="flex justify-between pb-2 mb-2 border-b border-border">
+                                            <span className="text-subtle-foreground text-xs">Transacción</span>
+                                            <p className="text-foreground text-right text-xs font-mono">
                                                 #{pago.transaction._id.slice(-8)}
                                             </p>
                                         </div>
                                     )}
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">Fecha</span>
-                                        <p className="text-gray-900 text-right">{pago.fecha || pago.transaction?.fecha || 'N/A'}</p>
+                                        <span className="text-subtle-foreground">Fecha</span>
+                                        <p className="text-foreground text-right">{pago.fecha || pago.transaction?.fecha || 'N/A'}</p>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">Método de pago</span>
-                                        <p className="text-gray-900 text-right">{pago.tipo_pago || pago.transaction?.tipo_pago || 'N/A'}</p>
+                                        <span className="text-subtle-foreground">Método de pago</span>
+                                        <p className="text-foreground text-right">{pago.tipo_pago || pago.transaction?.tipo_pago || 'N/A'}</p>
                                     </div>
                                     {(pago.banco || pago.transaction?.banco) && (
                                         <div className="flex justify-between">
-                                            <span className="text-gray-500">Banco</span>
-                                            <p className="text-gray-900 text-right">{pago.banco || pago.transaction?.banco}</p>
+                                            <span className="text-subtle-foreground">Banco</span>
+                                            <p className="text-foreground text-right">{pago.banco || pago.transaction?.banco}</p>
                                         </div>
                                     )}
                                     {(pago.numero_cuenta || pago.transaction?.numero_cuenta) && (
                                         <div className="flex justify-between">
-                                            <span className="text-gray-500">Cuenta cargo</span>
-                                            <p className="text-gray-900 text-right">{pago.numero_cuenta || pago.transaction?.numero_cuenta}</p>
+                                            <span className="text-subtle-foreground">Cuenta cargo</span>
+                                            <p className="text-foreground text-right">{pago.numero_cuenta || pago.transaction?.numero_cuenta}</p>
                                         </div>
                                     )}
                                     {(pago.numero_transferencia || pago.transaction?.numero_transferencia) && (
                                         <div className="flex justify-between">
-                                            <span className="text-gray-500">Cuenta abono</span>
-                                            <p className="text-gray-900 text-right">{pago.numero_transferencia || pago.transaction?.numero_transferencia}</p>
+                                            <span className="text-subtle-foreground">Cuenta abono</span>
+                                            <p className="text-foreground text-right">{pago.numero_transferencia || pago.transaction?.numero_transferencia}</p>
                                         </div>
                                     )}
                                     {(pago.codigo_referencia || pago.transaction?.codigo_referencia) && (
                                         <div className="flex justify-between">
-                                            <span className="text-gray-500">Referencia</span>
-                                            <p className="text-gray-900 text-right font-mono text-xs">{pago.codigo_referencia || pago.transaction?.codigo_referencia}</p>
+                                            <span className="text-subtle-foreground">Referencia</span>
+                                            <p className="text-foreground text-right font-mono text-xs">{pago.codigo_referencia || pago.transaction?.codigo_referencia}</p>
                                         </div>
                                     )}
                                     {/* Show warning if no transaction data */}
@@ -382,21 +382,21 @@ export default function PartidaDetails() {
                                     const pagoDocuments = getDocumentsForPago(pago as EnrichedPayment);
                                     if (pagoDocuments.length > 0) {
                                         return (
-                                            <div className="mt-4 pt-4 border-t border-gray-200">
-                                                <p className="text-xs font-medium text-gray-700 mb-3">Documentos adjuntos ({pagoDocuments.length})</p>
+                                            <div className="mt-4 pt-4 border-t border-border">
+                                                <p className="text-xs font-medium text-foreground mb-3">Documentos adjuntos ({pagoDocuments.length})</p>
                                                 <div className="space-y-2">
                                                     {pagoDocuments.map((doc) => (
-                                                        <div key={doc._id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
+                                                        <div key={doc._id} className="flex items-center justify-between p-2 bg-background rounded-md hover:bg-muted transition-colors">
                                                             <div className="flex items-center gap-2 flex-1 min-w-0">
                                                                 <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
                                                                 <div className="min-w-0 flex-1">
-                                                                    <p className="text-sm font-medium text-gray-900 truncate">{doc.nombre}</p>
+                                                                    <p className="text-sm font-medium text-foreground truncate">{doc.nombre}</p>
                                                                     <div className="flex items-center gap-2 mt-0.5">
                                                                         <Badge variant="outline" className="text-xs px-2 py-0.5">
                                                                             {doc.type}
                                                                         </Badge>
                                                                         {doc.descripcion && (
-                                                                            <p className="text-xs text-gray-500 truncate">{doc.descripcion}</p>
+                                                                            <p className="text-xs text-subtle-foreground truncate">{doc.descripcion}</p>
                                                                         )}
                                                                     </div>
                                                                 </div>
@@ -435,8 +435,8 @@ export default function PartidaDetails() {
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white shadow-sm p-8 text-center rounded-lg border border-gray-200">
-                        <p className="text-gray-500 mb-4">
+                    <div className="bg-card shadow-sm p-8 text-center rounded-lg border border-border">
+                        <p className="text-subtle-foreground mb-4">
                             No hay pagos registrados para esta {partida.nivel === 3 ? 'sub-partida' : partida.nivel === 2 ? 'familia' : 'partida'}
                         </p>
                         {partida.pagado > 0 && (

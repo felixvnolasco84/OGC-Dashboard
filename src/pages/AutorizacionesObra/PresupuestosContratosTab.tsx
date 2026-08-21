@@ -162,13 +162,13 @@ function FileCell({
               href={url || "#"}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-600"
+              className="flex items-center gap-1.5 text-sm text-foreground hover:text-muted-foreground"
             >
-              <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+              <FileText className="w-4 h-4 text-disabled-foreground shrink-0" />
               <span className="font-medium truncate max-w-[150px]">{nombre}</span>
             </a>
             <button
-              className="text-gray-400 hover:text-gray-600 p-0.5"
+              className="text-disabled-foreground hover:text-muted-foreground p-0.5"
               onClick={() => replaceInputRef.current?.click()}
               disabled={uploading}
               title="Reemplazar archivo"
@@ -181,7 +181,7 @@ function FileCell({
             </button>
             {historial && historial.length > 0 && (
               <button
-                className="text-gray-400 hover:text-gray-600 p-0.5"
+                className="text-disabled-foreground hover:text-muted-foreground p-0.5"
                 onClick={() => setShowHistory(!showHistory)}
                 title="Ver historial de archivos"
               >
@@ -190,7 +190,7 @@ function FileCell({
             )}
             {onDelete && (
               <button
-                className="text-gray-400 hover:text-red-500 p-0.5"
+                className="text-disabled-foreground hover:text-red-500 p-0.5"
                 onClick={onDelete}
                 title="Eliminar archivo"
               >
@@ -199,15 +199,15 @@ function FileCell({
             )}
           </div>
           {uploadedAt && (
-            <span className="text-xs text-[#C5C5C3] mt-0.5 ml-5.5">
+            <span className="text-xs text-disabled-foreground mt-0.5 ml-5.5">
               {formatFileDate(uploadedAt)}
             </span>
           )}
           {showHistory && historial && historial.length > 0 && (
-            <div className="mt-2 border border-gray-100 rounded p-2 bg-gray-50">
-              <div className="text-xs font-medium text-gray-500 mb-1">Historial de archivos</div>
+            <div className="mt-2 border border-border rounded p-2 bg-background">
+              <div className="text-xs font-medium text-subtle-foreground mb-1">Historial de archivos</div>
               {historial.map((h: HistorialEntry) => (
-                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-gray-500">
+                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-subtle-foreground">
                   <FileText className="w-3 h-3 shrink-0" />
                   <a
                     href={h.url || "#"}
@@ -217,11 +217,11 @@ function FileCell({
                   >
                     {h.documento_nombre}
                   </a>
-                  <span className="shrink-0 text-gray-400">
+                  <span className="shrink-0 text-disabled-foreground">
                     {new Date(h.replaced_at).toLocaleDateString("es-MX")}
                   </span>
                   {h.replaced_by_name && (
-                    <span className="shrink-0 text-gray-400">por {h.replaced_by_name}</span>
+                    <span className="shrink-0 text-disabled-foreground">por {h.replaced_by_name}</span>
                   )}
                 </div>
               ))}
@@ -230,7 +230,7 @@ function FileCell({
         </div>
       ) : (
         <button
-          className="text-sm text-gray-400 hover:text-gray-600 "
+          className="text-sm text-disabled-foreground hover:text-muted-foreground "
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
@@ -256,7 +256,7 @@ function RowActionMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="text-gray-400 hover:text-gray-600 p-1">
+        <button className="text-disabled-foreground hover:text-muted-foreground p-1">
           <MoreHorizontal className="w-4 h-4" />
         </button>
       </DropdownMenuTrigger>
@@ -326,7 +326,7 @@ function SubcontratistaTableRow({
   const [editMonto, setEditMonto] = useState("");
 
   return (
-    <div className="grid grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 items-center p-4 bg-[#FBFBFB] border border-[#E6E6E6] mb-2 rounded-sm">
+    <div className="grid grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 items-center p-4 bg-card border border-border mb-2 rounded-sm">
       {/* Status dot */}
       <StatusDot
         status={sub.status_manual}
@@ -339,7 +339,7 @@ function SubcontratistaTableRow({
 
       {/* Subcontratista name */}
       <Input
-        className="h-8 rounded-none border-transparent hover:border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 text-sm transition-colors shadow-none"
+        className="h-8 rounded-none border-transparent hover:border-border-strong focus:border-border-strong focus:ring-1 focus:ring-ring text-sm transition-colors shadow-none"
         value={editNombre}
         onChange={(e) => setEditNombre(e.target.value)}
         onBlur={() => {
@@ -360,7 +360,7 @@ function SubcontratistaTableRow({
           }
         }}
       >
-        <SelectTrigger className="h-8 rounded-none border-transparent hover:border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 text-sm transition-colors">
+        <SelectTrigger className="h-8 rounded-none border-transparent hover:border-border-strong focus:border-border-strong focus:ring-1 focus:ring-ring text-sm transition-colors">
           <SelectValue placeholder="Partida">
             {sub.partida_nombre || "Partida"}
           </SelectValue>
@@ -400,7 +400,7 @@ function SubcontratistaTableRow({
 
       {/* Monto */}
       <Input
-        className="h-8 rounded-none border-transparent hover:border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 text-sm text-right transition-colors shadown-none"
+        className="h-8 rounded-none border-transparent hover:border-border-strong focus:border-border-strong focus:ring-1 focus:ring-ring text-sm text-right transition-colors shadown-none"
         value={editMonto || (sub.monto ? formatCurrencyMXN(sub.monto) : "")}
         onFocus={() => setEditMonto(sub.monto?.toString() || "")}
         onChange={(e) => setEditMonto(e.target.value)}
@@ -685,9 +685,9 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
   // ============================================================
 
   return (
-    <div className="text-[#282822] font-light">
+    <div className="text-foreground font-light">
       <div className="pt-6">
-        <div className="flex flex-col text-left border-[#d2d1ce]">
+        <div className="flex flex-col text-left border-border">
           <p className="text-base">
             Control financiero y formalización con proveedores y subcontratistas
           </p>
@@ -696,7 +696,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
 
       <div className="py-2 space-y-6">
         {/* Section: Contratos firmados con subcontratistas principales */}
-        <div className="border border-gray-200 rounded-sm bg-white">
+        <div className="border border-border rounded-sm bg-card">
           {/* Section Header */}
           <div className="px-6">
             <div
@@ -708,7 +708,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                   status={sectionHeader?.status_manual}
                   onToggle={handleToggleSectionStatus}
                 />
-                <h3 className="text-base text-gray-900">
+                <h3 className="text-base text-foreground">
                   Contratos firmados con subcontratistas principales
                 </h3>
               </div>
@@ -719,7 +719,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                   onSelect={handleUpdateSectionResponsable}
                 />
                 <button
-                  className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-2 py-1"
+                  className="flex items-center gap-1.5 text-sm text-subtle-foreground hover:text-foreground border border-border px-2 py-1"
                   onClick={(e) => {
                     e.stopPropagation();
                     openAddModal();
@@ -727,7 +727,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => setExpanded(!expanded)} className="text-disabled-foreground hover:text-muted-foreground">
                   {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                 </button>
               </div>
@@ -741,8 +741,8 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
-                <div className="flex justify-between mt-2 text-xs text-gray-500">
-                  <span className="text-[#ABABA9]">
+                <div className="flex justify-between mt-2 text-xs text-subtle-foreground">
+                  <span className="text-disabled-foreground">
                     {assignedSubs} de {totalSubs} contratistas asignados
                   </span>
                   {pendingContratos > 0 && (
@@ -762,7 +762,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
 
 
               {/* Table header */}
-              <div className="grid grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-[#777770]  pb-2 border-gray-200 text-left">
+              <div className="grid grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-muted-foreground  pb-2 border-border text-left">
                 <span className="w-14" />
                 <span>Subcontratista</span>
                 <span>Partida</span>
@@ -811,7 +811,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                         Confirmar
                       </button>
                       <button
-                        className="text-gray-500 hover:text-gray-700"
+                        className="text-subtle-foreground hover:text-foreground"
                         onClick={() => setConfirmDeleteId(null)}
                       >
                         Cancelar
@@ -822,14 +822,14 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
               ))}
 
               {subs.length === 0 && (
-                <div className="py-6 text-center text-sm text-gray-400">
+                <div className="py-6 text-center text-sm text-disabled-foreground">
                   No hay subcontratistas registrados
                 </div>
               )}
 
               {/* Add button */}
               <button
-                className="mt-3 w-full flex items-start justify-start gap-2 text-sm text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 px-3 py-3 hover:border-gray-400 transition-colors"
+                className="mt-3 w-full flex items-start justify-start gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border-strong px-3 py-3 hover:border-border-strong transition-colors"
                 onClick={openAddModal}
               >
                 <Plus className="w-4 h-4" />
@@ -853,7 +853,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
           <div className="space-y-4 py-2">
             {/* Nombre */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-foreground">
                 Nombre del subcontratista
               </label>
               <Input
@@ -866,7 +866,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
 
             {/* Contratista General */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-foreground">
                 Contratista General
               </label>
               {!showNewCgInput ? (
@@ -887,7 +887,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                         </SelectItem>
                       ))}
                       {cgs.length === 0 && (
-                        <div className="px-2 py-1.5 text-xs text-gray-400">
+                        <div className="px-2 py-1.5 text-xs text-disabled-foreground">
                           No hay contratistas generales
                         </div>
                       )}
@@ -895,7 +895,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                   </Select>
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+                    className="flex items-center gap-1.5 text-sm text-subtle-foreground hover:text-foreground"
                     onClick={() => {
                       setShowNewCgInput(true);
                       setModalCgId("");
@@ -915,7 +915,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                   />
                   <button
                     type="button"
-                    className="text-sm text-gray-500 hover:text-gray-700"
+                    className="text-sm text-subtle-foreground hover:text-foreground"
                     onClick={() => {
                       setShowNewCgInput(false);
                       setModalNewCgName("");
@@ -931,7 +931,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
           <DialogFooter>
             <button
               type="button"
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
               onClick={() => setShowAddModal(false)}
               disabled={modalCreating}
             >
@@ -939,7 +939,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
             </button>
             <button
               type="button"
-              className="px-4 py-2 text-sm bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 rounded-sm"
+              className="px-4 py-2 text-sm bg-inverse text-on-color hover:bg-inverse disabled:opacity-50 rounded-sm"
               onClick={handleModalCreate}
               disabled={modalCreating || (!modalNombre.trim())}
             >

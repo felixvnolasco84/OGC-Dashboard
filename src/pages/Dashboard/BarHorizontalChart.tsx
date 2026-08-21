@@ -97,15 +97,15 @@ export default function BarHorizontalChart({ constructionData }: { constructionD
   return (
     <div className="w-full h-full p-4">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+        <h2 className="text-2xl font-bold text-foreground mb-2">
           Análisis de Materiales de Construcción
         </h2>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Resumen de costos por tipo de material (Top 20)
         </p>
       </div>
       
-      <div className="bg-white p-6 rounded-lg shadow-lg">
+      <div className="bg-card p-6 rounded-lg shadow-lg">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
             <h4 className="text-sm font-medium text-blue-700 mb-1">Valor Total</h4>
@@ -155,7 +155,7 @@ export default function BarHorizontalChart({ constructionData }: { constructionD
           />
         </div>
 
-        <div className="mt-4 text-xs text-gray-500 text-center">
+        <div className="mt-4 text-xs text-subtle-foreground text-center">
           Mostrando los {data[0]?.data.length || 0} materiales con mayor valor total
         </div>
       </div>

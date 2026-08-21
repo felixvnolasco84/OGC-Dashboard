@@ -104,7 +104,7 @@ export default function AssignProviderDialog({
           </DialogHeader>
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
               <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Buscar proveedor o RFC" />
             </div>
             <Button variant="outline" onClick={() => setCreateOpen(true)}>
@@ -114,7 +114,7 @@ export default function AssignProviderDialog({
           <ScrollArea className="h-72 border">
             <button
               type="button"
-              className={`w-full border-b px-4 py-3 text-left text-sm ${selected === "" ? "bg-gray-100" : "hover:bg-gray-50"}`}
+              className={`w-full border-b px-4 py-3 text-left text-sm ${selected === "" ? "bg-muted" : "hover:bg-background"}`}
               onClick={() => setSelected("")}
             >
               Sin proveedor
@@ -123,12 +123,12 @@ export default function AssignProviderDialog({
               <button
                 type="button"
                 key={provider._id}
-                className={`flex w-full items-center justify-between border-b px-4 py-3 text-left ${selected === provider._id ? "bg-gray-100" : "hover:bg-gray-50"}`}
+                className={`flex w-full items-center justify-between border-b px-4 py-3 text-left ${selected === provider._id ? "bg-muted" : "hover:bg-background"}`}
                 onClick={() => setSelected(provider._id)}
               >
                 <span>
                   <span className="block text-sm font-medium">{provider.razon_social}</span>
-                  <span className="block text-xs text-gray-500">{provider.rfc || "Sin RFC"}</span>
+                  <span className="block text-xs text-subtle-foreground">{provider.rfc || "Sin RFC"}</span>
                 </span>
                 <Badge variant="outline">
                   {provider.tipo === "generico" ? "Genérico" : provider.is_complete ? "Completo" : "Incompleto"}

@@ -73,7 +73,7 @@ export default function SalesTransaccionesTablePage() {
             case "Por pagar":
                 return "bg-orange-50 text-orange-700 border-orange-200";
             default:
-                return "bg-gray-100 text-gray-700 border-gray-200";
+                return "bg-muted text-foreground border-border";
         }
     };
 
@@ -86,9 +86,9 @@ export default function SalesTransaccionesTablePage() {
             case "tarjeta":
                 return "bg-indigo-50 text-indigo-700 border-indigo-200 rounded-none";
             case "cheque":
-                return "bg-gray-50 text-gray-700 border-gray-200 rounded-none";
+                return "bg-background text-foreground border-border rounded-none";
             default:
-                return "bg-gray-100 text-gray-700 border-gray-200 rounded-none";
+                return "bg-muted text-foreground border-border rounded-none";
         }
     };
 
@@ -102,7 +102,7 @@ export default function SalesTransaccionesTablePage() {
             case "estimacion":
                 return "bg-emerald-50 text-emerald-700 border-emerald-200 rounded-none";
             default:
-                return "bg-gray-100 text-gray-700 border-gray-200 rounded-none";
+                return "bg-muted text-foreground border-border rounded-none";
         }
     };
 
@@ -110,7 +110,7 @@ export default function SalesTransaccionesTablePage() {
         if (moneda === "USD") {
             return "bg-green-100 text-green-800 border-green-300 rounded-none";
         }
-        return "bg-gray-100 text-gray-700 border-gray-300 rounded-none";
+        return "bg-muted text-foreground border-border-strong rounded-none";
     };
 
     const handleDelete = async () => {
@@ -137,23 +137,23 @@ export default function SalesTransaccionesTablePage() {
     };
 
     return (
-        <div className="bg-white min-h-screen">
+        <div className="bg-card min-h-screen">
             <div className="max-w-full mx-auto py-8 text-left">
                 <div className="flex flex-col gap-4 px-12">
                     <div className="mb-8 flex items-start justify-between">
                         <div>
-                            <h1 className="text-3xl font-normal text-gray-900 mb-2">Transacciones</h1>
-                            <p className="text-sm text-gray-500">
+                            <h1 className="text-3xl font-normal text-foreground mb-2">Transacciones</h1>
+                            <p className="text-sm text-subtle-foreground">
                                 Consulta y gestiona todas las transacciones registradas en el sistema
                             </p>
                         </div>
                         <div className="flex gap-2">
-                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
+                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
                                     Total: {transacciones?.length || 0}
                                 </span>
                             </Badge>
-                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100  ">
+                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted  ">
                                 <span className="text-sm font-normal">
                                     Monto total: {formatCurrency(
                                         transacciones?.reduce((sum, t) => sum + t.monto_total, 0) || 0
@@ -166,13 +166,13 @@ export default function SalesTransaccionesTablePage() {
                     {/* Search and Filter */}
                     <div className="mb-8 grid grid-cols-2 gap-4">
                         <div className="relative">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
                             <Input
                                 type="text"
                                 placeholder="Buscar..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-12 rounded-none border-gray-300 h-12"
+                                className="pl-12 rounded-none border-border-strong h-12"
                             />
                         </div>
 
@@ -193,7 +193,7 @@ export default function SalesTransaccionesTablePage() {
                             <SelectContent>
                                 {selectedProyecto && (
                                     <SelectItem value="clear">
-                                        <span className="text-gray-500">Limpiar filtro</span>
+                                        <span className="text-subtle-foreground">Limpiar filtro</span>
                                     </SelectItem>
                                 )}
                                 {proyectos?.map((proyecto) => (
@@ -207,53 +207,53 @@ export default function SalesTransaccionesTablePage() {
                 </div>
 
                 {/* Table */}
-                <div className="border border-gray-200 rounded-none">
+                <div className="border border-border rounded-none">
                     <table className="w-full">
-                        <thead className="border-b border-gray-200">
+                        <thead className="border-b border-border">
                             <tr>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Proyecto
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Factura
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Monto Total
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Fecha
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Tipo de pago
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Categoría
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Status
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Moneda
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Conceptos
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200">
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                                     Docs
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-gray-600 border-r border-gray-200"></th>
+                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-border">
                             {!transacciones ? (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={11} className="px-6 py-12 text-center text-subtle-foreground">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={11} className="px-6 py-12 text-center text-subtle-foreground">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -261,27 +261,27 @@ export default function SalesTransaccionesTablePage() {
                                 filteredTransacciones?.map((transaccion) => (
                                     <tr
                                         key={transaccion._id}
-                                        className="hover:bg-gray-50 transition-colors"
+                                        className="hover:bg-background transition-colors"
                                     >
-                                        <td className="px-6 py-4 border-r border-gray-200">
-                                            <div className="text-sm font-medium text-gray-900">
+                                        <td className="px-6 py-4 border-r border-border">
+                                            <div className="text-sm font-medium text-foreground">
                                                 {transaccion.proyectoNombre || "-"}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
+                                        <td className="px-6 py-4 border-r border-border">
                                             <div className="flex items-center gap-2">
                                                 {transaccion.factura && (
-                                                    <FileText className="h-4 w-4 text-gray-400" />
+                                                    <FileText className="h-4 w-4 text-disabled-foreground" />
                                                 )}
-                                                <span className="text-sm text-gray-900 font-medium">
+                                                <span className="text-sm text-foreground font-medium">
                                                     {transaccion.factura || "-"}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm font-semibold text-gray-900 border-r border-gray-200">
+                                        <td className="px-6 py-4 text-sm font-semibold text-foreground border-r border-border">
                                             {formatCurrency(transaccion.monto_total)}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">
+                                        <td className="px-6 py-4 text-sm text-subtle-foreground border-r border-border">
                                             {transaccion.fecha
                                                 ? new Date(transaccion.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
                                                     day: "2-digit",
@@ -290,7 +290,7 @@ export default function SalesTransaccionesTablePage() {
                                                 })
                                                 : "-"}
                                         </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
+                                        <td className="px-6 py-4 border-r border-border">
                                             <Badge
                                                 variant="outline"
                                                 className={`${getTipoPagoColor(
@@ -300,7 +300,7 @@ export default function SalesTransaccionesTablePage() {
                                                 {transaccion.tipo_pago || "-"}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
+                                        <td className="px-6 py-4 border-r border-border">
                                             {transaccion.categoria ? (
                                                 <Badge
                                                     variant="outline"
@@ -311,10 +311,10 @@ export default function SalesTransaccionesTablePage() {
                                                     {transaccion.categoria}
                                                 </Badge>
                                             ) : (
-                                                <span className="text-sm text-gray-400">-</span>
+                                                <span className="text-sm text-disabled-foreground">-</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
+                                        <td className="px-6 py-4 border-r border-border">
                                             <Badge
                                                 variant="outline"
                                                 className={`${getStatusColor(
@@ -324,7 +324,7 @@ export default function SalesTransaccionesTablePage() {
                                                 {transaccion.status || "-"}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
+                                        <td className="px-6 py-4 border-r border-border">
                                             <Badge
                                                 variant="outline"
                                                 className={`${getMonedaBadge(
@@ -334,21 +334,21 @@ export default function SalesTransaccionesTablePage() {
                                                 {transaccion.moneda || "MXN"}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-center text-gray-900 border-r border-gray-200">
+                                        <td className="px-6 py-4 text-sm text-center text-foreground border-r border-border">
                                             <Badge variant="outline" className=" px-2 py-1 text-xs">
                                                 {transaccion.lineItemsCount || 0}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-center text-gray-900 border-r border-gray-200">
+                                        <td className="px-6 py-4 text-sm text-center text-foreground border-r border-border">
                                             <Badge variant="outline" className=" px-2 py-1 text-xs">
                                                 {transaccion.documentsCount || 0}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 border-r border-gray-200">
+                                        <td className="px-6 py-4 border-r border-border">
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                        <MoreVertical className="h-4 w-4 text-gray-400" />
+                                                        <MoreVertical className="h-4 w-4 text-disabled-foreground" />
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="flex flex-col space-y-1" align="end">

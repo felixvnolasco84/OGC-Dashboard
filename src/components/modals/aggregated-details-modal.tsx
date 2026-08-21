@@ -40,7 +40,7 @@ export default function AggregatedDetailsModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle className="hidden">Resumen de {levelLabel}</SheetTitle>
                     <SheetDescription className="hidden">
@@ -76,18 +76,18 @@ export default function AggregatedDetailsModal() {
                         {/* Financial Summary Grid */}
                         <div className="grid grid-cols-1 gap-4">
                             {/* Presupuesto Original */}
-                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="p-4 bg-background rounded-none border border-border">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <DollarSign className="h-4 w-4 text-gray-600" />
-                                    <span className="text-sm font-medium text-gray-600">Presupuesto Original</span>
+                                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm font-medium text-muted-foreground">Presupuesto Original</span>
                                 </div>
-                                <p className="text-2xl  text-gray-900">
+                                <p className="text-2xl  text-foreground">
                                     {formatCurrency(presupuestoOriginal)}
                                 </p>
                             </div>
 
                             {/* Presupuesto Aprobado */}
-                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="p-4 bg-blue-50 rounded-none border border-blue-200">
                                 <div className="flex items-center gap-2 mb-2">
                                     <CheckCircle2 className="h-4 w-4 text-blue-600" />
                                     <span className="text-sm font-medium text-blue-600">Presupuesto Aprobado</span>
@@ -98,7 +98,7 @@ export default function AggregatedDetailsModal() {
                             </div>
 
                             {/* Amount Paid */}
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                            <div className="p-4 bg-green-50 rounded-none border border-green-200">
                                 <div className="flex items-center gap-2 mb-2">
                                     <TrendingUp className="h-4 w-4 text-green-600" />
                                     <span className="text-sm font-medium text-green-600">Pagado</span>
@@ -112,12 +112,12 @@ export default function AggregatedDetailsModal() {
                             </div>
 
                             {/* Remaining Amount */}
-                            <div className={`p-4 rounded-lg border ${
+                            <div className={`p-4 rounded-none border ${
                                 porEjercer > 0 
                                     ? 'bg-orange-50 border-orange-200' 
                                     : porEjercer < 0 
                                     ? 'bg-red-50 border-red-200'
-                                    : 'bg-gray-50 border-gray-200'
+                                    : 'bg-background border-border'
                             }`}>
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className={`text-sm font-medium ${
@@ -125,7 +125,7 @@ export default function AggregatedDetailsModal() {
                                             ? 'text-orange-600' 
                                             : porEjercer < 0 
                                             ? 'text-red-600'
-                                            : 'text-gray-600'
+                                            : 'text-muted-foreground'
                                     }`}>
                                         {porEjercer < 0 ? 'Sobrepago' : 'Por Ejercer'}
                                     </span>
@@ -135,7 +135,7 @@ export default function AggregatedDetailsModal() {
                                         ? 'text-orange-900' 
                                         : porEjercer < 0 
                                         ? 'text-red-900'
-                                        : 'text-gray-900'
+                                        : 'text-foreground'
                                 }`}>
                                     {formatCurrency(Math.abs(porEjercer))}
                                 </p>
@@ -143,8 +143,8 @@ export default function AggregatedDetailsModal() {
                         </div>
 
                         {/* Additional Info */}
-                        <div className="pt-4 border-t border-gray-200">
-                            <h3 className="text-sm font-medium text-gray-600 mb-3">Información Adicional</h3>
+                        <div className="pt-4 border-t border-border">
+                            <h3 className="text-sm font-medium text-muted-foreground mb-3">Información Adicional</h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Variación del presupuesto:</span>
@@ -153,7 +153,7 @@ export default function AggregatedDetailsModal() {
                                             ? 'text-orange-600' 
                                             : presupuestoAprobado < presupuestoOriginal
                                             ? 'text-green-600'
-                                            : 'text-gray-600'
+                                            : 'text-muted-foreground'
                                     }`}>
                                         {formatCurrency(presupuestoAprobado - presupuestoOriginal)}
                                         {presupuestoAprobado !== presupuestoOriginal && (

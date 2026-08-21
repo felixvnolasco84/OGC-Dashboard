@@ -125,15 +125,15 @@ function FolderTreeItem<TId extends string = string>({
           <Button
             variant="ghost"
             className={cn(
-              "h-9 w-full rounded-none text-sm font-normal text-gray-600",
+              "h-9 w-full rounded-none text-sm font-normal text-muted-foreground",
               collapsed ? "justify-center px-0" : "justify-start px-3",
-              isActive && "bg-gray-100 text-gray-900"
+              isActive && "bg-muted text-foreground"
             )}
             style={collapsed ? undefined : { paddingLeft: `${12 + node.level * 14}px` }}
             onClick={() => onFolderSelect(node.id)}
             onContextMenu={(event) => onFolderContextMenu?.(event, node.id)}
           >
-            <Folder className="h-4 w-4 shrink-0 text-gray-500" />
+            <Folder className="h-4 w-4 shrink-0 text-subtle-foreground" />
             {!collapsed && <span className="truncate">{node.name}</span>}
           </Button>
         </TooltipTrigger>
@@ -146,22 +146,22 @@ function FolderTreeItem<TId extends string = string>({
     <Collapsible defaultOpen={defaultOpen} className="w-full">
       <div
         className={cn(
-          "flex h-9 w-full items-center rounded-none text-sm font-normal text-gray-600",
-          isActive && "bg-gray-100 text-gray-900"
+          "flex h-9 w-full items-center rounded-none text-sm font-normal text-muted-foreground",
+          isActive && "bg-muted text-foreground"
         )}
         style={collapsed ? undefined : { paddingLeft: `${12 + node.level * 14}px` }}
         onContextMenu={(event) => onFolderContextMenu?.(event, node.id)}
       >
         <button
-          className="flex min-w-0 flex-1 items-center gap-1 px-1 py-1 hover:text-gray-900"
+          className="flex min-w-0 flex-1 items-center gap-1 px-1 py-1 hover:text-foreground"
           onClick={() => onFolderSelect(node.id)}
         >
-          <Folder className="h-4 w-4 shrink-0 text-gray-500" />
+          <Folder className="h-4 w-4 shrink-0 text-subtle-foreground" />
           {!collapsed && <span className="truncate">{node.name}</span>}
         </button>
         {!collapsed && (
           <CollapsibleTrigger asChild>
-            <button className="mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded text-gray-400 hover:text-gray-600">
+            <button className="mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded text-disabled-foreground hover:text-muted-foreground">
               <ChevronDown className="h-3.5 w-3.5 transition-transform [[data-state=open]_&]:rotate-0 [[data-state=closed]_&]:-rotate-90" />
             </button>
           </CollapsibleTrigger>
@@ -204,7 +204,7 @@ export function DocumentFolderSidebar<TId extends string = string>({
   return (
     <aside
       className={cn(
-        "relative shrink-0 border-r border-gray-200 bg-white transition-[width] duration-200 ease-linear",
+        "relative shrink-0 border-r border-border bg-card transition-[width] duration-200 ease-linear",
         collapsed ? "w-16" : "w-[280px]"
       )}
     >
@@ -213,7 +213,7 @@ export function DocumentFolderSidebar<TId extends string = string>({
         aria-label={collapsed ? "Expandir carpetas" : "Colapsar carpetas"}
         title={collapsed ? "Expandir carpetas" : "Colapsar carpetas"}
         className={cn(
-          "absolute inset-y-0 -right-2 z-20 hidden w-4 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-gray-200 sm:flex",
+          "absolute inset-y-0 -right-2 z-20 hidden w-4 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-disabled sm:flex",
           collapsed ? "cursor-e-resize" : "cursor-w-resize"
         )}
         onClick={() => setCollapsed((value) => !value)}
@@ -225,7 +225,7 @@ export function DocumentFolderSidebar<TId extends string = string>({
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute -right-12 top-3 z-30 h-8 w-8 rounded-none bg-white text-gray-900 hover:bg-gray-50"
+            className="absolute -right-12 top-3 z-30 h-8 w-8 rounded-none bg-card text-foreground hover:bg-background"
             onClick={() => setCollapsed((value) => !value)}
           >
             <PanelLeft className="h-5 w-5" />
@@ -244,15 +244,15 @@ export function DocumentFolderSidebar<TId extends string = string>({
                 className={cn(
                   "mb-2 h-10 w-full rounded-none px-3 text-sm font-normal",
                   collapsed ? "justify-center" : "justify-start",
-                  !activeFolderId && "bg-gray-100 text-gray-900"
+                  !activeFolderId && "bg-muted text-foreground"
                 )}
                 onClick={() => onFolderSelect(undefined)}
               >
-                <FolderOpen className="h-4 w-4 shrink-0 text-gray-500" />
+                <FolderOpen className="h-4 w-4 shrink-0 text-subtle-foreground" />
                 {!collapsed && (
                   <>
                     <span className="truncate">{rootLabel}</span>
-                    <span className="ml-auto text-xs text-gray-400">{folderItemCount.get("root") || 0}</span>
+                    <span className="ml-auto text-xs text-disabled-foreground">{folderItemCount.get("root") || 0}</span>
                   </>
                 )}
               </Button>
@@ -282,8 +282,8 @@ export function DocumentFolderSidebar<TId extends string = string>({
             <div className="space-y-4 text-sm">
               {metrics.map((metric) => (
                 <div key={metric.label}>
-                  <p className="text-xs uppercase tracking-wide text-gray-400">{metric.label}</p>
-                  <p className="mt-1 text-base text-gray-900">{metric.value}</p>
+                  <p className="text-xs uppercase tracking-wide text-disabled-foreground">{metric.label}</p>
+                  <p className="mt-1 text-base text-foreground">{metric.value}</p>
                 </div>
               ))}
             </div>
@@ -291,7 +291,7 @@ export function DocumentFolderSidebar<TId extends string = string>({
         )}
 
         {!collapsed && metrics.length === 0 && (
-          <p className="mt-6 text-xs text-gray-400">{foldersCount} carpeta(s)</p>
+          <p className="mt-6 text-xs text-disabled-foreground">{foldersCount} carpeta(s)</p>
         )}
       </div>
     </aside>
@@ -399,11 +399,11 @@ export function MoveLocationDialog<TId extends string = string>({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col gap-0 overflow-hidden rounded-lg p-0">
         <DialogHeader className="shrink-0 px-9 pb-4 pt-8">
-          <DialogTitle className="text-3xl font-normal text-gray-800">Mover "{itemName}"</DialogTitle>
-          <div className="mt-4 flex items-center gap-3 text-base text-gray-700">
+          <DialogTitle className="text-3xl font-normal text-foreground">Mover "{itemName}"</DialogTitle>
+          <div className="mt-4 flex items-center gap-3 text-base text-foreground">
             <span>Ubicacion actual:</span>
-            <div className="inline-flex h-12 items-center gap-2 rounded-lg border border-gray-300 px-3">
-              <HardDrive className="h-6 w-6 text-gray-600" />
+            <div className="inline-flex h-12 items-center gap-2 rounded-lg border border-border-strong px-3">
+              <HardDrive className="h-6 w-6 text-muted-foreground" />
               <span>{rootLabel}</span>
             </div>
           </div>
@@ -412,9 +412,9 @@ export function MoveLocationDialog<TId extends string = string>({
         <div className="min-h-0 flex-1 overflow-y-auto">
           {!browsedFolder ? (
             <>
-            <div className="flex items-center justify-end border-b border-gray-200 px-9 py-2">
+            <div className="flex items-center justify-end border-b border-border px-9 py-2">
               <div className="relative w-60">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-subtle-foreground" />
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
@@ -426,7 +426,7 @@ export function MoveLocationDialog<TId extends string = string>({
 
             <div className="min-h-[220px] px-5 py-3">
               {suggestedFolders.length === 0 ? (
-                <div className="flex h-64 items-center justify-center text-sm text-gray-500">
+                <div className="flex h-64 items-center justify-center text-sm text-subtle-foreground">
                   No hay carpetas disponibles para mover.
                 </div>
               ) : (
@@ -447,7 +447,7 @@ export function MoveLocationDialog<TId extends string = string>({
             <div className="px-8 pb-4">
               <Button
                 variant="ghost"
-                className="h-10 rounded-none px-0 text-base font-medium text-gray-800"
+                className="h-10 rounded-none px-0 text-base font-medium text-foreground"
                 onClick={() => setBrowseFolderId(browsedFolder.parent_folder_id)}
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -455,17 +455,17 @@ export function MoveLocationDialog<TId extends string = string>({
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 border-b border-gray-300 px-8 pb-3 text-base text-gray-600">
-              <button className="hover:text-gray-900" onClick={() => setBrowseFolderId(undefined)}>
+            <div className="flex flex-wrap items-center gap-2 border-b border-border-strong px-8 pb-3 text-base text-muted-foreground">
+              <button className="hover:text-foreground" onClick={() => setBrowseFolderId(undefined)}>
                 {rootLabel}
               </button>
               {breadcrumbs.map((folder) => (
                 <span key={folder._id} className="flex min-w-0 items-center gap-2">
-                  <ChevronRight className="h-5 w-5 text-gray-600" />
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   <button
                     className={cn(
-                      "truncate hover:text-gray-900",
-                      folder._id === browseFolderId && "font-medium text-gray-900"
+                      "truncate hover:text-foreground",
+                      folder._id === browseFolderId && "font-medium text-foreground"
                     )}
                     onClick={() => setBrowseFolderId(folder._id)}
                   >
@@ -475,13 +475,13 @@ export function MoveLocationDialog<TId extends string = string>({
               ))}
             </div>
 
-            <div className="grid grid-cols-[1fr_220px] border-b border-gray-100 px-8 py-3 text-sm font-medium text-gray-600">
+            <div className="grid grid-cols-[1fr_220px] border-b border-border px-8 py-3 text-sm font-medium text-muted-foreground">
               <button
                 className="flex items-center gap-2 text-left"
                 onClick={() => onTargetFolderChange(browsedFolderTargetId)}
               >
                 Nombre
-                <span className="text-xs uppercase text-gray-400">Asc</span>
+                <span className="text-xs uppercase text-disabled-foreground">Asc</span>
               </button>
               <span>Fecha de modificacion</span>
             </div>
@@ -498,7 +498,7 @@ export function MoveLocationDialog<TId extends string = string>({
                 <div
                   key={folder._id}
                   className={cn(
-                    "grid grid-cols-[1fr_220px_auto] items-center gap-4 rounded-full border px-3 py-1.5 text-gray-700 hover:bg-gray-100",
+                    "grid grid-cols-[1fr_220px_auto] items-center gap-4 rounded-full border px-3 py-1.5 text-foreground hover:bg-muted",
                     targetFolderId === folder._id
                       ? "border-blue-600 bg-blue-100 text-blue-700"
                       : "border-transparent"
@@ -511,13 +511,13 @@ export function MoveLocationDialog<TId extends string = string>({
                   >
                     <Folder
                       className={cn(
-                        "h-5 w-5 shrink-0 fill-gray-800 text-gray-800",
+                        "h-5 w-5 shrink-0 fill-gray-800 text-foreground",
                         targetFolderId === folder._id && "fill-blue-600 text-blue-600"
                       )}
                     />
                     <span className="truncate">{folder.nombre}</span>
                   </button>
-                  <span className={cn("text-gray-500", targetFolderId === folder._id && "text-blue-700")}>
+                  <span className={cn("text-subtle-foreground", targetFolderId === folder._id && "text-blue-700")}>
                     {formatDate(folder.updated_at || folder.created_at)}
                   </span>
                   <div className="flex items-center gap-1">
@@ -550,14 +550,14 @@ export function MoveLocationDialog<TId extends string = string>({
             </>
           )}
 
-          <div className="flex items-center gap-2 px-8 py-2 text-sm font-medium text-gray-800">
+          <div className="flex items-center gap-2 px-8 py-2 text-sm font-medium text-foreground">
             <TriangleAlert className="h-5 w-5" />
             Selecciona una ubicacion para ver la ruta de la carpeta
           </div>
 
           {isCreatingFolder && (
-            <div className="border-t border-gray-200 bg-white px-9 pb-6 pt-7 shadow-[0_-8px_24px_rgba(0,0,0,0.10)]">
-              <h3 className="mb-6 text-xl font-medium text-gray-900">Nueva carpeta</h3>
+            <div className="border-t border-border bg-card px-9 pb-6 pt-7 shadow-[0_-8px_24px_rgba(0,0,0,0.10)]">
+              <h3 className="mb-6 text-xl font-medium text-foreground">Nueva carpeta</h3>
               <Input
                 ref={newFolderInputRef}
                 value={newFolderName}
@@ -593,7 +593,7 @@ export function MoveLocationDialog<TId extends string = string>({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 flex-row items-center justify-between border-t border-gray-100 px-9 pb-8 pt-3 sm:justify-between">
+        <DialogFooter className="shrink-0 flex-row items-center justify-between border-t border-border px-9 pb-8 pt-3 sm:justify-between">
           <Button
             variant="outline"
             className="h-12 rounded-full px-7 text-blue-600"
@@ -633,14 +633,14 @@ function MoveFolderRow({
   return (
     <div
       className={cn(
-        "group flex h-12 items-center gap-4 rounded-full border px-4 text-gray-800 hover:bg-gray-100",
+        "group flex h-12 items-center gap-4 rounded-full border px-4 text-foreground hover:bg-muted",
         active ? "border-blue-600 bg-blue-100 text-blue-700" : "border-transparent"
       )}
     >
-      <Folder className={cn("h-5 w-5 shrink-0 fill-gray-800 text-gray-800", active && "fill-blue-600 text-blue-600")} />
+      <Folder className={cn("h-5 w-5 shrink-0 fill-gray-800 text-foreground", active && "fill-blue-600 text-blue-600")} />
       <button className="min-w-0 flex-1 truncate text-left text-base" onClick={onSelect}>
         {name}
-        {subtitle && <span className="ml-2 text-sm text-gray-500">{subtitle}</span>}
+        {subtitle && <span className="ml-2 text-sm text-subtle-foreground">{subtitle}</span>}
       </button>
       <div className={cn("flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100", active && "opacity-100")}>
         <Button className="h-9 rounded-full px-5" variant="secondary" onClick={onSelect}>

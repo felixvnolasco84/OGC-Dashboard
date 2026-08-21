@@ -493,17 +493,17 @@ export default function BitacoraModal() {
     // "Failed to execute 'removeChild' on 'Node'" when it tries to update
     // those nodes later.
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 notranslate"
+      className="fixed inset-0 bg-inverse bg-opacity-50 flex items-center justify-center z-50 p-4 notranslate"
       translate="no"
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-card rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               <span>{modalTitle}</span>
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-subtle-foreground mt-1">
               <span>
                 {mode === "view"
                   ? "Visualización de registro"
@@ -513,9 +513,9 @@ export default function BitacoraModal() {
           </div>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="h-5 w-5 text-subtle-foreground" />
           </button>
         </div>
 
@@ -579,7 +579,7 @@ export default function BitacoraModal() {
             {/* Familias Tags Display / Selection */}
             {selectedPartidaId && (isViewMode ? selectedFamiliasTags.length > 0 : availableFamilias.length > 0) && (
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-foreground mb-2">
                   Familias (Tags)
                 </Label>
                 {isViewMode ? (
@@ -587,14 +587,14 @@ export default function BitacoraModal() {
                     {selectedFamiliasTags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200"
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-background text-foreground border border-border"
                       >
                         {tag}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <div className="border border-gray-300 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+                  <div className="border border-border-strong rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
                     {availableFamilias.map((familia) => (
                       <div key={familia} className="flex items-center space-x-2">
                         <Checkbox
@@ -604,7 +604,7 @@ export default function BitacoraModal() {
                         />
                         <label
                           htmlFor={`familia-${familia}`}
-                          className="text-sm text-gray-700 cursor-pointer"
+                          className="text-sm text-foreground cursor-pointer"
                         >
                           {familia}
                         </label>
@@ -711,7 +711,7 @@ export default function BitacoraModal() {
             {/* Comentarios / Retos */}
             { status !== "Sin problemas" && (
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
+              <Label className="block text-sm font-medium text-foreground mb-2">
                 Retos / Incidencias
               </Label>
               <Textarea
@@ -726,7 +726,7 @@ export default function BitacoraModal() {
             )}
             {/* Daily Progress */}
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
+              <Label className="block text-sm font-medium text-foreground mb-2">
                 Avance del día <span className="text-red-500">*</span>
               </Label>
               <Textarea
@@ -735,17 +735,17 @@ export default function BitacoraModal() {
                 disabled={isViewMode}
                 placeholder={`TORRE G:\nCIMBRADO DE LOSA 2DO NIVEL 65%\nARMADO DE LOSA 2DO NIVEL 45%\nCIMBRADO DE CASTILLOS 100%, SE VACIA CONCRETO 25 DE SEPTIEMBRE`}
                 rows={8}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none font-mono text-sm disabled:bg-gray-100"
+                className="w-full px-4 py-2 border border-border-strong rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent resize-none font-mono text-sm disabled:bg-muted"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-subtle-foreground mt-1">
                 Describe el avance detallado del día. Puedes usar líneas separadas para cada actividad.
               </p>
             </div>
 
             {/* Photos Section */}
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
+              <Label className="block text-sm font-medium text-foreground mb-2">
                 Fotografías {managedPhotos.length > 0 && `(${managedPhotos.length})`}
               </Label>
               
@@ -755,7 +755,7 @@ export default function BitacoraModal() {
                   {/* Main Image */}
                   <div 
                     ref={imageContainerRef}
-                    className={`relative bg-gray-100 rounded-lg overflow-hidden ${isFullscreen ? "flex items-center justify-center bg-black" : ""}`}
+                    className={`relative bg-muted rounded-lg overflow-hidden ${isFullscreen ? "flex items-center justify-center bg-inverse" : ""}`}
                   >
                     <img
                       src={managedPhotos[galleryIndex]?.url}
@@ -767,7 +767,7 @@ export default function BitacoraModal() {
                     <button
                       type="button"
                       onClick={handleFullscreen}
-                      className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors z-10"
+                      className="absolute top-2 right-2 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors z-10"
                     >
                       {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                     </button>
@@ -778,14 +778,14 @@ export default function BitacoraModal() {
                         <button
                           type="button"
                           onClick={handlePreviousPhoto}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
                         >
                           <ChevronLeft className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           onClick={handleNextPhoto}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
                         >
                           <ChevronRight className="h-4 w-4" />
                         </button>
@@ -793,7 +793,7 @@ export default function BitacoraModal() {
                     )}
                     
                     {/* Photo counter */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-overlay/60 text-on-color text-xs px-3 py-1 rounded-full">
                       {galleryIndex + 1} / {managedPhotos.length}
                     </div>
                   </div>
@@ -807,7 +807,7 @@ export default function BitacoraModal() {
                           type="button"
                           onClick={() => setGalleryIndex(index)}
                           className={`flex-shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 transition-colors ${
-                            index === galleryIndex ? "border-gray-900" : "border-transparent hover:border-gray-300"
+                            index === galleryIndex ? "border-foreground" : "border-transparent hover:border-border-strong"
                           }`}
                         >
                           <img src={photo.url} alt="" className="w-full h-full object-cover" />
@@ -827,14 +827,14 @@ export default function BitacoraModal() {
                 <div className="space-y-4">
                   {/* Upload area */}
                   <div 
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                    className="border-2 border-dashed border-border-strong rounded-lg p-6 text-center hover:border-border-strong transition-colors cursor-pointer"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-1">
+                    <Upload className="h-6 w-6 text-disabled-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground mb-1">
                       Haz clic para agregar fotos
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-subtle-foreground">
                       PNG, JPG, JPEG hasta 10MB
                     </p>
                     <input
@@ -851,18 +851,18 @@ export default function BitacoraModal() {
                   {managedPhotos.length > 0 && (
                     <div className="space-y-4">
                       {managedPhotos.map((photo, index) => (
-                        <div key={photo.id} className="border border-gray-200 rounded-lg p-3">
+                        <div key={photo.id} className="border border-border rounded-lg p-3">
                           <div className="flex gap-3">
                             {/* Photo thumbnail */}
                             <div className="relative flex-shrink-0">
                               <img
                                 src={photo.url}
                                 alt="Foto"
-                                className="w-24 h-24 object-cover rounded-md border border-gray-200"
+                                className="w-24 h-24 object-cover rounded-md border border-border"
                               />
                               {/* Type badge */}
                               {photo.type === "new" && (
-                                <div className="absolute bottom-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded">
+                                <div className="absolute bottom-1 left-1 bg-green-500 text-on-color text-[10px] px-1.5 py-0.5 rounded">
                                   Nueva
                                 </div>
                               )}
@@ -914,7 +914,7 @@ export default function BitacoraModal() {
 
             {/* Documents Section */}
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
+              <Label className="block text-sm font-medium text-foreground mb-2">
                 Documentos {managedDocuments.length > 0 && `(${managedDocuments.length})`}
               </Label>
               
@@ -927,10 +927,10 @@ export default function BitacoraModal() {
                       href={doc.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-2 p-3 bg-background rounded-lg border border-border hover:bg-muted transition-colors"
                     >
-                      <FileText className="h-5 w-5 text-gray-500" />
-                      <span className="text-sm text-gray-700 truncate flex-1">{doc.name}</span>
+                      <FileText className="h-5 w-5 text-subtle-foreground" />
+                      <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
                     </a>
                   ))}
                 </div>
@@ -945,14 +945,14 @@ export default function BitacoraModal() {
                 <div className="space-y-4">
                   {/* Upload area */}
                   <div 
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                    className="border-2 border-dashed border-border-strong rounded-lg p-6 text-center hover:border-border-strong transition-colors cursor-pointer"
                     onClick={() => docFileInputRef.current?.click()}
                   >
-                    <FileText className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-1">
+                    <FileText className="h-6 w-6 text-disabled-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground mb-1">
                       Haz clic para agregar documentos
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-subtle-foreground">
                       PDF, DOC, DOCX, XLS, XLSX hasta 10MB
                     </p>
                     <input
@@ -969,11 +969,11 @@ export default function BitacoraModal() {
                   {managedDocuments.length > 0 && (
                     <div className="space-y-2">
                       {managedDocuments.map((doc) => (
-                        <div key={doc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                          <span className="text-sm text-gray-700 truncate flex-1">{doc.name}</span>
+                        <div key={doc.id} className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border">
+                          <FileText className="h-5 w-5 text-subtle-foreground flex-shrink-0" />
+                          <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
                           {doc.type === "new" && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-green-500 text-white rounded">
+                            <span className="text-[10px] px-1.5 py-0.5 bg-green-500 text-on-color rounded">
                               Nuevo
                             </span>
                           )}
@@ -1005,12 +1005,12 @@ export default function BitacoraModal() {
 
         {/* Footer */}
         {!isViewMode && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-border bg-background">
             <button
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="px-4 py-2 border border-border-strong rounded-lg hover:bg-background transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -1018,7 +1018,7 @@ export default function BitacoraModal() {
               type="submit"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-inverse text-on-color rounded-lg hover:bg-inverse transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {mode === "create" ? "Crear Entrada" : "Guardar Cambios"}
@@ -1027,11 +1027,11 @@ export default function BitacoraModal() {
         )}
 
         {isViewMode && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-border bg-background">
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+              className="px-4 py-2 bg-inverse text-on-color rounded-lg hover:bg-inverse transition-colors"
             >
               Cerrar
             </button>

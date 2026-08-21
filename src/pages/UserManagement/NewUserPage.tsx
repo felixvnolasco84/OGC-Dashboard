@@ -86,13 +86,13 @@ export default function NewUserPage() {
   if (!desarrollos) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-card">
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
@@ -102,12 +102,12 @@ export default function NewUserPage() {
                 Usuarios
               </Link>
             </Button>
-            <h1 className="text-3xl font-normal text-gray-900">Agregar Usuario</h1>
-            <p className="mt-2 text-gray-600">
+            <h1 className="text-3xl font-normal text-foreground">Agregar Usuario</h1>
+            <p className="mt-2 text-muted-foreground">
               Crea el acceso, asigna proyectos y envía el correo de bienvenida.
             </p>
           </div>
-          <div className="hidden rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-600 sm:block">
+          <div className="hidden rounded-lg border border-border px-4 py-3 text-sm text-muted-foreground sm:block">
             {selectedCount} proyecto(s) seleccionado(s)
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function NewUserPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MailPlus className="h-5 w-5 text-gray-700" />
+                <MailPlus className="h-5 w-5 text-foreground" />
                 Invitación
               </CardTitle>
             </CardHeader>
@@ -152,7 +152,7 @@ export default function NewUserPage() {
                   <SelectContent>
                     <SelectItem value="viewer">
                       <div className="flex items-center gap-2">
-                        <Eye className="h-4 w-4 text-gray-600" />
+                        <Eye className="h-4 w-4 text-muted-foreground" />
                         Viewer (solo lectura)
                       </div>
                     </SelectItem>
@@ -170,7 +170,7 @@ export default function NewUserPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500">{roleDescription}</p>
+                <p className="text-xs text-subtle-foreground">{roleDescription}</p>
               </div>
 
               {role !== "admin" && (
@@ -178,7 +178,7 @@ export default function NewUserPage() {
                   <Label>Proyectos asignados</Label>
                   <div className="max-h-80 space-y-3 overflow-y-auto rounded-lg border p-4">
                     {desarrollos.length === 0 ? (
-                      <p className="text-sm text-gray-500">No hay proyectos disponibles</p>
+                      <p className="text-sm text-subtle-foreground">No hay proyectos disponibles</p>
                     ) : (
                       desarrollos.map((desarrollo) => (
                         <div key={desarrollo._id} className="flex items-center space-x-2">

@@ -39,6 +39,7 @@ import type * as partida from "../partida.js";
 import type * as permissions from "../permissions.js";
 import type * as planos from "../planos.js";
 import type * as programa_obra from "../programa_obra.js";
+import type * as projectMatchUtils from "../projectMatchUtils.js";
 import type * as projected_transactions from "../projected_transactions.js";
 import type * as proveedores from "../proveedores.js";
 import type * as providerUtils from "../providerUtils.js";
@@ -112,6 +113,7 @@ declare const fullApi: ApiFromModules<{
   permissions: typeof permissions;
   planos: typeof planos;
   programa_obra: typeof programa_obra;
+  projectMatchUtils: typeof projectMatchUtils;
   projected_transactions: typeof projected_transactions;
   proveedores: typeof proveedores;
   providerUtils: typeof providerUtils;

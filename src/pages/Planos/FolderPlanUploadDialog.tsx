@@ -42,11 +42,11 @@ import { collectDroppedPlanFiles, type IncomingPlanFile } from "./folderPlanFile
 
 const COLORS = {
   green: "#50AC66",
-  itemBg: "#FBFBFB",
-  itemBorder: "#E6E6E6",
-  borderStrong: "#DBDBDB",
-  textSoft: "#898982",
-  muted: "#A3A39E",
+  itemBg: "hsl(var(--card))",
+  itemBorder: "hsl(var(--border))",
+  borderStrong: "hsl(var(--border))",
+  textSoft: "hsl(var(--subtle-foreground))",
+  muted: "hsl(var(--disabled-foreground))",
   danger: "#E75F79",
 };
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -408,8 +408,8 @@ export default function FolderPlanUploadDialog({
         {reviewedFileCount === 0 ? (
           <div
             className={cn(
-              "my-2 flex min-h-96 flex-col items-center justify-center border-2 border-dashed bg-white px-6 text-center",
-              isDragging && "border-gray-900",
+              "my-2 flex min-h-96 flex-col items-center justify-center border-2 border-dashed bg-card px-6 text-center",
+              isDragging && "border-foreground",
             )}
             style={{ borderColor: isDragging ? undefined : COLORS.borderStrong }}
             onDragEnter={(event) => {
@@ -425,15 +425,15 @@ export default function FolderPlanUploadDialog({
           >
             {isPreparing ? (
               <>
-                <Loader2 className="mb-4 h-12 w-12 animate-spin text-gray-700" />
-                <p className="text-xl text-gray-900">Revisando archivos</p>
-                <p className="mt-2 text-sm text-gray-500">Validando el contenido de cada PDF.</p>
+                <Loader2 className="mb-4 h-12 w-12 animate-spin text-foreground" />
+                <p className="text-xl text-foreground">Revisando archivos</p>
+                <p className="mt-2 text-sm text-subtle-foreground">Validando el contenido de cada PDF.</p>
               </>
             ) : (
               <>
-                <FolderOpen className="mb-4 h-12 w-12 text-gray-700" />
-                <p className="text-xl text-gray-900">Suelta aquí la carpeta de planos</p>
-                <p className="mt-2 text-sm text-gray-500">
+                <FolderOpen className="mb-4 h-12 w-12 text-foreground" />
+                <p className="text-xl text-foreground">Suelta aquí la carpeta de planos</p>
+                <p className="mt-2 text-sm text-subtle-foreground">
                   También puedes seleccionarla desde tu equipo. Se mostrarán todos los archivos antes de subir.
                 </p>
                 <Button type="button" className="mt-6 rounded-sm" onClick={() => folderInputRef.current?.click()}>
@@ -446,7 +446,7 @@ export default function FolderPlanUploadDialog({
           <div className="grid min-h-0 flex-1 gap-5 overflow-hidden py-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
             <div className="flex min-h-0 flex-col gap-4">
               {files.length > 0 && (
-                <div className="grid gap-4 rounded-sm border bg-white p-4 sm:grid-cols-2" style={{ borderColor: COLORS.itemBorder }}>
+                <div className="grid gap-4 rounded-sm border bg-card p-4 sm:grid-cols-2" style={{ borderColor: COLORS.itemBorder }}>
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="plan-folder-name">Nombre de la carpeta</Label>
                     <Input
@@ -502,12 +502,12 @@ export default function FolderPlanUploadDialog({
 
               <div className="min-h-0 flex-1 overflow-y-auto rounded-sm border" style={{ borderColor: COLORS.itemBorder }}>
                 {files.length > 0 ? (
-                  <div className="border-b bg-white px-4 py-3 text-xs font-medium uppercase tracking-wide" style={{ borderColor: COLORS.itemBorder, color: COLORS.textSoft }}>
+                  <div className="border-b bg-card px-4 py-3 text-xs font-medium uppercase tracking-wide" style={{ borderColor: COLORS.itemBorder, color: COLORS.textSoft }}>
                     PDFs aceptados ({files.length})
                   </div>
                 ) : (
-                  <div className="border-b bg-white px-4 py-6 text-center" style={{ borderColor: COLORS.itemBorder }}>
-                    <p className="text-sm font-medium text-gray-900">No se encontraron PDFs compatibles</p>
+                  <div className="border-b bg-card px-4 py-6 text-center" style={{ borderColor: COLORS.itemBorder }}>
+                    <p className="text-sm font-medium text-foreground">No se encontraron PDFs compatibles</p>
                     <p className="mt-1 text-xs" style={{ color: COLORS.textSoft }}>Revisa los archivos descartados a continuación.</p>
                   </div>
                 )}
@@ -545,7 +545,7 @@ export default function FolderPlanUploadDialog({
                             className="h-9 rounded-r-none rounded-l-sm shadow-none"
                             style={{ borderColor: issue ? COLORS.danger : COLORS.borderStrong }}
                           />
-                          <span className="flex h-9 items-center rounded-r-sm border border-l-0 bg-white px-3 text-sm" style={{ borderColor: issue ? COLORS.danger : COLORS.borderStrong, color: COLORS.textSoft }}>.pdf</span>
+                          <span className="flex h-9 items-center rounded-r-sm border border-l-0 bg-card px-3 text-sm" style={{ borderColor: issue ? COLORS.danger : COLORS.borderStrong, color: COLORS.textSoft }}>.pdf</span>
                         </div>
                         <p className="mt-1 truncate text-xs" style={{ color: COLORS.muted }}>
                           {folderName || "Carpeta"} / {buildRelativePath(file.relativePath, sourceRoot, file.draftName)} · {formatBytes(file.file.size)}
@@ -568,14 +568,14 @@ export default function FolderPlanUploadDialog({
                 })}
                 {discardedCount > 0 && (
                   <>
-                    <div className="border-b border-t bg-white px-4 py-3 text-xs font-medium uppercase tracking-wide" style={{ borderColor: COLORS.itemBorder, color: COLORS.danger }}>
+                    <div className="border-b border-t bg-card px-4 py-3 text-xs font-medium uppercase tracking-wide" style={{ borderColor: COLORS.itemBorder, color: COLORS.danger }}>
                       Archivos descartados ({discardedCount})
                     </div>
                     {discardedFiles.map((file) => (
-                      <div key={file.id} className="grid gap-3 border-b bg-white p-4 last:border-b-0 sm:grid-cols-[40px_minmax(0,1fr)]" style={{ borderColor: COLORS.itemBorder }}>
+                      <div key={file.id} className="grid gap-3 border-b bg-card p-4 last:border-b-0 sm:grid-cols-[40px_minmax(0,1fr)]" style={{ borderColor: COLORS.itemBorder }}>
                         <span className="flex h-10 w-10 items-center justify-center rounded-sm border" style={{ borderColor: COLORS.danger, color: COLORS.danger }}><AlertCircle className="h-5 w-5" /></span>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-gray-900" title={file.file.name}>{file.file.name}</p>
+                          <p className="truncate text-sm font-medium text-foreground" title={file.file.name}>{file.file.name}</p>
                           <p className="mt-1 truncate text-xs" style={{ color: COLORS.muted }} title={normalizePath(file.relativePath)}>{normalizePath(file.relativePath)} · {formatBytes(file.file.size)}</p>
                           <p className="mt-1 text-xs" style={{ color: COLORS.danger }}>{file.reason}</p>
                         </div>
@@ -586,18 +586,18 @@ export default function FolderPlanUploadDialog({
               </div>
             </div>
 
-            <div className="flex min-h-72 flex-col overflow-hidden rounded-sm border bg-white" style={{ borderColor: COLORS.itemBorder }}>
+            <div className="flex min-h-72 flex-col overflow-hidden rounded-sm border bg-card" style={{ borderColor: COLORS.itemBorder }}>
               <div className="border-b px-4 py-3" style={{ borderColor: COLORS.itemBorder }}>
-                <p className="truncate text-sm font-medium text-gray-900">{selectedFile?.file.name || "Vista previa"}</p>
+                <p className="truncate text-sm font-medium text-foreground">{selectedFile?.file.name || "Vista previa"}</p>
                 <p className="mt-1 text-xs" style={{ color: COLORS.muted }}>{selectedFile ? formatBytes(selectedFile.file.size) : "Selecciona un archivo"}</p>
               </div>
-              <div className="flex min-h-0 flex-1 items-center justify-center bg-white">
+              <div className="flex min-h-0 flex-1 items-center justify-center bg-card">
                 {previewUrl ? (
                   <iframe src={`${previewUrl}#toolbar=0&navpanes=0`} title={`Vista previa de ${selectedFile?.file.name || "plano"}`} className="h-full min-h-[420px] w-full" />
                 ) : selectedFile ? (
                   <div className="px-6 text-center">
                     <AlertCircle className="mx-auto h-9 w-9" style={{ color: COLORS.danger }} />
-                    <p className="mt-3 text-sm font-medium text-gray-900">Sin vista previa</p>
+                    <p className="mt-3 text-sm font-medium text-foreground">Sin vista previa</p>
                     <p className="mt-1 text-xs" style={{ color: COLORS.danger }}>{validationIssues.get(selectedFile.id)}</p>
                   </div>
                 ) : <FileText className="h-10 w-10" style={{ color: COLORS.muted }} />}

@@ -53,38 +53,38 @@ export default function TransactionDocumentosModal() {
             case "contrato":
                 return "bg-orange-50 text-orange-700 border-orange-200";
             default:
-                return "bg-gray-100 text-gray-700 border-gray-200";
+                return "bg-muted text-foreground border-border";
         }
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent data-square-modal="" className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-normal">Documentos de Transacción</DialogTitle>
                     {transaction?.factura && (
-                        <p className="text-sm text-gray-500">Factura: {transaction.factura}</p>
+                        <p className="text-sm text-subtle-foreground">Factura: {transaction.factura}</p>
                     )}
                 </DialogHeader>
 
                 {!transaction ? (
                     <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                        <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" />
                     </div>
                 ) : (
                     <div className="space-y-6">
                         {/* Summary */}
-                        <div className="bg-gray-50 rounded-none p-6">
+                        <div className="bg-background rounded-none p-6">
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <p className="text-sm text-gray-500">Total Documentos</p>
-                                    <p className="text-2xl font-semibold text-gray-900">
+                                    <p className="text-sm text-subtle-foreground">Total Documentos</p>
+                                    <p className="text-2xl font-semibold text-foreground">
                                         {transaction.documents?.length || 0}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500">Fecha de Transacción</p>
-                                    <p className="text-sm text-gray-900">
+                                    <p className="text-sm text-subtle-foreground">Fecha de Transacción</p>
+                                    <p className="text-sm text-foreground">
                                         {transaction.fecha
                                             ? new Date(transaction.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
                                                 day: "2-digit",
@@ -100,8 +100,8 @@ export default function TransactionDocumentosModal() {
                         {/* Documents List */}
                         {!transaction.documents || transaction.documents.length === 0 ? (
                             <div className="text-center py-12">
-                                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                                <p className="text-gray-500">No hay documentos registrados para esta transacción</p>
+                                <FileText className="h-12 w-12 text-disabled-foreground mx-auto mb-4" />
+                                <p className="text-subtle-foreground">No hay documentos registrados para esta transacción</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -111,12 +111,12 @@ export default function TransactionDocumentosModal() {
                                     return (
                                       <div
                                         key={doc._id}
-                                        className="border border-gray-200 rounded-none p-4 hover:bg-gray-50 transition-colors"
+                                        className="border border-border rounded-none p-4 hover:bg-background transition-colors"
                                       >
                                         <div className="flex items-start justify-between">
                                             <div className="flex items-start gap-4 flex-1">
-                                                <div className="p-3 bg-gray-100 rounded-none">
-                                                    <FileText className="h-6 w-6 text-gray-600" />
+                                                <div className="p-3 bg-muted rounded-none">
+                                                    <FileText className="h-6 w-6 text-muted-foreground" />
                                                 </div>
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-2">
@@ -125,12 +125,12 @@ export default function TransactionDocumentosModal() {
                                                                 href={documentUrl}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="text-sm font-medium text-gray-900 underline-offset-4 hover:underline"
+                                                                className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
                                                             >
                                                                 {doc.nombre}
                                                             </a>
                                                         ) : (
-                                                            <h4 className="text-sm font-medium text-gray-900">{doc.nombre}</h4>
+                                                            <h4 className="text-sm font-medium text-foreground">{doc.nombre}</h4>
                                                         )}
                                                         <Badge
                                                             variant="outline"
@@ -140,7 +140,7 @@ export default function TransactionDocumentosModal() {
                                                         </Badge>
                                                     </div>
                                                     {doc.descripcion && (
-                                                        <p className="text-sm text-gray-600 mb-3">{doc.descripcion}</p>
+                                                        <p className="text-sm text-muted-foreground mb-3">{doc.descripcion}</p>
                                                     )}
                                                     <div className="flex items-center gap-3">
                                                         {documentUrl && (
@@ -182,7 +182,7 @@ export default function TransactionDocumentosModal() {
                         {/* Document Types Summary */}
                         {transaction.documents && transaction.documents.length > 0 && (
                             <div className="border-t pt-4">
-                                <h3 className="text-sm font-medium text-gray-700 mb-3">Tipos de documentos</h3>
+                                <h3 className="text-sm font-medium text-foreground mb-3">Tipos de documentos</h3>
                                 <div className="flex flex-wrap gap-2">
                                     {Array.from(
                                         new Set(transaction.documents.map((doc: Document) => doc.type))

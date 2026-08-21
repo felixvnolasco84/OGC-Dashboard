@@ -206,7 +206,7 @@ export default function RFIDetailPage({
   if (detail === undefined || formOptions === undefined) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" aria-label="Cargando RFI" />
+        <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" aria-label="Cargando RFI" />
       </div>
     );
   }
@@ -234,7 +234,7 @@ export default function RFIDetailPage({
   return (
     <div
       className={cn(
-        "bg-white",
+        "bg-card",
         embedded
           ? "px-6 pb-8 pt-8"
           : "min-h-screen px-4 py-6 sm:px-6 lg:px-8",
@@ -243,10 +243,10 @@ export default function RFIDetailPage({
       <div className={cn("space-y-0", !embedded && "mx-auto max-w-6xl")}>
         <header
           className={cn(
-            "bg-white",
+            "bg-card",
             embedded
               ? "pb-8"
-              : "rounded-[4px] border border-[#777770] p-5 sm:p-6",
+              : "rounded-[4px] border border-ring p-5 sm:p-6",
           )}
         >
           {!embedded && (
@@ -260,14 +260,14 @@ export default function RFIDetailPage({
 
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#DEDEDC] text-base text-[#7A7979]">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-disabled text-base text-muted-foreground">
                 {creatorName.trim().charAt(0).toUpperCase()}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-[#282822]">
+                <p className="truncate text-sm font-medium text-foreground">
                   {creatorName}
                 </p>
-                <p className="mt-0.5 truncate text-xs text-[#7A7979]">
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
                   Solicitado el {formatRfiRequestedDate(rfi.created_at)}
                 </p>
               </div>
@@ -279,13 +279,13 @@ export default function RFIDetailPage({
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 min-w-[118px] rounded-[4px] border-[#D2D2CE] bg-white font-normal text-[#7A7979] shadow-none hover:bg-[#FAFAF8]"
+                    className="h-11 min-w-[118px] rounded-[4px] border-border bg-card font-normal text-muted-foreground shadow-none hover:bg-background"
                     onClick={onEdit}
                   >
                     Editar
                   </Button>
                 ) : (
-                  <Button asChild variant="outline" className="h-11 min-w-[118px] rounded-[4px] border-[#D2D2CE] bg-white font-normal text-[#7A7979] shadow-none">
+                  <Button asChild variant="outline" className="h-11 min-w-[118px] rounded-[4px] border-border bg-card font-normal text-muted-foreground shadow-none">
                     <Link to={`/proyecto/${projectId}/rfis/${id}/editar`}>
                       Editar
                     </Link>
@@ -296,7 +296,7 @@ export default function RFIDetailPage({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 min-w-[154px] rounded-[4px] border-[#E75F79] bg-white font-normal text-[#C93F5B] shadow-none hover:bg-[#FFF5F7] hover:text-[#B52F4A]"
+                  className="h-11 min-w-[154px] rounded-[4px] border-[#E75F79] bg-card font-normal text-[#C93F5B] shadow-none hover:bg-[#FFF5F7] hover:text-[#B52F4A]"
                   onClick={() => setDeleteDialogOpen(true)}
                   disabled={busyAction !== null}
                 >
@@ -357,17 +357,17 @@ export default function RFIDetailPage({
         </header>
 
         <Tabs defaultValue="general" className="min-w-0">
-            <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-[#C9C9C5] bg-white p-0">
-              <TabsTrigger value="general" className="h-12 rounded-none px-4 font-normal text-[#7A7979] shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#282822] data-[state=active]:bg-white data-[state=active]:text-[#282822] data-[state=active]:shadow-none">
+            <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border-strong bg-card p-0">
+              <TabsTrigger value="general" className="h-12 rounded-none px-4 font-normal text-muted-foreground shadow-none data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-none">
                 General
               </TabsTrigger>
-              <TabsTrigger value="responses" className="h-12 gap-3 rounded-none px-4 font-normal text-[#7A7979] shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#282822] data-[state=active]:bg-white data-[state=active]:text-[#282822] data-[state=active]:shadow-none">
+              <TabsTrigger value="responses" className="h-12 gap-3 rounded-none px-4 font-normal text-muted-foreground shadow-none data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-none">
                 Respuestas
-                <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#F0F0EE] px-1.5 text-xs text-[#7A7979]">
+                <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-1.5 text-xs text-muted-foreground">
                   {detail.responses.length}
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="ml-auto h-12 rounded-none px-4 font-normal text-[#7A7979] shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#282822] data-[state=active]:bg-white data-[state=active]:text-[#282822] data-[state=active]:shadow-none">
+              <TabsTrigger value="history" className="ml-auto h-12 rounded-none px-4 font-normal text-muted-foreground shadow-none data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-none">
                 Historial
               </TabsTrigger>
             </TabsList>
@@ -375,20 +375,20 @@ export default function RFIDetailPage({
             <TabsContent value="general" className="mt-0 space-y-5 pt-9">
               <div className="flex flex-col gap-5 px-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <p className="text-sm text-[#7A7979]">{rfi.code}</p>
-                  <h1 className="mt-1 truncate text-base font-medium text-[#282822]">
+                  <p className="text-sm text-muted-foreground">{rfi.code}</p>
+                  <h1 className="mt-1 truncate text-base font-medium text-foreground">
                     {rfi.subject}
                   </h1>
-                  <p className="mt-1 truncate text-xs uppercase text-[#7A7979]">
+                  <p className="mt-1 truncate text-xs uppercase text-muted-foreground">
                     {referenceLabel || formOptions.project.nombre}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-4">
                   <div className="text-right">
-                    <p className="text-sm text-[#7A7979]">
+                    <p className="text-sm text-muted-foreground">
                       {formatRfiCompactDate(rfi.due_date)}
                     </p>
-                    <p className="mt-1 text-xs text-[#282822]">
+                    <p className="mt-1 text-xs text-foreground">
                       {formatRfiDueDistance(rfi.due_date)}
                     </p>
                   </div>
@@ -397,7 +397,7 @@ export default function RFIDetailPage({
               </div>
 
               <ContentCard title={rfi.question}>
-                <p className="whitespace-pre-wrap text-sm leading-5 text-[#7A7979]">
+                <p className="whitespace-pre-wrap text-sm leading-5 text-muted-foreground">
                   {rfi.background || "Sin antecedentes adicionales."}
                 </p>
               </ContentCard>
@@ -419,7 +419,7 @@ export default function RFIDetailPage({
                 </ContentCard>
               )}
 
-              <div className="grid gap-8 rounded-[4px] border border-[#D9D9D5] bg-white p-5 md:grid-cols-2">
+              <div className="grid gap-8 rounded-[4px] border border-border bg-card p-5 md:grid-cols-2">
                 <ContentCard title="Referencias" nested>
                   <dl className="grid gap-4 sm:grid-cols-2">
                     <DetailTerm label="Proyecto" value={formOptions.project.nombre} />
@@ -469,7 +469,7 @@ export default function RFIDetailPage({
             <TabsContent value="responses" className="mt-4 space-y-4">
               {detail.responses.length === 0 ? (
                 <ContentCard title="Respuestas" icon={MessageSquareText}>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-subtle-foreground">
                     Todavía no se han agregado respuestas.
                   </p>
                 </ContentCard>
@@ -477,27 +477,27 @@ export default function RFIDetailPage({
                 detail.responses.map((response) => (
                   <article
                     key={response._id}
-                    className={`rounded-sm border bg-white p-5 ${
+                    className={`rounded-sm border bg-card p-5 ${
                       response.is_official
                         ? "border-[#50AC66] ring-1 ring-[#50AC66]/20"
-                        : "border-[#E6E6E6]"
+                        : "border-border"
                     }`}
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="font-semibold text-gray-900">
+                          <h2 className="font-semibold text-foreground">
                             {usersById.get(response.author_id)?.name ??
                               response.author_name}
                           </h2>
                           {response.is_official && (
-                            <Badge className="rounded-sm bg-[#50AC66] text-white hover:bg-[#50AC66]">
+                            <Badge className="rounded-sm bg-[#50AC66] text-on-color hover:bg-[#50AC66]">
                               <CheckCircle2 className="mr-1 h-3 w-3" />
                               Respuesta oficial
                             </Badge>
                           )}
                         </div>
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-subtle-foreground">
                           {formatRfiDateTime(response.created_at)}
                         </p>
                       </div>
@@ -526,11 +526,11 @@ export default function RFIDetailPage({
                         </Button>
                       )}
                     </div>
-                    <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                    <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-foreground">
                       {response.body}
                     </p>
                     {response.attachments.length > 0 && (
-                      <div className="mt-4 border-t border-gray-100 pt-4">
+                      <div className="mt-4 border-t border-border pt-4">
                         <AttachmentList attachments={response.attachments} />
                       </div>
                     )}
@@ -551,7 +551,7 @@ export default function RFIDetailPage({
                     className="min-h-32 rounded-sm"
                   />
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
                       <Paperclip className="h-4 w-4" aria-hidden="true" />
                       <span>
                         {responseFiles.length > 0
@@ -571,7 +571,7 @@ export default function RFIDetailPage({
                       type="button"
                       onClick={handleResponse}
                       disabled={busyAction !== null || !responseBody.trim()}
-                      className="rounded-sm bg-gray-900 text-white hover:bg-gray-900"
+                      className="rounded-sm bg-inverse text-on-color hover:bg-inverse"
                     >
                       {busyAction === "respond" ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -621,7 +621,7 @@ export default function RFIDetailPage({
             </AlertDialogCancel>
             <Button
               type="button"
-              className="bg-[#C93F5B] text-white hover:bg-[#B52F4A]"
+              className="bg-[#C93F5B] text-on-color hover:bg-[#B52F4A]"
               onClick={() => void handleDelete()}
               disabled={busyAction !== null}
             >
@@ -639,16 +639,16 @@ export default function RFIDetailPage({
 
 function DetailStatus({ label, color }: { label: string; color: string }) {
   const positive = color === "#50AC66";
-  const borderColor = color === "#CFCFCD" || color === "#ADADAD" ? "#D5D5D1" : color;
+  const borderColor = color === "hsl(var(--disabled-foreground))" || color === "hsl(var(--disabled-foreground))" ? "hsl(var(--border))" : color;
   return (
     <span
-      className="inline-flex h-11 min-w-[118px] items-center justify-center gap-2 rounded-[4px] border bg-white px-3 text-sm"
-      style={{ borderColor, color: positive ? color : "#7A7979" }}
+      className="inline-flex h-11 min-w-[118px] items-center justify-center gap-2 rounded-[4px] border bg-card px-3 text-sm"
+      style={{ borderColor, color: positive ? color : "hsl(var(--muted-foreground))" }}
     >
       {positive ? (
         <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
       ) : (
-        <CircleMinus className="h-4 w-4 text-[#D7D7D4]" aria-hidden="true" />
+        <CircleMinus className="h-4 w-4 text-disabled-foreground" aria-hidden="true" />
       )}
       {label}
     </span>
@@ -673,7 +673,7 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={busyAction !== null}
-      className="h-11 min-w-[118px] rounded-[4px] bg-[#282822] px-5 font-normal text-white shadow-none hover:bg-[#282822]/90"
+      className="h-11 min-w-[118px] rounded-[4px] bg-inverse px-5 font-normal text-on-color shadow-none hover:bg-inverse/90"
     >
       {busyAction === name ? (
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -701,12 +701,12 @@ function ContentCard({
       className={cn(
         nested
           ? "min-w-0"
-          : "rounded-[4px] border border-[#D9D9D5] bg-white p-5",
+          : "rounded-[4px] border border-border bg-card p-5",
       )}
     >
       <div className="mb-4 flex items-center gap-2">
-        {Icon && <Icon className="h-5 w-5 text-[#7A7979]" aria-hidden="true" />}
-        <h2 className="text-base font-medium leading-5 text-[#282822]">{title}</h2>
+        {Icon && <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />}
+        <h2 className="text-base font-medium leading-5 text-foreground">{title}</h2>
       </div>
       {children}
     </section>
@@ -716,10 +716,10 @@ function ContentCard({
 function DetailTerm({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
-      <dt className="text-xs font-medium text-[#7A7979]">
+      <dt className="text-xs font-medium text-muted-foreground">
         {label}
       </dt>
-      <dd className="mt-1 text-sm leading-5 text-[#282822]">{value || "Sin especificar"}</dd>
+      <dd className="mt-1 text-sm leading-5 text-foreground">{value || "Sin especificar"}</dd>
     </div>
   );
 }
@@ -772,7 +772,7 @@ function ImageGallery({
               key={attachment._id}
               type="button"
               onClick={() => openAt(index)}
-              className="group relative min-w-0 overflow-hidden rounded-[4px] bg-[#F0F0EE] focus:outline-none focus:ring-2 focus:ring-[#777770] focus:ring-offset-2"
+              className="group relative min-w-0 overflow-hidden rounded-[4px] bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               aria-label={`Abrir imagen ${index + 1} de ${attachments.length}: ${attachment.nombre}`}
             >
               <img
@@ -781,7 +781,7 @@ function ImageGallery({
                 className="h-32 w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
               />
               {index === 3 && remaining > 0 && (
-                <span className="absolute inset-0 flex items-center justify-center bg-black/60 text-sm font-medium text-white">
+                <span className="absolute inset-0 flex items-center justify-center bg-overlay/60 text-sm font-medium text-on-color">
                   +{remaining}
                 </span>
               )}
@@ -791,24 +791,24 @@ function ImageGallery({
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="!max-w-[min(94vw,1100px)] gap-0 overflow-hidden rounded-[4px] border-[#282822] bg-[#181816] p-0 text-white [&>button]:right-5 [&>button]:top-5 [&>button]:z-20 [&>button]:text-white">
+        <DialogContent className="!max-w-[min(94vw,1100px)] gap-0 overflow-hidden rounded-[4px] border-foreground bg-inverse p-0 text-on-color [&>button]:right-5 [&>button]:top-5 [&>button]:z-20 [&>button]:text-on-color">
           <DialogTitle className="sr-only">Galería de imágenes de la RFI</DialogTitle>
           <DialogDescription className="sr-only">
             Usa los controles anterior y siguiente o las flechas del teclado para
             recorrer las imágenes.
           </DialogDescription>
 
-          <div className="flex min-h-14 items-center gap-3 border-b border-white/10 px-5 pr-14">
-            <Images className="h-5 w-5 shrink-0 text-white/70" aria-hidden="true" />
-            <p className="min-w-0 flex-1 truncate text-sm text-white">
+          <div className="flex min-h-14 items-center gap-3 border-b border-on-color/10 px-5 pr-14">
+            <Images className="h-5 w-5 shrink-0 text-on-color/70" aria-hidden="true" />
+            <p className="min-w-0 flex-1 truncate text-sm text-on-color">
               {currentAttachment.nombre}
             </p>
-            <span className="text-xs text-white/60">
+            <span className="text-xs text-on-color/60">
               {currentIndex + 1} / {attachments.length}
             </span>
           </div>
 
-          <div className="relative flex min-h-[360px] items-center justify-center bg-black/35 px-14 py-6">
+          <div className="relative flex min-h-[360px] items-center justify-center bg-overlay/35 px-14 py-6">
             <img
               src={currentAttachment.url || undefined}
               alt={currentAttachment.nombre}
@@ -821,7 +821,7 @@ function ImageGallery({
                   variant="ghost"
                   size="icon"
                   onClick={showPrevious}
-                  className="absolute left-3 top-1/2 h-11 w-11 -translate-y-1/2 rounded-full bg-black/45 text-white hover:bg-black/70 hover:text-white"
+                  className="absolute left-3 top-1/2 h-11 w-11 -translate-y-1/2 rounded-full bg-overlay/45 text-on-color hover:bg-overlay/70 hover:text-on-color"
                   aria-label="Imagen anterior"
                 >
                   <ChevronLeft className="h-6 w-6" aria-hidden="true" />
@@ -831,7 +831,7 @@ function ImageGallery({
                   variant="ghost"
                   size="icon"
                   onClick={showNext}
-                  className="absolute right-3 top-1/2 h-11 w-11 -translate-y-1/2 rounded-full bg-black/45 text-white hover:bg-black/70 hover:text-white"
+                  className="absolute right-3 top-1/2 h-11 w-11 -translate-y-1/2 rounded-full bg-overlay/45 text-on-color hover:bg-overlay/70 hover:text-on-color"
                   aria-label="Imagen siguiente"
                 >
                   <ChevronRight className="h-6 w-6" aria-hidden="true" />
@@ -841,7 +841,7 @@ function ImageGallery({
           </div>
 
           {attachments.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto border-t border-white/10 p-3">
+            <div className="flex gap-2 overflow-x-auto border-t border-on-color/10 p-3">
               {attachments.map((attachment, index) => (
                 <button
                   key={attachment._id}
@@ -850,7 +850,7 @@ function ImageGallery({
                   className={cn(
                     "shrink-0 overflow-hidden rounded-[4px] border-2",
                     index === currentIndex
-                      ? "border-white"
+                      ? "border-on-color"
                       : "border-transparent opacity-60 hover:opacity-100",
                   )}
                   aria-label={`Ver ${attachment.nombre}`}
@@ -893,20 +893,20 @@ function AttachmentList({
               target="_blank"
               rel="noreferrer"
               className={cn(
-                "flex items-center justify-between gap-3 rounded-[4px] text-sm text-[#282822] hover:bg-[#FAFAF8]",
-                compact ? "px-0 py-2" : "border border-[#D9D9D5] px-3 py-2",
+                "flex items-center justify-between gap-3 rounded-[4px] text-sm text-foreground hover:bg-background",
+                compact ? "px-0 py-2" : "border border-border px-3 py-2",
               )}
             >
               <span className="flex min-w-0 items-center gap-2">
-                <Paperclip className="h-4 w-4 shrink-0 text-[#B2B2AE]" />
+                <Paperclip className="h-4 w-4 shrink-0 text-disabled-foreground" />
                 <span className="truncate">{attachment.nombre}</span>
               </span>
-              <span className="shrink-0 text-xs text-gray-400">
+              <span className="shrink-0 text-xs text-disabled-foreground">
                 {formatFileSize(attachment.size)}
               </span>
             </a>
           ) : (
-            <div className="rounded-sm border border-gray-200 px-3 py-2 text-sm text-gray-500">
+            <div className="rounded-sm border border-border px-3 py-2 text-sm text-subtle-foreground">
               {attachment.nombre}
             </div>
           )}
@@ -933,13 +933,13 @@ function ImpactSummary({
   };
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <p className="text-xs font-semibold uppercase tracking-wide text-subtle-foreground">
         {label}
       </p>
-      <p className="mt-1 text-sm font-medium text-gray-900">
+      <p className="mt-1 text-sm font-medium text-foreground">
         {labelByValue[value] || value}
       </p>
-      {detail && <p className="mt-1 text-xs text-gray-500">{detail}</p>}
+      {detail && <p className="mt-1 text-xs text-subtle-foreground">{detail}</p>}
     </div>
   );
 }
@@ -947,7 +947,7 @@ function ImpactSummary({
 function CenteredMessage({ message }: { message: string }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
-      <p className="max-w-md text-center text-sm text-gray-600">{message}</p>
+      <p className="max-w-md text-center text-sm text-muted-foreground">{message}</p>
     </div>
   );
 }

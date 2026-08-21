@@ -93,14 +93,14 @@ export default function ProgramaGanttChart({ data, startYear = 2025 }: ProgramaG
   // Don't render if no tasks
   if (ganttData.data.length === 0) {
     return (
-      <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden p-8 text-center" style={{ height: "600px" }}>
-        <p className="text-gray-500">No hay datos de timeline para mostrar en el diagrama de Gantt.</p>
+      <div className="w-full bg-card border border-border rounded-lg overflow-hidden p-8 text-center" style={{ height: "600px" }}>
+        <p className="text-subtle-foreground">No hay datos de timeline para mostrar en el diagrama de Gantt.</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden" style={{ height: "600px" }}>
+    <div className="w-full bg-card border border-border rounded-lg overflow-hidden" style={{ height: "600px" }}>
       <Gantt
         tasks={ganttData.data}
         links={ganttData.links}

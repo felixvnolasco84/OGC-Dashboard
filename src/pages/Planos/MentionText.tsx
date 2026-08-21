@@ -1,9 +1,9 @@
 import type { PlanoComment } from "./planosTypes";
 
 const COLORS = {
-  surface: "#FBFBFB",
-  border: "#E6E6E6",
-  text: "#3D3D3A",
+  surface: "hsl(var(--card))",
+  border: "hsl(var(--border))",
+  text: "hsl(var(--foreground))",
 };
 
 function escapeRegExp(value: string) {

@@ -63,7 +63,7 @@ export default function Dashboard() {
             <button
               key={desarrollo.id}
               onClick={() => setSelectedDevelopment(desarrollo.id)}
-              className={cn("px-4 py-2 rounded-md hover:bg-gray-100", selectedDevelopment === desarrollo.id ? "bg-gray-100" : "")}
+              className={cn("px-4 py-2 rounded-md hover:bg-muted", selectedDevelopment === desarrollo.id ? "bg-muted" : "")}
 
             >
               {desarrollo.nombre}

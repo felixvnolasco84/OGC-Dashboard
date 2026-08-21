@@ -131,7 +131,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                     <FormControl>
                       <Input
                         placeholder="Nombre de partida"
-                        className="bg-gray-100"
+                        className="bg-muted"
                         disabled={true}
                         {...field}
                       />
@@ -152,7 +152,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                     <FormControl>
                       <Input
                         placeholder="Familia"
-                        className="bg-gray-100"
+                        className="bg-muted"
                         disabled={true}
                         {...field}
                       />
@@ -175,7 +175,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                     <FormControl>
                       <Input
                         placeholder="Sub partida"
-                        className="bg-gray-100"
+                        className="bg-muted"
                         disabled={true}
                         {...field}
                       />
@@ -202,7 +202,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                       <FormControl>
                         <Input
                           placeholder="m², kg, etc."
-                          className={level < 2 ? "bg-gray-100" : "bg-white"}
+                          className={level < 2 ? "bg-muted" : "bg-card"}
                           disabled={level < 2 || isLoading}
                           {...field}
                         />
@@ -223,7 +223,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                           placeholder="0"
                           type="number"
                           step="0.01"
-                          className={level < 2 ? "bg-gray-100" : "bg-white"}
+                          className={level < 2 ? "bg-muted" : "bg-card"}
                           disabled={level < 2 || isLoading}
                           {...field}
                         />
@@ -244,7 +244,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                           placeholder="0.00"
                           type="number"
                           step="0.01"
-                          className={level < 2 ? "bg-gray-100" : "bg-white"}
+                          className={level < 2 ? "bg-muted" : "bg-card"}
                           disabled={level < 2 || isLoading}
                           {...field}
                         />
@@ -269,7 +269,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                       <FormControl>
                         <MoneyInput
                           placeholder="0.00"
-                          className="bg-gray-100"
+                          className="bg-muted"
                           disabled={true}
                           value={field.value}
                           onChange={field.onChange}
@@ -289,7 +289,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                       <FormControl>
                         <MoneyInput
                           placeholder="0.00"
-                          className="bg-white"
+                          className="bg-card"
                           disabled={isLoading}
                           value={field.value}
                           onChange={field.onChange}
@@ -309,7 +309,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                       <FormControl>
                         <MoneyInput
                           placeholder="0.00"
-                          className="bg-gray-100"
+                          className="bg-muted"
                           disabled={true}
                           value={field.value}
                           onChange={field.onChange}

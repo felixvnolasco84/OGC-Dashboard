@@ -233,7 +233,7 @@ const DEFAULT_TAX_SETTINGS: TaxSettings = {
 };
 const DEFAULT_USD_TO_MXN = 17;
 const DEFAULT_EUR_TO_MXN = 18.5;
-const DETAIL_TEXT_CLASS = "text-[#ACACAA]";
+const DETAIL_TEXT_CLASS = "text-disabled-foreground";
 const SOFT_HIGHLIGHT_CLASS = "bg-[#FBFAF2]";
 const STRONG_HIGHLIGHT_CLASS = "bg-[#F7F5E6]";
 const DEFAULT_STRUCTURE_GROUPS = [
@@ -457,17 +457,17 @@ function MonthlyPnlTable({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <h2 className="text-lg text-gray-900">ESTADO DE RESULTADOS</h2>
+        <h2 className="text-lg text-foreground">ESTADO DE RESULTADOS</h2>
         <div className="text-left md:text-right">
-          <p className="text-sm text-gray-400">Movimientos reales acumulados {periodLabel}</p>
-          {dataQualityNote && <p className="mt-1 text-xs text-[#777770]">{dataQualityNote}</p>}
+          <p className="text-sm text-disabled-foreground">Movimientos reales acumulados {periodLabel}</p>
+          {dataQualityNote && <p className="mt-1 text-xs text-muted-foreground">{dataQualityNote}</p>}
         </div>
       </div>
 
-      <div className="overflow-x-auto border border-gray-200 bg-white">
+      <div className="overflow-x-auto border border-border bg-card">
         <table className="w-full min-w-[980px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-gray-200 text-sm text-gray-500">
+            <tr className="border-b border-border text-sm text-subtle-foreground">
               <th className="w-[340px] px-8 py-4 font-normal">Concepto</th>
               {months.map((month) => (
                 <th key={month.key} className="px-8 py-4 text-center font-normal">
@@ -487,20 +487,20 @@ function MonthlyPnlTable({
                 <tr
                   key={`${row.label}-${rowIndex}`}
                   className={cn(
-                    "border-b border-gray-200",
-                    isSubtotal || isMetric ? "bg-[#FBFAF2]" : "bg-white"
+                    "border-b border-border",
+                    isSubtotal || isMetric ? "bg-[#FBFAF2]" : "bg-card"
                   )}
                 >
                   <td
                     className={cn(
                       "px-8 py-6 align-middle text-base whitespace-nowrap",
-                      isSection ? "text-gray-900" : "text-[#ACACAA]",
-                      isSubtotal || isMetric ? "text-gray-900" : ""
+                      isSection ? "text-foreground" : "text-disabled-foreground",
+                      isSubtotal || isMetric ? "text-foreground" : ""
                     )}
                   >
                     <div className="flex flex-col gap-1">
                       <span>{row.label}</span>
-                      {isMetric && <span className="text-sm text-gray-500">%</span>}
+                      {isMetric && <span className="text-sm text-subtle-foreground">%</span>}
                     </div>
                   </td>
 
@@ -516,7 +516,7 @@ function MonthlyPnlTable({
                         className={cn(
                           "px-8 py-6 text-center align-middle text-base",
                           isIntersection ? "bg-[#F7F5E6]" : isHighlighted ? "bg-[#FBFAF2]" : "",
-                          isSection ? "text-gray-400" : isDetail ? "text-[#ACACAA]" : "text-gray-900"
+                          isSection ? "text-disabled-foreground" : isDetail ? "text-disabled-foreground" : "text-foreground"
                         )}
                       >
                         {!isSection && (
@@ -525,7 +525,7 @@ function MonthlyPnlTable({
                               {formatPnlValue(value)}
                             </span>
                             {isMetric && (
-                              <span className="text-sm text-gray-500">{formatPercent(percentage)}</span>
+                              <span className="text-sm text-subtle-foreground">{formatPercent(percentage)}</span>
                             )}
                           </div>
                         )}
@@ -555,9 +555,9 @@ function WipMetricCard({
 }) {
   return (
     <div className="space-y-2 text-left">
-      <p className="text-sm text-[#777770]">{label}</p>
-      <p className={cn("text-4xl text-gray-900", valueClassName)}>{value}</p>
-      <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className={cn("text-4xl text-foreground", valueClassName)}>{value}</p>
+      <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
         {badge}
       </Badge>
     </div>
@@ -598,21 +598,21 @@ function WorkInProgressView({
         />
       </div>
 
-      <div className="border-t border-[#AFAEA2] pt-12 space-y-6">
+      <div className="border-t border-border-strong pt-12 space-y-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <h2 className="text-lg text-gray-900">OBRAS ACTIVAS - ESTADO AL CORTE</h2>
+          <h2 className="text-lg text-foreground">OBRAS ACTIVAS - ESTADO AL CORTE</h2>
           <div className="text-left md:text-right">
-            <p className="text-sm text-gray-400">Costo real - Saldo y runway de Tesorería</p>
-            <p className="mt-1 text-xs text-[#777770]">
+            <p className="text-sm text-disabled-foreground">Costo real - Saldo y runway de Tesorería</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               Saldo = cobrado acumulado - costo real. Runway = saldo disponible al ritmo semanal del promedio histórico de egresos.
             </p>
           </div>
         </div>
 
-        <div className="overflow-x-auto border border-gray-200 bg-white">
+        <div className="overflow-x-auto border border-border bg-card">
           <table className="w-full min-w-[1180px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-gray-200 text-sm text-gray-500">
+              <tr className="border-b border-border text-sm text-subtle-foreground">
                 <th className="w-[240px] px-8 py-4 font-normal">Obra</th>
                 <th className="px-8 py-4 text-center font-normal">Presupuesto</th>
                 <th className="px-8 py-4 text-center font-normal">Costo real</th>
@@ -626,8 +626,8 @@ function WorkInProgressView({
             </thead>
             <tbody>
               {activeProjects.map((project) => (
-                <tr key={project.id} className="border-b border-gray-200 bg-white">
-                  <td className="px-8 py-6 align-middle text-base text-gray-900">
+                <tr key={project.id} className="border-b border-border bg-card">
+                  <td className="px-8 py-6 align-middle text-base text-foreground">
                     <span className="block max-w-[240px] truncate">{project.nombre}</span>
                   </td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
@@ -639,10 +639,10 @@ function WorkInProgressView({
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                     {formatTableCurrency(project.wip.eac)}
                   </td>
-                  <td className={cn("px-8 py-6 text-center align-middle text-base", project.wip.varianza < 0 ? "text-[#802424]" : "text-gray-900")}>
+                  <td className={cn("px-8 py-6 text-center align-middle text-base", project.wip.varianza < 0 ? "text-[#802424]" : "text-foreground")}>
                     {formatTableCurrency(project.wip.varianza)}
                   </td>
-                  <td className="px-8 py-6 text-center align-middle text-base text-gray-900">
+                  <td className="px-8 py-6 text-center align-middle text-base text-foreground">
                     {formatMultiplier(project.wip.cpi)}
                   </td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
@@ -651,15 +651,15 @@ function WorkInProgressView({
                   <td className={cn("px-8 py-6 text-center align-middle text-base", project.wip.saldo >= 0 ? "text-[#1A5D21]" : "text-[#802424]")}>
                     {formatTableCurrency(project.wip.saldo)}
                   </td>
-                  <td className={cn(SOFT_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base text-gray-900")}>
+                  <td className={cn(SOFT_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base text-foreground")}>
                     {formatRunway(project.wip.runway)}
                   </td>
                 </tr>
               ))}
 
               {activeProjects.length === 0 && (
-                <tr className="border-b border-gray-200 bg-white">
-                  <td className="px-8 py-6 align-middle text-base text-gray-400" colSpan={9}>
+                <tr className="border-b border-border bg-card">
+                  <td className="px-8 py-6 align-middle text-base text-disabled-foreground" colSpan={9}>
                     No hay obras activas disponibles.
                   </td>
                 </tr>
@@ -691,21 +691,21 @@ function AnnualPnlSummaryTables({
     <div className="grid grid-cols-1 gap-10 xl:grid-cols-2">
       <div className="space-y-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <h2 className="text-lg text-gray-900">COSTO ESTRUCTURA OGC</h2>
+          <h2 className="text-lg text-foreground">COSTO ESTRUCTURA OGC</h2>
           <div className="text-left md:text-right">
-            <p className="text-sm text-gray-400">Acumulado {periodLabel}</p>
+            <p className="text-sm text-disabled-foreground">Acumulado {periodLabel}</p>
             {showDataNote && (
-              <p className="mt-1 text-xs text-[#777770]">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Solo movimientos OGC cargados, distribuidos por la fecha capturada.
               </p>
             )}
           </div>
         </div>
 
-        <div className="overflow-x-auto border border-gray-200 bg-white">
+        <div className="overflow-x-auto border border-border bg-card">
           <table className="w-full min-w-[620px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-gray-200 text-sm text-gray-500">
+              <tr className="border-b border-border text-sm text-subtle-foreground">
                 <th className="px-8 py-4 font-normal">Categoría</th>
                 <th className="px-8 py-4 text-center font-normal">Monto</th>
                 <th className="px-8 py-4 text-center font-normal">% estructura</th>
@@ -713,8 +713,8 @@ function AnnualPnlSummaryTables({
             </thead>
             <tbody>
               {estructuraRows.map((row) => (
-                <tr key={row.key} className="border-b border-gray-200 bg-white">
-                  <td className="px-8 py-6 align-middle text-base text-gray-900">{row.label}</td>
+                <tr key={row.key} className="border-b border-border bg-card">
+                  <td className="px-8 py-6 align-middle text-base text-foreground">{row.label}</td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                     {formatTableCurrency(row.amount)}
                   </td>
@@ -723,8 +723,8 @@ function AnnualPnlSummaryTables({
                   </td>
                 </tr>
               ))}
-              <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
-                <td className="px-8 py-6 align-middle text-base text-gray-900">TOTAL ESTRUCTURA</td>
+              <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
+                <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL ESTRUCTURA</td>
                 <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                   {formatTableCurrency(totals.costosEstructuraOgc)}
                 </td>
@@ -739,48 +739,48 @@ function AnnualPnlSummaryTables({
 
       <div className="space-y-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <h2 className="text-lg text-gray-900">EBITDA OGC</h2>
-          <p className="text-sm text-gray-400">Acumulado {periodLabel}</p>
+          <h2 className="text-lg text-foreground">EBITDA OGC</h2>
+          <p className="text-sm text-disabled-foreground">Acumulado {periodLabel}</p>
         </div>
 
-        <div className="overflow-x-auto border border-gray-200 bg-white">
+        <div className="overflow-x-auto border border-border bg-card">
           <table className="w-full min-w-[620px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-gray-200 text-sm text-gray-500">
+              <tr className="border-b border-border text-sm text-subtle-foreground">
                 <th className="px-8 py-4 font-normal">Concepto</th>
                 <th className="px-8 py-4 text-center font-normal">Monto</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-gray-200 bg-white">
-                <td className="px-8 py-6 align-middle text-base text-gray-900">HONORARIOS OGC</td>
+              <tr className="border-b border-border bg-card">
+                <td className="px-8 py-6 align-middle text-base text-foreground">HONORARIOS OGC</td>
                 <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                   {formatTableCurrency(totals.honorarios)}
                 </td>
               </tr>
-              <tr className="border-b border-gray-200 bg-white">
-                <td className="px-8 py-6 align-middle text-base text-gray-900">INDIRECTOS OGC</td>
+              <tr className="border-b border-border bg-card">
+                <td className="px-8 py-6 align-middle text-base text-foreground">INDIRECTOS OGC</td>
                 <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                   {formatTableCurrency(totals.indirectos)}
                 </td>
               </tr>
-              <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
-                <td className="px-8 py-6 align-middle text-base text-gray-900">INGRESOS OGC</td>
+              <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
+                <td className="px-8 py-6 align-middle text-base text-foreground">INGRESOS OGC</td>
                 <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                   {formatTableCurrency(totals.ingresosOgc)}
                 </td>
               </tr>
-              <tr className="border-b border-gray-200 bg-white">
-                <td className="px-8 py-6 align-middle text-base text-gray-900">COSTO ESTRUCTURA + INDIRECTOS</td>
+              <tr className="border-b border-border bg-card">
+                <td className="px-8 py-6 align-middle text-base text-foreground">COSTO ESTRUCTURA + INDIRECTOS</td>
                 <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                   {formatAccountingCurrency(-Math.abs(costosEstructuraMasIndirectos))}
                 </td>
               </tr>
-              <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
-                <td className="px-8 py-6 align-middle text-base text-gray-900">
+              <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
+                <td className="px-8 py-6 align-middle text-base text-foreground">
                   <div className="flex flex-col gap-1">
                     <span>EBITDA</span>
-                    <span className="text-sm text-gray-500">%</span>
+                    <span className="text-sm text-subtle-foreground">%</span>
                   </div>
                 </td>
                 <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
@@ -788,7 +788,7 @@ function AnnualPnlSummaryTables({
                     <span className={totals.ebitda >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
                       {formatTableCurrency(totals.ebitda)}
                     </span>
-                    <span className="text-sm text-gray-500">{formatPercent(totals.ebitdaMargin)}</span>
+                    <span className="text-sm text-subtle-foreground">{formatPercent(totals.ebitdaMargin)}</span>
                   </div>
                 </td>
               </tr>
@@ -826,57 +826,57 @@ function ProjectProfitabilityView({
           label="Margen bruto total OGC"
           value={formatMetricCurrency(totals.margen)}
           badge="Desde inicio de anio"
-          valueClassName={totals.margen >= 0 ? "text-gray-900" : "text-[#802424]"}
+          valueClassName={totals.margen >= 0 ? "text-foreground" : "text-[#802424]"}
         />
         <WipMetricCard
           label="Margen bruto %"
           value={formatPercent(totals.margenPercent)}
           badge={`${summary.totals.activeProjects} obras activas`}
-          valueClassName={totals.margenPercent >= 0 ? "text-gray-900" : "text-[#802424]"}
+          valueClassName={totals.margenPercent >= 0 ? "text-foreground" : "text-[#802424]"}
         />
         <WipMetricCard
           label="Margen mensual actual"
           value={formatMetricCurrency(totals.currentMonthMargen)}
           badge={currentMonthLabel}
-          valueClassName={totals.currentMonthMargen >= 0 ? "text-gray-900" : "text-[#802424]"}
+          valueClassName={totals.currentMonthMargen >= 0 ? "text-foreground" : "text-[#802424]"}
         />
         <WipMetricCard
           label="Margen mensual %"
           value={formatPercent(totals.currentMonthMargenPercent)}
           badge={currentMonthLabel}
-          valueClassName={totals.currentMonthMargenPercent >= 0 ? "text-gray-900" : "text-[#802424]"}
+          valueClassName={totals.currentMonthMargenPercent >= 0 ? "text-foreground" : "text-[#802424]"}
         />
       </div>
 
-      <div className="border-t border-[#AFAEA2] pt-12 space-y-12">
+      <div className="border-t border-border-strong pt-12 space-y-12">
         <div className="space-y-6">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <h2 className="text-lg text-gray-900">RENTABILIDAD POR OBRA - ACUMULADO AL CORTE</h2>
+            <h2 className="text-lg text-foreground">RENTABILIDAD POR OBRA - ACUMULADO AL CORTE</h2>
             <div className="text-left md:text-right">
-              <p className="text-sm text-gray-400">Ingresos por obra vs. indirectos y costos administrativos asignados</p>
+              <p className="text-sm text-disabled-foreground">Ingresos por obra vs. indirectos y costos administrativos asignados</p>
             </div>
           </div>
 
-          <div className="overflow-x-auto border border-gray-200 bg-white">
+          <div className="overflow-x-auto border border-border bg-card">
             <table className="w-full min-w-[980px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-gray-200 text-sm text-gray-500">
+                <tr className="border-b border-border text-sm text-subtle-foreground">
                   <th className="w-[420px] px-8 py-4 font-normal">Obra</th>
                   <th className="px-8 py-4 text-center font-normal">
                     <span className="block">Ingresos OGC</span>
-                    <span className="mt-1 block text-xs text-gray-400">Honorarios + indirectos / viáticos / general conditions</span>
+                    <span className="mt-1 block text-xs text-disabled-foreground">Honorarios + indirectos / viáticos / general conditions</span>
                   </th>
                   <th className="px-8 py-4 text-center font-normal">
                     <span className="block">Costos OGC</span>
-                    <span className="mt-1 block text-xs text-gray-400">Indirectos + costos administrativos asignados</span>
+                    <span className="mt-1 block text-xs text-disabled-foreground">Indirectos + costos administrativos asignados</span>
                   </th>
                   <th className="px-8 py-4 text-center font-normal">Margen</th>
                 </tr>
               </thead>
               <tbody>
                 {projects.map((project) => (
-                  <tr key={project.id} className="border-b border-gray-200 bg-white">
-                    <td className="px-8 py-6 align-middle text-base text-gray-900">
+                  <tr key={project.id} className="border-b border-border bg-card">
+                    <td className="px-8 py-6 align-middle text-base text-foreground">
                       <span className="block max-w-[360px] truncate">{project.nombre}</span>
                     </td>
                     <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
@@ -897,15 +897,15 @@ function ProjectProfitabilityView({
                 ))}
 
                 {projects.length === 0 && (
-                  <tr className="border-b border-gray-200 bg-white">
-                    <td className="px-8 py-6 align-middle text-base text-gray-400" colSpan={4}>
+                  <tr className="border-b border-border bg-card">
+                    <td className="px-8 py-6 align-middle text-base text-disabled-foreground" colSpan={4}>
                       No hay obras disponibles.
                     </td>
                   </tr>
                 )}
 
-                <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
-                  <td className="px-8 py-6 align-middle text-base text-gray-900">TOTAL OGC</td>
+                <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
+                  <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL OGC</td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                     {formatTableCurrency(totals.ingresosOgc)}
                   </td>
@@ -929,17 +929,17 @@ function ProjectProfitabilityView({
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
           <div className="space-y-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <h2 className="text-lg text-gray-900">COSTO ESTRUCTURA OGC</h2>
+              <h2 className="text-lg text-foreground">COSTO ESTRUCTURA OGC</h2>
               <div className="text-left md:text-right">
-                <p className="text-sm text-gray-400">Acumulado {periodLabel}</p>
-                <p className="mt-1 text-xs text-[#777770]">Solo movimientos OGC cargados, distribuidos por la fecha capturada.</p>
+                <p className="text-sm text-disabled-foreground">Acumulado {periodLabel}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Solo movimientos OGC cargados, distribuidos por la fecha capturada.</p>
               </div>
             </div>
 
-            <div className="overflow-x-auto border border-gray-200 bg-white">
+            <div className="overflow-x-auto border border-border bg-card">
               <table className="w-full min-w-[620px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-gray-200 text-sm text-gray-500">
+                  <tr className="border-b border-border text-sm text-subtle-foreground">
                     <th className="px-8 py-4 font-normal">Categoria</th>
                     <th className="px-8 py-4 text-center font-normal">Monto</th>
                     <th className="px-8 py-4 text-center font-normal">% estructura</th>
@@ -947,8 +947,8 @@ function ProjectProfitabilityView({
                 </thead>
                 <tbody>
                   {estructuraRows.map((row) => (
-                    <tr key={row.label} className="border-b border-gray-200 bg-white">
-                      <td className="px-8 py-6 align-middle text-base text-gray-900">{row.label}</td>
+                    <tr key={row.label} className="border-b border-border bg-card">
+                      <td className="px-8 py-6 align-middle text-base text-foreground">{row.label}</td>
                       <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                         {formatTableCurrency(row.amount)}
                       </td>
@@ -957,8 +957,8 @@ function ProjectProfitabilityView({
                       </td>
                     </tr>
                   ))}
-                  <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
-                    <td className="px-8 py-6 align-middle text-base text-gray-900">TOTAL ESTRUCTURA</td>
+                  <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
+                    <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL ESTRUCTURA</td>
                     <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatTableCurrency(totals.costosEstructuraOgc)}
                     </td>
@@ -973,48 +973,48 @@ function ProjectProfitabilityView({
 
           <div className="space-y-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <h2 className="text-lg text-gray-900">EBITDA OGC</h2>
-              <p className="text-sm text-gray-400">Acumulado {periodLabel}</p>
+              <h2 className="text-lg text-foreground">EBITDA OGC</h2>
+              <p className="text-sm text-disabled-foreground">Acumulado {periodLabel}</p>
             </div>
 
-            <div className="overflow-x-auto border border-gray-200 bg-white">
+            <div className="overflow-x-auto border border-border bg-card">
               <table className="w-full min-w-[620px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-gray-200 text-sm text-gray-500">
+                  <tr className="border-b border-border text-sm text-subtle-foreground">
                     <th className="px-8 py-4 font-normal">Concepto</th>
                     <th className="px-8 py-4 text-center font-normal">Monto</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-gray-200 bg-white">
-                    <td className="px-8 py-6 align-middle text-base text-gray-900">HONORARIOS OGC</td>
+                  <tr className="border-b border-border bg-card">
+                    <td className="px-8 py-6 align-middle text-base text-foreground">HONORARIOS OGC</td>
                     <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatTableCurrency(honorariosOgc)}
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-200 bg-white">
-                    <td className="px-8 py-6 align-middle text-base text-gray-900">INDIRECTOS OGC</td>
+                  <tr className="border-b border-border bg-card">
+                    <td className="px-8 py-6 align-middle text-base text-foreground">INDIRECTOS OGC</td>
                     <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatTableCurrency(indirectosOgc)}
                     </td>
                   </tr>
-                  <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
-                    <td className="px-8 py-6 align-middle text-base text-gray-900">INGRESOS OGC</td>
+                  <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
+                    <td className="px-8 py-6 align-middle text-base text-foreground">INGRESOS OGC</td>
                     <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatTableCurrency(totals.ingresosOgc)}
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-200 bg-white">
-                    <td className="px-8 py-6 align-middle text-base text-gray-900">COSTO ESTRUCTURA + INDIRECTOS</td>
+                  <tr className="border-b border-border bg-card">
+                    <td className="px-8 py-6 align-middle text-base text-foreground">COSTO ESTRUCTURA + INDIRECTOS</td>
                     <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatAccountingCurrency(-Math.abs(totals.costosEstructuraMasIndirectos))}
                     </td>
                   </tr>
-                  <tr className={cn("border-b border-gray-200", SOFT_HIGHLIGHT_CLASS)}>
-                    <td className="px-8 py-6 align-middle text-base text-gray-900">
+                  <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
+                    <td className="px-8 py-6 align-middle text-base text-foreground">
                       <div className="flex flex-col gap-1">
                         <span>EBITDA</span>
-                        <span className="text-sm text-gray-500">%</span>
+                        <span className="text-sm text-subtle-foreground">%</span>
                       </div>
                     </td>
                     <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
@@ -1022,7 +1022,7 @@ function ProjectProfitabilityView({
                         <span className={ebitda >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
                           {formatTableCurrency(ebitda)}
                         </span>
-                        <span className="text-sm text-gray-500">{formatPercent(totals.ebitdaMargin)}</span>
+                        <span className="text-sm text-subtle-foreground">{formatPercent(totals.ebitdaMargin)}</span>
                       </div>
                     </td>
                   </tr>
@@ -1207,7 +1207,7 @@ function OgcLedgerDialog({
           size="icon"
           title="Ledger movimientos OGC"
           aria-label="Ledger movimientos OGC"
-          className="mb-3 h-10 w-10 shrink-0 self-start bg-white text-gray-900 md:self-auto"
+          className="mb-3 h-10 w-10 shrink-0 self-start bg-card text-foreground md:self-auto"
         >
           <ScrollText className="h-4 w-4" />
         </Button>
@@ -1223,21 +1223,21 @@ function OgcLedgerDialog({
 
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-            <div className="border border-gray-200 bg-[#FBFAF2] px-4 py-3">
-              <p className="text-xs text-gray-500">Activos</p>
-              <p className="text-lg text-gray-900">{activeCount}</p>
+            <div className="border border-border bg-[#FBFAF2] px-4 py-3">
+              <p className="text-xs text-subtle-foreground">Activos</p>
+              <p className="text-lg text-foreground">{activeCount}</p>
             </div>
-            <div className="border border-gray-200 bg-white px-4 py-3">
-              <p className="text-xs text-gray-500">Conciliados</p>
-              <p className="text-lg text-gray-900">{reconciledCount}</p>
+            <div className="border border-border bg-card px-4 py-3">
+              <p className="text-xs text-subtle-foreground">Conciliados</p>
+              <p className="text-lg text-foreground">{reconciledCount}</p>
             </div>
-            <div className="border border-gray-200 bg-white px-4 py-3">
-              <p className="text-xs text-gray-500">Historicos</p>
-              <p className="text-lg text-gray-900">{inactiveCount}</p>
+            <div className="border border-border bg-card px-4 py-3">
+              <p className="text-xs text-subtle-foreground">Historicos</p>
+              <p className="text-lg text-foreground">{inactiveCount}</p>
             </div>
           </div>
 
-          <div className="overflow-hidden border border-gray-200 bg-white">
+          <div className="overflow-hidden border border-border bg-card">
             <table className="w-full table-fixed border-collapse text-left text-xs xl:text-sm">
               <colgroup>
                 <col className="w-[8%]" />
@@ -1253,7 +1253,7 @@ function OgcLedgerDialog({
                 <col className="w-[6%]" />
               </colgroup>
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500">
+                <tr className="border-b border-border text-subtle-foreground">
                   <th className="px-4 py-3 font-normal">Estado</th>
                   <th className="px-4 py-3 font-normal">Fecha</th>
                   <th className="px-4 py-3 font-normal">Tipo</th>
@@ -1274,7 +1274,7 @@ function OgcLedgerDialog({
                   const duplicateCount = movement.duplicate_key ? duplicateCounts.get(movement.duplicate_key) || 0 : 0;
 
                   return (
-                    <tr key={movement._id} className={cn("border-b border-gray-200", isActive ? "bg-white" : "bg-gray-50")}>
+                    <tr key={movement._id} className={cn("border-b border-border", isActive ? "bg-card" : "bg-background")}>
                       <td className="px-4 py-4 align-top">
                         <div className="flex flex-col gap-1">
                           <Badge variant="secondary" className={cn(
@@ -1395,7 +1395,7 @@ function OgcLedgerDialog({
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-4 align-top text-xs text-gray-500">
+                      <td className="px-4 py-4 align-top text-xs text-subtle-foreground">
                         <div className="space-y-1">
                           <p>Creado: {formatLedgerTimestamp(movement.created_at)}</p>
                           <p>Por: {movement.created_by_name}</p>
@@ -1444,8 +1444,8 @@ function OgcLedgerDialog({
                 })}
 
                 {movements.length === 0 && (
-                  <tr className="border-b border-gray-200 bg-white">
-                    <td className="px-8 py-6 align-middle text-base text-gray-400" colSpan={11}>
+                  <tr className="border-b border-border bg-card">
+                    <td className="px-8 py-6 align-middle text-base text-disabled-foreground" colSpan={11}>
                       No hay movimientos OGC cargados.
                     </td>
                   </tr>
@@ -1524,14 +1524,14 @@ function SettingsGroup({
   className?: string;
 }) {
   return (
-    <div className={cn("min-w-0 space-y-4 border border-gray-200 bg-white p-4", className)}>
+    <div className={cn("min-w-0 space-y-4 border border-border bg-card p-4", className)}>
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-gray-200 bg-[#FBFAF2] text-gray-700">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-border bg-[#FBFAF2] text-foreground">
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-sm text-gray-900">{title}</p>
-          <p className="mt-1 text-xs leading-5 text-gray-500">{description}</p>
+          <p className="text-sm text-foreground">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-subtle-foreground">{description}</p>
         </div>
       </div>
       {children}
@@ -1548,7 +1548,7 @@ function SettingField({
 }) {
   return (
     <div className="min-w-0 space-y-1.5">
-      <Label className="text-xs font-normal text-gray-500">{label}</Label>
+      <Label className="text-xs font-normal text-subtle-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -1590,7 +1590,7 @@ function PnlSettingsDialog({
           size="icon"
           title="Configuracion P&L"
           aria-label="Configuracion P&L"
-          className="mb-3 h-10 w-10 shrink-0 self-start bg-white text-gray-900 md:self-auto"
+          className="mb-3 h-10 w-10 shrink-0 self-start bg-card text-foreground md:self-auto"
         >
           <Settings2 className="h-4 w-4" />
         </Button>
@@ -1604,26 +1604,26 @@ function PnlSettingsDialog({
             </DialogHeader>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
-              <div className="flex flex-col justify-between border border-gray-200 bg-[#FBFAF2] p-4">
+              <div className="flex flex-col justify-between border border-border bg-[#FBFAF2] p-4">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-900">
+                  <div className="flex items-center gap-2 text-sm text-foreground">
                     <Settings2 className="h-4 w-4" />
                     Supuestos activos
                   </div>
-                  <p className="text-xs leading-5 text-gray-500">
+                  <p className="text-xs leading-5 text-subtle-foreground">
                     Los cambios se reflejan inmediatamente en las metricas y tablas.
                   </p>
                 </div>
                 <div className="mt-5 space-y-3">
                   <div>
-                    <p className="text-xs text-gray-500">Periodo activo</p>
-                    <p className="text-base text-gray-900">{periodLabel}</p>
+                    <p className="text-xs text-subtle-foreground">Periodo activo</p>
+                    <p className="text-base text-foreground">{periodLabel}</p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={onReset}
-                    className="h-9 w-full justify-center bg-white text-gray-900"
+                    className="h-9 w-full justify-center bg-card text-foreground"
                   >
                     <RefreshCcw className="h-4 w-4" />
                     Restablecer
@@ -1819,21 +1819,21 @@ export default function ProfitAndLossPage() {
     proyectos === undefined
   ) {
     return (
-      <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Cargando datos...</p>
+      <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
+        <p className="text-subtle-foreground">Cargando datos...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white px-12 py-6">
+    <div className="bg-card px-12 py-6">
       <OgcMovementsUploadModal
         open={isOgcUploadOpen}
         onOpenChange={setIsOgcUploadOpen}
         exchangeRates={ogcExchangeRates}
       />
       <div className="max-w-full mx-auto space-y-6">
-        <div className="border-b border-[#AFAEA2]">
+        <div className="border-b border-border-strong">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="flex flex-wrap items-end gap-8 md:gap-20">
               {PNL_TABS.map((tab) => (
@@ -1842,10 +1842,10 @@ export default function ProfitAndLossPage() {
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "pb-4 text-base text-gray-500 border-b-2 transition-colors",
+                    "pb-4 text-base text-subtle-foreground border-b-2 transition-colors",
                     activeTab === tab.id
-                      ? "border-gray-900 text-gray-900"
-                      : "border-transparent hover:text-gray-900"
+                      ? "border-foreground text-foreground"
+                      : "border-transparent hover:text-foreground"
                   )}
                 >
                   {tab.label}
@@ -1872,7 +1872,7 @@ export default function ProfitAndLossPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsOgcUploadOpen(true)}
-                className="mb-3 h-10 self-start text-gray-900 md:self-auto"
+                className="mb-3 h-10 self-start text-foreground md:self-auto"
               >
                 <Upload className="h-4 w-4" />
                 Cargar movimientos
@@ -1885,33 +1885,33 @@ export default function ProfitAndLossPage() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10 w-full xl:w-3/4 py-8">
               <div className="space-y-2 text-left">
-                <p className="text-sm text-[#777770]">Ingresos OGC YTD</p>
-                <p className="text-4xl text-gray-900">{formatMetricCurrency(ingresosYtd)}</p>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                <p className="text-sm text-muted-foreground">Ingresos OGC YTD</p>
+                <p className="text-4xl text-foreground">{formatMetricCurrency(ingresosYtd)}</p>
+                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
                   {periodLabel}
                 </Badge>
               </div>
 
               <div className="space-y-2 text-left">
-                <p className="text-sm text-[#777770]">Estructura YTD</p>
-                <p className="text-4xl text-gray-900">{formatMetricCurrency(estructuraYtd)}</p>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                <p className="text-sm text-muted-foreground">Estructura YTD</p>
+                <p className="text-4xl text-foreground">{formatMetricCurrency(estructuraYtd)}</p>
+                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
                   {(pnlSummary.totals.estructuraPercent * 100).toFixed(1)}% de ingresos
                 </Badge>
               </div>
 
               <div className="space-y-2 text-left">
-                <p className="text-sm text-[#777770]">EBITDA YTD</p>
+                <p className="text-sm text-muted-foreground">EBITDA YTD</p>
                 <p className={cn("text-4xl", ebitdaYtd >= 0 ? "text-[#1A5D21]" : "text-[#802424]")}>
                   {formatMetricCurrency(ebitdaYtd)}
                 </p>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
                   {(pnlSummary.totals.ebitdaMargin * 100).toFixed(1)}% de margen
                 </Badge>
               </div>
             </div>
 
-            <div className="space-y-12 border-t border-[#AFAEA2] pt-12">
+            <div className="space-y-12 border-t border-border-strong pt-12">
               <MonthlyPnlTable
                 months={months}
                 rows={rows}

@@ -245,7 +245,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
       <div className="w-full relative h-full">
         {/* Neutral label background for the planned nivel 0 range. */}
         {item.level === 0 && (
-          <div className="absolute inset-x-0 top-[11.5px] bottom-0 bg-gray-100 z-0" />
+          <div className="absolute inset-x-0 top-[11.5px] bottom-0 bg-muted z-0" />
         )}
 
         {/* === Dual bar for nivel 0 (partida) === */}
@@ -259,7 +259,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               />
               {/* % label on the right */}
               {avanceReal > 0 && (
-                <span className="absolute -right-10 top-0 text-[10px] text-gray-500 leading-[10px]">
+                <span className="absolute -right-10 top-0 text-[10px] text-subtle-foreground leading-[10px]">
                   {Math.round(avanceReal)}%
                 </span>
               )}
@@ -271,13 +271,13 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                 style={{ width: `${Math.min(financiero, 100)}%` }}
               />
               {financiero > 0 && (
-                <span className="absolute -right-10 top-0 text-[10px] text-gray-400 leading-[8px]">
+                <span className="absolute -right-10 top-0 text-[10px] text-disabled-foreground leading-[8px]">
                   {financiero}%
                 </span>
               )}
             </div>
             {/* Label */}
-            <span className="text-[11px] text-[#282822] px-2.5 py-1.5 block mt-0 text-left flex-1 whitespace-nowrap">
+            <span className="text-[11px] text-foreground px-2.5 py-1.5 block mt-0 text-left flex-1 whitespace-nowrap">
               {item.partida}
             </span>
           </div>
@@ -341,7 +341,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
             </div>
 
 
-            <span className="text-[10px] text-[#5A5A50] px-1 block text-left font-light whitespace-nowrap">
+            <span className="text-[10px] text-muted-foreground px-1 block text-left font-light whitespace-nowrap">
               {item.partida}
             </span>
 
@@ -393,7 +393,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               >
                 <span
                   className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-[#B17C7C]"
-                  style={{ boxShadow: "0 0 0 1px #fff" }}
+                  style={{ boxShadow: "0 0 0 1px hsl(var(--on-color))" }}
                 />
               </button>
             </TooltipTrigger>
@@ -406,14 +406,14 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         {/* === Single bar for nivel 2 (sub-partida) — lighter === */}
         {item.level === 2 && (
           <div className="flex flex-col gap-0">
-            <div className="h-[3px] w-full bg-gray-100 rounded-none overflow-hidden">
+            <div className="h-[3px] w-full bg-muted rounded-none overflow-hidden">
               <div
-                className="h-full bg-gray-300 rounded-none transition-all"
+                className="h-full bg-disabled rounded-none transition-all"
                 style={{ width: `${Math.min(avanceReal, 100)}%` }}
               />
             </div>
 
-            <span className="text-[9px] text-gray-300 px-1 block whitespace-nowrap">
+            <span className="text-[9px] text-disabled-foreground px-1 block whitespace-nowrap">
               {item.partida}
             </span>
 
@@ -432,17 +432,17 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               <div
                 className={cn(
                   "px-0.5 py-0.5 text-[11px] shadow-sm cursor-pointer whitespace-nowrap h-full",
-                  "bg-[#AFAEA2] text-white flex flex-row gap-0.5 items-center"
+                  "bg-disabled text-on-color flex flex-row gap-0.5 items-center"
                 )}
               >
               </div>
               {(showAnticipo || forceShowMilestones) && (
                 <div className="flex flex-col">
-                  <div className="flex bg-[#AFAEA2] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex-row gap-0.5 items-center h-1/2">
+                  <div className="flex bg-disabled px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-on-color flex-row gap-0.5 items-center h-1/2">
                     <span>Anticipo</span>
-                    <Check className="inline text-white" size={12} />
+                    <Check className="inline text-on-color" size={12} />
                   </div>
-                  <div className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50] h-1/2">
+                  <div className="block text-[11px] bg-muted px-1 py-0.5 text-muted-foreground h-1/2">
                     {schedule?.anticipo_porcentaje}% - { }
                   </div>
                 </div>
@@ -461,7 +461,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               <div
                 className={cn(
                   "px-0.5 py-0.5 text-[11px] shadow-sm cursor-pointer whitespace-nowrap h-full",
-                  "bg-[#C46B34B3] text-white flex flex-row gap-0.5 items-center"
+                  "bg-[#C46B34B3] text-on-color flex flex-row gap-0.5 items-center"
                 )}
               >
               </div>
@@ -471,11 +471,11 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                     "flex flex-col space-y-0.5 h-full",
                   )}
                 >
-                  <div className="bg-[#C46B34B3] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-white flex flex-row gap-0.5 items-center">
+                  <div className="bg-[#C46B34B3] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-on-color flex flex-row gap-0.5 items-center">
                     Suministro
                     <Check className="inline" size={12} />
                   </div>
-                  <div className="block text-[11px] bg-[#F2F2F2] px-1 py-0.5 text-[#5A5A50]">
+                  <div className="block text-[11px] bg-muted px-1 py-0.5 text-muted-foreground">
                     {schedule?.suministro_fecha}
                   </div>
                 </div>
@@ -520,7 +520,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                     {expandedComentarios.has(c._id) && (
                       <div className="flex flex-col">
                         <div
-                          className="bg-[#3B82F6] px-1.5 py-0.5 text-[10px] cursor-default whitespace-nowrap text-white flex items-center gap-0.5"
+                          className="bg-[#3B82F6] px-1.5 py-0.5 text-[10px] cursor-default whitespace-nowrap text-on-color flex items-center gap-0.5"
                           style={{ minWidth: `${cWidth}px` }}
                         >
                           <MessageSquare className="inline" size={10} />
@@ -541,10 +541,10 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         {/* Hover tooltip */}
         {isHovered && item.level === 0 && (
           <div className="absolute -bottom-8 left-0 flex gap-1.5 text-[10px] z-30 pointer-events-none">
-            <div className="bg-[#1A5D21] text-white px-1.5 py-0.5 rounded shadow whitespace-nowrap">
+            <div className="bg-[#1A5D21] text-on-color px-1.5 py-0.5 rounded shadow whitespace-nowrap">
               Avance: {Math.round(avanceReal)}%
             </div>
-            <div className="bg-[#1A5D21] text-white px-1.5 py-0.5 rounded shadow whitespace-nowrap">
+            <div className="bg-[#1A5D21] text-on-color px-1.5 py-0.5 rounded shadow whitespace-nowrap">
               Financiero: {financiero}%
             </div>
           </div>

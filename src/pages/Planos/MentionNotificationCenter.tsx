@@ -18,11 +18,11 @@ import type { PlanoMentionNotification } from "./planosTypes";
 
 const COLORS = {
   green: "#50AC66",
-  surface: "#FBFBFB",
-  border: "#E6E6E6",
-  borderStrong: "#DBDBDB",
-  textSoft: "#898982",
-  muted: "#A3A39E",
+  surface: "hsl(var(--card))",
+  border: "hsl(var(--border))",
+  borderStrong: "hsl(var(--border))",
+  textSoft: "hsl(var(--subtle-foreground))",
+  muted: "hsl(var(--disabled-foreground))",
 };
 
 function formatDateTime(timestamp: number) {
@@ -124,7 +124,7 @@ export default function MentionNotificationCenter({
         variant="outline"
         onClick={() => setOpen(true)}
         className={cn(
-          "relative gap-2 rounded-sm bg-white font-normal shadow-none",
+          "relative gap-2 rounded-sm bg-card font-normal shadow-none",
           iconOnly
             ? "h-8 w-8 p-0"
             : compact
@@ -140,7 +140,7 @@ export default function MentionNotificationCenter({
         {!iconOnly && "Menciones"}
         {(unreadCount || 0) > 0 && (
           <span
-            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-sm px-1.5 text-[11px] font-medium text-white"
+            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-sm px-1.5 text-[11px] font-medium text-on-color"
             style={{ backgroundColor: COLORS.green }}
           >
             {(unreadCount || 0) > 9 ? "9+" : unreadCount}
@@ -181,7 +181,7 @@ export default function MentionNotificationCenter({
                 style={{ borderColor: COLORS.border }}
               >
                 <MessageSquare className="mx-auto h-7 w-7" style={{ color: COLORS.muted }} />
-                <p className="mt-3 text-sm font-medium text-gray-900">Sin menciones</p>
+                <p className="mt-3 text-sm font-medium text-foreground">Sin menciones</p>
                 <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
                   Las etiquetas que recibas aparecerán aquí.
                 </p>
@@ -192,7 +192,7 @@ export default function MentionNotificationCenter({
                   key={notification._id}
                   type="button"
                   onClick={() => openNotification(notification)}
-                  className="w-full border bg-white p-4 text-left hover:bg-[#FBFBFB]"
+                  className="w-full border bg-card p-4 text-left hover:bg-card"
                   style={{ borderColor: COLORS.border }}
                   data-viewer-readonly-allow="true"
                 >
@@ -206,11 +206,11 @@ export default function MentionNotificationCenter({
                       }}
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm text-gray-900">
+                      <span className="block text-sm text-foreground">
                         <strong>{notification.actor_name}</strong> te mencionó en{" "}
                         <strong>{notification.plano_titulo}</strong>
                       </span>
-                      <span className="mt-1 block line-clamp-3 text-sm leading-5 text-gray-600">
+                      <span className="mt-1 block line-clamp-3 text-sm leading-5 text-muted-foreground">
                         {notification.comment_excerpt}
                       </span>
                       <span className="mt-2 block text-xs" style={{ color: COLORS.muted }}>

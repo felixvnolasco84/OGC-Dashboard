@@ -598,14 +598,14 @@ export default function UploadSalesProjectTransactionsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent data-square-modal="" className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">
             Subir Transacciones de Ventas desde Excel
           </DialogTitle>
           <DialogDescription>
             {salesProyectoNombre && (
-              <span className="font-medium text-gray-700">
+              <span className="font-medium text-foreground">
                 Proyecto: {salesProyectoNombre}
               </span>
             )}
@@ -617,12 +617,12 @@ export default function UploadSalesProjectTransactionsModal() {
           <div className="space-y-2">
             <Label className="text-sm font-medium">Archivo Excel *</Label>
             <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              className={`border-2 border-dashed rounded-none p-8 text-center transition-colors ${
                 dragActive
                   ? "border-blue-500 bg-blue-50"
                   : file
                     ? "border-green-500 bg-green-50"
-                    : "border-gray-300 hover:border-gray-400"
+                    : "border-border-strong hover:border-border-strong"
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -634,8 +634,8 @@ export default function UploadSalesProjectTransactionsModal() {
                   <div className="flex items-center justify-center gap-3">
                     <FileSpreadsheet className="h-8 w-8 text-green-600" />
                     <div className="text-left">
-                      <p className="font-medium text-gray-900">{file.name}</p>
-                      <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
+                      <p className="font-medium text-foreground">{file.name}</p>
+                      <p className="text-sm text-subtle-foreground">{formatFileSize(file.size)}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 justify-center">
@@ -667,13 +667,13 @@ export default function UploadSalesProjectTransactionsModal() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex justify-center">
-                    <Upload className="h-12 w-12 text-gray-400" />
+                    <Upload className="h-12 w-12 text-disabled-foreground" />
                   </div>
                   <div>
-                    <p className="text-lg font-medium text-gray-900">
+                    <p className="text-lg font-medium text-foreground">
                       Arrastra y suelta un archivo Excel aquí
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">o</p>
+                    <p className="text-sm text-subtle-foreground mt-1">o</p>
                   </div>
                   <div>
                     <Button
@@ -692,7 +692,7 @@ export default function UploadSalesProjectTransactionsModal() {
                       className="hidden"
                     />
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-disabled-foreground">
                     Archivos soportados: .xlsx, .xls (máx. 10MB)
                   </p>
                 </div>
@@ -702,7 +702,7 @@ export default function UploadSalesProjectTransactionsModal() {
 
           {/* Upload Result Summary */}
           {result && result.success && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-none p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-blue-600" />
                 <h4 className="font-medium text-blue-900">Archivo procesado correctamente</h4>
@@ -725,7 +725,7 @@ export default function UploadSalesProjectTransactionsModal() {
           )}
 
           {result && !result.success && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-2">
+            <div className="bg-red-50 border border-red-200 rounded-none p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <XCircle className="h-5 w-5 text-red-600" />
                 <h4 className="font-medium text-red-900">Error al procesar el archivo</h4>
@@ -737,33 +737,33 @@ export default function UploadSalesProjectTransactionsModal() {
           {/* Validation Preview (Step 2) */}
           {currentStep === "preview" && validationReport && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-blue-700 bg-blue-50 p-3 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-700 bg-blue-50 p-3 rounded-none">
                 <AlertTriangle className="h-5 w-5" />
                 <span className="text-sm font-medium">Vista previa - Revisa los datos antes de confirmar la carga</span>
               </div>
 
               {/* Summary Cards */}
               <div className="grid grid-cols-4 gap-3">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-semibold text-gray-900">{validationReport.totalTransactions}</p>
-                  <p className="text-xs text-gray-500">Total</p>
+                <div className="bg-background rounded-none p-3 text-center">
+                  <p className="text-2xl font-semibold text-foreground">{validationReport.totalTransactions}</p>
+                  <p className="text-xs text-subtle-foreground">Total</p>
                 </div>
-                <div className="bg-green-50 rounded-lg p-3 text-center">
+                <div className="bg-green-50 rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-green-600">{validationReport.validTransactions}</p>
                   <p className="text-xs text-green-600">Válidas</p>
                 </div>
-                <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                <div className="bg-yellow-50 rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-yellow-600">{validationReport.partialTransactions}</p>
                   <p className="text-xs text-yellow-600">Parciales</p>
                 </div>
-                <div className="bg-red-50 rounded-lg p-3 text-center">
+                <div className="bg-red-50 rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-red-600">{validationReport.invalidTransactions}</p>
                   <p className="text-xs text-red-600">Inválidas</p>
                 </div>
               </div>
 
               {/* Amount Summary */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-none p-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-blue-800">Monto a procesar:</span>
                   <span className="font-semibold text-blue-900">
@@ -780,28 +780,28 @@ export default function UploadSalesProjectTransactionsModal() {
 
               {/* Report Header */}
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900">Detalle de Validación</h4>
-                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <h4 className="font-medium text-foreground">Detalle de Validación</h4>
+                <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                   <input
                     type="checkbox"
                     checked={showFailedOnly}
                     onChange={(e) => setShowFailedOnly(e.target.checked)}
-                    className="rounded border-gray-300"
+                    className="rounded-none border-border-strong"
                   />
                   Solo con errores
                 </label>
               </div>
 
               {/* Validation Table */}
-              <div className="border rounded-lg max-h-64 overflow-y-auto">
+              <div className="border rounded-none max-h-64 overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 sticky top-0">
+                  <thead className="bg-background sticky top-0">
                     <tr>
-                      <th className="text-left p-2 font-medium text-gray-600">Factura</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Estado</th>
-                      <th className="text-right p-2 font-medium text-gray-600">Monto</th>
-                      <th className="text-center p-2 font-medium text-gray-600">Items</th>
-                      <th className="text-left p-2 font-medium text-gray-600"></th>
+                      <th className="text-left p-2 font-medium text-muted-foreground">Factura</th>
+                      <th className="text-left p-2 font-medium text-muted-foreground">Estado</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground">Monto</th>
+                      <th className="text-center p-2 font-medium text-muted-foreground">Items</th>
+                      <th className="text-left p-2 font-medium text-muted-foreground"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -811,12 +811,12 @@ export default function UploadSalesProjectTransactionsModal() {
                       <>
                         <tr 
                           key={txn.factura} 
-                          className={`hover:bg-gray-50 cursor-pointer ${expandedRows.has(txn.factura) ? "bg-gray-50" : ""}`}
+                          className={`hover:bg-background cursor-pointer ${expandedRows.has(txn.factura) ? "bg-background" : ""}`}
                           onClick={() => (txn.errors.length > 0 || txn.partidasNotFound.length > 0) && toggleRowExpanded(txn.factura)}
                         >
                           <td className="p-2 font-mono text-xs">{txn.factura}</td>
                           <td className="p-2">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-xs ${
                               txn.status === "valid" ? "text-green-600 bg-green-50" :
                               txn.status === "partial" ? "text-yellow-600 bg-yellow-50" :
                               "text-red-600 bg-red-50"
@@ -838,14 +838,14 @@ export default function UploadSalesProjectTransactionsModal() {
                           <td className="p-2">
                             {(txn.errors.length > 0 || txn.partidasNotFound.length > 0) && (
                               expandedRows.has(txn.factura) 
-                                ? <ChevronUp className="h-4 w-4 text-gray-400" />
-                                : <ChevronDown className="h-4 w-4 text-gray-400" />
+                                ? <ChevronUp className="h-4 w-4 text-disabled-foreground" />
+                                : <ChevronDown className="h-4 w-4 text-disabled-foreground" />
                             )}
                           </td>
                         </tr>
                         {expandedRows.has(txn.factura) && (txn.errors.length > 0 || txn.partidasNotFound.length > 0) && (
                           <tr key={`${txn.factura}-details`}>
-                            <td colSpan={5} className="p-3 bg-gray-50">
+                            <td colSpan={5} className="p-3 bg-background">
                               {txn.errors.length > 0 && (
                                 <div className="mb-2">
                                   <p className="text-xs font-medium text-red-700 mb-1">Errores:</p>
@@ -876,33 +876,33 @@ export default function UploadSalesProjectTransactionsModal() {
           {/* Upload Report (Step 3 - Result) */}
           {currentStep === "result" && uploadReport && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-700 bg-green-50 p-3 rounded-lg">
+              <div className="flex items-center gap-2 text-green-700 bg-green-50 p-3 rounded-none">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="text-sm font-medium">Carga completada</span>
               </div>
 
               {/* Summary Cards */}
               <div className="grid grid-cols-4 gap-3">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-semibold text-gray-900">{uploadReport.totalTransactions}</p>
-                  <p className="text-xs text-gray-500">Total</p>
+                <div className="bg-background rounded-none p-3 text-center">
+                  <p className="text-2xl font-semibold text-foreground">{uploadReport.totalTransactions}</p>
+                  <p className="text-xs text-subtle-foreground">Total</p>
                 </div>
-                <div className="bg-green-50 rounded-lg p-3 text-center">
+                <div className="bg-green-50 rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-green-600">{uploadReport.successfulTransactions}</p>
                   <p className="text-xs text-green-600">Exitosas</p>
                 </div>
-                <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                <div className="bg-yellow-50 rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-yellow-600">{uploadReport.partialTransactions}</p>
                   <p className="text-xs text-yellow-600">Parciales</p>
                 </div>
-                <div className="bg-red-50 rounded-lg p-3 text-center">
+                <div className="bg-red-50 rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-red-600">{uploadReport.failedTransactions}</p>
                   <p className="text-xs text-red-600">Fallidas</p>
                 </div>
               </div>
 
               {/* Amount Summary */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-none p-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-blue-800">Monto procesado exitosamente:</span>
                   <span className="font-semibold text-blue-900">
@@ -919,14 +919,14 @@ export default function UploadSalesProjectTransactionsModal() {
 
               {/* Report Header */}
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900">Detalle de Transacciones</h4>
+                <h4 className="font-medium text-foreground">Detalle de Transacciones</h4>
                 <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                     <input
                       type="checkbox"
                       checked={showFailedOnly}
                       onChange={(e) => setShowFailedOnly(e.target.checked)}
-                      className="rounded border-gray-300"
+                      className="rounded-none border-border-strong"
                     />
                     Solo con errores
                   </label>
@@ -944,15 +944,15 @@ export default function UploadSalesProjectTransactionsModal() {
               </div>
 
               {/* Transactions Table */}
-              <div className="border rounded-lg max-h-64 overflow-y-auto">
+              <div className="border rounded-none max-h-64 overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 sticky top-0">
+                  <thead className="bg-background sticky top-0">
                     <tr>
-                      <th className="text-left p-2 font-medium text-gray-600">Factura</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Estado</th>
-                      <th className="text-right p-2 font-medium text-gray-600">Monto</th>
-                      <th className="text-center p-2 font-medium text-gray-600">Items</th>
-                      <th className="text-left p-2 font-medium text-gray-600"></th>
+                      <th className="text-left p-2 font-medium text-muted-foreground">Factura</th>
+                      <th className="text-left p-2 font-medium text-muted-foreground">Estado</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground">Monto</th>
+                      <th className="text-center p-2 font-medium text-muted-foreground">Items</th>
+                      <th className="text-left p-2 font-medium text-muted-foreground"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -960,12 +960,12 @@ export default function UploadSalesProjectTransactionsModal() {
                       <>
                         <tr 
                           key={txn.factura} 
-                          className={`hover:bg-gray-50 cursor-pointer ${expandedRows.has(txn.factura) ? "bg-gray-50" : ""}`}
+                          className={`hover:bg-background cursor-pointer ${expandedRows.has(txn.factura) ? "bg-background" : ""}`}
                           onClick={() => (txn.errors.length > 0 || txn.partidasNotFound.length > 0) && toggleRowExpanded(txn.factura)}
                         >
                           <td className="p-2 font-mono text-xs">{txn.factura}</td>
                           <td className="p-2">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${getStatusColor(txn.status)}`}>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-xs ${getStatusColor(txn.status)}`}>
                               {getStatusIcon(txn.status)}
                               {getStatusLabel(txn.status)}
                             </span>
@@ -981,14 +981,14 @@ export default function UploadSalesProjectTransactionsModal() {
                           <td className="p-2">
                             {(txn.errors.length > 0 || txn.partidasNotFound.length > 0) && (
                               expandedRows.has(txn.factura) 
-                                ? <ChevronUp className="h-4 w-4 text-gray-400" />
-                                : <ChevronDown className="h-4 w-4 text-gray-400" />
+                                ? <ChevronUp className="h-4 w-4 text-disabled-foreground" />
+                                : <ChevronDown className="h-4 w-4 text-disabled-foreground" />
                             )}
                           </td>
                         </tr>
                         {expandedRows.has(txn.factura) && (txn.errors.length > 0 || txn.partidasNotFound.length > 0) && (
                           <tr key={`${txn.factura}-details`}>
-                            <td colSpan={5} className="p-3 bg-gray-50">
+                            <td colSpan={5} className="p-3 bg-background">
                               {txn.errors.length > 0 && (
                                 <div className="mb-2">
                                   <p className="text-xs font-medium text-red-700 mb-1">Errores:</p>

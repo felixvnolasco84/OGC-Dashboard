@@ -217,7 +217,7 @@ export default function ChartConfigModal({
             <Label>Filtrar por Partidas (Nivel 1)</Label>
             <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
               {availablePartidas.length === 0 ? (
-                <p className="text-sm text-gray-500">Cargando...</p>
+                <p className="text-sm text-subtle-foreground">Cargando...</p>
               ) : (
                 <div className="space-y-1">
                   {availablePartidas.map((partida) => (
@@ -230,7 +230,7 @@ export default function ChartConfigModal({
                       className={`w-full text-left px-3 py-1.5 text-sm rounded transition-colors ${
                         selectedPartidas.includes(partida)
                           ? "bg-blue-100 text-blue-900"
-                          : "hover:bg-gray-100"
+                          : "hover:bg-muted"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -245,7 +245,7 @@ export default function ChartConfigModal({
               )}
             </div>
             {selectedPartidas.length > 0 && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-subtle-foreground">
                 {selectedPartidas.length} partida(s) seleccionada(s)
               </p>
             )}
@@ -256,7 +256,7 @@ export default function ChartConfigModal({
             <Label>Filtrar por Familias (Nivel 2)</Label>
             <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
               {availableFamilias.length === 0 ? (
-                <p className="text-sm text-gray-500">Cargando...</p>
+                <p className="text-sm text-subtle-foreground">Cargando...</p>
               ) : (
                 <div className="space-y-1">
                   {availableFamilias.map((familia) => (
@@ -269,7 +269,7 @@ export default function ChartConfigModal({
                       className={`w-full text-left px-3 py-1.5 text-sm rounded transition-colors ${
                         selectedFamilias.includes(familia)
                           ? "bg-green-100 text-green-900"
-                          : "hover:bg-gray-100"
+                          : "hover:bg-muted"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -284,7 +284,7 @@ export default function ChartConfigModal({
               )}
             </div>
             {selectedFamilias.length > 0 && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-subtle-foreground">
                 {selectedFamilias.length} familia(s) seleccionada(s)
               </p>
             )}
@@ -295,7 +295,7 @@ export default function ChartConfigModal({
             <Label>Filtrar por Sub-Partidas (Nivel 3)</Label>
             <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
               {availableSubPartidas.length === 0 ? (
-                <p className="text-sm text-gray-500">Cargando...</p>
+                <p className="text-sm text-subtle-foreground">Cargando...</p>
               ) : (
                 <div className="space-y-1">
                   {availableSubPartidas.map((subPartida) => (
@@ -308,7 +308,7 @@ export default function ChartConfigModal({
                       className={`w-full text-left px-3 py-1.5 text-sm rounded transition-colors ${
                         selectedSubPartidas.includes(subPartida)
                           ? "bg-purple-100 text-purple-900"
-                          : "hover:bg-gray-100"
+                          : "hover:bg-muted"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -323,7 +323,7 @@ export default function ChartConfigModal({
               )}
             </div>
             {selectedSubPartidas.length > 0 && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-subtle-foreground">
                 {selectedSubPartidas.length} sub-partida(s) seleccionada(s)
               </p>
             )}

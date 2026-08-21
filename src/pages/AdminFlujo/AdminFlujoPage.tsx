@@ -137,12 +137,12 @@ export default function AdminFlujoPage() {
   };
 
   return (
-    <div className="bg-white px-12 py-6 min-h-screen">
+    <div className="bg-card px-12 py-6 min-h-screen">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="rounded-lg py-6">
-          <h1 className="text-2xl text-gray-900 mb-2">Flujo de Caja Proyectado</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl text-foreground mb-2">Flujo de Caja Proyectado</h1>
+          <p className="text-sm text-subtle-foreground">
             Carga un archivo Excel con las proyecciones de flujo de caja semanal
           </p>
         </div>
@@ -192,7 +192,7 @@ export default function AdminFlujoPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+            <div className="border-2 border-dashed border-border-strong rounded-lg p-8 text-center hover:border-border-strong transition-colors">
               <input
                 type="file"
                 accept=".xlsx,.xls"
@@ -205,11 +205,11 @@ export default function AdminFlujoPage() {
                 htmlFor="file-upload"
                 className={`cursor-pointer ${(!selectedProyectoId || isProcessing) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-sm text-gray-600 mb-1">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-disabled-foreground" />
+                <p className="text-sm text-muted-foreground mb-1">
                   {isProcessing ? 'Procesando...' : 'Haz clic para seleccionar un archivo'}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-subtle-foreground">
                   Archivos Excel (.xlsx, .xls)
                 </p>
               </label>
@@ -255,22 +255,22 @@ export default function AdminFlujoPage() {
             <CardContent className="space-y-4">
               {/* Summary Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Archivo</p>
+                <div className="bg-background p-4 rounded-lg">
+                  <p className="text-xs text-subtle-foreground mb-1">Archivo</p>
                   <p className="text-sm font-medium truncate" title={apiResponse.fileName}>
                     {apiResponse.fileName}
                   </p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Total Flujos</p>
+                <div className="bg-background p-4 rounded-lg">
+                  <p className="text-xs text-subtle-foreground mb-1">Total Flujos</p>
                   <p className="text-2xl font-semibold">{apiResponse.summary.totalFlujos}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Períodos</p>
+                <div className="bg-background p-4 rounded-lg">
+                  <p className="text-xs text-subtle-foreground mb-1">Períodos</p>
                   <p className="text-2xl font-semibold">{apiResponse.summary.totalPeriods}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Total Proyectado</p>
+                <div className="bg-background p-4 rounded-lg">
+                  <p className="text-xs text-subtle-foreground mb-1">Total Proyectado</p>
                   <p className="text-lg font-semibold">
                     ${new Intl.NumberFormat('es-MX').format(Math.round(apiResponse.summary.grandTotal))}
                   </p>
@@ -289,10 +289,10 @@ export default function AdminFlujoPage() {
                 <p className="text-sm font-medium mb-2">Flujos identificados:</p>
                 <div className="space-y-2">
                   {apiResponse.flujos.map((flujo, idx) => (
-                    <div key={idx} className="bg-gray-50 p-3 rounded-lg flex justify-between items-center">
+                    <div key={idx} className="bg-background p-3 rounded-lg flex justify-between items-center">
                       <div>
                         <p className="text-sm font-medium">{flujo.label}</p>
-                        <p className="text-xs text-gray-500">{flujo.periodCount} períodos</p>
+                        <p className="text-xs text-subtle-foreground">{flujo.periodCount} períodos</p>
                       </div>
                       <p className="text-sm font-semibold">
                         ${new Intl.NumberFormat('es-MX').format(Math.round(flujo.total))}

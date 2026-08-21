@@ -138,8 +138,8 @@ export function useChartConfig({ proyectoId, chartId, defaultConfig }: UseChartC
  * 
  * // Save multiple chart configs at once
  * await saveConfigs([
- *   { chartId: "chart-1", title: "Title 1", color: "#fff", ... },
- *   { chartId: "chart-2", title: "Title 2", color: "#000", ... }
+ *   { chartId: "chart-1", title: "Title 1", color: "#3B82F6", ... },
+ *   { chartId: "chart-2", title: "Title 2", color: "#50AC66", ... }
  * ]);
  */
 export function useMultipleChartConfigs(proyectoId: Id<"sales_projects">) {

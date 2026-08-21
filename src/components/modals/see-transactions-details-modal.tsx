@@ -113,13 +113,13 @@ export default function SeeTransactionsDetailsModal() {
     // TODO: IMPLEMENT THIS SOLUTION FOR THE REST OF THE MODALS
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 {paymentContext && (
                     <>
                         <div className="flex justify-end mt-4 items-end">
                             <Button size={"default"} variant="secondary" onClick={handleOpenAddPayment}>
                                 Nuevo Pago
-                                <Plus className="h-3 w-3 bg-gray-600 text-white p-0.5 rounded-full" />
+                                <Plus className="h-3 w-3 bg-muted-foreground text-on-color p-0.5 rounded-none" />
                             </Button>
                         </div>
                         <SheetHeader>
@@ -141,16 +141,16 @@ export default function SeeTransactionsDetailsModal() {
                                         {paymentContext.relatedPartida?.nivel === 2 &&
                                             <>
                                                 <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
-                                                <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
+                                                <h4 className="text-muted-foreground">{paymentContext.relatedPartida.familia}</h4>
                                             </>}
                                         {paymentContext.relatedPartida?.nivel === 3 &&
                                             <>
                                                 <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
-                                                <h4 className="text-gray-600">{paymentContext.relatedPartida.familia}</h4>
-                                                <h5 className="text-gray-500">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
+                                                <h4 className="text-muted-foreground">{paymentContext.relatedPartida.familia}</h4>
+                                                <h5 className="text-subtle-foreground">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
                                             </>}
                                     </div>
-                                    <CardDescription className="text-gray-400 text-right text-base">
+                                    <CardDescription className="text-disabled-foreground text-right text-base">
                                         {paymentContext.relatedPartida?.nivel === 1 && 'Partida'}
                                         {paymentContext.relatedPartida?.nivel === 2 && 'Familia'}
                                         {paymentContext.relatedPartida?.nivel === 3 && 'Sub-partida'}
@@ -180,15 +180,15 @@ export default function SeeTransactionsDetailsModal() {
 
                                 <div className="grid grid-cols-3 gap-20 justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">Presupuesto probado</p>
+                                        <p className="text-sm font-medium text-subtle-foreground">Presupuesto probado</p>
                                         <p className="text-lg">{formatCurrency(paymentContext.totalAmount)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500 text-left">Pagado</p>
+                                        <p className="text-sm font-medium text-subtle-foreground text-left">Pagado</p>
                                         <p className="text-lg text-green-800 text-left">{formatCurrency(getTotalPaidAmount())}</p>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <p className="text-sm font-medium text-gray-500 text-right">Por ejercer</p>
+                                        <p className="text-sm font-medium text-subtle-foreground text-right">Por ejercer</p>
                                         {getRemainingAmount() > 0 && (
                                             <p className="text-lg text-orange-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
                                         )}

@@ -92,16 +92,16 @@ import MentionText from "./MentionText";
 const PlanCanvas = lazy(() => import("./PlanCanvas"));
 
 const UI_COLORS = {
-  pending: "#ADADAD",
+  pending: "hsl(var(--disabled-foreground))",
   blue: "#76AFD9",
   green: "#50AC66",
-  itemBg: "#FBFBFB",
-  itemBorder: "#E6E6E6",
-  borderStrong: "#DBDBDB",
-  text: "#3D3D3A",
-  textSoft: "#898982",
-  muted: "#A3A39E",
-  label: "#A5A5A0",
+  itemBg: "hsl(var(--card))",
+  itemBorder: "hsl(var(--border))",
+  borderStrong: "hsl(var(--border))",
+  text: "hsl(var(--foreground))",
+  textSoft: "hsl(var(--subtle-foreground))",
+  muted: "hsl(var(--disabled-foreground))",
+  label: "hsl(var(--disabled-foreground))",
   danger: "#E75F79",
 };
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -169,7 +169,7 @@ function CommentList({
   return (
     <div className="space-y-3">
       {comments.map((comment) => (
-        <div key={comment._id} className="border bg-white p-3" style={{ borderColor: UI_COLORS.itemBorder }}>
+        <div key={comment._id} className="border bg-card p-3" style={{ borderColor: UI_COLORS.itemBorder }}>
           <div className="flex items-start gap-3">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border text-xs font-medium" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>
               {getInitials(comment.user_name)}
@@ -177,7 +177,7 @@ function CommentList({
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-gray-900">{comment.user_name}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{comment.user_name}</p>
                   <p className="text-xs" style={{ color: UI_COLORS.muted }}>{formatDateTime(comment.created_at)}</p>
                 </div>
                 {(isAdmin || currentUserId === comment.user_id) && (
@@ -186,7 +186,7 @@ function CommentList({
                   </Button>
                 )}
               </div>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-gray-700"><MentionText comment={comment} /></p>
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-foreground"><MentionText comment={comment} /></p>
             </div>
           </div>
         </div>
@@ -644,10 +644,10 @@ export default function PlanosPage() {
   };
 
   if (!projectId || project === null) {
-    return <div className="flex min-h-screen items-center justify-center bg-white text-sm text-gray-500">Proyecto no encontrado o sin acceso.</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-card text-sm text-subtle-foreground">Proyecto no encontrado o sin acceso.</div>;
   }
   if (project === undefined || plans === undefined || planFolders === undefined || currentUser === undefined || (selectedPlanId && !planDetail)) {
-    return <div className="flex min-h-screen items-center justify-center bg-white"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>;
+    return <div className="flex min-h-screen items-center justify-center bg-card"><Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" /></div>;
   }
 
   const sharedDialogs = (
@@ -730,16 +730,16 @@ export default function PlanosPage() {
 
   if (selectedPlanId && planDetail) {
     return (
-      <div className="min-h-screen bg-white text-left">
-        <div className="border-b border-gray-200 px-6 py-6 lg:px-16">
+      <div className="min-h-screen bg-card text-left">
+        <div className="border-b border-border px-6 py-6 lg:px-16">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <button type="button" onClick={() => navigate(`/proyecto/${projectId}/planos`)} className="mb-3 inline-flex items-center gap-2 text-sm" style={{ color: UI_COLORS.textSoft }}>
                 <ArrowLeft className="h-4 w-4" />Biblioteca de planos
               </button>
-              <p className="text-sm text-gray-500">{project?.nombre} · Plano</p>
+              <p className="text-sm text-subtle-foreground">{project?.nombre} · Plano</p>
               <div className="mt-1 flex flex-wrap items-center gap-3">
-                <h1 className="truncate text-3xl font-normal text-gray-900">{planDetail.titulo}</h1>
+                <h1 className="truncate text-3xl font-normal text-foreground">{planDetail.titulo}</h1>
                 <span className="inline-flex items-center gap-2 rounded-sm px-2.5 py-1 text-xs" style={{ backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>
                   <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: planStatusColor(planDetail.status) }} />{planDetail.status}
                 </span>
@@ -750,13 +750,13 @@ export default function PlanosPage() {
             </div>
             <div className="flex flex-wrap gap-2 self-start lg:self-auto">
               <MentionNotificationCenter projectId={projectId} compact />
-              <Button type="button" variant="outline" className="h-11 gap-2 rounded-sm bg-white shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }} asChild>
+              <Button type="button" variant="outline" className="h-11 gap-2 rounded-sm bg-card shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }} asChild>
                 <a href={planDetail.url || "#"} download={planDetail.nombre_archivo} target="_blank" rel="noreferrer"><Download className="h-4 w-4" />Descargar</a>
               </Button>
               {canManagePlan && (
                 <>
-                  <Button type="button" variant="outline" onClick={() => setEditOpen(true)} className="h-11 gap-2 rounded-sm bg-white shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }}><Pencil className="h-4 w-4" />Editar datos</Button>
-                  <Button type="button" variant="outline" onClick={() => setDeleteTarget({ type: "plan", id: planDetail._id, name: planDetail.titulo })} className="h-11 gap-2 rounded-sm bg-white shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.danger }}><Trash2 className="h-4 w-4" />Eliminar</Button>
+                  <Button type="button" variant="outline" onClick={() => setEditOpen(true)} className="h-11 gap-2 rounded-sm bg-card shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }}><Pencil className="h-4 w-4" />Editar datos</Button>
+                  <Button type="button" variant="outline" onClick={() => setDeleteTarget({ type: "plan", id: planDetail._id, name: planDetail.titulo })} className="h-11 gap-2 rounded-sm bg-card shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.danger }}><Trash2 className="h-4 w-4" />Eliminar</Button>
                 </>
               )}
             </div>
@@ -765,7 +765,7 @@ export default function PlanosPage() {
 
         <div className="grid min-h-[calc(100vh-13rem)] xl:grid-cols-[minmax(0,1fr)_390px]">
           <section className="min-w-0 border-b xl:border-b-0 xl:border-r" style={{ borderColor: UI_COLORS.itemBorder }}>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-white px-4 py-3" style={{ borderColor: UI_COLORS.itemBorder }}>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-3" style={{ borderColor: UI_COLORS.itemBorder }}>
               <div className="flex flex-wrap items-center gap-1">
                 {TOOL_OPTIONS.map((option) => {
                   const Icon = option.icon;
@@ -777,12 +777,12 @@ export default function PlanosPage() {
                 })}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex h-9 items-center rounded-sm border bg-white" style={{ borderColor: UI_COLORS.itemBorder }}>
+                <div className="flex h-9 items-center rounded-sm border bg-card" style={{ borderColor: UI_COLORS.itemBorder }}>
                   <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setZoom((value) => Math.max(0.5, value - 0.25))} disabled={zoom <= 0.5} aria-label="Alejar"><ZoomOut className="h-4 w-4" /></Button>
                   <button type="button" onClick={() => setZoom(1)} className="min-w-14 px-1 text-xs tabular-nums" style={{ color: UI_COLORS.textSoft }}>{Math.round(zoom * 100)}%</button>
                   <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setZoom((value) => Math.min(3, value + 0.25))} disabled={zoom >= 3} aria-label="Acercar"><ZoomIn className="h-4 w-4" /></Button>
                 </div>
-                <div className="flex h-9 items-center rounded-sm border bg-white" style={{ borderColor: UI_COLORS.itemBorder }}>
+                <div className="flex h-9 items-center rounded-sm border bg-card" style={{ borderColor: UI_COLORS.itemBorder }}>
                   <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page <= 1} aria-label="Página anterior"><ChevronLeft className="h-4 w-4" /></Button>
                   <span className="min-w-20 text-center text-xs tabular-nums" style={{ color: UI_COLORS.textSoft }}>{page} / {pageCount ?? "…"}</span>
                   <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setPage((value) => Math.min(pageCount ?? value + 1, value + 1))} disabled={pageCount === undefined || page >= pageCount} aria-label="Página siguiente"><ChevronRight className="h-4 w-4" /></Button>
@@ -814,16 +814,16 @@ export default function PlanosPage() {
             </div>
           </section>
 
-          <aside className="min-w-0 bg-white">
+          <aside className="min-w-0 bg-card">
             <Tabs value={detailTab} onValueChange={(value) => {
               setDetailTab(value as "annotations" | "comments");
               setCommentText("");
               setCommentMentions([]);
               navigate(value === "comments" ? `/proyecto/${projectId}/planos/${selectedPlanId}?tab=comments` : `/proyecto/${projectId}/planos/${selectedPlanId}`, { replace: true });
             }} className="h-full">
-              <TabsList className="grid h-14 w-full grid-cols-2 rounded-none border-b bg-white p-0" style={{ borderColor: UI_COLORS.itemBorder }}>
-                <TabsTrigger value="annotations" className="h-14 gap-2 rounded-none border-b-2 border-transparent bg-white data-[state=active]:border-gray-900 data-[state=active]:bg-white data-[state=active]:shadow-none"><Focus className="h-4 w-4" />Anotaciones<span className="rounded-sm px-2 py-0.5 text-xs" style={{ backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{planDetail.annotations.length}</span></TabsTrigger>
-                <TabsTrigger value="comments" className="h-14 gap-2 rounded-none border-b-2 border-transparent bg-white data-[state=active]:border-gray-900 data-[state=active]:bg-white data-[state=active]:shadow-none"><MessageSquare className="h-4 w-4" />Comentarios<span className="rounded-sm px-2 py-0.5 text-xs" style={{ backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{generalComments.length}</span></TabsTrigger>
+              <TabsList className="grid h-14 w-full grid-cols-2 rounded-none border-b bg-card p-0" style={{ borderColor: UI_COLORS.itemBorder }}>
+                <TabsTrigger value="annotations" className="h-14 gap-2 rounded-none border-b-2 border-transparent bg-card data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:shadow-none"><Focus className="h-4 w-4" />Anotaciones<span className="rounded-sm px-2 py-0.5 text-xs" style={{ backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{planDetail.annotations.length}</span></TabsTrigger>
+                <TabsTrigger value="comments" className="h-14 gap-2 rounded-none border-b-2 border-transparent bg-card data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:shadow-none"><MessageSquare className="h-4 w-4" />Comentarios<span className="rounded-sm px-2 py-0.5 text-xs" style={{ backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{generalComments.length}</span></TabsTrigger>
               </TabsList>
               <TabsContent value="annotations" className="m-0">
                 <div className="max-h-[calc(100vh-17.5rem)] min-h-[36rem] overflow-y-auto p-4">
@@ -837,13 +837,13 @@ export default function PlanosPage() {
                       }} className="inline-flex items-center gap-2 text-sm" style={{ color: UI_COLORS.textSoft }}><ArrowLeft className="h-4 w-4" />Todas las anotaciones</button>
                       <div className="border p-4" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg }}>
                         <div className="flex items-start justify-between gap-3">
-                          <div><p className="text-sm font-medium text-gray-900">{annotationName(selectedAnnotation.tipo)}</p><p className="mt-1 text-xs" style={{ color: UI_COLORS.muted }}>Página {selectedAnnotation.pagina} · {selectedAnnotation.created_by_name}</p></div>
-                          <span className="inline-flex items-center gap-2 rounded-sm bg-white px-2 py-1 text-xs" style={{ color: UI_COLORS.textSoft }}><span className="h-2 w-2 rounded-sm" style={{ backgroundColor: selectedAnnotation.status === "Resuelta" ? UI_COLORS.green : UI_COLORS.blue }} />{selectedAnnotation.status}</span>
+                          <div><p className="text-sm font-medium text-foreground">{annotationName(selectedAnnotation.tipo)}</p><p className="mt-1 text-xs" style={{ color: UI_COLORS.muted }}>Página {selectedAnnotation.pagina} · {selectedAnnotation.created_by_name}</p></div>
+                          <span className="inline-flex items-center gap-2 rounded-sm bg-card px-2 py-1 text-xs" style={{ color: UI_COLORS.textSoft }}><span className="h-2 w-2 rounded-sm" style={{ backgroundColor: selectedAnnotation.status === "Resuelta" ? UI_COLORS.green : UI_COLORS.blue }} />{selectedAnnotation.status}</span>
                         </div>
-                        <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-gray-700"><MentionText comment={selectedAnnotation} /></p>
+                        <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-foreground"><MentionText comment={selectedAnnotation} /></p>
                         {canWrite && (
                           <div className="mt-4 flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: UI_COLORS.itemBorder }}>
-                            <Button type="button" variant="outline" size="sm" onClick={() => handleToggleAnnotationStatus(selectedAnnotation)} className="gap-2 rounded-sm bg-white shadow-none" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.textSoft }}>
+                            <Button type="button" variant="outline" size="sm" onClick={() => handleToggleAnnotationStatus(selectedAnnotation)} className="gap-2 rounded-sm bg-card shadow-none" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.textSoft }}>
                               {selectedAnnotation.status === "Resuelta" ? <Focus className="h-4 w-4" /> : <Check className="h-4 w-4" />}{selectedAnnotation.status === "Resuelta" ? "Reabrir" : "Resolver"}
                             </Button>
                             {(currentUser?.role === "admin" || currentUser?._id === selectedAnnotation.created_by_id) && (
@@ -853,7 +853,7 @@ export default function PlanosPage() {
                         )}
                       </div>
                       <div>
-                        <h2 className="mb-3 text-sm font-medium text-gray-900">Conversación</h2>
+                        <h2 className="mb-3 text-sm font-medium text-foreground">Conversación</h2>
                         {canWrite && <div className="mb-4"><MentionCommentComposer value={commentText} mentions={commentMentions} mentionableUsers={composerUsers} submitting={commentSubmitting} onChange={(value, mentions) => { setCommentText(value); setCommentMentions(mentions); }} onSubmit={handleAddComment} /></div>}
                         <CommentList comments={selectedAnnotationComments} currentUserId={currentUser?._id} isAdmin={currentUser?.role === "admin"} onDelete={handleRemoveComment} />
                       </div>
@@ -861,12 +861,12 @@ export default function PlanosPage() {
                   ) : (
                     <div className="space-y-3">
                       {planDetail.annotations.length === 0 ? (
-                        <div className="border border-dashed p-8 text-center" style={{ borderColor: UI_COLORS.itemBorder }}><Cloud className="mx-auto h-7 w-7" style={{ color: UI_COLORS.muted }} /><p className="mt-3 text-sm font-medium text-gray-900">Sin anotaciones</p><p className="mt-1 text-sm" style={{ color: UI_COLORS.muted }}>Selecciona una herramienta y marca una observación directamente sobre el plano.</p></div>
+                        <div className="border border-dashed p-8 text-center" style={{ borderColor: UI_COLORS.itemBorder }}><Cloud className="mx-auto h-7 w-7" style={{ color: UI_COLORS.muted }} /><p className="mt-3 text-sm font-medium text-foreground">Sin anotaciones</p><p className="mt-1 text-sm" style={{ color: UI_COLORS.muted }}>Selecciona una herramienta y marca una observación directamente sobre el plano.</p></div>
                       ) : planDetail.annotations.map((annotation) => (
-                        <button key={annotation._id} type="button" onClick={() => handleSelectAnnotation(annotation._id)} className="w-full border bg-white p-3 text-left transition hover:bg-[#FBFBFB]" style={{ borderColor: UI_COLORS.itemBorder }}>
+                        <button key={annotation._id} type="button" onClick={() => handleSelectAnnotation(annotation._id)} className="w-full border bg-card p-3 text-left transition hover:bg-card" style={{ borderColor: UI_COLORS.itemBorder }}>
                           <div className="flex items-start gap-3">
                             <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border text-xs font-medium" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.textSoft, backgroundColor: UI_COLORS.itemBg }}>P{annotation.pagina}</span>
-                            <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="text-sm font-medium text-gray-900">{annotationName(annotation.tipo)}</p><span className="h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: annotation.status === "Resuelta" ? UI_COLORS.green : UI_COLORS.blue }} title={annotation.status} /></div><p className="mt-1 line-clamp-2 text-sm leading-5 text-gray-600"><MentionText comment={annotation} /></p><p className="mt-2 text-xs" style={{ color: UI_COLORS.muted }}>{annotation.created_by_name} · {annotation.comment_count} comentario{annotation.comment_count === 1 ? "" : "s"}</p></div>
+                            <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="text-sm font-medium text-foreground">{annotationName(annotation.tipo)}</p><span className="h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: annotation.status === "Resuelta" ? UI_COLORS.green : UI_COLORS.blue }} title={annotation.status} /></div><p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground"><MentionText comment={annotation} /></p><p className="mt-2 text-xs" style={{ color: UI_COLORS.muted }}>{annotation.created_by_name} · {annotation.comment_count} comentario{annotation.comment_count === 1 ? "" : "s"}</p></div>
                           </div>
                         </button>
                       ))}
@@ -895,20 +895,20 @@ export default function PlanosPage() {
   const hasActiveFilters = Boolean(search.trim()) || statusFilter !== "all" || libraryTab !== "all";
 
   return (
-    <div className="relative min-h-screen bg-white text-left" onDragEnter={handleFolderDragEnter} onDragLeave={handleFolderDragLeave} onDragOver={handleFolderDragOver} onDrop={(event) => void handleFolderDrop(event)}>
+    <div className="relative min-h-screen bg-card text-left" onDragEnter={handleFolderDragEnter} onDragLeave={handleFolderDragLeave} onDragOver={handleFolderDragOver} onDrop={(event) => void handleFolderDrop(event)}>
       {isDraggingFolder && (
-        <div className="pointer-events-none absolute inset-3 z-40 flex items-center justify-center border-2 border-dashed border-gray-900 bg-white/95">
-          <div className="max-w-md px-6 text-center"><Upload className="mx-auto mb-4 h-12 w-12 text-gray-700" /><p className="text-xl text-gray-900">Suelta la carpeta de planos para agregarla</p><p className="mt-2 text-sm text-gray-500">Podrás revisar nombres, formatos, Disciplina y Estado antes de subir.</p></div>
+        <div className="pointer-events-none absolute inset-3 z-40 flex items-center justify-center border-2 border-dashed border-foreground bg-card/95">
+          <div className="max-w-md px-6 text-center"><Upload className="mx-auto mb-4 h-12 w-12 text-foreground" /><p className="text-xl text-foreground">Suelta la carpeta de planos para agregarla</p><p className="mt-2 text-sm text-subtle-foreground">Podrás revisar nombres, formatos, Disciplina y Estado antes de subir.</p></div>
         </div>
       )}
-      <div className="border-b border-gray-200 px-6 py-8 lg:px-16">
+      <div className="border-b border-border px-6 py-8 lg:px-16">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             {currentFolder && (
               <div className="mb-2 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 text-sm" style={{ color: UI_COLORS.textSoft }}>
                 <button
                   type="button"
-                  className="shrink-0 hover:text-gray-900"
+                  className="shrink-0 hover:text-foreground"
                   onClick={() => {
                     setCurrentPlanLocation();
                     setSearch("");
@@ -921,7 +921,7 @@ export default function PlanosPage() {
                     <ChevronRight className="h-4 w-4 shrink-0" style={{ color: UI_COLORS.itemBorder }} />
                     <button
                       type="button"
-                      className="max-w-48 shrink-0 truncate hover:text-gray-900"
+                      className="max-w-48 shrink-0 truncate hover:text-foreground"
                       onClick={() => {
                         setCurrentPlanLocation(currentFolderId);
                         setSearch("");
@@ -936,7 +936,7 @@ export default function PlanosPage() {
                     <ChevronRight className="h-4 w-4 shrink-0" style={{ color: UI_COLORS.itemBorder }} />
                     <button
                       type="button"
-                      className="max-w-48 truncate hover:text-gray-900"
+                      className="max-w-48 truncate hover:text-foreground"
                       onClick={() => {
                         setCurrentPlanLocation(currentFolderId, currentFolderPath.slice(0, index + 1));
                         setSearch("");
@@ -948,8 +948,8 @@ export default function PlanosPage() {
                 ))}
               </div>
             )}
-            {!currentFolder && <p className="text-sm text-gray-500">Proyecto</p>}
-            <h1 className="mt-1 break-words text-3xl font-normal text-gray-900">{currentLocationName}</h1>
+            {!currentFolder && <p className="text-sm text-subtle-foreground">Proyecto</p>}
+            <h1 className="mt-1 break-words text-3xl font-normal text-foreground">{currentLocationName}</h1>
             <p className="mt-2 text-sm" style={{ color: UI_COLORS.muted }}>
               {currentFolder
                 ? "Explora los planos de esta ubicación y abre un archivo para revisarlo."
@@ -960,7 +960,7 @@ export default function PlanosPage() {
             <MentionNotificationCenter projectId={projectId} />
             {canWrite && (
               <>
-                <Button type="button" variant="outline" onClick={openUploadDialog} className="h-14 gap-3 rounded-sm bg-white px-6 text-base font-normal shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }}><Plus className="h-5 w-5" />Cargar plano</Button>
+                <Button type="button" variant="outline" onClick={openUploadDialog} className="h-14 gap-3 rounded-sm bg-card px-6 text-base font-normal shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }}><Plus className="h-5 w-5" />Cargar plano</Button>
                 <Button type="button" onClick={openFolderUploadDialog} className="h-14 gap-3 rounded-sm px-6 text-base font-normal shadow-none"><FolderUp className="h-5 w-5" />Cargar carpeta</Button>
               </>
             )}
@@ -974,25 +974,25 @@ export default function PlanosPage() {
             { id: "open" as const, label: "Observaciones abiertas", value: stats.open },
             { id: "resolved" as const, label: "Planos revisados", value: stats.resolved },
           ].map((item) => (
-            <button key={item.id} type="button" onClick={() => setLibraryTab(item.id)} className={cn("flex min-w-max items-center gap-4 px-4 py-4 text-sm text-gray-600", libraryTab === item.id && "border-b-2 border-gray-900 text-gray-900")}><span>{item.label}</span><span className="flex h-7 min-w-7 items-center justify-center rounded-sm px-2 text-xs" style={{ backgroundColor: UI_COLORS.itemBg }}>{item.value}</span></button>
+            <button key={item.id} type="button" onClick={() => setLibraryTab(item.id)} className={cn("flex min-w-max items-center gap-4 px-4 py-4 text-sm text-muted-foreground", libraryTab === item.id && "border-b-2 border-foreground text-foreground")}><span>{item.label}</span><span className="flex h-7 min-w-7 items-center justify-center rounded-sm px-2 text-xs" style={{ backgroundColor: UI_COLORS.itemBg }}>{item.value}</span></button>
           ))}
         </div>
-        <div className="grid gap-4 rounded-sm border bg-white p-4 lg:grid-cols-[minmax(280px,1fr)_240px]" style={{ borderColor: UI_COLORS.itemBorder }}>
-          <div className="relative"><Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2" style={{ color: UI_COLORS.muted }} /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar en esta ubicación" className="h-9 rounded-sm bg-white pl-14 text-base font-normal shadow-none" style={{ borderColor: UI_COLORS.itemBorder }} /></div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-9 rounded-sm bg-white px-5 text-base shadow-none" style={{ borderColor: UI_COLORS.itemBorder }}><SelectValue placeholder="Estado" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los estados</SelectItem><SelectItem value="Vigente">Vigentes</SelectItem><SelectItem value="Borrador">Borradores</SelectItem><SelectItem value="Archivado">Archivados</SelectItem></SelectContent></Select>
+        <div className="grid gap-4 rounded-sm border bg-card p-4 lg:grid-cols-[minmax(280px,1fr)_240px]" style={{ borderColor: UI_COLORS.itemBorder }}>
+          <div className="relative"><Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2" style={{ color: UI_COLORS.muted }} /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar en esta ubicación" className="h-9 rounded-sm bg-card pl-14 text-base font-normal shadow-none" style={{ borderColor: UI_COLORS.itemBorder }} /></div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-9 rounded-sm bg-card px-5 text-base shadow-none" style={{ borderColor: UI_COLORS.itemBorder }}><SelectValue placeholder="Estado" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los estados</SelectItem><SelectItem value="Vigente">Vigentes</SelectItem><SelectItem value="Borrador">Borradores</SelectItem><SelectItem value="Archivado">Archivados</SelectItem></SelectContent></Select>
         </div>
-        <div className="overflow-hidden rounded-sm border bg-white" style={{ borderColor: UI_COLORS.itemBorder }}>
+        <div className="overflow-hidden rounded-sm border bg-card" style={{ borderColor: UI_COLORS.itemBorder }}>
           <div className="hidden grid-cols-[minmax(0,1.4fr)_0.8fr_0.7fr_0.8fr_38px] gap-4 border-b px-6 py-4 text-sm lg:grid" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.label }}><span>Nombre</span><span>Revisión</span><span>Estado</span><span>Actividad</span><span /></div>
           {hasVisibleItems ? (
             <>
               {visibleFolders.map((folder) => (
-                <button key={folder.key} type="button" onClick={folder.onOpen} className="grid w-full gap-4 border-b px-5 py-5 text-left transition hover:bg-[#FBFBFB] lg:grid-cols-[minmax(0,1.4fr)_0.8fr_0.7fr_0.8fr_38px] lg:items-center lg:px-6" style={{ borderColor: UI_COLORS.itemBorder }}>
+                <button key={folder.key} type="button" onClick={folder.onOpen} className="grid w-full gap-4 border-b px-5 py-5 text-left transition hover:bg-card lg:grid-cols-[minmax(0,1.4fr)_0.8fr_0.7fr_0.8fr_38px] lg:items-center lg:px-6" style={{ borderColor: UI_COLORS.itemBorder }}>
                   <div className="flex min-w-0 items-center gap-4">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>
                       <Folder className="h-5 w-5 fill-current" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-gray-900">{folder.name}</span>
+                      <span className="block truncate text-sm font-medium text-foreground">{folder.name}</span>
                       <span className="mt-1 block text-xs" style={{ color: UI_COLORS.muted }}>{folder.planCount} plano{folder.planCount === 1 ? "" : "s"}</span>
                     </span>
                   </div>
@@ -1003,8 +1003,8 @@ export default function PlanosPage() {
                 </button>
               ))}
               {filteredPlans.map((plan) => (
-            <button key={plan._id} type="button" onClick={() => navigate(`/proyecto/${projectId}/planos/${plan._id}`)} className="grid w-full gap-4 border-b px-5 py-5 text-left transition last:border-b-0 hover:bg-[#FBFBFB] lg:grid-cols-[minmax(0,1.4fr)_0.8fr_0.7fr_0.8fr_38px] lg:items-center lg:px-6" style={{ borderColor: UI_COLORS.itemBorder }}>
-              <div className="flex min-w-0 items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{plan.type === "application/pdf" ? <FileText className="h-5 w-5" /> : <FileImage className="h-5 w-5" />}</span><span className="min-w-0"><span className="block truncate text-sm font-medium text-gray-900">{plan.titulo}</span><span className="mt-1 block truncate text-xs" style={{ color: UI_COLORS.muted }}>{[plan.numero, plan.disciplina, formatBytes(plan.size)].filter(Boolean).join(" · ")}</span></span></div>
+            <button key={plan._id} type="button" onClick={() => navigate(`/proyecto/${projectId}/planos/${plan._id}`)} className="grid w-full gap-4 border-b px-5 py-5 text-left transition last:border-b-0 hover:bg-card lg:grid-cols-[minmax(0,1.4fr)_0.8fr_0.7fr_0.8fr_38px] lg:items-center lg:px-6" style={{ borderColor: UI_COLORS.itemBorder }}>
+              <div className="flex min-w-0 items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{plan.type === "application/pdf" ? <FileText className="h-5 w-5" /> : <FileImage className="h-5 w-5" />}</span><span className="min-w-0"><span className="block truncate text-sm font-medium text-foreground">{plan.titulo}</span><span className="mt-1 block truncate text-xs" style={{ color: UI_COLORS.muted }}>{[plan.numero, plan.disciplina, formatBytes(plan.size)].filter(Boolean).join(" · ")}</span></span></div>
               <div className="min-w-0"><span className="text-xs lg:hidden" style={{ color: UI_COLORS.label }}>Revisión</span><p className="mt-1 truncate text-sm lg:mt-0" style={{ color: UI_COLORS.textSoft }}>{plan.revision || "Sin revisión"}</p></div>
               <div><span className="text-xs lg:hidden" style={{ color: UI_COLORS.label }}>Estado</span><span className="mt-1 flex items-center gap-2 text-sm lg:mt-0" style={{ color: UI_COLORS.textSoft }}><span className="h-2 w-2 rounded-sm" style={{ backgroundColor: planStatusColor(plan.status) }} />{plan.status}</span></div>
               <div><span className="text-xs lg:hidden" style={{ color: UI_COLORS.label }}>Actividad</span><p className="mt-1 text-sm lg:mt-0" style={{ color: UI_COLORS.textSoft }}>{plan.open_annotation_count > 0 ? `${plan.open_annotation_count} abierta${plan.open_annotation_count === 1 ? "" : "s"}` : `${plan.annotation_count} anotación${plan.annotation_count === 1 ? "" : "es"}`}</p><p className="mt-0.5 text-xs" style={{ color: UI_COLORS.muted }}>{plan.comment_count} comentario{plan.comment_count === 1 ? "" : "s"}</p></div>
@@ -1013,7 +1013,7 @@ export default function PlanosPage() {
               ))}
             </>
           ) : (
-            <div className="px-6 py-16 text-center"><FolderOpen className="mx-auto h-8 w-8" style={{ color: UI_COLORS.muted }} /><p className="mt-4 text-sm font-medium text-gray-900">{hasActiveFilters ? "No hay resultados" : plans.length === 0 && planFolders.length === 0 ? "Aún no hay planos" : "Esta ubicación está vacía"}</p><p className="mt-1 text-sm" style={{ color: UI_COLORS.muted }}>{hasActiveFilters ? "Ajusta la búsqueda o los filtros seleccionados." : plans.length === 0 && planFolders.length === 0 ? "Carga el primer plano para comenzar la revisión colaborativa." : "Regresa a la carpeta anterior o carga un plano en esta ubicación."}</p>{canWrite && plans.length === 0 && planFolders.length === 0 && <div className="mt-5 flex flex-wrap justify-center gap-2"><Button type="button" variant="outline" onClick={openUploadDialog} className="gap-2 rounded-sm bg-white shadow-none" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.textSoft }}><Upload className="h-4 w-4" />Cargar plano</Button><Button type="button" onClick={openFolderUploadDialog} className="gap-2 rounded-sm shadow-none"><FolderUp className="h-4 w-4" />Cargar carpeta</Button></div>}</div>
+            <div className="px-6 py-16 text-center"><FolderOpen className="mx-auto h-8 w-8" style={{ color: UI_COLORS.muted }} /><p className="mt-4 text-sm font-medium text-foreground">{hasActiveFilters ? "No hay resultados" : plans.length === 0 && planFolders.length === 0 ? "Aún no hay planos" : "Esta ubicación está vacía"}</p><p className="mt-1 text-sm" style={{ color: UI_COLORS.muted }}>{hasActiveFilters ? "Ajusta la búsqueda o los filtros seleccionados." : plans.length === 0 && planFolders.length === 0 ? "Carga el primer plano para comenzar la revisión colaborativa." : "Regresa a la carpeta anterior o carga un plano en esta ubicación."}</p>{canWrite && plans.length === 0 && planFolders.length === 0 && <div className="mt-5 flex flex-wrap justify-center gap-2"><Button type="button" variant="outline" onClick={openUploadDialog} className="gap-2 rounded-sm bg-card shadow-none" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.textSoft }}><Upload className="h-4 w-4" />Cargar plano</Button><Button type="button" onClick={openFolderUploadDialog} className="gap-2 rounded-sm shadow-none"><FolderUp className="h-4 w-4" />Cargar carpeta</Button></div>}</div>
           )}
         </div>
       </div>
@@ -1024,8 +1024,8 @@ export default function PlanosPage() {
           <DialogHeader><DialogTitle>Cargar plano</DialogTitle><DialogDescription>{currentFolderId ? `Se cargará en ${currentLocationName}. Las carpetas admiten archivos PDF de hasta 50 MB.` : "PDF, JPG, PNG o WebP de hasta 50 MB. Las anotaciones conservarán su posición en cada página."}</DialogDescription></DialogHeader>
           <div className="space-y-2">
             <Label>Archivo</Label>
-            <button type="button" onClick={() => fileInputRef.current?.click()} className="flex min-h-28 w-full items-center justify-center gap-3 border border-dashed bg-white p-5 text-sm" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }}>
-              {uploadFile ? <>{uploadFile.type === "application/pdf" ? <FileText className="h-6 w-6" /> : <FileImage className="h-6 w-6" />}<span className="min-w-0 text-left"><span className="block truncate font-medium text-gray-900">{uploadFile.name}</span><span className="block text-xs" style={{ color: UI_COLORS.muted }}>{formatBytes(uploadFile.size)} · Clic para reemplazar</span></span></> : <><Upload className="h-6 w-6" /><span>Seleccionar archivo</span></>}
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="flex min-h-28 w-full items-center justify-center gap-3 border border-dashed bg-card p-5 text-sm" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }}>
+              {uploadFile ? <>{uploadFile.type === "application/pdf" ? <FileText className="h-6 w-6" /> : <FileImage className="h-6 w-6" />}<span className="min-w-0 text-left"><span className="block truncate font-medium text-foreground">{uploadFile.name}</span><span className="block text-xs" style={{ color: UI_COLORS.muted }}>{formatBytes(uploadFile.size)} · Clic para reemplazar</span></span></> : <><Upload className="h-6 w-6" /><span>Seleccionar archivo</span></>}
             </button>
             <input ref={fileInputRef} type="file" accept={currentFolderId ? ".pdf,application/pdf" : ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"} className="sr-only" onChange={(event) => handleFileSelection(event.target.files?.[0])} />
           </div>

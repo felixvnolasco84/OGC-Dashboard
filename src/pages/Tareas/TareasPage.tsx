@@ -56,6 +56,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { STATIC_NEUTRAL_COLORS } from "@/lib/design-tokens";
 import type {
   PartidaSummary,
   ProjectLookupMap,
@@ -101,19 +102,19 @@ import { toast } from "sonner";
 const CATEGORY_OPTIONS = ["General", "Acabados", "Instalaciones", "Obra", "Finanzas", "Documentos", "Requisicion", "Bitacora"];
 const GENERAL_SCOPE = "__general__";
 const TASK_UI_COLORS = {
-  pending: "#ADADAD",
+  pending: "hsl(var(--disabled-foreground))",
   blue: "#76AFD9",
   green: "#50AC66",
   itemBg: "transparent",
-  itemBorder: "#F0F0F0",
+  itemBorder: "hsl(var(--border))",
 };
 const TASK_TABLE_GRID = "grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)_minmax(0,0.74fr)_minmax(0,0.7fr)_minmax(0,0.72fr)_minmax(0,1fr)_32px]";
 const TASK_TITLE_CELL = "min-w-0 md:col-span-3 xl:col-span-1";
 const TASK_FIELD_CELL = "min-w-0 space-y-1 xl:space-y-0";
 const TASK_ACTION_CELL = "flex min-w-0 justify-end md:col-span-3 xl:col-span-1";
-const TASK_MOBILE_LABEL = "block text-xs font-medium text-[#A5A5A0] xl:hidden";
-const TASK_VALUE_TEXT = "text-[#A3A39E]";
-const TASK_COLUMN_TEXT = "text-[#A5A5A0]";
+const TASK_MOBILE_LABEL = "block text-xs font-medium text-disabled-foreground xl:hidden";
+const TASK_VALUE_TEXT = "text-disabled-foreground";
+const TASK_COLUMN_TEXT = "text-disabled-foreground";
 
 const LABEL_COLORS = [
   "#00a884",
@@ -137,7 +138,7 @@ const LABEL_COLORS = [
   "#55c5eb",
   "#68a9c6",
   "#9db2c3",
-  "#777777",
+  STATIC_NEUTRAL_COLORS.subtleForeground,
   "#8a4f3f",
   "#df70b5",
   "#c4aa83",
@@ -254,21 +255,21 @@ function statusClass(status: string) {
     case "Bloqueada":
       return "bg-red-50 text-red-700 border-red-200";
     case "Cancelada":
-      return "bg-gray-100 text-gray-600 border-gray-200";
+      return "bg-muted text-muted-foreground border-border";
     default:
       return "bg-amber-50 text-amber-700 border-amber-200";
   }
 }
 
 function priorityClass(priority: string) {
-  if (!priority) return "bg-gray-50 text-gray-600 border-gray-200";
+  if (!priority) return "bg-background text-muted-foreground border-border";
   switch (priority) {
     case "Urgente":
       return "bg-red-50 text-red-700 border-red-200";
     case "Alta":
       return "bg-orange-50 text-orange-700 border-orange-200";
     case "Baja":
-      return "bg-gray-50 text-gray-600 border-gray-200";
+      return "bg-background text-muted-foreground border-border";
     default:
       return "bg-indigo-50 text-indigo-700 border-indigo-200";
   }
@@ -428,7 +429,7 @@ function InlineDatePicker({
           {displayValue}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
+      <PopoverContent align="start" className="w-auto border-border bg-card p-0 text-foreground shadow-xl">
         <Calendar
           mode="single"
           selected={selectedDate}
@@ -439,7 +440,7 @@ function InlineDatePicker({
           }}
           buttonVariant="ghost"
         />
-        <div className="flex items-center justify-between border-t border-gray-100 px-3 py-2">
+        <div className="flex items-center justify-between border-t border-border px-3 py-2">
           <Button
             type="button"
             variant="ghost"
@@ -524,46 +525,46 @@ function InlineLabelPicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
-            open && "border-[#E6E6E6] bg-white text-[#898982] ring-1 ring-[#E6E6E6]"
+            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground",
+            open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
           )}
         >
           <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: activeLabel.color }} />
           <span className="truncate">{activeLabel.label}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="center" sideOffset={6} className="w-56 overflow-visible border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
-        <div className="mx-auto -mt-2 h-4 w-4 rotate-45 border-l border-t border-gray-200 bg-white" />
+      <PopoverContent align="center" sideOffset={6} className="w-56 overflow-visible border-border bg-card p-0 text-foreground shadow-xl">
+        <div className="mx-auto -mt-2 h-4 w-4 rotate-45 border-l border-t border-border bg-card" />
         {editing ? (
           <>
             <div className="p-3 pb-2">
-              <p className="mb-2 px-1 text-xs font-medium text-[#A3A39E]">Estado</p>
+              <p className="mb-2 px-1 text-xs font-medium text-disabled-foreground">Estado</p>
               <div className="space-y-0.5">
                 {draftLabels.map((label) => (
                   <div key={label.id} className="relative flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setColorTargetId(colorTargetId === label.id ? null : label.id)}
-                      className="shrink-0 rounded p-1 hover:bg-[#F5F5F3]"
+                      className="shrink-0 rounded p-1 hover:bg-muted"
                     >
                       <span className="block h-3 w-3 rounded-full" style={{ backgroundColor: label.color }} />
                     </button>
                     <Input
                       value={label.label}
                       onChange={(event) => updateDraftLabel(label.id, { label: event.target.value })}
-                      className="h-7 flex-1 border-[#E6E6E6] bg-white px-2 text-sm text-[#3D3D3A] focus-visible:ring-1 focus-visible:ring-[#E6E6E6]"
+                      className="h-7 flex-1 border-border bg-card px-2 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-ring"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => setDraftLabels((current) => current.filter((item) => item.id !== label.id))}
-                      className="h-7 w-7 shrink-0 text-[#A3A39E] hover:text-[#E75F79]"
+                      className="h-7 w-7 shrink-0 text-disabled-foreground hover:text-[#E75F79]"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                     {colorTargetId === label.id && (
-                      <div className="absolute left-0 top-full z-50 mt-1 grid w-40 grid-cols-4 gap-2 rounded-md border border-gray-200 bg-white p-3 shadow-xl">
+                      <div className="absolute left-0 top-full z-50 mt-1 grid w-40 grid-cols-4 gap-2 rounded-md border border-border bg-card p-3 shadow-xl">
                         {LABEL_COLORS.map((color) => (
                           <button
                             key={color}
@@ -572,7 +573,7 @@ function InlineLabelPicker({
                               updateDraftLabel(label.id, { color });
                               setColorTargetId(null);
                             }}
-                            className="h-6 w-6 rounded-md border border-white shadow-sm"
+                            className="h-6 w-6 rounded-md border border-on-color shadow-sm"
                             style={{ backgroundColor: color }}
                             aria-label={`Color ${color}`}
                           />
@@ -582,13 +583,13 @@ function InlineLabelPicker({
                   </div>
                 ))}
               </div>
-              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-[#A3A39E] hover:text-[#898982]">
+              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-subtle-foreground">
                 <Plus className="h-3.5 w-3.5" />
                 Nueva etiqueta
               </Button>
             </div>
-            <div className="border-t border-gray-100 p-2">
-              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-[#898982]">
+            <div className="border-t border-border p-2">
+              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-subtle-foreground">
                 Aplicar
               </Button>
             </div>
@@ -596,7 +597,7 @@ function InlineLabelPicker({
         ) : (
           <>
             <div className="p-3 pb-2">
-              <p className="mb-2 px-1 text-xs font-medium text-[#A3A39E]">Estado</p>
+              <p className="mb-2 px-1 text-xs font-medium text-disabled-foreground">Estado</p>
               <div className="space-y-0.5">
                 {labels.map((label) => (
                   <button
@@ -604,8 +605,8 @@ function InlineLabelPicker({
                     type="button"
                     onClick={() => { onSelect(label.label); setOpen(false); }}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#3D3D3A] hover:bg-[#F5F5F3]",
-                      value === label.label || value === label.id ? "bg-[#F5F5F3] font-medium" : ""
+                      "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-muted",
+                      value === label.label || value === label.id ? "bg-muted font-medium" : ""
                     )}
                   >
                     <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: label.color }} />
@@ -614,8 +615,8 @@ function InlineLabelPicker({
                 ))}
               </div>
             </div>
-            <div className="border-t border-gray-100 p-2">
-              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-[#A3A39E] hover:text-[#898982]">
+            <div className="border-t border-border p-2">
+              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-subtle-foreground">
                 <Pencil className="h-3.5 w-3.5" />
                 Editar etiquetas
               </Button>
@@ -694,8 +695,8 @@ function InlinePriorityPicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
-            open && "border-[#E6E6E6] bg-white text-[#898982] ring-1 ring-[#E6E6E6]"
+            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground",
+            open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
           )}
         >
           <span
@@ -705,19 +706,19 @@ function InlinePriorityPicker({
           <span className="truncate">{activeLabel?.label || clearLabel}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="center" sideOffset={6} className="w-56 overflow-visible border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
-        <div className="mx-auto -mt-2 h-4 w-4 rotate-45 border-l border-t border-gray-200 bg-white" />
+      <PopoverContent align="center" sideOffset={6} className="w-56 overflow-visible border-border bg-card p-0 text-foreground shadow-xl">
+        <div className="mx-auto -mt-2 h-4 w-4 rotate-45 border-l border-t border-border bg-card" />
         {editing ? (
           <>
             <div className="p-3 pb-2">
-              <p className="mb-2 px-1 text-xs font-medium text-[#A3A39E]">Prioridad</p>
+              <p className="mb-2 px-1 text-xs font-medium text-disabled-foreground">Prioridad</p>
               <div className="space-y-0.5">
                 {draftLabels.map((label) => (
                   <div key={label.id} className="relative flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setColorTargetId(colorTargetId === label.id ? null : label.id)}
-                      className="shrink-0 rounded p-1 hover:bg-[#F5F5F3]"
+                      className="shrink-0 rounded p-1 hover:bg-muted"
                     >
                       <span
                         className="block h-3 w-3 rounded-full"
@@ -727,19 +728,19 @@ function InlinePriorityPicker({
                     <Input
                       value={label.label}
                       onChange={(event) => updateDraftLabel(label.id, { label: event.target.value })}
-                      className="h-7 flex-1 border-[#E6E6E6] bg-white px-2 text-sm text-[#3D3D3A] focus-visible:ring-1 focus-visible:ring-[#E6E6E6]"
+                      className="h-7 flex-1 border-border bg-card px-2 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-ring"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => setDraftLabels((current) => current.filter((item) => item.id !== label.id))}
-                      className="h-7 w-7 shrink-0 text-[#A3A39E] hover:text-[#E75F79]"
+                      className="h-7 w-7 shrink-0 text-disabled-foreground hover:text-[#E75F79]"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                     {colorTargetId === label.id && (
-                      <div className="absolute left-0 top-full z-50 mt-1 grid w-40 grid-cols-4 gap-2 rounded-md border border-gray-200 bg-white p-3 shadow-xl">
+                      <div className="absolute left-0 top-full z-50 mt-1 grid w-40 grid-cols-4 gap-2 rounded-md border border-border bg-card p-3 shadow-xl">
                         {LABEL_COLORS.map((color) => (
                           <button
                             key={color}
@@ -748,7 +749,7 @@ function InlinePriorityPicker({
                               updateDraftLabel(label.id, { color });
                               setColorTargetId(null);
                             }}
-                            className="h-6 w-6 rounded-md border border-white shadow-sm"
+                            className="h-6 w-6 rounded-md border border-on-color shadow-sm"
                             style={{ backgroundColor: color }}
                             aria-label={`Color ${color}`}
                           />
@@ -758,13 +759,13 @@ function InlinePriorityPicker({
                   </div>
                 ))}
               </div>
-              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-[#A3A39E] hover:text-[#898982]">
+              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-subtle-foreground">
                 <Plus className="h-3.5 w-3.5" />
                 Nueva prioridad
               </Button>
             </div>
-            <div className="border-t border-gray-100 p-2">
-              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-[#898982]">
+            <div className="border-t border-border p-2">
+              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-subtle-foreground">
                 Aplicar
               </Button>
             </div>
@@ -772,7 +773,7 @@ function InlinePriorityPicker({
         ) : (
           <>
             <div className="p-3 pb-2">
-              <p className="mb-2 px-1 text-xs font-medium text-[#A3A39E]">Prioridad</p>
+              <p className="mb-2 px-1 text-xs font-medium text-disabled-foreground">Prioridad</p>
               <div className="space-y-0.5">
                 {labels.map((label) => (
                   <button
@@ -780,8 +781,8 @@ function InlinePriorityPicker({
                     type="button"
                     onClick={() => handleSelect(label.label)}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#3D3D3A] hover:bg-[#F5F5F3]",
-                      value === label.label || value === label.id ? "bg-[#F5F5F3] font-medium" : ""
+                      "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-muted",
+                      value === label.label || value === label.id ? "bg-muted font-medium" : ""
                     )}
                   >
                     <span
@@ -794,15 +795,15 @@ function InlinePriorityPicker({
                 <button
                   type="button"
                   onClick={() => handleSelect("")}
-                  className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#A3A39E] hover:bg-[#F5F5F3]"
+                  className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-disabled-foreground hover:bg-muted"
                 >
                   <Ban className="h-4 w-4 shrink-0" />
                   <span>Limpiar</span>
                 </button>
               </div>
             </div>
-            <div className="border-t border-gray-100 p-2">
-              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-[#A3A39E] hover:text-[#898982]">
+            <div className="border-t border-border p-2">
+              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-subtle-foreground">
                 <Pencil className="h-3.5 w-3.5" />
                 Editar etiquetas
               </Button>
@@ -851,18 +852,18 @@ function InlineSingleSelectPicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-8 w-full min-w-0 justify-between gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-[#A3A39E] shadow-none hover:border-[#E6E6E6] hover:bg-white hover:text-[#898982]",
-            open && "border-[#E6E6E6] bg-white text-[#898982] ring-1 ring-[#E6E6E6]"
+            "h-8 w-full min-w-0 justify-between gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground",
+            open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
           )}
         >
           <span className="truncate">{displayValue}</span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-72 overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
-        <div className="border-b border-gray-100 p-3">
+      <PopoverContent align="start" sideOffset={6} className="w-72 overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+        <div className="border-b border-border p-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -881,16 +882,16 @@ function InlineSingleSelectPicker({
                 setOpen(false);
               }}
               className={cn(
-                "flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm text-[#63635E] hover:bg-[#F5F5F3]",
-                value === option.value && "bg-[#F5F5F3]"
+                "flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm text-muted-foreground hover:bg-muted",
+                value === option.value && "bg-muted"
               )}
             >
               <span className="truncate">{option.label}</span>
-              {value === option.value && <CheckCircle2 className="h-4 w-4 shrink-0 text-[#898982]" />}
+              {value === option.value && <CheckCircle2 className="h-4 w-4 shrink-0 text-subtle-foreground" />}
             </button>
           ))}
           {filteredOptions.length === 0 && (
-            <p className="px-3 py-6 text-center text-sm text-[#A3A39E]">Sin resultados</p>
+            <p className="px-3 py-6 text-center text-sm text-disabled-foreground">Sin resultados</p>
           )}
         </div>
       </PopoverContent>
@@ -951,63 +952,63 @@ function InlineAssigneePicker({
         >
           {assignedUsers.length ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-disabled text-xs font-medium text-subtle-foreground">
                 {userInitials(assignedUsers[0])}
               </span>
-              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-[#A3A39E]">
+              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground">
                 {assignedUsers.map((user) => user.name || user.email).join(", ")}
               </span>
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-subtle-foreground">
                 -
               </span>
-              <span className="text-sm text-[#A3A39E]">Sin asignar</span>
+              <span className="text-sm text-disabled-foreground">Sin asignar</span>
             </>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
-        <div className="border-b border-gray-100 p-3">
+      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+        <div className="border-b border-border p-3">
           <div className="flex flex-wrap gap-1.5">
             {assignedUsers.length ? assignedUsers.map((user) => (
               <button
                 key={user._id}
                 type="button"
                 onClick={() => toggleUser(user._id)}
-                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-gray-100 px-2 text-xs text-gray-700 hover:bg-gray-200"
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-muted px-2 text-xs text-foreground hover:bg-disabled"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-[10px] font-medium text-gray-500">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-medium text-subtle-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="max-w-36 truncate">{user.name || user.email}</span>
                 <X className="h-3 w-3" />
               </button>
             )) : (
-              <span className="text-sm text-gray-400">Selecciona responsables</span>
+              <span className="text-sm text-disabled-foreground">Selecciona responsables</span>
             )}
           </div>
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Buscar nombres, roles o equipos"
               className="h-9 pl-9 pr-9"
             />
-            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-disabled-foreground" />
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-gray-500">Personas sugeridas</p>
+          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">Personas sugeridas</p>
           {!assignableUsers && (
-            <div className="flex h-24 items-center justify-center text-gray-400">
+            <div className="flex h-24 items-center justify-center text-disabled-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {assignableUsers && filteredUsers.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-gray-500">
+            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
               No hay usuarios con esa búsqueda.
             </div>
           )}
@@ -1020,23 +1021,23 @@ function InlineAssigneePicker({
                 type="button"
                 onClick={() => toggleUser(user._id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100",
-                  selected && "bg-gray-100"
+                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted",
+                  selected && "bg-muted"
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-medium text-gray-500">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-gray-800">{user.name || user.email}</span>
-                  <span className="block truncate text-xs text-gray-500">{user.role}</span>
+                  <span className="block truncate font-medium text-foreground">{user.name || user.email}</span>
+                  <span className="block truncate text-xs text-subtle-foreground">{user.role}</span>
                 </span>
-                {selected && <CheckCircle2 className="h-4 w-4 text-gray-600" />}
+                {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
               </button>
             );
           })}
         </div>
-        <div className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        <div className="flex items-center gap-2 border-t border-border bg-background px-4 py-3 text-sm text-muted-foreground">
           <Bell className="h-4 w-4" />
           Se notificara a los responsables
         </div>
@@ -1097,60 +1098,60 @@ function InlinePartidaPicker({
         >
           {selectedPartidas.length ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#F5F5F5] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
                 {selectedPartidas.length}
               </span>
-              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-[#A3A39E]">
+              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground">
                 {selectedPartidas.map(partidaDisplayName).join(", ")}
               </span>
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-subtle-foreground">
                 -
               </span>
-              <span className="text-sm text-[#A3A39E]">Sin partidas</span>
+              <span className="text-sm text-disabled-foreground">Sin partidas</span>
             </>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
-        <div className="border-b border-gray-100 p-3">
+      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+        <div className="border-b border-border p-3">
           <div className="flex flex-wrap gap-1.5">
             {selectedPartidas.length ? selectedPartidas.map((partida) => (
               <button
                 key={partida._id}
                 type="button"
                 onClick={() => togglePartida(partida._id)}
-                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-gray-100 px-2 text-xs text-gray-700 hover:bg-gray-200"
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-muted px-2 text-xs text-foreground hover:bg-disabled"
               >
                 <span className="max-w-44 truncate">{partidaDisplayName(partida)}</span>
                 <X className="h-3 w-3" />
               </button>
             )) : (
-              <span className="text-sm text-gray-400">Selecciona partidas</span>
+              <span className="text-sm text-disabled-foreground">Selecciona partidas</span>
             )}
           </div>
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Buscar partidas"
               className="h-9 pl-9 pr-9"
             />
-            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-disabled-foreground" />
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-gray-500">Partidas del proyecto</p>
+          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">Partidas del proyecto</p>
           {!projectPartidas && (
-            <div className="flex h-24 items-center justify-center text-gray-400">
+            <div className="flex h-24 items-center justify-center text-disabled-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {projectPartidas && filteredPartidas.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-gray-500">
+            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
               No hay partidas con esa búsqueda.
             </div>
           )}
@@ -1163,23 +1164,23 @@ function InlinePartidaPicker({
                 type="button"
                 onClick={() => togglePartida(partida._id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100",
-                  selected && "bg-gray-100"
+                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted",
+                  selected && "bg-muted"
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-medium text-gray-500">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
                   {partida.nivel}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-gray-800">{partidaDisplayName(partida)}</span>
-                  <span className="block truncate text-xs text-gray-500">{partidaContext(partida)}</span>
+                  <span className="block truncate font-medium text-foreground">{partidaDisplayName(partida)}</span>
+                  <span className="block truncate text-xs text-subtle-foreground">{partidaContext(partida)}</span>
                 </span>
-                {selected && <CheckCircle2 className="h-4 w-4 text-gray-600" />}
+                {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
               </button>
             );
           })}
         </div>
-        <div className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        <div className="flex items-center gap-2 border-t border-border bg-background px-4 py-3 text-sm text-muted-foreground">
           <ListChecks className="h-4 w-4" />
           Se relacionara con la tarea
         </div>
@@ -1243,63 +1244,63 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
         >
           {assignedUsers.length ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#DDDCD8] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-disabled text-xs font-medium text-subtle-foreground">
                 {userInitials(assignedUsers[0])}
               </span>
-              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-[#A3A39E]">
+              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground">
                 {assignedUsers.map((user) => user.name || user.email).join(", ")}
               </span>
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-subtle-foreground">
                 -
               </span>
-              <span className="text-sm text-[#A3A39E]">Sin asignar</span>
+              <span className="text-sm text-disabled-foreground">Sin asignar</span>
             </>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
-        <div className="border-b border-gray-100 p-3">
+      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+        <div className="border-b border-border p-3">
           <div className="flex flex-wrap gap-1.5">
             {assignedUsers.length ? assignedUsers.map((user) => (
               <button
                 key={user._id}
                 type="button"
                 onClick={() => toggleUser(user._id)}
-                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-gray-100 px-2 text-xs text-gray-700 hover:bg-gray-200"
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-muted px-2 text-xs text-foreground hover:bg-disabled"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-[10px] font-medium text-gray-500">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-medium text-subtle-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="max-w-36 truncate">{user.name || user.email}</span>
                 <X className="h-3 w-3" />
               </button>
             )) : (
-              <span className="text-sm text-gray-400">Selecciona responsables</span>
+              <span className="text-sm text-disabled-foreground">Selecciona responsables</span>
             )}
           </div>
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Buscar nombres, roles o equipos"
               className="h-9 pl-9 pr-9"
             />
-            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-disabled-foreground" />
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-gray-500">Personas sugeridas</p>
+          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">Personas sugeridas</p>
           {!assignableUsers && (
-            <div className="flex h-24 items-center justify-center text-gray-400">
+            <div className="flex h-24 items-center justify-center text-disabled-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {assignableUsers && filteredUsers.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-gray-500">
+            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
               No hay usuarios con esa búsqueda.
             </div>
           )}
@@ -1311,23 +1312,23 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
                 type="button"
                 onClick={() => toggleUser(user._id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100",
-                  selected && "bg-gray-100"
+                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted",
+                  selected && "bg-muted"
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-medium text-gray-500">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-gray-800">{user.name || user.email}</span>
-                  <span className="block truncate text-xs text-gray-500">{user.role}</span>
+                  <span className="block truncate font-medium text-foreground">{user.name || user.email}</span>
+                  <span className="block truncate text-xs text-subtle-foreground">{user.role}</span>
                 </span>
-                {selected && <CheckCircle2 className="h-4 w-4 text-gray-600" />}
+                {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
               </button>
             );
           })}
         </div>
-        <div className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        <div className="flex items-center gap-2 border-t border-border bg-background px-4 py-3 text-sm text-muted-foreground">
           <Bell className="h-4 w-4" />
           Se notificara a los responsables
         </div>
@@ -1388,60 +1389,60 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
         >
           {selectedPartidas.length ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#DDDCD8] bg-[#F5F5F5] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
                 {selectedPartidas.length}
               </span>
-              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-[#A3A39E]">
+              <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground">
                 {selectedPartidas.map(partidaDisplayName).join(", ")}
               </span>
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0E0E0] text-xs font-medium text-[#898982]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-subtle-foreground">
                 -
               </span>
-              <span className="text-sm text-[#A3A39E]">Sin partidas</span>
+              <span className="text-sm text-disabled-foreground">Sin partidas</span>
             </>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-gray-200 bg-white p-0 text-gray-900 shadow-xl">
-        <div className="border-b border-gray-100 p-3">
+      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+        <div className="border-b border-border p-3">
           <div className="flex flex-wrap gap-1.5">
             {selectedPartidas.length ? selectedPartidas.map((partida) => (
               <button
                 key={partida._id}
                 type="button"
                 onClick={() => togglePartida(partida._id)}
-                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-gray-100 px-2 text-xs text-gray-700 hover:bg-gray-200"
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-muted px-2 text-xs text-foreground hover:bg-disabled"
               >
                 <span className="max-w-44 truncate">{partidaDisplayName(partida)}</span>
                 <X className="h-3 w-3" />
               </button>
             )) : (
-              <span className="text-sm text-gray-400">Selecciona partidas</span>
+              <span className="text-sm text-disabled-foreground">Selecciona partidas</span>
             )}
           </div>
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Buscar partidas"
               className="h-9 pl-9 pr-9"
             />
-            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <CircleAlert className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-disabled-foreground" />
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-gray-500">Partidas del proyecto</p>
+          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">Partidas del proyecto</p>
           {!projectPartidas && (
-            <div className="flex h-24 items-center justify-center text-gray-400">
+            <div className="flex h-24 items-center justify-center text-disabled-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {projectPartidas && filteredPartidas.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-gray-500">
+            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
               No hay partidas con esa búsqueda.
             </div>
           )}
@@ -1453,23 +1454,23 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
                 type="button"
                 onClick={() => togglePartida(partida._id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100",
-                  selected && "bg-gray-100"
+                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted",
+                  selected && "bg-muted"
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-medium text-gray-500">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
                   {partida.nivel}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-gray-800">{partidaDisplayName(partida)}</span>
-                  <span className="block truncate text-xs text-gray-500">{partidaContext(partida)}</span>
+                  <span className="block truncate font-medium text-foreground">{partidaDisplayName(partida)}</span>
+                  <span className="block truncate text-xs text-subtle-foreground">{partidaContext(partida)}</span>
                 </span>
-                {selected && <CheckCircle2 className="h-4 w-4 text-gray-600" />}
+                {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
               </button>
             );
           })}
         </div>
-        <div className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        <div className="flex items-center gap-2 border-t border-border bg-background px-4 py-3 text-sm text-muted-foreground">
           <ListChecks className="h-4 w-4" />
           Se relacionara con la tarea
         </div>
@@ -2340,13 +2341,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               setDraggingTaskId(task._id);
             }}
             onDragEnd={() => setDraggingTaskId(null)}
-            className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-[#A3A39E] opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+            className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-disabled-foreground opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
             aria-label="Reordenar tarea"
           >
             <GripVertical className="h-3.5 w-3.5" />
           </button>
           <div className="relative flex h-6 shrink-0 items-center gap-2">
-            <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || isSaving} className="h-4 w-4 border-[#EDEDED]" />
+            <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || isSaving} className="h-4 w-4 border-border" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -2361,12 +2362,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
                 }}
                 className={cn(
-                  "h-6 border-transparent bg-transparent px-1 text-sm font-normal text-[#63635E] shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0",
-                  level > 0 && "text-[#8D8D86]"
+                  "h-6 border-transparent bg-transparent px-1 text-sm font-normal text-muted-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0",
+                  level > 0 && "text-subtle-foreground"
                 )}
               />
               {overdue && <CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-500" />}
-              {isSaving && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-gray-400" />}
+              {isSaving && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-disabled-foreground" />}
             </div>
           </div>
         </div>
@@ -2431,7 +2432,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           />
         </div>
         <div className={TASK_ACTION_CELL}>
-          <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
+          <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-disabled-foreground hover:text-subtle-foreground">
             <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -2467,7 +2468,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             setContextMenu({ task, x: event.clientX, y: event.clientY });
           }}
           className={cn(
-            "group border-b bg-transparent px-4 sm:px-8 transition hover:bg-[#F1F1F1]",
+            "group border-b bg-transparent px-4 sm:px-8 transition hover:bg-muted",
             draggingTaskId === task._id && "opacity-50",
             draggingTaskId && draggingTaskId !== task._id && "data-[drop=true]:bg-blue-50"
           )}
@@ -2485,18 +2486,18 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     setDraggingTaskId(task._id);
                   }}
                   onDragEnd={() => setDraggingTaskId(null)}
-                  className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-[#A3A39E] opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+                  className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-disabled-foreground opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
                   aria-label="Reordenar tarea"
                 >
                   <GripVertical className="h-3.5 w-3.5" />
                 </button>
                 <div className="relative flex h-6 shrink-0 items-center gap-2">
-                  <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || inlineSavingId === task._id || updatingStatusId === task._id} className="h-4 w-4 border-[#EDEDED]" />
+                  <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || inlineSavingId === task._id || updatingStatusId === task._id} className="h-4 w-4 border-border" />
                   {hasChildren ? (
                     <button
                       type="button"
                       onClick={() => toggleTaskCollapse(task._id)}
-                      className="flex h-5 w-5 items-center justify-center rounded-sm border border-[#E6E6E6] hover:bg-[#F1F1F1] text-gray-600"
+                      className="flex h-5 w-5 items-center justify-center rounded-sm border border-border hover:bg-muted text-muted-foreground"
                       aria-expanded={!isTaskCollapsed}
                     >
                       <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isTaskCollapsed && "-rotate-90")} />
@@ -2528,7 +2529,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           });
                         }
                       }}
-                      className="flex h-5 w-5 items-center justify-center rounded-sm text-gray-400 hover:bg-[#F1F1F1] hover:text-gray-600"
+                      className="flex h-5 w-5 items-center justify-center rounded-sm text-disabled-foreground hover:bg-muted hover:text-muted-foreground"
                       aria-label="Agregar subtarea"
                     >
                       <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", addingSubtaskFor !== task._id && "-rotate-90")} />
@@ -2548,12 +2549,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
                       }}
                       className={cn(
-                        "h-6 border-transparent bg-transparent px-1 text-sm font-normal text-[#63635E] shadow-none hover:border-[#E6E6E6] focus-visible:border-[#E6E6E6] focus-visible:ring-0",
-                        task.parent_task && "text-[#8D8D86]"
+                        "h-6 border-transparent bg-transparent px-1 text-sm font-normal text-muted-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0",
+                        task.parent_task && "text-subtle-foreground"
                       )}
                     />
                     {isOverdue(task) && <CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-500" />}
-                    {(inlineSavingId === task._id || updatingStatusId === task._id) && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-gray-400" />}
+                    {(inlineSavingId === task._id || updatingStatusId === task._id) && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-disabled-foreground" />}
                   </div>
                 </div>
               </div>
@@ -2618,7 +2619,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 />
               </div>
               <div className={TASK_ACTION_CELL}>
-                <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-[#A3A39E] hover:text-[#898982]">
+                <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-disabled-foreground hover:text-subtle-foreground">
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -2627,7 +2628,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <>
                 {childTasks.map((child) => (
                   <React.Fragment key={child._id}>
-                    <div className="border-t border-[#F0F0F0]" />
+                    <div className="border-t border-border" />
                     <div
                       className={cn(draggingTaskId === child._id && "opacity-50")}
                       onDragOver={(event) => {
@@ -2647,12 +2648,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             )}
             {!isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
               <>
-                <div className="border-t border-[#F0F0F0]" />
+                <div className="border-t border-border" />
                 <div className="px-4 py-2 xl:px-6">
                   {addingSubtaskFor === task._id ? (
                     <div className={cn("grid min-h-[44px] items-center gap-4 subtask-creation-form", TASK_TABLE_GRID)}>
                       <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)} style={{ paddingLeft: 26 }}>
-                        <Checkbox disabled className="h-4 w-4 border-[#EDEDED]" />
+                        <Checkbox disabled className="h-4 w-4 border-border" />
                         <Input
                           autoFocus
                           value={subtaskTitle}
@@ -2693,7 +2694,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                             }, 100);
                           }}
                           placeholder="Nombre de la subtarea"
-                          className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-[#63635E] shadow-none focus-visible:ring-0"
+                          className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-muted-foreground shadow-none focus-visible:ring-0"
                         />
                       </div>
                       <div className={TASK_FIELD_CELL}>
@@ -2752,7 +2753,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         </Select>
                       </div>
                       <div className={cn(TASK_ACTION_CELL, "items-center")}>
-                        {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
+                        {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-disabled-foreground" />}
                       </div>
                     </div>
                   ) : (
@@ -2768,7 +2769,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         setSubtaskPriority("Media");
                         setSubtaskPartidas([]);
                       }}
-                      className="flex h-6 items-center gap-2 text-xs text-[#DBDBDA] hover:text-[#DBDBDA]"
+                      className="flex h-6 items-center gap-2 text-xs text-disabled-foreground hover:text-disabled-foreground"
                       style={{ paddingLeft: 26 }}
                     >
                       <Plus className="h-3.5 w-3.5" />
@@ -2786,8 +2787,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
   if ((isProjectScoped && !proyecto) || !tareas || !proyectos) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      <div className="flex min-h-screen items-center justify-center bg-card">
+        <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" />
       </div>
     );
   }
@@ -2801,23 +2802,23 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     : 8;
 
   return (
-    <div className="min-h-screen bg-white text-left">
-      <div className="border-b border-gray-200 px-6 py-8 lg:px-16">
+    <div className="min-h-screen bg-card text-left">
+      <div className="border-b border-border px-6 py-8 lg:px-16">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm text-gray-500">General</p>
-            <h1 className="mt-1 text-3xl font-normal text-gray-900">Tareas</h1>
+            <p className="text-sm text-subtle-foreground">General</p>
+            <h1 className="mt-1 text-3xl font-normal text-foreground">Tareas</h1>
           </div>
           <div className="flex gap-2 self-start lg:self-auto">
             <Button
               variant="outline"
               onClick={() => setNotificationsOpen(true)}
-              className="relative h-14 gap-3 rounded-sm border-[#DBDBDB] bg-white px-5 text-base font-normal text-[#898982] shadow-none hover:bg-white hover:text-[#898982]"
+              className="relative h-14 gap-3 rounded-sm border-border bg-card px-5 text-base font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-subtle-foreground"
             >
               <span className="h-3 w-3 rounded-full bg-[#50AC66]" />
               Notificaciones
               {unreadNotificationCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#50AC66] px-1.5 text-[11px] font-medium text-white">
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#50AC66] px-1.5 text-[11px] font-medium text-on-color">
                   {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
                 </span>
               )}
@@ -2826,9 +2827,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <Button
                 onClick={openCreateDialog}
                 variant="outline"
-                className="h-14 gap-3 rounded-sm border-[#DBDBDB] bg-white px-8 text-base font-normal text-[#898982] shadow-none hover:bg-white hover:text-[#898982]"
+                className="h-14 gap-3 rounded-sm border-border bg-card px-8 text-base font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-subtle-foreground"
               >
-                <Plus className="h-5 w-5 text-[#898982]" />
+                <Plus className="h-5 w-5 text-subtle-foreground" />
                 Nueva tarea
               </Button>
             )}
@@ -2837,7 +2838,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       </div>
 
       <div className="space-y-8 px-6 py-8 lg:px-16">
-        <div className="flex border-b border-[#E6E6E6]">
+        <div className="flex border-b border-border">
           {[
             { id: "all" as const, label: "Total", value: stats.total },
             { id: "open" as const, label: "Abiertas", value: stats.pending },
@@ -2849,31 +2850,31 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               type="button"
               onClick={() => setTaskTab(item.id)}
               className={cn(
-                "flex min-w-36 items-center gap-4 px-1 py-4 text-sm text-gray-600",
-                taskTab === item.id && "border-b-2 border-gray-900 text-gray-900"
+                "flex min-w-36 items-center gap-4 px-1 py-4 text-sm text-muted-foreground",
+                taskTab === item.id && "border-b-2 border-foreground text-foreground"
               )}
             >
               <span>{item.label}</span>
-              <span className="flex h-[24px] min-w-[24px] items-center justify-center rounded-full bg-[#DDDCD8] px-2 text-[15px] text-[#3B3B35]">
+              <span className="flex h-[24px] min-w-[24px] items-center justify-center rounded-full bg-disabled px-2 text-[15px] text-foreground">
                 {item.value}
               </span>
             </button>
           ))}
         </div>
 
-        <div className="grid gap-4 rounded-lg border border-[#E6E6E6] bg-white p-4 lg:grid-cols-[minmax(280px,1fr)_300px_350px_auto]">
+        <div className="grid gap-4 rounded-lg border border-border bg-card p-4 lg:grid-cols-[minmax(280px,1fr)_300px_350px_auto]">
           <div className="relative">
-            <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9AA3AF]" />
+            <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-disabled-foreground" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por título, descripción o asignado"
-              className="h-9 rounded-none border-[#E6E6E6] bg-white pl-14 text-sm font-normal text-[#989898] shadow-none placeholder:text-[#989898] focus-visible:ring-[#D1D5DB]"
+              className="h-9 rounded-none border-border bg-card pl-14 text-sm font-normal text-disabled-foreground shadow-none placeholder:text-disabled-foreground focus-visible:ring-ring"
             />
           </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-sm text-[#989898] shadow-none focus:ring-[#D1D5DB]">
+            <SelectTrigger className="h-9 rounded-none border-border bg-card px-5 text-sm text-disabled-foreground shadow-none focus:ring-ring">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
@@ -2887,7 +2888,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           </Select>
 
           <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-sm text-[#989898] shadow-none focus:ring-[#D1D5DB]">
+            <SelectTrigger className="h-9 rounded-none border-border bg-card px-5 text-sm text-disabled-foreground shadow-none focus:ring-ring">
               <SelectValue placeholder="Asignado" />
             </SelectTrigger>
             <SelectContent>
@@ -2904,19 +2905,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             type="button"
             variant="outline"
             onClick={() => setFiltersDialogOpen(true)}
-            className="h-9 rounded-none border-[#E6E6E6] bg-white px-5 text-sm text-[#989898] shadow-none hover:bg-white hover:text-[#989898]"
+            className="h-9 rounded-none border-border bg-card px-5 text-sm text-disabled-foreground shadow-none hover:bg-card hover:text-disabled-foreground"
           >
             <Filter className="h-4 w-4" />
             Más filtros
             {additionalFilterCount > 0 && (
-              <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-gray-900 px-1.5 text-xs text-white">
+              <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-inverse px-1.5 text-xs text-on-color">
                 {additionalFilterCount}
               </span>
             )}
           </Button>
         </div>
 
-        <div className="space-y-10 bg-white">
+        <div className="space-y-10 bg-card">
               {groupedTasks.map((group) => {
                 const isCollapsed = collapsedProjects.has(group.projectId);
 
@@ -2924,7 +2925,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <div
                     key={group.projectId}
                     className={cn(
-                      "rounded-md border border-[#E6E6E6] bg-white",
+                      "rounded-md border border-border bg-card",
                       isProjectScoped && "border-0"
                     )}
                   >
@@ -2933,15 +2934,15 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         type="button"
                         onClick={() => toggleProjectCollapse(group.projectId)}
                         className={cn(
-                          "flex min-h-32 w-full items-center gap-3 bg-white px-8 text-left",
-                          !isCollapsed && "border-b border-[#E6E6E6]"
+                          "flex min-h-32 w-full items-center gap-3 bg-card px-8 text-left",
+                          !isCollapsed && "border-b border-border"
                         )}
                         aria-expanded={!isCollapsed}
                       >
-                        <ChevronDown className={cn("h-4 w-4 text-[#898982] transition-transform", isCollapsed && "-rotate-90")} />
-                        <span className="font-medium text-[#898982]">{group.projectName}</span>
-                        <MoreHorizontal className="h-4 w-4 text-[#898982]" />
-                        <span className="ml-8 rounded-sm bg-[#F4F4F4] px-6 py-2 text-xs text-[#B3B3AF]">
+                        <ChevronDown className={cn("h-4 w-4 text-subtle-foreground transition-transform", isCollapsed && "-rotate-90")} />
+                        <span className="font-medium text-subtle-foreground">{group.projectName}</span>
+                        <MoreHorizontal className="h-4 w-4 text-subtle-foreground" />
+                        <span className="ml-8 rounded-sm bg-muted px-6 py-2 text-xs text-disabled-foreground">
                           {group.tasks.reduce((count, task) => count + 1 + (projectedChildrenByGroup.get(`${group.projectId}:${task._id}`)?.length || 0), 0)} tareas
                         </span>
                       </button>
@@ -2960,19 +2961,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                       <button
                                         type="button"
                                         onClick={() => toggleStatusCollapse(sectionKey)}
-                                        className={cn("flex min-w-0 items-center gap-2 text-left text-[#898982] hover:text-[#898982]", "md:col-span-3 xl:col-span-1")}
+                                        className={cn("flex min-w-0 items-center gap-2 text-left text-subtle-foreground hover:text-subtle-foreground", "md:col-span-3 xl:col-span-1")}
                                         aria-expanded={!isStatusCollapsed}
                                       >
-                                        <ChevronDown className={cn("h-4 w-4 text-[#898982] transition-transform", isStatusCollapsed && "-rotate-90")} />
+                                        <ChevronDown className={cn("h-4 w-4 text-subtle-foreground transition-transform", isStatusCollapsed && "-rotate-90")} />
                                         <span className="h-4 w-4 rounded-full" style={{ backgroundColor: section.label.color }} />
                                         <span>{section.label.label}</span>
-                                        <span className="text-xs text-[#A3A39E]">{section.tasks.length}</span>
+                                        <span className="text-xs text-disabled-foreground">{section.tasks.length}</span>
                                       </button>
-                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Responsable</span>
-                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Fecha vencimiento</span>
-                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Prioridad</span>
-                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Especialidad</span>
-                                      <span className="hidden text-base text-[#A5A5A0] xl:block">Proyecto</span>
+                                      <span className="hidden text-base text-disabled-foreground xl:block">Responsable</span>
+                                      <span className="hidden text-base text-disabled-foreground xl:block">Fecha vencimiento</span>
+                                      <span className="hidden text-base text-disabled-foreground xl:block">Prioridad</span>
+                                      <span className="hidden text-base text-disabled-foreground xl:block">Especialidad</span>
+                                      <span className="hidden text-base text-disabled-foreground xl:block">Proyecto</span>
                                       <span className="hidden xl:block" />
                                     </div>
                                 </div>
@@ -2991,7 +2992,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                         {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.id ? (
                                           <div className={cn("grid min-h-[44px] items-center gap-4 task-creation-form", TASK_TABLE_GRID)}>
                                             <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
-                                              <Checkbox disabled className="h-4 w-4 border-[#EDEDED]" />
+                                              <Checkbox disabled className="h-4 w-4 border-border" />
                                               <Input
                                                 autoFocus
                                                 value={newTaskTitle}
@@ -3032,7 +3033,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                   }, 100);
                                                 }}
                                                 placeholder="Nombre de la tarea"
-                                                className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-[#63635E] shadow-none focus-visible:ring-0"
+                                                className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-muted-foreground shadow-none focus-visible:ring-0"
                                               />
                                             </div>
                                             <div className={TASK_FIELD_CELL}>
@@ -3072,7 +3073,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                               <span className={TASK_VALUE_TEXT}>{group.projectName}</span>
                                             </div>
                                             <div className={cn(TASK_ACTION_CELL, "items-center")}>
-                                              {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
+                                              {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin text-disabled-foreground" />}
                                             </div>
                                           </div>
                                         ) : (
@@ -3096,7 +3097,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                               setNewTaskPriority("Media");
                                               setNewTaskPartidas([]);
                                             }}
-                                            className="flex h-6 items-center gap-2 text-xs text-[#DBDBDA] hover:text-[#DBDBDA]"
+                                            className="flex h-6 items-center gap-2 text-xs text-disabled-foreground hover:text-disabled-foreground"
                                           >
                                             <Plus className="h-3.5 w-3.5" />
                                             Agregar tarea
@@ -3117,7 +3118,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 );
               })}
               {groupedTasks.length === 0 && (
-                <div className="flex h-32 items-center justify-center text-gray-500">
+                <div className="flex h-32 items-center justify-center text-subtle-foreground">
                     No hay tareas con los filtros actuales.
                 </div>
               )}
@@ -3126,7 +3127,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
       {contextMenu && (
         <div
-          className="fixed z-50 w-72 overflow-hidden rounded-md border border-gray-200 bg-white p-1 text-gray-900 shadow-xl"
+          className="fixed z-50 w-72 overflow-hidden rounded-md border border-border bg-card p-1 text-foreground shadow-xl"
           style={{
             left: contextMenuLeft,
             top: contextMenuTop,
@@ -3134,46 +3135,46 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           }}
           onClick={(event) => event.stopPropagation()}
         >
-          <Command className="bg-white text-gray-900">
+          <Command className="bg-card text-foreground">
             <CommandList className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: contextMenuMaxHeight - 8 }}>
               <CommandGroup>
-                <CommandItem onSelect={() => { void copyTaskName(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
+                <CommandItem onSelect={() => { void copyTaskName(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-muted">
                   <Copy className="h-4 w-4" />
                   Copiar nombre
                 </CommandItem>
-                <CommandItem onSelect={() => { setSelectedTaskId(contextMenu.task._id); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
+                <CommandItem onSelect={() => { setSelectedTaskId(contextMenu.task._id); setContextMenu(null); }} className="data-[selected=true]:bg-muted">
                   <Eye className="h-4 w-4" />
                   Abrir tarea
                 </CommandItem>
-                <CommandItem onSelect={() => { openProjectTaskRoute(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
+                <CommandItem onSelect={() => { openProjectTaskRoute(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-muted">
                   <ExternalLink className="h-4 w-4" />
                   Abrir en una pestaña nueva
                 </CommandItem>
-                <CommandItem onSelect={() => { void copyTaskUrl(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-gray-100">
+                <CommandItem onSelect={() => { void copyTaskUrl(contextMenu.task); setContextMenu(null); }} className="data-[selected=true]:bg-muted">
                   <Copy className="h-4 w-4" />
                   Copiar URL de tarea
                 </CommandItem>
               </CommandGroup>
-              <CommandSeparator className="bg-gray-200" />
+              <CommandSeparator className="bg-disabled" />
               <CommandGroup>
-                <CommandItem onSelect={() => { void handleDuplicate(contextMenu.task); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-gray-100">
+                <CommandItem onSelect={() => { void handleDuplicate(contextMenu.task); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-muted">
                   <Copy className="h-4 w-4" />
                   Duplicar
                 </CommandItem>
                 {!contextMenu.task.parent_task && (
-                  <CommandItem onSelect={() => { setAddingSubtaskFor(contextMenu.task._id); setSubtaskProjectId(contextMenu.task.proyecto || ""); setSubtaskTitle(""); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-gray-100">
+                  <CommandItem onSelect={() => { setAddingSubtaskFor(contextMenu.task._id); setSubtaskProjectId(contextMenu.task.proyecto || ""); setSubtaskTitle(""); setContextMenu(null); }} disabled={!canCreate} className="data-[selected=true]:bg-muted">
                     <Plus className="h-4 w-4" />
                     Agregar subtarea
                   </CommandItem>
                 )}
-                <CommandItem onSelect={() => { void handleStatusChange(contextMenu.task, "Cancelada"); setContextMenu(null); }} disabled={!canChangeTaskStatus(contextMenu.task)} className="data-[selected=true]:bg-gray-100">
+                <CommandItem onSelect={() => { void handleStatusChange(contextMenu.task, "Cancelada"); setContextMenu(null); }} disabled={!canChangeTaskStatus(contextMenu.task)} className="data-[selected=true]:bg-muted">
                   <Archive className="h-4 w-4" />
                   Archivar
                 </CommandItem>
               </CommandGroup>
               {!isProjectScoped && canManageTask(contextMenu.task) && (
                 <>
-                  <CommandSeparator className="bg-gray-200" />
+                  <CommandSeparator className="bg-disabled" />
                   <CommandGroup heading="Mover a">
                     {contextMenu.task.proyecto && (
                       <CommandItem
@@ -3181,7 +3182,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           void handleInlineUpdate(contextMenu.task, { proyecto: null });
                           setContextMenu(null);
                         }}
-                        className="data-[selected=true]:bg-gray-100"
+                        className="data-[selected=true]:bg-muted"
                       >
                         <MoveRight className="h-4 w-4" />
                         General
@@ -3194,7 +3195,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           void handleInlineUpdate(contextMenu.task, { proyecto: project._id });
                           setContextMenu(null);
                         }}
-                        className="data-[selected=true]:bg-gray-100"
+                        className="data-[selected=true]:bg-muted"
                       >
                         <MoveRight className="h-4 w-4" />
                         {project.nombre}
@@ -3205,7 +3206,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               )}
               {canManageTask(contextMenu.task) && (
                 <>
-                  <CommandSeparator className="bg-gray-200" />
+                  <CommandSeparator className="bg-disabled" />
                   <CommandGroup>
                     <CommandItem onSelect={() => { setTaskToDelete(contextMenu.task); setContextMenu(null); }} className="text-red-600 data-[selected=true]:bg-red-50">
                       <Trash2 className="h-4 w-4" />
@@ -3220,20 +3221,20 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       )}
 
       <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-        <SheetContent side="right" className="w-full overflow-y-auto border-l border-gray-200 bg-white p-0 text-gray-900 sm:max-w-xl">
-          <SheetHeader className="border-b border-gray-200 p-6 text-left">
+        <SheetContent side="right" className="w-full overflow-y-auto border-l border-border bg-card p-0 text-foreground sm:max-w-xl">
+          <SheetHeader className="border-b border-border p-6 text-left">
             <div className="flex items-center justify-between gap-3">
-              <SheetTitle className="text-left text-2xl font-normal text-gray-900">Notificaciones</SheetTitle>
+              <SheetTitle className="text-left text-2xl font-normal text-foreground">Notificaciones</SheetTitle>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => markNotificationsAsRead(proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : {})}
-                className="text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                className="text-subtle-foreground hover:bg-muted hover:text-foreground"
               >
                 Marcar leídas
               </Button>
             </div>
-            <SheetDescription className="text-left text-gray-600">
+            <SheetDescription className="text-left text-muted-foreground">
               {isProjectScoped
                 ? "Actividad reciente de tareas en este proyecto."
                 : "Actividad reciente de tareas en todos tus proyectos."}
@@ -3242,7 +3243,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
           <div className="space-y-5 p-6">
             <Tabs value={notificationTab} onValueChange={(value) => setNotificationTab(value as typeof notificationTab)}>
-              <TabsList className="grid w-full grid-cols-3 bg-gray-100 rounded-none">
+              <TabsList className="grid w-full grid-cols-3 bg-muted rounded-none">
                 <TabsTrigger className="rounded-none" value="all">Todas</TabsTrigger>
                 <TabsTrigger className="rounded-none" value="mentions">Menciones</TabsTrigger>
                 <TabsTrigger className="rounded-none" value="assignments">Asignaciones</TabsTrigger>
@@ -3251,28 +3252,28 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
                 <Input
                   value={notificationSearch}
                   onChange={(event) => setNotificationSearch(event.target.value)}
                   placeholder="Busca notificaciones por personas o tareas"
-                  className="border-gray-200 bg-white pl-9 text-gray-900 placeholder:text-gray-400"
+                  className="border-border bg-card pl-9 text-foreground placeholder:text-disabled-foreground"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setOnlyUnreadNotifications((current) => !current)}
-                className="flex items-center gap-2 text-sm text-gray-700"
+                className="flex items-center gap-2 text-sm text-foreground"
               >
                 <span
                   className={cn(
-                    "flex h-5 w-9 items-center rounded-full border border-gray-300 p-0.5 transition",
-                    onlyUnreadNotifications ? "bg-blue-600" : "bg-gray-200"
+                    "flex h-5 w-9 items-center rounded-full border border-border-strong p-0.5 transition",
+                    onlyUnreadNotifications ? "bg-blue-600" : "bg-disabled"
                   )}
                 >
                   <span
                     className={cn(
-                      "h-4 w-4 rounded-full bg-white shadow-sm transition",
+                      "h-4 w-4 rounded-full bg-card shadow-sm transition",
                       onlyUnreadNotifications && "translate-x-4"
                     )}
                   />
@@ -3281,14 +3282,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               </button>
             </div>
 
-            <div className="rounded-none border border-gray-200 bg-gray-50 p-4">
+            <div className="rounded-none border border-border bg-background p-4">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-blue-50 text-blue-600">
                   <Bell className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Seguimiento de tareas activo</p>
-                  <p className="mt-1 text-sm leading-5 text-gray-600">
+                  <p className="text-sm font-medium text-foreground">Seguimiento de tareas activo</p>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
                     Recibe avisos cuando te asignen, mencionen o actualicen tareas.
                   </p>
                 </div>
@@ -3297,7 +3298,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-700">Ultimos movimientos</h3>
+                <h3 className="text-sm font-medium text-foreground">Ultimos movimientos</h3>
                 {unreadNotificationCount > 0 && (
                   <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">
                     {unreadNotificationCount} sin leer
@@ -3307,7 +3308,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
               <div className="space-y-2">
                 {!taskNotifications ? (
-                  <div className="flex h-24 items-center justify-center text-gray-600">
+                  <div className="flex h-24 items-center justify-center text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin" />
                   </div>
                 ) : filteredNotifications.length ? (
@@ -3317,13 +3318,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       type="button"
                       onClick={() => void handleOpenNotification(item)}
                       className={cn(
-                        "flex w-full gap-3 rounded-none border p-3 text-left transition hover:bg-gray-50",
+                        "flex w-full gap-3 rounded-none border p-3 text-left transition hover:bg-background",
                         item.is_unread
                           ? "border-blue-200 bg-blue-50"
-                          : "border-gray-200 bg-white"
+                          : "border-border bg-card"
                       )}
                     >
-                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600">
+                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                         {item.notification_type === "assignment" ? (
                           <ListChecks className="h-4 w-4" />
                         ) : item.notification_type === "mention" ? (
@@ -3334,14 +3335,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm leading-5 break-words text-gray-700">
-                            <span className="font-medium text-gray-900">{item.changed_by_name}</span>{" "}
+                          <p className="text-sm leading-5 break-words text-foreground">
+                            <span className="font-medium text-foreground">{item.changed_by_name}</span>{" "}
                             {notificationLabel(item).toLowerCase()}{" "}
-                            <span className="font-medium text-gray-900">"{item.task.titulo}"</span>
+                            <span className="font-medium text-foreground">"{item.task.titulo}"</span>
                           </p>
-                          <span className="shrink-0 text-xs text-gray-400">{relativeTime(item.created_at)}</span>
+                          <span className="shrink-0 text-xs text-disabled-foreground">{relativeTime(item.created_at)}</span>
                         </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-subtle-foreground">
                           {!isProjectScoped && item.proyecto_nombre && <span>{item.proyecto_nombre}</span>}
                           <span>{item.task.status}</span>
                           <span>Prioridad {priorityDisplayName(item.task.prioridad)}</span>
@@ -3352,7 +3353,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     </button>
                   ))
                 ) : (
-                  <div className="rounded-none border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+                  <div className="rounded-none border border-dashed border-border p-8 text-center text-sm text-subtle-foreground">
                     No hay notificaciones con los filtros actuales.
                   </div>
                 )}
@@ -3366,7 +3367,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-2xl">
           {selectedTask ? (
             <>
-              <SheetHeader className="border-b border-gray-200 p-6 text-left">
+              <SheetHeader className="border-b border-border p-6 text-left">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className={cn("border", priorityClass(selectedTask.prioridad))}>
                     {priorityDisplayName(selectedTask.prioridad)}
@@ -3408,35 +3409,35 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
               <div className="space-y-6 p-6">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="border border-gray-200 p-3">
-                    <p className="text-xs text-gray-500">Fecha límite</p>
-                    <p className="mt-1 text-sm font-medium text-gray-900">{formatDate(selectedTask.fecha_limite)}</p>
+                  <div className="border border-border p-3">
+                    <p className="text-xs text-subtle-foreground">Fecha límite</p>
+                    <p className="mt-1 text-sm font-medium text-foreground">{formatDate(selectedTask.fecha_limite)}</p>
                   </div>
-                  <div className="border border-gray-200 p-3">
-                    <p className="text-xs text-gray-500">Última actualización</p>
-                    <p className="mt-1 text-sm font-medium text-gray-900">{formatDateTime(selectedTask.updated_at || selectedTask.created_at)}</p>
+                  <div className="border border-border p-3">
+                    <p className="text-xs text-subtle-foreground">Última actualización</p>
+                    <p className="mt-1 text-sm font-medium text-foreground">{formatDateTime(selectedTask.updated_at || selectedTask.created_at)}</p>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-900">Descripción</h3>
-                  <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-gray-600">
+                  <h3 className="text-sm font-medium text-foreground">Descripción</h3>
+                  <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-muted-foreground">
                     {selectedTask.descripcion || "Sin descripción."}
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-900">Asignados</h3>
+                  <h3 className="text-sm font-medium text-foreground">Asignados</h3>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {selectedTask.assigned_users?.length ? selectedTask.assigned_users.map((user) => (
                       <span
                         key={user._id}
-                        className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
+                        className="inline-flex items-center rounded-full border border-border bg-background px-3 py-1 text-sm text-foreground"
                         title={user.email}
                       >
                         {user.name || user.email}
                       </span>
-                    )) : <span className="text-sm text-gray-400">Sin asignar</span>}
+                    )) : <span className="text-sm text-disabled-foreground">Sin asignar</span>}
                   </div>
                 </div>
 
@@ -3474,28 +3475,28 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       {taskDetail?.comments?.length ? taskDetail.comments.map((comment) => {
                         const canDeleteComment = currentUser?.role === "admin" || currentUser?._id === comment.user_id;
                         return (
-                          <div key={comment._id} className="border border-gray-200 p-4">
+                          <div key={comment._id} className="border border-border p-4">
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <p className="text-sm font-medium text-gray-900">{comment.user_name}</p>
-                                <p className="mt-0.5 text-xs text-gray-500">{formatDateTime(comment.created_at)}</p>
+                                <p className="text-sm font-medium text-foreground">{comment.user_name}</p>
+                                <p className="mt-0.5 text-xs text-subtle-foreground">{formatDateTime(comment.created_at)}</p>
                               </div>
                               {canDeleteComment && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleRemoveComment(comment._id)}
-                                  className="h-8 w-8 text-gray-400 hover:text-red-600"
+                                  className="h-8 w-8 text-disabled-foreground hover:text-red-600"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               )}
                             </div>
-                            <p className="mt-3 whitespace-pre-line break-words text-sm leading-6 text-gray-700">{comment.comment}</p>
+                            <p className="mt-3 whitespace-pre-line break-words text-sm leading-6 text-foreground">{comment.comment}</p>
                           </div>
                         );
                       }) : (
-                        <div className="border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+                        <div className="border border-dashed border-border p-6 text-center text-sm text-subtle-foreground">
                           Aún no hay comentarios en esta tarea.
                         </div>
                       )}
@@ -3505,19 +3506,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <TabsContent value="history" className="mt-4">
                     <div className="space-y-3">
                       {taskDetail?.history?.length ? taskDetail.history.map((item) => (
-                        <div key={item._id} className="flex gap-3 border-b border-gray-100 pb-3 last:border-b-0">
-                          <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                        <div key={item._id} className="flex gap-3 border-b border-border pb-3 last:border-b-0">
+                          <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-subtle-foreground">
                             <Clock3 className="h-4 w-4" />
                           </div>
                           <div>
-                            <p className="text-sm break-words text-gray-900">{historyLabel(item)}</p>
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="text-sm break-words text-foreground">{historyLabel(item)}</p>
+                            <p className="mt-1 text-xs text-subtle-foreground">
                               {item.changed_by_name} · {formatDateTime(item.created_at)}
                             </p>
                           </div>
                         </div>
                       )) : (
-                        <div className="border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+                        <div className="border border-dashed border-border p-6 text-center text-sm text-subtle-foreground">
                           Aún no hay historial registrado.
                         </div>
                       )}
@@ -3528,7 +3529,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             </>
           ) : (
             <div className="flex h-full items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" />
             </div>
           )}
         </SheetContent>
@@ -3653,10 +3654,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-y-auto text-[#A3A39E] [&_label]:font-normal [&_label]:text-[#63635E]">
+        <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-y-auto text-disabled-foreground [&_label]:font-normal [&_label]:text-muted-foreground">
           <DialogHeader>
-            <DialogTitle className="font-normal text-[#63635E]">{editingTask ? `Editar ${form.tipo}` : `Nueva ${form.tipo}`}</DialogTitle>
-            <DialogDescription className="font-normal text-[#A3A39E]">
+            <DialogTitle className="font-normal text-muted-foreground">{editingTask ? `Editar ${form.tipo}` : `Nueva ${form.tipo}`}</DialogTitle>
+            <DialogDescription className="font-normal text-disabled-foreground">
               Define el alcance, responsables y fechas para dar seguimiento desde la vista global.
             </DialogDescription>
           </DialogHeader>
@@ -3673,7 +3674,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     titulo: value === "minuta" && !current.titulo.trim() ? suggestedMinuteTitle() : current.titulo,
                   }))}
                 >
-                  <SelectTrigger className="font-normal text-[#A3A39E]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="font-normal text-disabled-foreground"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="tarea">Tarea independiente</SelectItem>
                     <SelectItem value="minuta">Minuta de obra</SelectItem>
@@ -3698,7 +3699,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   }))
                 }
               >
-                <SelectTrigger className="font-normal text-[#A3A39E]">
+                <SelectTrigger className="font-normal text-disabled-foreground">
                   <SelectValue placeholder="Selecciona el proyecto" />
                 </SelectTrigger>
                 <SelectContent>
@@ -3719,7 +3720,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 value={form.titulo}
                 onChange={(event) => setForm((current) => ({ ...current, titulo: event.target.value }))}
                 placeholder="Ej. Revisar estimacion de instalaciones"
-                className="font-normal text-[#A3A39E] placeholder:text-[#A3A39E]"
+                className="font-normal text-disabled-foreground placeholder:text-disabled-foreground"
               />
             </div>
 
@@ -3731,7 +3732,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 onChange={(event) => setForm((current) => ({ ...current, descripcion: event.target.value }))}
                 placeholder="Notas, contexto o resultado esperado"
                 rows={4}
-                className="font-normal text-[#A3A39E] placeholder:text-[#A3A39E]"
+                className="font-normal text-disabled-foreground placeholder:text-disabled-foreground"
               />
             </div>
 
@@ -3742,7 +3743,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   value={form.prioridad}
                   onValueChange={(value) => setForm((current) => ({ ...current, prioridad: value }))}
                 >
-                  <SelectTrigger className="font-normal text-[#A3A39E]">
+                  <SelectTrigger className="font-normal text-disabled-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3760,7 +3761,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   value={form.categoria}
                   onValueChange={(value) => setForm((current) => ({ ...current, categoria: value }))}
                 >
-                  <SelectTrigger className="font-normal text-[#A3A39E]">
+                  <SelectTrigger className="font-normal text-disabled-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3779,7 +3780,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   type="date"
                   value={form.fecha_limite}
                   onChange={(event) => setForm((current) => ({ ...current, fecha_limite: event.target.value }))}
-                  className="font-normal text-[#A3A39E]"
+                  className="font-normal text-disabled-foreground"
                 />
               </div>
             </div>
@@ -3791,7 +3792,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   value={form.status}
                   onValueChange={(value) => setForm((current) => ({ ...current, status: value }))}
                 >
-                  <SelectTrigger className="font-normal text-[#A3A39E]">
+                  <SelectTrigger className="font-normal text-disabled-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3807,31 +3808,31 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
             <div className="space-y-2 min-w-0">
               <Label>{form.tipo === "minuta" ? "Responsables (opcional)" : "Responsables"}</Label>
-              <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-gray-200 p-3">
+              <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-border p-3">
                 {!selectedFormProjectId && !selectedFormOrganizationId && (
-                  <div className="py-4 text-center text-sm text-[#A3A39E]">
+                  <div className="py-4 text-center text-sm text-disabled-foreground">
                     No se encontraron usuarios disponibles para el alcance General.
                   </div>
                 )}
                 {(selectedFormProjectId || selectedFormOrganizationId) && !assignableUsers && (
-                  <div className="flex h-20 items-center justify-center text-[#A3A39E]">
+                  <div className="flex h-20 items-center justify-center text-disabled-foreground">
                     <Loader2 className="h-5 w-5 animate-spin" />
                   </div>
                 )}
                 {(assignableUsers || []).map((user) => (
                   <label
                     key={user._id}
-                    className="flex cursor-pointer items-center gap-3 border-b border-gray-100 py-2 last:border-b-0"
+                    className="flex cursor-pointer items-center gap-3 border-b border-border py-2 last:border-b-0"
                   >
                     <Checkbox
                       checked={form.asignados.has(user._id)}
                       onCheckedChange={() => toggleAssignee(user._id)}
                     />
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-normal text-[#63635E]">{user.name || user.email}</span>
-                      <span className="truncate text-xs text-[#A3A39E]">{user.email}</span>
+                      <span className="truncate text-sm font-normal text-muted-foreground">{user.name || user.email}</span>
+                      <span className="truncate text-xs text-disabled-foreground">{user.email}</span>
                     </span>
-                    <span className="ml-auto text-xs text-[#A3A39E]">{user.role}</span>
+                    <span className="ml-auto text-xs text-disabled-foreground">{user.role}</span>
                   </label>
                 ))}
               </div>
@@ -3839,31 +3840,31 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
             {selectedFormProjectId && <div className="space-y-2 min-w-0">
               <Label>Partidas</Label>
-              <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-gray-200 p-3">
+              <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-border p-3">
                 {!selectedFormProjectId && (
-                  <div className="py-4 text-center text-sm text-[#A3A39E]">
+                  <div className="py-4 text-center text-sm text-disabled-foreground">
                     Selecciona un proyecto para ver partidas disponibles.
                   </div>
                 )}
                 {selectedFormProjectId && !formPartidas && (
-                  <div className="flex h-20 items-center justify-center text-[#A3A39E]">
+                  <div className="flex h-20 items-center justify-center text-disabled-foreground">
                     <Loader2 className="h-5 w-5 animate-spin" />
                   </div>
                 )}
                 {(formPartidas || []).filter((partida) => partida.nivel === 1).map((partida) => (
                   <label
                     key={partida._id}
-                    className="flex cursor-pointer items-center gap-3 border-b border-gray-100 py-2 last:border-b-0"
+                    className="flex cursor-pointer items-center gap-3 border-b border-border py-2 last:border-b-0"
                   >
                     <Checkbox
                       checked={form.partidas.has(partida._id)}
                       onCheckedChange={() => togglePartida(partida._id)}
                     />
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-normal text-[#63635E]">{partidaDisplayName(partida)}</span>
-                      <span className="truncate text-xs text-[#A3A39E]">{partidaContext(partida)}</span>
+                      <span className="truncate text-sm font-normal text-muted-foreground">{partidaDisplayName(partida)}</span>
+                      <span className="truncate text-xs text-disabled-foreground">{partidaContext(partida)}</span>
                     </span>
-                    <span className="ml-auto text-xs text-[#A3A39E]">N{partida.nivel}</span>
+                    <span className="ml-auto text-xs text-disabled-foreground">N{partida.nivel}</span>
                   </label>
                 ))}
               </div>

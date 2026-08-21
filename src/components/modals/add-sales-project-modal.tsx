@@ -298,7 +298,7 @@ export default function AddSalesProjectModal() {
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent className="w-[800px] sm:max-w-[800px] overflow-y-auto">
+      <SheetContent data-square-modal="" className="w-[800px] sm:max-w-[800px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <FolderPlus className="h-5 w-5" />
@@ -354,18 +354,18 @@ export default function AddSalesProjectModal() {
               step="0.01"
               className="rounded-none"
             />
-            <p className="text-xs text-gray-500">Porcentaje de comisión sobre las ventas totales</p>
+            <p className="text-xs text-subtle-foreground">Porcentaje de comisión sobre las ventas totales</p>
           </div>
 
           <Separator />
 
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            className={`border-2 border-dashed rounded-none p-8 text-center transition-colors ${
               dragActive
                 ? 'border-blue-500 bg-blue-50'
                 : file
                 ? 'border-green-500 bg-green-50'
-                : 'border-gray-300 hover:border-gray-400'
+                : 'border-border-strong hover:border-border-strong'
             }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -377,8 +377,8 @@ export default function AddSalesProjectModal() {
                 <div className="flex items-center justify-center gap-3">
                   <FileSpreadsheet className="h-8 w-8 text-green-600" />
                   <div className="text-left">
-                    <p className="font-medium text-gray-900">{file.name}</p>
-                    <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
+                    <p className="font-medium text-foreground">{file.name}</p>
+                    <p className="text-sm text-subtle-foreground">{formatFileSize(file.size)}</p>
                   </div>
                 </div>
                 <div className="flex gap-2 justify-center">
@@ -410,13 +410,13 @@ export default function AddSalesProjectModal() {
             ) : (
               <div className="space-y-4">
                 <div className="flex justify-center">
-                  <Upload className="h-12 w-12 text-gray-400" />
+                  <Upload className="h-12 w-12 text-disabled-foreground" />
                 </div>
                 <div>
-                  <p className="text-lg font-medium text-gray-900">
+                  <p className="text-lg font-medium text-foreground">
                     Arrastra y suelta un archivo Excel aquí
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">o</p>
+                  <p className="text-sm text-subtle-foreground mt-1">o</p>
                 </div>
                 <div>
                   <Button
@@ -435,7 +435,7 @@ export default function AddSalesProjectModal() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-xs text-gray-400">Archivos soportados: .xlsx, .xls (máx. 10MB)</p>
+                <p className="text-xs text-disabled-foreground">Archivos soportados: .xlsx, .xls (máx. 10MB)</p>
               </div>
             )}
           </div>

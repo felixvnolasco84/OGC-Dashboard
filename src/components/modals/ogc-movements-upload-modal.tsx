@@ -779,7 +779,7 @@ export function OgcMovementsUploadModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-4xl overflow-x-hidden overflow-y-auto sm:w-full">
+      <DialogContent data-square-modal="" className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-4xl overflow-x-hidden overflow-y-auto sm:w-full">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Cargar movimientos OGC</DialogTitle>
           <DialogDescription>
@@ -796,20 +796,20 @@ export function OgcMovementsUploadModal({
           <TabsContent value="manual" className="min-w-0 space-y-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
-                <Label className="text-sm text-gray-900">Movimientos manuales</Label>
-                <p className="mt-1 text-xs text-gray-500">
+                <Label className="text-sm text-foreground">Movimientos manuales</Label>
+                <p className="mt-1 text-xs text-subtle-foreground">
                   Agrega filas editables; selecciona una obra solo cuando el movimiento aplique a una obra especifica.
                   TC P&L: USD {exchangeRates.USD.toLocaleString("es-MX", { maximumFractionDigits: 4 })} / EUR {exchangeRates.EUR.toLocaleString("es-MX", { maximumFractionDigits: 4 })}.
                 </p>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-subtle-foreground">
                   <span
                     className={cn(
-                      "h-2.5 w-2.5 rounded-full",
+                      "h-2.5 w-2.5 rounded-none",
                       deliveryNoteSummary.hasAllComplete
                         ? "bg-[#7EC18E]"
                         : deliveryNoteSummary.partial > 0
                           ? "bg-amber-500"
-                          : "bg-gray-300"
+                          : "bg-disabled"
                     )}
                   />
                   <span>
@@ -856,14 +856,14 @@ export function OgcMovementsUploadModal({
           <TabsContent value="excel" className="min-w-0 space-y-5">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Archivo Excel</Label>
-              <div className="border border-dashed border-gray-300 p-6">
+              <div className="border border-dashed border-border-strong p-6">
                 {file ? (
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                       <FileSpreadsheet className="h-8 w-8 text-[#1A5D21]" />
                       <div className="min-w-0">
-                        <p className="truncate text-sm text-gray-900">{file.name}</p>
-                        <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                        <p className="truncate text-sm text-foreground">{file.name}</p>
+                        <p className="text-xs text-subtle-foreground">{formatFileSize(file.size)}</p>
                       </div>
                     </div>
                     <Button type="button" variant="outline" onClick={() => setFile(null)} disabled={isProcessing}>
@@ -872,10 +872,10 @@ export function OgcMovementsUploadModal({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4 text-center">
-                    <Upload className="h-10 w-10 text-gray-400" />
+                    <Upload className="h-10 w-10 text-disabled-foreground" />
                     <div>
-                      <p className="text-sm text-gray-900">Excel con columnas: tipo, categoria, monto, fecha, obra, descripcion</p>
-                      <p className="mt-1 text-xs text-gray-500">La obra puede quedar vacia para costos solo de empresa.</p>
+                      <p className="text-sm text-foreground">Excel con columnas: tipo, categoria, monto, fecha, obra, descripcion</p>
+                      <p className="mt-1 text-xs text-subtle-foreground">La obra puede quedar vacia para costos solo de empresa.</p>
                     </div>
                     <Button type="button" variant="outline" onClick={() => document.getElementById(fileInputId)?.click()}>
                       Seleccionar archivo
@@ -893,7 +893,7 @@ export function OgcMovementsUploadModal({
             </div>
 
             {result?.summary && (
-              <div className="border border-gray-200 bg-[#FBFAF2] p-4 text-sm text-gray-700">
+              <div className="border border-border bg-[#FBFAF2] p-4 text-sm text-foreground">
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <SummaryStat label="Filas validas" value={result.summary.validRows} />
                   <SummaryStat label="Ingresos" value={result.summary.ingresos} />
@@ -921,8 +921,8 @@ export function OgcMovementsUploadModal({
 function SummaryStat({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-lg text-gray-900">{value}</p>
+      <p className="text-xs text-subtle-foreground">{label}</p>
+      <p className="text-lg text-foreground">{value}</p>
     </div>
   );
 }
@@ -980,14 +980,14 @@ function EditableMovementsTable({
           <div
             key={row.id}
             className={cn(
-              "min-w-0 border border-gray-200 p-3",
-              rowError ? "bg-red-50" : "bg-white"
+              "min-w-0 border border-border p-3",
+              rowError ? "bg-red-50" : "bg-card"
             )}
           >
             <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
               <div className="min-w-0 sm:col-span-2 lg:col-span-1">
                 <FieldLabel>Fila</FieldLabel>
-                <div className="flex h-9 items-center gap-2 text-sm text-gray-900">
+                <div className="flex h-9 items-center gap-2 text-sm text-foreground">
                   <span>{index + 1}</span>
                   {rowError && <AlertTriangle className="h-4 w-4 shrink-0 text-[#802424]" />}
                 </div>
@@ -1003,7 +1003,7 @@ function EditableMovementsTable({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent data-square-modal="">
                     <SelectItem value="costo_estructura">Costo estructura</SelectItem>
                     <SelectItem value="ingreso">Ingreso</SelectItem>
                   </SelectContent>
@@ -1020,7 +1020,7 @@ function EditableMovementsTable({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent data-square-modal="">
                     {CATEGORIES.map((category) => (
                       <SelectItem key={category} value={category}>{category}</SelectItem>
                     ))}
@@ -1059,7 +1059,7 @@ function EditableMovementsTable({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent data-square-modal="">
                     <SelectItem value="empresa">Empresa</SelectItem>
                     {proyectos.map((proyecto) => (
                       <SelectItem key={proyecto._id} value={proyecto._id}>{proyecto.nombre}</SelectItem>
@@ -1094,7 +1094,7 @@ function EditableMovementsTable({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent data-square-modal="">
                     <SelectItem value="MXN">MXN</SelectItem>
                     <SelectItem value="USD">USD</SelectItem>
                     <SelectItem value="EUR">EUR</SelectItem>
@@ -1119,7 +1119,7 @@ function EditableMovementsTable({
                     <SelectTrigger className="w-[88px] shrink-0">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent data-square-modal="">
                       <SelectItem value="pnl">P&L</SelectItem>
                       <SelectItem value="manual">Manual</SelectItem>
                     </SelectContent>
@@ -1138,7 +1138,7 @@ function EditableMovementsTable({
                 <div
                   className={cn(
                     "min-w-0 border px-3 py-2",
-                    hasDeliveryNotes ? "border-[#B7D9BE] bg-[#F4FBF5]" : "border-dashed border-gray-300 bg-white"
+                    hasDeliveryNotes ? "border-[#B7D9BE] bg-[#F4FBF5]" : "border-dashed border-border-strong bg-card"
                   )}
                 >
                   <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -1150,13 +1150,13 @@ function EditableMovementsTable({
                             ? "text-[#16A34A]"
                             : row.nota_recepcion_status === "parcial" && hasDeliveryNotes
                               ? "text-amber-500"
-                              : "text-gray-300"
+                              : "text-disabled-foreground"
                         )}
                         aria-label={hasDeliveryNotes ? `Evidencia ${row.nota_recepcion_status}` : "Sin evidencia"}
                       />
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-medium text-gray-900">Notas de recepcion</p>
-                        <p className="truncate text-[11px] text-gray-500">
+                        <p className="truncate text-xs font-medium text-foreground">Notas de recepcion</p>
+                        <p className="truncate text-[11px] text-subtle-foreground">
                           {hasDeliveryNotes
                             ? `${row.nota_recepcion_files.length} archivo${row.nota_recepcion_files.length === 1 ? "" : "s"} adjunto${row.nota_recepcion_files.length === 1 ? "" : "s"}`
                             : "Fotos o PDFs de notas"}
@@ -1178,7 +1178,7 @@ function EditableMovementsTable({
                         <SelectTrigger className="h-8 w-[118px] shrink-0">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent data-square-modal="">
                           <SelectItem value="none">Sin nota</SelectItem>
                           <SelectItem value="parcial">Parcial</SelectItem>
                           <SelectItem value="completa">Completa</SelectItem>
@@ -1212,21 +1212,21 @@ function EditableMovementsTable({
                       {row.nota_recepcion_files.map((note) => (
                         <span
                           key={note.id}
-                          className="inline-flex max-w-full items-center gap-1 border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700"
+                          className="inline-flex max-w-full items-center gap-1 border border-border bg-card px-2 py-1 text-[11px] text-foreground"
                           title={`${note.file.name} - ${formatFileSize(note.file.size)}`}
                         >
                           {isDeliveryNoteImageFile(note.file) ? (
                             <Image className="h-3.5 w-3.5 shrink-0 text-[#1A5D21]" />
                           ) : (
-                            <FileText className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                            <FileText className="h-3.5 w-3.5 shrink-0 text-subtle-foreground" />
                           )}
                           <span className="max-w-[180px] truncate">{note.file.name}</span>
-                          <span className="shrink-0 text-gray-400">{formatFileSize(note.file.size)}</span>
+                          <span className="shrink-0 text-disabled-foreground">{formatFileSize(note.file.size)}</span>
                           <button
                             type="button"
                             onClick={() => onRemoveDeliveryNote(row.id, note.id)}
                             disabled={disabled}
-                            className="shrink-0 text-gray-400 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="shrink-0 text-disabled-foreground hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                             title="Quitar archivo"
                           >
                             <X className="h-3.5 w-3.5" />
@@ -1279,7 +1279,7 @@ function EditableMovementsTable({
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return (
-    <Label className="mb-1 block text-xs font-normal text-gray-500">
+    <Label className="mb-1 block text-xs font-normal text-subtle-foreground">
       {children}
     </Label>
   );
@@ -1300,26 +1300,26 @@ function MovementPreview({
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="border border-gray-200 bg-[#FBFAF2] p-3">
-          <p className="text-xs text-gray-500">Validos</p>
-          <p className="flex items-center gap-2 text-lg text-gray-900"><CheckCircle2 className="h-4 w-4 text-[#1A5D21]" />{report.valid.length}</p>
+        <div className="border border-border bg-[#FBFAF2] p-3">
+          <p className="text-xs text-subtle-foreground">Validos</p>
+          <p className="flex items-center gap-2 text-lg text-foreground"><CheckCircle2 className="h-4 w-4 text-[#1A5D21]" />{report.valid.length}</p>
         </div>
-        <div className="border border-gray-200 bg-white p-3">
-          <p className="text-xs text-gray-500">Con error</p>
-          <p className="flex items-center gap-2 text-lg text-gray-900"><AlertTriangle className="h-4 w-4 text-[#802424]" />{report.errors.length}</p>
+        <div className="border border-border bg-card p-3">
+          <p className="text-xs text-subtle-foreground">Con error</p>
+          <p className="flex items-center gap-2 text-lg text-foreground"><AlertTriangle className="h-4 w-4 text-[#802424]" />{report.errors.length}</p>
         </div>
-        <div className="border border-gray-200 bg-white p-3">
-          <p className="text-xs text-gray-500">Ingresos</p>
-          <p className="text-lg text-gray-900">{report.ingresos}</p>
+        <div className="border border-border bg-card p-3">
+          <p className="text-xs text-subtle-foreground">Ingresos</p>
+          <p className="text-lg text-foreground">{report.ingresos}</p>
         </div>
-        <div className="border border-gray-200 bg-white p-3">
-          <p className="text-xs text-gray-500">Costos</p>
-          <p className="text-lg text-gray-900">{report.costosEstructura}</p>
+        <div className="border border-border bg-card p-3">
+          <p className="text-xs text-subtle-foreground">Costos</p>
+          <p className="text-lg text-foreground">{report.costosEstructura}</p>
         </div>
       </div>
 
-      <div className="min-w-0 border border-gray-200 text-sm">
-        <div className="hidden grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] border-b border-gray-200 bg-[#FBFAF2] text-gray-500 md:grid">
+      <div className="min-w-0 border border-border text-sm">
+        <div className="hidden grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] border-b border-border bg-[#FBFAF2] text-subtle-foreground md:grid">
           <p className="px-3 py-2">Fila</p>
           <p className="px-3 py-2">Tipo</p>
           <p className="px-3 py-2">Categoria</p>
@@ -1332,8 +1332,8 @@ function MovementPreview({
           <div
             key={movement.rowIndex}
             className={cn(
-              "grid min-w-0 grid-cols-1 gap-2 border-b border-gray-200 p-3 md:grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] md:gap-0 md:p-0",
-              errorRows.has(movement.rowIndex) ? "bg-red-50" : "bg-white"
+              "grid min-w-0 grid-cols-1 gap-2 border-b border-border p-3 md:grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] md:gap-0 md:p-0",
+              errorRows.has(movement.rowIndex) ? "bg-red-50" : "bg-card"
             )}
           >
             <PreviewCell label="Fila">{movement.rowIndex}</PreviewCell>
@@ -1366,7 +1366,7 @@ function PreviewCell({
 }) {
   return (
     <div className="min-w-0 break-words md:px-3 md:py-2">
-      <span className="mr-2 text-xs text-gray-500 md:hidden">{label}</span>
+      <span className="mr-2 text-xs text-subtle-foreground md:hidden">{label}</span>
       <span>{children}</span>
     </div>
   );

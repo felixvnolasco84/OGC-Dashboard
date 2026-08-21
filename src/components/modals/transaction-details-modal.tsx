@@ -35,7 +35,7 @@ export default function TransactionDetailsModal() {
       case "Por pagar":
         return "bg-orange-50 text-orange-700 border-orange-200";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+        return "bg-muted text-foreground border-border";
     }
   };
 
@@ -48,31 +48,31 @@ export default function TransactionDetailsModal() {
       case "tarjeta":
         return "bg-indigo-50 text-indigo-700 border-indigo-200";
       case "cheque":
-        return "bg-gray-50 text-gray-700 border-gray-200";
+        return "bg-background text-foreground border-border";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+        return "bg-muted text-foreground border-border";
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent data-square-modal="" className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Detalles de Transacción</DialogTitle>
         </DialogHeader>
 
         {!transaction ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" />
           </div>
         ) : (
           <div className="space-y-6">
             {/* Transaction Summary */}
-            <div className="bg-gray-50 rounded-none p-6 space-y-4">
+            <div className="bg-background rounded-none p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Monto Total</p>
-                  <p className="text-3xl font-semibold text-gray-900">
+                  <p className="text-sm text-subtle-foreground">Monto Total</p>
+                  <p className="text-3xl font-semibold text-foreground">
                     {formatCurrency(transaction.monto_total, transaction.moneda)}
                   </p>
                 </div>
@@ -93,7 +93,7 @@ export default function TransactionDetailsModal() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
                   <span>
                     {transaction.fecha
@@ -105,7 +105,7 @@ export default function TransactionDetailsModal() {
                       : "-"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <DollarSign className="h-4 w-4" />
                   <span>
                     {transaction.moneda} {transaction.tipo_cambio && `(TC: ${transaction.tipo_cambio})`}
@@ -116,20 +116,20 @@ export default function TransactionDetailsModal() {
 
             {/* Transaction Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Información de Pago</h3>
+              <h3 className="text-lg font-medium text-foreground">Información de Pago</h3>
               
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-gray-400" />
-                    <label className="text-sm font-medium text-gray-600">Proveedor</label>
+                    <Building2 className="h-4 w-4 text-disabled-foreground" />
+                    <label className="text-sm font-medium text-muted-foreground">Proveedor</label>
                   </div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-foreground">
                     {transaction.proveedor?.razon_social || "Sin proveedor"}
                   </p>
                   {transaction.proveedor && (
                     <div className="space-y-1">
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-subtle-foreground">
                         {transaction.proveedor.is_archived
                           ? "Proveedor archivado"
                           : transaction.proveedor.tipo === "generico"
@@ -150,18 +150,18 @@ export default function TransactionDetailsModal() {
                 {transaction.factura && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-gray-400" />
-                      <label className="text-sm font-medium text-gray-600">Factura</label>
+                      <FileText className="h-4 w-4 text-disabled-foreground" />
+                      <label className="text-sm font-medium text-muted-foreground">Factura</label>
                     </div>
-                    <p className="text-sm text-gray-900 font-medium">{transaction.factura}</p>
+                    <p className="text-sm text-foreground font-medium">{transaction.factura}</p>
                   </div>
                 )}
 
                 {/* Categoría */}
                 {transaction.categoria && (
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-600">Categoría</label>
-                    <p className="text-sm text-gray-900 capitalize">{transaction.categoria}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Categoría</label>
+                    <p className="text-sm text-foreground capitalize">{transaction.categoria}</p>
                   </div>
                 )}
 
@@ -169,10 +169,10 @@ export default function TransactionDetailsModal() {
                 {transaction.codigo_referencia && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Hash className="h-4 w-4 text-gray-400" />
-                      <label className="text-sm font-medium text-gray-600">Código de Referencia</label>
+                      <Hash className="h-4 w-4 text-disabled-foreground" />
+                      <label className="text-sm font-medium text-muted-foreground">Código de Referencia</label>
                     </div>
-                    <p className="text-sm text-gray-900">{transaction.codigo_referencia}</p>
+                    <p className="text-sm text-foreground">{transaction.codigo_referencia}</p>
                   </div>
                 )}
 
@@ -180,10 +180,10 @@ export default function TransactionDetailsModal() {
                 {transaction.banco && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-gray-400" />
-                      <label className="text-sm font-medium text-gray-600">Banco</label>
+                      <Building2 className="h-4 w-4 text-disabled-foreground" />
+                      <label className="text-sm font-medium text-muted-foreground">Banco</label>
                     </div>
-                    <p className="text-sm text-gray-900">{transaction.banco}</p>
+                    <p className="text-sm text-foreground">{transaction.banco}</p>
                   </div>
                 )}
 
@@ -191,34 +191,34 @@ export default function TransactionDetailsModal() {
                 {transaction.tarjeta && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-gray-400" />
-                      <label className="text-sm font-medium text-gray-600">Tarjeta</label>
+                      <CreditCard className="h-4 w-4 text-disabled-foreground" />
+                      <label className="text-sm font-medium text-muted-foreground">Tarjeta</label>
                     </div>
-                    <p className="text-sm text-gray-900">{transaction.tarjeta}</p>
+                    <p className="text-sm text-foreground">{transaction.tarjeta}</p>
                   </div>
                 )}
 
                 {/* Número de Cuenta */}
                 {transaction.numero_cuenta && (
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-600">Número de Cuenta</label>
-                    <p className="text-sm text-gray-900 font-mono">{transaction.numero_cuenta}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Número de Cuenta</label>
+                    <p className="text-sm text-foreground font-mono">{transaction.numero_cuenta}</p>
                   </div>
                 )}
 
                 {/* Número de Transferencia */}
                 {transaction.numero_transferencia && (
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-600">Número de Transferencia</label>
-                    <p className="text-sm text-gray-900 font-mono">{transaction.numero_transferencia}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Número de Transferencia</label>
+                    <p className="text-sm text-foreground font-mono">{transaction.numero_transferencia}</p>
                   </div>
                 )}
 
                 {/* Comprobante */}
                 {transaction.comprobante && (
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-600">Comprobante</label>
-                    <p className="text-sm text-gray-900">{transaction.comprobante}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Comprobante</label>
+                    <p className="text-sm text-foreground">{transaction.comprobante}</p>
                   </div>
                 )}
               </div>
@@ -227,14 +227,14 @@ export default function TransactionDetailsModal() {
             {/* Line Items & Documents Summary */}
             <div className="border-t pt-4 grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-600">Conceptos (Line Items)</label>
-                <p className="text-2xl font-semibold text-gray-900">
+                <label className="text-sm font-medium text-muted-foreground">Conceptos (Line Items)</label>
+                <p className="text-2xl font-semibold text-foreground">
                   {transaction.lineItemsCount}
                 </p>
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-600">Documentos</label>
-                <p className="text-2xl font-semibold text-gray-900">
+                <label className="text-sm font-medium text-muted-foreground">Documentos</label>
+                <p className="text-2xl font-semibold text-foreground">
                   {transaction.documentsCount}
                 </p>
               </div>

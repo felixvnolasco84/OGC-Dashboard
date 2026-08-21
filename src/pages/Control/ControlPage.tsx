@@ -114,15 +114,15 @@ type ControlMetricCardProps = {
 
 function ControlMetricCard({ label, value, tone = "default" }: ControlMetricCardProps) {
     const toneClass = {
-        default: "text-gray-900",
+        default: "text-foreground",
         danger: "text-[#802424]",
         success: "text-[#1A5D21]",
     }[tone];
 
     return (
-        <Card className="bg-white shadow-none border border-[#E6E4DE] rounded-md min-w-0">
-            <CardContent className="px-8 py-7 text-left min-h-[116px] flex flex-col justify-center bg-[#FCFCFC] rounded-md">
-                <p className="text-sm text-[#6F6E68] mb-2">{label}</p>
+        <Card className="bg-card shadow-none border border-border rounded-md min-w-0">
+            <CardContent className="px-8 py-7 text-left min-h-[116px] flex flex-col justify-center bg-card rounded-md">
+                <p className="text-sm text-muted-foreground mb-2">{label}</p>
                 <p className={`text-3xl 2xl:text-4xl leading-tight break-words tabular-nums ${toneClass}`}>
                     {value}
                 </p>
@@ -296,20 +296,20 @@ export default function ControlPage() {
     }, [budgetMetrics, programaObraSchedules, programaObraDetalles]);
 
     if (!proyecto || !budgetMetrics || !programaObraSchedules || !programaObraDetalles) {
-        return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
-            <p className="text-gray-500">Cargando datos...</p>
+        return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
+            <p className="text-subtle-foreground">Cargando datos...</p>
         </div>;
     }
 
     return (
-        <div className="bg-white px-12 py-6">
+        <div className="bg-card px-12 py-6">
             <div className="max-w-full mx-auto space-y-6">
                 {/* Header */}
                 <div className="rounded-lg py-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex flex-col text-left">
-                            <p className="text-sm text-gray-500 mb-1">Proyecto</p>
-                            <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
+                            <p className="text-sm text-subtle-foreground mb-1">Proyecto</p>
+                            <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         {isAdmin ? (
                             <Button
@@ -341,27 +341,27 @@ export default function ControlPage() {
                     <Card className="bg-transparent shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-xs text-[#777770]">Presupuesto aprobado</p>
+                                <p className="text-xs text-muted-foreground">Presupuesto aprobado</p>
                                 <div className="flex items-baseline space-x-2">
                                     <CurrencyMetric
                                         amount={budgetMetrics.presupuesto_aprobado || 0}
                                         currency={moneda}
-                                        className="text-4xl text-gray-900"
+                                        className="text-4xl text-foreground"
                                     />
                                 </div>
 
-                                {/* <div className="text-lg text-gray-500">
-                                    <span className="text-sm text-gray-400">Total partidas: {metrics.totalPartidas}</span>
+                                {/* <div className="text-lg text-subtle-foreground">
+                                    <span className="text-sm text-disabled-foreground">Total partidas: {metrics.totalPartidas}</span>
                                 </div> */}
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Gasto Total */}
-                    <Card className="bg-white shadow-none border-none">
+                    <Card className="bg-card shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-xs text-[#777770]">Gasto total</p>
+                                <p className="text-xs text-muted-foreground">Gasto total</p>
                                 <div className="flex items-baseline space-x-2">
                                     <CurrencyMetric
                                         amount={budgetMetrics.gasto_total || 0}
@@ -369,7 +369,7 @@ export default function ControlPage() {
                                         className="text-4xl text-[#802424]"
                                     />
                                 </div>
-                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
                                     Avance {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.gasto_total / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
                                 </Badge>
                             </div>
@@ -377,10 +377,10 @@ export default function ControlPage() {
                     </Card>
 
                     {/* Por Gastar */}
-                    <Card className="bg-white shadow-none border-none">
+                    <Card className="bg-card shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-xs text-[#777770]">Por gastar</p>
+                                <p className="text-xs text-muted-foreground">Por gastar</p>
                                 <div className="flex items-baseline space-x-2">
                                     <CurrencyMetric
                                         amount={budgetMetrics.por_gastar || 0}
@@ -388,7 +388,7 @@ export default function ControlPage() {
                                         className="text-4xl text-[#1A5D21]"
                                     />
                                 </div>
-                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
                                     Pendiente {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.por_gastar / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
                                 </Badge>
                             </div>
@@ -397,7 +397,7 @@ export default function ControlPage() {
                 </div>
 
                 {/* Earned Value Metrics */}
-                <div className="bg-white pt-10 border-t border-[#D8D6CF]">
+                <div className="bg-card pt-10 border-t border-border">
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
                         <ControlMetricCard
                             label="Avance físico real"
@@ -435,7 +435,7 @@ export default function ControlPage() {
                 {/* Secondary Metrics and Chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Chart Area with integrated metrics */}
-                    <div className="lg:col-span-4 py-8 px-10 border rounded-md bg-[#fcfcfc]">
+                    <div className="lg:col-span-4 py-8 px-10 border rounded-md bg-card">
 
                         {/* New Progress Chart Section */}
 
@@ -445,15 +445,15 @@ export default function ControlPage() {
                                 <div className="flex items-start justify-between mb-8 gap-4">
                                     <div className="flex items-center space-x-12">
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-[#5A5A50]">Gasto</p>
+                                            <p className="text-xs text-muted-foreground">Gasto</p>
                                             <p className="text-3xl">${formatNumber(Math.round(budgetMetrics.gasto_total || 0))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-[#5A5A50]">Por ejercer</p>
+                                            <p className="text-xs text-muted-foreground">Por ejercer</p>
                                             <p className="text-3xl">${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-[#5A5A50]">Honorarios</p>
+                                            <p className="text-xs text-muted-foreground">Honorarios</p>
                                             <p className="text-3xl">${formatNumber(Math.round(budgetMetrics.honorarios_monto || 0))}</p>
                                         </div>
                                     </div>
@@ -462,15 +462,15 @@ export default function ControlPage() {
                                     <div className="flex items-center space-x-6 flex-wrap text-xs">
                                         <div className="flex items-center space-x-2">
                                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#B6C3D0' }}></div>
-                                            <span className=" text-gray-600 leading-none">Gasto Proyectado</span>
+                                            <span className=" text-muted-foreground leading-none">Gasto Proyectado</span>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#93B0C3' }}></div>
-                                            <span className=" text-gray-600 leading-none">Gasto Real</span>
+                                            <span className=" text-muted-foreground leading-none">Gasto Real</span>
                                         </div>
                                         {/* <div className="flex items-center space-x-2">
-                                            <div className="w-8 h-0.5 border-t-2 border-dashed border-gray-500"></div>
-                                            <span className=" text-gray-600">Avance %</span>
+                                            <div className="w-8 h-0.5 border-t-2 border-dashed border-border-strong"></div>
+                                            <span className=" text-muted-foreground">Avance %</span>
                                         </div> */}
                                     </div>
                                 </div>
@@ -496,8 +496,8 @@ export default function ControlPage() {
                     <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                         {/* Chart 1 - Mano de Obra */}
                         {chart1Config.isLoading ? (
-                            <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
-                                <p className="text-gray-500">Cargando configuración...</p>
+                            <div className="flex items-center justify-center h-64 bg-background rounded-lg">
+                                <p className="text-subtle-foreground">Cargando configuración...</p>
                             </div>
                         ) : (
                             <FamiliaChart
@@ -516,8 +516,8 @@ export default function ControlPage() {
 
                         {/* Chart 2 - Indirectos */}
                         {chart2Config.isLoading ? (
-                            <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
-                                <p className="text-gray-500">Cargando configuración...</p>
+                            <div className="flex items-center justify-center h-64 bg-background rounded-lg">
+                                <p className="text-subtle-foreground">Cargando configuración...</p>
                             </div>
                         ) : (
                             <FamiliaChart
@@ -552,13 +552,13 @@ export default function ControlPage() {
                                 <AutorizacionesObraPage embedded />
                             )}
                             {activeTab === "presupuestos" && (
-                                <div className="py-12 text-center text-gray-400">
+                                <div className="py-12 text-center text-disabled-foreground">
                                     <p className="text-lg">Presupuestos y contratos</p>
                                     <p className="text-sm mt-1">Próximamente</p>
                                 </div>
                             )}
                             {activeTab === "imss" && (
-                                <div className="py-12 text-center text-gray-400">
+                                <div className="py-12 text-center text-disabled-foreground">
                                     <p className="text-lg">IMSS y SIROC</p>
                                     <p className="text-sm mt-1">Próximamente</p>
                                 </div>

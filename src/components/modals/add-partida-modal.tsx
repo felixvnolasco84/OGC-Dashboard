@@ -316,7 +316,7 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
 function RollupSummaryRow({ totals }: { totals: RollupTotals }) {
     const porEjercer = totals.aprobado - totals.pagado;
     return (
-        <div className="grid grid-cols-12 gap-2 items-end rounded-md bg-muted/40 px-3 py-2 border border-dashed">
+        <div className="grid grid-cols-12 gap-2 items-end rounded-none bg-muted/40 px-3 py-2 border border-dashed">
             <div className="col-span-12 text-[10px] uppercase tracking-wide text-muted-foreground">
                 Totales calculados automáticamente desde los hijos
             </div>
@@ -724,7 +724,7 @@ export default function AddPartidaModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="w-full sm:max-w-[min(1100px,95vw)] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-full sm:max-w-[min(1100px,95vw)] overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle>Agregar Elementos al Presupuesto</SheetTitle>
                     <SheetDescription>
@@ -752,7 +752,7 @@ export default function AddPartidaModal() {
                             <SelectTrigger className="h-9 w-[280px]">
                                 <SelectValue placeholder="Usar partida existente como padre…" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent data-square-modal="">
                                 {availableExisting.length === 0 ? (
                                     <div className="px-2 py-1.5 text-sm text-muted-foreground">
                                         Sin partidas disponibles
@@ -778,7 +778,7 @@ export default function AddPartidaModal() {
                 <Separator className="my-4" />
 
                 {partidas.length === 0 ? (
-                    <div className="rounded-md border border-dashed py-12 text-center">
+                    <div className="rounded-none border border-dashed py-12 text-center">
                         <Layers className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                         <p className="text-sm font-medium">Aún no hay elementos</p>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -896,14 +896,14 @@ function PartidaCard({
 
     const [familiaSelectorValue, setFamiliaSelectorValue] = useState("");
     return (
-        <div className="rounded-md border bg-card overflow-hidden">
+        <div className="rounded-none border bg-card overflow-hidden">
             {/* Partida header */}
             <div className="bg-muted/40 px-3 py-2 border-b">
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
                         onClick={() => onPatch({ isExpanded: !partida.isExpanded })}
-                        className="p-1 hover:bg-muted rounded"
+                        className="p-1 hover:bg-muted rounded-none"
                         aria-label={partida.isExpanded ? "Colapsar" : "Expandir"}
                     >
                         <Chevron className="h-4 w-4" />
@@ -992,7 +992,7 @@ function PartidaCard({
                                 <SelectTrigger className="h-8 w-[260px] text-xs">
                                     <SelectValue placeholder="Usar familia existente…" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent data-square-modal="">
                                     {availableExistingFamilias.length === 0 ? (
                                         <div className="px-2 py-1.5 text-xs text-muted-foreground">
                                             {existingFamilias === undefined
@@ -1037,13 +1037,13 @@ function FamiliaCard({
 }: FamiliaCardProps) {
     const Chevron = familia.isExpanded ? ChevronDown : ChevronRight;
     return (
-        <div className="rounded-md border bg-background ml-4 border-l-4 border-l-blue-300">
+        <div className="rounded-none border bg-background ml-4 border-l-4 border-l-blue-300">
             <div className="px-3 py-2 border-b bg-blue-50/50">
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
                         onClick={() => onPatch({ isExpanded: !familia.isExpanded })}
-                        className="p-1 hover:bg-muted rounded"
+                        className="p-1 hover:bg-muted rounded-none"
                         aria-label={familia.isExpanded ? "Colapsar" : "Expandir"}
                     >
                         <Chevron className="h-4 w-4" />
@@ -1131,7 +1131,7 @@ type SubPartidaRowProps = {
 
 function SubPartidaRow({ sub, onPatch, onRemove }: SubPartidaRowProps) {
     return (
-        <div className="rounded-md border bg-background ml-4 border-l-4 border-l-emerald-300 p-3">
+        <div className="rounded-none border bg-background ml-4 border-l-4 border-l-emerald-300 p-3">
             <div className="flex items-center gap-2 mb-2">
                 <Layers className="h-4 w-4 text-emerald-600" />
                 <Badge variant="outline">Sub-partida</Badge>

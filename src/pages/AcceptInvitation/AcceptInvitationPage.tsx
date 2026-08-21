@@ -206,23 +206,23 @@ export default function AcceptInvitationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col items-center justify-center p-4">
       <div className="mb-8">
         <img src={LOGO} alt="OGC Logo" className="w-16 h-16" />
       </div>
 
-      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-xl">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-8 shadow-xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             Activar Cuenta
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Completa tu acceso para entrar al dashboard.
           </p>
         </div>
 
         {status === "loading" && (
-          <div className="flex flex-col items-center justify-center py-8 text-gray-600">
+          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
             <Loader2 className="mb-4 h-8 w-8 animate-spin" />
             <p>Validando invitación...</p>
           </div>

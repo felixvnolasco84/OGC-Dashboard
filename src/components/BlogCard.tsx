@@ -14,7 +14,7 @@ export default function BlogCard({
   };
 }) {
   return (
-    <div className="overflow-hidden rounded-lg bg-white shadow-md">
+    <div className="overflow-hidden rounded-lg bg-card shadow-md">
       <div className="p-6">
         <h2 className="mb-2 text-xl font-semibold">
           <NavLink
@@ -24,7 +24,7 @@ export default function BlogCard({
             {post.title}
           </NavLink>
         </h2>
-        <p className="mb-4 text-gray-600">{post.previewBody}</p>
+        <p className="mb-4 text-muted-foreground">{post.previewBody}</p>
       </div>
     </div>
   );

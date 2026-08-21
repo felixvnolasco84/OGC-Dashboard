@@ -226,7 +226,7 @@ export default function UploadDocumentsModal() {
             case "error":
                 return <X className="h-4 w-4 text-red-500" />;
             default:
-                return <FileText className="h-4 w-4 text-gray-400" />;
+                return <FileText className="h-4 w-4 text-disabled-foreground" />;
         }
     };
 
@@ -241,7 +241,7 @@ export default function UploadDocumentsModal() {
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent data-square-modal="" className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-normal">Subir Documentos</DialogTitle>
                     <DialogDescription>
@@ -268,7 +268,7 @@ export default function UploadDocumentsModal() {
                                 <SelectTrigger id="project-select">
                                     <SelectValue placeholder="Selecciona un proyecto" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent data-square-modal="">
                                     {projects?.map((project) => (
                                         <SelectItem key={project._id} value={project._id}>
                                             {project.nombre}
@@ -295,9 +295,9 @@ export default function UploadDocumentsModal() {
                                             : "Selecciona una transacción"
                                     } />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent data-square-modal="">
                                     {formattedTransactions.length === 0 ? (
-                                        <div className="px-2 py-4 text-sm text-gray-500 text-center">
+                                        <div className="px-2 py-4 text-sm text-subtle-foreground text-center">
                                             No hay transacciones disponibles
                                         </div>
                                     ) : (
@@ -313,7 +313,7 @@ export default function UploadDocumentsModal() {
                     </div>
 
                     {/* Upload Area */}
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+                    <div className="border-2 border-dashed border-border-strong rounded-none p-8 text-center hover:border-border-strong transition-colors">
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -322,8 +322,8 @@ export default function UploadDocumentsModal() {
                             className="hidden"
                             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
                         />
-                        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-sm text-gray-600 mb-2">
+                        <Upload className="h-12 w-12 text-disabled-foreground mx-auto mb-4" />
+                        <p className="text-sm text-muted-foreground mb-2">
                             Arrastra archivos aquí o haz clic para seleccionar
                         </p>
                         <Button
@@ -344,7 +344,7 @@ export default function UploadDocumentsModal() {
                                     Archivos ({files.length})
                                 </h3>
                                 {pendingCount > 0 && (
-                                    <span className="text-sm text-gray-500">
+                                    <span className="text-sm text-subtle-foreground">
                                         {pendingCount} pendiente(s)
                                     </span>
                                 )}
@@ -355,7 +355,7 @@ export default function UploadDocumentsModal() {
                                     <div
                                         key={index}
                                         className={cn(
-                                            "border rounded-lg p-4 space-y-3",
+                                            "border rounded-none p-4 space-y-3",
                                             fileUpload.status === "success" && "bg-green-50 border-green-200",
                                             fileUpload.status === "error" && "bg-red-50 border-red-200"
                                         )}
@@ -368,7 +368,7 @@ export default function UploadDocumentsModal() {
                                                     <p className="text-sm font-medium truncate">
                                                         {fileUpload.file.name}
                                                     </p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-xs text-subtle-foreground">
                                                         {formatFileSize(fileUpload.file.size)}
                                                     </p>
                                                 </div>
@@ -418,7 +418,7 @@ export default function UploadDocumentsModal() {
                                                         <SelectTrigger id={`type-${index}`} className="h-8 text-sm">
                                                             <SelectValue />
                                                         </SelectTrigger>
-                                                        <SelectContent>
+                                                        <SelectContent data-square-modal="">
                                                             {DOCUMENT_TYPES.map((type) => (
                                                                 <SelectItem key={type} value={type}>
                                                                     {type}

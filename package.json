@@ -16,6 +16,8 @@
     "test:task-emails": "node --experimental-strip-types scripts/test-task-email-notifications.mjs",
     "send:task-email-mocks": "node scripts/send-task-email-mocks.mjs",
     "eval:chatbot": "node scripts/evaluate-assistant.mjs",
+    "lint:colors": "node scripts/check-neutral-colors.mjs",
+    "lint:radius": "node scripts/check-radius-scope.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

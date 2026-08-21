@@ -72,34 +72,34 @@ export default function TransactionCard({
   };
 
   return (
-    <div className="bg-white overflow-hidden">
+    <div className="bg-card overflow-hidden">
       {/* Transaction Header */}
-      <div className="p-4 border-b border-gray-400 leading-none">
+      <div className="p-4 border-b border-border-strong leading-none">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1">
             <div className={`w-12 h-12 rounded-md flex items-center justify-center ${isPagado ? 'bg-[#E0F0E2]' : 'bg-orange-100'
               }`}>
               {isPagado ? (
                 <div className="w-fit bg-green-800 rounded-full p-0.5">
-                  <Check className="w-4 h-4 text-white" />
+                  <Check className="w-4 h-4 text-on-color" />
                 </div>
               ) : (
                 <div className="w-fit bg-orange-800 rounded-full p-0.5">
-                  <Lock className="w-4 h-4 text-white" />
+                  <Lock className="w-4 h-4 text-on-color" />
                 </div>
               )}
             </div>
             <div>
-              <p className="font-medium text-gray-900">
+              <p className="font-medium text-foreground">
                 {transaction.status || (isPagado ? 'Aprobado' : 'Pendiente')}
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Transacción #{String(index + 1).padStart(3, '0')} • {lineItemsCount} concepto{lineItemsCount !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
           <div className="text-right flex items-center gap-3">
-            <p className="text-xl text-gray-900">
+            <p className="text-xl text-foreground">
               {formatCurrency(totalAmount)} {transaction.moneda || 'MXN'}
             </p>
 
@@ -121,28 +121,28 @@ export default function TransactionCard({
       <div className="p-4 space-y-3">
         <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-[#777770]">Fecha</span>
+            <span className="text-muted-foreground">Fecha</span>
             <span className="text-muted-foreground">{transaction.fecha}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#777770]">Método de pago</span>
+            <span className="text-muted-foreground">Método de pago</span>
             <span className="text-muted-foreground">{transaction.tipo_pago}</span>
           </div>
           {transaction.numero_cuenta && (
             <div className="flex justify-between">
-              <span className="text-[#777770]">Cuenta cargo</span>
+              <span className="text-muted-foreground">Cuenta cargo</span>
               <span className="text-muted-foreground">{transaction.numero_cuenta}</span>
             </div>
           )}
           {transaction.numero_transferencia && (
             <div className="flex justify-between">
-              <span className="text-[#777770]">Cuenta abono</span>
+              <span className="text-muted-foreground">Cuenta abono</span>
               <span className="text-muted-foreground">{transaction.numero_transferencia}</span>
             </div>
           )}
           {transaction.codigo_referencia && (
             <div className="flex justify-between">
-              <span className="text-[#777770]">Referencia</span>
+              <span className="text-muted-foreground">Referencia</span>
               <span className="text-muted-foreground">{transaction.codigo_referencia}</span>
             </div>
           )}
@@ -150,19 +150,19 @@ export default function TransactionCard({
 
         {/* Line Items Summary */}
         {lineItemsCount > 0 && (
-          <div className="mt-4 pt-3 border-t border-gray-200">
-            <p className="text-xs font-medium text-gray-500 mb-2">Conceptos incluidos:</p>
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-xs font-medium text-subtle-foreground mb-2">Conceptos incluidos:</p>
             <div className="space-y-1">
               {lineItems.map((item, idx) => (
                 <div key={idx} className="flex justify-between text-sm">
-                  <span className="text-gray-600 truncate">
+                  <span className="text-muted-foreground truncate">
                     {item.partida && item.familia && item.sub_partida
                       ? `${item.partida} › ${item.familia} › ${item.sub_partida}`
                       : item.partida && item.familia
                         ? `${item.partida} › ${item.familia}`
                         : item.partida || 'Concepto'}
                   </span>
-                  <span className="text-gray-900 ml-2 whitespace-nowrap">
+                  <span className="text-foreground ml-2 whitespace-nowrap">
                     {formatCurrency(item.monto)}
                   </span>
                 </div>
@@ -175,7 +175,7 @@ export default function TransactionCard({
           {/* Additional Tags */}
           <div className="space-y-2 pt-2 flex flex-wrap gap-2">
             {transaction.banco && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-muted text-foreground">
                 {transaction.banco}
               </span>
             )}
@@ -207,23 +207,23 @@ export default function TransactionCard({
                     key={doc._id}
                     onClick={() => window.open(doc.url!, '_blank')}
                     size={"default"}
-                    className="flex items-center gap-2 px-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md justify-end transition-colors cursor-pointer"
+                    className="flex items-center gap-2 px-3 bg-background hover:bg-muted border border-border rounded-md justify-end transition-colors cursor-pointer"
                     title={`Ver ${doc.nombre}`}
                   >
-                    <FileText className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-700 font-medium">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground font-medium">
                       {doc.nombre}
                     </span>
-                    <ExternalLink className="w-3 h-3 text-gray-600" />
+                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
                   </Button>
                 ) : (
                   <div
                     key={doc._id}
-                    className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md justify-end"
+                    className="flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-md justify-end"
                     title={doc.nombre}
                   >
-                    <FileText className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-700 font-medium">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground font-medium">
                       {doc.nombre}
                     </span>
                   </div>
@@ -233,22 +233,22 @@ export default function TransactionCard({
               // Fallback to legacy fields if no documents
               <>
                 {transaction.factura && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md justify-end">
-                    <span className="text-sm text-gray-700">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-md justify-end">
+                    <span className="text-sm text-foreground">
                       {transaction.factura.includes('http') ? 'Factura' : transaction.factura}
                     </span>
                     <div className="w-fit bg-green-800 rounded-full p-0.5">
-                      <Check className="w-4 h-4 text-white" />
+                      <Check className="w-4 h-4 text-on-color" />
                     </div>
                   </div>
                 )}
                 {transaction.comprobante && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md justify-end">
-                    <span className="text-sm text-gray-700">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-md justify-end">
+                    <span className="text-sm text-foreground">
                       {transaction.comprobante.includes('http') ? 'Comprobante' : transaction.comprobante}
                     </span>
                     <div className="w-fit bg-green-800 rounded-full p-0.5">
-                      <Check className="w-4 h-4 text-white" />
+                      <Check className="w-4 h-4 text-on-color" />
                     </div>
                   </div>
                 )}

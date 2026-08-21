@@ -133,7 +133,7 @@ export default function EditTransactionModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle>Editar transacción</SheetTitle>
                     <SheetDescription className="sr-only">
@@ -144,59 +144,59 @@ export default function EditTransactionModal() {
                 {/* Transaction Form */}
                 <form onSubmit={handleSubmit} className="mt-6 space-y-6">
                     {/* Transaction Summary */}
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                        <p className="text-sm text-gray-600 mb-1">{transactionContext.transaction.monto_total === totalAmount ? "Monto total de la transacción" : "Monto total parcial"}</p>                        
+                    <div className="bg-background p-4 rounded-none border">
+                        <p className="text-sm text-muted-foreground mb-1">{transactionContext.transaction.monto_total === totalAmount ? "Monto total de la transacción" : "Monto total parcial"}</p>
                         <p className="text-2xl font-semibold">{formatCurrency(totalAmount)}</p>
                         {
                             transactionContext.transaction.monto_total !== totalAmount && (
                                 <small className="text-muted-foreground">El monto total de la transacción es {formatCurrency(transactionContext.transaction.monto_total)}</small>
                             )
                         }
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-subtle-foreground mt-1">
                             {transactionContext.lineItems.length} concepto{transactionContext.lineItems.length !== 1 ? 's' : ''}
                         </p>
                     </div>
 
                     {/* Status Selection */}
                     <div className="space-y-3">
-                        <h3 className="text-base font-semibold text-gray-900">Estado</h3>
+                        <h3 className="text-base font-semibold text-foreground">Estado</h3>
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 type="button"
                                 onClick={() => handleInputChange('status', 'Pagado')}
                                 className={cn(
-                                    "flex items-center gap-2 p-4 rounded-lg border-2 transition-all",
+                                    "flex items-center gap-2 p-4 rounded-none border-2 transition-all",
                                     formData.status === 'Pagado'
                                         ? "border-green-500 bg-green-50"
-                                        : "border-gray-200 bg-white hover:border-gray-300"
+                                        : "border-border bg-card hover:border-border-strong"
                                 )}
                             >
                                 <Check className={cn(
                                     "h-5 w-5",
-                                    formData.status === 'Pagado' ? "text-green-600" : "text-gray-400"
+                                    formData.status === 'Pagado' ? "text-green-600" : "text-disabled-foreground"
                                 )} />
                                 <span className={cn(
                                     "font-medium",
-                                    formData.status === 'Pagado' ? "text-green-700" : "text-gray-600"
+                                    formData.status === 'Pagado' ? "text-green-700" : "text-muted-foreground"
                                 )}>Pagado</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleInputChange('status', 'Por pagar')}
                                 className={cn(
-                                    "flex items-center gap-2 p-4 rounded-lg border-2 transition-all",
+                                    "flex items-center gap-2 p-4 rounded-none border-2 transition-all",
                                     formData.status === 'Por pagar'
-                                        ? "border-gray-500 bg-gray-50"
-                                        : "border-gray-200 bg-white hover:border-gray-300"
+                                        ? "border-border-strong bg-background"
+                                        : "border-border bg-card hover:border-border-strong"
                                 )}
                             >
                                 <Circle className={cn(
                                     "h-5 w-5",
-                                    formData.status === 'Por pagar' ? "text-gray-600" : "text-gray-400"
+                                    formData.status === 'Por pagar' ? "text-muted-foreground" : "text-disabled-foreground"
                                 )} />
                                 <span className={cn(
                                     "font-medium",
-                                    formData.status === 'Por pagar' ? "text-gray-700" : "text-gray-600"
+                                    formData.status === 'Por pagar' ? "text-foreground" : "text-muted-foreground"
                                 )}>Por pagar</span>
                             </button>
                         </div>
@@ -204,7 +204,7 @@ export default function EditTransactionModal() {
 
                     {/* Payment Details - Two Columns */}
                     <div className="space-y-3">
-                        <h3 className="text-base font-semibold text-gray-900">Detalles del pago</h3>
+                        <h3 className="text-base font-semibold text-foreground">Detalles del pago</h3>
 
                         <Select
                             value={formData.proveedor_id || "none"}
@@ -215,7 +215,7 @@ export default function EditTransactionModal() {
                             <SelectTrigger>
                                 <SelectValue placeholder="Sin proveedor" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent data-square-modal="">
                                 <SelectItem value="none">Sin proveedor</SelectItem>
                                 {providers?.map((provider) => (
                                     <SelectItem key={provider._id} value={provider._id}>
@@ -231,7 +231,7 @@ export default function EditTransactionModal() {
                                     <SelectTrigger>
                                         <SelectValue placeholder="Tipo de pago" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent data-square-modal="">
                                         <SelectItem value="efectivo">Efectivo</SelectItem>
                                         <SelectItem value="transferencia">Transferencia</SelectItem>
                                         <SelectItem value="tarjeta">Tarjeta</SelectItem>
@@ -244,7 +244,7 @@ export default function EditTransactionModal() {
                                     <SelectTrigger>
                                         <SelectValue placeholder="Moneda" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent data-square-modal="">
                                         <SelectItem value="MXN">MXN</SelectItem>
                                         <SelectItem value="USD">USD</SelectItem>
                                         <SelectItem value="EUR">EUR</SelectItem>
@@ -268,7 +268,7 @@ export default function EditTransactionModal() {
                                     <SelectTrigger>
                                         <SelectValue placeholder="Categoría" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent data-square-modal="">
                                         <SelectItem value="anticipo">Anticipo</SelectItem>
                                         <SelectItem value="material">Material</SelectItem>
                                         <SelectItem value="estimacion">Estimación</SelectItem>
@@ -294,7 +294,7 @@ export default function EditTransactionModal() {
                     {/* Conditional Bank Details based on tipo_pago */}
                     {formData.tipo_pago && formData.tipo_pago !== 'efectivo' && (
                         <div className="space-y-3">
-                            <h3 className="text-base font-semibold text-gray-900">Información bancaria</h3>
+                            <h3 className="text-base font-semibold text-foreground">Información bancaria</h3>
                             
                             {/* Banco field - shown for all non-cash payments */}
                             <div className="space-y-2">
@@ -343,7 +343,7 @@ export default function EditTransactionModal() {
 
                     {/* Reference Section */}
                     <div className="space-y-3">
-                        <h3 className="text-base font-semibold text-gray-900">Código de Referencia</h3>
+                        <h3 className="text-base font-semibold text-foreground">Código de Referencia</h3>
                         <Input
                             placeholder="Código de referencia o notas"
                             value={formData.codigo_referencia || ''}
@@ -353,20 +353,20 @@ export default function EditTransactionModal() {
 
                     {/* Line Items - Editable */}
                     <div className="space-y-3">
-                        <h3 className="text-base font-semibold text-gray-900">Conceptos de la transacción</h3>
-                        <p className="text-xs text-gray-500">Edita los montos individuales de cada concepto</p>
-                        <div className="border rounded-lg divide-y">
+                        <h3 className="text-base font-semibold text-foreground">Conceptos de la transacción</h3>
+                        <p className="text-xs text-subtle-foreground">Edita los montos individuales de cada concepto</p>
+                        <div className="border rounded-none divide-y">
                             {transactionContext.lineItems.map((item, idx) => (
                                 <div key={item._id || idx} className="p-3 flex justify-between items-center gap-3">
                                     <div className="flex-1">
-                                        <p className="text-sm text-gray-900">
+                                        <p className="text-sm text-foreground">
                                             {item.partida
                                                 ? `${item.partida.nombre} › ${item.partida.familia} › ${item.partida.sub_partida}`
                                                 : 'Concepto'}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs text-gray-500">$</span>
+                                        <span className="text-xs text-subtle-foreground">$</span>
                                         <Input
                                             type="number"
                                             step="0.01"
@@ -389,7 +389,7 @@ export default function EditTransactionModal() {
                         <Button
                             type="submit"
                             disabled={!isFormValid() || isSubmitting}
-                            className="bg-black hover:bg-gray-800 text-white"
+                            className="bg-inverse hover:bg-inverse text-on-color"
                         >
                             {isSubmitting ? 'Actualizando...' : 'Actualizar transacción'}
                         </Button>

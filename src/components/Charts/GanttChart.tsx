@@ -167,17 +167,17 @@ export default function GanttChart({ data }: GanttChartProps) {
 
   if (ganttData.length === 0) {
     return (
-      <div className="w-full h-96 flex items-center justify-center bg-gray-50 rounded-lg">
-        <p className="text-gray-500">No hay datos disponibles para mostrar</p>
+      <div className="w-full h-96 flex items-center justify-center bg-background rounded-lg">
+        <p className="text-subtle-foreground">No hay datos disponibles para mostrar</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white rounded-lg shadow-sm border">
+    <div className="w-full bg-card rounded-lg shadow-sm border">
       <div className="p-4 border-b">
-        <h3 className="text-lg font-semibold text-gray-900">Diagrama de Gantt - Costos por Tiempo</h3>
-        <p className="text-sm text-gray-600">
+        <h3 className="text-lg font-semibold text-foreground">Diagrama de Gantt - Costos por Tiempo</h3>
+        <p className="text-sm text-muted-foreground">
           Visualización temporal de costos por categoría y subcategoría
         </p>
       </div>
@@ -185,7 +185,7 @@ export default function GanttChart({ data }: GanttChartProps) {
       <div className="p-4">
         {/* Legend */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Categorías:</h4>
+          <h4 className="text-sm font-medium text-foreground mb-2">Categorías:</h4>
           <div className="flex flex-wrap gap-3">
             {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
               <div key={category} className="flex items-center gap-2">
@@ -193,7 +193,7 @@ export default function GanttChart({ data }: GanttChartProps) {
                   className="w-3 h-3 rounded"
                   style={{ backgroundColor: color }}
                 />
-                <span className="text-xs text-gray-600">{category.replace('_', ' ')}</span>
+                <span className="text-xs text-muted-foreground">{category.replace('_', ' ')}</span>
               </div>
             ))}
           </div>
@@ -202,14 +202,14 @@ export default function GanttChart({ data }: GanttChartProps) {
         {/* Chart Container */}
         <div className="relative">
           {/* Time axis */}
-          <div className="relative h-8 mb-4 border-b border-gray-200">
+          <div className="relative h-8 mb-4 border-b border-border">
             {timeMarkers.map((marker, index) => (
               <div
                 key={index}
-                className="absolute top-0 h-full border-l border-gray-300"
+                className="absolute top-0 h-full border-l border-border-strong"
                 style={{ left: `${marker.position}%` }}
               >
-                <span className="absolute top-full mt-1 text-xs text-gray-500 transform -translate-x-1/2">
+                <span className="absolute top-full mt-1 text-xs text-subtle-foreground transform -translate-x-1/2">
                   {formatDate(marker.date)}
                 </span>
               </div>
@@ -222,16 +222,16 @@ export default function GanttChart({ data }: GanttChartProps) {
               <div key={item.id} className="relative">
                 {/* Task label */}
                 <div className="flex items-center mb-1">
-                  <div className="w-64 pr-4 text-sm font-medium text-gray-700 truncate">
+                  <div className="w-64 pr-4 text-sm font-medium text-foreground truncate">
                     {item.name}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-subtle-foreground">
                     {formatCurrency(item.amount)}
                   </div>
                 </div>
 
                 {/* Timeline container */}
-                <div className="relative h-10 bg-gray-50 rounded">
+                <div className="relative h-10 bg-background rounded">
                   {/* Gantt bar */}
                   <div
                     className="absolute top-1/2 transform -translate-y-1/2 rounded shadow-sm cursor-pointer transition-all hover:shadow-md group"
@@ -245,11 +245,11 @@ export default function GanttChart({ data }: GanttChartProps) {
                     title={`${item.name}: ${formatDate(item.startDate)} - ${formatDate(item.endDate)}`}
                   >
                     {/* Tooltip */}
-                    <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                    <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-inverse text-on-color text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
                       <div>{item.name}</div>
                       <div>{formatDate(item.startDate)} - {formatDate(item.endDate)}</div>
                       <div>{formatCurrency(item.amount)}</div>
-                      <div className="text-gray-300">{item.items.length} transacciones</div>
+                      <div className="text-disabled-foreground">{item.items.length} transacciones</div>
                     </div>
                   </div>
                 </div>
@@ -259,21 +259,21 @@ export default function GanttChart({ data }: GanttChartProps) {
         </div>
 
         {/* Summary */}
-        <div className="mt-6 pt-4 border-t border-gray-200">
+        <div className="mt-6 pt-4 border-t border-border">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <span className="font-medium text-gray-700">Total de actividades: </span>
-              <span className="text-gray-900">{ganttData.length}</span>
+              <span className="font-medium text-foreground">Total de actividades: </span>
+              <span className="text-foreground">{ganttData.length}</span>
             </div>
             <div>
-              <span className="font-medium text-gray-700">Período: </span>
-              <span className="text-gray-900">
+              <span className="font-medium text-foreground">Período: </span>
+              <span className="text-foreground">
                 {formatDate(timeRange.start)} - {formatDate(timeRange.end)}
               </span>
             </div>
             <div>
-              <span className="font-medium text-gray-700">Costo total: </span>
-              <span className="text-gray-900 font-semibold">
+              <span className="font-medium text-foreground">Costo total: </span>
+              <span className="text-foreground font-semibold">
                 {formatCurrency(ganttData.reduce((sum, item) => sum + item.amount, 0))}
               </span>
             </div>

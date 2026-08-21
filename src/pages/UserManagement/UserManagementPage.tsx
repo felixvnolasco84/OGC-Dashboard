@@ -120,7 +120,7 @@ export default function UserManagementPage() {
       case "user":
         return <User className="h-4 w-4 text-blue-600" />;
       case "viewer":
-        return <Eye className="h-4 w-4 text-gray-600" />;
+        return <Eye className="h-4 w-4 text-muted-foreground" />;
       case "contratista":
         return <User className="h-4 w-4 text-orange-600" />;
       case "finance":
@@ -133,21 +133,21 @@ export default function UserManagementPage() {
   if (!users || !desarrollos) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-card min-h-screen">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-          <h1 className="text-3xl font-normal text-gray-900 mb-2">
+          <h1 className="text-3xl font-normal text-foreground mb-2">
             Gestión de Usuarios
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Administra roles y permisos de acceso a proyectos
           </p>
           </div>
@@ -174,22 +174,22 @@ export default function UserManagementPage() {
                     className={`w-full text-left p-3 rounded-lg border transition-colors ${
                       selectedUser === user._id
                         ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
+                        : "border-border hover:border-border-strong"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {user.name}
                         </p>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="text-xs text-subtle-foreground truncate">
                           {user.email}
                         </p>
                       </div>
                       <div className="ml-2">{getRoleIcon(user.role)}</div>
                     </div>
                     <div className="mt-1">
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-muted-foreground">
                         {user.allowed_desarrollos.length === 0
                           ? "Sin acceso"
                           : `${user.allowed_desarrollos.length} proyecto(s)`}
@@ -249,14 +249,14 @@ export default function UserManagementPage() {
                 )}
               </div>
               {isSelectedAdminUser && (
-                <p className="text-xs font-normal text-gray-500">
+                <p className="text-xs font-normal text-subtle-foreground">
                   No puedes quitar tu propio usuario desde esta pantalla.
                 </p>
               )}
             </CardHeader>
             <CardContent>
               {!selectedUserRecord ? (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-subtle-foreground">
                   Selecciona un usuario de la lista para editar sus permisos
                 </div>
               ) : (
@@ -295,24 +295,24 @@ export default function UserManagementPage() {
                         </SelectItem>
                         <SelectItem value="viewer">
                           <div className="flex items-center gap-2">
-                            <Eye className="h-4 w-4 text-gray-600" />
+                            <Eye className="h-4 w-4 text-muted-foreground" />
                             Visualizador (solo lectura)
                           </div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
                     {selectedRole === "admin" && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-subtle-foreground">
                         Los administradores gestionan usuarios y proyectos dentro de su organización
                       </p>
                     )}
                     {selectedRole === "contratista" && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-subtle-foreground">
                         Los contratistas tienen acceso a la bitácora y requisiciones en los proyectos asignados
                       </p>
                     )}
                     {selectedRole === "finance" && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-subtle-foreground">
                         El rol de finanzas solo puede ver requisiciones y cambiar estados a Pagado o Cancelado
                       </p>
                     )}
@@ -324,7 +324,7 @@ export default function UserManagementPage() {
                       <Label>Proyectos con acceso</Label>
                       <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">
                         {desarrollos.length === 0 ? (
-                          <p className="text-sm text-gray-500">No hay proyectos disponibles</p>
+                          <p className="text-sm text-subtle-foreground">No hay proyectos disponibles</p>
                         ) : (
                           desarrollos.map((desarrollo) => (
                             <div key={desarrollo._id} className="flex items-center space-x-2">
@@ -343,7 +343,7 @@ export default function UserManagementPage() {
                           ))
                         )}
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-subtle-foreground">
                         Selecciona los proyectos a los que este usuario puede acceder
                       </p>
                     </div>

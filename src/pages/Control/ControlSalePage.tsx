@@ -167,20 +167,20 @@ export default function ControlSalePage() {
     console.log("budgetMetrics", budgetMetrics)
 
     if (!proyecto || !budgetMetrics) {
-        return <div className="bg-white px-12 py-6 min-h-screen flex items-center justify-center">
-            <p className="text-gray-500">Cargando datos...</p>
+        return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
+            <p className="text-subtle-foreground">Cargando datos...</p>
         </div>;
     }
 
     return (
-        <div className="bg-white px-12 py-6">
+        <div className="bg-card px-12 py-6">
             <div className="max-w-full mx-auto space-y-6">
                 {/* Header */}
                 <div className="rounded-lg py-6">
                     <div className="flex items-start justify-between">
                         <div className="flex flex-col text-left">
-                            <p className="text-sm text-gray-500 mb-1">Proyecto</p>
-                            <h1 className="text-2xl text-gray-900">{proyecto.nombre}</h1>
+                            <p className="text-sm text-subtle-foreground mb-1">Proyecto</p>
+                            <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         {/* {selectedDesarrollo && (
                             <Button
@@ -203,31 +203,31 @@ export default function ControlSalePage() {
                     <Card className="bg-transparent shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-xs text-[#777770]">Presupuesto aprobado</p>
+                                <p className="text-xs text-muted-foreground">Presupuesto aprobado</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl text-gray-900">
+                                    <span className="text-4xl text-foreground">
                                         ${formatNumber(Math.round(budgetMetrics.presupuesto_aprobado || 0))}
                                     </span>
                                 </div>
 
-                                {/* <div className="text-lg text-gray-500">
-                                    <span className="text-sm text-gray-400">Total partidas: {metrics.totalPartidas}</span>
+                                {/* <div className="text-lg text-subtle-foreground">
+                                    <span className="text-sm text-disabled-foreground">Total partidas: {metrics.totalPartidas}</span>
                                 </div> */}
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Gasto Total */}
-                    <Card className="bg-white shadow-none border-none">
+                    <Card className="bg-card shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-xs text-[#777770]">Gasto total</p>
+                                <p className="text-xs text-muted-foreground">Gasto total</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-[#802424]">
                                         ${formatNumber(Math.round(budgetMetrics.gasto_total || 0))}
                                     </span>
                                 </div>
-                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
                                     Avance {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.gasto_total / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
                                 </Badge>
                             </div>
@@ -235,16 +235,16 @@ export default function ControlSalePage() {
                     </Card>
 
                     {/* Por Gastar */}
-                    <Card className="bg-white shadow-none border-none">
+                    <Card className="bg-card shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
-                                <p className="text-xs text-[#777770]">Por gastar</p>
+                                <p className="text-xs text-muted-foreground">Por gastar</p>
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl text-[#1A5D21]">
                                         ${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}
                                     </span>
                                 </div>
-                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-gray-500 rounded-xl border-gray-400">
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
                                     Pendiente {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.por_gastar / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
                                 </Badge>
                             </div>
@@ -253,17 +253,17 @@ export default function ControlSalePage() {
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white">
+                <div className="bg-card">
                     <div className="grid grid-cols-3 items-center space-x-12">
-                        <div className="flex flex-col items-start space-y-1 text-left border-b border-[#AFAEA2] py-2 h-full">
-                            <span className="text-xs text-gray-500">Proyecto</span>
-                            <div className="text-gray-900">{proyecto.nombre}</div>
+                        <div className="flex flex-col items-start space-y-1 text-left border-b border-border-strong py-2 h-full">
+                            <span className="text-xs text-subtle-foreground">Proyecto</span>
+                            <div className="text-foreground">{proyecto.nombre}</div>
                         </div>
 
-                        <div className="flex flex-col space-y-1 text-left border-b border-[#AFAEA2] py-2">
-                            <span className="text-xs text-gray-500">Rango de fecha</span>
+                        <div className="flex flex-col space-y-1 text-left border-b border-border-strong py-2">
+                            <span className="text-xs text-subtle-foreground">Rango de fecha</span>
                             <Select value={selectedRangoFecha} onValueChange={setSelectedRangoFecha}>
-                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
+                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-foreground focus:ring-0">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -276,10 +276,10 @@ export default function ControlSalePage() {
                             </Select>
                         </div>
 
-                        <div className="flex flex-col space-y-1 text-left border-b border-[#AFAEA2] py-2">
-                            <span className="text-xs text-gray-500">Periodo</span>
+                        <div className="flex flex-col space-y-1 text-left border-b border-border-strong py-2">
+                            <span className="text-xs text-subtle-foreground">Periodo</span>
                             <Select value={selectedPeriodo} onValueChange={setSelectedPeriodo}>
-                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-gray-900 focus:ring-0">
+                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-foreground focus:ring-0">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -300,7 +300,7 @@ export default function ControlSalePage() {
                 {/* Secondary Metrics and Chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Chart Area with integrated metrics */}
-                    <div className="lg:col-span-4 py-8 px-10 border rounded-md bg-[#fcfcfc]">
+                    <div className="lg:col-span-4 py-8 px-10 border rounded-md bg-card">
 
                         {/* New Progress Chart Section */}
 
@@ -310,15 +310,15 @@ export default function ControlSalePage() {
                                 <div className="flex items-start justify-between mb-8 gap-4">
                                     <div className="flex items-center space-x-12">
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-[#5A5A50]">Gasto</p>
+                                            <p className="text-xs text-muted-foreground">Gasto</p>
                                             <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.gasto))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-[#5A5A50]">Por ejercer</p>
+                                            <p className="text-xs text-muted-foreground">Por ejercer</p>
                                             <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
-                                            <p className="text-xs text-gray-[#5A5A50]">Comisión</p>
+                                            <p className="text-xs text-muted-foreground">Comisión</p>
                                             <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.comision))}</p>
                                         </div>
                                     </div>
@@ -327,15 +327,15 @@ export default function ControlSalePage() {
                                     <div className="flex items-center space-x-6 flex-wrap text-xs">
                                         <div className="flex items-center space-x-2">
                                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#B6C3D0' }}></div>
-                                            <span className=" text-gray-600 leading-none">Gasto Proyectado</span>
+                                            <span className=" text-muted-foreground leading-none">Gasto Proyectado</span>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#93B0C3' }}></div>
-                                            <span className=" text-gray-600 leading-none">Gasto Real</span>
+                                            <span className=" text-muted-foreground leading-none">Gasto Real</span>
                                         </div>
                                         {/* <div className="flex items-center space-x-2">
-                                            <div className="w-8 h-0.5 border-t-2 border-dashed border-gray-500"></div>
-                                            <span className=" text-gray-600">Avance %</span>
+                                            <div className="w-8 h-0.5 border-t-2 border-dashed border-border-strong"></div>
+                                            <span className=" text-muted-foreground">Avance %</span>
                                         </div> */}
                                     </div>
                                 </div>
@@ -362,8 +362,8 @@ export default function ControlSalePage() {
                     <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                         {/* Chart 1 - Ventas por Categoria */}
                         {chart1Config.isLoading ? (
-                            <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
-                                <p className="text-gray-500">Cargando configuración...</p>
+                            <div className="flex items-center justify-center h-64 bg-background rounded-lg">
+                                <p className="text-subtle-foreground">Cargando configuración...</p>
                             </div>
                         ) : (
                             <FamiliaChart
@@ -382,8 +382,8 @@ export default function ControlSalePage() {
 
                         {/* Chart 2 - Pagos Recibidos */}
                         {chart2Config.isLoading ? (
-                            <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
-                                <p className="text-gray-500">Cargando configuración...</p>
+                            <div className="flex items-center justify-center h-64 bg-background rounded-lg">
+                                <p className="text-subtle-foreground">Cargando configuración...</p>
                             </div>
                         ) : (
                             <FamiliaChart

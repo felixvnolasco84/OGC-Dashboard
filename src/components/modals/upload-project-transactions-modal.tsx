@@ -331,7 +331,7 @@ export default function UploadProjectTransactionsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent data-square-modal="" className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Subir pagos y fuerza laboral</DialogTitle>
           <DialogDescription>
@@ -346,9 +346,9 @@ export default function UploadProjectTransactionsModal() {
               <div className="space-y-2">
                 <Label>Archivo Excel *</Label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  className={`border-2 border-dashed rounded-none p-8 text-center transition-colors ${
                     dragActive ? "border-blue-500 bg-blue-50" :
-                    file ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-gray-400"
+                    file ? "border-green-500 bg-green-50" : "border-border-strong hover:border-border-strong"
                   }`}
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
@@ -361,7 +361,7 @@ export default function UploadProjectTransactionsModal() {
                         <FileSpreadsheet className="h-9 w-9 text-green-600" />
                         <div className="text-left">
                           <p className="font-medium">{file.name}</p>
-                          <p className="text-sm text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                          <p className="text-sm text-subtle-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                         </div>
                       </div>
                       <div className="flex justify-center gap-2">
@@ -375,12 +375,12 @@ export default function UploadProjectTransactionsModal() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <Upload className="h-12 w-12 mx-auto text-gray-400" />
+                      <Upload className="h-12 w-12 mx-auto text-disabled-foreground" />
                       <p className="font-medium">Arrastra aquí la hoja CARGA</p>
                       <Button type="button" variant="outline" onClick={() => document.getElementById("labor-payment-file")?.click()}>
                         Explorar archivos
                       </Button>
-                      <p className="text-xs text-gray-500">.xlsx o .xls · máximo 10 MB y 1,000 filas</p>
+                      <p className="text-xs text-subtle-foreground">.xlsx o .xls · máximo 10 MB y 1,000 filas</p>
                     </div>
                   )}
                   <input
@@ -394,7 +394,7 @@ export default function UploadProjectTransactionsModal() {
               </div>
 
               {fileErrors.length > 0 && (
-                <div className="border border-red-200 bg-red-50 rounded-lg p-4">
+                <div className="border border-red-200 bg-red-50 rounded-none p-4">
                   <div className="flex items-center gap-2 text-red-700 font-medium mb-2">
                     <XCircle className="h-5 w-5" /> Errores de validación
                   </div>
@@ -408,7 +408,7 @@ export default function UploadProjectTransactionsModal() {
 
           {currentStep === "preview" && validationReport && (
             <div className="space-y-5">
-              <div className={`flex items-center gap-2 p-3 rounded-lg ${
+              <div className={`flex items-center gap-2 p-3 rounded-none ${
                 hasBlockingErrors ? "text-red-700 bg-red-50" : "text-blue-700 bg-blue-50"
               }`}>
                 {hasBlockingErrors ? <XCircle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
@@ -418,26 +418,26 @@ export default function UploadProjectTransactionsModal() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold">{validationReport.parsed.weeks.length}</p>
-                  <p className="text-xs text-gray-500">Cortes</p>
+                  <p className="text-xs text-subtle-foreground">Cortes</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold">{validationReport.transactions.length}</p>
-                  <p className="text-xs text-gray-500">Pagos</p>
+                  <p className="text-xs text-subtle-foreground">Pagos</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold">{lastWeek?.total_people || 0}</p>
-                  <p className="text-xs text-gray-500">Personas último corte</p>
+                  <p className="text-xs text-subtle-foreground">Personas último corte</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-lg font-semibold">{formatCurrency(validationReport.parsed.amountTotal, validationReport.parsed.currency)}</p>
-                  <p className="text-xs text-gray-500">Monto total</p>
+                  <p className="text-xs text-subtle-foreground">Monto total</p>
                 </div>
               </div>
 
               {(validationReport.unchanged || validationReport.replacedDates.length > 0) && (
-                <div className="border border-amber-200 bg-amber-50 rounded-lg p-3 text-sm text-amber-800">
+                <div className="border border-amber-200 bg-amber-50 rounded-none p-3 text-sm text-amber-800">
                   <AlertTriangle className="inline h-4 w-4 mr-2" />
                   {validationReport.unchanged
                     ? "El mismo archivo ya está activo; confirmar devolverá ‘sin cambios’."
@@ -446,7 +446,7 @@ export default function UploadProjectTransactionsModal() {
               )}
 
               {validationReport.parsed.warnings.length > 0 && (
-                <div className="border border-amber-200 bg-amber-50 rounded-lg p-3">
+                <div className="border border-amber-200 bg-amber-50 rounded-none p-3">
                   <p className="font-medium text-amber-800 mb-1">Advertencias</p>
                   <ul className="list-disc pl-5 text-sm text-amber-800">
                     {validationReport.parsed.warnings.map((warning) => <li key={warning}>{warning}</li>)}
@@ -457,21 +457,21 @@ export default function UploadProjectTransactionsModal() {
               <div className="space-y-2">
                 <h4 className="font-medium">Cortes y puestos</h4>
                 {validationReport.parsed.weeks.map((week) => (
-                  <div key={week.date} className="border rounded-lg p-3 text-sm">
+                  <div key={week.date} className="border rounded-none p-3 text-sm">
                     <div className="flex justify-between font-medium mb-2">
                       <span>{formatDate(week.date)}</span>
                       <span>{week.total_people} personas · {formatCurrency(week.amount_total, validationReport.parsed.currency)}</span>
                     </div>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       {week.roles.map((role) => `${role.label}: ${role.count}`).join(" · ")}
                     </p>
                   </div>
                 ))}
               </div>
 
-              <div className="border rounded-lg overflow-x-auto">
+              <div className="border rounded-none overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-background">
                     <tr>
                       <th className="text-left p-2">Factura</th>
                       <th className="text-left p-2">Proveedor</th>
@@ -487,7 +487,7 @@ export default function UploadProjectTransactionsModal() {
                         <td className="p-2 font-mono text-xs">{transaction.factura}</td>
                         <td className="p-2">
                           <span className="block">{transaction.providerName}</span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-subtle-foreground">
                             {transaction.providerType === "generico" ? "Genérico" :
                               transaction.providerStatus === "matched" ? "Existente" :
                               transaction.providerStatus === "new" ? "Nuevo" :
@@ -514,7 +514,7 @@ export default function UploadProjectTransactionsModal() {
 
           {currentStep === "result" && uploadReport && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-700 bg-green-50 p-4 rounded-lg">
+              <div className="flex items-center gap-2 text-green-700 bg-green-50 p-4 rounded-none">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="font-medium">
                   {uploadReport.status === "unchanged" ? "Archivo sin cambios" :
@@ -522,12 +522,12 @@ export default function UploadProjectTransactionsModal() {
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-gray-50 p-3 rounded-lg text-center"><strong className="text-xl">{uploadReport.transactionCount}</strong><p className="text-xs text-gray-500">Pagos</p></div>
-                <div className="bg-gray-50 p-3 rounded-lg text-center"><strong className="text-xl">{uploadReport.rowCount}</strong><p className="text-xs text-gray-500">Conceptos</p></div>
-                <div className="bg-gray-50 p-3 rounded-lg text-center"><strong className="text-xl">{uploadReport.totalPeople}</strong><p className="text-xs text-gray-500">Personas</p></div>
-                <div className="bg-gray-50 p-3 rounded-lg text-center"><strong className="text-lg">{formatCurrency(uploadReport.amountTotal, validationReport?.parsed.currency)}</strong><p className="text-xs text-gray-500">Monto</p></div>
+                <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.transactionCount}</strong><p className="text-xs text-subtle-foreground">Pagos</p></div>
+                <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.rowCount}</strong><p className="text-xs text-subtle-foreground">Conceptos</p></div>
+                <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.totalPeople}</strong><p className="text-xs text-subtle-foreground">Personas</p></div>
+                <div className="bg-background p-3 rounded-none text-center"><strong className="text-lg">{formatCurrency(uploadReport.amountTotal, validationReport?.parsed.currency)}</strong><p className="text-xs text-subtle-foreground">Monto</p></div>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Cortes: {uploadReport.dates.map(formatDate).join(", ")}. Lotes reemplazados: {uploadReport.replacedDates}.
               </p>
             </div>

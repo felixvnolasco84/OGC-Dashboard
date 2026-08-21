@@ -50,8 +50,8 @@ export function RfiDatePicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-10 w-full min-w-0 justify-start rounded-sm border border-gray-200 bg-white px-3 text-left text-sm font-normal text-gray-900 shadow-none hover:bg-gray-50",
-            !value && "text-[#A3A39E]",
+            "h-10 w-full min-w-0 justify-start rounded-sm border border-border bg-card px-3 text-left text-sm font-normal text-foreground shadow-none hover:bg-background",
+            !value && "text-disabled-foreground",
             className,
           )}
         >
@@ -60,7 +60,7 @@ export function RfiDatePicker({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-auto border-gray-200 bg-white p-0 text-gray-900 shadow-xl"
+        className="w-auto border-border bg-card p-0 text-foreground shadow-xl"
       >
         <Calendar
           mode="single"
@@ -74,7 +74,7 @@ export function RfiDatePicker({
           }}
           buttonVariant="ghost"
         />
-        <div className="flex items-center justify-between border-t border-gray-100 px-3 py-2">
+        <div className="flex items-center justify-between border-t border-border px-3 py-2">
           <Button
             type="button"
             variant="ghost"

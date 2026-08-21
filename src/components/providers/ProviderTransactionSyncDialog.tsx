@@ -145,7 +145,7 @@ function statusClassName(status: SyncStatus) {
     case "unmatched":
     case "archived":
     case "missing_name": return "border-amber-200 bg-amber-50 text-amber-800";
-    case "already_assigned": return "border-gray-200 bg-gray-50 text-gray-600";
+    case "already_assigned": return "border-border bg-background text-muted-foreground";
   }
 }
 
@@ -290,7 +290,7 @@ export default function ProviderTransactionSyncDialog({
           </div>
 
           {isAnalyzing && (
-            <div className="flex items-center justify-center gap-2 border py-10 text-sm text-gray-600">
+            <div className="flex items-center justify-center gap-2 border py-10 text-sm text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" /> Analizando transacciones y proveedores…
             </div>
           )}
@@ -305,8 +305,8 @@ export default function ProviderTransactionSyncDialog({
           {preview && !result && (
             <>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <div className="bg-gray-50 p-3 text-center"><strong className="text-2xl">{preview.counts.scanned}</strong><p className="text-xs text-gray-500">Revisadas</p></div>
-                <div className="bg-gray-50 p-3 text-center"><strong className="text-2xl">{preview.counts.scanned - preview.counts.already_assigned}</strong><p className="text-xs text-gray-500">Sin proveedor</p></div>
+                <div className="bg-background p-3 text-center"><strong className="text-2xl">{preview.counts.scanned}</strong><p className="text-xs text-subtle-foreground">Revisadas</p></div>
+                <div className="bg-background p-3 text-center"><strong className="text-2xl">{preview.counts.scanned - preview.counts.already_assigned}</strong><p className="text-xs text-subtle-foreground">Sin proveedor</p></div>
                 <div className="bg-green-50 p-3 text-center"><strong className="text-2xl text-green-700">{preview.counts.matched}</strong><p className="text-xs text-green-700">Se vincularán</p></div>
                 <div className="bg-amber-50 p-3 text-center"><strong className="text-2xl text-amber-800">{unresolvedCount(preview.counts)}</strong><p className="text-xs text-amber-800">Pendientes</p></div>
               </div>
@@ -319,21 +319,21 @@ export default function ProviderTransactionSyncDialog({
               )}
 
               <div className="overflow-hidden border">
-                <div className="border-b bg-gray-50 px-4 py-3">
+                <div className="border-b bg-background px-4 py-3">
                   <h4 className="font-medium">Detalle por nombre de proveedor</h4>
                 </div>
                 <ScrollArea className="h-80">
                   {preview.groups.length === 0 ? (
-                    <p className="p-8 text-center text-sm text-gray-500">No hay transacciones en este alcance.</p>
+                    <p className="p-8 text-center text-sm text-subtle-foreground">No hay transacciones en este alcance.</p>
                   ) : preview.groups.map((group) => (
                     <div key={[group.status, group.normalized_name, group.provider_id || ""].join("|")} className="flex items-start justify-between gap-4 border-b px-4 py-3 last:border-0">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{group.provider_name || "Sin nombre de proveedor"}</p>
                         {group.matched_provider_name && group.matched_provider_name !== group.provider_name && (
-                          <p className="text-xs text-gray-500">Coincide con {group.matched_provider_name}</p>
+                          <p className="text-xs text-subtle-foreground">Coincide con {group.matched_provider_name}</p>
                         )}
                         {group.candidate_names.length > 0 && group.status !== "matched" && (
-                          <p className="text-xs text-gray-500">Candidatos: {group.candidate_names.join(", ")}</p>
+                          <p className="text-xs text-subtle-foreground">Candidatos: {group.candidate_names.join(", ")}</p>
                         )}
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
@@ -354,7 +354,7 @@ export default function ProviderTransactionSyncDialog({
                 <span>{processed} de {preview?.counts.scanned || 0}</span>
               </div>
               <Progress value={progress} />
-              <p className="text-xs text-gray-500">La operación puede reanudarse de forma segura si se interrumpe.</p>
+              <p className="text-xs text-subtle-foreground">La operación puede reanudarse de forma segura si se interrumpe.</p>
             </div>
           )}
 
@@ -370,7 +370,7 @@ export default function ProviderTransactionSyncDialog({
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-green-50 p-3 text-center"><strong className="text-2xl text-green-700">{result.counts.updated}</strong><p className="text-xs text-green-700">Vinculadas</p></div>
                 <div className="bg-amber-50 p-3 text-center"><strong className="text-2xl text-amber-800">{unresolvedCount(result.counts)}</strong><p className="text-xs text-amber-800">Pendientes</p></div>
-                <div className="bg-gray-50 p-3 text-center"><strong className="text-2xl">{result.counts.already_assigned}</strong><p className="text-xs text-gray-500">Ya asignadas</p></div>
+                <div className="bg-background p-3 text-center"><strong className="text-2xl">{result.counts.already_assigned}</strong><p className="text-xs text-subtle-foreground">Ya asignadas</p></div>
               </div>
             </div>
           )}

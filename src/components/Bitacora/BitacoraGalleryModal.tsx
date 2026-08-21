@@ -119,9 +119,9 @@ function PhotoCard({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-lg border border-border overflow-hidden">
       {/* Image */}
-      <div className="relative bg-gray-100">
+      <div className="relative bg-muted">
         {photo.url && (
           <img
             src={photo.url}
@@ -133,7 +133,7 @@ function PhotoCard({
         {/* Maximize button */}
         <button
           onClick={() => photo.url && onMaximize(photo.url)}
-          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+          className="absolute top-2 right-2 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
         >
           <Maximize2 className="h-4 w-4" />
         </button>
@@ -142,7 +142,7 @@ function PhotoCard({
       {/* Comments Section */}
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-foreground">
             Comentarios {comments && comments.length > 0 && `(${comments.length})`}
           </span>
           {!showAddComment && (
@@ -163,17 +163,17 @@ function PhotoCard({
             comments.map((comment) => (
               <div 
                 key={comment._id} 
-                className="bg-gray-50 rounded-lg p-3 group"
+                className="bg-background rounded-lg p-3 group"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="h-3 w-3 text-gray-500" />
+                    <div className="w-6 h-6 rounded-full bg-disabled flex items-center justify-center">
+                      <User className="h-3 w-3 text-subtle-foreground" />
                     </div>
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-foreground">
                       {comment.user_name}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-disabled-foreground">
                       {formatDate(comment.created_at)}
                     </span>
                   </div>
@@ -209,9 +209,9 @@ function PhotoCard({
                       <button
                         onClick={handleCancelEdit}
                         disabled={isEditing}
-                        className="p-1.5 hover:bg-gray-200 rounded transition-all"
+                        className="p-1.5 hover:bg-disabled rounded transition-all"
                       >
-                        <X className="h-4 w-4 text-gray-500" />
+                        <X className="h-4 w-4 text-subtle-foreground" />
                       </button>
                       <button
                         onClick={handleSaveEdit}
@@ -227,14 +227,14 @@ function PhotoCard({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-700 pl-8">
+                  <p className="text-sm text-foreground pl-8">
                     {comment.comment}
                   </p>
                 )}
               </div>
             ))
           ) : (
-            <p className="text-sm text-gray-400 text-center py-2">
+            <p className="text-sm text-disabled-foreground text-center py-2">
               Sin comentarios
             </p>
           )}
@@ -366,7 +366,7 @@ export default function BitacoraGalleryModal({
       {fullscreenUrl && (
         <div
           ref={fullscreenRef}
-          className="fixed inset-0 bg-black flex items-center justify-center z-[100]"
+          className="fixed inset-0 bg-inverse flex items-center justify-center z-[100]"
           onClick={handleExitFullscreen}
         >
           <img
@@ -376,7 +376,7 @@ export default function BitacoraGalleryModal({
           />
           <button
             onClick={handleExitFullscreen}
-            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+            className="absolute top-4 right-4 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
           >
             <Minimize2 className="h-5 w-5" />
           </button>

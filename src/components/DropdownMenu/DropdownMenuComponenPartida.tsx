@@ -189,7 +189,7 @@ export default function DropdownMenuComponentPartida({
       <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <PopoverTrigger asChild>
           <Button
-            className="h-8 w-8 border-none border-transparent text-[#898982] hover:bg-gray-100 hover:text-gray-900"
+            className="h-8 w-8 border-none border-transparent text-subtle-foreground hover:bg-muted hover:text-foreground"
             variant="ghost"
             size={"icon"}
             data-viewer-readonly-allow="true"
@@ -198,21 +198,21 @@ export default function DropdownMenuComponentPartida({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" sideOffset={6} className="w-64 overflow-hidden border-gray-200 bg-white p-1 text-gray-900 shadow-xl">
-          <Command className="bg-white text-gray-900">
+        <PopoverContent align="end" sideOffset={6} className="w-64 overflow-hidden border-border bg-card p-1 text-foreground shadow-xl">
+          <Command className="bg-card text-foreground">
             <CommandList>
               {canEdit && (
                 <>
                   <CommandGroup>
                     <CommandItem
                       onSelect={handleOpenEdit}
-                      className="data-[selected=true]:bg-gray-100"
+                      className="data-[selected=true]:bg-muted"
                     >
                       <Pencil className="h-4 w-4" />
                       Editar {labels.title.toLowerCase()}
                     </CommandItem>
                   </CommandGroup>
-                  <CommandSeparator className="bg-gray-200" />
+                  <CommandSeparator className="bg-disabled" />
                 </>
               )}
               <CommandGroup>
@@ -221,7 +221,7 @@ export default function DropdownMenuComponentPartida({
                   disabled={isLoadingPayments}
                   aria-busy={isLoadingPayments}
                   data-viewer-readonly-allow="true"
-                  className="data-[selected=true]:bg-gray-100"
+                  className="data-[selected=true]:bg-muted"
                 >
                   {isLoadingPayments ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -233,7 +233,7 @@ export default function DropdownMenuComponentPartida({
                 <CommandItem
                   onSelect={handleViewDetails}
                   data-viewer-readonly-allow="true"
-                  className="data-[selected=true]:bg-gray-100"
+                  className="data-[selected=true]:bg-muted"
                 >
                   {(level === 2 || (level === 1 && !hasSubPartidas)) ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}
                   {labels.viewDetailsText}

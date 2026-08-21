@@ -132,8 +132,8 @@ export function StatusDot({
       className={cn(
         "w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors border-2",
         isActive
-          ? "bg-[#1A5D21] border-[#1A5D21] text-white"
-          : "bg-white border-gray-300 text-gray-300 hover:border-gray-400"
+          ? "bg-[#1A5D21] border-[#1A5D21] text-on-color"
+          : "bg-card border-border-strong text-disabled-foreground hover:border-border-strong"
       )}
       title={isActive ? "Activo — clic para desactivar" : "Inactivo — clic para activar"}
     >
@@ -162,20 +162,20 @@ export function ResponsableSelector({
     <Popover>
       <PopoverTrigger asChild>
         {current ? (
-          <button className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900">
+          <button className="flex items-center gap-2 text-sm text-foreground hover:text-foreground">
             <span>{current.name}</span>
-            <span className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+            <span className="w-7 h-7 rounded-full bg-disabled flex items-center justify-center text-xs font-medium text-muted-foreground">
               {current.name.charAt(0).toUpperCase()}
             </span>
           </button>
         ) : (
-          <button className="text-sm text-[#777770] hover:text-gray-600">
+          <button className="text-sm text-muted-foreground hover:text-muted-foreground">
             Asignar responsable
           </button>
         )}
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="end">
-        <div className="text-xs font-medium text-gray-500 px-2 py-1 mb-1">
+        <div className="text-xs font-medium text-subtle-foreground px-2 py-1 mb-1">
           Seleccionar responsable
         </div>
         <div className="max-h-48 overflow-y-auto">
@@ -191,12 +191,12 @@ export function ResponsableSelector({
             <button
               key={u._id}
               className={cn(
-                "w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 rounded flex items-center gap-2",
-                u._id === currentId && "bg-gray-100 font-medium"
+                "w-full text-left px-2 py-1.5 text-sm hover:bg-muted rounded flex items-center gap-2",
+                u._id === currentId && "bg-muted font-medium"
               )}
               onClick={() => onSelect(u._id)}
             >
-              <span className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600 shrink-0">
+              <span className="w-6 h-6 rounded-full bg-disabled flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
                 {u.name.charAt(0).toUpperCase()}
               </span>
               <span className="truncate">{u.name}</span>
@@ -222,14 +222,14 @@ function DatePickerField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-xs text-subtle-foreground">{label}</span>
       <Popover>
         <PopoverTrigger asChild>
-          <button className="flex items-center h-9 w-full border border-gray-200 px-3 text-sm text-left hover:border-gray-300">
-            <span className={cn("flex-1", !value && "text-gray-400")}>
+          <button className="flex items-center h-9 w-full border border-border px-3 text-sm text-left hover:border-border-strong">
+            <span className={cn("flex-1", !value && "text-disabled-foreground")}>
               {value ? formatDateDisplay(value) : "Fecha"}
             </span>
-            <ChevronDown className="w-4 h-4 text-gray-400 ml-2" />
+            <ChevronDown className="w-4 h-4 text-disabled-foreground ml-2" />
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -290,7 +290,7 @@ function DocumentAttachment({
           }}
         />
         <button
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 px-3 py-2 hover:border-gray-400 transition-colors"
+          className="flex items-center gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border-strong px-3 py-2 hover:border-border-strong transition-colors"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
@@ -312,9 +312,9 @@ function DocumentAttachment({
           href={url || "#"}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-600"
+          className="flex items-center gap-1.5 text-sm text-foreground hover:text-muted-foreground"
         >
-          <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+          <FileText className="w-4 h-4 text-disabled-foreground shrink-0" />
           <span className="font-medium">{nombre}</span>
         </a>
         <input
@@ -328,7 +328,7 @@ function DocumentAttachment({
           }}
         />
         <button
-          className="text-gray-400 hover:text-gray-600 p-1"
+          className="text-disabled-foreground hover:text-muted-foreground p-1"
           onClick={() => replaceInputRef.current?.click()}
           disabled={uploading}
           title="Reemplazar archivo"
@@ -341,7 +341,7 @@ function DocumentAttachment({
         </button>
         {historial && historial.length > 0 && (
           <button
-            className="text-gray-400 hover:text-gray-600 p-1"
+            className="text-disabled-foreground hover:text-muted-foreground p-1"
             onClick={() => setShowHistory(!showHistory)}
             title="Ver historial de archivos"
           >
@@ -350,27 +350,27 @@ function DocumentAttachment({
         )}
       </div>
       {uploadedAt && (
-        <span className="text-xs text-[#C5C5C3] font-light">{formatFileDate(uploadedAt)}</span>
+        <span className="text-xs text-disabled-foreground font-light">{formatFileDate(uploadedAt)}</span>
       )}
       {showHistory && historial && historial.length > 0 && (
-        <div className="mt-2 border border-gray-100 rounded p-2 bg-gray-50">
-          <div className="text-xs font-medium text-gray-500 mb-1">Historial de archivos</div>
+        <div className="mt-2 border border-border rounded p-2 bg-background">
+          <div className="text-xs font-medium text-subtle-foreground mb-1">Historial de archivos</div>
           {historial.map((h: HistorialEntry) => (
-            <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-gray-500">
+            <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-subtle-foreground">
               <FileText className="w-3 h-3 shrink-0" />
               <a
                 href={h.url || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-gray-700 truncate"
+                className="hover:text-foreground truncate"
               >
                 {h.documento_nombre}
               </a>
-              <span className="shrink-0 text-gray-400">
+              <span className="shrink-0 text-disabled-foreground">
                 {new Date(h.replaced_at).toLocaleDateString("es-MX")}
               </span>
               {h.replaced_by_name && (
-                <span className="shrink-0 text-gray-400">por {h.replaced_by_name}</span>
+                <span className="shrink-0 text-disabled-foreground">por {h.replaced_by_name}</span>
               )}
             </div>
           ))}
@@ -405,7 +405,7 @@ function LicenciaSection({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-gray-200 rounded-sm bg-white">
+    <div className="border border-border rounded-sm bg-card">
       {/* Header */}
       <div
         className="flex items-center justify-between px-6 py-6 cursor-pointer border-b"
@@ -418,7 +418,7 @@ function LicenciaSection({
               onUpdateStatus("licencia", section?._id);
             }}
           />
-          <h3 className="text-base  text-gray-900">
+          <h3 className="text-base  text-foreground">
             Licencia de construcción vigente
           </h3>
         </div>
@@ -428,7 +428,7 @@ function LicenciaSection({
             users={users}
             onSelect={(userId) => onUpdateResponsable("licencia", userId, section?._id)}
           />
-          <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => setExpanded(!expanded)} className="text-disabled-foreground hover:text-muted-foreground">
             {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
         </div>
@@ -439,7 +439,7 @@ function LicenciaSection({
         <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
           {/* Número de Licencia + Document */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-gray-500">Número de Licencia</span>
+            <span className="text-xs text-subtle-foreground">Número de Licencia</span>
             <DocumentAttachment
               nombre={section?.documento_nombre}
               uploadedAt={section?.documento_uploaded_at}
@@ -503,7 +503,7 @@ function PolizaSection({
   const displaySuma = sumaInput || (section?.suma_asegurada ? formatCurrencyMXN(section.suma_asegurada) : "");
 
   return (
-    <div className="border border-gray-200 rounded-sm bg-white">
+    <div className="border border-border rounded-sm bg-card">
       <div
         className="flex items-center justify-between px-6 py-6 cursor-pointer border-b"
         onClick={() => setExpanded(!expanded)}
@@ -513,7 +513,7 @@ function PolizaSection({
             status={section?.status_manual}
             onToggle={() => onUpdateStatus("poliza", section?._id)}
           />
-          <h3 className="text-base  text-gray-900">
+          <h3 className="text-base  text-foreground">
             Poliza de seguro de obra activa
           </h3>
         </div>
@@ -523,7 +523,7 @@ function PolizaSection({
             users={users}
             onSelect={(userId) => onUpdateResponsable("poliza", userId, section?._id)}
           />
-          <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => setExpanded(!expanded)} className="text-disabled-foreground hover:text-muted-foreground">
             {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
         </div>
@@ -533,7 +533,7 @@ function PolizaSection({
         <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
           {/* Póliza de seguro */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-gray-500">Póliza de seguro</span>
+            <span className="text-xs text-subtle-foreground">Póliza de seguro</span>
             <DocumentAttachment
               nombre={section?.documento_nombre}
               uploadedAt={section?.documento_uploaded_at}
@@ -548,7 +548,7 @@ function PolizaSection({
 
           {/* Suma asegurada */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-gray-500">Suma asegurada</span>
+            <span className="text-xs text-subtle-foreground">Suma asegurada</span>
             <div className="flex items-center gap-2">
               <Input
                 placeholder="$0.00"
@@ -558,7 +558,7 @@ function PolizaSection({
                 onChange={(e) => setSumaInput(e.target.value)}
                 onBlur={handleSumaBlur}
               />
-              <span className="text-sm text-gray-500 shrink-0">MXN</span>
+              <span className="text-sm text-subtle-foreground shrink-0">MXN</span>
             </div>
           </div>
 
@@ -602,7 +602,7 @@ function TramitesSection({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-gray-200 rounded-sm bg-white">
+    <div className="border border-border rounded-sm bg-card">
       <div
         className="flex items-center justify-between px-6 py-6 border-b cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -612,7 +612,7 @@ function TramitesSection({
             status={section?.status_manual}
             onToggle={() => onUpdateStatus("tramites", section?._id)}
           />
-          <h3 className="text-base  text-gray-900">
+          <h3 className="text-base  text-foreground">
             Trámites de conexión CFE y agua potable
           </h3>
         </div>
@@ -623,7 +623,7 @@ function TramitesSection({
             onSelect={(userId) => onUpdateResponsable("tramites", userId, section?._id)}
           />
           <button
-            className="flex items-center gap-1.5 text-sm text-[#777770] hover:text-gray-700 border border-gray-200 bg-[#DDDCD8] px-2 py-2 rounded-full"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground border border-border bg-disabled px-2 py-2 rounded-full"
             onClick={(e) => {
               e.stopPropagation();
               onCreateTramite();
@@ -631,7 +631,7 @@ function TramitesSection({
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => setExpanded(!expanded)} className="text-disabled-foreground hover:text-muted-foreground">
             {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
         </div>
@@ -640,7 +640,7 @@ function TramitesSection({
       {expanded && (
         <div className="px-6 pb-6 pt-6">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 text-xs text-gray-500 font-medium pb-2 border-b border-gray-100">
+          <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 text-xs text-subtle-foreground font-medium pb-2 border-b border-border">
             <span>Servicio</span>
             <span>Trámite</span>
             <span>Estado</span>
@@ -661,14 +661,14 @@ function TramitesSection({
           ))}
 
           {tramites.length === 0 && (
-            <div className="py-6 text-center text-sm text-gray-400">
+            <div className="py-6 text-center text-sm text-disabled-foreground">
               No hay trámites registrados
             </div>
           )}
 
           {/* Add button */}
           <button
-            className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 px-3 py-2 hover:border-gray-400 transition-colors"
+            className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border-strong px-3 py-2 hover:border-border-strong transition-colors"
             onClick={onCreateTramite}
           >
             <Plus className="w-4 h-4" />
@@ -699,7 +699,7 @@ function TramiteRow({
   const [editTramite, setEditTramite] = useState(tramite.tramite);
 
   return (
-    <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 items-center py-3 border-b border-gray-50">
+    <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 items-center py-3 border-b border-border">
       {/* Servicio */}
       <div className="flex items-center gap-2">
         <StatusDot
@@ -709,7 +709,7 @@ function TramiteRow({
           }
         />
         <Input
-          className="h-8 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300 text-sm"
+          className="h-8 rounded-none border-transparent hover:border-border focus:border-border-strong text-sm"
           value={editServicio}
           onChange={(e) => setEditServicio(e.target.value)}
           onBlur={() => {
@@ -723,7 +723,7 @@ function TramiteRow({
 
       {/* Trámite */}
       <Input
-        className="h-8 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300 text-sm"
+        className="h-8 rounded-none border-transparent hover:border-border focus:border-border-strong text-sm"
         value={editTramite}
         onChange={(e) => setEditTramite(e.target.value)}
         onBlur={() => {
@@ -738,7 +738,7 @@ function TramiteRow({
       <span
         className={cn(
           "text-sm",
-          tramite.estado === "Activo" ? "text-gray-900" : "text-gray-500"
+          tramite.estado === "Activo" ? "text-foreground" : "text-subtle-foreground"
         )}
       >
         {tramite.estado}
@@ -762,13 +762,13 @@ function TramiteRow({
               href={tramite.documento_url || "#"}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-sm text-gray-800 hover:text-gray-600"
+              className="flex items-center gap-1 text-sm text-foreground hover:text-muted-foreground"
             >
-              <FileText className="w-3.5 h-3.5 text-gray-400" />
+              <FileText className="w-3.5 h-3.5 text-disabled-foreground" />
               <span className="font-medium truncate max-w-[160px]">{tramite.documento_nombre}</span>
             </a>
             <button
-              className="text-gray-400 hover:text-gray-600"
+              className="text-disabled-foreground hover:text-muted-foreground"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
               title="Reemplazar"
@@ -782,7 +782,7 @@ function TramiteRow({
           </div>
         ) : (
           <button
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 ml-auto"
+            className="flex items-center gap-1.5 text-sm text-disabled-foreground hover:text-muted-foreground ml-auto"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
@@ -795,7 +795,7 @@ function TramiteRow({
           </button>
         )}
         {tramite.documento_uploaded_at && (
-          <div className="text-xs text-gray-400 mt-0.5">
+          <div className="text-xs text-disabled-foreground mt-0.5">
             {formatFileDate(tramite.documento_uploaded_at)}
           </div>
         )}
@@ -803,7 +803,7 @@ function TramiteRow({
 
       {/* Delete */}
       <button
-        className="text-gray-300 hover:text-red-500 p-1"
+        className="text-disabled-foreground hover:text-red-500 p-1"
         onClick={onDelete}
         title="Eliminar trámite"
       >
@@ -834,7 +834,7 @@ function PlanSeguridadSection({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-gray-200 rounded-sm bg-white">
+    <div className="border border-border rounded-sm bg-card">
       <div
         className="flex items-center justify-between px-6 py-6 border-b cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -844,7 +844,7 @@ function PlanSeguridadSection({
             status={section?.status_manual}
             onToggle={() => onUpdateStatus("plan_seguridad", section?._id)}
           />
-          <h3 className="text-base  text-gray-900">
+          <h3 className="text-base  text-foreground">
             Plan de seguridad e higiene en obra
           </h3>
         </div>
@@ -854,7 +854,7 @@ function PlanSeguridadSection({
             users={users}
             onSelect={(userId) => onUpdateResponsable("plan_seguridad", userId, section?._id)}
           />
-          <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => setExpanded(!expanded)} className="text-disabled-foreground hover:text-muted-foreground">
             {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
         </div>
@@ -864,7 +864,7 @@ function PlanSeguridadSection({
         <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
           {/* Plan de seguridad */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-gray-500">Plan de seguridad</span>
+            <span className="text-xs text-subtle-foreground">Plan de seguridad</span>
             <DocumentAttachment
               nombre={section?.documento_nombre}
               uploadedAt={section?.documento_uploaded_at}
@@ -1132,7 +1132,7 @@ export default function PermisosYLegalTab({ proyectoId }: { proyectoId: string }
   return (
     <div>
       <div className="pt-6">
-        <div className="flex flex-col text-left border-[#d2d1ce]">
+        <div className="flex flex-col text-left border-border">
           <p className="text-base">
             Autorizaciones municipales, estatales y obligaciones legales de la obra
           </p>          

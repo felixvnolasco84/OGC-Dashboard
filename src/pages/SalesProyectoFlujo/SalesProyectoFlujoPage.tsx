@@ -100,8 +100,8 @@ export default function SalesProyectoFlujoPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400 animate-pulse" />
-          <p className="text-gray-500">Cargando proyecciones...</p>
+          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-disabled-foreground animate-pulse" />
+          <p className="text-subtle-foreground">Cargando proyecciones...</p>
         </div>
       </div>
     );
@@ -109,22 +109,22 @@ export default function SalesProyectoFlujoPage() {
 
   if (projections.length === 0) {
     return (
-      <div className="bg-white px-12 py-6 min-h-screen">
+      <div className="bg-card px-12 py-6 min-h-screen">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="rounded-lg py-6 mb-6">
-            <h1 className="text-2xl text-gray-900 mb-2">Flujo de Caja Proyectado</h1>
-            <p className="text-sm text-gray-500">{salesProyecto.nombre}</p>
+            <h1 className="text-2xl text-foreground mb-2">Flujo de Caja Proyectado</h1>
+            <p className="text-sm text-subtle-foreground">{salesProyecto.nombre}</p>
           </div>
 
           {/* Empty State */}
           <Card>
             <CardContent className="py-12 text-center">
-              <FileSpreadsheet className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <FileSpreadsheet className="h-16 w-16 mx-auto mb-4 text-disabled-foreground" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 No hay proyecciones cargadas
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-subtle-foreground">
                 El administrador debe cargar un archivo Excel con las proyecciones de flujo de caja.
               </p>
             </CardContent>
@@ -135,12 +135,12 @@ export default function SalesProyectoFlujoPage() {
   }
 
   return (
-    <div className="bg-white px-12 py-6 min-h-screen">
+    <div className="bg-card px-12 py-6 min-h-screen">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="rounded-lg py-6">
-          <h1 className="text-2xl text-gray-900 mb-2">Flujo de Caja Proyectado</h1>
-          <p className="text-sm text-gray-500">{salesProyecto.nombre}</p>
+          <h1 className="text-2xl text-foreground mb-2">Flujo de Caja Proyectado</h1>
+          <p className="text-sm text-subtle-foreground">{salesProyecto.nombre}</p>
         </div>
 
         {/* Upload Info */}
@@ -149,14 +149,14 @@ export default function SalesProyectoFlujoPage() {
             <CardContent className="py-4">
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <FileSpreadsheet className="h-4 w-4 text-gray-500" />
+                  <FileSpreadsheet className="h-4 w-4 text-subtle-foreground" />
                   <span className="font-medium">Archivo:</span>
-                  <span className="text-gray-600">{uploadMetadata.file_name}</span>
+                  <span className="text-muted-foreground">{uploadMetadata.file_name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <Calendar className="h-4 w-4 text-subtle-foreground" />
                   <span className="font-medium">Cargado:</span>
-                  <span className="text-gray-600">
+                  <span className="text-muted-foreground">
                     {new Date(uploadMetadata.uploaded_at).toLocaleDateString('es-MX', {
                       year: 'numeric',
                       month: 'long',
@@ -175,7 +175,7 @@ export default function SalesProyectoFlujoPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Total Proyectado</p>
+                  <p className="text-sm text-subtle-foreground mb-1">Total Proyectado</p>
                   <p className="text-2xl font-semibold">
                     ${new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 }).format(stats.total)}
                   </p>
@@ -189,7 +189,7 @@ export default function SalesProyectoFlujoPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Semanas</p>
+                  <p className="text-sm text-subtle-foreground mb-1">Semanas</p>
                   <p className="text-2xl font-semibold">{stats.weeks}</p>
                 </div>
                 <Calendar className="h-8 w-8 text-blue-500" />
@@ -201,7 +201,7 @@ export default function SalesProyectoFlujoPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Partidas</p>
+                  <p className="text-sm text-subtle-foreground mb-1">Partidas</p>
                   <p className="text-2xl font-semibold">{stats.partidas}</p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-purple-500" />
@@ -213,7 +213,7 @@ export default function SalesProyectoFlujoPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Promedio Semanal</p>
+                  <p className="text-sm text-subtle-foreground mb-1">Promedio Semanal</p>
                   <p className="text-2xl font-semibold">
                     ${new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 }).format(
                       stats.weeks > 0 ? stats.total / stats.weeks : 0
@@ -264,36 +264,36 @@ export default function SalesProyectoFlujoPage() {
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-background border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-subtle-foreground uppercase tracking-wider">
                       Semana
                     </th>
                     {selectedPartida === "all" ? (
                       <>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-subtle-foreground uppercase tracking-wider">
                           Partidas
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-3 text-right text-xs font-medium text-subtle-foreground uppercase tracking-wider">
                           Total
                         </th>
                       </>
                     ) : (
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-right text-xs font-medium text-subtle-foreground uppercase tracking-wider">
                         Monto
                       </th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-card divide-y divide-border">
                   {weeklyData.map((week, idx) => (
-                    <tr key={week.date} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="px-4 py-3 text-sm text-gray-900">
+                    <tr key={week.date} className={idx % 2 === 0 ? 'bg-card' : 'bg-background'}>
+                      <td className="px-4 py-3 text-sm text-foreground">
                         {excelDateToString(week.date)}
                       </td>
                       {selectedPartida === "all" ? (
                         <>
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-4 py-3 text-sm text-muted-foreground">
                             <div className="flex flex-wrap gap-1">
                               {Array.from(week.partidas.entries()).map(([partida]) => (
                                 <span
@@ -305,29 +305,29 @@ export default function SalesProyectoFlujoPage() {
                               ))}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
+                          <td className="px-4 py-3 text-sm text-right font-medium text-foreground">
                             ${new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(week.total)}
                           </td>
                         </>
                       ) : (
-                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm text-right font-medium text-foreground">
                           ${new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(week.total)}
                         </td>
                       )}
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+                <tfoot className="bg-muted border-t-2 border-border-strong">
                   <tr>
-                    <td className="px-4 py-3 text-sm font-bold text-gray-900">
+                    <td className="px-4 py-3 text-sm font-bold text-foreground">
                       Total
                     </td>
                     {selectedPartida === "all" && (
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700">
+                      <td className="px-4 py-3 text-sm font-medium text-foreground">
                         {stats.partidas} partida{stats.partidas !== 1 ? 's' : ''}
                       </td>
                     )}
-                    <td className="px-4 py-3 text-sm text-right font-bold text-gray-900">
+                    <td className="px-4 py-3 text-sm text-right font-bold text-foreground">
                       ${new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(stats.total)}
                     </td>
                   </tr>

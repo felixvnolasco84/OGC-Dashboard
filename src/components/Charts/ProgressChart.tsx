@@ -496,7 +496,7 @@ export default function ProgressChart({
                     variant="outline"
                     size="icon"
                     onClick={handleOpenAvanceModal}
-                    className="bg-white hover:bg-gray-50"
+                    className="bg-card hover:bg-background"
                 >
                     <Settings className="h-4 w-4" />
                 </Button>
@@ -512,7 +512,7 @@ export default function ProgressChart({
             {/* Show empty state if no data */}
             {transformedData.length === 0 ? (
                 <div className="w-full flex items-center justify-center" style={{ height: `${height}px` }}>
-                    <div className="text-center text-gray-400">
+                    <div className="text-center text-disabled-foreground">
                         <p className="text-sm">No hay datos disponibles para mostrar</p>
                     </div>
                 </div>
@@ -521,7 +521,7 @@ export default function ProgressChart({
                     className="w-full pointer-events-none relative progress-chart-container"
                     style={{
                         height: `${height}px`,
-                        background: '#fbfbfa'
+                        background: 'hsl(var(--card))'
                     }}
                 >
                     <style>
@@ -532,12 +532,12 @@ export default function ProgressChart({
                             }
 
                             .progress-chart-container .Axis .grid line {
-                                stroke: #EAEAEA !important;
+                                stroke: hsl(var(--border)) !important;
                                 stroke-width: 1;
                             }
 
                             .progress-chart-container .Axis text.tickLabel {
-                                fill: #777770 !important;
+                                fill: hsl(var(--muted-foreground)) !important;
                                 font-size: 12px !important;
                                 font-weight: 400;
                             }
@@ -694,8 +694,8 @@ export default function ProgressChart({
                                                         borderRadius: '4px',
 
                                                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                                        backgroundColor: '#AFAEA2',
-                                                        color: 'white',
+                                                        backgroundColor: 'hsl(var(--disabled-foreground))',
+                                                        color: 'hsl(var(--on-color))',
                                                         width: 'fit-content',
                                                     }}>
 
@@ -704,10 +704,10 @@ export default function ProgressChart({
                                                     <div style={{
                                                         padding: '8px',
                                                         borderRadius: '4px',
-                                                        border: '1px solid #e5e7eb',
+                                                        border: '1px solid hsl(var(--border))',
                                                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                                        backgroundColor: '#fff',
-                                                        color: '#111827',
+                                                        backgroundColor: 'hsl(var(--card))',
+                                                        color: 'hsl(var(--foreground))',
                                                         width: 'fit-content',
 
 
@@ -724,8 +724,8 @@ export default function ProgressChart({
                                                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                                                     padding: '8px',
                                                     borderRadius: '4px',
-                                                    border: '1px solid #e5e7eb',
-                                                    backgroundColor: '#fff',
+                                                    border: '1px solid hsl(var(--border))',
+                                                    backgroundColor: 'hsl(var(--card))',
                                                 }}>
                                                     {seriesData.map((item, idx) => (
                                                         <div key={idx} style={{
@@ -742,11 +742,11 @@ export default function ProgressChart({
                                                                     borderRadius: '50%',
                                                                     backgroundColor: item.color
                                                                 }}></div>
-                                                                <span style={{ color: '#6B7280' }}>{item.label}</span>
+                                                                <span style={{ color: 'hsl(var(--muted-foreground))' }}>{item.label}</span>
                                                             </div>
                                                             <span style={{
                                                                 fontWeight: '500',
-                                                                color: '#111827'
+                                                                color: 'hsl(var(--foreground))'
                                                             }}>
                                                                 {formatCurrency(item.value)}
                                                             </span>

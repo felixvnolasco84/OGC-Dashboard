@@ -7,11 +7,11 @@ import type { CommentMentionDraft, MentionableUser } from "./planosTypes";
 import { getActiveMention, rebaseMentionRanges } from "@/lib/mentionRanges";
 
 const COLORS = {
-  surface: "#FBFBFB",
-  border: "#E6E6E6",
-  text: "#3D3D3A",
-  textSoft: "#898982",
-  muted: "#A3A39E",
+  surface: "hsl(var(--card))",
+  border: "hsl(var(--border))",
+  text: "hsl(var(--foreground))",
+  textSoft: "hsl(var(--subtle-foreground))",
+  muted: "hsl(var(--disabled-foreground))",
 };
 const MAX_MENTIONS = 20;
 
@@ -219,7 +219,7 @@ export default function MentionCommentComposer({
           <div
             role="listbox"
             aria-label="Integrantes disponibles"
-            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-sm border bg-white p-1 shadow-xl"
+            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-sm border bg-card p-1 shadow-xl"
             style={{ borderColor: COLORS.border }}
           >
             {suggestions.map((user, index) => (

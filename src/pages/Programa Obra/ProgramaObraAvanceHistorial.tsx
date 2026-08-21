@@ -60,27 +60,27 @@ export default function ProgramaObraAvanceHistorial({ item, historial, onClose }
 
         <div className="mt-6">
           {itemHistorial.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">
+            <p className="text-sm text-disabled-foreground text-center py-8">
               No hay modificaciones registradas para este avance.
             </p>
           ) : (
             <div className="relative space-y-4">
-              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-gray-200" />
+              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-disabled" />
               {itemHistorial.map((entry) => (
                 <div key={entry._id} className="relative pl-7">
-                  <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#802424] shadow-sm" />
-                  <div className="border border-gray-200 bg-white p-3">
+                  <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-on-color bg-[#802424] shadow-sm" />
+                  <div className="border border-border bg-card p-3">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-foreground">
                         <span className="font-medium">{formatPercent(entry.old_value)}</span>
-                        <span className="mx-2 text-gray-400">a</span>
+                        <span className="mx-2 text-disabled-foreground">a</span>
                         <span className="font-medium">{formatPercent(entry.new_value)}</span>
                       </div>
-                      <span className="shrink-0 text-xs text-gray-400">
+                      <span className="shrink-0 text-xs text-disabled-foreground">
                         {formatDateTime(entry.created_at)}
                       </span>
                     </div>
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mt-2 text-xs text-subtle-foreground">
                       {entry.changed_by_name ?? "Usuario no identificado"}
                     </div>
                   </div>

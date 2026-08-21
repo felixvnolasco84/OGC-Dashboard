@@ -158,16 +158,16 @@ export default function ReviewRequisicionModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div data-square-modal="" className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={close} />
+      <div className="absolute inset-0 bg-overlay/50" onClick={close} />
 
       {/* Modal */}
-      <div className="relative bg-white shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col mx-4">
+      <div className="relative bg-card shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="text-left">
-            <h2 className="text-lg font-semibold text-gray-900">Revisar Requisición</h2>
+            <h2 className="text-lg font-semibold text-foreground">Revisar Requisición</h2>
             {requisicion && (
               <div className="flex items-center gap-3 mt-1">
                 <span
@@ -180,15 +180,15 @@ export default function ReviewRequisicionModal() {
                 >
                   {requisicion.tipo}
                 </span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-subtle-foreground">
                   Solicitado por <span className="font-medium">{requisicion.solicitante_nombre}</span>
                 </span>
-                <span className="text-sm text-gray-400">{requisicion.fecha_solicitud}</span>
+                <span className="text-sm text-disabled-foreground">{requisicion.fecha_solicitud}</span>
               </div>
             )}
           </div>
-          <button onClick={close} className="p-2 hover:bg-gray-100 transition-colors">
-            <X className="w-5 h-5 text-gray-500" />
+          <button onClick={close} className="p-2 hover:bg-muted transition-colors">
+            <X className="w-5 h-5 text-subtle-foreground" />
           </button>
         </div>
 
@@ -196,14 +196,14 @@ export default function ReviewRequisicionModal() {
         <div className="flex-1 overflow-y-auto p-6">
           {!requisicion ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              <Loader2 className="w-8 h-8 animate-spin text-disabled-foreground" />
             </div>
           ) : (
             <div className="space-y-6">
               {/* Summary bar */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200">
+              <div className="flex items-center justify-between p-3 bg-background border border-border">
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="text-gray-500">
+                  <span className="text-subtle-foreground">
                     {totalCount} item{totalCount !== 1 ? "s" : ""}
                   </span>
                   <span className="text-green-600 font-medium">
@@ -235,15 +235,15 @@ export default function ReviewRequisicionModal() {
 
               {/* Description if present */}
               {requisicion.descripcion && (
-                <div className="p-3 bg-gray-50 border border-gray-200 text-sm text-left">
-                  <span className="text-gray-400 text-xs uppercase tracking-wide">Descripción</span>
-                  <p className="text-gray-700 mt-1">{requisicion.descripcion}</p>
+                <div className="p-3 bg-background border border-border text-sm text-left">
+                  <span className="text-disabled-foreground text-xs uppercase tracking-wide">Descripción</span>
+                  <p className="text-foreground mt-1">{requisicion.descripcion}</p>
                 </div>
               )}
 
               {/* Items list */}
               <div className="space-y-3">
-                <h3 className="text-sm font-medium text-gray-700">Items de la requisición</h3>
+                <h3 className="text-sm font-medium text-foreground">Items de la requisición</h3>
                 {itemDecisions.map((decision, index) => (
                   <div
                     key={decision.item_id}
@@ -259,10 +259,10 @@ export default function ReviewRequisicionModal() {
                       <button
                         onClick={() => toggleItem(index)}
                         className={cn(
-                          "mt-0.5 p-1.5 rounded-sm transition-colors flex-shrink-0",
+                          "mt-0.5 p-1.5 rounded-none transition-colors flex-shrink-0",
                           decision.status_revision === "aprobado"
-                            ? "bg-green-600 text-white hover:bg-green-700"
-                            : "bg-red-500 text-white hover:bg-red-600"
+                            ? "bg-green-600 text-on-color hover:bg-green-700"
+                            : "bg-red-500 text-on-color hover:bg-red-600"
                         )}
                       >
                         {decision.status_revision === "aprobado" ? (
@@ -276,9 +276,9 @@ export default function ReviewRequisicionModal() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <div className="text-left">
-                            <p className="text-sm font-medium text-gray-900">{decision.familia}</p>
+                            <p className="text-sm font-medium text-foreground">{decision.familia}</p>
                             {decision.sub_partida && (
-                              <p className="text-xs text-gray-500">{decision.sub_partida}</p>
+                              <p className="text-xs text-subtle-foreground">{decision.sub_partida}</p>
                             )}
                           </div>
                           <span
@@ -295,28 +295,28 @@ export default function ReviewRequisicionModal() {
 
                         {/* Quantities */}
                         <div className="mt-2 flex items-center gap-4 text-sm">
-                          <div className="text-gray-500">
+                          <div className="text-subtle-foreground">
                             Solicitado:{" "}
-                            <span className="font-medium text-gray-700">
+                            <span className="font-medium text-foreground">
                               {decision.cantidad_original} {decision.unidad}
                             </span>
                           </div>
                           {decision.status_revision === "aprobado" && (
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-500">Aprobado:</span>
+                              <span className="text-subtle-foreground">Aprobado:</span>
                               <input
                                 type="number"
                                 min={1}
                                 value={decision.cantidad_aprobada}
                                 onChange={(e) => updateQty(index, Number(e.target.value))}
                                 className={cn(
-                                  "w-20 px-2 py-1.5 text-sm border text-center bg-white",
+                                  "w-20 px-2 py-1.5 text-sm border text-center bg-card",
                                   decision.cantidad_aprobada !== decision.cantidad_original
                                     ? "border-yellow-400 bg-yellow-50 text-yellow-800 font-medium"
-                                    : "border-gray-300 text-gray-700"
+                                    : "border-border-strong text-foreground"
                                 )}
                               />
-                              <span className="text-gray-500 text-xs">{decision.unidad}</span>
+                              <span className="text-subtle-foreground text-xs">{decision.unidad}</span>
                               {decision.cantidad_aprobada !== decision.cantidad_original && (
                                 <span className="text-yellow-600 text-xs font-medium">
                                   (modificado)
@@ -325,7 +325,7 @@ export default function ReviewRequisicionModal() {
                             </div>
                           )}
                           {decision.monto !== undefined && decision.monto > 0 && (
-                            <div className="text-gray-400 text-xs ml-auto">
+                            <div className="text-disabled-foreground text-xs ml-auto">
                               ${decision.monto.toLocaleString("es-MX")}
                             </div>
                           )}
@@ -338,7 +338,7 @@ export default function ReviewRequisicionModal() {
                               const el = document.getElementById(`item-note-${index}`);
                               if (el) el.classList.toggle("hidden");
                             }}
-                            className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                            className="text-xs text-disabled-foreground hover:text-muted-foreground flex items-center gap-1"
                           >
                             <MessageSquare className="w-3 h-3" />
                             {decision.nota_item ? "Editar nota" : "Agregar nota"}
@@ -349,7 +349,7 @@ export default function ReviewRequisicionModal() {
                               placeholder="Nota para este item..."
                               value={decision.nota_item}
                               onChange={(e) => updateItemNote(index, e.target.value)}
-                              className="mt-1 w-full px-2 py-1.5 text-xs border border-gray-200 text-gray-700 placeholder:text-gray-400 bg-white"
+                              className="mt-1 w-full px-2 py-1.5 text-xs border border-border text-foreground placeholder:text-disabled-foreground bg-card"
                             />
                           </div>
                         </div>
@@ -361,7 +361,7 @@ export default function ReviewRequisicionModal() {
 
               {/* Revision note */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
                   Nota de revisión
                   {noteRequired && (
                     <span className="text-xs text-red-500 flex items-center gap-1">
@@ -380,10 +380,10 @@ export default function ReviewRequisicionModal() {
                   onChange={(e) => setNotaRevision(e.target.value)}
                   rows={3}
                   className={cn(
-                    "w-full px-3 py-2 text-sm border resize-none bg-white",
+                    "w-full px-3 py-2 text-sm border resize-none bg-card",
                     noteRequired && !notaRevision.trim()
                       ? "border-red-300 bg-red-50/50"
-                      : "border-gray-200"
+                      : "border-border"
                   )}
                 />
               </div>
@@ -392,10 +392,10 @@ export default function ReviewRequisicionModal() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-4 flex items-center justify-between">
+        <div className="border-t border-border p-4 flex items-center justify-between">
           <button
             onClick={close}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-disabled transition-colors"
           >
             Cancelar
           </button>
@@ -403,7 +403,7 @@ export default function ReviewRequisicionModal() {
             onClick={handleSubmit}
             disabled={!canSubmit || isSubmitting}
             className={cn(
-              "px-6 py-2 text-sm font-medium text-white transition-colors flex items-center gap-2",
+              "px-6 py-2 text-sm font-medium text-on-color transition-colors flex items-center gap-2",
               isAllRejected
                 ? "bg-red-600 hover:bg-red-700 disabled:bg-red-300"
                 : isPartial

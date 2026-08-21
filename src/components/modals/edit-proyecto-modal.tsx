@@ -124,7 +124,7 @@ export default function EditProyectoModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent data-square-modal="" className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">
             Editar Proyecto
@@ -181,7 +181,7 @@ export default function EditProyectoModal() {
               step="0.01"
               className="rounded-none"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-subtle-foreground">
               Porcentaje que se aplicará sobre el total de transacciones para calcular honorarios
             </p>
           </div>
@@ -195,17 +195,17 @@ export default function EditProyectoModal() {
                   <Label className="text-sm font-medium">
                     Excluir Partidas del Cálculo de Honorarios (Nivel 1)
                   </Label>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-subtle-foreground mt-1">
                     Selecciona las partidas de nivel 1 que NO deben incluirse en el cálculo de honorarios
                   </p>
                 </div>
               </div>
 
-              <div className="max-h-[300px] overflow-y-auto border rounded-md p-4 space-y-2">
+              <div className="max-h-[300px] overflow-y-auto border rounded-none p-4 space-y-2">
                 {nivel1Partidas.map((partida) => (
                   <div
                     key={partida._id}
-                    className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded"
+                    className="flex items-start gap-3 p-2 hover:bg-background rounded-none"
                   >
                     <Checkbox
                       id={`partida-${partida._id}`}
@@ -218,10 +218,10 @@ export default function EditProyectoModal() {
                       className="flex-1 cursor-pointer"
                     >
                       <div className="text-sm font-medium">{partida.nombre}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-subtle-foreground">
                         {partida.familia} - {partida.sub_partida}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-disabled-foreground">
                         Presupuesto: ${partida.presupuesto_aprobado.toLocaleString()}
                       </div>
                     </label>
@@ -229,7 +229,7 @@ export default function EditProyectoModal() {
                 ))}
               </div>
 
-              <p className="text-xs text-gray-500 italic">
+              <p className="text-xs text-subtle-foreground italic">
                 {excludedPartidas.length > 0
                   ? `${excludedPartidas.length} partida${excludedPartidas.length > 1 ? 's' : ''} excluida${excludedPartidas.length > 1 ? 's' : ''} del cálculo`
                   : 'Ninguna partida excluida'}
@@ -246,7 +246,7 @@ export default function EditProyectoModal() {
               <SelectTrigger className="rounded-none">
                 <SelectValue placeholder="Selecciona status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent data-square-modal="">
                 <SelectItem value="Activo">Activo</SelectItem>
                 <SelectItem value="Cancelado">Cancelado</SelectItem>
                 <SelectItem value="Entregado">Entregado</SelectItem>
@@ -266,7 +266,7 @@ export default function EditProyectoModal() {
               onChange={(e) => setFechaCreacion(e.target.value)}
               className="rounded-none"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-subtle-foreground">
               Si se deja vacío, se usará la fecha actual
             </p>
           </div>
@@ -283,7 +283,7 @@ export default function EditProyectoModal() {
               placeholder="https://ejemplo.com/imagen.jpg"
               className="rounded-none"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-subtle-foreground">
               Si se deja vacío, se usará una imagen placeholder
             </p>
           </div>

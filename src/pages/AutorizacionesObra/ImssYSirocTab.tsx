@@ -192,13 +192,13 @@ function FileCell({
               href={url || "#"}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-600"
+              className="flex items-center gap-1.5 text-sm text-foreground hover:text-muted-foreground"
             >
-              <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+              <FileText className="w-4 h-4 text-disabled-foreground shrink-0" />
               <span className="font-normal truncate max-w-[150px]">{nombre}</span>
             </a>
             <button
-              className="text-gray-400 hover:text-gray-600 p-0.5"
+              className="text-disabled-foreground hover:text-muted-foreground p-0.5"
               onClick={() => replaceInputRef.current?.click()}
               disabled={uploading}
               title="Reemplazar archivo"
@@ -211,7 +211,7 @@ function FileCell({
             </button>
             {historial && historial.length > 0 && (
               <button
-                className="text-gray-400 hover:text-gray-600 p-0.5"
+                className="text-disabled-foreground hover:text-muted-foreground p-0.5"
                 onClick={() => setShowHistory(!showHistory)}
                 title="Ver historial de archivos"
               >
@@ -220,7 +220,7 @@ function FileCell({
             )}
             {onDelete && (
               <button
-                className="text-gray-400 hover:text-red-500 p-0.5"
+                className="text-disabled-foreground hover:text-red-500 p-0.5"
                 onClick={onDelete}
                 title="Eliminar archivo"
               >
@@ -229,15 +229,15 @@ function FileCell({
             )}
           </div>
           {uploadedAt && (
-            <span className="text-xs text-[#C5C5C3] mt-0.5 ml-5.5 font-light text-left">
+            <span className="text-xs text-disabled-foreground mt-0.5 ml-5.5 font-light text-left">
               {formatFileDate(uploadedAt)}
             </span>
           )}
           {showHistory && historial && historial.length > 0 && (
-            <div className="mt-2 border border-gray-100 rounded p-2 bg-gray-50">
-              <div className="text-xs font-normal text-[#5A5A50] mb-1">Historial de archivos</div>
+            <div className="mt-2 border border-border rounded p-2 bg-background">
+              <div className="text-xs font-normal text-muted-foreground mb-1">Historial de archivos</div>
               {historial.map((h: HistorialEntry) => (
-                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-[#5A5A50]">
+                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
                   <FileText className="w-3 h-3 shrink-0" />
                   <a
                     href={h.url || "#"}
@@ -247,11 +247,11 @@ function FileCell({
                   >
                     {h.documento_nombre}
                   </a>
-                  <span className="shrink-0 text-gray-400">
+                  <span className="shrink-0 text-disabled-foreground">
                     {new Date(h.replaced_at).toLocaleDateString("es-MX")}
                   </span>
                   {h.replaced_by_name && (
-                    <span className="shrink-0 text-gray-400">por {h.replaced_by_name}</span>
+                    <span className="shrink-0 text-disabled-foreground">por {h.replaced_by_name}</span>
                   )}
                 </div>
               ))}
@@ -260,7 +260,7 @@ function FileCell({
         </div>
       ) : (
         <button
-          className="text-sm text-gray-400 hover:text-gray-600"
+          className="text-sm text-disabled-foreground hover:text-muted-foreground"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
@@ -306,7 +306,7 @@ function PagoCuotaTableRow({
     : "grid-cols-[1.2fr_1.2fr_1fr_auto]";
 
   return (
-    <div className={`grid ${cols} gap-4 items-center bg-[#FBFBFB] p-3 border-b  mt-2 border border-[#EAEAEA] rounded-sm`}>
+    <div className={`grid ${cols} gap-4 items-center bg-card p-3 border-b  mt-2 border border-border rounded-sm`}>
       {/* Comprobante */}
       <FileCell
         nombre={pago.comprobante_nombre}
@@ -339,7 +339,7 @@ function PagoCuotaTableRow({
           value={pago.cuota_tipo || ""}
           onValueChange={(val) => onUpdate({ cuota_tipo: val })}
         >
-          <SelectTrigger className="h-12 rounded-none border-gray-200 text-sm text-[#C2C2BF]">
+          <SelectTrigger className="h-12 rounded-none border-border text-sm text-disabled-foreground">
             <SelectValue placeholder="Tipo">
               {pago.cuota_tipo || "Tipo"}
             </SelectValue>
@@ -356,7 +356,7 @@ function PagoCuotaTableRow({
 
       {/* Monto */}
       <Input
-        className="h-8 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300 text-sm text-right"
+        className="h-8 rounded-none border-transparent hover:border-border focus:border-border-strong text-sm text-right"
         value={editMonto || (pago.monto ? formatCurrencyMXN(pago.monto) : "")}
         onFocus={() => setEditMonto(pago.monto?.toString() || "")}
         onChange={(e) => setEditMonto(e.target.value)}
@@ -372,7 +372,7 @@ function PagoCuotaTableRow({
 
       {/* Delete */}
       <button
-        className="text-gray-300 hover:text-red-500 p-1"
+        className="text-disabled-foreground hover:text-red-500 p-1"
         onClick={onDelete}
         title="Eliminar pago"
       >
@@ -413,7 +413,7 @@ function PagosCuotaSection({
   return (
     <div className="mt-8">
       {/* Header */}
-      <div className={`grid ${headerCols} gap-4 text-xs text-[#777770] font-normal pb-2 text-left`}>
+      <div className={`grid ${headerCols} gap-4 text-xs text-muted-foreground font-normal pb-2 text-left`}>
         <span>Comprobante</span>
         <span>Soporte</span>
         {showCuotaTipo && <span>Cuota</span>}
@@ -439,14 +439,14 @@ function PagosCuotaSection({
       ))}
 
       {pagos.length === 0 && (
-        <div className="py-4 text-center text-sm text-gray-400">
+        <div className="py-4 text-center text-sm text-disabled-foreground">
           No hay pagos de cuota registrados
         </div>
       )}
 
       {/* Add button */}
       <button
-        className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 px-3 py-2 hover:border-gray-400 transition-colors"
+        className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border-strong px-3 py-2 hover:border-border-strong transition-colors"
         onClick={onCreatePago}
       >
         <Plus className="w-4 h-4" />
@@ -477,7 +477,7 @@ function SubPagoCuotaRow({
   const [editMonto, setEditMonto] = useState("");
 
   return (
-    <div className="grid grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 items-center px-5 py-4 border-b border-[#EAEAEA] last:border-b-0">
+    <div className="grid grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 items-center px-5 py-4 border-b border-border last:border-b-0">
       <FileCell
         nombre={pago.comprobante_nombre}
         uploadedAt={pago.comprobante_uploaded_at}
@@ -501,7 +501,7 @@ function SubPagoCuotaRow({
         parentId={pago._id}
       />
       <Input
-        className="h-8 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300 text-sm text-right"
+        className="h-8 rounded-none border-transparent hover:border-border focus:border-border-strong text-sm text-right"
         value={editMonto || (pago.monto ? formatCurrencyMXN(pago.monto) : "")}
         onFocus={() => setEditMonto(pago.monto?.toString() || "")}
         onChange={(e) => setEditMonto(e.target.value)}
@@ -517,7 +517,7 @@ function SubPagoCuotaRow({
       <Popover>
         <PopoverTrigger asChild>
           <button
-            className="text-gray-400 hover:text-gray-600 p-1"
+            className="text-disabled-foreground hover:text-muted-foreground p-1"
             type="button"
             title="Acciones del pago"
           >
@@ -560,9 +560,9 @@ function SubPagosCuotaSection({
   uploadingField: "comprobante" | "soporte" | null;
 }) {
   return (
-    <div className="border border-[#E8E8E7] rounded-sm">
+    <div className="border border-border rounded-sm">
       {/* Header */}
-      <div className="grid grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-[#777770] font-normal px-5 py-3 border-b border-[#EAEAEA]">
+      <div className="grid grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-muted-foreground font-normal px-5 py-3 border-b border-border">
         <span>Comprobante</span>
         <span>Soporte</span>
         <span className="text-right">Monto</span>
@@ -585,16 +585,16 @@ function SubPagosCuotaSection({
         ))}
 
         {pagos.length === 0 && (
-          <div className="py-6 text-center text-sm text-gray-400">
+          <div className="py-6 text-center text-sm text-disabled-foreground">
             No hay pagos de cuota registrados
           </div>
         )}
       </div>
 
       {/* Add button */}
-      <div className="px-5 py-3 border-t border-[#EAEAEA]">
+      <div className="px-5 py-3 border-t border-border">
         <button
-          className="w-full flex items-center justify-center gap-2 text-sm text-[#B9B9B7] hover:text-gray-600 border border-dashed border-[#D4D4D2] px-3 py-2.5 hover:border-gray-400 transition-colors rounded-sm"
+          className="w-full flex items-center justify-center gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border px-3 py-2.5 hover:border-border-strong transition-colors rounded-sm"
           onClick={onCreatePago}
         >
           <Plus className="w-4 h-4" />
@@ -647,36 +647,36 @@ function SubcontratistaImssRow({
     <div className="text-left">
       {/* Row */}
       <div
-        className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 items-center px-4 py-6 border border-[#EAEAEA] cursor-pointer bg-[#FBFBFB] mt-2 rounded-sm"
+        className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 items-center px-4 py-6 border border-border cursor-pointer bg-card mt-2 rounded-sm"
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="text-sm text-gray-900">{sub.nombre || "Sin nombre"}</span>
-        <span className="text-sm text-[#5A5A50]">{sub.partida_nombre || "—"}</span>
-        <span className="text-sm text-gray-700 font-normal">{sub.siroc_numero || "—"}</span>
+        <span className="text-sm text-foreground">{sub.nombre || "Sin nombre"}</span>
+        <span className="text-sm text-muted-foreground">{sub.partida_nombre || "—"}</span>
+        <span className="text-sm text-foreground font-normal">{sub.siroc_numero || "—"}</span>
         {/* Progress bar */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-2 bg-gray-100 overflow-hidden">
+          <div className="flex-1 h-2 bg-muted overflow-hidden">
             <div
               className={`h-full ${barColor} transition-all duration-300`}
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <span className="text-xs text-gray-400 shrink-0">{Math.round(progressPercent)}%</span>
+          <span className="text-xs text-disabled-foreground shrink-0">{Math.round(progressPercent)}%</span>
         </div>
-        <span className="text-sm text-gray-900 text-right">{formatCurrencyMXN(avanceTotal)}</span>
-        <button className="text-gray-400 hover:text-gray-600">
+        <span className="text-sm text-foreground text-right">{formatCurrencyMXN(avanceTotal)}</span>
+        <button className="text-disabled-foreground hover:text-muted-foreground">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
       </div>
 
       {/* Expanded content */}
       {expanded && (
-        <div className="px-4 py-4 bg-gray-50 border border-[#EAEAEA]">
+        <div className="px-4 py-4 bg-background border border-border">
           <div className="flex gap-8">
             {/* Left: SIROC + Contrato */}
             <div className="w-48 shrink-0 space-y-4 p-4">
               <div>
-                <div className="text-xs text-[#5A5A50] mb-4">SIROC</div>
+                <div className="text-xs text-muted-foreground mb-4">SIROC</div>
                 <Input
                   className="h-7 rounded-none text-sm mb-4"
                   value={editSiroc}
@@ -700,19 +700,19 @@ function SubcontratistaImssRow({
                 />
               </div>
               <div className="mt-4">
-                <div className="text-xs text-[#5A5A50] mb-1">Contrato</div>
+                <div className="text-xs text-muted-foreground mb-1">Contrato</div>
                 {sub.contrato_nombre ? (
                   <a
                     href={sub.contrato_url || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-600"
+                    className="flex items-center gap-1.5 text-sm text-foreground hover:text-muted-foreground"
                   >
-                    <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                    <FileText className="w-4 h-4 text-disabled-foreground shrink-0" />
                     <span className="font-normal truncate max-w-[140px]">{sub.contrato_nombre}</span>
                   </a>
                 ) : (
-                  <span className="text-sm text-gray-400">Sin contrato</span>
+                  <span className="text-sm text-disabled-foreground">Sin contrato</span>
                 )}
               </div>
             </div>
@@ -1127,21 +1127,21 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
     <div className="px-16">
       {/* ====== SECTION 1: Avance global IMSS ====== */}
       <div className="pt-6 pb-4">
-        <p className="text-base text-left text-[#282822]">Avance global IMSS</p>
+        <p className="text-base text-left text-foreground">Avance global IMSS</p>
       </div>
 
-      <div className="border border-gray-200 rounded-sm  px-12 py-6 space-y-6">
+      <div className="border border-border rounded-sm  px-12 py-6 space-y-6">
         {/* Three metric cards */}
         <div className="grid grid-cols-3 gap-6 text-left">
           <div>
-            <p className="text-xs text-[#5A5A50] mb-1">Costo Total Obra IMSS</p>
+            <p className="text-xs text-muted-foreground mb-1">Costo Total Obra IMSS</p>
             {
               !isEditingCostoTotal ? (
-                <p className="text-3xl font-light text-gray-900 cursor-pointer mt-2" onClick={handleEditCostoTotal}>{formatCurrencyMXN(costoTotal)}</p>
+                <p className="text-3xl font-light text-foreground cursor-pointer mt-2" onClick={handleEditCostoTotal}>{formatCurrencyMXN(costoTotal)}</p>
               ) : (
                 <Input
                   autoFocus
-                  className="text-3xl font-light h-auto py-1 rounded-none border-transparent hover:border-gray-200 focus:border-gray-300 mt-2"
+                  className="text-3xl font-light h-auto py-1 rounded-none border-transparent hover:border-border focus:border-border-strong mt-2"
                   value={costoInput}
                   onFocus={() => setCostoInput(costoTotal?.toString() || "")}
                   onChange={(e) => setCostoInput(e.target.value)}
@@ -1151,17 +1151,17 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 />
               )
             }
-            <p className="text-xs text-[#5A5A50] mt-1">Base total registrada ante IMSS</p>
+            <p className="text-xs text-muted-foreground mt-1">Base total registrada ante IMSS</p>
           </div>
           <div>
-            <p className="text-xs text-[#5A5A50] mb-1">Contratista General</p>
-            <p className="text-3xl font-light text-gray-900 mt-2">{formatCurrencyMXN(montoCG)}</p>
-            <p className="text-xs text-[#5A5A50] mt-1">~20% del costo de obra ejecutado directamente</p>
+            <p className="text-xs text-muted-foreground mb-1">Contratista General</p>
+            <p className="text-3xl font-light text-foreground mt-2">{formatCurrencyMXN(montoCG)}</p>
+            <p className="text-xs text-muted-foreground mt-1">~20% del costo de obra ejecutado directamente</p>
           </div>
           <div>
-            <p className="text-xs text-[#5A5A50] mb-1">Subcontratistas</p>
-            <p className="text-3xl font-light text-gray-900 mt-2">{formatCurrencyMXN(montoSubs)}</p>
-            <p className="text-xs text-[#5A5A50] mt-1">~80% participación de subcontratistas</p>
+            <p className="text-xs text-muted-foreground mb-1">Subcontratistas</p>
+            <p className="text-3xl font-light text-foreground mt-2">{formatCurrencyMXN(montoSubs)}</p>
+            <p className="text-xs text-muted-foreground mt-1">~80% participación de subcontratistas</p>
           </div>
         </div>
 
@@ -1173,14 +1173,14 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
               style={{ width: `${liquidadoPercent}%` }}
             />
           </div>
-          <div className="flex justify-between mt-2 text-xs text-[#5A5A50]">
+          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
             <span>{Math.round(liquidadoPercent)}% liquidado</span>
             <span>Pendiente: {formatCurrencyMXN(pendiente)}</span>
           </div>
         </div>
 
         {/* Info banner */}
-        <div className="bg-[#FBFAF2] border px-4 py-3 text-sm text-[#282822] rounded-md border-none  flex items-center gap-2">          
+        <div className="bg-[#FBFAF2] border px-4 py-3 text-sm text-foreground rounded-md border-none  flex items-center gap-2">
           <span className="text-left">
             Las cuotas IMSS se estiman en función de la base de obra registrada y los salarios reportados.
             Incluyen aportaciones obrero-patronales, INFONAVIT y SAR, y se determinan mediante el SUA.
@@ -1189,10 +1189,10 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       </div>
 
       {/* ====== SECTION 2: Contratista General ====== */}
-      <div className="mt-8 border border-gray-200 rounded-sm ">
+      <div className="mt-8 border border-border rounded-sm ">
         {/* Header */}
         <div className="flex items-center justify-between px-12 py-6 border-b">
-          <h3 className="text-base text-gray-900">Contratista General</h3>
+          <h3 className="text-base text-foreground">Contratista General</h3>
           <div className="flex items-center gap-3">
             {mainCG && (
               <ResponsableSelector
@@ -1213,7 +1213,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
 
         <div className="px-12 pb-6 pt-4">
           {/* CG Table */}
-          <div className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 text-xs  font-normal pb-2  text-[#777770] text-left">
+          <div className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 text-xs  font-normal pb-2  text-muted-foreground text-left">
             <span className="w-6" />
             <span>Contratista</span>
             <span>Contrato</span>
@@ -1229,7 +1229,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             return (
               <div
                 key={cg._id}
-                className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 items-center p-4 border bg-[#FBFBFB] border-[#E9E9E9] text-left rounded-sm"
+                className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 items-center p-4 border bg-card border-border text-left rounded-sm"
               >
                 <StatusDot
                   status={cg.status_manual}
@@ -1244,7 +1244,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                     }
                   }}
                 />
-                <span className="text-sm text-gray-900">{cg.nombre}</span>
+                <span className="text-sm text-foreground">{cg.nombre}</span>
                 <FileCell
                   nombre={cg.contrato_nombre}
                   uploadedAt={cg.contrato_uploaded_at}
@@ -1255,10 +1255,10 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                   parentType="imss_cg_contrato"
                   parentId={cg._id}
                 />
-                <span className="text-sm text-gray-900 text-right">{formatCurrencyMXN(cgTotal)}</span>
+                <span className="text-sm text-foreground text-right">{formatCurrencyMXN(cgTotal)}</span>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="text-gray-400 hover:text-gray-600 p-1">
+                    <button className="text-disabled-foreground hover:text-muted-foreground p-1">
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
                   </PopoverTrigger>
@@ -1268,7 +1268,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                         href={cg.contrato_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded w-full"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded w-full"
                       >
                         <FileText className="w-3.5 h-3.5" />
                         Descargar contrato
@@ -1297,19 +1297,19 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           })}
 
           {cgs.length === 0 && (
-            <div className="py-6 text-center text-sm text-gray-400">
+            <div className="py-6 text-center text-sm text-disabled-foreground">
               No hay contratistas generales registrados
             </div>
           )}
 
           {/* SIROC sub-section (for CG) */}
           {mainCG && (
-            <div className="mt-6 border border-[#ECECEC] rounded-sm p-6">
-              <div className="flex items-start gap-12 border-b border-[#ECECEC] pb-4">
+            <div className="mt-6 border border-border rounded-sm p-6">
+              <div className="flex items-start gap-12 border-b border-border pb-4">
                 {/* Left: SIROC info */}
                 <div className="shrink-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-normal text-gray-900">
+                    <span className="text-sm font-normal text-foreground">
                       SIROC: {mainCG.siroc_numero || "Sin número"}
                     </span>
                   </div>
@@ -1329,20 +1329,20 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 <div className="flex-1">
                   <div className="grid grid-cols-4 gap-4 mb-4 text-left font-normal">
                     <div>
-                      <p className="text-xs text-[#5A5A50] mb-1">Contratista General</p>
-                      <p className="text-lg  text-gray-900">{formatCurrencyMXN(montoCG)}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Contratista General</p>
+                      <p className="text-lg  text-foreground">{formatCurrencyMXN(montoCG)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-[#D4D4D2] mb-1">Avance Mano de Obra</p>
-                      <p className="text-lg  text-[#B9B9B7]">{formatCurrencyMXN(avanceManoObraCG)}</p>
+                      <p className="text-xs text-disabled-foreground mb-1">Avance Mano de Obra</p>
+                      <p className="text-lg  text-disabled-foreground">{formatCurrencyMXN(avanceManoObraCG)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-[#D4D4D2] mb-1">Avance Material</p>
-                      <p className="text-lg  text-[#B9B9B7]">{formatCurrencyMXN(avanceMaterialCG)}</p>
+                      <p className="text-xs text-disabled-foreground mb-1">Avance Material</p>
+                      <p className="text-lg  text-disabled-foreground">{formatCurrencyMXN(avanceMaterialCG)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-[#5A5A50] mb-1">Avance Total</p>
-                      <p className="text-lg  text-gray-900">{formatCurrencyMXN(avanceTotalCG)}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Avance Total</p>
+                      <p className="text-lg  text-foreground">{formatCurrencyMXN(avanceTotalCG)}</p>
                     </div>
                   </div>
 
@@ -1354,7 +1354,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                     />
                   </div>
                   <div className="text-right mt-1">
-                    <span className="text-xs text-gray-400">{Math.round(progressCG)}%</span>
+                    <span className="text-xs text-disabled-foreground">{Math.round(progressCG)}%</span>
                   </div>
                 </div>
               </div>
@@ -1378,10 +1378,10 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       </div>
 
       {/* ====== SECTION 3: Subcontratistas ====== */}
-      <div className="mt-8 border border-gray-200 rounded-sm ">
+      <div className="mt-8 border border-border rounded-sm ">
         {/* Header */}
         <div className="flex items-center justify-between px-12 py-6 border-b">
-          <h3 className="text-base text-gray-900">Subcontratistas</h3>
+          <h3 className="text-base text-foreground">Subcontratistas</h3>
           <div className="flex items-center gap-3">
             {mainCG && (
               <ResponsableSelector
@@ -1402,11 +1402,11 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
 
         <div className="px-12 pb-6 pt-4">
           {/* SIROC sub-section for Subs */}
-          <div className="border border-gray-200 rounded-sm p-6 mb-12">
+          <div className="border border-border rounded-sm p-6 mb-12">
             <div className="flex items-start gap-8">
               <div className="shrink-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-normal text-gray-900">
+                  <span className="text-sm font-normal text-foreground">
                     SIROC: {mainCG?.siroc_numero || "Sin número"}
                   </span>
                 </div>
@@ -1415,9 +1415,9 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                     href={mainCG.siroc_url || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-600"
+                    className="flex items-center gap-1.5 text-sm text-foreground hover:text-muted-foreground"
                   >
-                    <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                    <FileText className="w-4 h-4 text-disabled-foreground shrink-0" />
                     <span className="font-normal">{mainCG.siroc_nombre}</span>
                   </a>
                 )}
@@ -1426,12 +1426,12 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
               <div className="flex-1">
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
-                    <p className="text-xs text-[#5A5A50] mb-1">Subcontratistas</p>
-                    <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(montoSubs)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Subcontratistas</p>
+                    <p className="text-lg font-normal text-foreground">{formatCurrencyMXN(montoSubs)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-[#5A5A50] mb-1">Avance Total</p>
-                    <p className="text-lg font-normal text-gray-900">{formatCurrencyMXN(totalPagosSubs)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Avance Total</p>
+                    <p className="text-lg font-normal text-foreground">{formatCurrencyMXN(totalPagosSubs)}</p>
                   </div>
                 </div>
                 <div className="w-full h-2 bg-[#C9EEDA] overflow-hidden">
@@ -1441,14 +1441,14 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                   />
                 </div>
                 <div className="text-right mt-1">
-                  <span className="text-xs text-gray-400">{Math.round(progressSubs)}%</span>
+                  <span className="text-xs text-disabled-foreground">{Math.round(progressSubs)}%</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Subcontratistas table */}
-          <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 text-xs text-[#5A5A50] font-normal pb-2 border-b border-gray-200 text-left">
+          <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 text-xs text-muted-foreground font-normal pb-2 border-b border-border text-left">
             <span>Subcontratista</span>
             <span>Partida</span>
             <span>SIROC</span>
@@ -1491,7 +1491,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           })}
 
           {subs.length === 0 && (
-            <div className="py-6 text-center text-sm text-gray-400">
+            <div className="py-6 text-center text-sm text-disabled-foreground">
               No hay subcontratistas registrados
             </div>
           )}

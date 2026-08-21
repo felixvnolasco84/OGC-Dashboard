@@ -78,10 +78,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_DOT_COLORS: Record<string, string> = {
-  queued: "#ADADAD",
+  queued: "hsl(var(--disabled-foreground))",
   generating: "#76AFD9",
   completed: "#50AC66",
-  warning: "#ADADAD",
+  warning: "hsl(var(--disabled-foreground))",
   partial: "#76AFD9",
   failed: "#E75F79",
 };
@@ -207,10 +207,10 @@ const WEEKDAYS = [
 ];
 
 const CONTROL_CLASS =
-  "h-11 rounded-sm border-[#E6E6E6] bg-white px-4 text-sm font-normal text-gray-900 shadow-none focus:ring-[#D1D5DB]";
+  "h-11 rounded-sm border-border bg-card px-4 text-sm font-normal text-foreground shadow-none focus:ring-ring";
 
 const OUTLINE_BUTTON_CLASS =
-  "rounded-sm border-[#DBDBDB] bg-white font-normal text-[#898982] shadow-none hover:bg-[#FBFBFB] hover:text-gray-900";
+  "rounded-sm border-border bg-card font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-foreground";
 
 function parseIsoDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
@@ -277,15 +277,15 @@ function ReportDatePicker({
           className={`${CONTROL_CLASS} w-full justify-between text-left`}
         >
           <span className="flex min-w-0 items-center gap-3">
-            <CalendarDays className="h-4 w-4 shrink-0 text-[#898982]" />
+            <CalendarDays className="h-4 w-4 shrink-0 text-subtle-foreground" />
             <span className="truncate">{formatReportDate(value)}</span>
           </span>
-          <ChevronDown className="h-4 w-4 shrink-0 text-[#898982]" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-subtle-foreground" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-auto border-[#E6E6E6] bg-white p-0 text-gray-900 shadow-xl"
+        className="w-auto border-border bg-card p-0 text-foreground shadow-xl"
       >
         <Calendar
           mode="single"
@@ -302,8 +302,8 @@ function ReportDatePicker({
           }}
           classNames={{
             day_button:
-              "data-[selected-single=true]:bg-gray-900 data-[selected-single=true]:text-white",
-            today: "bg-[#FBFBFB] text-gray-900",
+              "data-[selected-single=true]:bg-inverse data-[selected-single=true]:text-on-color",
+            today: "bg-card text-foreground",
           }}
           initialFocus
         />
@@ -316,11 +316,11 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <Badge
       variant="outline"
-      className="gap-2 rounded-sm border-[#E6E6E6] bg-[#FBFBFB] px-2.5 py-1 font-normal text-[#898982]"
+      className="gap-2 rounded-sm border-border bg-card px-2.5 py-1 font-normal text-subtle-foreground"
     >
       <span
         className="h-2.5 w-2.5 rounded-sm"
-        style={{ backgroundColor: STATUS_DOT_COLORS[status] || "#ADADAD" }}
+        style={{ backgroundColor: STATUS_DOT_COLORS[status] || "hsl(var(--disabled-foreground))" }}
       />
       {STATUS_LABELS[status] || status}
     </Badge>
@@ -373,7 +373,7 @@ function SectionSelector({
         <label
           key={section}
           htmlFor={`report-section-${section}`}
-          className="flex cursor-pointer items-start gap-3 rounded-sm border border-[#E6E6E6] bg-[#FBFBFB] p-4 transition-colors hover:bg-[#F1F1F1]"
+          className="flex cursor-pointer items-start gap-3 rounded-sm border border-border bg-card p-4 transition-colors hover:bg-muted"
         >
           <Checkbox
             id={`report-section-${section}`}
@@ -387,10 +387,10 @@ function SectionSelector({
             }
           />
           <span className="min-w-0">
-            <span className="block text-sm font-medium text-gray-900">
+            <span className="block text-sm font-medium text-foreground">
               {REPORT_SECTION_LABELS[section]}
             </span>
-            <span className="mt-1 block text-xs leading-5 text-[#898982]">
+            <span className="mt-1 block text-xs leading-5 text-subtle-foreground">
               {SECTION_DESCRIPTIONS[section]}
             </span>
           </span>
@@ -537,19 +537,19 @@ export default function ReportesPage() {
   };
 
   if (!projectId) {
-    return <div className="p-8 text-gray-500">Proyecto no válido.</div>;
+    return <div className="p-8 text-subtle-foreground">Proyecto no válido.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-white text-left">
-      <div className="border-b border-gray-200 px-6 py-8 lg:px-16">
+    <div className="min-h-screen bg-card text-left">
+      <div className="border-b border-border px-6 py-8 lg:px-16">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm text-gray-500">Proyecto</p>
-            <h1 className="mt-1 text-3xl font-normal text-gray-900">
+            <p className="text-sm text-subtle-foreground">Proyecto</p>
+            <h1 className="mt-1 text-3xl font-normal text-foreground">
               Reportes {project?.nombre || "Proyecto"}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[#898982]">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-subtle-foreground">
               Genera y programa reportes financieros con cifras verificables,
               análisis de IA y contenido ajustado a los permisos de cada destinatario.
             </p>
@@ -560,7 +560,7 @@ export default function ReportesPage() {
                 <button
                   type="button"
                   aria-label={`Detalles del perfil ${profileDetails.label}`}
-                  className="flex h-14 w-fit cursor-help items-center gap-3 rounded-sm border border-[#DBDBDB] bg-white px-5 text-base font-normal text-[#898982] shadow-none outline-none hover:bg-[#FBFBFB] focus-visible:ring-2 focus-visible:ring-[#D1D5DB]"
+                  className="flex h-14 w-fit cursor-help items-center gap-3 rounded-sm border border-border bg-card px-5 text-base font-normal text-subtle-foreground shadow-none outline-none hover:bg-card focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="h-3 w-3 rounded-sm bg-[#50AC66]" />
                   Perfil: {profileDetails.label}
@@ -571,13 +571,13 @@ export default function ReportesPage() {
                 side="bottom"
                 align="end"
                 sideOffset={8}
-                className="max-w-sm bg-gray-900 px-4 py-3 text-left text-white"
+                className="max-w-sm bg-inverse px-4 py-3 text-left text-on-color"
               >
                 <p className="font-medium">Alcance de este perfil</p>
-                <p className="mt-1 leading-5 text-gray-200">
+                <p className="mt-1 leading-5 text-disabled-foreground">
                   {profileDetails.description}
                 </p>
-                <p className="mt-2 leading-5 text-gray-200">
+                <p className="mt-2 leading-5 text-disabled-foreground">
                   {canManageAccount
                     ? "Puedes crear reportes y programarlos para otros miembros activos del proyecto."
                     : "Puedes crear reportes y suscripciones para ti; sólo un administrador puede agregar otros destinatarios."}
@@ -590,7 +590,7 @@ export default function ReportesPage() {
 
       <div className="space-y-8 px-6 py-8 lg:px-16">
         <Tabs value={tab} onValueChange={changeTab}>
-          <TabsList className="flex h-auto w-full justify-start overflow-x-auto rounded-none border-b border-[#E6E6E6] bg-white p-0">
+          <TabsList className="flex h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-card p-0">
             {[
               { value: "generar", label: "Generar ahora" },
               { value: "programaciones", label: "Programaciones" },
@@ -599,7 +599,7 @@ export default function ReportesPage() {
               <TabsTrigger
                 key={item.value}
                 value={item.value}
-                className="min-w-36 rounded-none border-b-2 border-transparent px-1 py-4 text-sm font-normal text-gray-600 shadow-none data-[state=active]:border-gray-900 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-none"
+                className="min-w-36 rounded-none border-b-2 border-transparent px-1 py-4 text-sm font-normal text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-none"
               >
                 {item.label}
               </TabsTrigger>
@@ -607,12 +607,12 @@ export default function ReportesPage() {
           </TabsList>
 
           <TabsContent value="generar" className="mt-6 space-y-6">
-            <Card className="rounded-sm border-[#E6E6E6] shadow-none">
+            <Card className="rounded-sm border-border shadow-none">
               <CardHeader className="space-y-2">
-                <CardTitle className="text-lg font-normal text-gray-900">
+                <CardTitle className="text-lg font-normal text-foreground">
                   Periodo y contenido
                 </CardTitle>
-                <p className="max-w-3xl text-sm leading-6 text-[#898982]">
+                <p className="max-w-3xl text-sm leading-6 text-subtle-foreground">
                   Define el rango del análisis y selecciona los apartados del PDF.
                   Cada opción resume debajo las métricas y hallazgos que incorporará.
                 </p>
@@ -646,15 +646,15 @@ export default function ReportesPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-sm border-[#E6E6E6] shadow-none">
+            <Card className="rounded-sm border-border shadow-none">
               <CardHeader>
-                <CardTitle className="text-lg font-normal text-gray-900">
+                <CardTitle className="text-lg font-normal text-foreground">
                   Vista previa de KPIs
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {!preview ? (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex items-center gap-2 text-sm text-subtle-foreground">
                     <LoaderCircle className="h-4 w-4 animate-spin" />
                     Calculando snapshot...
                   </div>
@@ -670,9 +670,9 @@ export default function ReportesPage() {
                       ["Entregas vencidas", String(preview.requisitions.overdue_deliveries)],
                       ["Calidad de datos", `${preview.data_quality.score}/100`],
                     ].map(([label, value]) => (
-                      <div key={label} className="rounded-sm border border-[#E6E6E6] bg-[#FBFBFB] p-4">
-                        <p className="text-xs text-[#898982]">{label}</p>
-                        <p className="mt-2 break-words text-xl tabular-nums text-gray-950">{value}</p>
+                      <div key={label} className="rounded-sm border border-border bg-card p-4">
+                        <p className="text-xs text-subtle-foreground">{label}</p>
+                        <p className="mt-2 break-words text-xl tabular-nums text-foreground">{value}</p>
                       </div>
                     ))}
                   </div>
@@ -697,19 +697,19 @@ export default function ReportesPage() {
                 onClick={() => changeTab("programaciones")}
                 className={`${OUTLINE_BUTTON_CLASS} h-11 px-5`}
               >
-                <CalendarClock className="mr-2 h-4 w-4 text-[#898982]" />
+                <CalendarClock className="mr-2 h-4 w-4 text-subtle-foreground" />
                 Programar este reporte
               </Button>
             </div>
           </TabsContent>
 
           <TabsContent value="programaciones" className="mt-6 space-y-6">
-            <Card className="rounded-sm border-[#E6E6E6] shadow-none">
+            <Card className="rounded-sm border-border shadow-none">
               <CardHeader className="space-y-2">
-                <CardTitle className="text-lg font-normal text-gray-900">
+                <CardTitle className="text-lg font-normal text-foreground">
                   Nueva programación
                 </CardTitle>
-                <p className="max-w-3xl text-sm leading-6 text-[#898982]">
+                <p className="max-w-3xl text-sm leading-6 text-subtle-foreground">
                   Configura cuándo se genera el reporte y quién puede recibir
                   la variante correspondiente a sus permisos.
                 </p>
@@ -798,19 +798,19 @@ export default function ReportesPage() {
                       </SelectTrigger>
                       <SelectContent
                         position="item-aligned"
-                        className="max-h-80 w-[min(36rem,calc(100vw-2rem))] border-[#E6E6E6] bg-white"
+                        className="max-h-80 w-[min(36rem,calc(100vw-2rem))] border-border bg-card"
                       >
                         {TIMEZONE_OPTIONS.map((option) => (
                           <SelectItem
                             key={option.value}
                             value={option.value}
-                            className="py-2.5 focus:bg-[#F1F1F1] focus:text-gray-900"
+                            className="py-2.5 focus:bg-muted focus:text-foreground"
                           >
                             <span className="block pr-4">
-                              <span className="block text-sm text-gray-900">
+                              <span className="block text-sm text-foreground">
                                 {option.label}
                               </span>
-                              <span className="mt-0.5 block whitespace-normal text-xs leading-5 text-[#898982]">
+                              <span className="mt-0.5 block whitespace-normal text-xs leading-5 text-subtle-foreground">
                                 {getTimezoneDetail(option.value, option.detail)}
                               </span>
                             </span>
@@ -818,7 +818,7 @@ export default function ReportesPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs leading-5 text-[#898982]">
+                    <p className="text-xs leading-5 text-subtle-foreground">
                       El desfase y la hora mostrados se calculan con las reglas
                       vigentes del navegador para evitar errores por cambios estacionales.
                     </p>
@@ -832,7 +832,7 @@ export default function ReportesPage() {
                       <label
                         key={recipient.user_id}
                         htmlFor={`recipient-${recipient.user_id}`}
-                        className="flex items-center gap-3 rounded-sm border border-[#E6E6E6] bg-[#FBFBFB] p-3"
+                        className="flex items-center gap-3 rounded-sm border border-border bg-card p-3"
                       >
                         <Checkbox
                           id={`recipient-${recipient.user_id}`}
@@ -847,8 +847,8 @@ export default function ReportesPage() {
                           }
                         />
                         <span className="min-w-0">
-                          <span className="block truncate text-sm text-gray-900">{recipient.name}</span>
-                          <span className="block truncate text-xs text-gray-500">
+                          <span className="block truncate text-sm text-foreground">{recipient.name}</span>
+                          <span className="block truncate text-xs text-subtle-foreground">
                             {recipient.email} · {recipient.role}
                           </span>
                         </span>
@@ -856,7 +856,7 @@ export default function ReportesPage() {
                     ))}
                   </div>
                   {!canManageAccount ? (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-subtle-foreground">
                       Sólo un administrador puede agregar otros miembros del proyecto.
                     </p>
                   ) : null}
@@ -878,27 +878,27 @@ export default function ReportesPage() {
 
             <div className="space-y-3">
               {(subscriptions || []).map((subscription) => (
-                <Card key={subscription._id} className="rounded-sm border-[#E6E6E6] shadow-none">
+                <Card key={subscription._id} className="rounded-sm border-border shadow-none">
                   <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium capitalize">{subscription.frequency}</p>
                         <Badge
                           variant="outline"
-                          className="gap-2 rounded-sm border-[#E6E6E6] bg-[#FBFBFB] font-normal text-[#898982]"
+                          className="gap-2 rounded-sm border-border bg-card font-normal text-subtle-foreground"
                         >
                           <span
                             className={`h-2.5 w-2.5 rounded-sm ${
-                              subscription.active ? "bg-[#50AC66]" : "bg-[#ADADAD]"
+                              subscription.active ? "bg-[#50AC66]" : "bg-disabled"
                             }`}
                           />
                           {subscription.active ? "Activa" : "Pausada"}
                         </Badge>
                       </div>
-                      <p className="mt-1 text-sm text-gray-600">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         Próxima ejecución: {formatDateTime(subscription.next_run_at, subscription.timezone)}
                       </p>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-subtle-foreground">
                         {subscription.recipients.length} destinatario(s) · {subscription.sections.length} secciones
                       </p>
                     </div>
@@ -937,8 +937,8 @@ export default function ReportesPage() {
                 </Card>
               ))}
               {subscriptions?.length === 0 ? (
-                <Card className="rounded-sm border-[#E6E6E6] border-dashed shadow-none">
-                  <CardContent className="p-8 text-center text-sm text-gray-500">
+                <Card className="rounded-sm border-border border-dashed shadow-none">
+                  <CardContent className="p-8 text-center text-sm text-subtle-foreground">
                     Aún no hay programaciones para este proyecto.
                   </CardContent>
                 </Card>
@@ -948,19 +948,19 @@ export default function ReportesPage() {
 
           <TabsContent value="historial" className="mt-6 space-y-3">
             {(runs || []).map((run) => (
-              <Card key={run._id} className="rounded-sm border-[#E6E6E6] shadow-none">
+              <Card key={run._id} className="rounded-sm border-border shadow-none">
                 <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={run.status} />
-                      <span className="text-xs uppercase tracking-wide text-gray-500">
+                      <span className="text-xs uppercase tracking-wide text-subtle-foreground">
                         {run.source === "scheduled" ? "Programado" : "Manual"}
                       </span>
                     </div>
                     <p className="mt-2 font-medium">
                       {run.period_start} a {run.period_end}
                     </p>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-subtle-foreground">
                       Solicitado {formatDateTime(run.created_at)}
                       {" · "}
                       {run.delivery_summary.sent} enviados
@@ -1017,14 +1017,14 @@ export default function ReportesPage() {
               </Card>
             ))}
             {!runs ? (
-              <div className="flex items-center gap-2 py-8 text-sm text-gray-500">
+              <div className="flex items-center gap-2 py-8 text-sm text-subtle-foreground">
                 <LoaderCircle className="h-4 w-4 animate-spin" />
                 Cargando historial...
               </div>
             ) : null}
             {runs?.length === 0 ? (
-              <Card className="rounded-sm border-[#E6E6E6] border-dashed shadow-none">
-                <CardContent className="p-8 text-center text-sm text-gray-500">
+              <Card className="rounded-sm border-border border-dashed shadow-none">
+                <CardContent className="p-8 text-center text-sm text-subtle-foreground">
                   El historial aparecerá aquí después de solicitar el primer reporte.
                 </CardContent>
               </Card>

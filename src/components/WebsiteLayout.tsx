@@ -33,10 +33,10 @@ function WebsiteLayout() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <StoreUserEffect />
-        <SidebarProvider className="bg-white overflow-x-hidden">
+        <SidebarProvider className="bg-card overflow-x-hidden">
           <AppSidebar />
           <main className="flex-1 h-screen overflow-auto">
-            <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b border-gray-200 bg-white px-2">
+            <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b border-border bg-card px-2">
               <SidebarTrigger />
               <div className="flex items-center gap-1">
                 {isAdmin && (

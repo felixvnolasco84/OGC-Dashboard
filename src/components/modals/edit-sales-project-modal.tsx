@@ -110,7 +110,7 @@ export default function EditSalesProjectModal() {
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+      <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Edit className="h-5 w-5" />
@@ -159,7 +159,7 @@ export default function EditSalesProjectModal() {
               <SelectTrigger className="rounded-none">
                 <SelectValue placeholder="Selecciona un estado" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent data-square-modal="">
                 <SelectItem value="Activo">Activo</SelectItem>
                 <SelectItem value="Cancelado">Cancelado</SelectItem>
                 <SelectItem value="Entregado">Entregado</SelectItem>
@@ -181,7 +181,7 @@ export default function EditSalesProjectModal() {
               step="0.01"
               className="rounded-none"
             />
-            <p className="text-xs text-gray-500">Porcentaje de comisión sobre las ventas totales</p>
+            <p className="text-xs text-subtle-foreground">Porcentaje de comisión sobre las ventas totales</p>
           </div>
 
           {/* Form Actions */}

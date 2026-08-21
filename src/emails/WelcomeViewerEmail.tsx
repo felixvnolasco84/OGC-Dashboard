@@ -10,6 +10,7 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { STATIC_NEUTRAL_COLORS } from "../lib/design-tokens";
 
 interface WelcomeViewerEmailProps {
   name: string;
@@ -109,15 +110,15 @@ export default function WelcomeViewerEmail({
 
 const main = {
   margin: "0",
-  backgroundColor: "#ffffff",
-  color: "#242424",
+  backgroundColor: STATIC_NEUTRAL_COLORS.surface,
+  color: STATIC_NEUTRAL_COLORS.foreground,
   fontFamily: "Arial, Helvetica, sans-serif",
 };
 
 const container = {
   maxWidth: "660px",
   margin: "56px auto 40px",
-  backgroundColor: "#ffffff",
+  backgroundColor: STATIC_NEUTRAL_COLORS.surface,
 };
 
 const header = {
@@ -136,7 +137,7 @@ const intro = {
 
 const heading = {
   margin: "0 0 22px",
-  color: "#242424",
+  color: STATIC_NEUTRAL_COLORS.foreground,
   fontSize: "31px",
   fontWeight: "500",
   lineHeight: "1.2",
@@ -144,7 +145,7 @@ const heading = {
 
 const paragraph = {
   margin: "0 0 56px",
-  color: "#3f3f3f",
+  color: STATIC_NEUTRAL_COLORS.bodyText,
   fontSize: "18px",
   lineHeight: "1.45",
 };
@@ -156,13 +157,13 @@ const steps = {
 const stepNumber = {
   display: "inline-block",
   width: "36px",
-  color: "#b7b7b7",
+  color: STATIC_NEUTRAL_COLORS.disabledForeground,
   fontSize: "18px",
 };
 
 const stepText = {
   margin: "0 0 32px",
-  color: "#3f3f3f",
+  color: STATIC_NEUTRAL_COLORS.bodyText,
   fontSize: "15px",
   lineHeight: "1.55",
 };
@@ -181,7 +182,7 @@ const button = {
   width: "260px",
   backgroundColor: "#dfff00",
   borderRadius: "6px",
-  color: "#242424",
+  color: STATIC_NEUTRAL_COLORS.foreground,
   fontSize: "13px",
   fontWeight: "700",
   padding: "15px 20px",
@@ -192,14 +193,14 @@ const button = {
 const viewerCard = {
   margin: "0",
   padding: "48px 56px 56px",
-  backgroundColor: "#fbfbfb",
-  border: "1px solid #e8e8e8",
+  backgroundColor: STATIC_NEUTRAL_COLORS.background,
+  border: `1px solid ${STATIC_NEUTRAL_COLORS.border}`,
   borderRadius: "7px",
 };
 
 const viewerCardTitle = {
   margin: "0 0 4px",
-  color: "#242424",
+  color: STATIC_NEUTRAL_COLORS.foreground,
   fontSize: "16px",
   fontWeight: "700",
   lineHeight: "1.45",
@@ -207,7 +208,7 @@ const viewerCardTitle = {
 
 const viewerCopy = {
   margin: "0 0 28px",
-  color: "#3f3f3f",
+  color: STATIC_NEUTRAL_COLORS.bodyText,
   fontSize: "16px",
   lineHeight: "1.45",
 };
@@ -223,14 +224,14 @@ const footer = {
 
 const muted = {
   margin: "0",
-  color: "#8b8b8b",
+  color: STATIC_NEUTRAL_COLORS.subtleForeground,
   fontSize: "12px",
   lineHeight: "1.5",
 };
 
 const linkText = {
   margin: "6px 0 0",
-  color: "#6f6f6f",
+  color: STATIC_NEUTRAL_COLORS.mutedForeground,
   fontSize: "12px",
   lineHeight: "1.5",
   wordBreak: "break-all" as const,

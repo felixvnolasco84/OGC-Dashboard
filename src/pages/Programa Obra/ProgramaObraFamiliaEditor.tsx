@@ -216,7 +216,7 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
           <SheetDescription className="text-left">
             Configurar fechas de la familia
             {parentSchedule?.fecha_inicio && parentSchedule?.fecha_fin && (
-              <span className="block mt-1 text-xs text-gray-400">
+              <span className="block mt-1 text-xs text-disabled-foreground">
                 Rango partida: {parentSchedule.fecha_inicio} — {parentSchedule.fecha_fin}
               </span>
             )}
@@ -226,10 +226,10 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
         <div className="mt-6 space-y-6">
           {/* Dates section */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">Duración de actividad</h3>
+            <h3 className="text-sm font-medium text-foreground">Duración de actividad</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Fecha inicio</Label>
+                <Label className="text-xs text-subtle-foreground">Fecha inicio</Label>
                 <Input
                   type="date"
                   value={fechaInicio}
@@ -240,7 +240,7 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Fecha fin</Label>
+                <Label className="text-xs text-subtle-foreground">Fecha fin</Label>
                 <Input
                   type="date"
                   value={fechaFin}
@@ -256,16 +256,16 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
           {/* Extra time section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-900">Tiempo extra</h3>
+              <h3 className="text-sm font-medium text-foreground">Tiempo extra</h3>
               <button
                 type="button"
                 onClick={() => setHasExtraTime(!hasExtraTime)}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  hasExtraTime ? "bg-[#f0e4e4]" : "bg-gray-200"
+                  hasExtraTime ? "bg-[#f0e4e4]" : "bg-disabled"
                 }`}
               >
                 <span
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-card transition-transform ${
                     hasExtraTime ? "translate-x-4.5" : "translate-x-0.5"
                   }`}
                 />
@@ -276,7 +276,7 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-gray-500">Cantidad</Label>
+                    <Label className="text-xs text-subtle-foreground">Cantidad</Label>
                     <Input
                       type="number"
                       min={1}
@@ -287,7 +287,7 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-gray-500">Unidad</Label>
+                    <Label className="text-xs text-subtle-foreground">Unidad</Label>
                     <Select value={extraUnidad} onValueChange={setExtraUnidad}>
                       <SelectTrigger className="h-9 rounded-none text-sm">
                         <SelectValue />

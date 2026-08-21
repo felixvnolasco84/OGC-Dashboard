@@ -136,12 +136,12 @@ export default function ProveedoresTablePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-card">
       <div className="flex flex-col gap-5 px-12 py-8">
         <div className="flex items-start justify-between">
           <div className="text-left">
-            <h1 className="mb-2 text-3xl font-normal text-gray-900">Proveedores</h1>
-            <p className="text-sm text-gray-500">Catálogo global vinculado directamente a transacciones y requisiciones.</p>
+            <h1 className="mb-2 text-3xl font-normal text-foreground">Proveedores</h1>
+            <p className="text-sm text-subtle-foreground">Catálogo global vinculado directamente a transacciones y requisiciones.</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Badge variant="outline" className="rounded-none px-4 py-2">Total: {filtered.length}</Badge>
@@ -164,7 +164,7 @@ export default function ProveedoresTablePage() {
 
         <div className="grid grid-cols-3 gap-3">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-disabled-foreground" />
             <Input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="h-12 rounded-none pl-12" placeholder="Buscar razón social, RFC, contacto o banco" />
           </div>
           <Select value={selectedProyecto || "all"} onValueChange={(value) => setSelectedProyecto(value === "all" ? "" : value as Id<"desarrollos">)}>
@@ -187,22 +187,22 @@ export default function ProveedoresTablePage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto border border-gray-200">
+      <div className="overflow-x-auto border border-border">
         <table className="w-full min-w-[1200px]">
-          <thead className="border-b border-gray-200">
+          <thead className="border-b border-border">
             <tr>
               {[
                 "Razón social", "RFC", "Estado", "Contacto", "Banco", "Transacciones", "Proyectos", "Monto total", "",
-              ].map((header) => <th key={header} className="border-r px-5 py-4 text-left text-sm font-normal text-gray-600">{header}</th>)}
+              ].map((header) => <th key={header} className="border-r px-5 py-4 text-left text-sm font-normal text-muted-foreground">{header}</th>)}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-border">
             {!providers ? (
-              <tr><td colSpan={9} className="px-6 py-12 text-center text-gray-500">Cargando proveedores...</td></tr>
+              <tr><td colSpan={9} className="px-6 py-12 text-center text-subtle-foreground">Cargando proveedores...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={9} className="px-6 py-12 text-center text-gray-500">No se encontraron proveedores</td></tr>
+              <tr><td colSpan={9} className="px-6 py-12 text-center text-subtle-foreground">No se encontraron proveedores</td></tr>
             ) : filtered.map((provider) => (
-              <tr key={provider._id} className="hover:bg-gray-50">
+              <tr key={provider._id} className="hover:bg-background">
                 <td className="border-r px-5 py-4 text-sm font-medium">{provider.razon_social}</td>
                 <td className="border-r px-5 py-4 text-sm">{provider.rfc || "—"}</td>
                 <td className="border-r px-5 py-4">

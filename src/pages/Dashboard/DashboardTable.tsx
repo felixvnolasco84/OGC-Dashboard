@@ -166,7 +166,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
             return (
                 <div className="flex justify-center items-center py-12">
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
                         <p className="text-sm text-muted-foreground">Cargando transacciones...</p>
                     </div>
                 </div>
@@ -186,17 +186,17 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                         />
                     </div>
                 </div>
-                <div className="bg-white border border-gray-200 overflow-hidden overflow-x-auto">
+                <div className="bg-card border border-border overflow-hidden overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow className="border-b border-gray-200">
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[180px]">Partida</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[120px]">Monto Total</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[120px]">Fecha</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[140px]">Tipo de Pago</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[180px]">Proveedor</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[200px]">Factura</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-gray-500 bg-white min-w-[100px]">Acciones</TableHead>
+                            <TableRow className="border-b border-border">
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[180px]">Partida</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[120px]">Monto Total</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[120px]">Fecha</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[140px]">Tipo de Pago</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[180px]">Proveedor</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[200px]">Factura</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[100px]">Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -204,7 +204,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                 <TableRow>
                                     <TableCell
                                         colSpan={7}
-                                        className="h-24 text-center text-gray-500"
+                                        className="h-24 text-center text-subtle-foreground"
                                     >
                                         No hay transacciones registradas
                                     </TableCell>
@@ -213,43 +213,43 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                 filteredTransactions.map((transaction) => (
                                     <TableRow
                                         key={transaction._id}
-                                        className="border-b border-gray-100 hover:bg-gray-50"
+                                        className="border-b border-border hover:bg-background"
                                     >
                                         {/* Partida Column */}
                                         <TableCell className="px-4 py-4 text-sm text-left">
                                             <div className="flex flex-col">
                                                 {transaction.partidaNames && transaction.partidaNames.length > 0 ? (
                                                     <>
-                                                        <span className="font-medium text-gray-900 uppercase">
+                                                        <span className="font-medium text-foreground uppercase">
                                                             {transaction.partidaNames[0]?.split(' ')[0] || 'SIN PARTIDA'}
                                                         </span>
-                                                        <span className="text-xs text-gray-500 uppercase">
+                                                        <span className="text-xs text-subtle-foreground uppercase">
                                                             {transaction.partidaNames[0] || ''}
                                                         </span>
                                                     </>
                                                 ) : (
-                                                    <span className="text-gray-400">Sin partida</span>
+                                                    <span className="text-disabled-foreground">Sin partida</span>
                                                 )}
                                             </div>
                                         </TableCell>
 
                                         {/* Monto Total Column */}
-                                        <TableCell className="px-4 py-4 text-sm text-gray-900 text-left">
+                                        <TableCell className="px-4 py-4 text-sm text-foreground text-left">
                                             {formatCurrency(transaction.monto_total || 0)} MXN
                                         </TableCell>
 
                                         {/* Fecha Column */}
-                                        <TableCell className="px-4 py-4 text-sm text-gray-900 text-left">
+                                        <TableCell className="px-4 py-4 text-sm text-foreground text-left">
                                             {formatDateDisplay(transaction.fecha)}
                                         </TableCell>
 
                                         {/* Tipo de Pago Column */}
-                                        <TableCell className="px-4 py-4 text-sm text-gray-900 uppercase text-left">
+                                        <TableCell className="px-4 py-4 text-sm text-foreground uppercase text-left">
                                             {transaction.tipo_pago || "-"}
                                         </TableCell>
 
                                         {/* Proveedor Column (empty for now) */}
-                                        <TableCell className="px-4 py-4 text-sm text-gray-900">
+                                        <TableCell className="px-4 py-4 text-sm text-foreground">
                                             {""}
                                         </TableCell>
 
@@ -257,18 +257,18 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                         <TableCell className="px-4 py-4 text-sm">
                                             {transaction.documentUrl || transaction.factura ? (
                                                 <div className="flex items-start gap-2 text-left">
-                                                    <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                                    <FileText className="w-4 h-4 text-disabled-foreground mt-0.5 flex-shrink-0" />
                                                     <div className="flex flex-col">
-                                                        <span className="text-gray-900 font-medium">
+                                                        <span className="text-foreground font-medium">
                                                             {transaction.factura || 'Documento'}
                                                         </span>
-                                                        <span className="text-xs text-gray-400">
+                                                        <span className="text-xs text-disabled-foreground">
                                                             {transaction.fecha ? `Subido el ${formatDateDisplay(transaction.fecha)}` : ''}
                                                         </span>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400">-</span>
+                                                <span className="text-disabled-foreground">-</span>
                                             )}
                                         </TableCell>
 
@@ -280,7 +280,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-8 w-8 text-gray-900 hover:text-gray-700"
+                                                        className="h-8 w-8 text-foreground hover:text-foreground"
                                                         onClick={() => window.open(transaction.documentUrl!, '_blank')}
                                                         title="Abrir documento"
                                                     >
@@ -293,7 +293,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-8 w-8 text-gray-900 hover:text-gray-700"
+                                                        className="h-8 w-8 text-foreground hover:text-foreground"
                                                         onClick={() => {
                                                             const link = document.createElement('a');
                                                             link.href = transaction.documentUrl!;
@@ -313,7 +313,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="h-8 w-8 text-gray-500 hover:text-red-600"
+                                                            className="h-8 w-8 text-subtle-foreground hover:text-red-600"
                                                             title="Eliminar transacción"
                                                             disabled={deletingId === transaction._id}
                                                         >
@@ -369,10 +369,10 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
     return (
         <div className="w-full">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="h-auto w-full justify-start rounded-none border-b border-gray-200 bg-transparent p-0 mb-0">
+                <TabsList className="h-auto w-full justify-start rounded-none border-b border-border bg-transparent p-0 mb-0">
                     <TabsTrigger
                         value="ultimos-movimientos"
-                        className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-gray-600 shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-gray-600"
+                        className="relative h-auto rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-muted-foreground shadow-none transition-none focus-visible:ring-0 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-muted-foreground"
                     >
                         Últimos movimientos
                     </TabsTrigger>

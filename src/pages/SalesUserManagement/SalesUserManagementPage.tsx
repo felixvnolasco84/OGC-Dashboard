@@ -78,7 +78,7 @@ export default function SalesUserManagementPage() {
       case "user":
         return <User className="h-4 w-4 text-blue-600" />;
       case "viewer":
-        return <Eye className="h-4 w-4 text-gray-600" />;
+        return <Eye className="h-4 w-4 text-muted-foreground" />;
       default:
         return null;
     }
@@ -87,20 +87,20 @@ export default function SalesUserManagementPage() {
   if (!users || !salesProjects) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-card min-h-screen">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-normal text-gray-900 mb-2">
+          <h1 className="text-3xl font-normal text-foreground mb-2">
             Gestión de Acceso a Proyectos de Ventas
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Administra permisos de acceso a proyectos de ventas para cada usuario
           </p>
         </div>
@@ -120,22 +120,22 @@ export default function SalesUserManagementPage() {
                     className={`w-full text-left p-3 rounded-lg border transition-colors ${
                       selectedUser === user._id
                         ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
+                        : "border-border hover:border-border-strong"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {user.name}
                         </p>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="text-xs text-subtle-foreground truncate">
                           {user.email}
                         </p>
                       </div>
                       <div className="ml-2">{getRoleIcon(user.role)}</div>
                     </div>
                     <div className="mt-1">
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-muted-foreground">
                         {(user.allowed_sales_projects?.length || 0) === 0
                           ? "Sin acceso a ventas"
                           : `${user.allowed_sales_projects?.length || 0} proyecto(s) de ventas`}
@@ -156,7 +156,7 @@ export default function SalesUserManagementPage() {
             </CardHeader>
             <CardContent>
               {!currentUser ? (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-subtle-foreground">
                   Selecciona un usuario de la lista para editar sus permisos de ventas
                 </div>
               ) : (
@@ -183,14 +183,14 @@ export default function SalesUserManagementPage() {
                         </SelectItem>
                         <SelectItem value="viewer">
                           <div className="flex items-center gap-2">
-                            <Eye className="h-4 w-4 text-gray-600" />
+                            <Eye className="h-4 w-4 text-muted-foreground" />
                             Visualizador (solo lectura)
                           </div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
                     {selectedRole === "admin" && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-subtle-foreground">
                         Los administradores tienen acceso a los proyectos de ventas de su organización
                       </p>
                     )}
@@ -202,7 +202,7 @@ export default function SalesUserManagementPage() {
                       <Label>Proyectos de Ventas con acceso</Label>
                       <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">
                         {salesProjects.length === 0 ? (
-                          <p className="text-sm text-gray-500">No hay proyectos de ventas disponibles</p>
+                          <p className="text-sm text-subtle-foreground">No hay proyectos de ventas disponibles</p>
                         ) : (
                           salesProjects.map((project) => (
                             <div key={project._id} className="flex items-center space-x-2">
@@ -221,7 +221,7 @@ export default function SalesUserManagementPage() {
                           ))
                         )}
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-subtle-foreground">
                         Selecciona los proyectos de ventas a los que este usuario puede acceder
                       </p>
                     </div>

@@ -353,7 +353,7 @@ export default function RFINewPage({
   if (options === undefined || (editId && detail === undefined)) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" aria-label="Cargando formulario" />
+        <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" aria-label="Cargando formulario" />
       </div>
     );
   }
@@ -373,7 +373,7 @@ export default function RFINewPage({
   return (
     <div
       className={cn(
-        "bg-white",
+        "bg-card",
         embedded
           ? "px-6 pb-8 pt-8"
           : "min-h-screen px-4 py-6 sm:px-6 lg:px-8",
@@ -381,7 +381,7 @@ export default function RFINewPage({
       data-rfi-entry-form="true"
     >
       <div className={cn("space-y-5", !embedded && "mx-auto max-w-5xl")}>
-        <header className="border-b border-[#C9C9C5] pb-6">
+        <header className="border-b border-border-strong pb-6">
           {!embedded && (
             <Button asChild variant="ghost" className="-ml-3 mb-3 rounded-sm">
               <Link to={`/proyecto/${projectId}/rfis`}>
@@ -391,13 +391,13 @@ export default function RFINewPage({
             </Button>
           )}
           <div>
-              <p className="text-sm text-[#7A7979]">
+              <p className="text-sm text-muted-foreground">
                 {editId && detail ? detail.rfi.code : "Registro de información"}
               </p>
-              <h1 className="mt-1 text-2xl font-normal tracking-tight text-[#282822]">
+              <h1 className="mt-1 text-2xl font-normal tracking-tight text-foreground">
                 {editId && detail ? `Editar ${detail.rfi.code}` : "Nueva RFI"}
               </h1>
-              <p className="mt-2 text-sm text-[#7A7979]">
+              <p className="mt-2 text-sm text-muted-foreground">
                 {options.project.nombre} ·{" "}
                 {editId
                   ? "Actualiza la pregunta, el flujo o sus referencias."
@@ -489,10 +489,10 @@ export default function RFINewPage({
             />
           </Field>
           <div className="md:col-span-2">
-            <Label className="text-sm font-medium text-gray-900">
+            <Label className="text-sm font-medium text-foreground">
               Personas asignadas
             </Label>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-subtle-foreground">
               Marca quién puede responder y cuáles respuestas son obligatorias.
             </p>
             <RfiAssigneePicker
@@ -515,15 +515,15 @@ export default function RFINewPage({
               }
             />
             {selectedAssignees.length > 0 && (
-              <div className="mt-3 rounded-sm border border-gray-200 bg-gray-50 p-3">
-                <p className="text-xs font-medium text-gray-500">
+              <div className="mt-3 rounded-sm border border-border bg-background p-3">
+                <p className="text-xs font-medium text-subtle-foreground">
                   Respuestas obligatorias
                 </p>
                 <div className="mt-2 grid gap-2 sm:grid-cols-2">
                   {selectedAssignees.map((user) => (
                     <label
                       key={user._id}
-                      className="flex cursor-pointer items-center gap-2 text-xs text-gray-600"
+                      className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground"
                     >
                       <Checkbox
                         checked={form.requiredAssigneeIds.has(user._id)}
@@ -548,14 +548,14 @@ export default function RFINewPage({
             )}
           </div>
           <div className="md:col-span-2">
-            <Label className="text-sm font-medium text-gray-900">
+            <Label className="text-sm font-medium text-foreground">
               Lista de distribución
             </Label>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {projectUsers.map((user) => (
                 <label
                   key={user._id}
-                  className="flex cursor-pointer items-center gap-3 rounded-sm border border-gray-200 p-3"
+                  className="flex cursor-pointer items-center gap-3 rounded-sm border border-border p-3"
                 >
                   <Checkbox
                     checked={form.distributionUserIds.has(user._id)}
@@ -568,10 +568,10 @@ export default function RFINewPage({
                     }
                   />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-gray-800">
+                    <span className="block truncate text-sm font-medium text-foreground">
                       {user.name}
                     </span>
-                    <span className="block truncate text-xs text-gray-500">
+                    <span className="block truncate text-xs text-subtle-foreground">
                       {user.email}
                     </span>
                   </span>
@@ -591,7 +591,7 @@ export default function RFINewPage({
               id="project-reference"
               value={options.project.nombre}
               readOnly
-              className="rounded-[4px] bg-[#F5F5F3] text-[#7A7979]"
+              className="rounded-[4px] bg-muted text-muted-foreground"
             />
           </Field>
           <RfiSelectField
@@ -702,15 +702,15 @@ export default function RFINewPage({
             }
           />
           <div className="relative md:col-span-2">
-            <Label htmlFor="rfi-files" className="text-sm font-medium text-[#282822]">
+            <Label htmlFor="rfi-files" className="text-sm font-medium text-foreground">
               Imágenes y adjuntos
             </Label>
-            <p className="mt-1 text-xs leading-5 text-[#7A7979]">
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
               Puedes agregar una o más imágenes, además de documentos de soporte.
             </p>
             <label
               htmlFor="rfi-files"
-              className="mt-3 flex cursor-pointer items-center justify-center gap-3 rounded-[4px] border border-dashed border-[#B9B9B4] bg-[#FAFAF8] px-4 py-8 text-sm text-[#7A7979] hover:border-[#777770]"
+              className="mt-3 flex cursor-pointer items-center justify-center gap-3 rounded-[4px] border border-dashed border-border-strong bg-background px-4 py-8 text-sm text-muted-foreground hover:border-ring"
             >
               <ImagePlus className="h-5 w-5" aria-hidden="true" />
               {files.length > 0
@@ -732,14 +732,14 @@ export default function RFINewPage({
             {editId && detail && detail.attachments.length > 0 && (
               <div className="mt-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-[#282822]">
+                  <p className="text-sm font-medium text-foreground">
                     Archivos actuales
                   </p>
                   {removedAttachmentIds.size > 0 && (
                     <Button
                       type="button"
                       variant="ghost"
-                      className="h-8 rounded-[4px] px-2 text-xs text-[#7A7979]"
+                      className="h-8 rounded-[4px] px-2 text-xs text-muted-foreground"
                       onClick={() => setRemovedAttachmentIds(new Set())}
                     >
                       Deshacer eliminaciones
@@ -763,7 +763,7 @@ export default function RFINewPage({
                     ))}
                   </div>
                 ) : (
-                  <p className="rounded-[4px] border border-dashed border-[#D9D9D5] px-4 py-3 text-xs text-[#7A7979]">
+                  <p className="rounded-[4px] border border-dashed border-border px-4 py-3 text-xs text-muted-foreground">
                     Los archivos marcados se eliminarán al guardar los cambios.
                   </p>
                 )}
@@ -785,7 +785,7 @@ export default function RFINewPage({
               </div>
             )}
           </div>
-          <label className="md:col-span-2 flex cursor-pointer items-start gap-3 rounded-sm border border-gray-200 bg-gray-50 p-4">
+          <label className="md:col-span-2 flex cursor-pointer items-start gap-3 rounded-sm border border-border bg-background p-4">
             <Checkbox
               checked={form.isPrivate}
               onCheckedChange={(checked) =>
@@ -796,11 +796,11 @@ export default function RFINewPage({
               }
             />
             <span>
-              <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <LockKeyhole className="h-4 w-4" aria-hidden="true" />
                 RFI privada
               </span>
-              <span className="mt-1 block text-xs leading-5 text-gray-500">
+              <span className="mt-1 block text-xs leading-5 text-subtle-foreground">
                 Solo creador, responsable, asignados, distribución y
                 administradores podrán verla.
               </span>
@@ -808,25 +808,25 @@ export default function RFINewPage({
           </label>
         </FormSection>
 
-        <div className="sticky bottom-4 flex flex-col-reverse gap-3 rounded-[4px] border border-[#D9D9D5] bg-white/95 p-4 backdrop-blur sm:flex-row sm:justify-end">
+        <div className="sticky bottom-4 flex flex-col-reverse gap-3 rounded-[4px] border border-border bg-card/95 p-4 backdrop-blur sm:flex-row sm:justify-end">
           {embedded ? (
             <Button
               type="button"
               variant="outline"
-              className="h-11 min-w-[108px] rounded-[4px] border-[#D2D2CE] font-normal text-[#7A7979] shadow-none"
+              className="h-11 min-w-[108px] rounded-[4px] border-border font-normal text-muted-foreground shadow-none"
               onClick={onCancel}
             >
               Cancelar
             </Button>
           ) : (
-            <Button asChild variant="outline" className="h-11 min-w-[108px] rounded-[4px] border-[#D2D2CE] font-normal text-[#7A7979] shadow-none">
+            <Button asChild variant="outline" className="h-11 min-w-[108px] rounded-[4px] border-border font-normal text-muted-foreground shadow-none">
               <Link to={`/proyecto/${projectId}/rfis`}>Cancelar</Link>
             </Button>
           )}
           <Button
             type="button"
             variant="outline"
-            className="h-11 rounded-[4px] border-[#D2D2CE] px-5 font-normal text-[#282822] shadow-none"
+            className="h-11 rounded-[4px] border-border px-5 font-normal text-foreground shadow-none"
             disabled={submitting !== null}
             onClick={() => handleSubmit("draft")}
           >
@@ -840,7 +840,7 @@ export default function RFINewPage({
           {(!editId || detail?.rfi.status === "draft") && (
             <Button
               type="button"
-              className="h-11 rounded-[4px] bg-[#282822] px-5 font-normal text-white shadow-none hover:bg-[#282822]/90"
+              className="h-11 rounded-[4px] bg-inverse px-5 font-normal text-on-color shadow-none hover:bg-inverse/90"
               disabled={submitting !== null}
               onClick={() => handleSubmit("review")}
             >
@@ -872,14 +872,14 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[4px] border border-[#D9D9D5] bg-white p-5">
+    <section className="rounded-[4px] border border-border bg-card p-5">
       <div className="mb-6 flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D9D9D5] bg-[#F0F0EE] text-sm font-medium text-[#7A7979]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-sm font-medium text-muted-foreground">
           {Icon ? <Icon className="h-4 w-4" aria-hidden="true" /> : number}
         </div>
         <div>
-          <h2 className="text-base font-medium text-[#282822]">{title}</h2>
-          <p className="mt-1 text-sm leading-5 text-[#7A7979]">{description}</p>
+          <h2 className="text-base font-medium text-foreground">{title}</h2>
+          <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
         </div>
       </div>
       <div className="grid gap-5 md:grid-cols-2">{children}</div>
@@ -902,7 +902,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <Label htmlFor={htmlFor} className="mb-2 block text-sm font-medium text-[#282822]">
+      <Label htmlFor={htmlFor} className="mb-2 block text-sm font-medium text-foreground">
         {label}
         {required && <span className="ml-1 text-red-600">*</span>}
       </Label>
@@ -932,7 +932,7 @@ function SelectedFilePreview({
   }, [file, isImage]);
 
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-[4px] border border-[#D9D9D5] bg-white p-2">
+    <div className="flex min-w-0 items-center gap-3 rounded-[4px] border border-border bg-card p-2">
       {previewUrl ? (
         <img
           src={previewUrl}
@@ -940,13 +940,13 @@ function SelectedFilePreview({
           className="h-16 w-16 shrink-0 rounded-[4px] object-cover"
         />
       ) : (
-        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[4px] bg-[#F0F0EE] text-[#7A7979]">
+        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[4px] bg-muted text-muted-foreground">
           <Paperclip className="h-5 w-5" aria-hidden="true" />
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm text-[#282822]">{file.name}</p>
-        <p className="mt-1 text-xs text-[#7A7979]">
+        <p className="truncate text-sm text-foreground">{file.name}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
           {(file.size / 1024 / 1024).toFixed(1)} MB
         </p>
       </div>
@@ -955,7 +955,7 @@ function SelectedFilePreview({
         variant="ghost"
         size="icon"
         onClick={onRemove}
-        className="h-8 w-8 shrink-0 rounded-[4px] text-[#7A7979] hover:bg-[#F0F0EE] hover:text-[#282822]"
+        className="h-8 w-8 shrink-0 rounded-[4px] text-muted-foreground hover:bg-muted hover:text-foreground"
         aria-label={`Quitar ${file.name}`}
       >
         <X className="h-4 w-4" aria-hidden="true" />
@@ -980,7 +980,7 @@ function ExistingAttachmentPreview({
   const isImage = attachment.type.startsWith("image/") && attachment.url;
 
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-[4px] border border-[#D9D9D5] bg-white p-2">
+    <div className="flex min-w-0 items-center gap-3 rounded-[4px] border border-border bg-card p-2">
       {isImage ? (
         <img
           src={attachment.url || undefined}
@@ -988,13 +988,13 @@ function ExistingAttachmentPreview({
           className="h-16 w-16 shrink-0 rounded-[4px] object-cover"
         />
       ) : (
-        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[4px] bg-[#F0F0EE] text-[#7A7979]">
+        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[4px] bg-muted text-muted-foreground">
           <Paperclip className="h-5 w-5" aria-hidden="true" />
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm text-[#282822]">{attachment.nombre}</p>
-        <p className="mt-1 text-xs text-[#7A7979]">
+        <p className="truncate text-sm text-foreground">{attachment.nombre}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
           {(attachment.size / 1024 / 1024).toFixed(1)} MB
         </p>
       </div>
@@ -1003,7 +1003,7 @@ function ExistingAttachmentPreview({
         variant="ghost"
         size="icon"
         onClick={onRemove}
-        className="h-8 w-8 shrink-0 rounded-[4px] text-[#7A7979] hover:bg-red-50 hover:text-red-700"
+        className="h-8 w-8 shrink-0 rounded-[4px] text-muted-foreground hover:bg-red-50 hover:text-red-700"
         aria-label={`Quitar ${attachment.nombre}`}
       >
         <X className="h-4 w-4" aria-hidden="true" />
@@ -1042,11 +1042,11 @@ function RfiSelectField({
       >
         <SelectTrigger
           id={id}
-          className="h-11 rounded-[4px] border-[#B9B9B4] bg-white text-[#282822] shadow-none focus:ring-[#777770]/20"
+          className="h-11 rounded-[4px] border-border-strong bg-card text-foreground shadow-none focus:ring-ring/20"
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="rounded-[4px] border-[#D9D9D5] bg-white text-[#282822]">
+        <SelectContent className="rounded-[4px] border-border bg-card text-foreground">
           <SelectItem value={EMPTY_SELECT_VALUE}>{placeholder}</SelectItem>
           {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
@@ -1055,7 +1055,7 @@ function RfiSelectField({
           ))}
         </SelectContent>
       </Select>
-      {hint && <p className="mt-2 text-xs leading-5 text-[#7A7979]">{hint}</p>}
+      {hint && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hint}</p>}
     </Field>
   );
 }
@@ -1111,7 +1111,7 @@ function ImpactField({
 function CenteredMessage({ message }: { message: string }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
-      <p className="max-w-md text-center text-sm text-gray-600">{message}</p>
+      <p className="max-w-md text-center text-sm text-muted-foreground">{message}</p>
     </div>
   );
 }

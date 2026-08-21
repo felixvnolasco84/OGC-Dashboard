@@ -137,9 +137,9 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
             Instalaciones: "bg-purple-500",
             Acabados: "bg-yellow-500",
             Seguridad: "bg-green-500",
-            Generales: "bg-gray-500",
+            Generales: "bg-subtle-foreground",
         };
-        return colors[categoria] || "bg-gray-500";
+        return colors[categoria] || "bg-subtle-foreground";
     };
 
     const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentDate);
@@ -154,16 +154,16 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             {/* Calendar Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-bold text-gray-900">
+                    <h2 className="text-2xl font-bold text-foreground">
                         {monthNames[month]} {year}
                     </h2>
                     <button
                         onClick={handleToday}
-                        className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="px-3 py-1 text-sm border border-border-strong rounded-lg hover:bg-background transition-colors"
                     >
                         Hoy
                     </button>
@@ -171,13 +171,13 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handlePreviousMonth}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-muted rounded-lg transition-colors"
                     >
                         <ChevronLeft className="h-5 w-5" />
                     </button>
                     <button
                         onClick={handleNextMonth}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-muted rounded-lg transition-colors"
                     >
                         <ChevronRight className="h-5 w-5" />
                     </button>
@@ -185,12 +185,12 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
             </div>
 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+            <div className="grid grid-cols-7 gap-px bg-disabled border border-border rounded-lg overflow-hidden">
                 {/* Day headers */}
                 {daysOfWeek.map((day) => (
                     <div
                         key={day}
-                        className="bg-gray-50 p-3 text-center text-sm font-semibold text-gray-700"
+                        className="bg-background p-3 text-center text-sm font-semibold text-foreground"
                     >
                         {day}
                     </div>
@@ -199,7 +199,7 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
                 {/* Calendar days */}
                 {calendarDays.map((day, index) => {
                     if (day === null) {
-                        return <div key={`empty-${index}`} className="bg-white min-h-[120px]" />;
+                        return <div key={`empty-${index}`} className="bg-card min-h-[120px]" />;
                     }
 
                     const dateKey = formatDateKey(day, month, year);
@@ -220,14 +220,14 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
                                     fecha: dateKey,
                                 });
                             }}
-                            className={`bg-white p-3 min-h-[120px] ${isToday ? "bg-blue-50" : ""
-                                } hover:bg-gray-50 transition-colors cursor-pointer group`}
+                            className={`bg-card p-3 min-h-[120px] ${isToday ? "bg-blue-50" : ""
+                                } hover:bg-background transition-colors cursor-pointer group`}
                         >
                             <div className={`flex items-center justify-between mb-2`}>
-                                <span className={`text-sm font-semibold ${isToday ? "text-blue-600" : "text-gray-900"}`}>
+                                <span className={`text-sm font-semibold ${isToday ? "text-blue-600" : "text-foreground"}`}>
                                     {day}
                                 </span>
-                                <Plus className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <Plus className="h-4 w-4 text-disabled-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
 
                             {/* Log entries for this day grouped by category */}
@@ -257,12 +257,12 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
                                                         logs: enrichedLogs,
                                                     });
                                                 }}
-                                                className={`w-full text-left px-2 py-1 rounded text-xs font-medium text-white hover:opacity-90 transition-opacity ${getCategoryColor(categoria)}`}
+                                                className={`w-full text-left px-2 py-1 rounded text-xs font-medium text-on-color hover:opacity-90 transition-opacity ${getCategoryColor(categoria)}`}
                                             >
                                                 <div className="flex items-center justify-between gap-1">
                                                     <span className="truncate">{categoria}</span>
                                                     {logs.length > 1 && (
-                                                        <span className="bg-white/30 px-1.5 py-0.5 rounded text-[10px]">
+                                                        <span className="bg-on-color/30 px-1.5 py-0.5 rounded text-[10px]">
                                                             {logs.length}
                                                         </span>
                                                     )}
@@ -279,11 +279,11 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
 
             {/* Legend */}
             <div className="mt-6 flex items-center gap-6 text-sm">
-                <span className="font-medium text-gray-700">Categorías:</span>
+                <span className="font-medium text-foreground">Categorías:</span>
                 {["Estructura", "Instalaciones", "Acabados", "Seguridad", "Generales"].map((cat) => (
                     <div key={cat} className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded ${getCategoryColor(cat)}`} />
-                        <span className="text-gray-600">{cat}</span>
+                        <span className="text-muted-foreground">{cat}</span>
                     </div>
                 ))}
             </div>
@@ -308,15 +308,15 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
                         {groupedModal.logs.map((log) => (
                             <div
                                 key={log._id}
-                                className="bg-gray-50 rounded-lg p-4 border border-gray-100"
+                                className="bg-background rounded-lg p-4 border border-border"
                             >
                                 {/* Header */}
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
-                                        <div className="h-7 w-7 rounded-full bg-[#dddcd8] flex items-center justify-center text-xs text-gray-700">
+                                        <div className="h-7 w-7 rounded-full bg-disabled flex items-center justify-center text-xs text-foreground">
                                             {log.responsable.substring(0, 1).toUpperCase()}
                                         </div>
-                                        <span className="text-sm font-medium text-gray-900">{log.responsable}</span>
+                                        <span className="text-sm font-medium text-foreground">{log.responsable}</span>
                                     </div>
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${log.status === "Sin problemas"
                                         ? "bg-green-50 text-green-700 border border-green-200"
@@ -332,7 +332,7 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
                                 )}
 
                                 {/* Avance preview */}
-                                <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                                     {log.avance_dia}
                                 </p>
 
@@ -340,7 +340,7 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
                                 {log.familias_tags && log.familias_tags.length > 0 && (
                                     <div className="flex flex-wrap gap-1 mb-3">
                                         {log.familias_tags.map((tag) => (
-                                            <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                            <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground">
                                                 {tag}
                                             </span>
                                         ))}
@@ -358,7 +358,7 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
                                                 logEntry: log,
                                             });
                                         }}
-                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
+                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground bg-card border border-border rounded-md hover:bg-background transition-colors"
                                     >
                                         <Eye className="h-3 w-3" />
                                         Ver detalles
@@ -372,7 +372,7 @@ export default function BitacoraCalendarView({ proyectoId, onOpenModal }: Bitaco
                                                 logEntry: log,
                                             });
                                         }}
-                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
+                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground bg-card border border-border rounded-md hover:bg-background transition-colors"
                                     >
                                         <Edit2 className="h-3 w-3" />
                                         Editar

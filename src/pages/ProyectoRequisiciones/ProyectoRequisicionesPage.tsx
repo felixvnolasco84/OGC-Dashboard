@@ -848,7 +848,7 @@ export default function ProyectoRequisicionesPage() {
     //         case "En proceso": return "bg-blue-50 text-blue-700 border border-blue-200";
     //         case "Cancelado": return "bg-red-50 text-red-700 border border-red-200";
     //         case "Pagado": return "bg-green-50 text-[#5FB473] border border-[#7EC18E]";
-    //         default: return " text-gray-700 border border-gray-200";
+    //         default: return " text-foreground border border-border";
     //     }
     // };
 
@@ -1020,27 +1020,27 @@ export default function ProyectoRequisicionesPage() {
 
     if (!proyecto) {
         return (
-            <div className="bg-white min-h-screen flex items-center justify-center">
-                <p className="text-gray-500">Cargando...</p>
+            <div className="bg-card min-h-screen flex items-center justify-center">
+                <p className="text-subtle-foreground">Cargando...</p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white min-h-screen">
+        <div className="bg-card min-h-screen">
             <div className="max-w-full mx-auto py-8 text-left">
                 <div className="flex flex-col gap-4 px-12">
                     <div className="mb-8 flex items-start justify-between">
                         <div>
-                            <p className="text-sm text-gray-500 mb-1">Requisiciones</p>
-                            <h1 className="text-2xl text-gray-700">{proyecto.nombre}</h1>
+                            <p className="text-sm text-subtle-foreground mb-1">Requisiciones</p>
+                            <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
                             <Button
                                 onClick={() => setEmailDialogOpen(true)}
                                 variant="outline"
                                 size="lg"
-                                className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+                                className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
                             >
                                 <Mail className="h-5 w-5" />
                                 Notificar
@@ -1050,7 +1050,7 @@ export default function ProyectoRequisicionesPage() {
                                 onClick={() => historyModal.openAllHistory(proyectoId as Id<"desarrollos">)}
                                 variant="outline"
                                 size="lg"
-                                className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+                                className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
                             >
                                 <Clock className="h-5 w-5" />
                                 Historial
@@ -1061,18 +1061,18 @@ export default function ProyectoRequisicionesPage() {
                                     onClick={() => requisicionModal.onOpen({ projectId: proyectoId as Id<"desarrollos"> }, "create")}
                                     variant="outline"
                                     size="lg"
-                                    className="flex items-center gap-2 rounded-none text-gray-500 py-6"
+                                    className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
                                 >
                                     Nueva Requisición
                                     <Plus className="h-5 w-5" />
                                 </Button>
                             )}
-                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
+                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
                                     Total: {requisiciones?.length || 0}
                                 </span>
                             </Badge>
-                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-gray-100">
+                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
                                     Monto total: ${montoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
@@ -1082,13 +1082,13 @@ export default function ProyectoRequisicionesPage() {
 
                     {/* Search Bar */}
                     <div className="mb-4 relative">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
                         <Input
                             type="text"
                             placeholder="Buscar por solicitante, descripción, familia, material..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-12 pr-24 rounded-none border-gray-300 h-12"
+                            className="pl-12 pr-24 rounded-none border-border-strong h-12"
                         />
                         <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
                             {hasActiveFilters && (
@@ -1096,7 +1096,7 @@ export default function ProyectoRequisicionesPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={clearFilters}
-                                    className="h-8 px-2 text-gray-500 hover:text-gray-700"
+                                    className="h-8 px-2 text-subtle-foreground hover:text-foreground"
                                 >
                                     <X className="h-4 w-4 mr-1" />
                                     Limpiar
@@ -1116,11 +1116,11 @@ export default function ProyectoRequisicionesPage() {
 
                     {/* Advanced Filters Panel */}
                     {showFilters && (
-                        <div className="mb-6 p-4 border border-gray-200  space-y-4">
+                        <div className="mb-6 p-4 border border-border  space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 {/* Status Filter */}
                                 <div className="space-y-2">
-                                    <label className="text-sm  text-gray-700">Estado</label>
+                                    <label className="text-sm  text-foreground">Estado</label>
                                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                                         <SelectTrigger className="rounded-none h-10">
                                             <SelectValue placeholder="Todos" />
@@ -1138,7 +1138,7 @@ export default function ProyectoRequisicionesPage() {
 
                                 {/* Tipo Filter */}
                                 <div className="space-y-2">
-                                    <label className="text-sm  text-gray-700">Tipo</label>
+                                    <label className="text-sm  text-foreground">Tipo</label>
                                     <Select value={tipoFilter} onValueChange={setTipoFilter}>
                                         <SelectTrigger className="rounded-none h-10">
                                             <SelectValue placeholder="Todos" />
@@ -1153,8 +1153,8 @@ export default function ProyectoRequisicionesPage() {
                             </div>
 
                             {/* Sort Controls */}
-                            <div className="flex items-center gap-4 pt-2 border-t border-gray-200">
-                                <span className="text-sm  text-gray-700">Ordenar por:</span>
+                            <div className="flex items-center gap-4 pt-2 border-t border-border">
+                                <span className="text-sm  text-foreground">Ordenar por:</span>
                                 <Button
                                     variant={sortField === "fecha_solicitud" ? "default" : "outline"}
                                     size="sm"
@@ -1177,7 +1177,7 @@ export default function ProyectoRequisicionesPage() {
                                         sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
                                     )}
                                 </Button>
-                                <span className="text-sm text-gray-500 ml-auto">
+                                <span className="text-sm text-subtle-foreground ml-auto">
                                     {filteredRequisiciones.length} de {requisiciones?.length || 0} requisiciones
                                 </span>
                             </div>
@@ -1188,34 +1188,34 @@ export default function ProyectoRequisicionesPage() {
                 {/* Status Tabs */}
                 <div className="px-12 mb-4">
                     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
-                        <TabsList className="bg-transparent h-auto p-0 gap-0 border-b border-gray-200 w-full justify-start rounded-none">
+                        <TabsList className="bg-transparent h-auto p-0 gap-0 border-b border-border w-full justify-start rounded-none">
                             <TabsTrigger
                                 value="por_revisar"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900 gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-subtle-foreground data-[state=active]:text-foreground gap-2"
                             >
                                 Por revisar
-                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-gray-100">{tabCounts.por_revisar}</Badge>
+                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.por_revisar}</Badge>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="aprobadas"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900 gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-subtle-foreground data-[state=active]:text-foreground gap-2"
                             >
                                 Aprobadas
-                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-gray-100">{tabCounts.aprobadas}</Badge>
+                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.aprobadas}</Badge>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="pagadas"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900 gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-subtle-foreground data-[state=active]:text-foreground gap-2"
                             >
                                 Pagadas
-                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-gray-100">{tabCounts.pagadas}</Badge>
+                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.pagadas}</Badge>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="recibidas"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-gray-500 data-[state=active]:text-gray-900 gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-subtle-foreground data-[state=active]:text-foreground gap-2"
                             >
                                 Recibidas
-                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-gray-100">{tabCounts.recibidas}</Badge>
+                                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.recibidas}</Badge>
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
@@ -1224,11 +1224,11 @@ export default function ProyectoRequisicionesPage() {
                 {/* Cards List */}
                 <div className="px-12 space-y-4">
                     {!requisiciones ? (
-                        <div className="py-12 text-center text-gray-500">
+                        <div className="py-12 text-center text-subtle-foreground">
                             Cargando requisiciones...
                         </div>
                     ) : filteredRequisiciones.length === 0 ? (
-                        <div className="py-12 text-center text-gray-500">
+                        <div className="py-12 text-center text-subtle-foreground">
                             No se encontraron requisiciones
                         </div>
                     ) : (
@@ -1249,7 +1249,7 @@ export default function ProyectoRequisicionesPage() {
                             const pipelineBusy = updatingPipelineReqId === req._id;
 
                             return (
-                                <div key={req._id} className="border border-[#EEEEEE] rounded-md">
+                                <div key={req._id} className="border border-border rounded-md">
                                     {/* Card Header - Collapsed View */}
                                     <div
                                         className="flex items-center gap-6 py-6 px-4 cursor-pointer hover:/50 transition-colors border-b"
@@ -1257,14 +1257,14 @@ export default function ProyectoRequisicionesPage() {
                                     >
                                         {/* Avatar + Solicitante */}
                                         <div className="flex items-center gap-3 min-w-[200px]">
-                                            <div className="h-10 w-10 rounded-full bg-[#e8e7e4] flex items-center justify-center text-sm  text-gray-600 flex-shrink-0">
+                                            <div className="h-10 w-10 rounded-full bg-disabled flex items-center justify-center text-sm  text-muted-foreground flex-shrink-0">
                                                 {req.solicitante_nombre?.charAt(0).toUpperCase() || "?"}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-sm text-[#777770]">
+                                                <span className="text-sm text-muted-foreground">
                                                     {req.solicitante_nombre || "-"}
                                                 </span>
-                                                <span className="text-xs text-[#ADADA9]">
+                                                <span className="text-xs text-disabled-foreground">
                                                     Solicitado el {formatDate(req.fecha_solicitud)}
                                                 </span>
                                             </div>
@@ -1272,10 +1272,10 @@ export default function ProyectoRequisicionesPage() {
 
                                         {/* Category + Materials Count */}
                                         <div className="flex flex-col flex-1 min-w-0">
-                                            <span className="text-sm text-[#777770] uppercase tracking-wide truncate">
+                                            <span className="text-sm text-muted-foreground uppercase tracking-wide truncate">
                                                 {categoryLabel}
                                             </span>
-                                            <Badge variant="outline" className="w-fit h-fit mt-1 text-[9px] font-normal rounded-sm  text-[#B2B2AF] border-[#F4F4F4] bg-[#F4F4F4]">
+                                            <Badge variant="outline" className="w-fit h-fit mt-1 text-[9px] font-normal rounded-sm  text-disabled-foreground border-border bg-muted">
                                                 {materialsBadgeText}
                                             </Badge>
                                         </div>
@@ -1284,18 +1284,18 @@ export default function ProyectoRequisicionesPage() {
                                         <div className="flex flex-col items-start min-w-[100px]">
                                             {req.fecha_entrega ? (
                                                 <>
-                                                    <span className="text-sm text-[#777770]">{req.fecha_entrega}</span>
-                                                    <span className="text-xs text-[#ADADA9]">Fecha de entrega</span>
+                                                    <span className="text-sm text-muted-foreground">{req.fecha_entrega}</span>
+                                                    <span className="text-xs text-disabled-foreground">Fecha de entrega</span>
                                                 </>
                                             ) : (
-                                                <span className="text-xs text-[#ADADA9]">Sin fecha de entrega</span>
+                                                <span className="text-xs text-disabled-foreground">Sin fecha de entrega</span>
                                             )}
                                         </div>
 
                                         {/* Monto Total */}
                                         <div className="flex flex-col items-end min-w-[140px]">
-                                            <span className="text-xs text-gray-400">Monto Total</span>
-                                            <span className="text-black">
+                                            <span className="text-xs text-disabled-foreground">Monto Total</span>
+                                            <span className="text-foreground">
                                                 ${reqMontoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
@@ -1303,7 +1303,7 @@ export default function ProyectoRequisicionesPage() {
                                         {/* Status Pipeline */}
                                         <div className="min-w-[230px]" onClick={(e) => e.stopPropagation()}>
                                             <div className="relative">
-                                                <div className="absolute left-3 right-3 top-2 h-0.5 bg-[#D0D0D0]" />
+                                                <div className="absolute left-3 right-3 top-2 h-0.5 bg-disabled" />
                                                 <div className="relative grid grid-cols-3 gap-1">
                                                     {pipelineStages.map((stage, stageIndex) => {
                                                         const nextStage = pipelineStages[stageIndex + 1];
@@ -1320,10 +1320,10 @@ export default function ProyectoRequisicionesPage() {
                                                                     disabled={pipelineBusy || !canUpdateStage}
                                                                     onClick={() => openPipelineStatusDialog(req, stage.key)}
                                                                     className={cn(
-                                                                        "relative z-10 flex h-4 w-4 items-center justify-center rounded-full border bg-white transition-colors",
+                                                                        "relative z-10 flex h-4 w-4 items-center justify-center rounded-full border bg-card transition-colors",
                                                                         stage.complete
-                                                                            ? "border-[#50AC66] bg-[#50AC66] text-white"
-                                                                            : "border-[#9B9B9B] text-[#9B9B9B] hover:border-[#7EC18E] hover:text-[#50AC66]",
+                                                                            ? "border-[#50AC66] bg-[#50AC66] text-on-color"
+                                                                            : "border-border-strong text-disabled-foreground hover:border-[#7EC18E] hover:text-[#50AC66]",
                                                                         (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60"
                                                                     )}
                                                                     title={`Cambiar a ${stage.label}`}
@@ -1345,7 +1345,7 @@ export default function ProyectoRequisicionesPage() {
                                                                     onClick={() => openPipelineStatusDialog(req, stage.key)}
                                                                     className={cn(
                                                                         "mt-1 text-[10px] leading-none transition-colors",
-                                                                        stage.complete ? "font-medium text-[#282822]" : "text-[#777770] hover:text-[#282822]",
+                                                                        stage.complete ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
                                                                         (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60"
                                                                     )}
                                                                 >
@@ -1362,56 +1362,56 @@ export default function ProyectoRequisicionesPage() {
                                         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none p-0 hover:bg-gray-100">
-                                                        <MoreVertical className="h-4 w-4 text-gray-400" />
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none p-0 hover:bg-muted">
+                                                        <MoreVertical className="h-4 w-4 text-disabled-foreground" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-72 rounded-none border-gray-200 p-1">
-                                                    <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal uppercase tracking-wide text-[#ADADA9]">
+                                                <DropdownMenuContent align="end" className="w-72 rounded-none border-border p-1">
+                                                    <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal uppercase tracking-wide text-disabled-foreground">
                                                         Acciones
                                                     </DropdownMenuLabel>
                                                     <DropdownMenuItem
-                                                        className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
+                                                        className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
                                                         onClick={() => requisicionModal.onOpen({
                                                             projectId: proyectoId as Id<"desarrollos">,
                                                             requisicionId: req._id
                                                         }, "view")}
                                                     >
-                                                        <Eye className="h-4 w-4 text-gray-400" />
+                                                        <Eye className="h-4 w-4 text-disabled-foreground" />
                                                         Ver detalles
                                                     </DropdownMenuItem>
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <DropdownMenuItem
-                                                                className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
+                                                                className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
                                                                 onClick={() => requisicionModal.onOpen({
                                                                     projectId: proyectoId as Id<"desarrollos">,
                                                                     requisicionId: req._id
                                                                 }, "edit")}
                                                             >
-                                                                <Edit2 className="h-4 w-4 text-gray-400" />
+                                                                <Edit2 className="h-4 w-4 text-disabled-foreground" />
                                                                 Editar
                                                             </DropdownMenuItem>
                                                         )}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <DropdownMenuItem
-                                                                className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
+                                                                className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
                                                                 onClick={() => openProviderDialog(req._id)}
                                                             >
-                                                                <UserPlus className="h-4 w-4 text-gray-400" />
+                                                                <UserPlus className="h-4 w-4 text-disabled-foreground" />
                                                                 Agregar proveedor
                                                             </DropdownMenuItem>
                                                         )}
 
-                                                    <DropdownMenuSeparator className="bg-gray-100" />
+                                                    <DropdownMenuSeparator className="bg-muted" />
 
                                                     <DropdownMenuSub>
-                                                        <DropdownMenuSubTrigger className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 data-[state=open]:bg-gray-100">
+                                                        <DropdownMenuSubTrigger className="gap-2 rounded-none text-muted-foreground focus:bg-muted data-[state=open]:bg-muted">
                                                             <CheckCircle className="h-4 w-4 text-[#50AC66]" />
                                                             Cambiar etapa
                                                         </DropdownMenuSubTrigger>
-                                                        <DropdownMenuSubContent className="w-56 rounded-none border-gray-200 p-1">
+                                                        <DropdownMenuSubContent className="w-56 rounded-none border-border p-1">
                                                             {pipelineStages.map((stage) => {
                                                                 const StageIcon = stage.icon;
                                                                 const canUpdateStage = canUpdatePipelineStage(req, stage.key);
@@ -1420,13 +1420,13 @@ export default function ProyectoRequisicionesPage() {
                                                                     <DropdownMenuItem
                                                                         key={stage.key}
                                                                         disabled={pipelineBusy || !canUpdateStage}
-                                                                        className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
+                                                                        className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
                                                                         onClick={() => openPipelineStatusDialog(req, stage.key)}
                                                                     >
                                                                         {pipelineBusy ? (
-                                                                            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                                                            <Loader2 className="h-4 w-4 animate-spin text-disabled-foreground" />
                                                                         ) : (
-                                                                            <StageIcon className={cn("h-4 w-4", stage.complete ? "text-[#50AC66]" : "text-gray-400")} />
+                                                                            <StageIcon className={cn("h-4 w-4", stage.complete ? "text-[#50AC66]" : "text-disabled-foreground")} />
                                                                         )}
                                                                         <span>Mover a {stage.label}</span>
                                                                         {stage.complete && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
@@ -1438,11 +1438,11 @@ export default function ProyectoRequisicionesPage() {
 
                                                     {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
                                                         <DropdownMenuSub>
-                                                            <DropdownMenuSubTrigger className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 data-[state=open]:bg-gray-100">
-                                                                <Receipt className="h-4 w-4 text-gray-400" />
+                                                            <DropdownMenuSubTrigger className="gap-2 rounded-none text-muted-foreground focus:bg-muted data-[state=open]:bg-muted">
+                                                                <Receipt className="h-4 w-4 text-disabled-foreground" />
                                                                 Estado de pago
                                                             </DropdownMenuSubTrigger>
-                                                            <DropdownMenuSubContent className="w-52 rounded-none border-gray-200 p-1">
+                                                            <DropdownMenuSubContent className="w-52 rounded-none border-border p-1">
                                                                 {(currentUser?.role === "finance"
                                                                     ? ["Pagado", "Cancelado"]
                                                                     : ["En proceso", "Pagado", "Cancelado"]
@@ -1450,10 +1450,10 @@ export default function ProyectoRequisicionesPage() {
                                                                     <DropdownMenuItem
                                                                         key={s}
                                                                         disabled={s === req.status}
-                                                                        className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
+                                                                        className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
                                                                         onClick={() => openPaymentStatusDialog(req, s)}
                                                                     >
-                                                                        <CreditCard className={cn("h-4 w-4", s === "Pagado" ? "text-[#50AC66]" : s === "Cancelado" ? "text-red-500" : "text-gray-400")} />
+                                                                        <CreditCard className={cn("h-4 w-4", s === "Pagado" ? "text-[#50AC66]" : s === "Cancelado" ? "text-red-500" : "text-disabled-foreground")} />
                                                                         {s}
                                                                         {s === req.status && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
                                                                     </DropdownMenuItem>
@@ -1465,11 +1465,11 @@ export default function ProyectoRequisicionesPage() {
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <DropdownMenuSub>
-                                                                <DropdownMenuSubTrigger className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 data-[state=open]:bg-gray-100">
-                                                                    <Truck className="h-4 w-4 text-gray-400" />
+                                                                <DropdownMenuSubTrigger className="gap-2 rounded-none text-muted-foreground focus:bg-muted data-[state=open]:bg-muted">
+                                                                    <Truck className="h-4 w-4 text-disabled-foreground" />
                                                                     Estado de entrega
                                                                 </DropdownMenuSubTrigger>
-                                                                <DropdownMenuSubContent className="w-52 rounded-none border-gray-200 p-1">
+                                                                <DropdownMenuSubContent className="w-52 rounded-none border-border p-1">
                                                                     {["Pendiente", "Parcial", "Completo"].map(s => {
                                                                         const isCurrent = s === (req.status_entrega || "Pendiente");
 
@@ -1477,10 +1477,10 @@ export default function ProyectoRequisicionesPage() {
                                                                             <DropdownMenuItem
                                                                                 key={s}
                                                                                 disabled={isCurrent}
-                                                                                className="gap-2 rounded-none text-[#777770] focus:bg-gray-100 focus:text-[#282822]"
+                                                                                className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
                                                                                 onClick={() => openDeliveryStatusDialog(req, s)}
                                                                             >
-                                                                                <PackageCheck className={cn("h-4 w-4", s === "Completo" ? "text-[#50AC66]" : s === "Parcial" ? "text-yellow-600" : "text-gray-400")} />
+                                                                                <PackageCheck className={cn("h-4 w-4", s === "Completo" ? "text-[#50AC66]" : s === "Parcial" ? "text-yellow-600" : "text-disabled-foreground")} />
                                                                                 {s}
                                                                                 {isCurrent && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
                                                                             </DropdownMenuItem>
@@ -1493,7 +1493,7 @@ export default function ProyectoRequisicionesPage() {
                                                     {(currentUser?.role === "admin" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <>
-                                                                <DropdownMenuSeparator className="bg-gray-100" />
+                                                                <DropdownMenuSeparator className="bg-muted" />
                                                                 <DropdownMenuItem
                                                                     className="gap-2 rounded-none text-red-600 focus:bg-red-50 focus:text-red-700"
                                                                     onClick={() => openDeleteDialog(req._id)}
@@ -1507,12 +1507,12 @@ export default function ProyectoRequisicionesPage() {
                                             </DropdownMenu>
                                             <button
                                                 onClick={() => toggleCard(req._id)}
-                                                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                                                className="p-1 hover:bg-muted rounded transition-colors"
                                             >
                                                 {isExpanded ? (
-                                                    <ChevronUp className="h-4 w-4 text-gray-400" />
+                                                    <ChevronUp className="h-4 w-4 text-disabled-foreground" />
                                                 ) : (
-                                                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                                                    <ChevronDown className="h-4 w-4 text-disabled-foreground" />
                                                 )}
                                             </button>
                                         </div>
@@ -1526,18 +1526,18 @@ export default function ProyectoRequisicionesPage() {
                                                 <table className="w-full border-separate border-spacing-y-2">
                                                     <thead>
                                                         <tr>
-                                                            <th className="px-4 py-3 text-left text-xs font-normal text-gray-500">Partida / Subpartida</th>
-                                                            <th className="px-4 py-3 text-left text-xs font-normal text-gray-500">Unidad</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Cantidad</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Precio Unitario</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Ejercido</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-gray-500">Solicitado</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-gray-500">Aprobado</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-gray-500">Monto</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-gray-500 w-[120px]"></th>
+                                                            <th className="px-4 py-3 text-left text-xs font-normal text-subtle-foreground">Partida / Subpartida</th>
+                                                            <th className="px-4 py-3 text-left text-xs font-normal text-subtle-foreground">Unidad</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-subtle-foreground">Cantidad</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-subtle-foreground">Precio Unitario</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-subtle-foreground">Ejercido</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-subtle-foreground">Solicitado</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-subtle-foreground">Aprobado</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-subtle-foreground">Monto</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-subtle-foreground w-[120px]"></th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody className="text-[#282822]">
+                                                    <tbody className="text-foreground">
                                                         {req.items?.map((item) => {
                                                             const isRejected = item.status_revision === "rechazado";
                                                             const isItemApproved = item.status_revision === "aprobado";
@@ -1554,27 +1554,27 @@ export default function ProyectoRequisicionesPage() {
 
                                                             return (
                                                                 <tr key={item._id} className={cn(
-                                                                    "transition-colors rounded-lg overflow-hidden bg-[#FBFBFB] border border-[#ECECEC]",
+                                                                    "transition-colors rounded-lg overflow-hidden bg-card border border-border",
                                                                     isRejected && "opacity-40 bg-[#CD56364A] border-[#FBE8E0]",
                                                                     isItemApproved && "border-green-200",
                                                                 )}>
                                                                     <td className="px-4 py-3">
-                                                                        <span className="text-sm text-gray-900 uppercase">
+                                                                        <span className="text-sm text-foreground uppercase">
                                                                             {item.sub_partida || item.familia}
                                                                         </span>
                                                                     </td>
-                                                                    <td className="px-4 py-3 text-sm text-gray-600">{item.unidad}</td>
-                                                                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                                                                    <td className="px-4 py-3 text-sm text-muted-foreground">{item.unidad}</td>
+                                                                    <td className="px-4 py-3 text-sm text-foreground text-right">
                                                                         {item.cantidad.toLocaleString("es-MX")}
                                                                     </td>
-                                                                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                                                                    <td className="px-4 py-3 text-sm text-foreground text-right">
                                                                         ${precioUnitario.toLocaleString("es-MX")}
                                                                     </td>
-                                                                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                                                                    <td className="px-4 py-3 text-sm text-foreground text-right">
                                                                         {ejercido}%
                                                                     </td>
                                                                     <td className="px-4 py-3 text-center">
-                                                                        <span className="text-sm text-gray-700">
+                                                                        <span className="text-sm text-foreground">
                                                                             {item.cantidad} {item.unidad}
                                                                         </span>
                                                                     </td>
@@ -1588,26 +1588,26 @@ export default function ProyectoRequisicionesPage() {
                                                                                     value={editedQuantities[item._id] ?? item.cantidad}
                                                                                     onClick={(e) => e.stopPropagation()}
                                                                                     onChange={(e) => updateEditedQty(item._id, Number(e.target.value))}
-                                                                                    className="w-16 px-2 py-1 text-sm border border-gray-300 text-center rounded-sm bg-white text-gray-700"
+                                                                                    className="w-16 px-2 py-1 text-sm border border-border-strong text-center rounded-sm bg-card text-foreground"
                                                                                 />
-                                                                                <span className="text-xs text-gray-400">{item.unidad}</span>
+                                                                                <span className="text-xs text-disabled-foreground">{item.unidad}</span>
                                                                             </div>
                                                                         ) : qtyModified ? (
                                                                             <div className="flex items-center justify-center gap-1">
-                                                                                <span className="text-sm text-gray-400 line-through">{item.cantidad}</span>
-                                                                                <span className="text-sm text-gray-900 font-medium">{item.cantidad_aprobada}</span>
-                                                                                <span className="text-xs text-gray-400">{item.unidad}</span>
+                                                                                <span className="text-sm text-disabled-foreground line-through">{item.cantidad}</span>
+                                                                                <span className="text-sm text-foreground font-medium">{item.cantidad_aprobada}</span>
+                                                                                <span className="text-xs text-disabled-foreground">{item.unidad}</span>
                                                                             </div>
                                                                         ) : (
                                                                             <span className={cn(
                                                                                 "inline-flex items-center px-2.5 py-1 text-sm border rounded-sm",
-                                                                                isItemApproved ? "border-gray-300 text-gray-900 bg-white" : "border-gray-200 text-gray-400"
+                                                                                isItemApproved ? "border-border-strong text-foreground bg-card" : "border-border text-disabled-foreground"
                                                                             )}>
                                                                                 {item.cantidad_aprobada ?? item.cantidad} {item.unidad}
                                                                             </span>
                                                                         )}
                                                                     </td>
-                                                                    <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                                                                    <td className="px-4 py-3 text-sm text-foreground text-right">
                                                                         ${(item.monto || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                                     </td>
                                                                     {/* Actions column */}
@@ -1615,19 +1615,19 @@ export default function ProyectoRequisicionesPage() {
                                                                         {showInlineReview ? (
                                                                             <div className="flex items-center justify-center gap-1.5">
                                                                                 {isLoading ? (
-                                                                                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                                                                    <Loader2 className="w-5 h-5 animate-spin text-disabled-foreground" />
                                                                                 ) : (
                                                                                     <>
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); handleApproveItem(item._id, editedQuantities[item._id] ?? item.cantidad); }}
-                                                                                            className="text-[#C5C5C3] hover:text-green-600 transition-colors"
+                                                                                            className="text-disabled-foreground hover:text-green-600 transition-colors"
                                                                                             title="Aprobar"
                                                                                         >
                                                                                             <CheckCircle className="w-5 h-5" />
                                                                                         </button>
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); handleRejectItem(item._id); }}
-                                                                                            className="text-[#C5C5C3] hover:text-red-500 transition-colors"
+                                                                                            className="text-disabled-foreground hover:text-red-500 transition-colors"
                                                                                             title="Rechazar"
                                                                                         >
                                                                                             <XCircle className="w-5 h-5" />
@@ -1653,10 +1653,10 @@ export default function ProyectoRequisicionesPage() {
                                             </div>
 
                                             {/* Nota General */}
-                                            <div className="ml-12 mt-4 border-l-2 border-gray-200 pl-4">
-                                                <p className="text-xs text-gray-400 mb-1">Nota General:</p>
-                                                <p className="text-sm text-gray-600">
-                                                    {req.descripcion || <span className="text-gray-300 italic">Sin notas</span>}
+                                            <div className="ml-12 mt-4 border-l-2 border-border pl-4">
+                                                <p className="text-xs text-disabled-foreground mb-1">Nota General:</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {req.descripcion || <span className="text-disabled-foreground italic">Sin notas</span>}
                                                 </p>
                                             </div>
                                         </div>
@@ -1674,7 +1674,7 @@ export default function ProyectoRequisicionesPage() {
             }}>
                 <DialogContent className="max-w-lg rounded-none">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-normal text-gray-900">
+                        <DialogTitle className="text-xl font-normal text-foreground">
                             {pendingStatusChange?.title || "Actualizar estado"}
                         </DialogTitle>
                         <DialogDescription>
@@ -1683,7 +1683,7 @@ export default function ProyectoRequisicionesPage() {
                     </DialogHeader>
 
                     <div className="space-y-5">
-                        <div className="rounded-none border border-[#EEEEEE] bg-[#F8F8F7] px-4 py-3 text-sm text-[#777770]">
+                        <div className="rounded-none border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
                             <div className="flex items-start gap-3">
                                 <MessageSquare className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#50AC66]" />
                                 <p>
@@ -1693,31 +1693,31 @@ export default function ProyectoRequisicionesPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-[#282822]">
-                                <MessageSquare className="h-4 w-4 text-gray-400" />
+                            <Label className="flex items-center gap-2 text-foreground">
+                                <MessageSquare className="h-4 w-4 text-disabled-foreground" />
                                 Comentario *
                             </Label>
                             <Textarea
                                 value={statusHistoryComment}
                                 onChange={(e) => setStatusHistoryComment(e.target.value)}
                                 placeholder="Ej. Pago confirmado con transferencia, entrega validada en obra, aprobación autorizada por dirección..."
-                                className="min-h-[110px] rounded-none border-gray-300 resize-none"
+                                className="min-h-[110px] rounded-none border-border-strong resize-none"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-[#282822]">
-                                <FileUp className="h-4 w-4 text-gray-400" />
+                            <Label className="flex items-center gap-2 text-foreground">
+                                <FileUp className="h-4 w-4 text-disabled-foreground" />
                                 Documento opcional
                             </Label>
-                            <label className="flex cursor-pointer items-center justify-between gap-3 border border-dashed border-gray-300 px-4 py-3 text-sm text-[#777770] hover:border-[#7EC18E]">
+                            <label className="flex cursor-pointer items-center justify-between gap-3 border border-dashed border-border-strong px-4 py-3 text-sm text-muted-foreground hover:border-[#7EC18E]">
                                 <span className="flex min-w-0 items-center gap-2">
-                                    <Paperclip className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                    <Paperclip className="h-4 w-4 flex-shrink-0 text-disabled-foreground" />
                                     <span className="truncate">
                                         {statusHistoryDocument ? statusHistoryDocument.name : "Adjuntar comprobante, factura o evidencia"}
                                     </span>
                                 </span>
-                                <span className="text-xs text-[#ADADA9]">Seleccionar</span>
+                                <span className="text-xs text-disabled-foreground">Seleccionar</span>
                                 <input
                                     type="file"
                                     className="hidden"
@@ -1735,7 +1735,7 @@ export default function ProyectoRequisicionesPage() {
                             )}
                         </div>
 
-                        <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+                        <div className="flex justify-end gap-2 border-t border-border pt-4">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1763,10 +1763,10 @@ export default function ProyectoRequisicionesPage() {
             <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
                 <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-5xl rounded-none p-0 overflow-hidden">
                     <div className="grid max-h-[calc(100dvh-2rem)] grid-cols-1 overflow-y-auto lg:grid-cols-[360px_minmax(0,1fr)] lg:overflow-hidden">
-                        <div className="space-y-5 border-b border-gray-200 p-4 sm:space-y-6 sm:p-6 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+                        <div className="space-y-5 border-b border-border p-4 sm:space-y-6 sm:p-6 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
                             <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2 text-xl font-normal text-gray-900">
-                                    <Mail className="h-5 w-5 text-gray-500" />
+                                <DialogTitle className="flex items-center gap-2 text-xl font-normal text-foreground">
+                                    <Mail className="h-5 w-5 text-subtle-foreground" />
                                     Notificaciones por correo
                                 </DialogTitle>
                                 <DialogDescription>
@@ -1790,23 +1790,23 @@ export default function ProyectoRequisicionesPage() {
                                 </Select>
                             </div>
 
-                            <div className="border border-[#E7E7E4] bg-[#FBFBFB] p-4 text-sm">
+                            <div className="border border-border bg-card p-4 text-sm">
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                                     <div>
-                                        <p className="text-xs text-gray-400">Audiencia</p>
-                                        <p className="mt-1 text-gray-800">{selectedNotificationConfig.audienceLabel}</p>
+                                        <p className="text-xs text-disabled-foreground">Audiencia</p>
+                                        <p className="mt-1 text-foreground">{selectedNotificationConfig.audienceLabel}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-400">Canal</p>
-                                        <p className="mt-1 text-gray-800">{selectedNotificationConfig.channelsLabel}</p>
+                                        <p className="text-xs text-disabled-foreground">Canal</p>
+                                        <p className="mt-1 text-foreground">{selectedNotificationConfig.channelsLabel}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-400">Prioridad</p>
-                                        <p className="mt-1 text-gray-800">{selectedNotificationConfig.priorityLabel}</p>
+                                        <p className="text-xs text-disabled-foreground">Prioridad</p>
+                                        <p className="mt-1 text-foreground">{selectedNotificationConfig.priorityLabel}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-400">SLA</p>
-                                        <p className="mt-1 text-gray-800">{selectedNotificationConfig.slaLabel}</p>
+                                        <p className="text-xs text-disabled-foreground">SLA</p>
+                                        <p className="mt-1 text-foreground">{selectedNotificationConfig.slaLabel}</p>
                                     </div>
                                 </div>
                             </div>
@@ -1834,43 +1834,43 @@ export default function ProyectoRequisicionesPage() {
                                     value={notificationMessage}
                                     onChange={(e) => setNotificationMessage(e.target.value)}
                                     placeholder="Ej. Se requiere revisar esta requisición antes de autorizar la compra."
-                                    className="min-h-28 w-full resize-none rounded-none border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-500"
+                                    className="min-h-28 w-full resize-none rounded-none border border-border-strong bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-border-strong"
                                 />
                             </div>
 
-                            <div className="border border-gray-200 bg-[#FBFBFB] p-4">
-                                <p className="text-sm text-gray-500">Destinatarios</p>
-                                <p className="mt-1 text-2xl text-gray-900">{recipientsToNotifyCount}</p>
-                                <p className="mt-1 text-xs text-gray-500">Usuarios activos que coinciden con la audiencia definida.</p>
+                            <div className="border border-border bg-card p-4">
+                                <p className="text-sm text-subtle-foreground">Destinatarios</p>
+                                <p className="mt-1 text-2xl text-foreground">{recipientsToNotifyCount}</p>
+                                <p className="mt-1 text-xs text-subtle-foreground">Usuarios activos que coinciden con la audiencia definida.</p>
                                 {notificationRequiresMissingReq && (
                                     <p className="mt-2 text-xs text-red-600">Este tipo requiere seleccionar una requisición.</p>
                                 )}
                             </div>
 
-                            <div className="border border-gray-200 bg-white p-4">
+                            <div className="border border-border bg-card p-4">
                                 <div className="flex items-center justify-between gap-3">
-                                    <p className="text-sm font-medium text-gray-700">Eventos recientes</p>
+                                    <p className="text-sm font-medium text-foreground">Eventos recientes</p>
                                     <Badge variant="outline" className="rounded-none text-[10px]">
                                         notification_events
                                     </Badge>
                                 </div>
                                 <div className="mt-3 space-y-3">
                                     {!notificationEvents ? (
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <div className="flex items-center gap-2 text-xs text-subtle-foreground">
                                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                             Cargando eventos...
                                         </div>
                                     ) : notificationEvents.length === 0 ? (
-                                        <p className="text-xs text-gray-500">Aun no hay envios registrados para este proyecto.</p>
+                                        <p className="text-xs text-subtle-foreground">Aun no hay envios registrados para este proyecto.</p>
                                     ) : (
                                         notificationEvents.map((event) => {
                                             const readCount = event.deliveries.filter((delivery) => Boolean(delivery.read_at)).length;
                                             return (
-                                                <div key={event._id} className="border border-gray-100 bg-[#FBFBFB] p-3">
+                                                <div key={event._id} className="border border-border bg-card p-3">
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="min-w-0">
-                                                            <p className="truncate text-sm font-medium text-gray-800">{event.subject}</p>
-                                                            <p className="mt-1 text-xs text-gray-500">
+                                                            <p className="truncate text-sm font-medium text-foreground">{event.subject}</p>
+                                                            <p className="mt-1 text-xs text-subtle-foreground">
                                                                 {event.actor_name} · {formatNotificationDate(event.sent_at || event.created_at)}
                                                             </p>
                                                         </div>
@@ -1878,7 +1878,7 @@ export default function ProyectoRequisicionesPage() {
                                                             {event.status}
                                                         </Badge>
                                                     </div>
-                                                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-gray-600">
+                                                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                                                         <span>Enviados: {event.sent_count}</span>
                                                         <span>Fallidos: {event.failed_count}</span>
                                                         <span>Leidos: {readCount}</span>
@@ -1913,8 +1913,8 @@ export default function ProyectoRequisicionesPage() {
                             </div>
                         </div>
 
-                        <div className="bg-[#F3F4F6] p-4 sm:p-8 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto">
-                            <div className="mx-auto max-w-[680px] overflow-hidden rounded-xl border border-gray-200 bg-white">
+                        <div className="bg-muted p-4 sm:p-8 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto">
+                            <div className="mx-auto max-w-[680px] overflow-hidden rounded-xl border border-border bg-card">
                                 <div className="flex justify-center px-5 py-6 sm:px-8 sm:py-8">
                                     <img
                                         src="https://www.ogc.mx/_next/static/media/Logo.a1dfe6e3.svg"
@@ -1935,22 +1935,22 @@ export default function ProyectoRequisicionesPage() {
                                                 .toUpperCase()}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-xl leading-relaxed text-gray-900 sm:text-2xl">
+                                            <p className="text-xl leading-relaxed text-foreground sm:text-2xl">
                                                 <span>{currentUser?.name || "Usuario OGC"} </span>
                                                 <span className="text-[#0073EA]">{notificationCopy.action}</span>
                                                 <span> en </span>
                                                 <span className="font-semibold">{notificationCopy.requisicionTitle}</span>
                                             </p>
-                                            <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-gray-500">
+                                            <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-subtle-foreground">
                                                 <span className="h-2 w-2 rounded-full bg-[#50AC66]" />
                                                 <span>{proyecto.nombre}</span>
-                                                <ChevronDown className="h-4 w-4 -rotate-90 text-gray-400" />
+                                                <ChevronDown className="h-4 w-4 -rotate-90 text-disabled-foreground" />
                                                 <span>{notificationCopy.statusLabel}</span>
                                             </div>
-                                            <p className="mt-8 text-sm text-gray-500">
+                                            <p className="mt-8 text-sm text-subtle-foreground">
                                                 {new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                                             </p>
-                                            <p className="mt-6 text-lg leading-relaxed text-gray-900">
+                                            <p className="mt-6 text-lg leading-relaxed text-foreground">
                                                 {notificationCopy.message}
                                             </p>
                                             <div className="mt-8 flex justify-center sm:mt-12">
@@ -2007,7 +2007,7 @@ export default function ProyectoRequisicionesPage() {
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={backToProviderList}
-                                        className="p-1 hover:bg-gray-100 rounded"
+                                        className="p-1 hover:bg-muted rounded"
                                     >
                                         <ChevronLeft className="h-5 w-5" />
                                     </button>
@@ -2105,48 +2105,48 @@ export default function ProyectoRequisicionesPage() {
                                 <div className="space-y-4 overflow-y-auto flex-1">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-gray-500">Razón Social</Label>
+                                            <Label className="text-xs text-subtle-foreground">Razón Social</Label>
                                             <p className="">{viewingProvider.razon_social}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-gray-500">RFC</Label>
+                                            <Label className="text-xs text-subtle-foreground">RFC</Label>
                                             <p className="">{viewingProvider.rfc}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label className="text-xs text-gray-500">Dirección</Label>
+                                        <Label className="text-xs text-subtle-foreground">Dirección</Label>
                                         <p>{viewingProvider.direccion || "No especificada"}</p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-gray-500">Contacto</Label>
+                                            <Label className="text-xs text-subtle-foreground">Contacto</Label>
                                             <p>{viewingProvider.nombre_contacto || "No especificado"}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-gray-500">Teléfono</Label>
+                                            <Label className="text-xs text-subtle-foreground">Teléfono</Label>
                                             <p>{viewingProvider.telefono_contacto || "No especificado"}</p>
                                         </div>
                                     </div>
                                     <div className="border-t pt-4">
-                                        <Label className="text-xs text-gray-500 block mb-2">Información Bancaria</Label>
+                                        <Label className="text-xs text-subtle-foreground block mb-2">Información Bancaria</Label>
                                         <div className="grid grid-cols-3 gap-4">
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-gray-400">Banco</Label>
+                                                <Label className="text-xs text-disabled-foreground">Banco</Label>
                                                 <p className="text-sm">{viewingProvider.banco || "-"}</p>
                                             </div>
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-gray-400">Cuenta</Label>
+                                                <Label className="text-xs text-disabled-foreground">Cuenta</Label>
                                                 <p className="text-sm">{viewingProvider.cuenta || "-"}</p>
                                             </div>
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-gray-400">CLABE</Label>
+                                                <Label className="text-xs text-disabled-foreground">CLABE</Label>
                                                 <p className="text-sm">{viewingProvider.clabe || "-"}</p>
                                             </div>
                                         </div>
                                     </div>
                                     {viewingProvider.creator_name && (
                                         <div className="border-t pt-4">
-                                            <p className="text-xs text-gray-400">
+                                            <p className="text-xs text-disabled-foreground">
                                                 Creado por: {viewingProvider.creator_name}
                                             </p>
                                         </div>
@@ -2189,7 +2189,7 @@ export default function ProyectoRequisicionesPage() {
                             </DialogHeader>
 
                             {/* Mode Toggle */}
-                            <div className="flex gap-2 border-b border-gray-200 pb-4">
+                            <div className="flex gap-2 border-b border-border pb-4">
                                 <Button
                                     variant={providerMode === "select" ? "default" : "outline"}
                                     size="sm"
@@ -2217,7 +2217,7 @@ export default function ProyectoRequisicionesPage() {
                                 <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
                                     {/* Search */}
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-disabled-foreground" />
                                         <Input
                                             placeholder="Buscar por nombre, RFC o contacto..."
                                             value={providerSearchTerm}
@@ -2229,7 +2229,7 @@ export default function ProyectoRequisicionesPage() {
                                     {/* Provider List */}
                                     <div className="flex-1 overflow-y-auto border rounded-lg max-h-[300px]">
                                         {filteredProviders.length === 0 ? (
-                                            <div className="p-8 text-center text-gray-500">
+                                            <div className="p-8 text-center text-subtle-foreground">
                                                 {providerSearchTerm ? "No se encontraron proveedores" : "No hay proveedores registrados"}
                                             </div>
                                         ) : (
@@ -2242,10 +2242,10 @@ export default function ProyectoRequisicionesPage() {
                                                         onClick={() => setSelectedProviderId(proveedor._id)}
                                                     >
                                                         <div className="flex-1 min-w-0">
-                                                            <p className=" text-gray-900 truncate">{proveedor.razon_social}</p>
-                                                            <p className="text-sm text-gray-500">{proveedor.rfc}</p>
+                                                            <p className=" text-foreground truncate">{proveedor.razon_social}</p>
+                                                            <p className="text-sm text-subtle-foreground">{proveedor.rfc}</p>
                                                             {proveedor.nombre_contacto && (
-                                                                <p className="text-xs text-gray-400">{proveedor.nombre_contacto}</p>
+                                                                <p className="text-xs text-disabled-foreground">{proveedor.nombre_contacto}</p>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-1 ml-2">
@@ -2254,10 +2254,10 @@ export default function ProyectoRequisicionesPage() {
                                                                     e.stopPropagation();
                                                                     openProviderView(proveedor._id);
                                                                 }}
-                                                                className="p-1.5 hover:bg-gray-200 rounded"
+                                                                className="p-1.5 hover:bg-disabled rounded"
                                                                 title="Ver detalles"
                                                             >
-                                                                <Eye className="h-4 w-4 text-gray-500" />
+                                                                <Eye className="h-4 w-4 text-subtle-foreground" />
                                                             </button>
                                                             {canEditProvider(proveedor) && (
                                                                 <button
@@ -2266,10 +2266,10 @@ export default function ProyectoRequisicionesPage() {
                                                                         setCommonProviderForEdit(proveedor);
                                                                         setCommonProviderFormOpen(true);
                                                                     }}
-                                                                    className="p-1.5 hover:bg-gray-200 rounded"
+                                                                    className="p-1.5 hover:bg-disabled rounded"
                                                                     title="Editar"
                                                                 >
-                                                                    <Edit2 className="h-4 w-4 text-gray-500" />
+                                                                    <Edit2 className="h-4 w-4 text-subtle-foreground" />
                                                                 </button>
                                                             )}
                                                         </div>

@@ -34,7 +34,7 @@ export default function MenuMobile() {
         <Button
           variant={"ghost"}
           size={"icon"}
-          className="rounded-md bg-gray-500 text-white"
+          className="rounded-md bg-subtle-foreground text-on-color"
           aria-label="Open menu"
         >
           <MdMenu className="h-6 w-6" />

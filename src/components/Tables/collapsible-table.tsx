@@ -58,7 +58,7 @@ export function CollapsibleTable({ data }: { data: PartidaItem }) {
     return (
         <Card className="w-full overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-5 gap-4 p-4 bg-gray-100 border-b font-semibold text-gray-700">
+            <div className="grid grid-cols-5 gap-4 p-4 bg-muted border-b font-semibold text-foreground">
                 <div>ID</div>
                 <div>PARTIDA</div>
                 <div>FAMILIA</div>
@@ -74,14 +74,14 @@ export function CollapsibleTable({ data }: { data: PartidaItem }) {
                     return (
                         <div key={partida.id}>
                             {/* PARTIDA Row */}
-                            <div className="grid grid-cols-5 gap-4 p-3 border-b border-gray-200 hover:bg-gray-50 transition-colors bg-white">
+                            <div className="grid grid-cols-5 gap-4 p-3 border-b border-border hover:bg-background transition-colors bg-card">
                                 <div className="flex items-center gap-2">
                                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => togglePartida(partida.id)}>
                                         {isPartidaExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                     </Button>
                                     <span className="text-sm font-medium text-green-700">{partida.id}</span>
                                 </div>
-                                <div className="font-bold text-gray-900">{partida.name}</div>
+                                <div className="font-bold text-foreground">{partida.name}</div>
                                 <div></div>
                                 <div></div>
                                 <div></div>
@@ -96,7 +96,7 @@ export function CollapsibleTable({ data }: { data: PartidaItem }) {
                                         <div key={familia.id}>
                                             {/* FAMILIA Row */}
                                             <div
-                                                className="grid grid-cols-5 gap-4 p-3 border-b border-gray-200 hover:bg-gray-50 transition-colors bg-gray-50"
+                                                className="grid grid-cols-5 gap-4 p-3 border-b border-border hover:bg-background transition-colors bg-background"
                                                 style={{ paddingLeft: "32px" }}
                                             >
                                                 <div className="flex items-center gap-2">
@@ -115,7 +115,7 @@ export function CollapsibleTable({ data }: { data: PartidaItem }) {
                                                     <span className="text-sm font-medium text-blue-700">{familia.id}</span>
                                                 </div>
                                                 <div></div>
-                                                <div className="font-semibold text-gray-800">{familia.name}</div>
+                                                <div className="font-semibold text-foreground">{familia.name}</div>
                                                 <div></div>
                                                 <div></div>
                                             </div>
@@ -125,7 +125,7 @@ export function CollapsibleTable({ data }: { data: PartidaItem }) {
                                                 familia.subpartidas.map((subpartida) => (
                                                     <div
                                                         key={subpartida._id}
-                                                        className="grid grid-cols-5 gap-4 p-3 border-b border-gray-200 hover:bg-gray-50 transition-colors bg-blue-50"
+                                                        className="grid grid-cols-5 gap-4 p-3 border-b border-border hover:bg-background transition-colors bg-blue-50"
                                                         style={{ paddingLeft: "52px" }}
                                                     >
                                                         <div className="flex items-center gap-2">
@@ -134,9 +134,9 @@ export function CollapsibleTable({ data }: { data: PartidaItem }) {
                                                         </div>
                                                         <div></div>
                                                         <div></div>
-                                                        <div className="text-gray-700">
+                                                        <div className="text-foreground">
                                                             <div className="font-medium">{subpartida.description}</div>
-                                                            <div className="text-sm text-gray-500">{subpartida.specification}</div>
+                                                            <div className="text-sm text-subtle-foreground">{subpartida.specification}</div>
                                                         </div>
                                                         <div className="flex justify-end">
                                                         </div>

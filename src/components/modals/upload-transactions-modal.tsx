@@ -48,7 +48,7 @@ export default function UploadTransactionsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent data-square-modal="" className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Importar transacciones</DialogTitle>
           <DialogDescription>
@@ -58,7 +58,7 @@ export default function UploadTransactionsModal() {
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4">
+          <div className="flex items-center gap-3 rounded-none border bg-muted/30 p-4">
             <FileSpreadsheet className="h-8 w-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
               Todas las importaciones usan la misma vista previa e idempotencia por archivo.
@@ -74,7 +74,7 @@ export default function UploadTransactionsModal() {
               <SelectTrigger id="transaction-import-project">
                 <SelectValue placeholder="Selecciona un proyecto" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent data-square-modal="">
                 {proyectos?.map((proyecto) => (
                   <SelectItem key={proyecto._id} value={proyecto._id}>
                     {proyecto.nombre}

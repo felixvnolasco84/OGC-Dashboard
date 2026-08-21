@@ -303,16 +303,16 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
 
   return (
     <div className="space-y-4">
-      <div className="bg-white border border-gray-200 overflow-hidden">
+      <div className="bg-card border border-border overflow-hidden">
         <Table>
-          <TableHeader className="bg-white">
-            <TableRow className="border-b border-gray-200">
+          <TableHeader className="bg-card">
+            <TableRow className="border-b border-border">
 
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                 Partida - Familia - Subpartida
               </TableHead>
               {/* <TableHead 
-                className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 cursor-pointer hover:bg-gray-50"
+                className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border cursor-pointer hover:bg-background"
                 onClick={togglePrecioUnitario}
               >
                 <div className="flex items-center gap-2">
@@ -322,30 +322,30 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
               </TableHead> */}
               {showPrecioUnitario && (
                 <>
-                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-gray-200 ">
+                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-border ">
                     Unidad
                   </TableHead>
-                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-gray-200 ">
+                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-border ">
                     Cantidad
                   </TableHead>
-                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-gray-200 ">
+                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-border ">
                     Precio Unitario
                   </TableHead>
                 </>
               )}
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                 Presupuesto original
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                 Presupuesto aprobado
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                 {dateFilterLabel ? `Pagado (${dateFilterLabel})` : "Pagado"}
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
                 Avance
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-gray-200 last:border-r-0">
+              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -360,9 +360,9 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
               return (
                 <React.Fragment key={item.uniqueId}>
                   <TableRow
-                    className="border-b border-gray-100 hover:bg-gray-50"
+                    className="border-b border-border hover:bg-background"
                   >
-                    <TableCell className="px-4 py-4 text-base text-gray-900 border-r border-gray-100 last:border-r-0 text-left">
+                    <TableCell className="px-4 py-4 text-base text-foreground border-r border-border last:border-r-0 text-left">
                       <div
                         className="flex items-center space-x-2"
                         style={{ paddingLeft: `${item.level * 20}px` }}
@@ -376,38 +376,38 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                             data-viewer-readonly-allow="true"
                           >
                             {item.expanded ? (
-                              <ChevronDown className="h-4 w-4 text-[#AFAEA2]" />
+                              <ChevronDown className="h-4 w-4 text-disabled-foreground" />
                             ) : (
-                              <ChevronRight className="h-4 w-4 text-[#AFAEA2]" />
+                              <ChevronRight className="h-4 w-4 text-disabled-foreground" />
                             )}
                           </Button>
                         ) : (
                           <div className="w-4" />
                         )}
-                        <span className={`${item.level > 0 ? 'text-gray-600 text-wrap max-w-48' : 'text-gray-900 font-medium'}`}>
+                        <span className={`${item.level > 0 ? 'text-muted-foreground text-wrap max-w-48' : 'text-foreground font-medium'}`}>
                           {item.displayName}
                         </span>
                       </div>
                     </TableCell>
-                    {/* <TableCell className="px-4 py-4 text-base text-[#AFAEA2] border-r border-gray-100 last:border-r-0 text-center">
+                    {/* <TableCell className="px-4 py-4 text-base text-disabled-foreground border-r border-border last:border-r-0 text-center">
                     </TableCell> */}
                     {showPrecioUnitario && (
                       <>
-                        <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r font-light border-gray-100">
+                        <TableCell className="px-4 py-4 text-base text-disabled-foreground text-left border-r font-light border-border">
                           {item.unidad || null}
                         </TableCell>
-                        <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r font-light border-gray-100">
+                        <TableCell className="px-4 py-4 text-base text-disabled-foreground text-left border-r font-light border-border">
                           {item.cantidad ? item.cantidad.toLocaleString('es-MX') : null}
                         </TableCell>
-                        <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r font-light border-gray-100">
+                        <TableCell className="px-4 py-4 text-base text-disabled-foreground text-left border-r font-light border-border">
                           {item.precioUnitario ? formatCurrency(item.precioUnitario, defaultCurrency) : null}
                         </TableCell>
                       </>
                     )}
-                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       {formatCurrency(item.presupuestoOriginal, defaultCurrency)}
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       <div className="flex flex-col gap-2 text-left">
                         <span>{formatCurrency(item.presupuestoAprobado, defaultCurrency)}</span>
                         {!approvedDiff.isEqual && (
@@ -424,7 +424,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       <div className="flex flex-col gap-2 text-left">
                         {/* For Honorarios level 0 items, show honorarios_monto from proyecto in pagado column */}
                         {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_monto !== undefined && !filteredPayments ? (
@@ -437,7 +437,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                             className={cn(
                               "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
                               porGastarBadge.isRemaining
-                                ? 'bg-[#f5f5f5] text-[#AFAEA2] hover:bg-[#f5f5f5] border border-[#b8b7ac]'
+                                ? 'bg-muted text-disabled-foreground hover:bg-muted border border-border-strong'
                                 : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
                             )}
                           >
@@ -446,7 +446,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-gray-900 text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       {/* For Honorarios level 0 items, show honorarios_porcentaje from proyecto */}
                       {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_porcentaje !== undefined ? (
                         <span>{proyecto.honorarios_porcentaje}%</span>
@@ -454,7 +454,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                         <span>{item.avance}%</span>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-[#AFAEA2] text-left border-r border-gray-100 last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-disabled-foreground text-left border-r border-border last:border-r-0">
                       <DropdownMenuComponentPartida
                         partida={item.originalDoc!}
                         level={item.level}
@@ -493,15 +493,15 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
       {status === "LoadingMore" && (
         <div className="flex justify-center py-4">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
-            <p className="text-base text-[#AFAEA2]">Cargando más partidas...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-2"></div>
+            <p className="text-base text-disabled-foreground">Cargando más partidas...</p>
           </div>
         </div>
       )}
 
       {status === "Exhausted" && data.length > 100 && (
         <div className="flex justify-center py-4">
-          <p className="text-base text-[#AFAEA2]">Todas las partidas han sido cargadas</p>
+          <p className="text-base text-disabled-foreground">Todas las partidas han sido cargadas</p>
         </div>
       )}
     </div>

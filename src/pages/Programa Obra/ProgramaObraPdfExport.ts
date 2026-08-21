@@ -1,5 +1,6 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { STATIC_NEUTRAL_COLORS } from "@/lib/design-tokens";
 import type { ProgramaItem } from "./programa-obra-types";
 
 export interface ComentarioForPdf {
@@ -243,7 +244,7 @@ export async function exportProgramaObraPdf({
     const leftCanvas = await html2canvas(leftColumnsEl, {
       scale: 2,
       useCORS: true,
-      backgroundColor: "#ffffff",
+      backgroundColor: STATIC_NEUTRAL_COLORS.surface,
       logging: false,
     });
 
@@ -251,7 +252,7 @@ export async function exportProgramaObraPdf({
     const timelineCanvas = await html2canvas(timelineEl, {
       scale: 2,
       useCORS: true,
-      backgroundColor: "#ffffff",
+      backgroundColor: STATIC_NEUTRAL_COLORS.surface,
       logging: false,
       width: timelineEl.scrollWidth,
       windowWidth: timelineEl.scrollWidth + leftColumnsEl.offsetWidth + 100,

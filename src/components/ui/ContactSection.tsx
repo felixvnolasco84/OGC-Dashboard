@@ -51,7 +51,7 @@ const onSubmit = async (dataValues: {
     >
       {/* Encabezado y Título */}
       <div className="mb-12 text-center md:mb-16">
-        <h3 className="poppins mb-6 text-sm font-semibold uppercase tracking-wider text-[#6D6D6D]">
+        <h3 className="poppins mb-6 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Contacto
         </h3>
         <h2 className="mb-4 text-3xl font-light text-blue-800 md:text-4xl lg:text-6xl">
@@ -59,10 +59,10 @@ const onSubmit = async (dataValues: {
           <br />
           es saber que nunca estás solo.
         </h2>
-        <p className="mx-auto mt-2 max-w-xl text-lg text-[#6D6D6D] lg:mt-4">
+        <p className="mx-auto mt-2 max-w-xl text-lg text-muted-foreground lg:mt-4">
           Próxima apertura en enero 2026.
         </p>
-        <p className="mx-auto mt-4 max-w-xl text-lg text-[#6D6D6D] lg:mt-4">
+        <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground lg:mt-4">
           Si estás interesado en formar parte de nuestra comunidad, <br />{" "}
           déjanos tus datos y en breve nos pondremos en contacto contigo.
         </p>
@@ -83,13 +83,13 @@ const onSubmit = async (dataValues: {
                 name="nombre"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-[#6D6D6D]">
+                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                       Nombre
                     </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
-                        className="rounded-none border-b border-l-0 border-r-0 border-t-0 border-gray-300 px-0 focus-visible:border-blue-800 focus-visible:ring-0"
+                        className="rounded-none border-b border-l-0 border-r-0 border-t-0 border-border-strong px-0 focus-visible:border-blue-800 focus-visible:ring-0"
                       />
                     </FormControl>
                     <FormMessage />
@@ -103,13 +103,13 @@ const onSubmit = async (dataValues: {
                 name="apellidos"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-[#6D6D6D]">
+                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                       Apellidos
                     </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
-                        className="rounded-none border-b border-l-0 border-r-0 border-t-0 border-gray-300 px-0 focus-visible:border-blue-800 focus-visible:ring-0"
+                        className="rounded-none border-b border-l-0 border-r-0 border-t-0 border-border-strong px-0 focus-visible:border-blue-800 focus-visible:ring-0"
                       />
                     </FormControl>
                     <FormMessage />
@@ -123,14 +123,14 @@ const onSubmit = async (dataValues: {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-[#6D6D6D]">
+                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                       Correo Electrónico
                     </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         type="email"
-                        className="rounded-none border-b border-l-0 border-r-0 border-t-0 border-gray-300 px-0 focus-visible:border-blue-800 focus-visible:ring-0"
+                        className="rounded-none border-b border-l-0 border-r-0 border-t-0 border-border-strong px-0 focus-visible:border-blue-800 focus-visible:ring-0"
                       />
                     </FormControl>
                     <FormMessage />
@@ -144,14 +144,14 @@ const onSubmit = async (dataValues: {
                 name="telefono"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-[#6D6D6D]">
+                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                       Teléfono
                     </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         type="tel"
-                        className="rounded-none border-b border-l-0 border-r-0 border-t-0 border-gray-300 px-0 shadow-none focus-visible:border-blue-800 focus-visible:ring-0"
+                        className="rounded-none border-b border-l-0 border-r-0 border-t-0 border-border-strong px-0 shadow-none focus-visible:border-blue-800 focus-visible:ring-0"
                       />
                     </FormControl>
                     <FormMessage />
@@ -164,7 +164,7 @@ const onSubmit = async (dataValues: {
             <div className="space-y-6 text-left">
               {/* Opciones de Residencia */}
               <div>
-                <h4 className="poppins mb-4 text-sm font-semibold uppercase tracking-wider text-[#6D6D6D]">
+                <h4 className="poppins mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                   Residencia
                 </h4>
                 <FormField
@@ -183,7 +183,7 @@ const onSubmit = async (dataValues: {
                               <RadioGroupItem
                                 value="para_mi"
                                 id="para_mi"
-                                className="h-6 w-6 border border-[#C6C6C6] text-blue-800"
+                                className="h-6 w-6 border border-border-strong text-blue-800"
                               />
                             </FormControl>
                             <Label htmlFor="para_mi" className="font-normal">
@@ -195,7 +195,7 @@ const onSubmit = async (dataValues: {
                               <RadioGroupItem
                                 value="para_mis_papas"
                                 id="para_mis_papas"
-                                className="h-6 w-6 border border-[#C6C6C6] text-blue-800"
+                                className="h-6 w-6 border border-border-strong text-blue-800"
                               />
                             </FormControl>
                             <Label
@@ -210,7 +210,7 @@ const onSubmit = async (dataValues: {
                               <RadioGroupItem
                                 value="otros"
                                 id="otros"
-                                className="h-6 w-6 border border-[#C6C6C6] text-blue-800"
+                                className="h-6 w-6 border border-border-strong text-blue-800"
                               />
                             </FormControl>
                             <Label htmlFor="otros" className="font-normal">
@@ -231,7 +231,7 @@ const onSubmit = async (dataValues: {
                 name="mensaje"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-[#6D6D6D]">
+                    <FormLabel className="poppins text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                       Mensaje
                     </FormLabel>
                     <FormControl>
@@ -251,7 +251,7 @@ const onSubmit = async (dataValues: {
             <div className="mt-4 flex justify-center md:col-span-2">
               <Button
                 type="submit"
-                className="w-full rounded-full bg-blue-800 px-12 py-3 text-sm font-medium uppercase tracking-wider text-white transition-colors duration-300 hover:bg-blue-900 lg:w-fit"
+                className="w-full rounded-full bg-blue-800 px-12 py-3 text-sm font-medium uppercase tracking-wider text-on-color transition-colors duration-300 hover:bg-blue-900 lg:w-fit"
               >
                 Enviar
               </Button>
