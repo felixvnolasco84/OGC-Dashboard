@@ -446,6 +446,7 @@ export default function ProgressChart({
                     getValue: (datum) => datum.secondary,
                     scaleType: 'linear',
                     elementType: "area",
+                    stacked: false,
                     showGrid: false,
                     showDatumElements: false, // Hide data point markers for cleaner look
                     min: 0, // Always start Y-axis from 0
@@ -675,11 +676,8 @@ export default function ProgressChart({
                                         const total = cumulativeGastoReal;
 
                                         return (
-                                            <div style={{
-
-                                                minWidth: '200px'
-                                            }}>
-                                                {/* Date */}
+                                            <div style={{ minWidth: '200px' }}>
+                                                {/* Header chips */}
                                                 <div style={{
                                                     fontSize: '12px',
                                                     fontWeight: '500',
@@ -691,26 +689,19 @@ export default function ProgressChart({
                                                 }}>
                                                     <div style={{
                                                         padding: '8px',
-                                                        borderRadius: '4px',
-
-                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                                        backgroundColor: 'hsl(var(--disabled-foreground))',
-                                                        color: 'hsl(var(--on-color))',
+                                                        borderRadius: '2px',
+                                                        background: '#AFAEA2',
+                                                        color: '#F7F7F5',
                                                         width: 'fit-content',
                                                     }}>
-
                                                         {dateStr}
                                                     </div>
                                                     <div style={{
                                                         padding: '8px',
-                                                        borderRadius: '4px',
-                                                        border: '1px solid hsl(var(--border))',
-                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                                        backgroundColor: 'hsl(var(--card))',
-                                                        color: 'hsl(var(--foreground))',
+                                                        borderRadius: '2px',
+                                                        background: '#F2F2F2',
+                                                        color: '#616158',
                                                         width: 'fit-content',
-
-
                                                     }}>
                                                         {formatCurrency(total)}
                                                     </div>
@@ -721,11 +712,11 @@ export default function ProgressChart({
                                                     display: 'flex',
                                                     flexDirection: 'column',
                                                     gap: '6px',
-                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                                                     padding: '8px',
-                                                    borderRadius: '4px',
-                                                    border: '1px solid hsl(var(--border))',
-                                                    backgroundColor: 'hsl(var(--card))',
+                                                    borderRadius: '2px',
+                                                    background: '#F5F5F5 0% 0% no-repeat padding-box',
+                                                    boxShadow: '0px 3px 6px #0000001A',
+                                                    color: '#8A8A8A',
                                                 }}>
                                                     {seriesData.map((item, idx) => (
                                                         <div key={idx} style={{
@@ -733,7 +724,8 @@ export default function ProgressChart({
                                                             alignItems: 'center',
                                                             justifyContent: 'space-between',
                                                             gap: '12px',
-                                                            fontSize: '12px'
+                                                            fontSize: '12px',
+                                                            color: '#8A8A8A',
                                                         }}>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                 <div style={{
@@ -742,12 +734,9 @@ export default function ProgressChart({
                                                                     borderRadius: '50%',
                                                                     backgroundColor: item.color
                                                                 }}></div>
-                                                                <span style={{ color: 'hsl(var(--muted-foreground))' }}>{item.label}</span>
+                                                                <span>{item.label}</span>
                                                             </div>
-                                                            <span style={{
-                                                                fontWeight: '500',
-                                                                color: 'hsl(var(--foreground))'
-                                                            }}>
+                                                            <span style={{ fontWeight: '500' }}>
                                                                 {formatCurrency(item.value)}
                                                             </span>
                                                         </div>

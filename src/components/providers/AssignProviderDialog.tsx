@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { Loader2, Plus, Search } from "lucide-react";
+import { Check, Loader2, Plus, Search, UserRoundX } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -93,52 +92,93 @@ export default function AssignProviderDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Asignar proveedor</DialogTitle>
+        <DialogContent data-square-modal="" className="min-w-0 w-[calc(100vw-2rem)] max-w-lg gap-0 overflow-hidden border-border bg-card p-0 shadow-2xl">
+          <DialogHeader className="min-w-0 border-b border-border px-6 py-5 pr-12">
+            <DialogTitle className="text-lg font-medium">Asignar proveedor</DialogTitle>
             <DialogDescription>
               {effectiveTransactionIds.length > 1
-                ? `Se actualizarán ${effectiveTransactionIds.length} transacciones. La relación es opcional.`
-                : "La relación es opcional y puede modificarse después."}
+                ? `${effectiveTransactionIds.length} transacciones seleccionadas`
+                : "Selecciona un proveedor para esta transacción"}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Buscar proveedor o RFC" />
+          <div className="min-w-0 space-y-4 px-6 py-5">
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
+              <div className="relative min-w-0">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="h-10 min-w-0 border-border-strong bg-card pl-9 shadow-none"
+                  placeholder="Buscar proveedor o RFC"
+                />
+              </div>
+              <Button variant="outline" className="h-10 shrink-0 border-border-strong px-3 shadow-none" onClick={() => setCreateOpen(true)}>
+                <Plus /> Nuevo
+              </Button>
             </div>
-            <Button variant="outline" onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Nuevo
-            </Button>
-          </div>
-          <ScrollArea className="h-72 border">
-            <button
-              type="button"
-              className={`w-full border-b px-4 py-3 text-left text-sm ${selected === "" ? "bg-muted" : "hover:bg-background"}`}
-              onClick={() => setSelected("")}
-            >
-              Sin proveedor
-            </button>
-            {filtered.map((provider) => (
+            <ScrollArea className="h-[min(18rem,42vh)] min-w-0 border border-border">
               <button
                 type="button"
-                key={provider._id}
-                className={`flex w-full items-center justify-between border-b px-4 py-3 text-left ${selected === provider._id ? "bg-muted" : "hover:bg-background"}`}
-                onClick={() => setSelected(provider._id)}
+                className={`flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors ${selected === "" ? "bg-muted" : "hover:bg-muted/40"}`}
+                onClick={() => setSelected("")}
+                aria-pressed={selected === ""}
               >
-                <span>
-                  <span className="block text-sm font-medium">{provider.razon_social}</span>
-                  <span className="block text-xs text-subtle-foreground">{provider.rfc || "Sin RFC"}</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-border bg-card">
+                  <UserRoundX className="h-4 w-4 text-subtle-foreground" />
                 </span>
-                <Badge variant="outline">
-                  {provider.tipo === "generico" ? "Genérico" : provider.is_complete ? "Completo" : "Incompleto"}
-                </Badge>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">Sin proveedor</span>
+                  <span className="block text-xs text-subtle-foreground">Desvincular la transacción</span>
+                </span>
+                {selected === "" && <Check className="h-4 w-4 shrink-0" />}
               </button>
-            ))}
-          </ScrollArea>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={isSaving || effectiveTransactionIds.length === 0}>
+
+              {providers === undefined ? (
+                <div className="flex h-24 items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin text-subtle-foreground" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="flex h-24 items-center justify-center px-4 text-center text-sm text-subtle-foreground">
+                  No se encontraron proveedores
+                </div>
+              ) : filtered.map((provider) => {
+                const isSelected = selected === provider._id;
+                const providerStatus = provider.tipo === "generico"
+                  ? "Genérico"
+                  : provider.is_complete ? "Datos completos" : "Datos incompletos";
+
+                return (
+                  <button
+                    type="button"
+                    key={provider._id}
+                    className={`flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors last:border-b-0 ${isSelected ? "bg-muted" : "hover:bg-muted/40"}`}
+                    onClick={() => setSelected(provider._id)}
+                    aria-pressed={isSelected}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{provider.razon_social}</span>
+                      <span className="mt-0.5 flex items-center gap-2 text-xs text-subtle-foreground">
+                        <span>{provider.rfc || "Sin RFC"}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{providerStatus}</span>
+                      </span>
+                    </span>
+                    {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                  </button>
+                );
+              })}
+            </ScrollArea>
+          </div>
+          <DialogFooter className="min-w-0 border-t border-border bg-muted/40 px-6 py-4">
+            <Button
+              variant="ghost"
+              className="h-9 px-3 shadow-none"
+              onClick={() => onOpenChange(false)}
+              disabled={isSaving}
+            >
+              Cancelar
+            </Button>
+            <Button className="h-9 min-w-0 px-4 shadow-none" onClick={handleSave} disabled={isSaving || effectiveTransactionIds.length === 0}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar
             </Button>

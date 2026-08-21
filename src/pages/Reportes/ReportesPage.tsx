@@ -980,7 +980,12 @@ export default function ReportesPage() {
                         className={OUTLINE_BUTTON_CLASS}
                         asChild
                       >
-                        <a href={run.artifact.download_url} download={run.artifact.file_name}>
+                        <a
+                          href={run.artifact.download_url}
+                          download={run.artifact.file_name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           <Download className="mr-2 h-4 w-4" />
                           Descargar PDF
                         </a>

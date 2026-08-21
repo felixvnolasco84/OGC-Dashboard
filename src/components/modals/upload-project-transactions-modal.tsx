@@ -60,6 +60,8 @@ type UploadReport = {
   amountTotal: number;
   totalPeople: number;
   replacedDates: number;
+  providersCreated: number;
+  providersReused: number;
 };
 
 function formatCurrency(value: number, currency = "MXN") {
@@ -306,13 +308,15 @@ export default function UploadProjectTransactionsModal() {
         replacedDates: "replaced_dates" in response && typeof response.replaced_dates === "number"
           ? response.replaced_dates
           : 0,
+        providersCreated: response.providers_created,
+        providersReused: response.providers_reused,
       });
       setCurrentStep("result");
       if (response.status === "unchanged") {
         toast.info("El archivo ya estaba activo; no se realizaron escrituras.");
       } else {
         toast.success(response.status === "replaced" ? "Carga reemplazada" : "Carga completada", {
-          description: `${response.transaction_count} pagos procesados de forma atómica.`,
+          description: `${response.transaction_count} pagos, ${response.providers_created} proveedores creados y ${response.providers_reused} reutilizados.`,
         });
       }
     } catch (error) {
@@ -337,6 +341,7 @@ export default function UploadProjectTransactionsModal() {
           <DialogDescription>
             {proyectoNombre ? `Proyecto: ${proyectoNombre}. ` : ""}
             El archivo se procesa localmente y la carga completa se confirma en una sola operación.
+            La columna ADMINISTRACIÓN puede ser un alias (por ejemplo TORRE_G) y se asociará a este proyecto.
           </DialogDescription>
         </DialogHeader>
 
@@ -436,12 +441,19 @@ export default function UploadProjectTransactionsModal() {
                 </div>
               </div>
 
-              {(validationReport.unchanged || validationReport.replacedDates.length > 0) && (
+              {(validationReport.unchanged || validationReport.replacedDates.length > 0 || validationReport.parsed.projectMatchMode === "alias") && (
                 <div className="border border-amber-200 bg-amber-50 rounded-none p-3 text-sm text-amber-800">
                   <AlertTriangle className="inline h-4 w-4 mr-2" />
+                  {validationReport.parsed.projectMatchMode === "alias" && (
+                    <span>
+                      ADMINISTRACIÓN “{validationReport.parsed.administration}” se asoció a {proyectoNombre}.{" "}
+                    </span>
+                  )}
                   {validationReport.unchanged
                     ? "El mismo archivo ya está activo; confirmar devolverá ‘sin cambios’."
-                    : `Se reemplazarán únicamente las cargas del importador para: ${validationReport.replacedDates.map(formatDate).join(", ")}.`}
+                    : validationReport.replacedDates.length > 0
+                      ? `Se reemplazarán únicamente las cargas del importador para: ${validationReport.replacedDates.map(formatDate).join(", ")}.`
+                      : null}
                 </div>
               )}
 
@@ -526,6 +538,10 @@ export default function UploadProjectTransactionsModal() {
                 <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.rowCount}</strong><p className="text-xs text-subtle-foreground">Conceptos</p></div>
                 <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.totalPeople}</strong><p className="text-xs text-subtle-foreground">Personas</p></div>
                 <div className="bg-background p-3 rounded-none text-center"><strong className="text-lg">{formatCurrency(uploadReport.amountTotal, validationReport?.parsed.currency)}</strong><p className="text-xs text-subtle-foreground">Monto</p></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-blue-50 p-3 text-center text-blue-800"><strong className="text-xl">{uploadReport.providersCreated}</strong><p className="text-xs">Proveedores creados</p></div>
+                <div className="bg-green-50 p-3 text-center text-green-800"><strong className="text-xl">{uploadReport.providersReused}</strong><p className="text-xs">Proveedores existentes reutilizados</p></div>
               </div>
               <p className="text-sm text-muted-foreground">
                 Cortes: {uploadReport.dates.map(formatDate).join(", ")}. Lotes reemplazados: {uploadReport.replacedDates}.

@@ -1,3 +1,5 @@
+import { classifyProjectMatch } from "../../convex/projectMatchUtils.ts";
+
 export const LABOR_IMPORT_MAX_FILE_SIZE = 10 * 1024 * 1024;
 export const LABOR_IMPORT_MAX_ROWS = 1_000;
 
@@ -90,6 +92,7 @@ export type LaborPaymentWeek = {
 export type LaborPaymentParseResult = {
   sheetName: string;
   administration: string;
+  projectMatchMode?: "exact" | "normalized" | "alias";
   currency: string;
   rowCount: number;
   amountTotal: number;
@@ -340,12 +343,27 @@ export function parseLaborPaymentRows(
     }
   });
 
-  const administrations = [...new Set(parsedRows.map((row) => normalizeLaborImportText(row.administration)))];
-  if (administrations.length > 1) errors.push("El archivo contiene más de una ADMINISTRACIÓN.");
-  const expectedAdministration = normalizeLaborImportText(options.projectName);
-  if (administrations[0] && administrations[0] !== expectedAdministration) {
-    errors.push(`La administración ${administrations[0]} no coincide con el proyecto ${expectedAdministration}.`);
+  const administrationLabels = [...new Set(
+    parsedRows.map((row) => row.administration.trim()).filter(Boolean),
+  )];
+  const projectCatalog = [{ _id: "current", nombre: options.projectName }];
+  const administrationMatches = administrationLabels.map((label) => ({
+    label,
+    match: classifyProjectMatch(label, projectCatalog),
+  }));
+  const unmatchedAdministrations = administrationMatches.filter(
+    (entry) => entry.match.status !== "matched",
+  );
+  if (unmatchedAdministrations.length) {
+    errors.push(
+      `La administración ${unmatchedAdministrations.map((entry) => entry.label).join(", ")} no coincide con el proyecto ${options.projectName}.`,
+    );
+  } else if (administrationLabels.length > 1) {
+    warnings.push(
+      `El archivo usa más de un nombre de administración (${administrationLabels.join(", ")}); todos se asociaron a ${options.projectName}.`,
+    );
   }
+  const projectMatchMode = administrationMatches.find((entry) => entry.match.mode)?.match.mode;
 
   const currencies = [...new Set(parsedRows.map((row) => row.moneda))];
   if (currencies.length > 1) errors.push("El archivo mezcla monedas; la carga de mano de obra requiere una sola moneda.");
@@ -478,6 +496,7 @@ export function parseLaborPaymentRows(
   return {
     sheetName: options.sheetName || "CARGA",
     administration: parsedRows[0].administration,
+    projectMatchMode,
     currency: currencies[0],
     rowCount: parsedRows.length,
     amountTotal: roundMoney(parsedRows.reduce((sum, row) => sum + row.monto, 0)),

@@ -64,6 +64,23 @@ export function classifyProviderMatch<
   };
 }
 
+export function classifyProviderImportAction<
+  TProvider extends ProviderMatchCandidate<unknown>,
+>(
+  providerName: string,
+  providersByName: ReadonlyMap<string, readonly TProvider[]>,
+) {
+  const match = classifyProviderMatch(providerName, providersByName);
+  const action = match.status === "matched"
+    ? "reuse" as const
+    : match.status === "unmatched"
+      ? "create" as const
+      : match.status === "archived"
+        ? "blocked_archived" as const
+        : "blocked_conflict" as const;
+  return { ...match, action };
+}
+
 export function classifyTransactionProviderMatch<
   TProvider extends ProviderMatchCandidate<unknown>,
 >(

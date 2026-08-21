@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildProviderMatchIndex,
+  classifyProviderImportAction,
   classifyProviderMatch,
   classifyTransactionProviderMatch,
   isGenericProviderName,
@@ -55,6 +56,22 @@ const providerMatchIndex = buildProviderMatchIndex([
 const activeMatch = classifyProviderMatch(" FERRETERIA   SANTANA ", providerMatchIndex);
 assert.equal(activeMatch.status, "matched");
 assert.equal(activeMatch.provider?._id, "active");
+assert.equal(
+  classifyProviderImportAction("FERRETERÍA SANTANA", providerMatchIndex).action,
+  "reuse",
+);
+assert.equal(
+  classifyProviderImportAction("Proveedor nuevo", providerMatchIndex).action,
+  "create",
+);
+assert.equal(
+  classifyProviderImportAction("Proveedor archivado", providerMatchIndex).action,
+  "blocked_archived",
+);
+assert.equal(
+  classifyProviderImportAction("Proveedor duplicado", providerMatchIndex).action,
+  "blocked_conflict",
+);
 assert.equal(classifyProviderMatch("Proveedor archivado", providerMatchIndex).status, "archived");
 assert.equal(classifyProviderMatch("Proveedor duplicado", providerMatchIndex).status, "conflict");
 assert.equal(classifyProviderMatch("Proveedor inexistente", providerMatchIndex).status, "unmatched");

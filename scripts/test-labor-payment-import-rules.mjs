@@ -93,6 +93,7 @@ assert.equal(parsed.amountTotal, 167870.1);
 assert.equal(parsed.weeks.length, 1);
 assert.equal(parsed.weeks[0].date, "2026-05-18");
 assert.equal(parsed.weeks[0].transactions.length, 2);
+assert.equal(parsed.projectMatchMode, "normalized");
 assert.deepEqual(
   parsed.weeks[0].transactions.map((transaction) => transaction.monto_total).sort((a, b) => b - a),
   [118038.08, 49832.02],
@@ -165,6 +166,22 @@ expectFailure(
   () => parse(referenceRows, { projectName: "Otro proyecto" }),
   /no coincide con el proyecto/i,
 );
+expectFailure(
+  () => parse(referenceRows, { projectName: "Larena - Torre K" }),
+  /no coincide con el proyecto/i,
+);
+const inferredProject = parse(referenceRows, { projectName: "Larena - Torre G" });
+assert.equal(inferredProject.projectMatchMode, "alias");
+assert.equal(inferredProject.administration, "TORRE_G");
+const mixedAdministrationRows = referenceRows.map((entry, index) => {
+  if (index === 0) return entry;
+  const next = [...entry];
+  next[0] = index === 1 ? "TORRE_G" : "Larena Torre G";
+  return next;
+});
+const mixedAdministration = parse(mixedAdministrationRows, { projectName: "Larena - Torre G" });
+assert.equal(mixedAdministration.projectMatchMode, "alias");
+assert.match(mixedAdministration.warnings.join("\n"), /más de un nombre de administración/i);
 expectFailure(
   () => parse(referenceRows, { partidas: [...partidas, { ...partidas[0], _id: "duplicada" }] }),
   /es ambigua/i,

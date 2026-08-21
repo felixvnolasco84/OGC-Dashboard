@@ -12,8 +12,14 @@ import {
   checkDesarrolloAccess,
   getCurrentUserOrThrow,
 } from "./permissions";
-import { isGenericProviderName, normalizeProviderName } from "./providerUtils";
+import {
+  buildProviderMatchIndex,
+  classifyProviderImportAction,
+  isGenericProviderName,
+  normalizeProviderName,
+} from "./providerUtils";
 import { mostSpecificCostLabel, normalizeCostText } from "./costRules";
+import { classifyProjectMatch } from "./projectMatchUtils";
 
 const MAX_ROWS = 1_000;
 const MONEY_TOLERANCE = 0.01;
@@ -68,9 +74,9 @@ function normalizeText(value: unknown) {
 
 function assertIsoDate(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) throw new Error(`Fecha inválida: ${value}.`);
+  if (!match) throw new Error(`Fecha inv?lida: ${value}.`);
   const date = new Date(`${value}T00:00:00Z`);
-  if (date.toISOString().slice(0, 10) !== value) throw new Error(`Fecha inválida: ${value}.`);
+  if (date.toISOString().slice(0, 10) !== value) throw new Error(`Fecha inv?lida: ${value}.`);
 }
 
 function displayDate(isoDate: string) {
@@ -86,8 +92,11 @@ async function resolveProvider(
   ctx: MutationCtx,
   userId: Id<"users">,
   providerName: string,
+  providersByName: ReadonlyMap<string, readonly Doc<"proveedores">[]>,
   providerId?: Id<"proveedores">,
 ) {
+  const normalized = normalizeProviderName(providerName);
+  if (!normalized) throw new Error("El nombre del proveedor no es válido.");
   if (providerId) {
     const provider = await ctx.db.get(providerId);
     if (!provider || provider.merged_into) throw new Error(`Proveedor no encontrado: ${providerName}.`);
@@ -95,21 +104,26 @@ async function resolveProvider(
     if (normalizeProviderName(provider.razon_social) !== normalizeProviderName(providerName)) {
       throw new Error(`El proveedor seleccionado no coincide con ${providerName}.`);
     }
-    return provider._id;
   }
 
-  const normalized = normalizeProviderName(providerName);
-  const matches = await ctx.db
-    .query("proveedores")
-    .withIndex("by_razon_social_normalizada", (q) => q.eq("razon_social_normalizada", normalized))
-    .collect();
-  const available = matches.filter((provider) => !provider.merged_into);
-  const active = available.filter((provider) => !provider.archived_at);
-  if (active.length > 1) throw new Error(`Hay varios proveedores equivalentes a ${providerName}.`);
-  if (active.length === 1) return active[0]._id;
-  if (available.length) throw new Error(`El proveedor ${providerName} está archivado.`);
+  const match = classifyProviderImportAction(providerName, providersByName);
+  if (match.action === "blocked_conflict") {
+    throw new Error(`Hay varios proveedores activos equivalentes a ${providerName}.`);
+  }
+  if (match.action === "blocked_archived") {
+    throw new Error(`El proveedor ${providerName} está archivado.`);
+  }
+  if (match.action === "reuse" && match.provider) {
+    if (providerId && match.provider._id !== providerId) {
+      throw new Error(`La coincidencia de ${providerName} cambió; vuelve a validar el archivo.`);
+    }
+    return { providerId: match.provider._id, status: "matched" as const };
+  }
+  if (providerId) {
+    throw new Error(`El proveedor seleccionado para ${providerName} ya no está disponible.`);
+  }
 
-  return await ctx.db.insert("proveedores", {
+  const createdProviderId = await ctx.db.insert("proveedores", {
     razon_social: providerName.trim(),
     razon_social_normalizada: normalized,
     tipo: isGenericProviderName(providerName) ? "generico" : "regular",
@@ -117,6 +131,7 @@ async function resolveProvider(
     created_at: Date.now(),
     updated_at: Date.now(),
   });
+  return { providerId: createdProviderId, status: "created" as const };
 }
 
 export const getActiveLaborImports = query({
@@ -156,7 +171,7 @@ export const replaceLaborPaymentImport = mutation({
     }
     const project = await ctx.db.get(args.proyecto);
     if (!project) throw new Error("El proyecto ya no existe.");
-    if (!/^[a-f0-9]{64}$/i.test(args.source.file_hash)) throw new Error("Hash de archivo inválido.");
+    if (!/^[a-f0-9]{64}$/i.test(args.source.file_hash)) throw new Error("Hash de archivo inv?lido.");
     if (!args.source.file_name.trim() || !args.source.sheet_name.trim()) {
       throw new Error("Faltan metadatos del archivo.");
     }
@@ -166,8 +181,8 @@ export const replaceLaborPaymentImport = mutation({
     if (!args.weeks.length) throw new Error("La carga no contiene cortes semanales.");
     const sourceCurrency = normalizeText(args.source.currency);
     if (!sourceCurrency) throw new Error("La moneda es obligatoria.");
-    if (normalizeText(args.source.administration) !== normalizeText(project.nombre)) {
-      throw new Error("La administración del archivo no coincide con el proyecto.");
+    if (classifyProjectMatch(args.source.administration, [project]).status !== "matched") {
+      throw new Error("La administraci?n del archivo no coincide con el proyecto.");
     }
     if (project.moneda_principal && normalizeText(project.moneda_principal) !== sourceCurrency) {
       throw new Error(`La moneda ${sourceCurrency} no coincide con ${project.moneda_principal}.`);
@@ -179,31 +194,31 @@ export const replaceLaborPaymentImport = mutation({
     const partidaDocs = new Map<string, Doc<"partidas">>();
     for (const week of args.weeks) {
       assertIsoDate(week.date);
-      if (requestedDates.has(week.date)) throw new Error(`El corte ${week.date} está duplicado.`);
+      if (requestedDates.has(week.date)) throw new Error(`El corte ${week.date} est? duplicado.`);
       requestedDates.add(week.date);
       if (!Number.isInteger(week.total_people) || week.total_people < 0) {
-        throw new Error(`${week.date}: total de personas inválido.`);
+        throw new Error(`${week.date}: total de personas inv?lido.`);
       }
       const roleKeys = new Set<string>();
       let roleTotal = 0;
       for (const role of week.roles) {
         const key = normalizeText(role.key);
-        if (!key || roleKeys.has(key)) throw new Error(`${week.date}: puesto duplicado o inválido.`);
-        if (!Number.isInteger(role.count) || role.count < 0) throw new Error(`${week.date}: conteo de puesto inválido.`);
+        if (!key || roleKeys.has(key)) throw new Error(`${week.date}: puesto duplicado o inv?lido.`);
+        if (!Number.isInteger(role.count) || role.count < 0) throw new Error(`${week.date}: conteo de puesto inv?lido.`);
         roleKeys.add(key);
         roleTotal += role.count;
       }
       if (roleTotal !== week.total_people) {
         throw new Error(`${week.date}: los puestos suman ${roleTotal}, no ${week.total_people}.`);
       }
-      if (!Number.isInteger(week.row_count) || week.row_count <= 0) throw new Error(`${week.date}: filas inválidas.`);
+      if (!Number.isInteger(week.row_count) || week.row_count <= 0) throw new Error(`${week.date}: filas inv?lidas.`);
       assertPositiveMoney(week.amount_total, `${week.date}: monto semanal`);
       let transactionAmount = 0;
       let transactionRows = 0;
       const sourceKeys = new Set<string>();
       for (const transaction of week.transactions) {
         if (!transaction.source_key.trim() || sourceKeys.has(transaction.source_key)) {
-          throw new Error(`${week.date}: clave de transacción duplicada.`);
+          throw new Error(`${week.date}: clave de transacci?n duplicada.`);
         }
         sourceKeys.add(transaction.source_key);
         if (
@@ -212,10 +227,10 @@ export const replaceLaborPaymentImport = mutation({
           !transaction.proveedor.trim() ||
           !transaction.categoria.trim()
         ) {
-          throw new Error(`${week.date}: factura, tipo de pago, proveedor y categoría son obligatorios.`);
+          throw new Error(`${week.date}: factura, tipo de pago, proveedor y categor?a son obligatorios.`);
         }
         if (normalizeText(transaction.moneda) !== sourceCurrency) {
-          throw new Error(`${week.date}: la transacción ${transaction.factura} usa otra moneda.`);
+          throw new Error(`${week.date}: la transacci?n ${transaction.factura} usa otra moneda.`);
         }
         assertPositiveMoney(transaction.monto_total, `${week.date}: monto de ${transaction.factura}`);
         if (!transaction.line_items.length) throw new Error(`${week.date}: ${transaction.factura} no tiene conceptos.`);
@@ -223,12 +238,12 @@ export const replaceLaborPaymentImport = mutation({
         for (const item of transaction.line_items) {
           assertPositiveMoney(item.monto, `Fila ${item.source_row}: monto`);
           if (!Number.isInteger(item.source_row) || item.source_row < 2 || item.source_row > MAX_ROWS + 1) {
-            throw new Error("Número de fila de origen inválido.");
+            throw new Error("N?mero de fila de origen inv?lido.");
           }
           if (
             item.numero_personas_origen !== undefined &&
             (!Number.isInteger(item.numero_personas_origen) || item.numero_personas_origen < 0)
-          ) throw new Error(`Fila ${item.source_row}: NO. PERSONAS inválido.`);
+          ) throw new Error(`Fila ${item.source_row}: NO. PERSONAS inv?lido.`);
           const cachedPartida = partidaDocs.get(String(item.partida_id));
           const partida = cachedPartida || await ctx.db.get(item.partida_id);
           if (!partida || partida.proyecto !== args.proyecto) {
@@ -238,7 +253,7 @@ export const replaceLaborPaymentImport = mutation({
             normalizeText(partida.nombre) !== normalizeText(item.partida) ||
             normalizeText(partida.familia) !== normalizeText(item.familia) ||
             normalizeText(partida.sub_partida) !== normalizeText(item.sub_partida)
-          ) throw new Error(`Fila ${item.source_row}: la jerarquía de la partida cambió.`);
+          ) throw new Error(`Fila ${item.source_row}: la jerarqu?a de la partida cambi?.`);
           partidaDocs.set(String(partida._id), partida);
           lineItemTotal += item.monto;
         }
@@ -277,6 +292,8 @@ export const replaceLaborPaymentImport = mutation({
         row_count: validatedRows,
         amount_total: Math.round(validatedAmount * 100) / 100,
         total_people: [...args.weeks].sort((left, right) => left.date.localeCompare(right.date)).at(-1)?.total_people || 0,
+        providers_created: 0,
+        providers_reused: 0,
       };
     }
 
@@ -328,7 +345,15 @@ export const replaceLaborPaymentImport = mutation({
     const now = Date.now();
     let importedTransactions = 0;
     let replacedDates = 0;
-    const resolvedProviders = new Map<string, Id<"proveedores">>();
+    const providersByName = buildProviderMatchIndex(
+      await ctx.db.query("proveedores").collect(),
+    );
+    const resolvedProviders = new Map<string, {
+      providerId: Id<"proveedores">;
+      status: "matched" | "created";
+    }>();
+    const createdProviderIds = new Set<Id<"proveedores">>();
+    const reusedProviderIds = new Set<Id<"proveedores">>();
     for (const week of args.weeks) {
       const newImportId = await ctx.db.insert("labor_payment_imports", {
         proyecto: args.proyecto,
@@ -365,19 +390,25 @@ export const replaceLaborPaymentImport = mutation({
 
       for (const transaction of week.transactions) {
         const providerKey = normalizeProviderName(transaction.proveedor);
-        let providerId = resolvedProviders.get(providerKey);
-        if (!providerId) {
-          providerId = await resolveProvider(
+        let providerResolution = resolvedProviders.get(providerKey);
+        if (!providerResolution) {
+          providerResolution = await resolveProvider(
             ctx,
             user._id,
             transaction.proveedor,
+            providersByName,
             transaction.proveedor_id,
           );
-          resolvedProviders.set(providerKey, providerId);
+          resolvedProviders.set(providerKey, providerResolution);
+          if (providerResolution.status === "created") {
+            createdProviderIds.add(providerResolution.providerId);
+          } else {
+            reusedProviderIds.add(providerResolution.providerId);
+          }
         }
         const transactionId = await ctx.db.insert("transacciones", {
           proyecto: args.proyecto,
-          proveedor_id: providerId,
+          proveedor_id: providerResolution.providerId,
           proveedor: transaction.proveedor.trim(),
           labor_import_id: newImportId,
           import_source_key: transaction.source_key,
@@ -394,7 +425,7 @@ export const replaceLaborPaymentImport = mutation({
         for (const item of transaction.line_items) {
           const partida = partidaDocs.get(String(item.partida_id));
           if (!partida || partida.proyecto !== args.proyecto) {
-            throw new Error("Una partida de la importación no pertenece al proyecto.");
+            throw new Error("Una partida de la importaci?n no pertenece al proyecto.");
           }
           const partidaNombre = String(
             partida.nivel === 1 ? partida.nombre : partida.partida_nombre || partida.nombre || "",
@@ -451,6 +482,8 @@ export const replaceLaborPaymentImport = mutation({
       row_count: validatedRows,
       amount_total: Math.round(validatedAmount * 100) / 100,
       total_people: [...args.weeks].sort((left, right) => left.date.localeCompare(right.date)).at(-1)?.total_people || 0,
+      providers_created: createdProviderIds.size,
+      providers_reused: reusedProviderIds.size,
     };
   },
 });

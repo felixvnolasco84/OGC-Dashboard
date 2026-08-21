@@ -10,7 +10,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Search, MoreVertical, FileText } from "lucide-react";
+import {
+    Building2,
+    Eye,
+    FileText,
+    Files,
+    Layers,
+    MoreVertical,
+    Search,
+    Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -27,8 +36,13 @@ import { useTransactionConceptosModal } from "@/hooks/transaction-conceptos-moda
 import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
-import { Popover } from "@radix-ui/react-popover";
-import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import AssignProviderDialog from "@/components/providers/AssignProviderDialog";
 
 export default function TransaccionesTablePage() {
@@ -158,6 +172,9 @@ export default function TransaccionesTablePage() {
     };
 
     const visibleTransactionIds = filteredTransacciones?.map((transaction) => transaction._id) || [];
+    const transactionPendingDeletion = transacciones?.find(
+        (transaction) => transaction._id === transactionToDelete
+    );
     const allVisibleSelected = visibleTransactionIds.length > 0 &&
         visibleTransactionIds.every((id) => selectedTransactionIds.has(id));
     const toggleAllVisible = (checked: boolean) => {
@@ -455,33 +472,47 @@ export default function TransaccionesTablePage() {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 border-r border-border">
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                        <MoreVertical className="h-4 w-4 text-disabled-foreground" />
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-subtle-foreground hover:text-foreground"
+                                                        aria-label={`Acciones para ${transaccion.factura || "la transacción"}`}
+                                                    >
+                                                        <MoreVertical className="h-4 w-4" />
                                                     </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="flex flex-col space-y-1" align="end">
-                                                    <Button variant={"ghost"} onClick={() => detailsModal.onOpen(transaccion._id)}>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-60 rounded-none p-1.5">
+                                                    <DropdownMenuItem className="h-9 rounded-none" onSelect={() => detailsModal.onOpen(transaccion._id)}>
+                                                        <Eye />
                                                         Ver detalles
-                                                    </Button>
-                                                    <Button variant={"ghost"} onClick={() => conceptosModal.onOpen(transaccion._id)}>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="h-9 rounded-none" onSelect={() => conceptosModal.onOpen(transaccion._id)}>
+                                                        <Layers />
                                                         Ver conceptos
-                                                    </Button>
-                                                    <Button variant={"ghost"} onClick={() => documentosModal.onOpen(transaccion._id)}>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="h-9 rounded-none" onSelect={() => documentosModal.onOpen(transaccion._id)}>
+                                                        <Files />
                                                         Ver documentos
-                                                    </Button>
-                                                    <Button variant={"ghost"} onClick={() => setAssigningTransaction({
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="h-9 rounded-none" onSelect={() => setAssigningTransaction({
                                                         id: transaccion._id,
                                                         proveedorId: transaccion.proveedor_id,
                                                     })}>
+                                                        <Building2 />
                                                         Asignar / cambiar proveedor
-                                                    </Button>
-                                                    <Button variant={"ghost"} className="text-red-600" onClick={() => openDeleteDialog(transaccion._id)}>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        className="h-9 rounded-none text-red-600 focus:bg-red-50 focus:text-red-700"
+                                                        onSelect={() => openDeleteDialog(transaccion._id)}
+                                                    >
+                                                        <Trash2 />
                                                         Eliminar
-                                                    </Button>
-                                                </PopoverContent>
-                                            </Popover>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </td>
                                     </tr>
                                 ))
@@ -494,21 +525,27 @@ export default function TransaccionesTablePage() {
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Se eliminará la transacción, todos sus conceptos (line items)
-                            y documentos asociados de forma permanente.
+                <AlertDialogContent className="max-w-md gap-0 overflow-hidden rounded-none p-0">
+                    <AlertDialogHeader className="border-b border-border px-6 py-5 pr-12">
+                        <AlertDialogTitle className="text-lg font-medium">Eliminar transacción</AlertDialogTitle>
+                        <AlertDialogDescription className="pt-1 leading-6">
+                            {transactionPendingDeletion?.factura && (
+                                <span className="mb-1 block font-medium text-foreground">
+                                    Factura {transactionPendingDeletion.factura}
+                                </span>
+                            )}
+                            Se eliminarán la transacción, sus conceptos y sus documentos asociados. Esta acción no se puede deshacer.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogFooter className="bg-muted/40 px-6 py-4">
+                        <AlertDialogCancel className="h-9 border-0 bg-transparent px-3 shadow-none hover:bg-muted">
+                            Cancelar
+                        </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDelete}
-                            className="bg-red-600 hover:bg-red-700"
+                            className="h-9 bg-red-600 px-4 shadow-none hover:bg-red-700"
                         >
-                            Eliminar
+                            Eliminar transacción
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

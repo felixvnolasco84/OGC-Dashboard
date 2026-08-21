@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -667,61 +668,54 @@ export default function IngresosModal() {
     setShowForm(true);
   };
 
-  // Calculate "Neto" (Total Ingresos - Gasto Total from metrics)
-  // For now, just showing total ingresos since gasto_total comes from a different query
   const totalIngresos = (totals?.total_ingresos || 0) + (ogcTotals?.total_ingresos || 0);
   const totalIngresosCount = (totals?.total_count || 0) + (ogcTotals?.total_count || 0);
+  const isLoadingList = ingresos === undefined || ogcIngresos === undefined;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent data-square-modal="" className="max-w-4xl max-h-[85vh] overflow-y-scroll flex flex-col">
-        <DialogHeader className="border-b pb-4 pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-xl font-medium">
-                Ingresos
-              </DialogTitle>
-              <p className="text-sm text-subtle-foreground mt-1">
-                {context?.projectName}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-subtle-foreground">Total Ingresos</p>
-                <p className="text-2xl font-medium">
-                  {formatCurrency(totalIngresos, "MXN")}
-                </p>
-                <Badge variant="secondary" className="mt-1 text-muted-foreground">
-                  {totalIngresosCount} entradas
-                </Badge>
-              </div>
-            </div>
-          </div>
+      <DialogContent
+        data-square-modal=""
+        className="max-h-[90vh] max-w-4xl gap-0 overflow-hidden border-border bg-card p-0 shadow-2xl"
+      >
+        <DialogHeader className="border-b border-border px-6 py-5 pr-12">
+          <DialogTitle className="text-lg font-medium">Ingresos</DialogTitle>
+          <DialogDescription>
+            {context?.projectName || "Registro de ingresos del proyecto"}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-scroll flex flex-col">
-          {/* Add/Edit Form */}
+        <div className="max-h-[calc(90vh-81px)] overflow-y-auto">
           {showForm && (
-            <div className="border-b">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">
-                  {isEditingAnyIngreso ? "Editar Ingreso" : "Nuevo Ingreso"}
-                </h3>
+            <div>
+              <div className="flex items-start justify-between border-b border-border px-6 py-4">
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">
+                    {isEditingAnyIngreso ? "Editar ingreso" : "Nuevo ingreso"}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-subtle-foreground">
+                    {isEditingOgc
+                      ? "Este registro proviene de un movimiento OGC."
+                      : "Completa los datos del ingreso."}
+                  </p>
+                </div>
                 <Button
+                  type="button"
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground"
                   onClick={handleCancelForm}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Monto */}
-                  <div className="space-y-2">
-                    <Label htmlFor="monto">Monto *</Label>
+              <form onSubmit={handleSubmit} className="space-y-5 px-6 py-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monto" className="text-xs text-subtle-foreground">
+                      Monto
+                    </Label>
                     <Input
-                      className="h-12"
                       id="monto"
                       type="number"
                       step="0.01"
@@ -732,39 +726,41 @@ export default function IngresosModal() {
                     />
                   </div>
 
-                  {/* Moneda */}
-                  <div className="space-y-2">
-                    <Label htmlFor="moneda">Moneda *</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="moneda" className="text-xs text-subtle-foreground">
+                      Moneda
+                    </Label>
                     <Select
                       value={formData.moneda}
                       onValueChange={(value) => setFormData({ moneda: value })}
                       disabled={isEditingOgc}
                     >
-                      <SelectTrigger className="h-12">
+                      <SelectTrigger>
                         <SelectValue placeholder="Seleccionar moneda" />
                       </SelectTrigger>
                       <SelectContent data-square-modal="">
-                        <SelectItem value="MXN">MXN - Peso Mexicano</SelectItem>
-                        <SelectItem value="USD">USD - Dólar</SelectItem>
-                        <SelectItem value="EUR">EUR - Euro</SelectItem>
+                        <SelectItem value="MXN">MXN</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  {/* Fecha */}
-                  <div className="space-y-2">
-                    <Label htmlFor="fecha">Fecha *</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="fecha" className="text-xs text-subtle-foreground">
+                      Fecha
+                    </Label>
                     <Popover open={calendarOpen} onOpenChange={setCalendarOpen} modal={false}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left font-normal",
+                            "h-9 w-full justify-start px-3 text-left font-normal",
                             !formData.fecha && "text-muted-foreground"
                           )}
                         >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.fecha || "Selecciona una fecha"}
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                          {formData.fecha || "Seleccionar fecha"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent data-square-modal="" className="w-auto p-0 z-[9999] pointer-events-auto" align="start" sideOffset={4}>
@@ -785,227 +781,231 @@ export default function IngresosModal() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  {/* Descripción */}
-                  <Label htmlFor="descripcion">Descripción</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="descripcion" className="text-xs text-subtle-foreground">
+                    Descripción
+                  </Label>
                   <Input
-                  className="h-12"
                     id="descripcion"
                     value={formData.descripcion}
                     onChange={(e) => setFormData({ descripcion: e.target.value })}
-                    placeholder="Descripción del ingreso"
+                    placeholder="Concepto o referencia del ingreso"
                   />
                 </div>
 
-                {/* Document Attachment - 1:1 relationship */}
-                {!isEditingOgc && <div className="space-y-3 pt-4 border-t">
-                  <h3 className="text-sm font-medium text-foreground">Documento adjunto</h3>
+                {!isEditingOgc && (
+                  <div className="space-y-3 border-t border-border pt-5">
+                    <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-subtle-foreground">
+                      Documento adjunto
+                    </h3>
 
-                  {/* Show existing document when editing (1:1 relationship) */}
-                  {editingIngreso && editingIngresoDocuments && editingIngresoDocuments.length > 0 ? (
-                    <div className="space-y-2">
-                      <Label className="text-sm text-foreground">Documento actual</Label>
-                      {(() => {
-                        const doc = editingIngresoDocuments[0];
-                        return (
-                          <div className="flex items-center justify-between gap-2 p-3 border border-border">
-                            <div 
-                              className="flex items-center gap-2 cursor-pointer hover:text-blue-600 flex-1"
-                              onClick={() => doc.url && window.open(doc.url, '_blank')}
-                            >
-                              <FileText className="w-5 h-5 text-muted-foreground" />
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-foreground">{doc.nombre}</p>
-                                <p className="text-xs text-subtle-foreground">{doc.type}</p>
-                              </div>
-                              <ExternalLink className="w-4 h-4 text-disabled-foreground" />
-                            </div>
-                            <div className="flex gap-1">
-                              {/* Hidden file input for replace */}
-                              <input
-                                type="file"
-                                id="replace-file-input"
-                                className="hidden"
-                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xml"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setReplaceFile(file);
-                                    setShowReplaceDialog(true);
-                                  }
-                                  e.target.value = "";
-                                }}
-                              />
-                              <Button
+                    {editingIngreso && editingIngresoDocuments && editingIngresoDocuments.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {(() => {
+                          const doc = editingIngresoDocuments[0];
+                          return (
+                            <div className="flex items-center justify-between gap-3 border border-border bg-muted/40 px-3 py-2.5">
+                              <button
                                 type="button"
-                                variant="outline"
-                                size="sm"
-                                title="Reemplazar documento"
-                                disabled={isReplacingDocument}
-                                onClick={() => {
-                                  document.getElementById("replace-file-input")?.click();
-                                }}
+                                className="flex min-w-0 flex-1 items-center gap-2 text-left hover:text-foreground"
+                                onClick={() => doc.url && window.open(doc.url, "_blank")}
                               >
-                                {isReplacingDocument ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <RefreshCw className="w-4 h-4" />
-                                )}
-                              </Button>
-                              <AlertDialog open={showReplaceDialog} onOpenChange={setShowReplaceDialog}>
-                                <AlertDialogContent data-square-modal="">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Reemplazar documento?</AlertDialogTitle>
-                                    <AlertDialogDescription asChild>
-                                      <div className="space-y-2">
-                                        <p>Se reemplazará el documento actual por:</p>
-                                        {replaceFile && (
-                                          <div className="flex items-center gap-2 p-2 bg-muted rounded-none">
-                                            <File className="w-4 h-4 text-muted-foreground" />
-                                            <span className="text-sm font-medium">{replaceFile.name}</span>
-                                            <span className="text-xs text-subtle-foreground">
-                                              ({(replaceFile.size / 1024).toFixed(2)} KB)
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel onClick={() => setReplaceFile(null)}>
-                                      Cancelar
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={async () => {
-                                        if (!replaceFile || !editingIngreso || !context || !user) return;
-                                        
-                                        setIsReplacingDocument(true);
-                                        try {
-                                          // 1. Upload new file
-                                          const uploadUrl = await generateUploadUrl();
-                                          const result = await fetch(uploadUrl, {
-                                            method: "POST",
-                                            headers: { "Content-Type": replaceFile.type },
-                                            body: replaceFile,
-                                          });
-                                          const { storageId } = await result.json();
-                                          
-                                          // 2. Create new document record
-                                          await createIngresoDocument({
-                                            ingreso_id: editingIngreso._id,
-                                            proyecto: context.projectId,
-                                            nombre: replaceFile.name,
-                                            descripcion: doc.descripcion || "",
-                                            storage_id: storageId,
-                                            type: doc.type,
-                                            size: replaceFile.size,
-                                            clerk_id: user.id,
-                                          });
-                                          
-                                          // 3. Delete old document
-                                          await deleteIngresoDocument({ id: doc._id });
-                                          
-                                          toast.success("Documento reemplazado exitosamente");
-                                          setReplaceFile(null);
-                                        } catch (error) {
-                                          console.error("Error replacing document:", error);
-                                          toast.error("Error al reemplazar documento");
-                                        } finally {
-                                          setIsReplacingDocument(false);
-                                        }
-                                      }}
-                                    >
-                                      Confirmar
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="sm"
-                                    title="Eliminar documento"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent data-square-modal="">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Esta acción no se puede deshacer. El documento será eliminado permanentemente.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      onClick={async () => {
-                                        try {
-                                          await deleteIngresoDocument({ id: doc._id });
-                                          toast.success("Documento eliminado");
-                                        } catch (error) {
-                                          console.error("Error deleting document:", error);
-                                          toast.error("Error al eliminar documento");
-                                        }
-                                      }}
-                                    >
-                                      Eliminar
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label className="text-sm text-foreground">Tipo de documento</Label>
-                        <Select value={documentType} onValueChange={setDocumentType}>
-                          <SelectTrigger className="h-12">
-                            <SelectValue placeholder="Seleccionar tipo de documento" />
-                          </SelectTrigger>
-                          <SelectContent data-square-modal="">
-                            <SelectItem value="factura">Factura</SelectItem>
-                            <SelectItem value="comprobante">Comprobante</SelectItem>
-                            <SelectItem value="recibo">Recibo</SelectItem>
-                            <SelectItem value="otro">Otro</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium text-foreground">{doc.nombre}</p>
+                                  <p className="text-xs text-subtle-foreground">{doc.type}</p>
+                                </div>
+                                <ExternalLink className="h-3.5 w-3.5 shrink-0 text-disabled-foreground" />
+                              </button>
+                              <div className="flex shrink-0 gap-1">
+                                <input
+                                  type="file"
+                                  id="replace-file-input"
+                                  className="hidden"
+                                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xml"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setReplaceFile(file);
+                                      setShowReplaceDialog(true);
+                                    }
+                                    e.target.value = "";
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  title="Reemplazar documento"
+                                  disabled={isReplacingDocument}
+                                  onClick={() => {
+                                    document.getElementById("replace-file-input")?.click();
+                                  }}
+                                >
+                                  {isReplacingDocument ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
+                                <AlertDialog open={showReplaceDialog} onOpenChange={setShowReplaceDialog}>
+                                  <AlertDialogContent data-square-modal="">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Reemplazar documento?</AlertDialogTitle>
+                                      <AlertDialogDescription asChild>
+                                        <div className="space-y-2">
+                                          <p>Se reemplazará el documento actual por:</p>
+                                          {replaceFile && (
+                                            <div className="flex items-center gap-2 border border-border bg-muted px-2 py-2">
+                                              <File className="h-4 w-4 text-muted-foreground" />
+                                              <span className="text-sm font-medium">{replaceFile.name}</span>
+                                              <span className="text-xs text-subtle-foreground">
+                                                ({(replaceFile.size / 1024).toFixed(2)} KB)
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel onClick={() => setReplaceFile(null)}>
+                                        Cancelar
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={async () => {
+                                          if (!replaceFile || !editingIngreso || !context || !user) return;
 
-                      {documentType && (
-                        <div className="space-y-3">
-                          <div className="space-y-2">
-                            <Label className="text-sm text-foreground">Archivo</Label>
-                            <div className="border-2 border-dashed p-4 text-center">
+                                          setIsReplacingDocument(true);
+                                          try {
+                                            const uploadUrl = await generateUploadUrl();
+                                            const result = await fetch(uploadUrl, {
+                                              method: "POST",
+                                              headers: { "Content-Type": replaceFile.type },
+                                              body: replaceFile,
+                                            });
+                                            const { storageId } = await result.json();
+
+                                            await createIngresoDocument({
+                                              ingreso_id: editingIngreso._id,
+                                              proyecto: context.projectId,
+                                              nombre: replaceFile.name,
+                                              descripcion: doc.descripcion || "",
+                                              storage_id: storageId,
+                                              type: doc.type,
+                                              size: replaceFile.size,
+                                              clerk_id: user.id,
+                                            });
+
+                                            await deleteIngresoDocument({ id: doc._id });
+
+                                            toast.success("Documento reemplazado exitosamente");
+                                            setReplaceFile(null);
+                                          } catch (error) {
+                                            console.error("Error replacing document:", error);
+                                            toast.error("Error al reemplazar documento");
+                                          } finally {
+                                            setIsReplacingDocument(false);
+                                          }
+                                        }}
+                                      >
+                                        Confirmar
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                      title="Eliminar documento"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent data-square-modal="">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Esta acción no se puede deshacer. El documento será eliminado permanentemente.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        onClick={async () => {
+                                          try {
+                                            await deleteIngresoDocument({ id: doc._id });
+                                            toast.success("Documento eliminado");
+                                          } catch (error) {
+                                            console.error("Error deleting document:", error);
+                                            toast.error("Error al eliminar documento");
+                                          }
+                                        }}
+                                      >
+                                        Eliminar
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-subtle-foreground">Tipo de documento</Label>
+                          <Select value={documentType} onValueChange={setDocumentType}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar tipo" />
+                            </SelectTrigger>
+                            <SelectContent data-square-modal="">
+                              <SelectItem value="factura">Factura</SelectItem>
+                              <SelectItem value="comprobante">Comprobante</SelectItem>
+                              <SelectItem value="recibo">Recibo</SelectItem>
+                              <SelectItem value="otro">Otro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {documentType && (
+                          <div className="space-y-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-subtle-foreground">Archivo</Label>
                               {documentFile ? (
-                                <div className="space-y-2">
-                                  <File className="h-8 w-8 mx-auto text-green-600" />
-                                  <p className="text-sm font-medium">{documentFile.name}</p>
-                                  <p className="text-xs text-subtle-foreground">
-                                    {(documentFile.size / 1024).toFixed(2)} KB
-                                  </p>
+                                <div className="flex items-center justify-between gap-3 border border-border bg-muted/40 px-3 py-2.5">
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <File className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-medium">{documentFile.name}</p>
+                                      <p className="text-xs text-subtle-foreground">
+                                        {(documentFile.size / 1024).toFixed(2)} KB
+                                      </p>
+                                    </div>
+                                  </div>
                                   <Button
                                     type="button"
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
+                                    className="shrink-0 text-muted-foreground"
                                     onClick={() => setDocumentFile(null)}
                                   >
-                                    Cambiar archivo
+                                    Cambiar
                                   </Button>
                                 </div>
                               ) : (
-                                <div className="space-y-2">
-                                  <Upload className="h-8 w-8 mx-auto text-disabled-foreground" />
-                                  <p className="text-sm text-muted-foreground">Arrastra un archivo o haz clic</p>
-                                  <Input
+                                <label className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-border px-3 py-5 text-sm text-muted-foreground hover:bg-muted/30">
+                                  <Upload className="h-4 w-4 text-disabled-foreground" />
+                                  Seleccionar archivo
+                                  <input
                                     type="file"
+                                    className="sr-only"
                                     onChange={(e) => {
                                       const file = e.target.files?.[0];
                                       if (file) {
@@ -1015,29 +1015,30 @@ export default function IngresosModal() {
                                         }
                                       }
                                     }}
-                                    className="max-w-xs mx-auto"
                                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xml"
                                   />
-                                </div>
+                                </label>
                               )}
                             </div>
-                          </div>
 
-                          <div className="space-y-2">
-                            <Label className="text-sm text-foreground">Descripción del documento (opcional)</Label>
-                            <Input
-                              placeholder="Descripción del documento"
-                              value={documentDescription}
-                              onChange={(e) => setDocumentDescription(e.target.value)}
-                            />
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-subtle-foreground">
+                                Descripción del documento
+                              </Label>
+                              <Input
+                                placeholder="Opcional"
+                                value={documentDescription}
+                                onChange={(e) => setDocumentDescription(e.target.value)}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>}
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 border-t border-border pt-4">
                   <Button
                     type="button"
                     variant="outline"
@@ -1051,7 +1052,7 @@ export default function IngresosModal() {
                   >
                     {isSubmitting || isUploadingDocument ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         {isUploadingDocument ? "Subiendo documento..." : "Guardando..."}
                       </>
                     ) : isEditingAnyIngreso ? (
@@ -1065,57 +1066,77 @@ export default function IngresosModal() {
             </div>
           )}
 
-          {/* Action Bar */}
           {!showForm && !showBulkUpload && (
-            <div className="flex justify-end gap-1 items-center">
+            <section className="grid grid-cols-2 divide-x divide-border border-b border-border bg-muted/40">
+              <div className="px-6 py-4">
+                <p className="text-xs text-subtle-foreground">Total ingresos</p>
+                <p className="mt-1 text-lg font-medium tabular-nums tracking-tight">
+                  {formatCurrency(totalIngresos, "MXN")}
+                </p>
+              </div>
+              <div className="px-6 py-4">
+                <p className="text-xs text-subtle-foreground">Entradas</p>
+                <p className="mt-1 text-lg font-medium tabular-nums">{totalIngresosCount}</p>
+              </div>
+            </section>
+          )}
+
+          {!showForm && !showBulkUpload && (
+            <div className="flex items-center justify-end gap-1 border-b border-border px-4 py-2">
               <Button
-                variant={"ghost"}
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   resetBulkUpload();
                   setShowBulkUpload(true);
                 }}
-                className="gap-2"
+                className="gap-2 text-muted-foreground"
                 title="Carga masiva desde Excel"
               >
                 <FileSpreadsheet className="h-4 w-4" />
                 Carga masiva
               </Button>
-              <Button size={"icon"} variant={"ghost"} onClick={handleAddNew}>
-                <Plus className="h-4 w-4" />                
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleAddNew}
+                className="gap-2 text-muted-foreground"
+              >
+                <Plus className="h-4 w-4" />
+                Nuevo
               </Button>
             </div>
           )}
 
-          {/* Bulk Excel Upload Panel */}
           {!showForm && showBulkUpload && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b pb-3">
+            <div>
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8 text-muted-foreground"
                     onClick={resetBulkUpload}
                     title="Volver"
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
-                  <h3 className="font-medium">Carga masiva de ingresos</h3>
+                  <div>
+                    <h3 className="text-sm font-medium">Carga masiva</h3>
+                    <p className="text-xs text-subtle-foreground">Importar ingresos desde Excel</p>
+                  </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={resetBulkUpload}>
-                  <X className="h-4 w-4" />
-                </Button>
               </div>
 
-              {/* Result view */}
               {bulkResult ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center space-y-3">
-                  <CheckCircle2 className="h-12 w-12 text-green-500" />
-                  <p className="text-lg font-medium">Carga completada</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                  <CheckCircle2 className="h-7 w-7 text-green-500" />
+                  <p className="mt-3 text-sm font-medium text-foreground">Carga completada</p>
+                  <p className="mt-1 text-sm text-subtle-foreground">
                     {bulkResult.created} ingreso(s) creado(s)
                     {bulkResult.skipped > 0 && `, ${bulkResult.skipped} omitido(s)`}.
                   </p>
-                  <div className="flex gap-2 pt-2">
+                  <div className="mt-5 flex gap-2">
                     <Button variant="outline" onClick={resetBulkUpload}>
                       Cerrar
                     </Button>
@@ -1131,67 +1152,66 @@ export default function IngresosModal() {
                   </div>
                 </div>
               ) : (
-                <>
-                  {/* Format hint */}
-                  <div className="rounded-none bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800">
-                    <p className="font-medium mb-1">Formato esperado del Excel</p>
-                    <p>
-                      Primera fila con encabezados y columnas en este orden:{" "}
-                      <span className="font-mono">MONTO</span>,{" "}
-                      <span className="font-mono">FECHA (DD/MM/YYYY)</span>,{" "}
-                      <span className="font-mono">DESCRIPCION</span>,{" "}
-                      <span className="font-mono">MONEDA</span> (MXN/USD/EUR).
+                <div className="space-y-5 px-6 py-5">
+                  <div className="border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground">Formato del Excel</p>
+                    <p className="mt-1">
+                      Primera fila con encabezados, en este orden:{" "}
+                      <span className="font-medium text-foreground">MONTO</span>,{" "}
+                      <span className="font-medium text-foreground">FECHA</span> (DD/MM/YYYY),{" "}
+                      <span className="font-medium text-foreground">DESCRIPCION</span>,{" "}
+                      <span className="font-medium text-foreground">MONEDA</span> (MXN/USD/EUR).
                     </p>
                   </div>
 
-                  {/* File picker */}
-                  <div className="border-2 border-dashed p-4 text-center">
-                    {bulkFile ? (
-                      <div className="space-y-2">
-                        <File className="h-8 w-8 mx-auto text-green-600" />
-                        <p className="text-sm font-medium">{bulkFile.name}</p>
-                        <p className="text-xs text-subtle-foreground">
-                          {(bulkFile.size / 1024).toFixed(2)} KB
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={isValidatingBulk || isProcessingBulk}
-                          onClick={() => {
-                            setBulkFile(null);
-                            setBulkRows(null);
-                          }}
-                        >
-                          Cambiar archivo
-                        </Button>
+                  {bulkFile ? (
+                    <div className="flex items-center justify-between gap-3 border border-border bg-muted/40 px-3 py-2.5">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <File className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{bulkFile.name}</p>
+                          <p className="text-xs text-subtle-foreground">
+                            {(bulkFile.size / 1024).toFixed(2)} KB
+                          </p>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <Upload className="h-8 w-8 mx-auto text-disabled-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          Selecciona un archivo Excel (.xlsx, .xls)
-                        </p>
-                        <Input
-                          type="file"
-                          accept=".xlsx,.xls,.xlsm"
-                          className="max-w-xs mx-auto"
-                          onChange={(e) => {
-                            handleBulkFileSelect(e.target.files?.[0]);
-                            e.target.value = "";
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 text-muted-foreground"
+                        disabled={isValidatingBulk || isProcessingBulk}
+                        onClick={() => {
+                          setBulkFile(null);
+                          setBulkRows(null);
+                        }}
+                      >
+                        Cambiar
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-border px-3 py-8 text-center hover:bg-muted/30">
+                      <Upload className="h-5 w-5 text-disabled-foreground" />
+                      <p className="text-sm text-muted-foreground">Seleccionar archivo Excel</p>
+                      <p className="text-xs text-subtle-foreground">.xlsx, .xls o .xlsm</p>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls,.xlsm"
+                        className="sr-only"
+                        onChange={(e) => {
+                          handleBulkFileSelect(e.target.files?.[0]);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
 
-                  {/* Validate button */}
                   {bulkFile && !bulkRows && (
                     <div className="flex justify-end">
                       <Button onClick={handleValidateBulk} disabled={isValidatingBulk}>
                         {isValidatingBulk ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Validando...
                           </>
                         ) : (
@@ -1201,68 +1221,72 @@ export default function IngresosModal() {
                     </div>
                   )}
 
-                  {/* Preview table */}
                   {bulkRows && (
                     <div className="space-y-3">
                       {(() => {
                         const validCount = bulkRows.filter((r) => r.status === "valid").length;
                         const invalidCount = bulkRows.length - validCount;
                         return (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Badge variant="secondary">{bulkRows.length} filas</Badge>
-                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                              {validCount} válidas
-                            </Badge>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-subtle-foreground">
+                            <span>{bulkRows.length} filas</span>
+                            <span>{validCount} válidas</span>
                             {invalidCount > 0 && (
-                              <Badge variant="destructive">{invalidCount} con errores</Badge>
+                              <span className="text-muted-foreground">{invalidCount} con errores</span>
                             )}
                           </div>
                         );
                       })()}
 
                       {bulkRows.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-8 text-subtle-foreground">
-                          <AlertCircle className="h-8 w-8 mb-2 text-disabled-foreground" />
-                          <p className="text-sm">No se encontraron filas para cargar.</p>
+                        <div className="flex flex-col items-center justify-center py-10 text-center">
+                          <AlertCircle className="h-7 w-7 text-disabled-foreground" />
+                          <p className="mt-3 text-sm font-medium text-foreground">Sin filas</p>
+                          <p className="mt-1 text-sm text-subtle-foreground">
+                            No se encontraron filas para cargar.
+                          </p>
                         </div>
                       ) : (
-                        <div className="max-h-[320px] overflow-auto border rounded-none">
+                        <div className="max-h-[320px] overflow-auto border border-border">
                           <Table>
-                            <TableHeader className="sticky top-0 bg-card">
-                              <TableRow>
-                                <TableHead className="w-[60px]">#</TableHead>
-                                <TableHead className="w-[110px]">Fecha</TableHead>
-                                <TableHead>Descripción</TableHead>
-                                <TableHead className="text-right w-[140px]">Monto</TableHead>
-                                <TableHead className="w-[80px]">Moneda</TableHead>
-                                <TableHead className="w-[160px]">Estado</TableHead>
+                            <TableHeader>
+                              <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
+                                <TableHead className="h-10 w-[52px] px-3 text-xs font-medium text-subtle-foreground">#</TableHead>
+                                <TableHead className="h-10 w-[110px] px-3 text-xs font-medium text-subtle-foreground">Fecha</TableHead>
+                                <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Descripción</TableHead>
+                                <TableHead className="h-10 w-[140px] px-3 text-right text-xs font-medium text-subtle-foreground">Monto</TableHead>
+                                <TableHead className="h-10 w-[72px] px-3 text-xs font-medium text-subtle-foreground">Moneda</TableHead>
+                                <TableHead className="h-10 w-[180px] px-3 text-xs font-medium text-subtle-foreground">Estado</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {bulkRows.map((row, idx) => (
                                 <TableRow
                                   key={idx}
-                                  className={cn(row.status === "invalid" && "bg-red-50")}
+                                  className={cn(
+                                    "border-b border-border hover:bg-muted/30",
+                                    row.status === "invalid" && "bg-red-50"
+                                  )}
                                 >
-                                  <TableCell className="text-xs text-subtle-foreground">
+                                  <TableCell className="px-3 py-2.5 text-xs tabular-nums text-subtle-foreground">
                                     {row.rowIndex ?? idx + 1}
                                   </TableCell>
-                                  <TableCell className="font-medium">{row.fecha || "-"}</TableCell>
-                                  <TableCell className="text-muted-foreground">
-                                    {row.descripcion || "-"}
+                                  <TableCell className="px-3 py-2.5 text-sm font-medium">{row.fecha || "—"}</TableCell>
+                                  <TableCell className="px-3 py-2.5 text-sm text-muted-foreground">
+                                    {row.descripcion || "—"}
                                   </TableCell>
-                                  <TableCell className="text-right font-medium">
+                                  <TableCell className="px-3 py-2.5 text-right text-sm font-medium tabular-nums">
                                     {formatCurrency(row.monto, row.moneda)}
                                   </TableCell>
-                                  <TableCell>{row.moneda}</TableCell>
-                                  <TableCell>
+                                  <TableCell className="px-3 py-2.5 text-sm text-muted-foreground">{row.moneda}</TableCell>
+                                  <TableCell className="px-3 py-2.5">
                                     {row.status === "valid" ? (
-                                      <span className="inline-flex items-center gap-1 text-green-600 text-xs">
-                                        <CheckCircle2 className="h-3.5 w-3.5" /> Válido
+                                      <span className="inline-flex items-center gap-1.5 text-xs text-green-600">
+                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                        Válido
                                       </span>
                                     ) : (
                                       <span
-                                        className="inline-flex items-center gap-1 text-red-600 text-xs"
+                                        className="inline-flex items-center gap-1.5 text-xs text-red-600"
                                         title={row.errors.join(", ")}
                                       >
                                         <AlertCircle className="h-3.5 w-3.5" />
@@ -1290,7 +1314,7 @@ export default function IngresosModal() {
                         >
                           {isProcessingBulk ? (
                             <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Cargando...
                             </>
                           ) : (
@@ -1300,158 +1324,161 @@ export default function IngresosModal() {
                       </div>
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           )}
 
-          {/* Table */}
-          {
-            !showForm && !showBulkUpload && <div className="flex-1 overflow-auto">
-            {tableRows.length > 0  ? (
-              <Table>
-                <TableHeader className="sticky top-0 bg-card">
-                  <TableRow>
-                    <TableHead className="w-[120px]">Fecha</TableHead>
-                    <TableHead className="w-[90px]">Origen</TableHead>
-                    <TableHead>Descripción</TableHead>
-                    <TableHead className="text-right">Monto</TableHead>
-                    <TableHead className="w-[100px]">Agregado por</TableHead>
-                    <TableHead className="w-[80px]">Doc</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tableRows.map((row) => (
-                    <TableRow key={`${row.source}-${row.id}`}>
-                      <TableCell className="font-medium">
-                        {row.fecha}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "text-[10px] font-normal",
-                            row.source === "ogc"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-muted text-muted-foreground border-border"
-                          )}
-                        >
-                          {row.source === "ogc" ? "OGC" : "Ingresos"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {row.descripcion || "-"}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(row.monto, row.moneda)}
-                      </TableCell>
-                      <TableCell className="text-sm text-subtle-foreground">
-                        {row.addedBy || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          if (row.source === "ogc") {
-                            const documents = row.ogcMovement.nota_recepcion_documentos || [];
-                            if (documents.length > 0) {
-                              return (
-                                <Badge variant="secondary" className="text-[10px] font-normal">
-                                  {documents.length} doc{documents.length === 1 ? "" : "s"}
-                                </Badge>
-                              );
-                            }
-                            return <span className="text-disabled-foreground">-</span>;
-                          }
+          {!showForm && !showBulkUpload && (
+            <div>
+              {isLoadingList ? (
+                <div className="flex min-h-64 items-center justify-center" aria-label="Cargando ingresos">
+                  <Loader2 className="h-5 w-5 animate-spin text-subtle-foreground" />
+                </div>
+              ) : tableRows.length > 0 ? (
+                <div className="overflow-x-auto px-6 py-5">
+                  <div className="min-w-[720px] border border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
+                          <TableHead className="h-10 w-[110px] px-3 text-xs font-medium text-subtle-foreground">Fecha</TableHead>
+                          <TableHead className="h-10 w-[90px] px-3 text-xs font-medium text-subtle-foreground">Origen</TableHead>
+                          <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Descripción</TableHead>
+                          <TableHead className="h-10 px-3 text-right text-xs font-medium text-subtle-foreground">Monto</TableHead>
+                          <TableHead className="h-10 w-[120px] px-3 text-xs font-medium text-subtle-foreground">Agregado por</TableHead>
+                          <TableHead className="h-10 w-[56px] px-3 text-xs font-medium text-subtle-foreground">Doc</TableHead>
+                          <TableHead className="h-10 w-[44px] px-3" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tableRows.map((row) => (
+                          <TableRow key={`${row.source}-${row.id}`} className="border-b border-border hover:bg-muted/30">
+                            <TableCell className="px-3 py-3 text-sm font-medium tabular-nums">
+                              {row.fecha}
+                            </TableCell>
+                            <TableCell className="px-3 py-3">
+                              <Badge
+                                variant="secondary"
+                                className={cn(
+                                  "border text-[10px] font-normal",
+                                  row.source === "ogc"
+                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                    : "border-border bg-muted text-muted-foreground"
+                                )}
+                              >
+                                {row.source === "ogc" ? "OGC" : "Ingresos"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-[240px] truncate px-3 py-3 text-sm text-muted-foreground">
+                              {row.descripcion || "—"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap px-3 py-3 text-right text-sm font-medium tabular-nums">
+                              {formatCurrency(row.monto, row.moneda)}
+                            </TableCell>
+                            <TableCell className="px-3 py-3 text-sm text-subtle-foreground">
+                              {row.addedBy || "—"}
+                            </TableCell>
+                            <TableCell className="px-3 py-3">
+                              {(() => {
+                                if (row.source === "ogc") {
+                                  const documents = row.ogcMovement.nota_recepcion_documentos || [];
+                                  if (documents.length > 0) {
+                                    return (
+                                      <span className="text-xs tabular-nums text-muted-foreground">
+                                        {documents.length}
+                                      </span>
+                                    );
+                                  }
+                                  return <span className="text-disabled-foreground">—</span>;
+                                }
 
-                          const ingreso = row.ingreso;
-                          // Check for documents in ingresos_documentos table
-                          const docs = allIngresoDocuments?.filter(d => d.ingreso_id === ingreso._id) || [];
-                          if (docs.length > 0) {
-                            return (
-                              <div className="flex gap-1">
-                                {docs.map((doc) => (
-                                  <Button
-                                    key={doc._id}
-                                    variant="ghost"
-                                    size="lg"
-                                    onClick={() => doc.url && window.open(doc.url, '_blank')}
-                                    className="p-1 h-auto hover:bg-disabled"
-                                    title={doc.nombre}
-                                  >
-                                    <FileText className="h-4 w-4 text-muted-foreground" />
-                                    {doc.nombre}
+                                const ingreso = row.ingreso;
+                                const docs = allIngresoDocuments?.filter((d) => d.ingreso_id === ingreso._id) || [];
+                                if (docs.length > 0) {
+                                  const doc = docs[0];
+                                  return (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => doc.url && window.open(doc.url, "_blank")}
+                                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                      title={doc.nombre}
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                    </Button>
+                                  );
+                                }
+                                if (ingreso.documento_adjunto) {
+                                  return (
+                                    <a
+                                      href={ingreso.documento_adjunto}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground hover:text-foreground"
+                                      title="Ver documento"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                    </a>
+                                  );
+                                }
+                                return <span className="text-disabled-foreground">—</span>;
+                              })()}
+                            </TableCell>
+                            <TableCell className="px-3 py-3">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                    <MoreHorizontal className="h-4 w-4" />
                                   </Button>
-                                ))}
-                              </div>
-                            );
-                          }
-                          // Fallback to legacy documento_adjunto field
-                          if (ingreso.documento_adjunto) {
-                            return (
-                              <a
-                                href={ingreso.documento_adjunto}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                <FileText className="h-4 w-4" />
-                              </a>
-                            );
-                          }
-                          return <span className="text-disabled-foreground">-</span>;
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent data-square-modal="" align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(row)}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            {row.source === "ingresos" && row.ingreso.documento_adjunto && (
-                              <DropdownMenuItem
-                                onClick={() => window.open(row.ingreso.documento_adjunto, "_blank")}
-                              >
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                Ver documento
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(row)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              {row.source === "ogc" ? "Anular" : "Eliminar"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-64 text-subtle-foreground">
-                <FileText className="h-12 w-12 mb-4 text-disabled-foreground" />
-                <p>No hay ingresos registrados</p>
-                <Button
-                  variant="outline"
-                  onClick={handleAddNew}
-                  className="mt-4 gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Agregar primer ingreso
-                </Button>
-              </div>
-            )}
-          </div>
-          }
-          
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent data-square-modal="" align="end">
+                                  <DropdownMenuItem onClick={() => handleEdit(row)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  {row.source === "ingresos" && row.ingreso.documento_adjunto && (
+                                    <DropdownMenuItem
+                                      onClick={() => window.open(row.ingreso.documento_adjunto, "_blank")}
+                                    >
+                                      <ExternalLink className="mr-2 h-4 w-4" />
+                                      Ver documento
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(row)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    {row.source === "ogc" ? "Anular" : "Eliminar"}
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex min-h-64 flex-col items-center justify-center px-6 text-center">
+                  <FileText className="h-7 w-7 text-disabled-foreground" />
+                  <p className="mt-3 text-sm font-medium text-foreground">No hay ingresos registrados</p>
+                  <p className="mt-1 max-w-sm text-sm text-subtle-foreground">
+                    Agrega un ingreso o carga un archivo Excel para comenzar.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={handleAddNew}
+                    className="mt-4 gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar primer ingreso
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
