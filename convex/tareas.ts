@@ -143,10 +143,6 @@ async function ensureAssignableUsersBelongToProject(
   asignados: Id<"users">[],
   proyecto: Id<"desarrollos">
 ) {
-  if (asignados.length === 0) {
-    throw new Error("Asigna al menos un responsable");
-  }
-
   if (new Set(asignados).size !== asignados.length) {
     throw new Error("La tarea no puede tener responsables duplicados");
   }
@@ -180,16 +176,12 @@ async function ensureAssignableUsersBelongToScope(
   ctx: QueryCtx | MutationCtx,
   asignados: Id<"users">[],
   scope: { proyecto?: Id<"desarrollos">; organization_id?: string },
-  allowEmpty = false,
 ) {
-  if (!allowEmpty && asignados.length === 0) {
-    throw new Error("Asigna al menos un responsable");
-  }
   if (new Set(asignados).size !== asignados.length) {
     throw new Error("La tarea no puede tener responsables duplicados");
   }
   if (scope.proyecto) {
-    if (asignados.length || !allowEmpty) {
+    if (asignados.length) {
       await ensureAssignableUsersBelongToProject(ctx, asignados, scope.proyecto);
     }
     return;
@@ -1069,7 +1061,6 @@ export const create = mutation({
       ctx,
       args.asignados,
       { proyecto: args.proyecto, organization_id: organizationId },
-      tipo === "minuta",
     );
     if (args.parent_task) {
       const parent = await ctx.db.get(args.parent_task);
@@ -1176,7 +1167,6 @@ export const update = mutation({
       ctx,
       args.asignados,
       { proyecto: nextProject, organization_id: nextOrganizationId },
-      nextType === "minuta",
     );
     await ensurePartidasBelongToProject(ctx, args.partidas, nextProject);
     const nextTask = {

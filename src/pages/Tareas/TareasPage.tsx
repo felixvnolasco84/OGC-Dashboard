@@ -75,8 +75,10 @@ import {
   Ban,
   Bell,
   Archive,
+  Check,
   CheckCircle2,
   ChevronDown,
+  Circle,
   Copy,
   CircleAlert,
   Clock3,
@@ -90,12 +92,15 @@ import {
   MessageSquare,
   MoreHorizontal,
   MoveRight,
+  Pause,
   Pencil,
+  Play,
   Plus,
   Search,
   Send,
   Trash2,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -106,7 +111,9 @@ const TASK_UI_COLORS = {
   blue: "#76AFD9",
   green: "#50AC66",
   itemBg: "transparent",
-  itemBorder: "hsl(var(--border))",
+  projectHeaderBorder: "#EEEEEE",
+  tableBorder: "rgb(240, 240, 240)",
+  pendingIcon: "rgb(173, 173, 173)",
 };
 const TASK_TABLE_GRID = "grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)_minmax(0,0.74fr)_minmax(0,0.7fr)_minmax(0,0.72fr)_minmax(0,1fr)_32px]";
 const TASK_TITLE_CELL = "min-w-0 md:col-span-3 xl:col-span-1";
@@ -114,7 +121,8 @@ const TASK_FIELD_CELL = "min-w-0 space-y-1 xl:space-y-0";
 const TASK_ACTION_CELL = "flex min-w-0 justify-end md:col-span-3 xl:col-span-1";
 const TASK_MOBILE_LABEL = "block text-xs font-medium text-disabled-foreground xl:hidden";
 const TASK_VALUE_TEXT = "text-disabled-foreground";
-const TASK_COLUMN_TEXT = "text-disabled-foreground";
+const TASK_COLUMN_TEXT = "text-[14px] text-subtle-foreground";
+const TASK_CHECKBOX_CLASS = "h-[14px] w-[14px] !rounded-[4px] border-border shadow-none [&_svg]:h-3 [&_svg]:w-3 data-[state=checked]:border-[#50AC66] data-[state=checked]:bg-[#50AC66] data-[state=checked]:text-on-color";
 
 const LABEL_COLORS = [
   "#00a884",
@@ -384,6 +392,33 @@ function partidaContext(partida: PartidaSummary) {
   }
   if (partida.nivel === 2) return partida.partida_nombre || partida.nombre;
   return "Partida";
+}
+
+function statusIconForLabel(status: string): LucideIcon {
+  const key = status.trim().toLowerCase();
+  if (key === "pendiente") return Pause;
+  if (key === "en progreso" || key === "en curso") return Play;
+  if (key === "completada" || key === "completado") return Check;
+  if (key === "bloqueada" || key === "bloqueado") return Ban;
+  if (key === "cancelada" || key === "cancelado") return X;
+  return Circle;
+}
+
+function StatusSectionIcon({ status, color }: { status: string; color: string }) {
+  const Icon = statusIconForLabel(status);
+  const isPending = status.trim().toLowerCase() === "pendiente";
+  return (
+    <span
+      className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-on-color"
+      style={{ backgroundColor: isPending ? TASK_UI_COLORS.pendingIcon : color }}
+    >
+      <Icon
+        className="h-2.5 w-2.5"
+        fill={isPending ? "currentColor" : "none"}
+        strokeWidth={isPending ? 0 : 2.5}
+      />
+    </span>
+  );
 }
 
 function labelForValue(value: string, labels: TaskLabelOption[]) {
@@ -852,12 +887,11 @@ function InlineSingleSelectPicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-8 w-full min-w-0 justify-between gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground",
+            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground",
             open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
           )}
         >
           <span className="truncate">{displayValue}</span>
-          <ChevronDown className="h-3.5 w-3.5 shrink-0" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={6} className="w-72 overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
@@ -1607,6 +1641,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [collapsedStatusSections, setCollapsedStatusSections] = useState<Set<string>>(new Set());
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
   const [draggingTaskId, setDraggingTaskId] = useState<Id<"tareas"> | null>(null);
+  const subtaskTitleInputRef = useRef<HTMLInputElement>(null);
+  const newTaskTitleInputRef = useRef<HTMLInputElement>(null);
   const skipSubtaskCreateOnBlur = useRef(false);
   const skipNewTaskCreateOnBlur = useRef(false);
   const [statusLabels] = useState<TaskLabelOption[]>(() =>
@@ -1917,11 +1953,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       toast.error("Agrega un título para la tarea");
       return;
     }
-    if (form.tipo === "tarea" && form.asignados.size === 0) {
-      toast.error("Asigna al menos un responsable");
-      return;
-    }
-
     setSubmitting(true);
     const payload = {
       titulo: form.titulo,
@@ -2005,10 +2036,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       return;
     }
     const nextAssignees = changes.asignados ?? task.asignados;
-    if (nextAssignees.length === 0 && task.tipo !== "minuta") {
-      toast.error("Asigna al menos un responsable");
-      return;
-    }
 
     setInlineSavingId(task._id);
     try {
@@ -2037,16 +2064,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
   };
 
-  const handleCreateSubtask = async (parent: Task, titleOverride?: string, options: { openDetails?: boolean } = {}) => {
+  const handleCreateSubtask = async (
+    parent: Task,
+    titleOverride?: string,
+    options: { keepAdding?: boolean; openDetails?: boolean } = {}
+  ) => {
     const title = (titleOverride ?? subtaskTitle).trim();
     if (!title || submitting) return;
-    const { openDetails = true } = options;
-    const sameScope = (subtaskProjectId || "") === (parent.proyecto || "");
-    const assignees = subtaskAssignees.length ? subtaskAssignees : sameScope ? parent.asignados : [];
-    if (assignees.length === 0) {
-      toast.error("Asigna al menos un responsable");
-      return;
-    }
+    const { keepAdding = false, openDetails = true } = options;
 
     setSubmitting(true);
     try {
@@ -2057,7 +2082,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         parent_task: parent._id,
         titulo: title,
         descripcion: undefined,
-        asignados: assignees,
+        asignados: subtaskAssignees,
         partidas: subtaskProjectId ? subtaskPartidas : [],
         prioridad: subtaskPriority || parent.prioridad,
         status: parent.status,
@@ -2065,14 +2090,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         categoria: parent.categoria || "General",
       });
       setSubtaskTitle("");
-      setSubtaskProjectId("");
       setSubtaskAssignees([]);
       setSubtaskDueDate("");
       setSubtaskPriority("Media");
       setSubtaskPartidas([]);
-      setAddingSubtaskFor(null);
+      if (!keepAdding) {
+        setSubtaskProjectId("");
+        setAddingSubtaskFor(null);
+      }
       if (openDetails) setSelectedTaskId(taskId);
       toast.success("Subtarea creada");
+      if (keepAdding) {
+        requestAnimationFrame(() => subtaskTitleInputRef.current?.focus());
+      }
     } catch (error) {
       console.error("Error creating subtask:", error);
       toast.error("No se pudo crear la subtarea");
@@ -2085,15 +2115,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     projectId: Id<"desarrollos">,
     status: string,
     titleOverride?: string,
-    options: { openDetails?: boolean } = {}
+    options: { keepAdding?: boolean; openDetails?: boolean } = {}
   ) => {
     const title = (titleOverride ?? newTaskTitle).trim();
     if (!title || submitting) return;
-    const { openDetails = true } = options;
-    if (newTaskAssignees.length === 0) {
-      toast.error("Asigna al menos un responsable");
-      return;
-    }
+    const { keepAdding = false, openDetails = true } = options;
 
     setSubmitting(true);
     try {
@@ -2114,9 +2140,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       setNewTaskDueDate("");
       setNewTaskPriority("Media");
       setNewTaskPartidas([]);
-      setAddingTaskInSection(null);
+      if (!keepAdding) setAddingTaskInSection(null);
       if (openDetails) setSelectedTaskId(taskId);
       toast.success("Tarea creada");
+      if (keepAdding) {
+        requestAnimationFrame(() => newTaskTitleInputRef.current?.focus());
+      }
     } catch (error) {
       console.error("Error creating task:", error);
       toast.error("No se pudo crear la tarea");
@@ -2347,7 +2376,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             <GripVertical className="h-3.5 w-3.5" />
           </button>
           <div className="relative flex h-6 shrink-0 items-center gap-2">
-            <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || isSaving} className="h-4 w-4 border-border" />
+            <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || isSaving} className={TASK_CHECKBOX_CLASS} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -2472,10 +2501,17 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             draggingTaskId === task._id && "opacity-50",
             draggingTaskId && draggingTaskId !== task._id && "data-[drop=true]:bg-blue-50"
           )}
-          style={{ borderColor: TASK_UI_COLORS.itemBorder }}
+          style={{ borderColor: TASK_UI_COLORS.tableBorder }}
         >
           <div>
-            <div className={cn("grid min-h-[44px] items-center gap-4 py-3 xl:py-1.5", TASK_TABLE_GRID)}>
+            <div
+              className={cn(
+                "grid min-h-[44px] items-center gap-4 py-3 xl:py-1.5",
+                TASK_TABLE_GRID,
+                !isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && "border-b"
+              )}
+              style={!isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) ? { borderColor: TASK_UI_COLORS.tableBorder } : undefined}
+            >
               <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
                 <button
                   type="button"
@@ -2492,12 +2528,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <GripVertical className="h-3.5 w-3.5" />
                 </button>
                 <div className="relative flex h-6 shrink-0 items-center gap-2">
-                  <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || inlineSavingId === task._id || updatingStatusId === task._id} className="h-4 w-4 border-border" />
+                  <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || inlineSavingId === task._id || updatingStatusId === task._id} className={TASK_CHECKBOX_CLASS} />
                   {hasChildren ? (
                     <button
                       type="button"
                       onClick={() => toggleTaskCollapse(task._id)}
-                      className="flex h-5 w-5 items-center justify-center rounded-sm border border-border hover:bg-muted text-muted-foreground"
+                      className="flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted"
                       aria-expanded={!isTaskCollapsed}
                     >
                       <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isTaskCollapsed && "-rotate-90")} />
@@ -2627,34 +2663,36 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             {!isTaskCollapsed && hasChildren && (
               <>
                 {childTasks.map((child) => (
-                  <React.Fragment key={child._id}>
-                    <div className="border-t border-border" />
-                    <div
-                      className={cn(draggingTaskId === child._id && "opacity-50")}
-                      onDragOver={(event) => {
-                        if (!draggingTaskId || draggingTaskId === child._id) return;
-                        event.preventDefault();
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        void handleTaskDrop(child);
-                      }}
-                    >
-                      {renderTaskContent(child, 1)}
-                    </div>
-                  </React.Fragment>
+                  <div
+                    key={child._id}
+                    className={cn(
+                      "border-b",
+                      draggingTaskId === child._id && "opacity-50"
+                    )}
+                    style={{ borderColor: TASK_UI_COLORS.tableBorder }}
+                    onDragOver={(event) => {
+                      if (!draggingTaskId || draggingTaskId === child._id) return;
+                      event.preventDefault();
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      void handleTaskDrop(child);
+                    }}
+                  >
+                    {renderTaskContent(child, 1)}
+                  </div>
                 ))}
               </>
             )}
             {!isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
               <>
-                <div className="border-t border-border" />
                 <div className="px-4 py-2 xl:px-6">
                   {addingSubtaskFor === task._id ? (
                     <div className={cn("grid min-h-[44px] items-center gap-4 subtask-creation-form", TASK_TABLE_GRID)}>
                       <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)} style={{ paddingLeft: 26 }}>
-                        <Checkbox disabled className="h-4 w-4 border-border" />
+                        <Checkbox disabled className={TASK_CHECKBOX_CLASS} />
                         <Input
+                          ref={subtaskTitleInputRef}
                           autoFocus
                           value={subtaskTitle}
                           disabled={submitting}
@@ -2663,7 +2701,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                             if (event.key === "Enter") {
                               event.preventDefault();
                               skipSubtaskCreateOnBlur.current = true;
-                              void handleCreateSubtask(task, event.currentTarget.value);
+                              void handleCreateSubtask(task, event.currentTarget.value, {
+                                keepAdding: true,
+                                openDetails: false,
+                              });
                             }
                             if (event.key === "Escape") {
                               skipSubtaskCreateOnBlur.current = true;
@@ -2683,7 +2724,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                             const title = event.currentTarget.value.trim();
                             setTimeout(() => {
                               if (document.activeElement?.closest(".subtask-creation-form")) return;
-                              if (!title) {
+                              if (title) {
+                                void handleCreateSubtask(task, title, { openDetails: false });
+                              } else {
                                 setSubtaskTitle("");
                                 setSubtaskAssignees([]);
                                 setSubtaskDueDate("");
@@ -2925,9 +2968,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <div
                     key={group.projectId}
                     className={cn(
-                      "rounded-md border border-border bg-card",
+                      "rounded-md border-none bg-card",
                       isProjectScoped && "border-0"
                     )}
+                    style={!isProjectScoped ? { borderColor: TASK_UI_COLORS.projectHeaderBorder } : undefined}
                   >
                     {!isProjectScoped && (
                       <button
@@ -2935,8 +2979,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         onClick={() => toggleProjectCollapse(group.projectId)}
                         className={cn(
                           "flex min-h-32 w-full items-center gap-3 bg-card px-8 text-left",
-                          !isCollapsed && "border-b border-border"
+                          !isCollapsed && "border-b"
                         )}
+                        style={!isCollapsed ? { borderColor: TASK_UI_COLORS.tableBorder } : undefined}
                         aria-expanded={!isCollapsed}
                       >
                         <ChevronDown className={cn("h-4 w-4 text-subtle-foreground transition-transform", isCollapsed && "-rotate-90")} />
@@ -2950,40 +2995,45 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     {!isCollapsed && (
                       <div className="w-full min-w-0 overflow-hidden">
                         <div className="min-w-0">
-                        {getStatusSections(group.tasks, group.tasks.length === 0).map((section) => {
+                        {getStatusSections(group.tasks, group.tasks.length === 0).map((section, sectionIndex) => {
                             const sectionKey = `${group.projectId}:${section.label.id}`;
                             const isStatusCollapsed = collapsedStatusSections.has(sectionKey);
 
                             return (
-                              <div key={sectionKey}>
-                                <div className={cn("px-4 pb-2 sm:px-8", isProjectScoped ? "pt-8" : "pt-10")}>
-                                    <div className={cn("grid items-center gap-4 text-sm", TASK_COLUMN_TEXT, TASK_TABLE_GRID)}>
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleStatusCollapse(sectionKey)}
-                                        className={cn("flex min-w-0 items-center gap-2 text-left text-subtle-foreground hover:text-subtle-foreground", "md:col-span-3 xl:col-span-1")}
-                                        aria-expanded={!isStatusCollapsed}
-                                      >
-                                        <ChevronDown className={cn("h-4 w-4 text-subtle-foreground transition-transform", isStatusCollapsed && "-rotate-90")} />
-                                        <span className="h-4 w-4 rounded-full" style={{ backgroundColor: section.label.color }} />
-                                        <span>{section.label.label}</span>
-                                        <span className="text-xs text-disabled-foreground">{section.tasks.length}</span>
-                                      </button>
-                                      <span className="hidden text-base text-disabled-foreground xl:block">Responsable</span>
-                                      <span className="hidden text-base text-disabled-foreground xl:block">Fecha vencimiento</span>
-                                      <span className="hidden text-base text-disabled-foreground xl:block">Prioridad</span>
-                                      <span className="hidden text-base text-disabled-foreground xl:block">Especialidad</span>
-                                      <span className="hidden text-base text-disabled-foreground xl:block">Proyecto</span>
-                                      <span className="hidden xl:block" />
-                                    </div>
+                              <div
+                                key={sectionKey}
+                                className={sectionIndex > 0 ? "border-t" : undefined}
+                                style={sectionIndex > 0 ? { borderColor: TASK_UI_COLORS.tableBorder } : undefined}
+                              >
+                                <div className="px-4 pb-3 pt-8 sm:px-8">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleStatusCollapse(sectionKey)}
+                                      className="flex min-w-0 items-center gap-2 text-left text-[14px] text-subtle-foreground hover:text-subtle-foreground"
+                                      aria-expanded={!isStatusCollapsed}
+                                    >
+                                      <ChevronDown className={cn("h-4 w-4 text-subtle-foreground transition-transform", isStatusCollapsed && "-rotate-90")} />
+                                      <StatusSectionIcon status={section.label.label} color={section.label.color} />
+                                      <span>{section.label.label}</span>
+                                      <span className="text-xs text-disabled-foreground">{section.tasks.length}</span>
+                                    </button>
                                 </div>
                                 {!isStatusCollapsed && (
                                   <>
+                                    <div
+                                      className={cn("grid items-center gap-4 border-b px-4 py-2 sm:px-8", TASK_COLUMN_TEXT, TASK_TABLE_GRID)}
+                                      style={{ borderColor: TASK_UI_COLORS.tableBorder }}
+                                    >
+                                      <span className={cn("hidden xl:block", TASK_TITLE_CELL)}>Nombre</span>
+                                      <span className="hidden xl:block">Responsable</span>
+                                      <span className="hidden xl:block">Fecha vencimiento</span>
+                                      <span className="hidden xl:block">Prioridad</span>
+                                      <span className="hidden xl:block">Especialidad</span>
+                                      <span className="hidden xl:block">Proyecto</span>
+                                      <span className="hidden xl:block" />
+                                    </div>
                                     {section.tasks.length > 0 && (
-                                      <div
-                                        className="border-t"
-                                        style={{ borderColor: TASK_UI_COLORS.itemBorder }}
-                                      >
+                                      <div>
                                         {section.tasks.map((task) => renderTaskRow(task, group.projectId))}
                                       </div>
                                     )}
@@ -2992,8 +3042,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                         {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.id ? (
                                           <div className={cn("grid min-h-[44px] items-center gap-4 task-creation-form", TASK_TABLE_GRID)}>
                                             <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
-                                              <Checkbox disabled className="h-4 w-4 border-border" />
+                                              <Checkbox disabled className={TASK_CHECKBOX_CLASS} />
                                               <Input
+                                                ref={newTaskTitleInputRef}
                                                 autoFocus
                                                 value={newTaskTitle}
                                                 disabled={submitting}
@@ -3002,7 +3053,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                   if (event.key === "Enter") {
                                                     event.preventDefault();
                                                     skipNewTaskCreateOnBlur.current = true;
-                                                    void handleCreateInlineTask(group.projectId as Id<"desarrollos">, section.label.label, event.currentTarget.value);
+                                                    void handleCreateInlineTask(
+                                                      group.projectId as Id<"desarrollos">,
+                                                      section.label.label,
+                                                      event.currentTarget.value,
+                                                      { keepAdding: true, openDetails: false }
+                                                    );
                                                   }
                                                   if (event.key === "Escape") {
                                                     skipNewTaskCreateOnBlur.current = true;
@@ -3022,7 +3078,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                   const title = event.currentTarget.value.trim();
                                                   setTimeout(() => {
                                                     if (document.activeElement?.closest(".task-creation-form")) return;
-                                                    if (!title) {
+                                                    if (title) {
+                                                      void handleCreateInlineTask(
+                                                        group.projectId as Id<"desarrollos">,
+                                                        section.label.label,
+                                                        title,
+                                                        { openDetails: false }
+                                                      );
+                                                    } else {
                                                       setNewTaskTitle("");
                                                       setNewTaskAssignees([]);
                                                       setNewTaskDueDate("");
@@ -3807,7 +3870,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             )}
 
             <div className="space-y-2 min-w-0">
-              <Label>{form.tipo === "minuta" ? "Responsables (opcional)" : "Responsables"}</Label>
+              <Label>Responsables (opcional)</Label>
               <div className="max-h-52 overflow-y-auto overflow-x-hidden border border-border p-3">
                 {!selectedFormProjectId && !selectedFormOrganizationId && (
                   <div className="py-4 text-center text-sm text-disabled-foreground">
