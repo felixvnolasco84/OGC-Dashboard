@@ -10,6 +10,8 @@ export const ASSISTANT_REFERENCE_TYPES = [
   "rfi",
   "cost_item",
   "provider",
+  "invoice_category",
+  "invoice",
 ] as const;
 
 export type AssistantReferenceType = (typeof ASSISTANT_REFERENCE_TYPES)[number];
@@ -33,6 +35,8 @@ export const assistantReferenceValidator = v.object({
     v.literal("rfi"),
     v.literal("cost_item"),
     v.literal("provider"),
+    v.literal("invoice_category"),
+    v.literal("invoice"),
   ),
   id: v.string(),
   project_id: v.string(),
@@ -49,7 +53,7 @@ export type AssistantOverallStatus =
 
 export type AssistantEvidence = {
   id: string;
-  type: "metric" | "task" | "requisition" | "rfi" | "cost";
+  type: "metric" | "task" | "requisition" | "rfi" | "cost" | "invoice";
   label: string;
   project_id: string;
   observed_value?: string;
@@ -89,6 +93,7 @@ export const assistantEvidenceValidator = v.object({
     v.literal("requisition"),
     v.literal("rfi"),
     v.literal("cost"),
+    v.literal("invoice"),
   ),
   label: v.string(),
   project_id: v.string(),
@@ -142,7 +147,7 @@ export const assistantAnswerValidator = v.object({
 
 const evidenceSchema = z.object({
   id: z.string().min(1).max(160),
-  type: z.enum(["metric", "task", "requisition", "rfi", "cost"]),
+  type: z.enum(["metric", "task", "requisition", "rfi", "cost", "invoice"]),
   label: z.string().min(1).max(180),
   project_id: z.string().min(1).max(80),
   observed_value: z.string().max(220).optional(),
@@ -272,7 +277,7 @@ export const assistantStructuredOutputJsonSchema = {
         required: ["id", "type", "label", "project_id", "observed_value", "as_of", "url"],
         properties: {
           id: { type: "string", minLength: 1, maxLength: 160 },
-          type: { type: "string", enum: ["metric", "task", "requisition", "rfi", "cost"] },
+          type: { type: "string", enum: ["metric", "task", "requisition", "rfi", "cost", "invoice"] },
           label: { type: "string", minLength: 1, maxLength: 180 },
           project_id: { type: "string", minLength: 1, maxLength: 80 },
           observed_value: { type: "string", maxLength: 220 },

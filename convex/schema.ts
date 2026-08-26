@@ -196,6 +196,9 @@ export default defineSchema({
     storage_id: v.optional(v.id("_storage")), // New: Convex storage ID
     type: v.string(),
     size: v.optional(v.number()), // File size in bytes
+    mime_type: v.optional(v.string()),
+    sha256: v.optional(v.string()),
+    invoice_id: v.optional(v.id("invoice_records")),
     transaccion_id: v.optional(v.id("transacciones")), // References regular transaction
     sales_transaccion_id: v.optional(v.id("sales_transacciones")), // References sales transaction
     proyecto: v.optional(v.id("desarrollos")), // Regular project
@@ -206,6 +209,8 @@ export default defineSchema({
     bitacora_id: v.optional(v.union(v.id("documentos"), v.id("bitacora"))), // Parent bitacora entry ID for photos
     comment: v.optional(v.string()), // Comment for bitacora photos
   }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_storage", { fields: ["storage_id"] })
+    .index("by_invoice", { fields: ["invoice_id"] })
     .index("by_proyecto_uploaded", { fields: ["proyecto", "uploaded_at"] })
     .index("by_sales_proyecto", { fields: ["sales_proyecto"] })
     .index("by_transaccion", { fields: ["transaccion_id"] })
@@ -217,6 +222,164 @@ export default defineSchema({
     .index("by_folder_type", { fields: ["folder_id", "type"] })
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_bitacora_id", { fields: ["bitacora_id"] }),
+
+  invoice_cost_categories: defineTable({
+    organization_id: v.optional(v.string()),
+    code: v.string(),
+    label: v.string(),
+    parent_code: v.optional(v.string()),
+    aliases: v.array(v.string()),
+    active: v.boolean(),
+    version: v.number(),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_organization_code", { fields: ["organization_id", "code"] })
+    .index("by_organization_active", { fields: ["organization_id", "active"] }),
+
+  invoice_records: defineTable({
+    organization_id: v.optional(v.string()),
+    proyecto: v.id("desarrollos"),
+    source_document_ids: v.array(v.id("documentos")),
+    source_transaction_ids: v.array(v.id("transacciones")),
+    primary_transaction_id: v.id("transacciones"),
+    provider_id: v.optional(v.id("proveedores")),
+    source_kind: v.union(
+      v.literal("xml"),
+      v.literal("pdf"),
+      v.literal("image"),
+      v.literal("mixed"),
+    ),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("extracting"),
+      v.literal("review_required"),
+      v.literal("approved"),
+      v.literal("rejected"),
+      v.literal("failed"),
+      v.literal("stale"),
+    ),
+    invoice_type: v.optional(v.union(
+      v.literal("invoice"),
+      v.literal("credit_note"),
+      v.literal("receipt"),
+      v.literal("unknown"),
+    )),
+    uuid: v.optional(v.string()),
+    uuid_normalized: v.optional(v.string()),
+    folio: v.optional(v.string()),
+    issuer_name: v.optional(v.string()),
+    issuer_rfc: v.optional(v.string()),
+    receiver_rfc: v.optional(v.string()),
+    issued_at: v.optional(v.string()),
+    currency: v.optional(v.string()),
+    subtotal: v.optional(v.number()),
+    discount: v.optional(v.number()),
+    transferred_taxes: v.optional(v.number()),
+    retained_taxes: v.optional(v.number()),
+    total: v.optional(v.number()),
+    approved_category_ids: v.optional(v.array(v.id("invoice_cost_categories"))),
+    active_run_id: v.optional(v.id("invoice_analysis_runs")),
+    revision: v.number(),
+    created_by: v.id("users"),
+    approved_by: v.optional(v.id("users")),
+    approved_at: v.optional(v.number()),
+    rejected_by: v.optional(v.id("users")),
+    rejected_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_project_status", { fields: ["proyecto", "status"] })
+    .index("by_project_created", { fields: ["proyecto", "created_at"] })
+    .index("by_uuid", { fields: ["uuid_normalized"] })
+    .index("by_transaction", { fields: ["primary_transaction_id"] }),
+
+  invoice_analysis_runs: defineTable({
+    invoice_id: v.id("invoice_records"),
+    requested_by: v.id("users"),
+    client_request_id: v.string(),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("extracting"),
+      v.literal("review_required"),
+      v.literal("approved"),
+      v.literal("rejected"),
+      v.literal("failed"),
+      v.literal("stale"),
+    ),
+    source_hash: v.optional(v.string()),
+    schema_version: v.number(),
+    taxonomy_version: v.number(),
+    model: v.optional(v.string()),
+    response_id: v.optional(v.string()),
+    input_tokens: v.optional(v.number()),
+    output_tokens: v.optional(v.number()),
+    duration_ms: v.optional(v.number()),
+    warnings: v.array(v.string()),
+    error_code: v.optional(v.string()),
+    error: v.optional(v.string()),
+    started_at: v.optional(v.number()),
+    completed_at: v.optional(v.number()),
+    created_at: v.number(),
+  }).index("by_invoice_created", { fields: ["invoice_id", "created_at"] })
+    .index("by_status_created", { fields: ["status", "created_at"] })
+    .index("by_source_hash", { fields: ["source_hash"] })
+    .index("by_requester_request", { fields: ["requested_by", "client_request_id"] }),
+
+  invoice_items: defineTable({
+    invoice_id: v.id("invoice_records"),
+    run_id: v.id("invoice_analysis_runs"),
+    source_index: v.number(),
+    description: v.string(),
+    normalized_description: v.string(),
+    product_code: v.optional(v.string()),
+    quantity: v.optional(v.number()),
+    unit: v.optional(v.string()),
+    unit_price: v.optional(v.number()),
+    discount: v.optional(v.number()),
+    net_amount: v.optional(v.number()),
+    tax_amount: v.optional(v.number()),
+    gross_amount: v.optional(v.number()),
+    proposed_category_code: v.string(),
+    category_id: v.optional(v.id("invoice_cost_categories")),
+    canonical_label: v.string(),
+    confidence: v.union(v.literal("high"), v.literal("medium"), v.literal("low")),
+    classification_status: v.union(
+      v.literal("proposed"),
+      v.literal("approved"),
+      v.literal("overridden"),
+      v.literal("unresolved"),
+    ),
+    asset_candidate: v.boolean(),
+    evidence_page: v.optional(v.number()),
+    reviewed_by: v.optional(v.id("users")),
+    reviewed_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_run", { fields: ["run_id"] })
+    .index("by_invoice", { fields: ["invoice_id"] })
+    .index("by_category", { fields: ["category_id"] }),
+
+  invoice_allocations: defineTable({
+    invoice_id: v.id("invoice_records"),
+    run_id: v.id("invoice_analysis_runs"),
+    transaction_id: v.id("transacciones"),
+    amount: v.number(),
+    currency: v.string(),
+    created_by: v.id("users"),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_invoice", { fields: ["invoice_id"] })
+    .index("by_run", { fields: ["run_id"] })
+    .index("by_transaction", { fields: ["transaction_id"] }),
+
+  invoice_review_history: defineTable({
+    invoice_id: v.id("invoice_records"),
+    run_id: v.id("invoice_analysis_runs"),
+    actor_user_id: v.id("users"),
+    action: v.string(),
+    revision: v.number(),
+    reason: v.optional(v.string()),
+    created_at: v.number(),
+  }).index("by_invoice_created", { fields: ["invoice_id", "created_at"] }),
   document_folders: defineTable({
     nombre: v.string(),
     parent_folder_id: v.optional(v.id("document_folders")),

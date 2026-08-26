@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
+import { InvoiceAnalysisPanel } from "@/components/invoices/InvoiceAnalysisPanel";
 
 type Document = {
   _id: Id<"documentos">;
@@ -48,6 +49,8 @@ export default function TransactionDocumentosModal() {
     api.transacciones.getTransactionDocumentsById,
     isOpen && transactionId ? { id: transactionId } : "skip"
   );
+  const currentUser = useQuery(api.users.getCurrentUser, isOpen ? {} : "skip");
+  const canReviewInvoices = currentUser?.role === "admin" || currentUser?.role === "finance";
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -67,6 +70,7 @@ export default function TransactionDocumentosModal() {
           </div>
         ) : (
           <div className="max-h-[calc(90vh-81px)] overflow-y-auto">
+            {canReviewInvoices && <InvoiceAnalysisPanel transaction={transaction} />}
             <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-3 text-sm text-muted-foreground">
               <span className="font-medium text-foreground tabular-nums">
                 {transaction.documents?.length || 0}

@@ -3,6 +3,42 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import {
+    assertCanWrite,
+    checkDesarrolloAccess,
+    getCurrentUserOrThrow,
+    hasAdminAccess,
+} from "./permissions";
+
+async function assertSalesProjectAccess(ctx: QueryCtx | MutationCtx, projectId: Doc<"sales_projects">["_id"]) {
+    const user = await getCurrentUserOrThrow(ctx);
+    if (hasAdminAccess(user) || user.allowed_sales_projects?.includes(projectId)) return user;
+    throw new Error("No tienes acceso al proyecto de ventas.");
+}
+
+async function assertDocumentAccess(ctx: QueryCtx | MutationCtx, document: Doc<"documentos">) {
+    if (document.proyecto) {
+        if (!(await checkDesarrolloAccess(ctx, document.proyecto))) throw new Error("No tienes acceso al documento.");
+        return;
+    }
+    if (document.sales_proyecto) {
+        await assertSalesProjectAccess(ctx, document.sales_proyecto);
+        return;
+    }
+    const user = await getCurrentUserOrThrow(ctx);
+    if (!hasAdminAccess(user)) throw new Error("No tienes acceso al documento.");
+}
+
+async function markLinkedInvoiceStale(ctx: MutationCtx, document: Doc<"documentos">) {
+    if (!document.invoice_id) return;
+    const invoice = await ctx.db.get(document.invoice_id);
+    if (!invoice || invoice.status === "stale") return;
+    await ctx.db.patch(invoice._id, {
+        status: "stale",
+        revision: invoice.revision + 1,
+        updated_at: Date.now(),
+    });
+}
 
 const enrichDocumentUrl = async (ctx: QueryCtx, doc: Doc<"documentos">) => {
     if (doc.storage_id) {
@@ -330,6 +366,10 @@ export const getByTransaccion = query({
         transaccion_id: v.id("transacciones"),
     },
     handler: async (ctx, args) => {
+        const transaction = await ctx.db.get(args.transaccion_id);
+        if (!transaction || !(await checkDesarrolloAccess(ctx, transaction.proyecto))) {
+            throw new Error("No tienes acceso a la transacción.");
+        }
         const documents = await ctx.db
             .query("documentos")
             .withIndex("by_transaccion", (q) => q.eq("transaccion_id", args.transaccion_id))
@@ -346,6 +386,7 @@ export const getByProyecto = query({
         proyecto_id: v.id("desarrollos"),
     },
     handler: async (ctx, args) => {
+        if (!(await checkDesarrolloAccess(ctx, args.proyecto_id))) throw new Error("No tienes acceso al proyecto.");
         const documents = await ctx.db
             .query("documentos")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -364,6 +405,7 @@ export const getByProyectoPaginated = query({
         pageSize: v.number(),
     },
     handler: async (ctx, args) => {
+        if (!(await checkDesarrolloAccess(ctx, args.proyecto_id))) throw new Error("No tienes acceso al proyecto.");
         const search = normalize(args.search || "");
         const page = Math.max(args.page, 1);
         const pageSize = Math.min(Math.max(args.pageSize, 1), 100);
@@ -421,7 +463,10 @@ export const getById = query({
         id: v.id("documentos"),
     },
     handler: async (ctx, args) => {
-        return await ctx.db.get(args.id);
+        const document = await ctx.db.get(args.id);
+        if (!document) return null;
+        await assertDocumentAccess(ctx, document);
+        return document;
     },
 });
 
@@ -431,6 +476,12 @@ export const getUrl = query({
         storage_id: v.id("_storage"),
     },
     handler: async (ctx, args) => {
+        const document = await ctx.db
+            .query("documentos")
+            .withIndex("by_storage", (q) => q.eq("storage_id", args.storage_id))
+            .first();
+        if (!document) throw new Error("Documento no encontrado.");
+        await assertDocumentAccess(ctx, document);
         return await ctx.storage.getUrl(args.storage_id);
     },
 });
@@ -438,6 +489,7 @@ export const getUrl = query({
 // Generate upload URL for file upload
 export const generateUploadUrl = mutation({
     handler: async (ctx) => {
+        await assertCanWrite(ctx);
         return await ctx.storage.generateUploadUrl();
     },
 });
@@ -450,6 +502,7 @@ export const createWithStorage = mutation({
         storage_id: v.id("_storage"),
         type: v.string(),
         size: v.number(),
+        mime_type: v.optional(v.string()),
         proyecto: v.optional(v.id("desarrollos")),
         transaccion_id: v.optional(v.id("transacciones")),
         sales_proyecto: v.optional(v.id("sales_projects")),
@@ -457,12 +510,30 @@ export const createWithStorage = mutation({
         folder_id: v.optional(v.id("document_folders")),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
+        if (args.proyecto && !(await checkDesarrolloAccess(ctx, args.proyecto))) {
+            throw new Error("No tienes acceso al proyecto.");
+        }
+        if (args.transaccion_id) {
+            const transaction = await ctx.db.get(args.transaccion_id);
+            if (!transaction || !args.proyecto || transaction.proyecto !== args.proyecto) {
+                throw new Error("La transacción no pertenece al proyecto del documento.");
+            }
+        }
+        if (args.sales_proyecto) await assertSalesProjectAccess(ctx, args.sales_proyecto);
+        if (args.sales_transaccion_id) {
+            const transaction = await ctx.db.get(args.sales_transaccion_id);
+            if (!transaction || !args.sales_proyecto || transaction.sales_proyecto !== args.sales_proyecto) {
+                throw new Error("La transacción no pertenece al proyecto de ventas del documento.");
+            }
+        }
         const documento = await ctx.db.insert("documentos", {
             nombre: args.nombre,
             descripcion: args.descripcion,
             storage_id: args.storage_id,
             type: args.type,
             size: args.size,
+            mime_type: args.mime_type,
             proyecto: args.proyecto,
             transaccion_id: args.transaccion_id,
             sales_proyecto: args.sales_proyecto,
@@ -485,6 +556,10 @@ export const create = mutation({
         transaccion_id: v.id("transacciones"),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
+        if (!(await checkDesarrolloAccess(ctx, args.proyecto))) throw new Error("No tienes acceso al proyecto.");
+        const transaction = await ctx.db.get(args.transaccion_id);
+        if (!transaction || transaction.proyecto !== args.proyecto) throw new Error("La transacción no pertenece al proyecto.");
         const documento = await ctx.db.insert("documentos", {
             nombre: args.nombre,
             descripcion: args.descripcion,
@@ -511,6 +586,26 @@ export const update = mutation({
         folder_id: v.optional(v.id("document_folders")),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
+        const existing = await ctx.db.get(args.id);
+        if (!existing) throw new Error("Documento no encontrado.");
+        await assertDocumentAccess(ctx, existing);
+        if (args.proyecto && !(await checkDesarrolloAccess(ctx, args.proyecto))) throw new Error("No tienes acceso al proyecto destino.");
+        const targetProject = args.proyecto || existing.proyecto;
+        const targetTransactionId = args.transaccion_id || existing.transaccion_id;
+        if (targetTransactionId) {
+            const transaction = await ctx.db.get(targetTransactionId);
+            if (!transaction || !targetProject || transaction.proyecto !== targetProject) {
+                throw new Error("La transacción no pertenece al proyecto del documento.");
+            }
+        }
+        const sourceRelationshipChanged = Boolean(
+            existing.invoice_id && (
+                (args.proyecto !== undefined && args.proyecto !== existing.proyecto) ||
+                (args.transaccion_id !== undefined && args.transaccion_id !== existing.transaccion_id) ||
+                (args.type !== undefined && args.type !== existing.type)
+            )
+        );
         const { id, ...updateData } = args;
         
         // Filter out undefined values
@@ -518,7 +613,9 @@ export const update = mutation({
             Object.entries(updateData).filter(([, value]) => value !== undefined)
         );
         
-        return await ctx.db.patch(id, cleanUpdateData);
+        const result = await ctx.db.patch(id, cleanUpdateData);
+        if (sourceRelationshipChanged) await markLinkedInvoiceStale(ctx, existing);
+        return result;
     },
 });
 
@@ -530,6 +627,9 @@ export const createFolder = mutation({
         sales_proyecto: v.optional(v.id("sales_projects")),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
+        if (args.proyecto && !(await checkDesarrolloAccess(ctx, args.proyecto))) throw new Error("No tienes acceso al proyecto.");
+        if (args.sales_proyecto) await assertSalesProjectAccess(ctx, args.sales_proyecto);
         const name = args.nombre.trim();
         if (!name) throw new Error("Folder name is required");
 
@@ -549,6 +649,7 @@ export const renameFolder = mutation({
         nombre: v.string(),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
         const name = args.nombre.trim();
         if (!name) throw new Error("Folder name is required");
 
@@ -565,6 +666,10 @@ export const moveDocument = mutation({
         folder_id: v.optional(v.id("document_folders")),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
+        const document = await ctx.db.get(args.id);
+        if (!document) throw new Error("Documento no encontrado.");
+        await assertDocumentAccess(ctx, document);
         return await ctx.db.patch(args.id, { folder_id: args.folder_id });
     },
 });
@@ -575,6 +680,10 @@ export const renameDocument = mutation({
         nombre: v.string(),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
+        const document = await ctx.db.get(args.id);
+        if (!document) throw new Error("Documento no encontrado.");
+        await assertDocumentAccess(ctx, document);
         const name = args.nombre.trim();
         if (!name) throw new Error("Document name is required");
 
@@ -588,6 +697,7 @@ export const moveFolder = mutation({
         parent_folder_id: v.optional(v.id("document_folders")),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
         if (args.id === args.parent_folder_id) {
             throw new Error("A folder cannot be moved into itself");
         }
@@ -616,6 +726,7 @@ export const deleteFolder = mutation({
         id: v.id("document_folders"),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
         const childFolder = await ctx.db
             .query("document_folders")
             .withIndex("by_parent_folder", (q) => q.eq("parent_folder_id", args.id))
@@ -640,10 +751,14 @@ export const deleteDocument = mutation({
         id: v.id("documentos"),
     },
     handler: async (ctx, args) => {
+        await assertCanWrite(ctx);
         const documento = await ctx.db.get(args.id);
         if (!documento) {
             throw new Error("Document not found");
         }
+        await assertDocumentAccess(ctx, documento);
+
+        await markLinkedInvoiceStale(ctx, documento);
 
         await ctx.db.delete(args.id);
 

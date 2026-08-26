@@ -1637,6 +1637,12 @@ export const getByProyectoWithDetails = query({
     const transactionsWithDetails = await Promise.all(
       transactions.map(async (transaction) => {
         const proveedor = await providerSummary(ctx, transaction.proveedor_id);
+        const approvedInvoice = await ctx.db
+          .query("invoice_records")
+          .withIndex("by_transaction", (q) => q.eq("primary_transaction_id", transaction._id))
+          .filter((q) => q.eq(q.field("status"), "approved"))
+          .order("desc")
+          .first();
         // Get line items with partida details
         const lineItems = await ctx.db
           .query("pagos")
@@ -1683,6 +1689,21 @@ export const getByProyectoWithDetails = query({
             firstDocumentUrl = firstDoc.image;
           }
         }
+        const invoiceAnalysisTerms: string[] = [];
+        if (approvedInvoice?.active_run_id) {
+          const approvedItems = await ctx.db
+            .query("invoice_items")
+            .withIndex("by_run", (q) => q.eq("run_id", approvedInvoice.active_run_id!))
+            .collect();
+          const categoryIds = [...new Set(approvedItems.flatMap((item) => item.category_id ? [item.category_id] : []))];
+          const categories = await Promise.all(categoryIds.map((id) => ctx.db.get(id)));
+          invoiceAnalysisTerms.push(
+            ...approvedItems.map((item) => item.canonical_label),
+            ...categories.flatMap((category) => category ? [category.code, category.label] : []),
+            ...(approvedInvoice.folio ? [approvedInvoice.folio] : []),
+            ...(approvedInvoice.uuid ? [approvedInvoice.uuid] : []),
+          );
+        }
 
         return {
           ...transaction,
@@ -1691,6 +1712,7 @@ export const getByProyectoWithDetails = query({
           documentsCount: documents.length,
           partidaNames: partidaNames.slice(0, 3), // First 3 partida names
           costConcepts: [...new Set(costConcepts)],
+          invoiceAnalysisTerms: [...new Set(invoiceAnalysisTerms)],
           documentUrl: firstDocumentUrl, // URL to open the document
         };
       })

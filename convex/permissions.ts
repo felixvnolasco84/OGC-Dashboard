@@ -14,6 +14,10 @@ export function hasAdminAccess(user?: { role: string; email: string } | null): b
   return user?.role === "admin" || isSuperAdminEmail(user?.email);
 }
 
+export function hasInvoiceReviewAccess(user?: { role: string; email: string } | null): boolean {
+  return hasAdminAccess(user) || user?.role === "finance";
+}
+
 export function hasGlobalAdminAccess(
   user?: { role: string; email: string; organization_id?: string } | null
 ): boolean {
@@ -216,5 +220,13 @@ export async function assertCanWrite(ctx: MutationCtx) {
     throw new Error("Unauthorized: Viewer role is read-only");
   }
 
+  return user;
+}
+
+export async function assertInvoiceReviewer(ctx: QueryCtx | MutationCtx) {
+  const user = await getCurrentUserOrThrow(ctx);
+  if (!hasInvoiceReviewAccess(user)) {
+    throw new Error("Unauthorized: Admin or finance access required");
+  }
   return user;
 }

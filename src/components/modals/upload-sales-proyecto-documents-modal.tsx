@@ -151,6 +151,7 @@ export default function UploadSalesProyectoDocumentsModal() {
                 storage_id: storageId,
                 type: fileUpload.type,
                 size: fileUpload.file.size,
+                mime_type: fileUpload.file.type || undefined,
                 sales_proyecto: selectedSalesProyectoId,
                 sales_transaccion_id: selectedTransactionId,
             });

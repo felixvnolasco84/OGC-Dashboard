@@ -277,6 +277,7 @@ export default function AddPaymentModal() {
                         storage_id: storageId,
                         type: documentType,
                         size: documentFile.size,
+                        mime_type: documentFile.type || undefined,
                         proyecto: paymentContext.projectId,
                         transaccion_id: result.transaccionId,
                     });
@@ -825,7 +826,7 @@ export default function AddPaymentModal() {
                                                             }
                                                         }}
                                                         className="max-w-xs mx-auto"
-                                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                                        accept=".xml,.pdf,.doc,.docx,.jpg,.jpeg,.png"
                                                     />
                                                 </div>
                                             )}

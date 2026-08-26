@@ -57,6 +57,12 @@ import {
   type CostCandidate,
   type CostDimensionKind,
 } from "./costRules";
+import {
+  allocateInvoiceAmount,
+  inferInvoiceGroupBy,
+  isInvoiceAnalysisIntent,
+  normalizeInvoiceText,
+} from "./invoiceRules";
 
 const MAX_TOOL_CALLS = 4;
 const MAX_PROJECTS = 3;
@@ -103,6 +109,20 @@ const costToolArgsSchema = z.object({
   date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   payment_scope: z.enum(["paid", "pending", "all"]),
   group_by: z.enum(["concept", "family", "partida", "provider", "none"]),
+  limit: z.number().int().min(1).max(20),
+}).strict();
+
+const invoiceToolArgsSchema = z.object({
+  project_ids: z.array(z.string()).min(1).max(3),
+  search: z.string().max(4000).nullable(),
+  category_ids: z.array(z.string()).max(10),
+  invoice_ids: z.array(z.string()).max(10),
+  provider_ids: z.array(z.string()).max(10),
+  date_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  payment_scope: z.literal("paid"),
+  asset_candidates_only: z.boolean(),
+  group_by: z.enum(["category", "item", "provider", "month", "project"]),
   limit: z.number().int().min(1).max(20),
 }).strict();
 
@@ -178,7 +198,7 @@ async function assertProjectAccess(
   return project;
 }
 
-function normalizeId<Table extends "desarrollos" | "users" | "tareas" | "requisiciones" | "rfis" | "proveedores">(
+function normalizeId<Table extends "desarrollos" | "users" | "tareas" | "requisiciones" | "rfis" | "proveedores" | "invoice_cost_categories" | "invoice_records">(
   ctx: { db: any },
   table: Table,
   value: string,
@@ -283,6 +303,40 @@ async function validateReferences(
       continue;
     }
 
+    if (reference.type === "invoice_category") {
+      const categoryId = normalizeId(ctx, "invoice_cost_categories", reference.id);
+      const category = await ctx.db.get(categoryId) as Doc<"invoice_cost_categories"> | null;
+      const project = await ctx.db.get(projectId) as Doc<"desarrollos"> | null;
+      const organizationId = project?.organization_id || user.organization_id;
+      const usedInProject = category && await ctx.db
+        .query("invoice_items")
+        .withIndex("by_category", (q: any) => q.eq("category_id", categoryId))
+        .filter((q: any) => q.neq(q.field("classification_status"), "unresolved"))
+        .take(100);
+      let belongsToApprovedInvoice = false;
+      for (const item of usedInProject || []) {
+        const invoice = await ctx.db.get(item.invoice_id) as Doc<"invoice_records"> | null;
+        if (invoice?.proyecto === projectId && invoice.status === "approved") {
+          belongsToApprovedInvoice = true;
+          break;
+        }
+      }
+      if (!category || !category.active || category.organization_id !== organizationId || !belongsToApprovedInvoice || reference.label !== `@${category.label}`) {
+        throw new Error("La categoría de factura referenciada no es válida para este proyecto");
+      }
+      continue;
+    }
+
+    if (reference.type === "invoice") {
+      const invoiceId = normalizeId(ctx, "invoice_records", reference.id);
+      const invoice = await ctx.db.get(invoiceId) as Doc<"invoice_records"> | null;
+      const invoiceLabel = invoice?.folio || invoice?.uuid || String(invoiceId).slice(-8).toUpperCase();
+      if (!invoice || invoice.proyecto !== projectId || invoice.status !== "approved" || reference.label !== `@Factura ${invoiceLabel}`) {
+        throw new Error("La factura referenciada no es válida para este proyecto");
+      }
+      continue;
+    }
+
     if (reference.type === "task") {
       const id = normalizeId(ctx, "tareas", reference.id);
       const entity = await ctx.db.get(id) as Doc<"tareas"> | null;
@@ -371,7 +425,7 @@ function formatMetric(key: string, value: number | string, currency: string) {
 }
 
 function assistantInstructions(asOf: string) {
-  return `Eres el asistente de control de proyectos de OGC. Responde en español y sólo con datos de las herramientas y del contexto verificado. Fecha de corte: ${asOf}. Conserva el periodo predeterminado salvo que el usuario haya escrito fechas inequívocas; no elijas otro periodo por tu cuenta. La consulta es estrictamente de lectura. Para gasto realizado usa exclusivamente query_project_costs con payment_scope=paid; las requisiciones representan solicitudes o compromisos y nunca prueban un gasto. No sumes monedas distintas ni apliques tipo de cambio por tu cuenta. No evalúes el desempeño de personas; sólo enumera pendientes asociados. No inventes cifras, riesgos ni hechos. Cada indicador, riesgo y recomendación debe citar uno o más evidence_ids exactos disponibles. Si una cifra no existe, declárala como limitación. answer_status describe si la pregunta fue respondida; overall_status describe únicamente la salud determinista del proyecto cuando exista ese contexto. Prioriza una conclusión breve, indicadores, riesgos y próximos pasos. Genera como máximo tres preguntas de seguimiento editables. No uses conocimiento externo ni sugieras haber modificado registros.`;
+  return `Eres el asistente de control de proyectos de OGC. Responde en español y sólo con datos de las herramientas y del contexto verificado. Fecha de corte: ${asOf}. Conserva el periodo predeterminado salvo que el usuario haya escrito fechas inequívocas; no elijas otro periodo por tu cuenta. La consulta es estrictamente de lectura. Para gasto realizado usa query_project_costs con payment_scope=paid; para preguntas sobre el contenido de facturas, herramienta menor o categorías extraídas usa query_invoice_breakdown, que contiene sólo datos aprobados por una persona. Las requisiciones representan solicitudes o compromisos y nunca prueban un gasto. No mezcles totales presupuestales con desgloses de facturas ni extrapoles facturas pendientes de revisión. No sumes monedas distintas ni apliques tipo de cambio por tu cuenta. No evalúes el desempeño de personas; sólo enumera pendientes asociados. No inventes cifras, riesgos ni hechos. Cada indicador, riesgo y recomendación debe citar uno o más evidence_ids exactos disponibles. Si una cifra no existe, declárala como limitación. answer_status describe si la pregunta fue respondida; overall_status describe únicamente la salud determinista del proyecto cuando exista ese contexto. Prioriza una conclusión breve, indicadores, riesgos y próximos pasos. Genera como máximo tres preguntas de seguimiento editables. No uses conocimiento externo ni sugieras haber modificado registros.`;
 }
 
 const toolDefinitions = [
@@ -427,6 +481,30 @@ const toolDefinitions = [
         date_to: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
         payment_scope: { type: "string", enum: ["paid", "pending", "all"] },
         group_by: { type: "string", enum: ["concept", "family", "partida", "provider", "none"] },
+        limit: { type: "integer", minimum: 1, maximum: 20 },
+      },
+    },
+  },
+  {
+    type: "function",
+    name: "query_invoice_breakdown",
+    description: "Consulta únicamente desgloses de facturas aprobados por revisión humana. Agrupa gasto pagado por categoría, concepto, proveedor, mes o proyecto; no expone documentos, RFC, cuentas ni transacciones individuales.",
+    strict: true,
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      required: ["project_ids", "search", "category_ids", "invoice_ids", "provider_ids", "date_from", "date_to", "payment_scope", "asset_candidates_only", "group_by", "limit"],
+      properties: {
+        project_ids: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } },
+        search: { type: ["string", "null"], maxLength: 4000 },
+        category_ids: { type: "array", maxItems: 10, items: { type: "string" } },
+        invoice_ids: { type: "array", maxItems: 10, items: { type: "string" } },
+        provider_ids: { type: "array", maxItems: 10, items: { type: "string" } },
+        date_from: { type: ["string", "null"], pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+        date_to: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+        payment_scope: { type: "string", enum: ["paid"] },
+        asset_candidates_only: { type: "boolean" },
+        group_by: { type: "string", enum: ["category", "item", "provider", "month", "project"] },
         limit: { type: "integer", minimum: 1, maximum: 20 },
       },
     },
@@ -718,6 +796,39 @@ export const searchReferences = query({
             url: `/proyecto/${project._id}/transacciones?proveedor=${provider._id}`,
           });
         }
+
+        const approvedInvoices = await ctx.db
+          .query("invoice_records")
+          .withIndex("by_project_status", (q) => q.eq("proyecto", project._id).eq("status", "approved"))
+          .order("desc")
+          .take(100);
+        const categoryIds = new Set<string>();
+        for (const invoice of approvedInvoices) {
+          const invoiceLabel = invoice.folio || invoice.uuid || String(invoice._id).slice(-8).toUpperCase();
+          if (!search || normalizeAssistantSearch(`factura ${invoiceLabel} ${invoice.issuer_name || ""}`).includes(search)) {
+            results.push({
+              type: "invoice",
+              id: String(invoice._id),
+              project_id: String(project._id),
+              label: `@Factura ${invoiceLabel}`,
+              subtitle: `Factura aprobada · ${project.nombre}`,
+              url: `/proyecto/${project._id}/transacciones?factura=${encodeURIComponent(invoiceLabel)}`,
+            });
+          }
+          invoice.approved_category_ids?.forEach((categoryId) => categoryIds.add(String(categoryId)));
+        }
+        const invoiceCategories = await Promise.all([...categoryIds].map((id) => ctx.db.get(ctx.db.normalizeId("invoice_cost_categories", id)!)));
+        for (const category of invoiceCategories) {
+          if (!category || !category.active || (search && !normalizeAssistantSearch(category.label).includes(search))) continue;
+          results.push({
+            type: "invoice_category",
+            id: String(category._id),
+            project_id: String(project._id),
+            label: `@${category.label}`,
+            subtitle: `Categoría aprobada de factura · ${project.nombre}`,
+            url: `/proyecto/${project._id}/transacciones?categoria_factura=${encodeURIComponent(category.code)}`,
+          });
+        }
       }
     }
 
@@ -751,7 +862,7 @@ export const searchReferences = query({
       }
     }
 
-    const groupOrder = ["project", "cost_item", "provider", "person", "metric", "task", "requisition", "rfi"];
+    const groupOrder = ["project", "invoice_category", "invoice", "cost_item", "provider", "person", "metric", "task", "requisition", "rfi"];
     const queues = new Map(groupOrder.map((type) => [type, results.filter((item) => item.type === type)]));
     const selected: typeof results = [];
     while (selected.length < 8 && [...queues.values()].some((items) => items.length > 0)) {
@@ -1409,6 +1520,258 @@ async function executeCostTool(args: {
   };
 }
 
+async function executeInvoiceBreakdownTool(args: {
+  ctx: { db: any };
+  user: AdminUser;
+  parsed: z.infer<typeof invoiceToolArgsSchema>;
+  allowedProjectIds: Set<string>;
+  allowedCategoryIds: Set<string>;
+  allowedInvoiceIds: Set<string>;
+  allowedProviderIds: Set<string>;
+}): Promise<ToolResult> {
+  const { ctx, user, parsed } = args;
+  const projectIds = parsed.project_ids.map((rawId) => normalizeId(ctx, "desarrollos", rawId));
+  if (projectIds.some((id) => !args.allowedProjectIds.has(String(id)))) {
+    throw new Error("La herramienta intentó consultar un proyecto fuera del contexto validado");
+  }
+  const categoryIds = parsed.category_ids.map((rawId) => normalizeId(ctx, "invoice_cost_categories", rawId));
+  const invoiceIds = parsed.invoice_ids.map((rawId) => normalizeId(ctx, "invoice_records", rawId));
+  const providerIds = parsed.provider_ids.map((rawId) => normalizeId(ctx, "proveedores", rawId));
+  if (categoryIds.some((id) => !args.allowedCategoryIds.has(String(id))) ||
+      invoiceIds.some((id) => !args.allowedInvoiceIds.has(String(id))) ||
+      providerIds.some((id) => !args.allowedProviderIds.has(String(id)))) {
+    throw new Error("La herramienta intentó usar una referencia de factura no validada");
+  }
+
+  const requestedCategories = new Set(categoryIds.map(String));
+  const requestedInvoices = new Set(invoiceIds.map(String));
+  const requestedProviders = new Set(providerIds.map(String));
+  const groups = new Map<string, {
+    label: string;
+    projectId: string;
+    projectName: string;
+    currency: string;
+    amount: number;
+    invoiceIds: Set<string>;
+    transactionIds: Set<string>;
+    itemCount: number;
+    negativeAdjustments: number;
+    unresolvedAmount: number;
+    filter: string;
+  }>();
+  const totals = new Map<string, { projectId: string; projectName: string; currency: string; amount: number }>();
+  const limitations: string[] = [];
+  let pendingReview = 0;
+  let approvedInvoicesUsed = 0;
+  let skippedWithoutAllocation = 0;
+  let skippedWithoutItems = 0;
+  let invoiceItemsRead = 0;
+  let invoiceAllocationsRead = 0;
+
+  for (const projectId of projectIds) {
+    const project = await assertProjectAccess(ctx, user, projectId);
+    const approved = await ctx.db
+      .query("invoice_records")
+      .withIndex("by_project_status", (q: any) => q.eq("proyecto", projectId).eq("status", "approved"))
+      .take(201) as Doc<"invoice_records">[];
+    const pending = await ctx.db
+      .query("invoice_records")
+      .withIndex("by_project_status", (q: any) => q.eq("proyecto", projectId).eq("status", "review_required"))
+      .take(201) as Doc<"invoice_records">[];
+    pendingReview += pending.length;
+    if (approved.length > 200 || pending.length > 200) {
+      return {
+        data: { projects: projectIds.map(String), approved_invoice_limit: 200 },
+        evidence: [],
+        statuses: [],
+        answerStatuses: ["insufficient_data"],
+        limitations: [`${project.nombre}: el volumen de facturas supera el límite seguro; no se devolvió un total parcial.`],
+        truncated: true,
+      };
+    }
+
+    for (const invoice of approved) {
+      if (!invoice.active_run_id) continue;
+      if (requestedInvoices.size && !requestedInvoices.has(String(invoice._id))) continue;
+      if (requestedProviders.size && (!invoice.provider_id || !requestedProviders.has(String(invoice.provider_id)))) continue;
+      const [items, allocations, provider] = await Promise.all([
+        ctx.db.query("invoice_items").withIndex("by_run", (q: any) => q.eq("run_id", invoice.active_run_id!)).collect() as Promise<Doc<"invoice_items">[]>,
+        ctx.db.query("invoice_allocations").withIndex("by_run", (q: any) => q.eq("run_id", invoice.active_run_id!)).collect() as Promise<Doc<"invoice_allocations">[]>,
+        invoice.provider_id ? ctx.db.get(invoice.provider_id) as Promise<Doc<"proveedores"> | null> : Promise.resolve(null),
+      ]);
+      invoiceItemsRead += items.length;
+      invoiceAllocationsRead += allocations.length;
+      if (invoiceItemsRead > 2_000 || invoiceAllocationsRead > 1_000) {
+        return {
+          data: { projects: projectIds.map(String), item_limit: 2_000, allocation_limit: 1_000 },
+          evidence: [],
+          statuses: [],
+          answerStatuses: ["insufficient_data"],
+          limitations: ["El volumen de conceptos aprobados supera el límite seguro; no se devolvió un total parcial."],
+          truncated: true,
+        };
+      }
+      const allCategoryDocs = await Promise.all([...new Set(items.flatMap((item) => item.category_id ? [item.category_id] : []))].map((id) => ctx.db.get(id)));
+      const categoryById = new Map(allCategoryDocs.filter(Boolean).map((category) => [String(category!._id), category!]));
+      const minorToolCodes = new Set(["machinery_equipment", "power_tools", "hand_tools", "cutting_abrasives", "drilling_accessories", "consumables_parts", "rental", "repair_maintenance"]);
+      const asksForMinorTools = normalizeInvoiceText(parsed.search || "").includes("herramienta menor");
+      const filteredItems = items.filter((item) => {
+        if (requestedCategories.size && (!item.category_id || !requestedCategories.has(String(item.category_id)))) return false;
+        if (parsed.asset_candidates_only && !item.asset_candidate) return false;
+        if (asksForMinorTools) {
+          const code = item.category_id ? categoryById.get(String(item.category_id))?.code : undefined;
+          return Boolean(code && minorToolCodes.has(code));
+        }
+        return true;
+      });
+      if (!filteredItems.length) {
+        skippedWithoutItems += 1;
+        continue;
+      }
+      let invoiceUsed = false;
+      for (const allocation of allocations) {
+        const transaction = await ctx.db.get(allocation.transaction_id) as Doc<"transacciones"> | null;
+        if (!transaction || transaction.proyecto !== projectId || canonicalTransactionStatus(transaction.status) !== "paid") continue;
+        const transactionDate = parseProjectDate(transaction.fecha);
+        if (!transactionDate || transactionDate > parsed.date_to || (parsed.date_from && transactionDate < parsed.date_from)) continue;
+        const weightedItems = filteredItems.map((item) => ({
+          item,
+          weight: Math.abs(item.gross_amount ?? item.net_amount ?? 0),
+        }));
+        const amounts = allocateInvoiceAmount(allocation.amount, weightedItems);
+        for (let index = 0; index < weightedItems.length; index += 1) {
+          const item = weightedItems[index].item;
+          const amount = amounts[index] || 0;
+          const category = item.category_id ? categoryById.get(String(item.category_id)) : undefined;
+          let label = category?.label || "Sin clasificar";
+          let filter = category?.code || "unresolved";
+          if (parsed.group_by === "item") {
+            label = item.canonical_label;
+            filter = item.canonical_label;
+          } else if (parsed.group_by === "provider") {
+            label = provider?.razon_social || invoice.issuer_name || "Proveedor no identificado";
+            filter = invoice.provider_id ? String(invoice.provider_id) : label;
+          } else if (parsed.group_by === "month") {
+            label = transactionDate.slice(0, 7);
+            filter = label;
+          } else if (parsed.group_by === "project") {
+            label = project.nombre;
+            filter = String(projectId);
+          }
+          const key = `${projectId}:${allocation.currency}:${parsed.group_by}:${normalizeInvoiceText(label)}`;
+          const group = groups.get(key) || {
+            label,
+            projectId: String(projectId),
+            projectName: project.nombre,
+            currency: allocation.currency,
+            amount: 0,
+            invoiceIds: new Set<string>(),
+            transactionIds: new Set<string>(),
+            itemCount: 0,
+            negativeAdjustments: 0,
+            unresolvedAmount: 0,
+            filter,
+          };
+          group.amount += amount;
+          group.invoiceIds.add(String(invoice._id));
+          group.transactionIds.add(String(transaction._id));
+          group.itemCount += 1;
+          if (amount < 0) group.negativeAdjustments += amount;
+          if (item.classification_status === "unresolved") group.unresolvedAmount += amount;
+          groups.set(key, group);
+        }
+        invoiceUsed = true;
+      }
+      if (invoiceUsed) approvedInvoicesUsed += 1;
+      else skippedWithoutAllocation += 1;
+    }
+  }
+
+  const search = normalizeInvoiceText(parsed.search || "");
+  let rows = [...groups.values()];
+  if (search && !requestedCategories.size && !requestedInvoices.size && !requestedProviders.size) {
+    const matching = rows.filter((row) => {
+      const normalized = normalizeInvoiceText(row.label);
+      const queryTokens = search.split(" ").filter((token) => token.length >= 4);
+      const labelTokens = normalized.split(" ").filter((token) => token.length >= 4);
+      return normalized.length >= 3 && (
+        search.includes(normalized) ||
+        labelTokens.some((labelToken) => queryTokens.some((queryToken) => labelToken.startsWith(queryToken) || queryToken.startsWith(labelToken)))
+      );
+    });
+    if (matching.length) rows = matching;
+  }
+  rows.forEach((row) => {
+    const key = `${row.projectId}:${row.currency}`;
+    const current = totals.get(key);
+    totals.set(key, {
+      projectId: row.projectId,
+      projectName: row.projectName,
+      currency: row.currency,
+      amount: (current?.amount || 0) + row.amount,
+    });
+  });
+  rows.sort((left, right) => Math.abs(right.amount) - Math.abs(left.amount) || left.label.localeCompare(right.label, "es"));
+  const selected = rows.slice(0, parsed.limit);
+  const totalEvidence = [...totals.values()].map((total): AssistantEvidence => ({
+    id: `invoice-total:${total.projectId}:${total.currency}:${parsed.date_to}`,
+    type: "invoice",
+    label: `${total.projectName} · Total de facturas aprobadas y pagadas (${total.currency})`,
+    project_id: total.projectId,
+    observed_value: `${total.amount.toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${total.currency}`,
+    as_of: parsed.date_to,
+    url: `/proyecto/${total.projectId}/transacciones?status=Pagado&moneda=${total.currency}&hasta=${parsed.date_to}${parsed.date_from ? `&desde=${parsed.date_from}` : ""}`,
+  }));
+  const rowEvidence = selected.map((row, index): AssistantEvidence => ({
+    id: `invoice-aggregate:${index + 1}:${row.projectId}:${row.currency}`,
+    type: "invoice",
+    label: `${row.projectName} · ${row.label}`,
+    project_id: row.projectId,
+    observed_value: `${row.amount.toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${row.currency} · ${row.invoiceIds.size} factura(s) aprobada(s)`,
+    as_of: parsed.date_to,
+    url: `/proyecto/${row.projectId}/transacciones?categoria_factura=${encodeURIComponent(row.filter)}&status=Pagado&moneda=${row.currency}&hasta=${parsed.date_to}${parsed.date_from ? `&desde=${parsed.date_from}` : ""}`,
+  }));
+  const breakdown = selected.map((row, index) => ({
+    label: row.label,
+    project_id: row.projectId,
+    currency: row.currency,
+    amount: Number(row.amount.toFixed(2)),
+    invoice_count: row.invoiceIds.size,
+    transaction_count: row.transactionIds.size,
+    allocated_item_count: row.itemCount,
+    negative_adjustments: Number(row.negativeAdjustments.toFixed(2)),
+    unresolved_amount: Number(row.unresolvedAmount.toFixed(2)),
+    evidence_ids: [rowEvidence[index].id],
+  }));
+  if (pendingReview) limitations.push(`${pendingReview} factura(s) están pendientes de revisión y fueron excluidas.`);
+  if (skippedWithoutAllocation) limitations.push(`${skippedWithoutAllocation} factura(s) aprobadas no tuvieron una asignación pagada dentro del periodo.`);
+  if (skippedWithoutItems) limitations.push(`${skippedWithoutItems} factura(s) no aportaron conceptos compatibles con los filtros.`);
+  if (!breakdown.length) limitations.push("No existen conceptos de factura aprobados y pagados que coincidan con la consulta.");
+  return {
+    data: {
+      payment_scope: "paid",
+      asset_candidates_only: parsed.asset_candidates_only,
+      date_from: parsed.date_from,
+      date_to: parsed.date_to,
+      group_by: parsed.group_by,
+      totals_by_currency: [...totals.values()].map((total) => ({
+        project_id: total.projectId,
+        currency: total.currency,
+        amount: Number(total.amount.toFixed(2)),
+        evidence_ids: [`invoice-total:${total.projectId}:${total.currency}:${parsed.date_to}`],
+      })),
+      breakdown,
+      coverage: { approved_invoices_used: approvedInvoicesUsed, pending_review_excluded: pendingReview },
+      truncated: rows.length > parsed.limit,
+    },
+    evidence: [...totalEvidence, ...rowEvidence].slice(0, 30),
+    statuses: [],
+    answerStatuses: [breakdown.length ? (pendingReview ? "partial" : "answered") : "insufficient_data"],
+    limitations,
+    truncated: rows.length > parsed.limit,
+  };
+}
+
 export const executeTool = internalQuery({
   args: {
     owner_user_id: v.id("users"),
@@ -1416,6 +1779,8 @@ export const executeTool = internalQuery({
     allowed_person_ids: v.array(v.id("users")),
     allowed_cost_item_ids: v.array(v.string()),
     allowed_provider_ids: v.array(v.id("proveedores")),
+    allowed_invoice_category_ids: v.array(v.id("invoice_cost_categories")),
+    allowed_invoice_ids: v.array(v.id("invoice_records")),
     name: v.string(),
     arguments_json: v.string(),
     as_of: v.string(),
@@ -1428,6 +1793,8 @@ export const executeTool = internalQuery({
     const allowedPeople = new Set(args.allowed_person_ids.map(String));
     const allowedCostItems = new Set(args.allowed_cost_item_ids);
     const allowedProviders = new Set(args.allowed_provider_ids.map(String));
+    const allowedInvoiceCategories = new Set(args.allowed_invoice_category_ids.map(String));
+    const allowedInvoices = new Set(args.allowed_invoice_ids.map(String));
 
     if (args.name === "query_project_costs") {
       const parsed = costToolArgsSchema.parse(JSON.parse(args.arguments_json));
@@ -1437,6 +1804,19 @@ export const executeTool = internalQuery({
         parsed,
         allowedProjectIds: allowed,
         allowedCostItemIds: allowedCostItems,
+        allowedProviderIds: allowedProviders,
+      });
+    }
+
+    if (args.name === "query_invoice_breakdown") {
+      const parsed = invoiceToolArgsSchema.parse(JSON.parse(args.arguments_json));
+      return await executeInvoiceBreakdownTool({
+        ctx,
+        user,
+        parsed,
+        allowedProjectIds: allowed,
+        allowedCategoryIds: allowedInvoiceCategories,
+        allowedInvoiceIds: allowedInvoices,
         allowedProviderIds: allowedProviders,
       });
     }
@@ -1706,19 +2086,44 @@ export const sendMessage = action({
       const costDates = resolveCostDateRange(args.text, currentDate);
       const costReferences = args.references.filter((reference) => reference.type === "cost_item");
       const providerReferences = args.references.filter((reference) => reference.type === "provider");
-      const costQuery = isCostIntent(args.text) || costReferences.length > 0 || providerReferences.length > 0;
-      const asOf = costQuery ? costDates.date_to : cutoff.activity_through;
+      const invoiceCategoryReferences = args.references.filter((reference) => reference.type === "invoice_category");
+      const invoiceReferences = args.references.filter((reference) => reference.type === "invoice");
+      const invoiceQuery = isInvoiceAnalysisIntent(args.text) || invoiceCategoryReferences.length > 0 || invoiceReferences.length > 0;
+      const costQuery = !invoiceQuery && (isCostIntent(args.text) || costReferences.length > 0 || providerReferences.length > 0);
+      const asOf = costQuery || invoiceQuery ? costDates.date_to : cutoff.activity_through;
       const defaultStart = cutoff.activity_from;
       const allowedPersonIds = args.references
         .filter((reference) => reference.type === "person")
         .map((reference) => reference.id as Id<"users">);
       const allowedCostItemIds = costReferences.map((reference) => reference.id);
       const allowedProviderIds = providerReferences.map((reference) => reference.id as Id<"proveedores">);
+      const allowedInvoiceCategoryIds = invoiceCategoryReferences.map((reference) => reference.id as Id<"invoice_cost_categories">);
+      const allowedInvoiceIds = invoiceReferences.map((reference) => reference.id as Id<"invoice_records">);
       const referencedCostKind = costReferences[0]
         ? parseCostItemReferenceId(costReferences[0].id)?.kind
         : undefined;
-      const initialToolName = costQuery ? "query_project_costs" : "get_project_overview";
-      const initialArguments = costQuery
+      const initialToolName = invoiceQuery ? "query_invoice_breakdown" : costQuery ? "query_project_costs" : "get_project_overview";
+      const initialArguments = invoiceQuery
+        ? JSON.stringify({
+            project_ids: prepared.context_project_ids.map(String),
+            search: args.text.trim(),
+            category_ids: allowedInvoiceCategoryIds.map(String),
+            invoice_ids: allowedInvoiceIds.map(String),
+            provider_ids: allowedProviderIds.map(String),
+            date_from: costDates.date_from || null,
+            date_to: costDates.date_to,
+            payment_scope: "paid",
+            asset_candidates_only: normalizeInvoiceText(args.text).includes("activo potencial") || normalizeInvoiceText(args.text).includes("activos potenciales"),
+            group_by: providerReferences.length
+              ? "provider"
+              : invoiceReferences.length
+                ? "item"
+                : invoiceCategoryReferences.length
+                  ? "category"
+                  : inferInvoiceGroupBy(args.text),
+            limit: 20,
+          })
+        : costQuery
         ? JSON.stringify({
             project_ids: prepared.context_project_ids.map(String),
             search: args.text.trim(),
@@ -1745,6 +2150,8 @@ export const sendMessage = action({
         allowed_person_ids: allowedPersonIds,
         allowed_cost_item_ids: allowedCostItemIds,
         allowed_provider_ids: allowedProviderIds,
+        allowed_invoice_category_ids: allowedInvoiceCategoryIds,
+        allowed_invoice_ids: allowedInvoiceIds,
         name: initialToolName,
         arguments_json: initialArguments,
         as_of: asOf,
@@ -1792,6 +2199,8 @@ export const sendMessage = action({
             allowed_person_ids: allowedPersonIds,
             allowed_cost_item_ids: allowedCostItemIds,
             allowed_provider_ids: allowedProviderIds,
+            allowed_invoice_category_ids: allowedInvoiceCategoryIds,
+            allowed_invoice_ids: allowedInvoiceIds,
             name: call.name,
             arguments_json: call.arguments,
             as_of: asOf,

@@ -49,3 +49,16 @@ export default tseslint.config({
 })
 ```
 # OGC-Dashboard
+
+## Análisis de facturas con IA
+
+El análisis se inicia desde **Transacciones → Documentos** y sólo está disponible para los roles `admin` y `finance`. Admite un CFDI XML y, opcionalmente, un PDF o imagen. Un desglose no se publica al chatbot hasta que una persona lo aprueba.
+
+Variables de Convex requeridas:
+
+```bash
+npx convex env set OPENAI_API_KEY sk-...
+npx convex env set OPENAI_INVOICE_MODEL gpt-5.6-terra
+```
+
+`OPENAI_INVOICE_MODEL` es opcional; su valor predeterminado es `gpt-5.6-terra`. Los CFDI se extraen localmente y sólo sus descripciones de conceptos se envían para clasificación. PDF e imágenes se procesan visualmente. Las facturas pendientes, rechazadas o desactualizadas nunca forman parte de los agregados del chatbot.

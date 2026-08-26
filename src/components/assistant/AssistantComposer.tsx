@@ -32,6 +32,8 @@ const TYPE_LABELS: Record<AssistantReference["type"], string> = {
   rfi: "RFIs",
   cost_item: "Conceptos de costo",
   provider: "Proveedores",
+  invoice_category: "Categorías de factura",
+  invoice: "Facturas aprobadas",
 };
 
 export default function AssistantComposer({

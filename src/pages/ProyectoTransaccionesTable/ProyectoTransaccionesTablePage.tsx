@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
 import { useTransactionConceptosModal } from "@/hooks/transaction-conceptos-modal";
+import { InvoiceBackfillDialog } from "@/components/invoices/InvoiceBackfillDialog";
 import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 
@@ -63,7 +64,7 @@ export default function ProyectoTransaccionesTablePage() {
 
     const { proyectoId } = useParams<{ proyectoId: string }>();
     const [searchParams, setSearchParams] = useSearchParams();
-    const initialConcept = searchParams.get("concepto") || "";
+    const initialConcept = searchParams.get("concepto") || searchParams.get("factura") || searchParams.get("categoria_factura") || "";
     const initialStatus = searchParams.get("status") || "all";
     const initialCurrency = searchParams.get("moneda") || "all";
     const initialProvider = searchParams.get("proveedor") || "all";
@@ -140,7 +141,8 @@ export default function ProyectoTransaccionesTablePage() {
                 transaccion.categoria?.toLowerCase().includes(searchLower) ||
                 transaccion.banco?.toLowerCase().includes(searchLower) ||
                 transaccion.proveedor?.razon_social.toLowerCase().includes(searchLower) ||
-                transaccion.costConcepts?.some((concepto) => concepto.toLowerCase().includes(searchLower));
+                transaccion.costConcepts?.some((concepto) => concepto.toLowerCase().includes(searchLower)) ||
+                transaccion.invoiceAnalysisTerms?.some((concepto) => concepto.toLowerCase().includes(searchLower));
             
             // Amount range filter
             const minAmt = minAmount ? parseFloat(minAmount) : null;
@@ -340,6 +342,7 @@ export default function ProyectoTransaccionesTablePage() {
                             <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
+                            <InvoiceBackfillDialog projectId={proyectoId as Id<"desarrollos">} />
                             <Button
                                 onClick={() => uploadProjectTransactionsModal.onOpen(proyectoId as Id<"desarrollos">, proyecto.nombre)}
                                 variant="outline"

@@ -151,6 +151,7 @@ export default function UploadDocumentsModal() {
                 storage_id: storageId,
                 type: fileUpload.type,
                 size: fileUpload.file.size,
+                mime_type: fileUpload.file.type || undefined,
                 proyecto: selectedProjectId,
                 transaccion_id: selectedTransactionId,
             });
@@ -320,7 +321,7 @@ export default function UploadDocumentsModal() {
                             multiple
                             onChange={handleFileSelect}
                             className="hidden"
-                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                            accept="image/*,.xml,.pdf,.doc,.docx,.xls,.xlsx"
                         />
                         <Upload className="h-12 w-12 text-disabled-foreground mx-auto mb-4" />
                         <p className="text-sm text-muted-foreground mb-2">
