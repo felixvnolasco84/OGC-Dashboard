@@ -104,6 +104,24 @@ function stringifyValue(value: unknown) {
   return typeof value === "string" ? value : JSON.stringify(value);
 }
 
+function omitUndefined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, fieldValue]) => fieldValue !== undefined)
+  ) as T;
+}
+
+async function replaceTaskDocument(
+  ctx: MutationCtx,
+  task: Doc<"tareas">,
+  changes: Record<string, unknown>
+) {
+  const { _id, _creationTime, ...current } = task;
+  await ctx.db.replace(
+    task._id,
+    omitUndefined({ ...current, ...changes }) as Omit<Doc<"tareas">, "_id" | "_creationTime">
+  );
+}
+
 async function scheduleTaskEmail(
   ctx: MutationCtx,
   args: {
@@ -1118,7 +1136,7 @@ export const create = mutation({
 export const update = mutation({
   args: {
     id: v.id("tareas"),
-    proyecto: v.optional(v.id("desarrollos")),
+    proyecto: v.optional(v.union(v.id("desarrollos"), v.null())),
     organization_id: v.optional(v.string()),
     tipo: v.optional(v.union(v.literal("tarea"), v.literal("minuta"))),
     titulo: v.string(),
@@ -1127,9 +1145,9 @@ export const update = mutation({
     partidas: v.optional(v.array(v.id("partidas"))),
     status: v.string(),
     prioridad: v.string(),
-    fecha_limite: v.optional(v.string()),
+    fecha_limite: v.optional(v.union(v.string(), v.null())),
     categoria: v.optional(v.string()),
-    parent_task: v.optional(v.id("tareas")),
+    parent_task: v.optional(v.union(v.id("tareas"), v.null())),
   },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.id);
@@ -1148,21 +1166,22 @@ export const update = mutation({
     }
 
     const now = Date.now();
-    const scopeProvided = args.proyecto !== undefined || args.organization_id !== undefined;
-    const nextProject = scopeProvided ? args.proyecto : task.proyecto;
+    const nextProject = args.proyecto === undefined ? task.proyecto : args.proyecto ?? undefined;
+    const nextFechaLimite = args.fecha_limite === undefined ? task.fecha_limite : args.fecha_limite ?? undefined;
+    const nextParentTask = args.parent_task === undefined ? task.parent_task : args.parent_task ?? undefined;
     const resolved = await resolveScope(ctx, {
       proyecto: nextProject,
       organization_id: args.organization_id || task.organization_id,
     });
     const nextOrganizationId = resolved.organizationId;
-    if (args.parent_task) {
-      const parent = await ctx.db.get(args.parent_task);
+    if (nextParentTask) {
+      const parent = await ctx.db.get(nextParentTask);
       const parentOrganization = parent ? await getTaskOrganization(ctx, parent) : undefined;
       if (!parent || parentOrganization !== nextOrganizationId || parent._id === args.id) {
         throw new Error("La subtarea debe pertenecer a la misma organización que la tarea padre");
       }
     }
-    const nextType = args.parent_task ? "tarea" : (args.tipo || task.tipo || "tarea");
+    const nextType = nextParentTask ? "tarea" : (args.tipo || task.tipo || "tarea");
     await ensureAssignableUsersBelongToScope(
       ctx,
       args.asignados,
@@ -1173,14 +1192,14 @@ export const update = mutation({
       proyecto: nextProject,
       organization_id: nextOrganizationId,
       tipo: nextType,
-      parent_task: args.parent_task,
+      parent_task: nextParentTask,
       titulo,
       descripcion: args.descripcion?.trim() || undefined,
       asignados: args.asignados,
       partidas: args.partidas || [],
       status: args.status,
       prioridad: args.prioridad,
-      fecha_limite: args.fecha_limite,
+      fecha_limite: nextFechaLimite,
       categoria: args.categoria,
       updated_at: now,
       completed_at: args.status === "Completada"
@@ -1216,7 +1235,7 @@ export const update = mutation({
       throw new Error("Unauthorized: Only assigned users or creators can update status");
     }
 
-    await ctx.db.patch(args.id, nextTask);
+    await replaceTaskDocument(ctx, task, nextTask);
 
     if (nextProject !== task.proyecto || nextOrganizationId !== task.organization_id) {
       const [comments, history] = await Promise.all([

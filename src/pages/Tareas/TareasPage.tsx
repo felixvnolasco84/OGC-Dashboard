@@ -232,15 +232,49 @@ function relativeDueDateLabel(date?: string) {
 
 function parseDateString(date?: string) {
   if (!date) return undefined;
-  const parsed = new Date(`${date}T00:00:00`);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date.trim());
+  if (!match) return undefined;
+  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
 function toDateInputValue(date: Date) {
+  const formatted = new Intl.DateTimeFormat("en-CA", {
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(formatted)) return formatted;
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function mutationErrorMessage(error: unknown, fallback: string) {
+  if (!(error instanceof Error) || !error.message) return fallback;
+  return error.message
+    .replace(/^\[CONVEX[^\]]*\]\s*/i, "")
+    .replace(/^Uncaught Error:\s*/i, "")
+    .trim() || fallback;
+}
+
+function isPortaledPickerTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest("[data-radix-popper-content-wrapper]") ||
+    target.closest("[data-radix-select-content]") ||
+    target.closest("[data-radix-popover-content]") ||
+    target.closest("[data-slot='calendar']")
+  );
+}
+
+function isPortaledPickerOpen() {
+  return Boolean(
+    document.querySelector("[data-radix-popper-content-wrapper]") ||
+    document.querySelector("[data-radix-select-content]")
+  );
 }
 
 function formatDateTime(timestamp?: number) {
@@ -464,10 +498,16 @@ function InlineDatePicker({
           {displayValue}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto border-border bg-card p-0 text-foreground shadow-xl">
+      <PopoverContent
+        align="start"
+        className="w-auto border-border bg-card p-0 text-foreground shadow-xl"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         <Calendar
           mode="single"
+          required
           selected={selectedDate}
+          defaultMonth={selectedDate || new Date()}
           onSelect={(date) => {
             if (!date) return;
             onChange(toDateInputValue(date));
@@ -1573,8 +1613,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   ) as ProjectLookupMap<PartidaSummary> | undefined;
   const organizationAssignableUsers = useQuery(
     api.tareas.getAssignableUsersForOrganization,
-    !selectedFormProjectId && selectedFormOrganizationId
-      ? { organization_id: selectedFormOrganizationId }
+    selectedFormOrganizationId || currentUser?.organization_id
+      ? { organization_id: selectedFormOrganizationId || currentUser?.organization_id || "" }
       : "skip"
   ) as UserSummary[] | undefined;
   const activeSubtaskParent = (tareas || []).find((task) => task._id === addingSubtaskFor);
@@ -1678,6 +1718,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     (task: Task) => Boolean(canCreate && (canManageTask(task) || (currentUser?._id && task.asignados.includes(currentUser._id)))),
     [canCreate, canManageTask, currentUser?._id]
   );
+  const assignableUsersForTask = useCallback((task: Task) => (
+    task.proyecto
+      ? assignableUsersByProject?.[task.proyecto]
+      : organizationAssignableUsers
+  ), [assignableUsersByProject, organizationAssignableUsers]);
   const assigneeFilterOptions = useMemo(() => {
     const users = new Map<string, UserSummary>();
     for (const task of tareas || []) {
@@ -1960,7 +2005,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       asignados: Array.from(form.asignados) as Id<"users">[],
       partidas: targetProjectId ? Array.from(form.partidas) as Id<"partidas">[] : [],
       prioridad: form.prioridad,
-      fecha_limite: form.fecha_limite || undefined,
+      fecha_limite: form.fecha_limite || null,
       categoria: form.categoria,
     };
 
@@ -1968,12 +2013,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       if (editingTask) {
         await updateTask({
           id: editingTask._id,
-          proyecto: targetProjectId as Id<"desarrollos"> | undefined,
+          proyecto: targetProjectId ? targetProjectId as Id<"desarrollos"> : null,
           organization_id: selectedFormOrganizationId,
           tipo: form.tipo,
           ...payload,
           status: form.status,
-          parent_task: editingTask.parent_task,
+          parent_task: editingTask.parent_task ?? null,
         });
         toast.success("Tarea actualizada");
       } else {
@@ -1981,7 +2026,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           proyecto: targetProjectId as Id<"desarrollos"> | undefined,
           organization_id: selectedFormOrganizationId,
           tipo: form.tipo,
-          ...payload,
+          titulo: payload.titulo,
+          descripcion: payload.descripcion,
+          asignados: payload.asignados,
+          partidas: payload.partidas,
+          prioridad: payload.prioridad,
+          fecha_limite: form.fecha_limite || undefined,
+          categoria: payload.categoria,
         });
         setSelectedTaskId(taskId);
         toast.success("Tarea creada");
@@ -1989,7 +2040,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       setDialogOpen(false);
     } catch (error) {
       console.error("Error saving task:", error);
-      toast.error("No se pudo guardar la tarea");
+      toast.error(mutationErrorMessage(error, "No se pudo guardar la tarea"));
     } finally {
       setSubmitting(false);
     }
@@ -2041,24 +2092,36 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     try {
       const hasProjectChange = Object.prototype.hasOwnProperty.call(changes, "proyecto");
       const nextProject = hasProjectChange ? changes.proyecto || undefined : task.proyecto;
+      const nextOrganizationId = hasProjectChange && nextProject
+        ? proyectos?.find((project) => project._id === nextProject)?.organization_id || task.organization_id
+        : task.organization_id;
+      const allowedAssignees = hasProjectChange
+        ? (nextProject ? assignableUsersByProject?.[nextProject] : organizationAssignableUsers)
+        : undefined;
+      const scopedAssignees = allowedAssignees
+        ? nextAssignees.filter((id) => allowedAssignees.some((user) => user._id === id))
+        : nextAssignees;
+      const nextDueDate = Object.prototype.hasOwnProperty.call(changes, "fecha_limite")
+        ? changes.fecha_limite || undefined
+        : task.fecha_limite;
       await updateTask({
         id: task._id,
-        proyecto: nextProject,
-        organization_id: task.organization_id,
+        proyecto: nextProject ?? null,
+        organization_id: nextOrganizationId,
         tipo: task.tipo,
         titulo: nextTitle,
         descripcion: task.descripcion || undefined,
-        asignados: nextAssignees,
+        asignados: scopedAssignees,
         partidas: hasProjectChange ? [] : changes.partidas ?? task.partidas ?? [],
         status: changes.status ?? task.status,
         prioridad: changes.prioridad ?? task.prioridad,
-        fecha_limite: changes.fecha_limite || undefined,
+        fecha_limite: nextDueDate ?? null,
         categoria: changes.categoria ?? task.categoria ?? "General",
-        parent_task: task.parent_task,
+        parent_task: task.parent_task ?? null,
       });
     } catch (error) {
       console.error("Error updating task:", error);
-      toast.error("No se pudo actualizar la tarea");
+      toast.error(mutationErrorMessage(error, "No se pudo actualizar la tarea"));
     } finally {
       setInlineSavingId(null);
     }
@@ -2105,7 +2168,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       }
     } catch (error) {
       console.error("Error creating subtask:", error);
-      toast.error("No se pudo crear la subtarea");
+      toast.error(mutationErrorMessage(error, "No se pudo crear la subtarea"));
     } finally {
       setSubmitting(false);
     }
@@ -2148,11 +2211,76 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       }
     } catch (error) {
       console.error("Error creating task:", error);
-      toast.error("No se pudo crear la tarea");
+      toast.error(mutationErrorMessage(error, "No se pudo crear la tarea"));
     } finally {
       setSubmitting(false);
     }
   };
+
+  const handleCreateSubtaskRef = useRef(handleCreateSubtask);
+  handleCreateSubtaskRef.current = handleCreateSubtask;
+  const handleCreateInlineTaskRef = useRef(handleCreateInlineTask);
+  handleCreateInlineTaskRef.current = handleCreateInlineTask;
+
+  useEffect(() => {
+    if (!addingSubtaskFor && !addingTaskInSection) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || isPortaledPickerTarget(target)) {
+        skipSubtaskCreateOnBlur.current = true;
+        skipNewTaskCreateOnBlur.current = true;
+        return;
+      }
+
+      if (addingSubtaskFor) {
+        if (target.closest(".subtask-creation-form")) {
+          skipSubtaskCreateOnBlur.current = true;
+        } else {
+          const parent = (tareas || []).find((task) => task._id === addingSubtaskFor);
+          const title = subtaskTitleInputRef.current?.value.trim() || "";
+          skipSubtaskCreateOnBlur.current = true;
+          if (parent && title) {
+            void handleCreateSubtaskRef.current(parent, title, { openDetails: false });
+          } else {
+            setSubtaskTitle("");
+            setSubtaskAssignees([]);
+            setSubtaskDueDate("");
+            setSubtaskPriority("Media");
+            setSubtaskPartidas([]);
+            setAddingSubtaskFor(null);
+          }
+        }
+      }
+
+      if (addingTaskInSection) {
+        if (target.closest(".task-creation-form")) {
+          skipNewTaskCreateOnBlur.current = true;
+        } else {
+          const title = newTaskTitleInputRef.current?.value.trim() || "";
+          skipNewTaskCreateOnBlur.current = true;
+          if (title && !addingTaskInSection.projectId.startsWith(GENERAL_SCOPE)) {
+            void handleCreateInlineTaskRef.current(
+              addingTaskInSection.projectId as Id<"desarrollos">,
+              addingTaskInSection.statusLabel,
+              title,
+              { openDetails: false }
+            );
+          } else {
+            setNewTaskTitle("");
+            setNewTaskAssignees([]);
+            setNewTaskDueDate("");
+            setNewTaskPriority("Media");
+            setNewTaskPartidas([]);
+            setAddingTaskInSection(null);
+          }
+        }
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [addingSubtaskFor, addingTaskInSection, tareas]);
 
   const handleDuplicate = async (task: Task) => {
     try {
@@ -2404,8 +2532,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           <span className={TASK_MOBILE_LABEL}>Responsable</span>
           <InlineAssigneePicker
             task={task}
-            assignableUsers={task.proyecto ? assignableUsersByProject?.[task.proyecto] : organizationAssignableUsers}
-            disabled={!canEditTask || isSaving}
+            assignableUsers={assignableUsersForTask(task)}
+            disabled={!canEditTask}
             onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
           />
         </div>
@@ -2413,7 +2541,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           <span className={TASK_MOBILE_LABEL}>Fecha vencimiento</span>
           <InlineDatePicker
             value={task.fecha_limite}
-            disabled={!canEditTask || isSaving}
+            disabled={!canEditTask}
             overdue={overdue}
             showRelative={task.status !== "Completada" && task.status !== "Cancelada"}
             onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
@@ -2424,7 +2552,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           <InlinePriorityPicker
             value={task.prioridad}
             labels={effectivePriorityLabels}
-            disabled={!canEditTask || isSaving}
+            disabled={!canEditTask}
             onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
             onLabelsChange={setPriorityLabels}
           />
@@ -2435,7 +2563,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             value={task.categoria || "General"}
             displayValue={task.categoria || "General"}
             options={inlineCategoryOptions}
-            disabled={!canEditTask || isSaving}
+            disabled={!canEditTask}
             searchPlaceholder="Buscar especialidad"
             onSelect={(categoria) => handleInlineUpdate(task, { categoria })}
           />
@@ -2451,7 +2579,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 .filter((project) => !task.organization_id || project.organization_id === task.organization_id)
                 .map((project) => ({ value: project._id, label: project.nombre })),
             ]}
-            disabled={!canEditTask || isSaving}
+            disabled={!canEditTask}
             searchPlaceholder="Buscar proyecto"
             onSelect={(projectId) =>
               handleInlineUpdate(task, {
@@ -2598,8 +2726,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 <span className={TASK_MOBILE_LABEL}>Responsable</span>
                 <InlineAssigneePicker
                   task={task}
-                  assignableUsers={task.proyecto ? assignableUsersByProject?.[task.proyecto] : organizationAssignableUsers}
-                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  assignableUsers={assignableUsersForTask(task)}
+                  disabled={!canEditTask}
                   onChange={(assignees) => handleInlineUpdate(task, { asignados: assignees })}
                 />
               </div>
@@ -2607,7 +2735,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 <span className={TASK_MOBILE_LABEL}>Fecha vencimiento</span>
                 <InlineDatePicker
                   value={task.fecha_limite}
-                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  disabled={!canEditTask}
                   overdue={isOverdue(task)}
                   showRelative={task.status !== "Completada" && task.status !== "Cancelada"}
                   onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
@@ -2618,7 +2746,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 <InlinePriorityPicker
                   value={task.prioridad}
                   labels={effectivePriorityLabels}
-                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  disabled={!canEditTask}
                   onSelect={(value) => handleInlineUpdate(task, { prioridad: value })}
                   onLabelsChange={setPriorityLabels}
                 />
@@ -2629,7 +2757,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   value={task.categoria || "General"}
                   displayValue={task.categoria || "General"}
                   options={inlineCategoryOptions}
-                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  disabled={!canEditTask}
                   searchPlaceholder="Buscar especialidad"
                   onSelect={(categoria) => handleInlineUpdate(task, { categoria })}
                 />
@@ -2645,7 +2773,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       .filter((project) => !task.organization_id || project.organization_id === task.organization_id)
                       .map((project) => ({ value: project._id, label: project.nombre })),
                   ]}
-                  disabled={!canEditTask || inlineSavingId === task._id || updatingStatusId === task._id}
+                  disabled={!canEditTask}
                   searchPlaceholder="Buscar proyecto"
                   onSelect={(projectId) =>
                     handleInlineUpdate(task, {
@@ -2722,8 +2850,15 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                               return;
                             }
                             const title = event.currentTarget.value.trim();
-                            setTimeout(() => {
-                              if (document.activeElement?.closest(".subtask-creation-form")) return;
+                            window.setTimeout(() => {
+                              if (skipSubtaskCreateOnBlur.current) {
+                                skipSubtaskCreateOnBlur.current = false;
+                                return;
+                              }
+                              if (
+                                document.activeElement?.closest(".subtask-creation-form") ||
+                                isPortaledPickerOpen()
+                              ) return;
                               if (title) {
                                 void handleCreateSubtask(task, title, { openDetails: false });
                               } else {
@@ -2734,7 +2869,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                 setSubtaskPartidas([]);
                                 setAddingSubtaskFor(null);
                               }
-                            }, 100);
+                            }, 200);
                           }}
                           placeholder="Nombre de la subtarea"
                           className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-muted-foreground shadow-none focus-visible:ring-0"
@@ -2743,7 +2878,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       <div className={TASK_FIELD_CELL}>
                         <span className={TASK_MOBILE_LABEL}>Responsable</span>
                         <InlineAssigneePickerForCreate
-                          assignableUsers={subtaskProjectId ? assignableUsersByProject?.[subtaskProjectId] : subtaskOrganizationUsers}
+                          assignableUsers={subtaskProjectId ? assignableUsersByProject?.[subtaskProjectId] : (subtaskOrganizationUsers || organizationAssignableUsers)}
                           value={subtaskAssignees}
                           disabled={submitting}
                           onChange={setSubtaskAssignees}
@@ -3039,7 +3174,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                     )}
                                     {canCreate && (
                                       <div className="px-4 py-2 sm:px-8">
-                                        {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.id ? (
+                                        {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.label ? (
                                           <div className={cn("grid min-h-[44px] items-center gap-4 task-creation-form", TASK_TABLE_GRID)}>
                                             <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
                                               <Checkbox disabled className={TASK_CHECKBOX_CLASS} />
@@ -3076,8 +3211,15 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                     return;
                                                   }
                                                   const title = event.currentTarget.value.trim();
-                                                  setTimeout(() => {
-                                                    if (document.activeElement?.closest(".task-creation-form")) return;
+                                                  window.setTimeout(() => {
+                                                    if (skipNewTaskCreateOnBlur.current) {
+                                                      skipNewTaskCreateOnBlur.current = false;
+                                                      return;
+                                                    }
+                                                    if (
+                                                      document.activeElement?.closest(".task-creation-form") ||
+                                                      isPortaledPickerOpen()
+                                                    ) return;
                                                     if (title) {
                                                       void handleCreateInlineTask(
                                                         group.projectId as Id<"desarrollos">,
@@ -3093,7 +3235,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                       setNewTaskPartidas([]);
                                                       setAddingTaskInSection(null);
                                                     }
-                                                  }, 100);
+                                                  }, 200);
                                                 }}
                                                 placeholder="Nombre de la tarea"
                                                 className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-muted-foreground shadow-none focus-visible:ring-0"
@@ -3153,7 +3295,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                 return;
                                               }
                                               skipNewTaskCreateOnBlur.current = false;
-                                              setAddingTaskInSection({ projectId: group.projectId, statusLabel: section.label.id });
+                                              setAddingTaskInSection({ projectId: group.projectId, statusLabel: section.label.label });
                                               setNewTaskTitle("");
                                               setNewTaskAssignees([]);
                                               setNewTaskDueDate("");
