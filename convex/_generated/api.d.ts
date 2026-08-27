@@ -31,6 +31,7 @@ import type * as imss_siroc from "../imss_siroc.js";
 import type * as ingresos from "../ingresos.js";
 import type * as ingresos_documentos from "../ingresos_documentos.js";
 import type * as invoiceAnalysis from "../invoiceAnalysis.js";
+import type * as invoiceIntegrity from "../invoiceIntegrity.js";
 import type * as invoiceProcessing from "../invoiceProcessing.js";
 import type * as invoiceRules from "../invoiceRules.js";
 import type * as laborPaymentImports from "../laborPaymentImports.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   ingresos: typeof ingresos;
   ingresos_documentos: typeof ingresos_documentos;
   invoiceAnalysis: typeof invoiceAnalysis;
+  invoiceIntegrity: typeof invoiceIntegrity;
   invoiceProcessing: typeof invoiceProcessing;
   invoiceRules: typeof invoiceRules;
   laborPaymentImports: typeof laborPaymentImports;
