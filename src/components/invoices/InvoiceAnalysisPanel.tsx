@@ -21,6 +21,7 @@ type InvoiceDocument = {
 };
 
 type Props = {
+  invoiceId?: Id<"invoice_records">;
   transaction: {
     _id: Id<"transacciones">;
     proyecto: Id<"desarrollos">;
@@ -64,9 +65,29 @@ const STATUS_LABELS: Record<string, string> = {
   stale: "Fuente modificada",
 };
 
-export function InvoiceAnalysisPanel({ transaction }: Props) {
+const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  invoice: "Factura",
+  credit_note: "Nota de crédito",
+  receipt: "Recibo",
+  payment_complement: "Complemento de pago",
+  unknown: "Tipo no identificado",
+};
+
+const RECONCILIATION_LABELS: Record<string, string> = {
+  allocation_transaction_mismatch: "el importe asignado difiere de la transacción",
+  transaction_overallocated: "la transacción queda sobreasignada",
+  multiple_currencies: "hay transacciones en monedas distintas",
+  invoice_currency_mismatch: "la moneda de la factura no coincide",
+  invoice_total_mismatch: "el total asignado no coincide con la factura",
+  missing_invoice_total: "no se recuperó el total de la factura",
+  unknown_document_type: "no se identificó el tipo de comprobante",
+  unclassified_items: "quedaron conceptos sin clasificar",
+};
+
+export function InvoiceAnalysisPanel({ transaction, invoiceId }: Props) {
   const analysis = useQuery(api.invoiceAnalysis.getByTransaction, {
     transaction_id: transaction._id,
+    invoice_id: invoiceId,
   });
   const startAnalysis = useMutation(api.invoiceAnalysis.startInvoiceAnalysis);
   const reviewAnalysis = useMutation(api.invoiceAnalysis.reviewInvoiceAnalysis);
@@ -144,6 +165,10 @@ export function InvoiceAnalysisPanel({ transaction }: Props) {
 
   async function handleDecision(decision: "approve" | "reject") {
     if (!analysis?.invoice || !analysis.run) return;
+    if (decision === "approve" && analysis.invoice.invoice_type === "payment_complement") {
+      toast.error("Los complementos de pago no representan un gasto adicional. Rechaza este análisis.");
+      return;
+    }
     const amount = Number(allocationAmount);
     if (decision === "approve" && (!Number.isFinite(amount) || amount === 0)) {
       toast.error("Captura un importe de asignación válido.");
@@ -183,6 +208,7 @@ export function InvoiceAnalysisPanel({ transaction }: Props) {
 
   const status = analysis?.invoice?.status;
   const canReview = status === "review_required" && analysis?.run?.status === "review_required";
+  const isPaymentComplement = analysis?.invoice?.invoice_type === "payment_complement";
 
   return (
     <section className="space-y-4 border-b border-border bg-muted/20 px-6 py-5" aria-labelledby="invoice-analysis-title">
@@ -256,7 +282,7 @@ export function InvoiceAnalysisPanel({ transaction }: Props) {
           <div className="grid gap-2 text-xs sm:grid-cols-4">
             <div className="border border-border bg-card p-3"><span className="text-muted-foreground">Emisor</span><p className="mt-1 truncate font-medium">{analysis.invoice.issuer_name || "No identificado"}</p></div>
             <div className="border border-border bg-card p-3"><span className="text-muted-foreground">Folio</span><p className="mt-1 font-medium">{analysis.invoice.folio || analysis.invoice.uuid || "—"}</p></div>
-            <div className="border border-border bg-card p-3"><span className="text-muted-foreground">Moneda</span><p className="mt-1 font-medium">{analysis.invoice.currency || "—"}</p></div>
+            <div className="border border-border bg-card p-3"><span className="text-muted-foreground">Tipo y moneda</span><p className="mt-1 font-medium">{DOCUMENT_TYPE_LABELS[analysis.invoice.invoice_type || "unknown"] || analysis.invoice.invoice_type} · {analysis.invoice.currency || "—"}</p></div>
             <div className="border border-border bg-card p-3"><span className="text-muted-foreground">Total recuperado</span><p className="mt-1 font-medium">{formatMoney(analysis.invoice.total, analysis.invoice.currency || transaction.moneda)}</p></div>
           </div>
 
@@ -265,6 +291,14 @@ export function InvoiceAnalysisPanel({ transaction }: Props) {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Revisa estas advertencias</AlertTitle>
               <AlertDescription><ul className="list-disc space-y-1 pl-4">{analysis.run.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></AlertDescription>
+            </Alert>
+          )}
+
+          {isPaymentComplement && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Complemento de pago detectado</AlertTitle>
+              <AlertDescription>Este documento confirma un pago, pero no representa un gasto adicional. No puede aprobarse como desglose de factura.</AlertDescription>
             </Alert>
           )}
 
@@ -307,14 +341,21 @@ export function InvoiceAnalysisPanel({ transaction }: Props) {
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 <Button variant="outline" onClick={() => handleDecision("reject")} disabled={isSubmitting || !reason.trim()}><XCircle />Rechazar</Button>
-                <Button onClick={() => handleDecision("approve")} disabled={isSubmitting || analysis.items.length === 0}>{isSubmitting ? <Loader2 className="animate-spin" /> : <ShieldCheck />}Aprobar desglose</Button>
+                <Button onClick={() => handleDecision("approve")} disabled={isSubmitting || analysis.items.length === 0 || isPaymentComplement}>{isSubmitting ? <Loader2 className="animate-spin" /> : <ShieldCheck />}Aprobar desglose</Button>
               </div>
             </div>
           )}
 
           {status === "approved" && (
-            <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-              <CheckCircle2 className="h-4 w-4" />Este desglose ya puede utilizarse en consultas agregadas del chatbot.
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="h-4 w-4" />Este desglose ya puede utilizarse en consultas agregadas del chatbot.
+              </div>
+              {analysis.invoice.reconciliation_status === "exception" && (
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  Aprobada con excepciones: {(analysis.invoice.reconciliation_exception_codes || []).map((code) => RECONCILIATION_LABELS[code] || code).join(", ")}.
+                </p>
+              )}
             </div>
           )}
         </div>

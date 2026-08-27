@@ -43,7 +43,7 @@ function formatFileSize(bytes?: number) {
 }
 
 export default function TransactionDocumentosModal() {
-  const { isOpen, onClose, transactionId } = useTransactionDocumentosModal();
+  const { isOpen, onClose, transactionId, invoiceId } = useTransactionDocumentosModal();
 
   const transaction = useQuery(
     api.transacciones.getTransactionDocumentsById,
@@ -70,7 +70,7 @@ export default function TransactionDocumentosModal() {
           </div>
         ) : (
           <div className="max-h-[calc(90vh-81px)] overflow-y-auto">
-            {canReviewInvoices && <InvoiceAnalysisPanel transaction={transaction} />}
+            {canReviewInvoices && <InvoiceAnalysisPanel transaction={transaction} invoiceId={invoiceId || undefined} />}
             <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-3 text-sm text-muted-foreground">
               <span className="font-medium text-foreground tabular-nums">
                 {transaction.documents?.length || 0}

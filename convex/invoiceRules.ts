@@ -68,6 +68,10 @@ export function isInvoiceAnalysisIntent(text: string) {
     "disco de corte",
     "broca",
     "conceptos sin clasificar",
+    "nota de credito",
+    "notas de credito",
+    "complemento de pago",
+    "complementos de pago",
   ].some((token) => normalized.includes(token));
 }
 
@@ -76,8 +80,192 @@ export function inferInvoiceGroupBy(text: string) {
   if (/\b(mes|mensual|periodo)\b/.test(normalized)) return "month" as const;
   if (/\b(proveedor|proveedores|emisor|emisores)\b/.test(normalized)) return "provider" as const;
   if (/\b(proyecto|proyectos|comparar|compara)\b/.test(normalized)) return "project" as const;
-  if (/\b(categoria|categorias|familia|herramienta menor|herramienta electrica|herramienta manual|consumibles|refacciones|seguridad)\b/.test(normalized)) return "category" as const;
+  if (/\b(categoria|categorias|familia|herramienta menor|herramienta electrica|herramienta manual|maquinaria|equipo comprado|consumibles|refacciones|seguridad)\b/.test(normalized)) return "category" as const;
   return "item" as const;
+}
+
+const GENERIC_INVOICE_SEARCH_TOKENS = new Set([
+  "a", "al", "algo", "analiza", "analizadas", "analizados", "aprobada", "aprobadas",
+  "aprobado", "aprobados", "comprado", "comprados", "compramos", "compras", "cuanto",
+  "cuantos", "cuanta", "cuantas", "cual", "cuales", "dame", "de", "del", "desglosa",
+  "desglosame", "desglose", "desglosar", "dime", "donde", "el", "en", "entre", "esta",
+  "estas", "este", "estos", "factura", "facturas", "gaste", "gastado", "gastamos",
+  "gasto", "gastos", "importe", "importes", "la", "las", "lo", "los", "me", "mi",
+  "muestra", "muestrame", "pagada", "pagadas", "pagado", "pagados", "pago", "pagos",
+  "por", "proyecto", "proyectos", "que", "quiero", "suma", "total", "totales", "un",
+  "una", "ver", "y", "categoria", "categorias", "concepto", "conceptos", "mes", "mensual",
+  "periodo", "proveedor", "proveedores", "enero", "febrero", "marzo", "abril", "mayo",
+  "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+  "como", "consulta", "consultar", "cuentame", "detalle", "detalles", "favor", "hay",
+  "informacion", "necesito", "necesitamos", "podrias", "puede", "puedes", "revisa",
+  "revisar", "saber", "segun", "sobre", "tengo", "tenemos",
+]);
+
+export type InvoiceAggregateSearchResolution = {
+  status: "not_requested" | "matched" | "not_found";
+  matching_indexes: number[];
+  search_tokens: string[];
+};
+
+export type InvoiceDocumentType = "invoice" | "credit_note" | "receipt" | "payment_complement" | "unknown";
+export type InvoiceDateBasis = "payment" | "invoice";
+export type InvoiceReconciliationCode =
+  | "allocation_transaction_mismatch"
+  | "transaction_overallocated"
+  | "multiple_currencies"
+  | "invoice_currency_mismatch"
+  | "invoice_total_mismatch"
+  | "missing_invoice_total"
+  | "unknown_document_type"
+  | "unclassified_items";
+
+export const MAX_INVOICE_ALLOCATION_ABS = 1_000_000_000_000;
+
+export function inferInvoiceDateBasis(text: string): InvoiceDateBasis {
+  const normalized = normalizeInvoiceText(text);
+  return /\b(emitida|emitidas|emitido|emitidos|emision|fecha de factura|facturada|facturadas|facturado|facturados)\b/.test(normalized)
+    ? "invoice"
+    : "payment";
+}
+
+export function parseInvoiceIssuedDate(value: unknown) {
+  const text = String(value || "").trim();
+  const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const slash = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const normalized = iso
+    ? `${iso[1]}-${iso[2]}-${iso[3]}`
+    : slash
+      ? `${slash[3]}-${slash[2]}-${slash[1]}`
+      : undefined;
+  if (!normalized) return undefined;
+  const parsed = new Date(`${normalized}T12:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === normalized
+    ? normalized
+    : undefined;
+}
+
+export function invoiceDocumentPairKey(fileName: string) {
+  const uuid = fileName.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0];
+  if (uuid) return `uuid:${normalizeInvoiceUuid(uuid)}`;
+  const withoutExtension = fileName.replace(/\.(xml|pdf|png|jpe?g)$/i, "");
+  const normalized = normalizeInvoiceText(withoutExtension)
+    .split(" ")
+    .filter((token) => !["factura", "cfdi", "xml", "pdf", "imagen", "escaneo", "scan"].includes(token))
+    .join(" ");
+  return normalized.replace(/\s+/g, "").length >= 4 ? `folio:${normalized}` : undefined;
+}
+
+export function invoiceAllocationValidationError(invoiceType: InvoiceDocumentType | undefined, amount: number) {
+  if (!Number.isFinite(amount) || amount === 0) return "Los importes asignados deben ser números distintos de cero.";
+  if (Math.abs(amount) > MAX_INVOICE_ALLOCATION_ABS) return "El importe asignado excede el límite permitido.";
+  if (Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-6) return "Los importes asignados admiten como máximo dos decimales.";
+  if (invoiceType === "payment_complement") return "Los complementos de pago no se aprueban como gasto.";
+  if (invoiceType === "credit_note" && amount >= 0) return "Las notas de crédito deben asignarse con un importe negativo.";
+  if (invoiceType !== "credit_note" && amount < 0) return "Un importe negativo requiere que el documento sea una nota de crédito.";
+  return undefined;
+}
+
+export function buildInvoiceReconciliation(args: {
+  invoice_type?: InvoiceDocumentType;
+  invoice_total?: number;
+  invoice_currency?: string;
+  allocations: Array<{
+    amount: number;
+    currency: string;
+    transaction_total: number;
+    existing_approved_amount?: number;
+  }>;
+  has_unclassified_items?: boolean;
+}) {
+  const codes = new Set<InvoiceReconciliationCode>();
+  const currencies = new Set(args.allocations.map((allocation) => normalizeInvoiceCurrency(allocation.currency)));
+  const allocatedTotal = args.allocations.reduce((sum, allocation) => sum + allocation.amount, 0);
+  for (const allocation of args.allocations) {
+    if (Math.abs(Math.abs(allocation.amount) - Math.abs(allocation.transaction_total)) > 0.01) {
+      codes.add("allocation_transaction_mismatch");
+    }
+    const assignedAfterApproval = (allocation.existing_approved_amount || 0) + allocation.amount;
+    if (Math.abs(assignedAfterApproval) - Math.abs(allocation.transaction_total) > 0.01) {
+      codes.add("transaction_overallocated");
+    }
+  }
+  if (currencies.size > 1) codes.add("multiple_currencies");
+  const currency = currencies.size === 1 ? [...currencies][0] : undefined;
+  const normalizedInvoiceCurrency = normalizeInvoiceCurrency(args.invoice_currency);
+  if (currency && normalizedInvoiceCurrency !== "SIN_MONEDA" && currency !== normalizedInvoiceCurrency) {
+    codes.add("invoice_currency_mismatch");
+  }
+  if (args.invoice_total === undefined) {
+    codes.add("missing_invoice_total");
+  } else if (currency && Math.abs(Math.abs(allocatedTotal) - Math.abs(args.invoice_total)) > 0.01) {
+    codes.add("invoice_total_mismatch");
+  }
+  if (args.invoice_type === "unknown") codes.add("unknown_document_type");
+  if (args.has_unclassified_items) codes.add("unclassified_items");
+  const variance = args.invoice_total !== undefined && currency
+    ? Math.round((Math.abs(allocatedTotal) - Math.abs(args.invoice_total)) * 100) / 100
+    : undefined;
+  return {
+    status: codes.size ? "exception" as const : "matched" as const,
+    exception_codes: [...codes],
+    allocated_total: Math.round(allocatedTotal * 100) / 100,
+    invoice_total: args.invoice_total,
+    currency,
+    variance,
+    allocation_count: args.allocations.length,
+  };
+}
+
+export function isCurrentInvoiceRunState(args: {
+  active_run_id?: string;
+  run_id: string;
+  invoice_status: string;
+  run_status: string;
+  allowed_statuses: string[];
+}) {
+  return args.active_run_id === args.run_id &&
+    args.invoice_status === args.run_status &&
+    args.allowed_statuses.includes(args.run_status);
+}
+
+/**
+ * Separates a concrete invoice concept/provider search from generic wording such
+ * as "desglosa las facturas". Project labels are ignored because the project is
+ * already enforced through validated tool context.
+ */
+export function resolveInvoiceAggregateSearch(
+  text: string,
+  labels: string[],
+  ignoredLabels: string[] = [],
+): InvoiceAggregateSearchResolution {
+  const ignoredTokens = new Set(
+    ignoredLabels.flatMap((label) => normalizeInvoiceText(label).split(" ")).filter(Boolean),
+  );
+  const searchTokens = normalizeInvoiceText(text)
+    .split(" ")
+    .filter((token) => token.length >= 3)
+    .filter((token) => !/^\d+$/.test(token))
+    .filter((token) => !GENERIC_INVOICE_SEARCH_TOKENS.has(token))
+    .filter((token) => !ignoredTokens.has(token));
+
+  if (!searchTokens.length) {
+    return { status: "not_requested", matching_indexes: [], search_tokens: [] };
+  }
+
+  const matchingIndexes = labels.flatMap((label, index) => {
+    const labelTokens = normalizeInvoiceText(label).split(" ").filter((token) => token.length >= 3);
+    const matches = labelTokens.some((labelToken) =>
+      searchTokens.some((searchToken) =>
+        labelToken.startsWith(searchToken) || searchToken.startsWith(labelToken)),
+    );
+    return matches ? [index] : [];
+  });
+
+  return {
+    status: matchingIndexes.length ? "matched" : "not_found",
+    matching_indexes: matchingIndexes,
+    search_tokens: searchTokens,
+  };
 }
 
 function decodeXml(value: string) {
@@ -136,7 +324,7 @@ export type ParsedInvoiceItem = {
 
 export type ParsedInvoice = {
   source: "xml";
-  invoice_type: "invoice" | "credit_note" | "receipt" | "unknown";
+  invoice_type: InvoiceDocumentType;
   uuid?: string;
   folio?: string;
   issuer_name?: string;
@@ -168,7 +356,7 @@ export function parseCfdiXml(xml: string): ParsedInvoice {
     : tipo === "I"
       ? "invoice"
       : tipo === "P"
-        ? "receipt"
+        ? "payment_complement"
         : "unknown";
   const conceptExpression = /<(?:[\w-]+:)?Concepto\b([^>]*?)(?:\/\s*>|>([\s\S]*?)<\/(?:[\w-]+:)?Concepto\s*>)/gi;
   const items: ParsedInvoiceItem[] = [];
@@ -232,7 +420,7 @@ const nullableText = z.string().max(500).nullable();
 const nullableNumber = z.number().finite().nullable();
 
 export const invoiceModelOutputSchema = z.object({
-  document_type: z.enum(["invoice", "credit_note", "receipt", "unknown"]),
+  document_type: z.enum(["invoice", "credit_note", "receipt", "payment_complement", "unknown"]),
   header: z.object({
     uuid: nullableText,
     folio: nullableText,
@@ -274,7 +462,7 @@ export const invoiceModelOutputJsonSchema = {
   additionalProperties: false,
   required: ["document_type", "header", "items", "warnings"],
   properties: {
-    document_type: { type: "string", enum: ["invoice", "credit_note", "receipt", "unknown"] },
+    document_type: { type: "string", enum: ["invoice", "credit_note", "receipt", "payment_complement", "unknown"] },
     header: {
       type: "object",
       additionalProperties: false,

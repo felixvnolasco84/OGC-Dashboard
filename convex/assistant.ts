@@ -59,9 +59,12 @@ import {
 } from "./costRules";
 import {
   allocateInvoiceAmount,
+  inferInvoiceDateBasis,
   inferInvoiceGroupBy,
   isInvoiceAnalysisIntent,
   normalizeInvoiceText,
+  parseInvoiceIssuedDate,
+  resolveInvoiceAggregateSearch,
 } from "./invoiceRules";
 
 const MAX_TOOL_CALLS = 4;
@@ -120,6 +123,7 @@ const invoiceToolArgsSchema = z.object({
   provider_ids: z.array(z.string()).max(10),
   date_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
   date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date_basis: z.enum(["payment", "invoice"]),
   payment_scope: z.literal("paid"),
   asset_candidates_only: z.boolean(),
   group_by: z.enum(["category", "item", "provider", "month", "project"]),
@@ -425,7 +429,7 @@ function formatMetric(key: string, value: number | string, currency: string) {
 }
 
 function assistantInstructions(asOf: string) {
-  return `Eres el asistente de control de proyectos de OGC. Responde en español y sólo con datos de las herramientas y del contexto verificado. Fecha de corte: ${asOf}. Conserva el periodo predeterminado salvo que el usuario haya escrito fechas inequívocas; no elijas otro periodo por tu cuenta. La consulta es estrictamente de lectura. Para gasto realizado usa query_project_costs con payment_scope=paid; para preguntas sobre el contenido de facturas, herramienta menor o categorías extraídas usa query_invoice_breakdown, que contiene sólo datos aprobados por una persona. Las requisiciones representan solicitudes o compromisos y nunca prueban un gasto. No mezcles totales presupuestales con desgloses de facturas ni extrapoles facturas pendientes de revisión. No sumes monedas distintas ni apliques tipo de cambio por tu cuenta. No evalúes el desempeño de personas; sólo enumera pendientes asociados. No inventes cifras, riesgos ni hechos. Cada indicador, riesgo y recomendación debe citar uno o más evidence_ids exactos disponibles. Si una cifra no existe, declárala como limitación. answer_status describe si la pregunta fue respondida; overall_status describe únicamente la salud determinista del proyecto cuando exista ese contexto. Prioriza una conclusión breve, indicadores, riesgos y próximos pasos. Genera como máximo tres preguntas de seguimiento editables. No uses conocimiento externo ni sugieras haber modificado registros.`;
+  return `Eres el asistente de control de proyectos de OGC. Responde en español y sólo con datos de las herramientas y del contexto verificado. Fecha de corte: ${asOf}. Conserva el periodo predeterminado salvo que el usuario haya escrito fechas inequívocas; no elijas otro periodo por tu cuenta. La consulta es estrictamente de lectura. Para gasto realizado usa query_project_costs con payment_scope=paid; para preguntas sobre el contenido de facturas, herramienta menor o categorías extraídas usa query_invoice_breakdown, que contiene sólo datos aprobados por una persona. En query_invoice_breakdown usa date_basis=invoice cuando el usuario pregunte por facturas emitidas o facturadas en un periodo; usa date_basis=payment para preguntas sobre pagos o gasto realizado. Los complementos de pago confirman pagos previos y nunca representan gasto adicional. Las requisiciones representan solicitudes o compromisos y nunca prueban un gasto. No mezcles totales presupuestales con desgloses de facturas ni extrapoles facturas pendientes de revisión. No sumes monedas distintas ni apliques tipo de cambio por tu cuenta. No evalúes el desempeño de personas; sólo enumera pendientes asociados. No inventes cifras, riesgos ni hechos. Cada indicador, riesgo y recomendación debe citar uno o más evidence_ids exactos disponibles. Si una cifra no existe, declárala como limitación. answer_status describe si la pregunta fue respondida; overall_status describe únicamente la salud determinista del proyecto cuando exista ese contexto. Prioriza una conclusión breve, indicadores, riesgos y próximos pasos. Genera como máximo tres preguntas de seguimiento editables. No uses conocimiento externo ni sugieras haber modificado registros.`;
 }
 
 const toolDefinitions = [
@@ -493,7 +497,7 @@ const toolDefinitions = [
     parameters: {
       type: "object",
       additionalProperties: false,
-      required: ["project_ids", "search", "category_ids", "invoice_ids", "provider_ids", "date_from", "date_to", "payment_scope", "asset_candidates_only", "group_by", "limit"],
+      required: ["project_ids", "search", "category_ids", "invoice_ids", "provider_ids", "date_from", "date_to", "date_basis", "payment_scope", "asset_candidates_only", "group_by", "limit"],
       properties: {
         project_ids: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } },
         search: { type: ["string", "null"], maxLength: 4000 },
@@ -502,6 +506,7 @@ const toolDefinitions = [
         provider_ids: { type: "array", maxItems: 10, items: { type: "string" } },
         date_from: { type: ["string", "null"], pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
         date_to: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+        date_basis: { type: "string", enum: ["payment", "invoice"] },
         payment_scope: { type: "string", enum: ["paid"] },
         asset_candidates_only: { type: "boolean" },
         group_by: { type: "string", enum: ["category", "item", "provider", "month", "project"] },
@@ -1546,6 +1551,11 @@ async function executeInvoiceBreakdownTool(args: {
   const requestedCategories = new Set(categoryIds.map(String));
   const requestedInvoices = new Set(invoiceIds.map(String));
   const requestedProviders = new Set(providerIds.map(String));
+  const normalizedSearch = normalizeInvoiceText(parsed.search || "");
+  const asksForMinorTools = normalizedSearch.includes("herramienta menor");
+  const hasStructuredFilter = requestedCategories.size > 0 || requestedInvoices.size > 0 ||
+    requestedProviders.size > 0 || parsed.asset_candidates_only || asksForMinorTools;
+  const projectLabels: string[] = [];
   const groups = new Map<string, {
     label: string;
     projectId: string;
@@ -1565,11 +1575,15 @@ async function executeInvoiceBreakdownTool(args: {
   let approvedInvoicesUsed = 0;
   let skippedWithoutAllocation = 0;
   let skippedWithoutItems = 0;
+  let skippedWithoutWeights = 0;
+  let skippedWithoutBasisDate = 0;
+  let skippedPaymentComplements = 0;
   let invoiceItemsRead = 0;
   let invoiceAllocationsRead = 0;
 
   for (const projectId of projectIds) {
     const project = await assertProjectAccess(ctx, user, projectId);
+    projectLabels.push(project.nombre);
     const approved = await ctx.db
       .query("invoice_records")
       .withIndex("by_project_status", (q: any) => q.eq("proyecto", projectId).eq("status", "approved"))
@@ -1594,6 +1608,19 @@ async function executeInvoiceBreakdownTool(args: {
       if (!invoice.active_run_id) continue;
       if (requestedInvoices.size && !requestedInvoices.has(String(invoice._id))) continue;
       if (requestedProviders.size && (!invoice.provider_id || !requestedProviders.has(String(invoice.provider_id)))) continue;
+      if (invoice.invoice_type === "payment_complement") {
+        skippedPaymentComplements += 1;
+        continue;
+      }
+      const invoiceDate = parseInvoiceIssuedDate(invoice.issued_at);
+      if (parsed.date_basis === "invoice" && !invoiceDate) {
+        skippedWithoutBasisDate += 1;
+        continue;
+      }
+      if (parsed.date_basis === "invoice" && invoiceDate &&
+          (invoiceDate > parsed.date_to || (parsed.date_from && invoiceDate < parsed.date_from))) {
+        continue;
+      }
       const [items, allocations, provider] = await Promise.all([
         ctx.db.query("invoice_items").withIndex("by_run", (q: any) => q.eq("run_id", invoice.active_run_id!)).collect() as Promise<Doc<"invoice_items">[]>,
         ctx.db.query("invoice_allocations").withIndex("by_run", (q: any) => q.eq("run_id", invoice.active_run_id!)).collect() as Promise<Doc<"invoice_allocations">[]>,
@@ -1614,8 +1641,7 @@ async function executeInvoiceBreakdownTool(args: {
       const allCategoryDocs = await Promise.all([...new Set(items.flatMap((item) => item.category_id ? [item.category_id] : []))].map((id) => ctx.db.get(id)));
       const categoryById = new Map(allCategoryDocs.filter(Boolean).map((category) => [String(category!._id), category!]));
       const minorToolCodes = new Set(["machinery_equipment", "power_tools", "hand_tools", "cutting_abrasives", "drilling_accessories", "consumables_parts", "rental", "repair_maintenance"]);
-      const asksForMinorTools = normalizeInvoiceText(parsed.search || "").includes("herramienta menor");
-      const filteredItems = items.filter((item) => {
+      const itemMatchesFilters = (item: Doc<"invoice_items">) => {
         if (requestedCategories.size && (!item.category_id || !requestedCategories.has(String(item.category_id)))) return false;
         if (parsed.asset_candidates_only && !item.asset_candidate) return false;
         if (asksForMinorTools) {
@@ -1623,8 +1649,8 @@ async function executeInvoiceBreakdownTool(args: {
           return Boolean(code && minorToolCodes.has(code));
         }
         return true;
-      });
-      if (!filteredItems.length) {
+      };
+      if (!items.some(itemMatchesFilters)) {
         skippedWithoutItems += 1;
         continue;
       }
@@ -1633,14 +1659,24 @@ async function executeInvoiceBreakdownTool(args: {
         const transaction = await ctx.db.get(allocation.transaction_id) as Doc<"transacciones"> | null;
         if (!transaction || transaction.proyecto !== projectId || canonicalTransactionStatus(transaction.status) !== "paid") continue;
         const transactionDate = parseProjectDate(transaction.fecha);
-        if (!transactionDate || transactionDate > parsed.date_to || (parsed.date_from && transactionDate < parsed.date_from)) continue;
-        const weightedItems = filteredItems.map((item) => ({
+        const basisDate = parsed.date_basis === "invoice" ? invoiceDate : transactionDate;
+        if (!basisDate) {
+          skippedWithoutBasisDate += 1;
+          continue;
+        }
+        if (basisDate > parsed.date_to || (parsed.date_from && basisDate < parsed.date_from)) continue;
+        const weightedItems = items.map((item) => ({
           item,
           weight: Math.abs(item.gross_amount ?? item.net_amount ?? 0),
         }));
+        if (!weightedItems.some((row) => row.weight > 0)) {
+          skippedWithoutWeights += 1;
+          continue;
+        }
         const amounts = allocateInvoiceAmount(allocation.amount, weightedItems);
         for (let index = 0; index < weightedItems.length; index += 1) {
           const item = weightedItems[index].item;
+          if (!itemMatchesFilters(item)) continue;
           const amount = amounts[index] || 0;
           const category = item.category_id ? categoryById.get(String(item.category_id)) : undefined;
           let label = category?.label || "Sin clasificar";
@@ -1652,7 +1688,7 @@ async function executeInvoiceBreakdownTool(args: {
             label = provider?.razon_social || invoice.issuer_name || "Proveedor no identificado";
             filter = invoice.provider_id ? String(invoice.provider_id) : label;
           } else if (parsed.group_by === "month") {
-            label = transactionDate.slice(0, 7);
+            label = basisDate.slice(0, 7);
             filter = label;
           } else if (parsed.group_by === "project") {
             label = project.nombre;
@@ -1687,19 +1723,20 @@ async function executeInvoiceBreakdownTool(args: {
     }
   }
 
-  const search = normalizeInvoiceText(parsed.search || "");
   let rows = [...groups.values()];
-  if (search && !requestedCategories.size && !requestedInvoices.size && !requestedProviders.size) {
-    const matching = rows.filter((row) => {
-      const normalized = normalizeInvoiceText(row.label);
-      const queryTokens = search.split(" ").filter((token) => token.length >= 4);
-      const labelTokens = normalized.split(" ").filter((token) => token.length >= 4);
-      return normalized.length >= 3 && (
-        search.includes(normalized) ||
-        labelTokens.some((labelToken) => queryTokens.some((queryToken) => labelToken.startsWith(queryToken) || queryToken.startsWith(labelToken)))
-      );
-    });
-    if (matching.length) rows = matching;
+  if (!hasStructuredFilter && parsed.search) {
+    const resolution = resolveInvoiceAggregateSearch(
+      parsed.search,
+      rows.map((row) => row.label),
+      projectLabels,
+    );
+    if (resolution.status === "matched") {
+      const matchingIndexes = new Set(resolution.matching_indexes);
+      rows = rows.filter((_, index) => matchingIndexes.has(index));
+    } else if (resolution.status === "not_found") {
+      rows = [];
+      limitations.push(`No existe una coincidencia inequívoca para “${resolution.search_tokens.join(" ")}” entre los conceptos de facturas aprobadas.`);
+    }
   }
   rows.forEach((row) => {
     const key = `${row.projectId}:${row.currency}`;
@@ -1713,23 +1750,26 @@ async function executeInvoiceBreakdownTool(args: {
   });
   rows.sort((left, right) => Math.abs(right.amount) - Math.abs(left.amount) || left.label.localeCompare(right.label, "es"));
   const selected = rows.slice(0, parsed.limit);
+  const evidencePeriodParams = parsed.date_basis === "invoice"
+    ? `&fecha_factura_hasta=${parsed.date_to}${parsed.date_from ? `&fecha_factura_desde=${parsed.date_from}` : ""}`
+    : `&hasta=${parsed.date_to}${parsed.date_from ? `&desde=${parsed.date_from}` : ""}`;
   const totalEvidence = [...totals.values()].map((total): AssistantEvidence => ({
-    id: `invoice-total:${total.projectId}:${total.currency}:${parsed.date_to}`,
+    id: `invoice-total:${total.projectId}:${total.currency}:${parsed.date_basis}:${parsed.date_to}`,
     type: "invoice",
     label: `${total.projectName} · Total de facturas aprobadas y pagadas (${total.currency})`,
     project_id: total.projectId,
     observed_value: `${total.amount.toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${total.currency}`,
     as_of: parsed.date_to,
-    url: `/proyecto/${total.projectId}/transacciones?status=Pagado&moneda=${total.currency}&hasta=${parsed.date_to}${parsed.date_from ? `&desde=${parsed.date_from}` : ""}`,
+    url: `/proyecto/${total.projectId}/transacciones?status=Pagado&moneda=${total.currency}${evidencePeriodParams}`,
   }));
   const rowEvidence = selected.map((row, index): AssistantEvidence => ({
-    id: `invoice-aggregate:${index + 1}:${row.projectId}:${row.currency}`,
+    id: `invoice-aggregate:${index + 1}:${row.projectId}:${row.currency}:${parsed.date_basis}:${parsed.date_to}`,
     type: "invoice",
     label: `${row.projectName} · ${row.label}`,
     project_id: row.projectId,
     observed_value: `${row.amount.toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${row.currency} · ${row.invoiceIds.size} factura(s) aprobada(s)`,
     as_of: parsed.date_to,
-    url: `/proyecto/${row.projectId}/transacciones?categoria_factura=${encodeURIComponent(row.filter)}&status=Pagado&moneda=${row.currency}&hasta=${parsed.date_to}${parsed.date_from ? `&desde=${parsed.date_from}` : ""}`,
+    url: `/proyecto/${row.projectId}/transacciones?categoria_factura=${encodeURIComponent(row.filter)}&status=Pagado&moneda=${row.currency}${evidencePeriodParams}`,
   }));
   const breakdown = selected.map((row, index) => ({
     label: row.label,
@@ -1746,6 +1786,9 @@ async function executeInvoiceBreakdownTool(args: {
   if (pendingReview) limitations.push(`${pendingReview} factura(s) están pendientes de revisión y fueron excluidas.`);
   if (skippedWithoutAllocation) limitations.push(`${skippedWithoutAllocation} factura(s) aprobadas no tuvieron una asignación pagada dentro del periodo.`);
   if (skippedWithoutItems) limitations.push(`${skippedWithoutItems} factura(s) no aportaron conceptos compatibles con los filtros.`);
+  if (skippedWithoutWeights) limitations.push(`${skippedWithoutWeights} asignación(es) se excluyeron porque sus conceptos no contienen importes verificables para prorratear.`);
+  if (skippedWithoutBasisDate) limitations.push(`${skippedWithoutBasisDate} registro(s) se excluyeron porque no tienen una fecha válida para el criterio ${parsed.date_basis === "invoice" ? "de emisión" : "de pago"}.`);
+  if (skippedPaymentComplements) limitations.push(`${skippedPaymentComplements} complemento(s) de pago se excluyeron porque no representan gasto adicional.`);
   if (!breakdown.length) limitations.push("No existen conceptos de factura aprobados y pagados que coincidan con la consulta.");
   return {
     data: {
@@ -1753,12 +1796,13 @@ async function executeInvoiceBreakdownTool(args: {
       asset_candidates_only: parsed.asset_candidates_only,
       date_from: parsed.date_from,
       date_to: parsed.date_to,
+      date_basis: parsed.date_basis,
       group_by: parsed.group_by,
       totals_by_currency: [...totals.values()].map((total) => ({
         project_id: total.projectId,
         currency: total.currency,
         amount: Number(total.amount.toFixed(2)),
-        evidence_ids: [`invoice-total:${total.projectId}:${total.currency}:${parsed.date_to}`],
+        evidence_ids: [`invoice-total:${total.projectId}:${total.currency}:${parsed.date_basis}:${parsed.date_to}`],
       })),
       breakdown,
       coverage: { approved_invoices_used: approvedInvoicesUsed, pending_review_excluded: pendingReview },
@@ -2112,6 +2156,7 @@ export const sendMessage = action({
             provider_ids: allowedProviderIds.map(String),
             date_from: costDates.date_from || null,
             date_to: costDates.date_to,
+            date_basis: inferInvoiceDateBasis(args.text),
             payment_scope: "paid",
             asset_candidates_only: normalizeInvoiceText(args.text).includes("activo potencial") || normalizeInvoiceText(args.text).includes("activos potenciales"),
             group_by: providerReferences.length

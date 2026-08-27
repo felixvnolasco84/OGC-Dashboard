@@ -17,6 +17,10 @@ import {
   normalizeProviderName,
   normalizeRfc,
 } from "./providerUtils";
+import {
+  markInvoicesStaleForProvider,
+  markInvoicesStaleForTransaction,
+} from "./invoiceIntegrity";
 
 const providerTypeValidator = v.union(v.literal("regular"), v.literal("generico"));
 
@@ -327,6 +331,11 @@ export const update = mutation({
     const normalizedRfc = normalizeRfc(args.rfc);
     await assertProviderUniqueness(ctx, normalizedName, normalizedRfc, args.id);
 
+    const invoiceEvidenceChanged = razonSocial !== existing.razon_social ||
+      normalizedRfc !== (existing.rfc_normalizado || normalizeRfc(existing.rfc)) ||
+      (args.tipo || existing.tipo || "regular") !== (existing.tipo || "regular");
+    if (invoiceEvidenceChanged) await markInvoicesStaleForProvider(ctx, args.id);
+
     await ctx.db.patch(args.id, {
       razon_social: razonSocial,
       razon_social_normalizada: normalizedName,
@@ -352,6 +361,7 @@ export const archive = mutation({
     const user = await getCurrentUserOrThrow(ctx);
     const provider = await ctx.db.get(args.id);
     if (!provider) throw new Error("Proveedor no encontrado.");
+    await markInvoicesStaleForProvider(ctx, args.id);
     await ctx.db.patch(args.id, {
       archived_at: Date.now(),
       archived_by: user._id,
@@ -374,6 +384,7 @@ export const reactivate = mutation({
       provider.rfc_normalizado || normalizeRfc(provider.rfc),
       provider._id
     );
+    await markInvoicesStaleForProvider(ctx, args.id);
     await ctx.db.patch(args.id, {
       archived_at: undefined,
       archived_by: undefined,
@@ -400,6 +411,8 @@ export const merge = mutation({
       throw new Error("El proveedor destino debe estar activo.");
     }
 
+    await markInvoicesStaleForProvider(ctx, source._id);
+
     const [transactions, requisitions] = await Promise.all([
       ctx.db
         .query("transacciones")
@@ -411,6 +424,7 @@ export const merge = mutation({
         .collect(),
     ]);
     for (const transaction of transactions) {
+      await markInvoicesStaleForTransaction(ctx, transaction._id);
       await ctx.db.patch(transaction._id, { proveedor_id: args.target_id });
     }
     for (const requisition of requisitions) {
@@ -442,6 +456,7 @@ export const deleteProveedor = mutation({
     const user = await getCurrentUserOrThrow(ctx);
     const provider = await ctx.db.get(args.id);
     if (!provider) throw new Error("Proveedor no encontrado.");
+    await markInvoicesStaleForProvider(ctx, args.id);
     await ctx.db.patch(args.id, {
       archived_at: Date.now(),
       archived_by: user._id,

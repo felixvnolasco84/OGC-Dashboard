@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { Bot, FileClock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
@@ -10,47 +10,55 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
 
-function candidateKind(candidate: { name: string; type: string }) {
-  const value = `${candidate.name} ${candidate.type}`.toLowerCase();
-  if (value.includes(".xml") || value.includes("xml")) return "xml";
-  return "visual";
-}
-
 export function InvoiceBackfillDialog({ projectId }: { projectId: Id<"desarrollos"> }) {
   const currentUser = useQuery(api.users.getCurrentUser);
   const canReview = currentUser?.role === "admin" || currentUser?.role === "finance";
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
-  const candidates = useQuery(
+  const [failures, setFailures] = useState<Record<string, string>>({});
+  const {
+    results: candidates,
+    status: candidatesStatus,
+    loadMore: loadMoreCandidates,
+  } = usePaginatedQuery(
     api.invoiceAnalysis.listHistoricalCandidates,
     open && canReview ? { project_id: projectId } : "skip",
+    { initialNumItems: 50 },
   );
   const queue = useQuery(
     api.invoiceAnalysis.listReviewQueue,
-    canReview ? { project_id: projectId, limit: 50 } : "skip",
+    open && canReview ? { project_id: projectId, limit: 50 } : "skip",
   );
   const startAnalysis = useMutation(api.invoiceAnalysis.startInvoiceAnalysis);
   const documentsModal = useTransactionDocumentosModal();
 
   const groups = useMemo(() => {
-    const grouped = new Map<string, NonNullable<typeof candidates>>();
+    const grouped = new Map<string, typeof candidates>();
     for (const candidate of candidates || []) {
       if (!candidate.transaction_id) continue;
-      const key = String(candidate.transaction_id);
+      const key = `${candidate.transaction_id}:${candidate.pair_key || `document:${candidate.id}`}`;
       grouped.set(key, [...(grouped.get(key) || []), candidate]);
     }
-    return [...grouped.entries()].map(([transactionId, documents]) => ({
-      transactionId: transactionId as Id<"transacciones">,
-      documents,
-      selectedDocuments: [
-        documents.find((document) => candidateKind(document) === "xml"),
-        documents.find((document) => candidateKind(document) === "visual"),
-      ].filter(Boolean) as typeof documents,
-    }));
+    return [...grouped.entries()].flatMap(([key, documents]) => {
+      const xmlDocuments = documents.filter((document) => document.kind === "xml");
+      const visualDocuments = documents.filter((document) => document.kind !== "xml");
+      const transactionId = documents[0].transaction_id as Id<"transacciones">;
+      if (xmlDocuments.length <= 1 && visualDocuments.length <= 1) {
+        return [{ key, transactionId, selectedDocuments: documents, paired: documents.length === 2 }];
+      }
+      // Multiple files with the same apparent folio are deliberately kept
+      // separate. Silently guessing a pair could combine different invoices.
+      return documents.map((document) => ({
+        key: `${key}:${document.id}`,
+        transactionId,
+        selectedDocuments: [document],
+        paired: false,
+      }));
+    });
   }, [candidates]);
 
-  function toggle(transactionId: string, checked: boolean) {
+  function toggle(candidateKey: string, checked: boolean) {
     setSelected((current) => {
       const next = new Set(current);
       if (checked) {
@@ -58,30 +66,39 @@ export function InvoiceBackfillDialog({ projectId }: { projectId: Id<"desarrollo
           toast.error("Puedes iniciar hasta diez facturas por lote.");
           return current;
         }
-        next.add(transactionId);
+        next.add(candidateKey);
       } else {
-        next.delete(transactionId);
+        next.delete(candidateKey);
       }
       return next;
     });
   }
 
   async function handleStartBatch() {
-    const selectedGroups = groups.filter((group) => selected.has(String(group.transactionId)));
+    const selectedGroups = groups.filter((group) => selected.has(group.key));
     if (!selectedGroups.length) return;
     setSubmitting(true);
-    const results = await Promise.allSettled(selectedGroups.map((group) => startAnalysis({
-      project_id: projectId,
-      document_ids: group.selectedDocuments.map((document) => document.id),
-      transaction_ids: [group.transactionId],
-      client_request_id: crypto.randomUUID(),
-    })));
-    const completed = results.filter((result) => result.status === "fulfilled").length;
-    const failed = results.length - completed;
+    const completedKeys = new Set<string>();
+    const nextFailures: Record<string, string> = {};
+    for (let index = 0; index < selectedGroups.length; index += 2) {
+      const batch = selectedGroups.slice(index, index + 2);
+      const results = await Promise.allSettled(batch.map((group) => startAnalysis({
+        project_id: projectId,
+        document_ids: group.selectedDocuments.map((document) => document.id),
+        transaction_ids: [group.transactionId],
+        client_request_id: crypto.randomUUID(),
+      })));
+      results.forEach((result, resultIndex) => {
+        const group = batch[resultIndex];
+        if (result.status === "fulfilled") completedKeys.add(group.key);
+        else nextFailures[group.key] = result.reason instanceof Error ? result.reason.message : "No se pudo iniciar el análisis";
+      });
+    }
     setSubmitting(false);
-    setSelected(new Set());
-    if (completed) toast.success(`${completed} análisis histórico(s) iniciado(s)`);
-    if (failed) toast.error(`${failed} análisis no pudieron iniciarse`);
+    setFailures(nextFailures);
+    setSelected((current) => new Set([...current].filter((key) => !completedKeys.has(key))));
+    if (completedKeys.size) toast.success(`${completedKeys.size} análisis histórico(s) iniciado(s)`);
+    if (Object.keys(nextFailures).length) toast.error(`${Object.keys(nextFailures).length} análisis no pudieron iniciarse`);
   }
 
   if (!canReview) return null;
@@ -105,7 +122,7 @@ export function InvoiceBackfillDialog({ projectId }: { projectId: Id<"desarrollo
                 {queue === undefined ? <Loader2 className="h-4 w-4 animate-spin" /> : queue.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No hay análisis pendientes.</p>
                 ) : queue.map((invoice) => (
-                  <button key={invoice._id} type="button" className="flex w-full items-center justify-between border border-border p-3 text-left text-sm hover:bg-muted/40" onClick={() => { setOpen(false); documentsModal.onOpen(invoice.primary_transaction_id); }}>
+                  <button key={invoice._id} type="button" className="flex w-full items-center justify-between border border-border p-3 text-left text-sm hover:bg-muted/40" onClick={() => { setOpen(false); documentsModal.onOpen(invoice.primary_transaction_id, invoice._id); }}>
                     <span><span className="block font-medium">{invoice.folio || invoice.issuer_name || "Factura sin folio"}</span><span className="text-xs text-muted-foreground">{invoice.status}</span></span>
                     <span className="text-xs text-primary">Abrir revisión</span>
                   </button>
@@ -119,15 +136,25 @@ export function InvoiceBackfillDialog({ projectId }: { projectId: Id<"desarrollo
                 <Button size="sm" onClick={handleStartBatch} disabled={submitting || selected.size === 0}>{submitting ? <Loader2 className="animate-spin" /> : <FileClock />}Analizar {selected.size || ""}</Button>
               </div>
               <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
-                {candidates === undefined ? <Loader2 className="h-4 w-4 animate-spin" /> : groups.length === 0 ? (
+                {candidatesStatus === "LoadingFirstPage" ? <Loader2 className="h-4 w-4 animate-spin" /> : groups.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No se detectaron documentos históricos pendientes.</p>
                 ) : groups.map((group) => (
-                  <label key={group.transactionId} className="flex items-start gap-3 border border-border p-3 text-sm">
-                    <Checkbox checked={selected.has(String(group.transactionId))} onCheckedChange={(checked) => toggle(String(group.transactionId), checked === true)} />
-                    <span className="min-w-0"><span className="block font-medium">{group.selectedDocuments.map((document) => document.name).join(" + ")}</span><span className="text-xs text-muted-foreground">Transacción {String(group.transactionId).slice(-8).toUpperCase()}</span></span>
+                  <label key={group.key} className="flex items-start gap-3 border border-border p-3 text-sm">
+                    <Checkbox checked={selected.has(group.key)} onCheckedChange={(checked) => toggle(group.key, checked === true)} />
+                    <span className="min-w-0">
+                      <span className="block font-medium">{group.selectedDocuments.map((document) => document.name).join(" + ")}</span>
+                      <span className="text-xs text-muted-foreground">Transacción {String(group.transactionId).slice(-8).toUpperCase()}{group.paired ? " · pareja exacta por UUID/folio" : " · fuente individual"}</span>
+                      {failures[group.key] && <span className="mt-1 block text-xs text-destructive">{failures[group.key]}</span>}
+                    </span>
                   </label>
                 ))}
               </div>
+              {(candidatesStatus === "CanLoadMore" || candidatesStatus === "LoadingMore") && (
+                <Button className="mt-3 w-full" variant="outline" size="sm" disabled={candidatesStatus === "LoadingMore"} onClick={() => loadMoreCandidates(50)}>
+                  {candidatesStatus === "LoadingMore" ? <Loader2 className="animate-spin" /> : null}
+                  Cargar más documentos
+                </Button>
+              )}
             </section>
           </div>
         </DialogContent>

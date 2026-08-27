@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,14 @@ import {
     FileText,
     Files,
     Layers,
+    Loader2,
     MoreVertical,
     Search,
     Trash2,
 } from "lucide-react";
+import { TableColumnPicker } from "@/components/Tables/TableColumnPicker";
+import { useOptionalTableColumns } from "@/hooks/use-optional-table-columns";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -45,10 +49,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import AssignProviderDialog from "@/components/providers/AssignProviderDialog";
 
+const EXTRA_COLUMNS = [
+    { id: "tipoPago", label: "Tipo de pago" },
+    { id: "categoria", label: "Categoría" },
+    { id: "moneda", label: "Moneda" },
+    { id: "conceptos", label: "Conceptos" },
+    { id: "docs", label: "Docs" },
+] as const;
+
 export default function TransaccionesTablePage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [transactionToDelete, setTransactionToDelete] = useState<Id<"transacciones"> | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const isDeletingRef = useRef(false);
+    const [transactionToDelete, setTransactionToDelete] = useState<{
+        id: Id<"transacciones">;
+        factura?: string;
+        montoTotal: number;
+        moneda?: string;
+        proveedorNombre: string;
+    } | null>(null);
     const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
     const [selectedProveedor, setSelectedProveedor] = useState<Id<"proveedores"> | "all" | "unassigned">("all");
     const [assigningTransaction, setAssigningTransaction] = useState<{
@@ -57,6 +77,7 @@ export default function TransaccionesTablePage() {
     } | null>(null);
     const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<Id<"transacciones">>>(new Set());
     const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+    const extraColumns = useOptionalTableColumns(EXTRA_COLUMNS);
 
     // Queries
     const proyectos = useQuery(api.desarrollos.getAll);
@@ -140,10 +161,12 @@ export default function TransaccionesTablePage() {
     };
 
     const handleDelete = async () => {
-        if (!transactionToDelete) return;
+        if (!transactionToDelete || isDeletingRef.current) return;
 
+        isDeletingRef.current = true;
+        setIsDeleting(true);
         try {
-            await deleteTransaction({ id: transactionToDelete });
+            await deleteTransaction({ id: transactionToDelete.id });
             toast.success("Transacción eliminada", {
                 description: "La transacción y sus conceptos han sido eliminados exitosamente.",
             });
@@ -154,11 +177,26 @@ export default function TransaccionesTablePage() {
             toast.error("Error al eliminar", {
                 description: error instanceof Error ? error.message : "No se pudo eliminar la transacción.",
             });
+        } finally {
+            isDeletingRef.current = false;
+            setIsDeleting(false);
         }
     };
 
-    const openDeleteDialog = (transactionId: Id<"transacciones">) => {
-        setTransactionToDelete(transactionId);
+    const openDeleteDialog = (transaccion: {
+        _id: Id<"transacciones">;
+        factura?: string;
+        monto_total: number;
+        moneda?: string;
+        proveedor?: { razon_social: string } | null;
+    }) => {
+        setTransactionToDelete({
+            id: transaccion._id,
+            factura: transaccion.factura,
+            montoTotal: transaccion.monto_total,
+            moneda: transaccion.moneda,
+            proveedorNombre: transaccion.proveedor?.razon_social || "Sin proveedor",
+        });
         setDeleteDialogOpen(true);
     };
 
@@ -172,11 +210,9 @@ export default function TransaccionesTablePage() {
     };
 
     const visibleTransactionIds = filteredTransacciones?.map((transaction) => transaction._id) || [];
-    const transactionPendingDeletion = transacciones?.find(
-        (transaction) => transaction._id === transactionToDelete
-    );
     const allVisibleSelected = visibleTransactionIds.length > 0 &&
         visibleTransactionIds.every((id) => selectedTransactionIds.has(id));
+    const tableColSpan = 8 + extraColumns.visibleCount;
     const toggleAllVisible = (checked: boolean) => {
         setSelectedTransactionIds((current) => {
             const next = new Set(current);
@@ -189,23 +225,23 @@ export default function TransaccionesTablePage() {
     };
 
     return (
-        <div className="bg-card min-h-screen">
-            <div className="max-w-full mx-auto py-8 text-left">
-                <div className="flex flex-col gap-4 px-12">
-                    <div className="mb-8 flex items-start justify-between">
-                        <div>
-                            <h1 className="text-3xl font-normal text-foreground mb-2">Transacciones</h1>
+        <div className="flex h-[calc(100dvh-2.5rem)] flex-col bg-card">
+            <div className="max-w-full mx-auto flex min-h-0 w-full flex-1 flex-col text-left">
+                <div className="flex shrink-0 flex-col gap-4 px-4 pt-6 sm:px-6 lg:px-8">
+                    <div className="mb-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                            <h1 className="mb-2 break-words text-3xl font-normal text-foreground">Transacciones</h1>
                             <p className="text-sm text-subtle-foreground">
                                 Consulta y gestiona todas las transacciones registradas en el sistema
                             </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
                                     Total: {transacciones?.length || 0}
                                 </span>
                             </Badge>
-                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted  ">
+                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
                                     Monto total: {formatCurrency(
                                         transacciones?.reduce((sum, t) => sum + t.monto_total, 0) || 0
@@ -216,8 +252,8 @@ export default function TransaccionesTablePage() {
                     </div>
 
                     {/* Search and Filter */}
-                    <div className="mb-8 grid grid-cols-3 gap-4">
-                        <div className="relative">
+                    <div className="mb-2 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="relative md:col-span-2 xl:col-span-1">
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
                             <Input
                                 type="text"
@@ -273,9 +309,16 @@ export default function TransaccionesTablePage() {
                                 ))}
                             </SelectContent>
                         </Select>
+
+                        <TableColumnPicker
+                            columns={EXTRA_COLUMNS}
+                            isVisible={extraColumns.isVisible}
+                            onToggle={extraColumns.toggle}
+                            className="h-12 w-full"
+                        />
                     </div>
                     {selectedTransactionIds.size > 0 && (
-                        <div className="mb-4 flex items-center justify-between border bg-background px-4 py-3">
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border bg-background px-4 py-3">
                             <span className="text-sm text-muted-foreground">
                                 {selectedTransactionIds.size} transacciones seleccionadas
                             </span>
@@ -292,11 +335,16 @@ export default function TransaccionesTablePage() {
                 </div>
 
                 {/* Table */}
-                <div className="border border-border rounded-none">
-                    <table className="w-full">
-                        <thead className="border-b border-border">
+                <div className="min-h-0 flex-1 overflow-auto border-y border-border">
+                    <table
+                        className={cn(
+                            "w-full border-separate border-spacing-0",
+                            extraColumns.visibleCount > 0 ? "min-w-[90rem]" : "min-w-[56rem]",
+                        )}
+                    >
+                        <thead className="sticky top-0 z-20 bg-card">
                             <tr>
-                                <th className="px-4 py-4 text-center border-r border-border">
+                                <th className="sticky left-0 z-30 w-12 min-w-12 bg-card px-4 py-4 text-center border-b border-r border-border">
                                     <input
                                         type="checkbox"
                                         aria-label="Seleccionar transacciones visibles"
@@ -304,52 +352,62 @@ export default function TransaccionesTablePage() {
                                         onChange={(event) => toggleAllVisible(event.target.checked)}
                                     />
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
+                                <th className="sticky left-12 z-30 min-w-56 w-56 bg-card px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Proyecto
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
+                                <th className="min-w-44 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Proveedor
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
+                                <th className="min-w-40 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Factura
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
+                                <th className="min-w-32 whitespace-nowrap px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Monto Total
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
+                                <th className="min-w-28 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Fecha
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
-                                    Tipo de pago
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
-                                    Categoría
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
+                                {extraColumns.isVisible("tipoPago") && (
+                                    <th className="min-w-32 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
+                                        Tipo de pago
+                                    </th>
+                                )}
+                                {extraColumns.isVisible("categoria") && (
+                                    <th className="min-w-28 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
+                                        Categoría
+                                    </th>
+                                )}
+                                <th className="min-w-28 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Status
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
-                                    Moneda
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
-                                    Conceptos
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
-                                    Docs
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border"></th>
+                                {extraColumns.isVisible("moneda") && (
+                                    <th className="min-w-24 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
+                                        Moneda
+                                    </th>
+                                )}
+                                {extraColumns.isVisible("conceptos") && (
+                                    <th className="min-w-24 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
+                                        Conceptos
+                                    </th>
+                                )}
+                                {extraColumns.isVisible("docs") && (
+                                    <th className="min-w-20 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
+                                        Docs
+                                    </th>
+                                )}
+                                <th className="w-14 min-w-14 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-border"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border">
+                        <tbody>
                             {!transacciones ? (
                                 <tr>
-                                    <td colSpan={13} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={13} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -357,9 +415,9 @@ export default function TransaccionesTablePage() {
                                 filteredTransacciones?.map((transaccion) => (
                                     <tr
                                         key={transaccion._id}
-                                        className="hover:bg-background transition-colors"
+                                        className="group hover:bg-background transition-colors"
                                     >
-                                        <td className="px-4 py-4 text-center border-r border-border">
+                                        <td className="sticky left-0 z-10 w-12 min-w-12 bg-card px-4 py-4 text-center border-b border-r border-border group-hover:bg-background">
                                             <input
                                                 type="checkbox"
                                                 aria-label={`Seleccionar transacción ${transaccion.factura || transaccion._id}`}
@@ -367,12 +425,12 @@ export default function TransaccionesTablePage() {
                                                 onChange={(event) => toggleSelectedTransaction(transaccion._id, event.target.checked)}
                                             />
                                         </td>
-                                        <td className="px-6 py-4 border-r border-border">
-                                            <div className="text-sm font-medium text-foreground">
+                                        <td className="sticky left-12 z-10 min-w-56 w-56 bg-card px-6 py-4 border-b border-r border-border group-hover:bg-background">
+                                            <div className="truncate text-sm font-medium text-foreground">
                                                 {transaccion.proyectoNombre || "-"}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 border-r border-border">
+                                        <td className="px-6 py-4 border-b border-r border-border">
                                             <button
                                                 type="button"
                                                 className="text-left"
@@ -381,7 +439,7 @@ export default function TransaccionesTablePage() {
                                                     proveedorId: transaccion.proveedor_id,
                                                 })}
                                             >
-                                                <span className="block text-sm font-medium text-foreground">
+                                                <span className="block truncate text-sm font-medium text-foreground">
                                                     {transaccion.proveedor?.razon_social || "Sin proveedor"}
                                                 </span>
                                                 {transaccion.proveedor && (
@@ -395,20 +453,20 @@ export default function TransaccionesTablePage() {
                                                 )}
                                             </button>
                                         </td>
-                                        <td className="px-6 py-4 border-r border-border">
-                                            <div className="flex items-center gap-2">
+                                        <td className="px-6 py-4 border-b border-r border-border">
+                                            <div className="flex min-w-0 items-center gap-2">
                                                 {transaccion.factura && (
-                                                    <FileText className="h-4 w-4 text-disabled-foreground" />
+                                                    <FileText className="h-4 w-4 shrink-0 text-disabled-foreground" />
                                                 )}
-                                                <span className="text-sm text-foreground font-medium">
+                                                <span className="truncate text-sm text-foreground font-medium">
                                                     {transaccion.factura || "-"}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm font-semibold text-foreground border-r border-border">
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-foreground border-b border-r border-border">
                                             {formatCurrency(transaccion.monto_total)}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-subtle-foreground border-r border-border">
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-subtle-foreground border-b border-r border-border">
                                             {transaccion.fecha
                                                 ? new Date(transaccion.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
                                                     day: "2-digit",
@@ -417,31 +475,35 @@ export default function TransaccionesTablePage() {
                                                 })
                                                 : "-"}
                                         </td>
-                                        <td className="px-6 py-4 border-r border-border">
-                                            <Badge
-                                                variant="outline"
-                                                className={`${getTipoPagoColor(
-                                                    transaccion.tipo_pago
-                                                )}  px-3 py-1 text-xs font-normal capitalize rounded-none`}
-                                            >
-                                                {transaccion.tipo_pago || "-"}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 border-r border-border">
-                                            {transaccion.categoria ? (
+                                        {extraColumns.isVisible("tipoPago") && (
+                                            <td className="px-6 py-4 border-b border-r border-border">
                                                 <Badge
                                                     variant="outline"
-                                                    className={`${getCategoriaColor(
-                                                        transaccion.categoria
+                                                    className={`${getTipoPagoColor(
+                                                        transaccion.tipo_pago
                                                     )}  px-3 py-1 text-xs font-normal capitalize rounded-none`}
                                                 >
-                                                    {transaccion.categoria}
+                                                    {transaccion.tipo_pago || "-"}
                                                 </Badge>
-                                            ) : (
-                                                <span className="text-sm text-disabled-foreground">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 border-r border-border">
+                                            </td>
+                                        )}
+                                        {extraColumns.isVisible("categoria") && (
+                                            <td className="px-6 py-4 border-b border-r border-border">
+                                                {transaccion.categoria ? (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={`${getCategoriaColor(
+                                                            transaccion.categoria
+                                                        )}  px-3 py-1 text-xs font-normal capitalize rounded-none`}
+                                                    >
+                                                        {transaccion.categoria}
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-sm text-disabled-foreground">-</span>
+                                                )}
+                                            </td>
+                                        )}
+                                        <td className="px-6 py-4 border-b border-r border-border">
                                             <Badge
                                                 variant="outline"
                                                 className={`${getStatusColor(
@@ -451,27 +513,33 @@ export default function TransaccionesTablePage() {
                                                 {transaccion.status || "-"}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 border-r border-border">
-                                            <Badge
-                                                variant="outline"
-                                                className={`${getMonedaBadge(
-                                                    transaccion.moneda
-                                                )}  px-2 py-1 text-xs font-medium rounded-none`}
-                                            >
-                                                {transaccion.moneda || "MXN"}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-center text-foreground border-r border-border">
-                                            <Badge variant="outline" className=" px-2 py-1 text-xs">
-                                                {transaccion.lineItemsCount || 0}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-center text-foreground border-r border-border">
-                                            <Badge variant="outline" className=" px-2 py-1 text-xs">
-                                                {transaccion.documentsCount || 0}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 border-r border-border">
+                                        {extraColumns.isVisible("moneda") && (
+                                            <td className="px-6 py-4 border-b border-r border-border">
+                                                <Badge
+                                                    variant="outline"
+                                                    className={`${getMonedaBadge(
+                                                        transaccion.moneda
+                                                    )}  px-2 py-1 text-xs font-medium rounded-none`}
+                                                >
+                                                    {transaccion.moneda || "MXN"}
+                                                </Badge>
+                                            </td>
+                                        )}
+                                        {extraColumns.isVisible("conceptos") && (
+                                            <td className="px-6 py-4 text-sm text-center text-foreground border-b border-r border-border">
+                                                <Badge variant="outline" className=" px-2 py-1 text-xs">
+                                                    {transaccion.lineItemsCount || 0}
+                                                </Badge>
+                                            </td>
+                                        )}
+                                        {extraColumns.isVisible("docs") && (
+                                            <td className="px-6 py-4 text-sm text-center text-foreground border-b border-r border-border">
+                                                <Badge variant="outline" className=" px-2 py-1 text-xs">
+                                                    {transaccion.documentsCount || 0}
+                                                </Badge>
+                                            </td>
+                                        )}
+                                        <td className="px-6 py-4 border-b border-border">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button
@@ -506,7 +574,7 @@ export default function TransaccionesTablePage() {
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem
                                                         className="h-9 rounded-none text-red-600 focus:bg-red-50 focus:text-red-700"
-                                                        onSelect={() => openDeleteDialog(transaccion._id)}
+                                                        onSelect={() => openDeleteDialog(transaccion)}
                                                     >
                                                         <Trash2 />
                                                         Eliminar
@@ -524,28 +592,57 @@ export default function TransaccionesTablePage() {
 
 
             {/* Delete Confirmation Dialog */}
-            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialog
+                open={deleteDialogOpen}
+                onOpenChange={(open) => {
+                    if (isDeleting) return;
+                    setDeleteDialogOpen(open);
+                    if (!open) setTransactionToDelete(null);
+                }}
+            >
                 <AlertDialogContent className="max-w-md gap-0 overflow-hidden rounded-none p-0">
                     <AlertDialogHeader className="border-b border-border px-6 py-5 pr-12">
-                        <AlertDialogTitle className="text-lg font-medium">Eliminar transacción</AlertDialogTitle>
+                        <AlertDialogTitle className="text-lg font-medium">¿Eliminar transacción?</AlertDialogTitle>
                         <AlertDialogDescription className="pt-1 leading-6">
-                            {transactionPendingDeletion?.factura && (
-                                <span className="mb-1 block font-medium text-foreground">
-                                    Factura {transactionPendingDeletion.factura}
+                            {transactionToDelete && (
+                                <span className="mb-3 block space-y-1 font-medium text-foreground">
+                                    <span className="block">
+                                        Factura: {transactionToDelete.factura || "Sin factura"}
+                                    </span>
+                                    <span className="block">
+                                        Monto: {formatCurrency(transactionToDelete.montoTotal)} {transactionToDelete.moneda || "MXN"}
+                                    </span>
+                                    <span className="block">
+                                        Proveedor: {transactionToDelete.proveedorNombre}
+                                    </span>
                                 </span>
                             )}
-                            Se eliminarán la transacción, sus conceptos y sus documentos asociados. Esta acción no se puede deshacer.
+                            Esta acción no se puede deshacer. Se eliminará la transacción, todos sus conceptos y documentos asociados de forma permanente.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="bg-muted/40 px-6 py-4">
-                        <AlertDialogCancel className="h-9 border-0 bg-transparent px-3 shadow-none hover:bg-muted">
+                        <AlertDialogCancel
+                            disabled={isDeleting}
+                            className="h-9 border-0 bg-transparent px-3 shadow-none hover:bg-muted"
+                        >
                             Cancelar
                         </AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                void handleDelete();
+                            }}
+                            disabled={isDeleting}
                             className="h-9 bg-red-600 px-4 shadow-none hover:bg-red-700"
                         >
-                            Eliminar transacción
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Eliminando...
+                                </>
+                            ) : (
+                                "Eliminar"
+                            )}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

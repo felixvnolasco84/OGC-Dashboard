@@ -22,6 +22,11 @@ import {
   type ProjectMatchMode,
 } from "./projectMatchUtils";
 import { moneyDelta, mostSpecificCostLabel, normalizeCostText } from "./costRules";
+import { parseInvoiceIssuedDate } from "./invoiceRules";
+import {
+  markInvoicesStaleForTransaction,
+  transactionChangeInvalidatesInvoice,
+} from "./invoiceIntegrity";
 
 type TransactionLineItemInput = {
   partida_id: Id<"partidas">;
@@ -991,6 +996,10 @@ export const updateTransaction = mutation({
       cleanUpdateData.proveedor_id = undefined;
     }
 
+    if (transactionChangeInvalidatesInvoice(existingTransaction, updateData)) {
+      await markInvoicesStaleForTransaction(ctx, id);
+    }
+
     await ctx.db.patch(
       id,
       cleanUpdateData as Partial<
@@ -1032,6 +1041,9 @@ export const assignProviderBulk = baseMutation({
 
     for (const transaction of transactions) {
       if (!transaction) continue;
+      if (String(transaction.proveedor_id || "") !== String(args.proveedor_id || "")) {
+        await markInvoicesStaleForTransaction(ctx, transaction._id);
+      }
       await ctx.db.patch(transaction._id, {
         proveedor_id: args.proveedor_id || undefined,
       });
@@ -1089,6 +1101,9 @@ export const syncProvidersPage = baseMutation({
       rows.push(row);
       counts[row.status] += 1;
       if (row.status !== "matched" || !row.providerId) continue;
+      if (transaction.proveedor_id !== row.providerId) {
+        await markInvoicesStaleForTransaction(ctx, transaction._id);
+      }
       await ctx.db.patch(transaction._id, { proveedor_id: row.providerId });
       counts.updated += 1;
     }
@@ -1165,6 +1180,9 @@ export const syncProvidersFromExcel = baseMutation({
       }
 
       for (const transaction of resolution.transactions) {
+        if (transaction.proveedor_id !== providerId) {
+          await markInvoicesStaleForTransaction(ctx, transaction._id);
+        }
         await ctx.db.patch(transaction._id, {
           proveedor: resolution.candidate.provider_name.trim(),
           proveedor_id: providerId,
@@ -1191,6 +1209,8 @@ export const deleteTransaction = mutation({
     if (!(await checkDesarrolloAccess(ctx, existingTransaction.proyecto))) {
       throw new Error("No tienes acceso para modificar este proyecto.");
     }
+
+    await markInvoicesStaleForTransaction(ctx, args.id);
 
     // Delete all line items (pagos) associated with this transaction
     const lineItems = await ctx.db
@@ -1618,7 +1638,373 @@ export const getByProyecto = query({
   },
 });
 
-// Get transactions by project with line items and documents count
+const TABLE_PAGE_SIZE_MIN = 25;
+const TABLE_PAGE_SIZE_MAX = 50;
+
+const tableListFilterValidator = {
+  proyecto_id: v.id("desarrollos"),
+  search: v.optional(v.string()),
+  minAmount: v.optional(v.number()),
+  maxAmount: v.optional(v.number()),
+  dateFrom: v.optional(v.string()),
+  dateTo: v.optional(v.string()),
+  invoiceDateFrom: v.optional(v.string()),
+  invoiceDateTo: v.optional(v.string()),
+  status: v.optional(v.string()),
+  tipoPago: v.optional(v.string()),
+  categoria: v.optional(v.string()),
+  moneda: v.optional(v.string()),
+  proveedorId: v.optional(v.string()),
+  missingDocuments: v.optional(v.boolean()),
+};
+
+type TableListFilterArgs = {
+  proyecto_id: Id<"desarrollos">;
+  search?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  invoiceDateFrom?: string;
+  invoiceDateTo?: string;
+  status?: string;
+  tipoPago?: string;
+  categoria?: string;
+  moneda?: string;
+  proveedorId?: string;
+  missingDocuments?: boolean;
+};
+
+function parseFechaParts(fecha: string): { day: number; month: number; year: number } | null {
+  const parts = fecha.split("/");
+  if (parts.length !== 3) return null;
+  const day = Number(parts[0]);
+  const month = Number(parts[1]);
+  const year = Number(parts[2]);
+  if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) return null;
+  return { day, month, year };
+}
+
+function fechaSortValue(fecha: string): number {
+  const parts = parseFechaParts(fecha);
+  if (!parts) return 0;
+  return parts.year * 10000 + parts.month * 100 + parts.day;
+}
+
+function fechaToYmd(fecha: string): string | null {
+  const parts = parseFechaParts(fecha);
+  if (!parts) return null;
+  return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
+function includesSearch(value: string | undefined, search: string): boolean {
+  return Boolean(value && value.toLowerCase().includes(search));
+}
+
+async function loadProviderSummaries(
+  ctx: QueryCtx,
+  proveedorIds: Array<Id<"proveedores">>,
+) {
+  const uniqueIds = [...new Set(proveedorIds)];
+  const summaries = await Promise.all(uniqueIds.map((id) => providerSummary(ctx, id)));
+  return new Map(
+    summaries
+      .filter((summary): summary is NonNullable<typeof summary> => summary !== null)
+      .map((summary) => [summary._id, summary]),
+  );
+}
+
+async function collectRelatedSearchMatchIds(
+  ctx: QueryCtx,
+  proyectoId: Id<"desarrollos">,
+  search: string,
+) {
+  const matchIds = new Set<string>();
+  const [pagos, partidas, invoices] = await Promise.all([
+    ctx.db.query("pagos").withIndex("by_proyecto", (q) => q.eq("proyecto_id", proyectoId)).collect(),
+    ctx.db.query("partidas").withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId)).collect(),
+    ctx.db
+      .query("invoice_records")
+      .withIndex("by_project_status", (q) => q.eq("proyecto", proyectoId).eq("status", "approved"))
+      .collect(),
+  ]);
+
+  const matchingPartidaIds = new Set(
+    partidas
+      .filter((partida) =>
+        includesSearch(partida.nombre, search) ||
+        includesSearch(partida.familia, search) ||
+        includesSearch(partida.sub_partida, search)
+      )
+      .map((partida) => partida._id),
+  );
+
+  for (const pago of pagos) {
+    const matchesText =
+      includesSearch(pago.concepto, search) ||
+      includesSearch(pago.sub_partida_snapshot, search) ||
+      includesSearch(pago.familia_snapshot, search) ||
+      includesSearch(pago.partida_nombre_snapshot, search);
+    if (matchesText || (pago.partida_id && matchingPartidaIds.has(pago.partida_id))) {
+      matchIds.add(pago.transaccion_id);
+    }
+  }
+
+  const categoryIds = [...new Set(invoices.flatMap((invoice) => invoice.approved_category_ids ?? []))];
+  const categories = await Promise.all(categoryIds.map((id) => ctx.db.get(id)));
+  const matchingCategoryIds = new Set(
+    categories
+      .filter((category): category is NonNullable<typeof category> =>
+        Boolean(
+          category &&
+          (includesSearch(category.code, search) || includesSearch(category.label, search)),
+        )
+      )
+      .map((category) => category._id),
+  );
+
+  for (const invoice of invoices) {
+    const matchesText =
+      includesSearch(invoice.folio, search) ||
+      includesSearch(invoice.uuid, search) ||
+      includesSearch(invoice.issuer_name, search);
+    const matchesCategory = invoice.approved_category_ids?.some((id) => matchingCategoryIds.has(id));
+    if (!matchesText && !matchesCategory) continue;
+    matchIds.add(invoice.primary_transaction_id);
+    for (const transactionId of invoice.source_transaction_ids) {
+      matchIds.add(transactionId);
+    }
+  }
+
+  return matchIds;
+}
+
+async function loadLinkedDocumentCounts(
+  ctx: QueryCtx,
+  proyectoId: Id<"desarrollos">,
+) {
+  const documents = await ctx.db
+    .query("documentos")
+    .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
+    .collect();
+
+  const counts = new Map<string, number>();
+  for (const document of documents) {
+    if (!document.transaccion_id) continue;
+    counts.set(document.transaccion_id, (counts.get(document.transaccion_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+async function listFilteredProjectTransactions(
+  ctx: QueryCtx,
+  args: TableListFilterArgs,
+) {
+  const search = args.search?.trim().toLowerCase() || "";
+  const transactions = await ctx.db
+    .query("transacciones")
+    .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+    .collect();
+
+  const providerSummaries = search
+    ? await loadProviderSummaries(
+        ctx,
+        transactions.flatMap((transaction) => transaction.proveedor_id ? [transaction.proveedor_id] : []),
+      )
+    : new Map<Id<"proveedores">, NonNullable<Awaited<ReturnType<typeof providerSummary>>>>();
+  const relatedMatchIds = search
+    ? await collectRelatedSearchMatchIds(ctx, args.proyecto_id, search)
+    : null;
+  const documentCounts = args.missingDocuments
+    ? await loadLinkedDocumentCounts(ctx, args.proyecto_id)
+    : null;
+
+  const approvedInvoiceDates = new Map<string, Set<string>>();
+  if (args.invoiceDateFrom || args.invoiceDateTo) {
+    const approvedInvoices = await ctx.db
+      .query("invoice_records")
+      .withIndex("by_project_status", (q) => q.eq("proyecto", args.proyecto_id).eq("status", "approved"))
+      .collect();
+    for (const invoice of approvedInvoices) {
+      const issuedDate = parseInvoiceIssuedDate(invoice.issued_at);
+      if (!issuedDate) continue;
+      for (const transactionId of invoice.source_transaction_ids) {
+        const key = String(transactionId);
+        const dates = approvedInvoiceDates.get(key) || new Set<string>();
+        dates.add(issuedDate);
+        approvedInvoiceDates.set(key, dates);
+      }
+    }
+  }
+
+  const filtered = transactions.filter((transaction) => {
+    if (search) {
+      const providerName = transaction.proveedor_id
+        ? providerSummaries.get(transaction.proveedor_id)?.razon_social
+        : undefined;
+      const matchesText =
+        includesSearch(transaction.factura, search) ||
+        includesSearch(transaction.codigo_referencia, search) ||
+        includesSearch(transaction.tipo_pago, search) ||
+        includesSearch(transaction.categoria, search) ||
+        includesSearch(transaction.banco, search) ||
+        includesSearch(providerName, search);
+      if (!matchesText && !relatedMatchIds?.has(transaction._id)) return false;
+    }
+
+    if (args.minAmount != null && Number.isFinite(args.minAmount) && transaction.monto_total < args.minAmount) {
+      return false;
+    }
+    if (args.maxAmount != null && Number.isFinite(args.maxAmount) && transaction.monto_total > args.maxAmount) {
+      return false;
+    }
+
+    const transactionYmd = fechaToYmd(transaction.fecha);
+    if (args.dateFrom && (!transactionYmd || transactionYmd < args.dateFrom)) return false;
+    if (args.dateTo && (!transactionYmd || transactionYmd > args.dateTo)) return false;
+    const invoiceDates = approvedInvoiceDates.get(String(transaction._id));
+    if ((args.invoiceDateFrom || args.invoiceDateTo) && !invoiceDates?.size) return false;
+    if (invoiceDates && ![...invoiceDates].some((invoiceYmd) =>
+      (!args.invoiceDateFrom || invoiceYmd >= args.invoiceDateFrom) &&
+      (!args.invoiceDateTo || invoiceYmd <= args.invoiceDateTo))) return false;
+
+    if (args.status && transaction.status !== args.status) return false;
+    if (args.tipoPago && transaction.tipo_pago?.toLowerCase() !== args.tipoPago.toLowerCase()) return false;
+    if (args.categoria && transaction.categoria?.toLowerCase() !== args.categoria.toLowerCase()) return false;
+    if (args.moneda && transaction.moneda !== args.moneda) return false;
+
+    if (args.proveedorId === "unassigned") {
+      if (transaction.proveedor_id) return false;
+    } else if (args.proveedorId && transaction.proveedor_id !== args.proveedorId) {
+      return false;
+    }
+
+    if (args.missingDocuments && (documentCounts?.get(transaction._id) ?? 0) > 0) {
+      return false;
+    }
+
+    return true;
+  });
+
+  return { filtered, providerSummaries, search };
+}
+
+// Aggregated project totals plus pending-work counts for the transactions table.
+export const getTotalsByProyecto = query({
+  args: {
+    proyecto_id: v.id("desarrollos"),
+  },
+  handler: async (ctx, args) => {
+    if (!(await checkDesarrolloAccess(ctx, args.proyecto_id))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
+    const [transactions, documentCounts] = await Promise.all([
+      ctx.db
+        .query("transacciones")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+        .collect(),
+      loadLinkedDocumentCounts(ctx, args.proyecto_id),
+    ]);
+
+    let withoutProvider = 0;
+    let withoutDocuments = 0;
+    let amount = 0;
+    for (const transaction of transactions) {
+      amount += transaction.monto_total;
+      if (!transaction.proveedor_id) withoutProvider += 1;
+      if ((documentCounts.get(transaction._id) ?? 0) === 0) withoutDocuments += 1;
+    }
+
+    return {
+      count: transactions.length,
+      amount,
+      withoutProvider,
+      withoutDocuments,
+    };
+  },
+});
+
+// Lightweight paginated table query. Concepts, documents, and invoice analysis
+// stay out of this result and are loaded by the transaction modals on demand.
+export const listTableByProyecto = query({
+  args: {
+    ...tableListFilterValidator,
+    page: v.number(),
+    pageSize: v.number(),
+    sortField: v.union(v.literal("fecha"), v.literal("monto_total")),
+    sortDirection: v.union(v.literal("asc"), v.literal("desc")),
+  },
+  handler: async (ctx, args) => {
+    if (!(await checkDesarrolloAccess(ctx, args.proyecto_id))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
+
+    const pageSize = Math.min(Math.max(Math.trunc(args.pageSize), TABLE_PAGE_SIZE_MIN), TABLE_PAGE_SIZE_MAX);
+    const page = Math.max(Math.trunc(args.page), 1);
+    const { filtered, providerSummaries, search } = await listFilteredProjectTransactions(ctx, args);
+
+    filtered.sort((a, b) => {
+      const comparison = args.sortField === "monto_total"
+        ? a.monto_total - b.monto_total
+        : fechaSortValue(a.fecha) - fechaSortValue(b.fecha);
+      return args.sortDirection === "asc" ? comparison : -comparison;
+    });
+
+    const total = filtered.length;
+    const matchedAmount = filtered.reduce((sum, transaction) => sum + transaction.monto_total, 0);
+    const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * pageSize;
+    const pageRows = filtered.slice(start, start + pageSize);
+
+    const pageProviderSummaries = search
+      ? providerSummaries
+      : await loadProviderSummaries(
+          ctx,
+          pageRows.flatMap((transaction) => transaction.proveedor_id ? [transaction.proveedor_id] : []),
+        );
+
+    const items = await Promise.all(pageRows.map(async (transaction) => {
+      const documents = await ctx.db
+        .query("documentos")
+        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
+        .collect();
+
+      return {
+        ...transaction,
+        proveedor: transaction.proveedor_id
+          ? pageProviderSummaries.get(transaction.proveedor_id) ?? null
+          : null,
+        documentsCount: documents.length,
+      };
+    }));
+
+    return {
+      items,
+      total,
+      matchedAmount,
+      page: safePage,
+      pageSize,
+      totalPages,
+    };
+  },
+});
+
+export const listTableIdsByProyecto = query({
+  args: tableListFilterValidator,
+  handler: async (ctx, args) => {
+    if (!(await checkDesarrolloAccess(ctx, args.proyecto_id))) {
+      throw new Error("No tienes acceso a este proyecto.");
+    }
+
+    const { filtered } = await listFilteredProjectTransactions(ctx, args);
+    return filtered.map((transaction) => transaction._id);
+  },
+});
+
+// Heavy per-row enrichment for compact dashboard views. The project transactions
+// table uses listTableByProyecto instead of loading concepts, documents, and
+// invoice analysis for every row.
 export const getByProyectoWithDetails = query({
   args: {
     proyecto_id: v.id("desarrollos"),
@@ -1713,6 +2099,7 @@ export const getByProyectoWithDetails = query({
           partidaNames: partidaNames.slice(0, 3), // First 3 partida names
           costConcepts: [...new Set(costConcepts)],
           invoiceAnalysisTerms: [...new Set(invoiceAnalysisTerms)],
+          invoiceIssuedAt: approvedInvoice?.issued_at,
           documentUrl: firstDocumentUrl, // URL to open the document
         };
       })
@@ -2253,6 +2640,7 @@ export const incrementFechaByOneDay = mutation({
 
       const newFecha = `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
 
+      await markInvoicesStaleForTransaction(ctx, tx._id);
       await ctx.db.patch(tx._id, { fecha: newFecha });
       updatedCount++;
       log.push({ id: tx._id, oldFecha: tx.fecha, newFecha });

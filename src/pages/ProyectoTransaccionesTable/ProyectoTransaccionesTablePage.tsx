@@ -1,13 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, FileText, Upload, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon, Eye, Layers, Files, UserCog, Trash2 } from "lucide-react";
+import { Search, MoreVertical, FileText, Upload, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon, Eye, Layers, Files, UserCog, Trash2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TableColumnPicker } from "@/components/Tables/TableColumnPicker";
+import { useOptionalTableColumns } from "@/hooks/use-optional-table-columns";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -40,6 +42,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { type DateRange } from "react-day-picker";
 import AssignProviderDialog from "@/components/providers/AssignProviderDialog";
+import { cn } from "@/lib/utils";
 
 function searchDate(value: string | null) {
     if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
@@ -58,6 +61,61 @@ function formatTransactionDate(value: string) {
     }).format(new Date(year, month - 1, day));
 }
 
+const PAGE_SIZE_OPTIONS = [25, 50] as const;
+const DEFAULT_PAGE_SIZE = 25;
+
+function parseOptionalAmount(value: string) {
+    if (!value.trim()) return undefined;
+    const amount = Number.parseFloat(value);
+    return Number.isFinite(amount) ? amount : undefined;
+}
+
+function getPaginationPages(page: number, totalPages: number) {
+    if (totalPages <= 7) {
+        return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    const pages: Array<number | "ellipsis"> = [1];
+    const start = Math.max(2, page - 1);
+    const end = Math.min(totalPages - 1, page + 1);
+
+    if (start > 2) pages.push("ellipsis");
+    for (let item = start; item <= end; item += 1) {
+        pages.push(item);
+    }
+    if (end < totalPages - 1) pages.push("ellipsis");
+    pages.push(totalPages);
+    return pages;
+}
+
+function pendingChipClass(active: boolean) {
+    return cn(
+        "inline-flex items-center gap-2 rounded-none border px-3 py-2 text-sm transition-colors disabled:pointer-events-none disabled:opacity-50",
+        active
+            ? "border-foreground bg-foreground text-background"
+            : "border-border bg-background text-foreground hover:bg-muted",
+    );
+}
+
+function pendingHeaderCountClass(active: boolean) {
+    return cn(
+        "ml-2 inline-flex min-w-6 items-center justify-center rounded-none border px-1.5 py-0.5 text-xs font-medium transition-colors",
+        active
+            ? "border-foreground bg-foreground text-background"
+            : "border-border bg-muted text-subtle-foreground hover:bg-background hover:text-foreground",
+    );
+}
+
+function getSelectionScopeKey(parts: Array<string | number | undefined | null>) {
+    return parts.map((part) => (part == null ? "" : String(part))).join("\0");
+}
+
+const EXTRA_COLUMNS = [
+    { id: "tipoPago", label: "Tipo de pago" },
+    { id: "moneda", label: "Moneda" },
+    { id: "documentos", label: "Documentos" },
+] as const;
+
 export default function ProyectoTransaccionesTablePage() {
 
     const uploadProjectTransactionsModal = useUploadProjectTransactionsModal();
@@ -68,11 +126,22 @@ export default function ProyectoTransaccionesTablePage() {
     const initialStatus = searchParams.get("status") || "all";
     const initialCurrency = searchParams.get("moneda") || "all";
     const initialProvider = searchParams.get("proveedor") || "all";
+    const initialDocuments = searchParams.get("documentos") === "sin" ? "missing" : "all";
     const initialFrom = searchDate(searchParams.get("desde"));
     const initialTo = searchDate(searchParams.get("hasta"));
+    const initialInvoiceFrom = searchDate(searchParams.get("fecha_factura_desde"));
+    const initialInvoiceTo = searchDate(searchParams.get("fecha_factura_hasta"));
     const [searchTerm, setSearchTerm] = useState(initialConcept);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [transactionToDelete, setTransactionToDelete] = useState<Id<"transacciones"> | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const isDeletingRef = useRef(false);
+    const [transactionToDelete, setTransactionToDelete] = useState<{
+        id: Id<"transacciones">;
+        factura?: string;
+        montoTotal: number;
+        moneda?: string;
+        proveedorNombre: string;
+    } | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     
     // Advanced search filters
@@ -86,23 +155,108 @@ export default function ProyectoTransaccionesTablePage() {
     const [categoriaFilter, setCategoriaFilter] = useState<string>("all");
     const [monedaFilter, setMonedaFilter] = useState<string>(initialCurrency);
     const [proveedorFilter, setProveedorFilter] = useState<string>(initialProvider);
+    const [documentosFilter, setDocumentosFilter] = useState<"all" | "missing">(initialDocuments);
     const [assigningTransaction, setAssigningTransaction] = useState<{
         id: Id<"transacciones">;
         proveedorId?: Id<"proveedores">;
     } | null>(null);
     const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<Id<"transacciones">>>(new Set());
+    const [selectFilteredPending, setSelectFilteredPending] = useState(false);
     const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+    const [bulkAssignConfirmOpen, setBulkAssignConfirmOpen] = useState(false);
+    const [selectionScopeKey, setSelectionScopeKey] = useState(() => getSelectionScopeKey([
+        proyectoId,
+        initialConcept,
+        "",
+        "",
+        initialFrom?.getTime(),
+        initialTo?.getTime(),
+        initialInvoiceFrom?.getTime(),
+        initialInvoiceTo?.getTime(),
+        initialStatus,
+        "all",
+        "all",
+        initialCurrency,
+        initialProvider,
+        initialDocuments,
+    ]));
     const [sortField, setSortField] = useState<"monto_total" | "fecha">("fecha");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+    const [debouncedSearch, setDebouncedSearch] = useState(initialConcept);
     const [showFilters, setShowFilters] = useState(
-        Boolean(initialConcept || initialFrom || initialTo || initialStatus !== "all" || initialCurrency !== "all" || initialProvider !== "all")
+        Boolean(initialConcept || initialFrom || initialTo || initialInvoiceFrom || initialInvoiceTo || initialStatus !== "all" || initialCurrency !== "all" || initialProvider !== "all" || initialDocuments !== "all")
     );
+    const extraColumns = useOptionalTableColumns(EXTRA_COLUMNS);
+
+    useEffect(() => {
+        const timeout = window.setTimeout(() => setDebouncedSearch(searchTerm), 300);
+        return () => window.clearTimeout(timeout);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch, minAmount, maxAmount, dateRange?.from, dateRange?.to, statusFilter, tipoPagoFilter, categoriaFilter, monedaFilter, proveedorFilter, documentosFilter, sortField, sortDirection, pageSize]);
 
     // Fetch project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
 
-    // Fetch transactions for this specific project with details
-    const transacciones = useQuery(api.transacciones.getByProyectoWithDetails, proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip");
+    const transactionTotals = useQuery(
+        api.transacciones.getTotalsByProyecto,
+        proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+    );
+    const tableFilters = useMemo(() => {
+        if (!proyectoId) return null;
+        return {
+            proyecto_id: proyectoId as Id<"desarrollos">,
+            search: debouncedSearch.trim() || undefined,
+            minAmount: parseOptionalAmount(minAmount),
+            maxAmount: parseOptionalAmount(maxAmount),
+            dateFrom: dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+            dateTo: dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+            invoiceDateFrom: initialInvoiceFrom ? format(initialInvoiceFrom, "yyyy-MM-dd") : undefined,
+            invoiceDateTo: initialInvoiceTo ? format(initialInvoiceTo, "yyyy-MM-dd") : undefined,
+            status: statusFilter === "all" ? undefined : statusFilter,
+            tipoPago: tipoPagoFilter === "all" ? undefined : tipoPagoFilter,
+            categoria: categoriaFilter === "all" ? undefined : categoriaFilter,
+            moneda: monedaFilter === "all" ? undefined : monedaFilter,
+            proveedorId: proveedorFilter === "all" ? undefined : proveedorFilter,
+            missingDocuments: documentosFilter === "missing" ? true : undefined,
+        };
+    }, [
+        proyectoId,
+        debouncedSearch,
+        minAmount,
+        maxAmount,
+        dateRange?.from,
+        dateRange?.to,
+        initialInvoiceFrom,
+        initialInvoiceTo,
+        statusFilter,
+        tipoPagoFilter,
+        categoriaFilter,
+        monedaFilter,
+        proveedorFilter,
+        documentosFilter,
+    ]);
+
+    const transaccionesPage = useQuery(
+        api.transacciones.listTableByProyecto,
+        tableFilters
+            ? {
+                ...tableFilters,
+                page,
+                pageSize,
+                sortField,
+                sortDirection,
+            }
+            : "skip"
+    );
+    const filteredTransactionIds = useQuery(
+        api.transacciones.listTableIdsByProyecto,
+        selectFilteredPending && tableFilters ? tableFilters : "skip"
+    );
     const proveedores = useQuery(
         api.proveedores.getByProyectoWithStats,
         proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
@@ -117,83 +271,50 @@ export default function ProyectoTransaccionesTablePage() {
     const openConceptosModal = useTransactionConceptosModal((state) => state.onOpen);
     const openDocumentosModal = useTransactionDocumentosModal((state) => state.onOpen);
 
-    // Parse date from DD/MM/YYYY format to comparable value
-    const parseDateForSort = (dateStr: string): number => {
-        const parts = dateStr.split("/");
-        if (parts.length !== 3) return 0;
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        return new Date(year, month, day).getTime();
-    };
+    const transacciones = transaccionesPage?.items ?? [];
+    const matchedCount = transaccionesPage?.total ?? 0;
+    const currentPage = transaccionesPage?.page ?? page;
+    const currentPageSize = transaccionesPage?.pageSize ?? pageSize;
+    const totalPages = transaccionesPage?.totalPages ?? 1;
+    const missingProviderActive = proveedorFilter === "unassigned";
+    const missingDocumentsActive = documentosFilter === "missing";
+    const withoutProviderCount = transactionTotals?.withoutProvider ?? 0;
+    const withoutDocumentsCount = transactionTotals?.withoutDocuments ?? 0;
 
-    // Advanced filtering and sorting
-    const filteredTransacciones = useMemo(() => {
-        if (!transacciones) return [];
-        
-        const filtered = transacciones.filter((transaccion) => {
-            // Text search (factura, codigo_referencia, tipo_pago)
-            const searchLower = searchTerm.toLowerCase();
-            const matchesSearch = !searchTerm || 
-                transaccion.factura?.toLowerCase().includes(searchLower) ||
-                transaccion.codigo_referencia?.toLowerCase().includes(searchLower) ||
-                transaccion.tipo_pago?.toLowerCase().includes(searchLower) ||
-                transaccion.categoria?.toLowerCase().includes(searchLower) ||
-                transaccion.banco?.toLowerCase().includes(searchLower) ||
-                transaccion.proveedor?.razon_social.toLowerCase().includes(searchLower) ||
-                transaccion.costConcepts?.some((concepto) => concepto.toLowerCase().includes(searchLower)) ||
-                transaccion.invoiceAnalysisTerms?.some((concepto) => concepto.toLowerCase().includes(searchLower));
-            
-            // Amount range filter
-            const minAmt = minAmount ? parseFloat(minAmount) : null;
-            const maxAmt = maxAmount ? parseFloat(maxAmount) : null;
-            const matchesMinAmount = minAmt === null || transaccion.monto_total >= minAmt;
-            const matchesMaxAmount = maxAmt === null || transaccion.monto_total <= maxAmt;
-            
-            // Date range filter
-            const txDate = parseDateForSort(transaccion.fecha);
-            const startDateTs = dateRange?.from ? dateRange.from.getTime() : null;
-            const endDateTs = dateRange?.to ? dateRange.to.getTime() + 86400000 : null; // Add 1 day for inclusive end
-            const matchesStartDate = startDateTs === null || txDate >= startDateTs;
-            const matchesEndDate = endDateTs === null || txDate <= endDateTs;
-            
-            // Status filter
-            const matchesStatus = statusFilter === "all" || transaccion.status === statusFilter;
-            
-            // Tipo pago filter
-            const matchesTipoPago = tipoPagoFilter === "all" || transaccion.tipo_pago?.toLowerCase() === tipoPagoFilter.toLowerCase();
-            
-            // Categoria filter
-            const matchesCategoria = categoriaFilter === "all" || transaccion.categoria?.toLowerCase() === categoriaFilter.toLowerCase();
-            
-            // Moneda filter
-            const matchesMoneda = monedaFilter === "all" || transaccion.moneda === monedaFilter;
-            const matchesProveedor = proveedorFilter === "all" ||
-                (proveedorFilter === "unassigned" && !transaccion.proveedor_id) ||
-                transaccion.proveedor_id === proveedorFilter;
-            
-            return matchesSearch && matchesMinAmount && matchesMaxAmount && 
-                   matchesStartDate && matchesEndDate && matchesStatus && 
-                   matchesTipoPago && matchesCategoria && matchesMoneda && matchesProveedor;
-        });
-        
-        // Sort results
-        filtered.sort((a, b) => {
-            let comparison = 0;
-            if (sortField === "monto_total") {
-                comparison = a.monto_total - b.monto_total;
-            } else if (sortField === "fecha") {
-                comparison = parseDateForSort(a.fecha) - parseDateForSort(b.fecha);
-            }
-            return sortDirection === "asc" ? comparison : -comparison;
-        });
-        
-        return filtered;
-    }, [transacciones, searchTerm, minAmount, maxAmount, dateRange, statusFilter, tipoPagoFilter, categoriaFilter, monedaFilter, proveedorFilter, sortField, sortDirection]);
-    
+    const nextSelectionScopeKey = getSelectionScopeKey([
+        proyectoId,
+        debouncedSearch,
+        minAmount,
+        maxAmount,
+        dateRange?.from?.getTime(),
+        dateRange?.to?.getTime(),
+        initialInvoiceFrom?.getTime(),
+        initialInvoiceTo?.getTime(),
+        statusFilter,
+        tipoPagoFilter,
+        categoriaFilter,
+        monedaFilter,
+        proveedorFilter,
+        documentosFilter,
+    ]);
+    if (selectionScopeKey !== nextSelectionScopeKey) {
+        setSelectionScopeKey(nextSelectionScopeKey);
+        setSelectedTransactionIds(new Set());
+        setSelectFilteredPending(false);
+        setBulkAssignOpen(false);
+        setBulkAssignConfirmOpen(false);
+    }
+
+    useEffect(() => {
+        if (!selectFilteredPending || filteredTransactionIds === undefined) return;
+        setSelectedTransactionIds(new Set(filteredTransactionIds));
+        setSelectFilteredPending(false);
+    }, [selectFilteredPending, filteredTransactionIds]);
+
     // Clear all filters
     const clearFilters = () => {
         setSearchTerm("");
+        setDebouncedSearch("");
         setMinAmount("");
         setMaxAmount("");
         setDateRange(undefined);
@@ -202,8 +323,10 @@ export default function ProyectoTransaccionesTablePage() {
         setCategoriaFilter("all");
         setMonedaFilter("all");
         setProveedorFilter("all");
+        setDocumentosFilter("all");
         setSortField("fecha");
         setSortDirection("desc");
+        setPage(1);
         setSearchParams({});
     };
     
@@ -218,8 +341,34 @@ export default function ProyectoTransaccionesTablePage() {
     };
     
     // Check if any filter is active
-    const hasActiveFilters = searchTerm || minAmount || maxAmount || dateRange?.from || dateRange?.to || 
-        statusFilter !== "all" || tipoPagoFilter !== "all" || categoriaFilter !== "all" || monedaFilter !== "all" || proveedorFilter !== "all";
+    const hasActiveFilters = Boolean(
+        searchTerm || minAmount || maxAmount || dateRange?.from || dateRange?.to ||
+        initialInvoiceFrom || initialInvoiceTo ||
+        statusFilter !== "all" || tipoPagoFilter !== "all" || categoriaFilter !== "all" ||
+        monedaFilter !== "all" || proveedorFilter !== "all" || documentosFilter !== "all"
+    );
+
+    const toggleMissingProviderFilter = () => {
+        const next = missingProviderActive ? "all" : "unassigned";
+        setProveedorFilter(next);
+        setSearchParams((prev) => {
+            const params = new URLSearchParams(prev);
+            if (next === "unassigned") params.set("proveedor", "unassigned");
+            else if (params.get("proveedor") === "unassigned") params.delete("proveedor");
+            return params;
+        }, { replace: true });
+    };
+
+    const toggleMissingDocumentsFilter = () => {
+        const next = missingDocumentsActive ? "all" : "missing";
+        setDocumentosFilter(next);
+        setSearchParams((prev) => {
+            const params = new URLSearchParams(prev);
+            if (next === "missing") params.set("documentos", "sin");
+            else params.delete("documentos");
+            return params;
+        }, { replace: true });
+    };
 
 
     const formatCurrency = (amount: number) => {
@@ -232,10 +381,12 @@ export default function ProyectoTransaccionesTablePage() {
     };
 
     const handleDelete = async () => {
-        if (!transactionToDelete) return;
+        if (!transactionToDelete || isDeletingRef.current) return;
 
+        isDeletingRef.current = true;
+        setIsDeleting(true);
         try {
-            await deleteTransaction({ id: transactionToDelete });
+            await deleteTransaction({ id: transactionToDelete.id });
             toast.success("Transacción eliminada", {
                 description: "La transacción y sus conceptos han sido eliminados exitosamente.",
             });
@@ -246,11 +397,26 @@ export default function ProyectoTransaccionesTablePage() {
             toast.error("Error al eliminar", {
                 description: error instanceof Error ? error.message : "No se pudo eliminar la transacción.",
             });
+        } finally {
+            isDeletingRef.current = false;
+            setIsDeleting(false);
         }
     };
 
-    const openDeleteDialog = (transactionId: Id<"transacciones">) => {
-        setTransactionToDelete(transactionId);
+    const openDeleteDialog = (transaccion: {
+        _id: Id<"transacciones">;
+        factura?: string;
+        monto_total: number;
+        moneda?: string;
+        proveedor?: { razon_social: string } | null;
+    }) => {
+        setTransactionToDelete({
+            id: transaccion._id,
+            factura: transaccion.factura,
+            montoTotal: transaccion.monto_total,
+            moneda: transaccion.moneda,
+            proveedorNombre: transaccion.proveedor?.razon_social || "Sin proveedor",
+        });
         setDeleteDialogOpen(true);
     };
 
@@ -263,10 +429,22 @@ export default function ProyectoTransaccionesTablePage() {
         });
     };
 
-    const visibleTransactionIds = filteredTransacciones.map((transaction) => transaction._id);
+    const visibleTransactionIds = transacciones.map((transaction) => transaction._id);
+    const visibleSelectedCount = visibleTransactionIds.filter((id) => selectedTransactionIds.has(id)).length;
+    const hiddenSelectedCount = selectedTransactionIds.size - visibleSelectedCount;
     const allVisibleSelected = visibleTransactionIds.length > 0 &&
         visibleTransactionIds.every((id) => selectedTransactionIds.has(id));
+    const tableColSpan = 7 + extraColumns.visibleCount;
+    const allFilteredSelected = hasActiveFilters && matchedCount > 0 && selectedTransactionIds.size === matchedCount;
+    const showSelectAllFiltered = hasActiveFilters &&
+        allVisibleSelected &&
+        !allFilteredSelected &&
+        matchedCount > visibleTransactionIds.length;
     const toggleAllVisible = (checked: boolean) => {
+        if (!checked && allFilteredSelected) {
+            setSelectedTransactionIds(new Set());
+            return;
+        }
         setSelectedTransactionIds((current) => {
             const next = new Set(current);
             for (const id of visibleTransactionIds) {
@@ -275,6 +453,14 @@ export default function ProyectoTransaccionesTablePage() {
             }
             return next;
         });
+    };
+
+    const handleBulkAssignClick = () => {
+        if (hiddenSelectedCount > 0) {
+            setBulkAssignConfirmOpen(true);
+            return;
+        }
+        setBulkAssignOpen(true);
     };
 
     const handleSync = async () => {
@@ -333,15 +519,15 @@ export default function ProyectoTransaccionesTablePage() {
 
 
     return (
-        <div className="bg-card min-h-screen">
-            <div className="max-w-full mx-auto py-8 text-left">
-                <div className="flex flex-col gap-4 px-12">
-                    <div className="mb-8 flex items-start justify-between">
-                        <div>
+        <div className="flex h-[calc(100dvh-2.5rem)] flex-col bg-card">
+            <div className="max-w-full mx-auto flex min-h-0 w-full flex-1 flex-col text-left">
+                <div className="flex shrink-0 flex-col gap-4 px-4 pt-6 sm:px-6 lg:px-8">
+                    <div className="mb-2 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="min-w-0">
                             <p className="text-sm text-subtle-foreground mb-1">Transacciones</p>
-                            <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
+                            <h1 className="break-words text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <InvoiceBackfillDialog projectId={proyectoId as Id<"desarrollos">} />
                             <Button
                                 onClick={() => uploadProjectTransactionsModal.onOpen(proyectoId as Id<"desarrollos">, proyecto.nombre)}
@@ -364,57 +550,89 @@ export default function ProyectoTransaccionesTablePage() {
                             </Button>
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
-                                    Total: {transacciones?.length || 0}
+                                    Total: {transactionTotals?.count ?? 0}
                                 </span>
                             </Badge>
-                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted  ">
+                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
-                                    Monto total: {formatCurrency(
-                                        transacciones?.reduce((sum, t) => sum + t.monto_total, 0) || 0
-                                    )}
+                                    Monto total: {formatCurrency(transactionTotals?.amount ?? 0)}
                                 </span>
                             </Badge>
                         </div>
                     </div>
 
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-subtle-foreground">Pendientes</span>
+                        <button
+                            type="button"
+                            aria-pressed={missingProviderActive}
+                            onClick={toggleMissingProviderFilter}
+                            disabled={!missingProviderActive && withoutProviderCount === 0 && transactionTotals != null}
+                            className={pendingChipClass(missingProviderActive)}
+                        >
+                            <UserCog className="h-4 w-4" />
+                            <span className="font-medium">{transactionTotals ? withoutProviderCount : "—"}</span>
+                            sin proveedor
+                        </button>
+                        <button
+                            type="button"
+                            aria-pressed={missingDocumentsActive}
+                            onClick={toggleMissingDocumentsFilter}
+                            disabled={!missingDocumentsActive && withoutDocumentsCount === 0 && transactionTotals != null}
+                            className={pendingChipClass(missingDocumentsActive)}
+                        >
+                            <Files className="h-4 w-4" />
+                            <span className="font-medium">{transactionTotals ? withoutDocumentsCount : "—"}</span>
+                            sin documentos
+                        </button>
+                    </div>
+
                     {/* Search Bar */}
-                    <div className="mb-4 relative">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
-                        <Input
-                            type="text"
-                            placeholder="Buscar por factura, código, tipo de pago, categoría, banco..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-12 pr-24 rounded-none border-border-strong h-12"
-                        />
-                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
-                            {hasActiveFilters && (
+                    <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <div className="relative min-w-0 flex-1">
+                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
+                            <Input
+                                type="text"
+                                placeholder="Buscar por factura, código, tipo de pago, categoría, banco..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-12 pr-24 rounded-none border-border-strong h-12"
+                            />
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
+                                {hasActiveFilters && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={clearFilters}
+                                        className="h-8 px-2 text-subtle-foreground hover:text-foreground"
+                                    >
+                                        <X className="h-4 w-4 mr-1" />
+                                        Limpiar
+                                    </Button>
+                                )}
                                 <Button
-                                    variant="ghost"
+                                    variant={showFilters ? "default" : "outline"}
                                     size="sm"
-                                    onClick={clearFilters}
-                                    className="h-8 px-2 text-subtle-foreground hover:text-foreground"
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className="h-8 rounded-none"
                                 >
-                                    <X className="h-4 w-4 mr-1" />
-                                    Limpiar
+                                    <Filter className="h-4 w-4 mr-1" />
+                                    Filtros
                                 </Button>
-                            )}
-                            <Button
-                                variant={showFilters ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="h-8 rounded-none"
-                            >
-                                <Filter className="h-4 w-4 mr-1" />
-                                Filtros
-                            </Button>
+                            </div>
                         </div>
+                        <TableColumnPicker
+                            columns={EXTRA_COLUMNS}
+                            isVisible={extraColumns.isVisible}
+                            onToggle={extraColumns.toggle}
+                            className="h-12"
+                        />
                     </div>
                     
                     {/* Advanced Filters Panel */}
                     {showFilters && (
                         <div className="mb-6 p-4 border border-border bg-background space-y-4">
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                                 {/* Amount Range */}
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-foreground">Monto mínimo</label>
@@ -438,7 +656,7 @@ export default function ProyectoTransaccionesTablePage() {
                                 </div>
                                 
                                 {/* Date Range */}
-                                <div className="space-y-2 col-span-2">
+                                <div className="space-y-2 sm:col-span-2">
                                     <label className="text-sm font-medium text-foreground">Rango de fechas</label>
                                     <Popover>
                                         <PopoverTrigger asChild>
@@ -473,7 +691,7 @@ export default function ProyectoTransaccionesTablePage() {
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                                 {/* Status Filter */}
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-foreground">Estado</label>
@@ -539,22 +757,39 @@ export default function ProyectoTransaccionesTablePage() {
                                 </div>
                             </div>
 
-                            <div className="max-w-sm space-y-2">
-                                <label className="text-sm font-medium text-foreground">Proveedor</label>
-                                <Select value={proveedorFilter} onValueChange={setProveedorFilter}>
-                                    <SelectTrigger className="rounded-none h-10">
-                                        <SelectValue placeholder="Todos los proveedores" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todos los proveedores</SelectItem>
-                                        <SelectItem value="unassigned">Sin proveedor</SelectItem>
-                                        {proveedores?.map((provider) => (
-                                            <SelectItem key={provider._id} value={provider._id}>
-                                                {provider.razon_social}{provider.is_archived ? " (Archivado)" : ""}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                            <div className="grid grid-cols-2 gap-4 max-w-2xl">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-foreground">Proveedor</label>
+                                    <Select value={proveedorFilter} onValueChange={setProveedorFilter}>
+                                        <SelectTrigger className="rounded-none h-10">
+                                            <SelectValue placeholder="Todos los proveedores" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Todos los proveedores</SelectItem>
+                                            <SelectItem value="unassigned">Sin proveedor</SelectItem>
+                                            {proveedores?.map((provider) => (
+                                                <SelectItem key={provider._id} value={provider._id}>
+                                                    {provider.razon_social}{provider.is_archived ? " (Archivado)" : ""}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-foreground">Documentos</label>
+                                    <Select
+                                        value={documentosFilter}
+                                        onValueChange={(value) => setDocumentosFilter(value as "all" | "missing")}
+                                    >
+                                        <SelectTrigger className="rounded-none h-10">
+                                            <SelectValue placeholder="Todos" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Todos</SelectItem>
+                                            <SelectItem value="missing">Sin documentos</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                             
                             {/* Sort Controls */}
@@ -583,21 +818,55 @@ export default function ProyectoTransaccionesTablePage() {
                                     )}
                                 </Button>
                                 <span className="text-sm text-subtle-foreground ml-auto">
-                                    {filteredTransacciones.length} de {transacciones?.length || 0} transacciones
+                                    {matchedCount} de {transactionTotals?.count ?? 0} transacciones
+                                    {hasActiveFilters && transaccionesPage ? ` · ${formatCurrency(transaccionesPage.matchedAmount)}` : ""}
                                 </span>
                             </div>
                         </div>
                     )}
                     {selectedTransactionIds.size > 0 && (
-                        <div className="mb-4 flex items-center justify-between border bg-background px-4 py-3">
-                            <span className="text-sm text-muted-foreground">
-                                {selectedTransactionIds.size} transacciones seleccionadas
-                            </span>
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border bg-background px-4 py-3">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-sm text-muted-foreground">
+                                    {allFilteredSelected
+                                        ? `${selectedTransactionIds.size} transacciones de este filtro seleccionadas`
+                                        : `${selectedTransactionIds.size} transacción${selectedTransactionIds.size === 1 ? "" : "es"} seleccionada${selectedTransactionIds.size === 1 ? "" : "s"}`}
+                                    {hiddenSelectedCount > 0
+                                        ? ` · ${hiddenSelectedCount} selección${hiddenSelectedCount === 1 ? "" : "es"} oculta${hiddenSelectedCount === 1 ? "" : "s"}`
+                                        : ""}
+                                </span>
+                                {hiddenSelectedCount > 0 && (
+                                    <span className="text-xs text-subtle-foreground">
+                                        {hiddenSelectedCount === 1
+                                            ? "No está visible en esta página. Al asignar proveedor también se incluirá ese registro."
+                                            : "No están visibles en esta página. Al asignar proveedor también se incluirán esos registros."}
+                                    </span>
+                                )}
+                                {showSelectAllFiltered && (
+                                    <button
+                                        type="button"
+                                        className="text-left text-sm font-medium text-foreground underline-offset-4 hover:underline disabled:opacity-60"
+                                        onClick={() => setSelectFilteredPending(true)}
+                                        disabled={selectFilteredPending}
+                                    >
+                                        {selectFilteredPending
+                                            ? "Seleccionando resultados filtrados..."
+                                            : `Seleccionar las ${matchedCount} de este filtro`}
+                                    </button>
+                                )}
+                            </div>
                             <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => setSelectedTransactionIds(new Set())}>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setSelectedTransactionIds(new Set());
+                                        setBulkAssignConfirmOpen(false);
+                                    }}
+                                >
                                     Limpiar
                                 </Button>
-                                <Button size="sm" onClick={() => setBulkAssignOpen(true)}>
+                                <Button size="sm" onClick={handleBulkAssignClick}>
                                     Asignar proveedor
                                 </Button>
                             </div>
@@ -606,95 +875,123 @@ export default function ProyectoTransaccionesTablePage() {
                 </div>
 
                 {/* Table */}
-                <div className="border border-border rounded-none">
-                    <table className="w-full">
-                        <thead className="border-b border-border">
+                <div className="min-h-0 flex-1 overflow-auto border-y border-border">
+                    <table
+                        className={cn(
+                            "w-full border-separate border-spacing-0",
+                            extraColumns.visibleCount > 0 ? "min-w-[80rem]" : "min-w-[56rem]",
+                        )}
+                    >
+                        <thead className="sticky top-0 z-20 bg-card">
                             <tr>
-                                <th className="px-4 py-4 text-center border-r border-border">
+                                <th className="sticky left-0 z-30 w-12 min-w-12 bg-card px-4 py-4 text-center border-b border-r border-border">
                                     <Checkbox
-                                        aria-label="Seleccionar transacciones visibles"
+                                        aria-label={allFilteredSelected ? "Quitar selección de este filtro" : "Seleccionar transacciones visibles"}
                                         checked={allVisibleSelected}
                                         onCheckedChange={(checked) => toggleAllVisible(checked === true)}
                                     />
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-r border-border">
+                                <th className="sticky left-12 z-30 min-w-56 w-56 bg-card px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
                                     Factura
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-r border-border">
-                                    Proveedor
+                                <th className="min-w-44 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                    <span className="inline-flex items-center">
+                                        Proveedor
+                                        {withoutProviderCount > 0 && (
+                                            <button
+                                                type="button"
+                                                title="Filtrar sin proveedor"
+                                                aria-pressed={missingProviderActive}
+                                                onClick={toggleMissingProviderFilter}
+                                                className={pendingHeaderCountClass(missingProviderActive)}
+                                            >
+                                                {withoutProviderCount}
+                                            </button>
+                                        )}
+                                    </span>
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-r border-border">
+                                <th className="min-w-32 whitespace-nowrap px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
                                     Monto Total
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-r border-border">
+                                <th className="min-w-28 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
                                     Fecha
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-r border-border">
-                                    Tipo de Pago
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-r border-border">
+                                {extraColumns.isVisible("tipoPago") && (
+                                    <th className="min-w-32 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                        Tipo de Pago
+                                    </th>
+                                )}
+                                <th className="min-w-28 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
                                     Status
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-r border-border">
-                                    Moneda
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-r border-border">
-                                    Docs
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-normal text-subtle-foreground"></th>
+                                {extraColumns.isVisible("moneda") && (
+                                    <th className="min-w-24 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                        Moneda
+                                    </th>
+                                )}
+                                {extraColumns.isVisible("documentos") && (
+                                    <th className="min-w-32 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                        <span className="inline-flex items-center">
+                                            Documentos
+                                            {withoutDocumentsCount > 0 && (
+                                                <button
+                                                    type="button"
+                                                    title="Filtrar sin documentos"
+                                                    aria-pressed={missingDocumentsActive}
+                                                    onClick={toggleMissingDocumentsFilter}
+                                                    className={pendingHeaderCountClass(missingDocumentsActive)}
+                                                >
+                                                    {withoutDocumentsCount}
+                                                </button>
+                                            )}
+                                        </span>
+                                    </th>
+                                )}
+                                <th className="w-14 min-w-14 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-border"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border">
-                            {!transacciones ? (
+                        <tbody>
+                            {!transaccionesPage ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
-                            ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
+                            ) : transacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
                             ) : (
-                                filteredTransacciones?.map((transaccion) => (
+                                transacciones.map((transaccion) => (
                                     <tr
                                         key={transaccion._id}
-                                        className="hover:bg-background transition-colors"
+                                        className="group hover:bg-background transition-colors"
                                     >
-                                        <td className="px-4 py-4 text-center border-r border-border">
+                                        <td className="sticky left-0 z-10 w-12 min-w-12 bg-card px-4 py-4 text-center border-b border-r border-border group-hover:bg-background">
                                             <Checkbox
                                                 aria-label={`Seleccionar transacción ${transaccion.factura || transaccion._id}`}
                                                 checked={selectedTransactionIds.has(transaccion._id)}
                                                 onCheckedChange={(checked) => toggleSelectedTransaction(transaccion._id, checked === true)}
                                             />
                                         </td>
-                                        {/* Factura */}
-                                        <td className="px-6 py-4 border-r border-border">
-                                            <div className="flex items-start gap-2">
+                                        <td className="sticky left-12 z-10 min-w-56 w-56 bg-card px-6 py-4 border-b border-r border-border group-hover:bg-background">
+                                            <div className="flex min-w-0 items-start gap-2">
                                                 <FileText className="h-4 w-4 text-disabled-foreground mt-0.5 flex-shrink-0" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm text-foreground font-medium">
+                                                <div className="min-w-0">
+                                                    <span className="block truncate text-sm text-foreground font-medium">
                                                         {transaccion.factura || "-"}
                                                     </span>
                                                     {transaccion.fecha && (
-                                                        <span className="text-xs text-disabled-foreground">
-                                                            Fecha registrada: {(() => {
-                                                                const parts = transaccion.fecha.split("/");
-                                                                if (parts.length === 3) {
-                                                                    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-                                                                    return `${parts[0]} de ${months[parseInt(parts[1], 10) - 1]} de ${parts[2]}`;
-                                                                }
-                                                                return transaccion.fecha;
-                                                            })()}
+                                                        <span className="block truncate text-xs text-disabled-foreground">
+                                                            {formatTransactionDate(transaccion.fecha)}
                                                         </span>
                                                     )}
                                                 </div>
                                             </div>
                                         </td>
-                                        {/* Proveedor */}
-                                        <td className="px-6 py-4 border-r border-border">
+                                        <td className="px-6 py-4 border-b border-r border-border">
                                             <button
                                                 type="button"
                                                 className="text-left"
@@ -703,7 +1000,7 @@ export default function ProyectoTransaccionesTablePage() {
                                                     proveedorId: transaccion.proveedor_id,
                                                 })}
                                             >
-                                                <span className="block text-sm font-medium text-foreground">
+                                                <span className="block truncate text-sm font-medium text-foreground">
                                                     {transaccion.proveedor?.razon_social || "Sin proveedor"}
                                                 </span>
                                                 {transaccion.proveedor && (
@@ -717,37 +1014,40 @@ export default function ProyectoTransaccionesTablePage() {
                                                 )}
                                             </button>
                                         </td>
-                                        {/* Monto Total */}
-                                        <td className="px-6 py-4 text-sm text-foreground border-r border-border">
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground border-b border-r border-border">
                                             {formatCurrency(transaccion.monto_total)} {transaccion.moneda || "MXN"}
                                         </td>
-                                        {/* Fecha */}
-                                        <td className="px-6 py-4 text-sm text-foreground border-r border-border">
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground border-b border-r border-border">
                                             {transaccion.fecha ? formatTransactionDate(transaccion.fecha) : "-"}
                                         </td>
-                                        {/* Tipo de Pago */}
-                                        <td className="px-6 py-4 text-sm text-foreground uppercase border-r border-border">
-                                            {transaccion.tipo_pago || "-"}
-                                        </td>
-                                        {/* Status */}
-                                        <td className="px-6 py-4 border-r border-border">
+                                        {extraColumns.isVisible("tipoPago") && (
+                                            <td className="px-6 py-4 text-sm text-foreground uppercase border-b border-r border-border">
+                                                {transaccion.tipo_pago || "-"}
+                                            </td>
+                                        )}
+                                        <td className="px-6 py-4 border-b border-r border-border">
                                             <span className={`text-sm font-medium uppercase ${
-                                                transaccion.status === "Pagado" ? "text-green-600" : 
+                                                transaccion.status === "Pagado" ? "text-green-600" :
                                                 transaccion.status === "Por pagar" ? "text-orange-600" : "text-muted-foreground"
                                             }`}>
                                                 {transaccion.status || "-"}
                                             </span>
                                         </td>
-                                        {/* Moneda */}
-                                        <td className="px-6 py-4 text-sm text-foreground border-r border-border">
-                                            {transaccion.moneda || "MXN"}
-                                        </td>
-                                        {/* Docs */}
-                                        <td className="px-6 py-4 text-sm text-foreground border-r border-border">
-                                            {transaccion.documentsCount ?? 0}
-                                        </td>
-                                        {/* Actions */}
-                                        <td className="px-6 py-4">
+                                        {extraColumns.isVisible("moneda") && (
+                                            <td className="px-6 py-4 text-sm text-foreground border-b border-r border-border">
+                                                {transaccion.moneda || "MXN"}
+                                            </td>
+                                        )}
+                                        {extraColumns.isVisible("documentos") && (
+                                            <td className="px-6 py-4 text-sm border-b border-r border-border">
+                                                {(transaccion.documentsCount ?? 0) > 0 ? (
+                                                    transaccion.documentsCount
+                                                ) : (
+                                                    <span className="text-subtle-foreground">Sin docs</span>
+                                                )}
+                                            </td>
+                                        )}
+                                        <td className="px-6 py-4 border-b border-border">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button
@@ -782,7 +1082,7 @@ export default function ProyectoTransaccionesTablePage() {
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem
                                                         className="text-red-600 focus:text-red-700"
-                                                        onClick={() => openDeleteDialog(transaccion._id)}
+                                                        onClick={() => openDeleteDialog(transaccion)}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                         Eliminar
@@ -796,26 +1096,148 @@ export default function ProyectoTransaccionesTablePage() {
                         </tbody>
                     </table>
                 </div>
+                {transaccionesPage && (
+                    <div className="flex shrink-0 flex-col gap-3 px-4 py-4 text-sm text-subtle-foreground sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span>
+                                {matchedCount === 0
+                                    ? "Sin transacciones"
+                                    : `Mostrando ${(currentPage - 1) * currentPageSize + 1}-${Math.min(currentPage * currentPageSize, matchedCount)} de ${matchedCount} transacciones`}
+                            </span>
+                            <Select
+                                value={String(pageSize)}
+                                onValueChange={(value) => setPageSize(Number(value))}
+                            >
+                                <SelectTrigger className="h-9 w-40 rounded-none">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {PAGE_SIZE_OPTIONS.map((size) => (
+                                        <SelectItem key={size} value={String(size)}>
+                                            {size} por página
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-none"
+                                    aria-label="Página anterior"
+                                    onClick={() => setPage(currentPage - 1)}
+                                    disabled={currentPage <= 1}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                {getPaginationPages(currentPage, totalPages).map((item, index) =>
+                                    item === "ellipsis" ? (
+                                        <span key={`ellipsis-${index}`} className="px-2 text-disabled-foreground">
+                                            ...
+                                        </span>
+                                    ) : (
+                                        <Button
+                                            key={item}
+                                            type="button"
+                                            variant={item === currentPage ? "default" : "ghost"}
+                                            className="h-9 w-9 rounded-none px-0"
+                                            onClick={() => setPage(item)}
+                                        >
+                                            {item}
+                                        </Button>
+                                    )
+                                )}
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-none"
+                                    aria-label="Página siguiente"
+                                    onClick={() => setPage(currentPage + 1)}
+                                    disabled={currentPage >= totalPages}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
 
             {/* Delete Confirmation Dialog */}
-            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialog
+                open={deleteDialogOpen}
+                onOpenChange={(open) => {
+                    if (isDeleting) return;
+                    setDeleteDialogOpen(open);
+                    if (!open) setTransactionToDelete(null);
+                }}
+            >
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Se eliminará la transacción, todos sus conceptos (line items)
-                            y documentos asociados de forma permanente.
+                            {transactionToDelete && (
+                                <span className="mb-3 block space-y-1 font-medium text-foreground">
+                                    <span className="block">
+                                        Factura: {transactionToDelete.factura || "Sin factura"}
+                                    </span>
+                                    <span className="block">
+                                        Monto: {formatCurrency(transactionToDelete.montoTotal)} {transactionToDelete.moneda || "MXN"}
+                                    </span>
+                                    <span className="block">
+                                        Proveedor: {transactionToDelete.proveedorNombre}
+                                    </span>
+                                </span>
+                            )}
+                            Esta acción no se puede deshacer. Se eliminará la transacción, todos sus conceptos y documentos asociados de forma permanente.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(event) => {
+                                event.preventDefault();
+                                void handleDelete();
+                            }}
+                            disabled={isDeleting}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Eliminando...
+                                </>
+                            ) : (
+                                "Eliminar"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog open={bulkAssignConfirmOpen} onOpenChange={setBulkAssignConfirmOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hay selecciones ocultas</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {hiddenSelectedCount === 1
+                                ? `1 selección no está visible en esta página. Si continúas, el proveedor se asignará a ${selectedTransactionIds.size} transacción${selectedTransactionIds.size === 1 ? "" : "es"}, incluida la que no ves.`
+                                : `${hiddenSelectedCount} selecciones no están visibles en esta página. Si continúas, el proveedor se asignará a ${selectedTransactionIds.size} transacciones, incluidas las que no ves.`}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
-                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => {
+                                setBulkAssignConfirmOpen(false);
+                                setBulkAssignOpen(true);
+                            }}
                         >
-                            Eliminar
+                            Continuar
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

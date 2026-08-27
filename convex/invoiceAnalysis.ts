@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import {
   internalMutation,
   internalQuery,
@@ -18,10 +19,15 @@ import {
   INVOICE_CATEGORY_SEEDS,
   INVOICE_TAXONOMY_VERSION,
   INVOICE_UNRESOLVED_CODE,
+  buildInvoiceReconciliation,
+  invoiceDocumentPairKey,
+  invoiceAllocationValidationError,
+  isCurrentInvoiceRunState,
   normalizeInvoiceCurrency,
   normalizeInvoiceText,
   normalizeInvoiceUuid,
 } from "./invoiceRules";
+import { markInvoicesStaleForCategory } from "./invoiceIntegrity";
 
 const MAX_XML_SIZE = 5 * 1024 * 1024;
 const MAX_PDF_SIZE = 20 * 1024 * 1024;
@@ -59,18 +65,29 @@ async function ensureCategories(ctx: MutationCtx, organizationId?: string) {
   const byCode = new Map(current.map((category) => [category.code, category]));
   const now = Date.now();
   for (const seed of INVOICE_CATEGORY_SEEDS) {
-    if (byCode.has(seed.code)) continue;
-    await ctx.db.insert("invoice_cost_categories", {
-      organization_id: organizationId,
-      code: seed.code,
-      label: seed.label,
-      parent_code: seed.parent_code,
-      aliases: seed.aliases,
-      active: true,
-      version: INVOICE_TAXONOMY_VERSION,
-      created_at: now,
-      updated_at: now,
-    });
+    const existing = byCode.get(seed.code);
+    if (!existing) {
+      await ctx.db.insert("invoice_cost_categories", {
+        organization_id: organizationId,
+        code: seed.code,
+        label: seed.label,
+        parent_code: seed.parent_code,
+        aliases: seed.aliases,
+        active: true,
+        version: INVOICE_TAXONOMY_VERSION,
+        created_at: now,
+        updated_at: now,
+      });
+    } else if (existing.version < INVOICE_TAXONOMY_VERSION) {
+      await markInvoicesStaleForCategory(ctx, existing._id);
+      await ctx.db.patch(existing._id, {
+        label: seed.label,
+        parent_code: seed.parent_code,
+        aliases: seed.aliases,
+        version: INVOICE_TAXONOMY_VERSION,
+        updated_at: now,
+      });
+    }
   }
 }
 
@@ -94,6 +111,9 @@ export const startInvoiceAnalysis = mutation({
     }
     if (args.transaction_ids.length < 1 || args.transaction_ids.length > 10) {
       throw new Error("Selecciona entre una y diez transacciones relacionadas.");
+    }
+    if (new Set(args.transaction_ids.map(String)).size !== args.transaction_ids.length) {
+      throw new Error("No se permiten transacciones repetidas.");
     }
     const previous = await ctx.db
       .query("invoice_analysis_runs")
@@ -140,18 +160,15 @@ export const startInvoiceAnalysis = mutation({
     }
     const existingInvoiceId = linkedInvoiceIds[0];
     let invoiceId = existingInvoiceId;
+    let existingInvoice: Doc<"invoice_records"> | null = null;
     if (invoiceId) {
-      const existing = await ctx.db.get(invoiceId);
-      if (!existing || existing.proyecto !== args.project_id) {
+      existingInvoice = await ctx.db.get(invoiceId);
+      if (!existingInvoice || existingInvoice.proyecto !== args.project_id) {
         throw new Error("El vínculo de factura existente no es válido.");
       }
-      await ctx.db.patch(invoiceId, {
-        source_document_ids: args.document_ids,
-        source_transaction_ids: args.transaction_ids,
-        primary_transaction_id: args.transaction_ids[0],
-        status: "queued",
-        updated_at: now,
-      });
+      if (["queued", "extracting", "review_required"].includes(existingInvoice.status)) {
+        throw new Error("Esta factura ya tiene un análisis activo o pendiente de revisión.");
+      }
     } else {
       invoiceId = await ctx.db.insert("invoice_records", {
         organization_id: project.organization_id || reviewer.organization_id,
@@ -168,9 +185,6 @@ export const startInvoiceAnalysis = mutation({
         updated_at: now,
       });
     }
-    for (const documentId of args.document_ids) {
-      await ctx.db.patch(documentId, { invoice_id: invoiceId });
-    }
 
     const runId = await ctx.db.insert("invoice_analysis_runs", {
       invoice_id: invoiceId,
@@ -182,6 +196,50 @@ export const startInvoiceAnalysis = mutation({
       warnings: [],
       created_at: now,
     });
+    if (existingInvoice) {
+      const previousRuns = await ctx.db
+        .query("invoice_analysis_runs")
+        .withIndex("by_invoice_created", (q) => q.eq("invoice_id", existingInvoice!._id))
+        .collect();
+      for (const previousRun of previousRuns) {
+        if (previousRun._id === runId || !["queued", "extracting", "review_required"].includes(previousRun.status)) continue;
+        await ctx.db.patch(previousRun._id, {
+          status: "stale",
+          completed_at: previousRun.completed_at || now,
+        });
+      }
+      const nextDocumentIds = new Set(args.document_ids.map(String));
+      for (const previousDocumentId of existingInvoice.source_document_ids) {
+        if (nextDocumentIds.has(String(previousDocumentId))) continue;
+        const previousDocument = await ctx.db.get(previousDocumentId);
+        if (previousDocument?.invoice_id === existingInvoice._id) {
+          await ctx.db.patch(previousDocument._id, { invoice_id: undefined });
+        }
+      }
+      await ctx.db.patch(existingInvoice._id, {
+        source_document_ids: args.document_ids,
+        source_transaction_ids: args.transaction_ids,
+        primary_transaction_id: args.transaction_ids[0],
+        provider_id: transactions[0]?.proveedor_id,
+        source_kind: sourceKind,
+        status: "queued",
+        active_run_id: runId,
+        approved_category_ids: undefined,
+        reconciliation_status: undefined,
+        reconciliation_exception_codes: undefined,
+        approved_by: undefined,
+        approved_at: undefined,
+        rejected_by: undefined,
+        rejected_at: undefined,
+        revision: existingInvoice.revision + 1,
+        updated_at: now,
+      });
+    } else {
+      await ctx.db.patch(invoiceId, { active_run_id: runId });
+    }
+    for (const documentId of args.document_ids) {
+      await ctx.db.patch(documentId, { invoice_id: invoiceId });
+    }
     await ctx.scheduler.runAfter(0, internal.invoiceProcessing.processInvoiceRun, {
       run_id: runId,
     });
@@ -190,17 +248,30 @@ export const startInvoiceAnalysis = mutation({
 });
 
 export const getByTransaction = query({
-  args: { transaction_id: v.id("transacciones") },
+  args: {
+    transaction_id: v.id("transacciones"),
+    invoice_id: v.optional(v.id("invoice_records")),
+  },
   handler: async (ctx, args) => {
     const transaction = await ctx.db.get(args.transaction_id);
     if (!transaction) return null;
     const { project, reviewer } = await assertReviewerProject(ctx, transaction.proyecto);
-    let invoice = await ctx.db
-      .query("invoice_records")
-      .withIndex("by_transaction", (q) => q.eq("primary_transaction_id", args.transaction_id))
-      .order("desc")
-      .first();
-    if (!invoice) {
+    let invoice = args.invoice_id ? await ctx.db.get(args.invoice_id) : null;
+    if (args.invoice_id && !invoice) throw new Error("Factura no encontrada.");
+    if (invoice && (
+      invoice.proyecto !== transaction.proyecto ||
+      !invoice.source_transaction_ids.some((transactionId) => transactionId === args.transaction_id)
+    )) {
+      throw new Error("La factura solicitada no pertenece a esta transacción.");
+    }
+    if (!invoice && !args.invoice_id) {
+      invoice = await ctx.db
+        .query("invoice_records")
+        .withIndex("by_transaction", (q) => q.eq("primary_transaction_id", args.transaction_id))
+        .order("desc")
+        .first();
+    }
+    if (!invoice && !args.invoice_id) {
       const allocation = await ctx.db
         .query("invoice_allocations")
         .withIndex("by_transaction", (q) => q.eq("transaction_id", args.transaction_id))
@@ -214,22 +285,22 @@ export const getByTransaction = query({
         q.eq("organization_id", invoice?.organization_id || project.organization_id || reviewer.organization_id).eq("active", true))
       .collect();
     if (!invoice) return { invoice: null, run: null, items: [], allocations: [], categories };
-    const runs = await ctx.db
-      .query("invoice_analysis_runs")
-      .withIndex("by_invoice_created", (q) => q.eq("invoice_id", invoice._id))
-      .order("desc")
-      .take(10);
     const run = invoice.active_run_id
-      ? runs.find((candidate) => candidate._id === invoice.active_run_id) || runs[0]
-      : runs[0];
-    const [items, allocations, history] = run
+      ? await ctx.db.get(invoice.active_run_id)
+      : await ctx.db
+          .query("invoice_analysis_runs")
+          .withIndex("by_invoice_created", (q) => q.eq("invoice_id", invoice._id))
+          .order("desc")
+          .first();
+    const currentRun = run?.invoice_id === invoice._id ? run : null;
+    const [items, allocations, history] = currentRun
       ? await Promise.all([
-          ctx.db.query("invoice_items").withIndex("by_run", (q) => q.eq("run_id", run._id)).collect(),
-          ctx.db.query("invoice_allocations").withIndex("by_run", (q) => q.eq("run_id", run._id)).collect(),
+          ctx.db.query("invoice_items").withIndex("by_run", (q) => q.eq("run_id", currentRun._id)).collect(),
+          ctx.db.query("invoice_allocations").withIndex("by_run", (q) => q.eq("run_id", currentRun._id)).collect(),
           ctx.db.query("invoice_review_history").withIndex("by_invoice_created", (q) => q.eq("invoice_id", invoice._id)).order("desc").take(20),
         ])
       : [[], [], []];
-    return { invoice, run, items: items.sort((a, b) => a.source_index - b.source_index), allocations, categories, history };
+    return { invoice, run: currentRun, items: items.sort((a, b) => a.source_index - b.source_index), allocations, categories, history };
   },
 });
 
@@ -248,20 +319,23 @@ export const listReviewQueue = query({
 });
 
 export const listHistoricalCandidates = query({
-  args: { project_id: v.id("desarrollos") },
+  args: {
+    project_id: v.id("desarrollos"),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     await assertReviewerProject(ctx, args.project_id);
-    const documents = await ctx.db
+    const result = await ctx.db
       .query("documentos")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.project_id))
-      .collect();
-    return documents
-      .filter((document) => !document.invoice_id && document.transaccion_id)
+      .withIndex("by_proyecto_uploaded", (q) => q.eq("proyecto", args.project_id))
+      .order("desc")
+      .paginate(args.paginationOpts);
+    const page = result.page
+      .filter((document) => !document.invoice_id && document.transaccion_id && document.storage_id)
       .filter((document) => {
         const kind = invoiceFileKind(document);
         return kind !== "unsupported" && (normalizeInvoiceText(document.type).includes("factura") || kind === "xml");
       })
-      .slice(0, 500)
       .map((document) => ({
         id: document._id,
         transaction_id: document.transaccion_id,
@@ -269,7 +343,10 @@ export const listHistoricalCandidates = query({
         type: document.type,
         size: document.size,
         uploaded_at: document.uploaded_at,
+        kind: invoiceFileKind(document),
+        pair_key: invoiceDocumentPairKey(document.nombre),
       }));
+    return { ...result, page };
   },
 });
 
@@ -300,6 +377,18 @@ export const reviewInvoiceAnalysis = mutation({
     if (invoice.revision !== args.expected_revision) {
       throw new Error("La factura cambió mientras la revisabas. Recarga antes de continuar.");
     }
+    if (!isCurrentInvoiceRunState({
+      active_run_id: invoice.active_run_id,
+      run_id: run._id,
+      invoice_status: invoice.status,
+      run_status: run.status,
+      allowed_statuses: ["review_required"],
+    })) {
+      throw new Error("Esta ejecución ya no es la revisión activa de la factura.");
+    }
+    if (args.reason && args.reason.trim().length > 1000) {
+      throw new Error("El motivo no puede exceder 1,000 caracteres.");
+    }
     const now = Date.now();
     if (args.decision === "reject") {
       if (!args.reason?.trim()) throw new Error("Indica el motivo del rechazo.");
@@ -325,10 +414,20 @@ export const reviewInvoiceAnalysis = mutation({
 
     if (!args.items.length) throw new Error("La factura no contiene conceptos para aprobar.");
     if (!args.allocations.length) throw new Error("Asigna el importe a por lo menos una transacción.");
+    if (args.allocations.length > 10) throw new Error("No se permiten más de diez asignaciones.");
+    if (invoice.invoice_type === "payment_complement") {
+      throw new Error("Los complementos de pago no representan un gasto adicional y no pueden aprobarse como desglose.");
+    }
     const storedItems = await ctx.db.query("invoice_items").withIndex("by_run", (q) => q.eq("run_id", run._id)).collect();
     const storedById = new Map(storedItems.map((item) => [String(item._id), item]));
-    if (args.items.some((item) => !storedById.has(String(item.item_id)))) {
-      throw new Error("Se intentó modificar un concepto ajeno a esta factura.");
+    const submittedItemIds = new Set(args.items.map((item) => String(item.item_id)));
+    if (submittedItemIds.size !== args.items.length || submittedItemIds.size !== storedItems.length ||
+        args.items.some((item) => !storedById.has(String(item.item_id)))) {
+      throw new Error("Debes revisar exactamente una vez todos los conceptos de la factura.");
+    }
+    const submittedTransactionIds = new Set(args.allocations.map((allocation) => String(allocation.transaction_id)));
+    if (submittedTransactionIds.size !== args.allocations.length) {
+      throw new Error("No se permiten asignaciones repetidas para una misma transacción.");
     }
     const categoryIds = [...new Set(args.items.flatMap((item) => item.category_id ? [item.category_id] : []))];
     const categories = await Promise.all(categoryIds.map((id) => ctx.db.get(id)));
@@ -350,40 +449,70 @@ export const reviewInvoiceAnalysis = mutation({
       });
     }
 
-    const existingAllocations = await ctx.db.query("invoice_allocations").withIndex("by_invoice", (q) => q.eq("invoice_id", invoice._id)).collect();
-    for (const allocation of existingAllocations) await ctx.db.delete(allocation._id);
-    let needsOverride = false;
-    const allocationCurrencies = new Set<string>();
     const permittedTransactionIds = new Set(invoice.source_transaction_ids.map(String));
+    const preparedAllocations: Array<{
+      transaction: Doc<"transacciones">;
+      amount: number;
+      currency: string;
+      existingApprovedAmount: number;
+    }> = [];
     for (const allocation of args.allocations) {
       const transaction = await ctx.db.get(allocation.transaction_id);
       if (!transaction || transaction.proyecto !== invoice.proyecto || !permittedTransactionIds.has(String(transaction._id))) {
         throw new Error("Una asignación pertenece a otra transacción o proyecto.");
       }
-      if (!Number.isFinite(allocation.amount) || allocation.amount === 0) {
-        throw new Error("Los importes asignados deben ser distintos de cero.");
+      const validationError = invoiceAllocationValidationError(invoice.invoice_type, allocation.amount);
+      if (validationError) throw new Error(validationError);
+      const transactionAllocations = await ctx.db
+        .query("invoice_allocations")
+        .withIndex("by_transaction", (q) => q.eq("transaction_id", transaction._id))
+        .collect();
+      let existingApprovedAmount = 0;
+      for (const existingAllocation of transactionAllocations) {
+        if (existingAllocation.invoice_id === invoice._id) continue;
+        const existingInvoice = await ctx.db.get(existingAllocation.invoice_id);
+        if (existingInvoice?.status === "approved") existingApprovedAmount += existingAllocation.amount;
       }
-      if (Math.abs(Math.abs(allocation.amount) - Math.abs(transaction.monto_total)) > 0.01) needsOverride = true;
-      if (invoice.invoice_type === "credit_note" && allocation.amount > 0) needsOverride = true;
-      allocationCurrencies.add(normalizeInvoiceCurrency(transaction.moneda));
+      preparedAllocations.push({
+        transaction,
+        amount: allocation.amount,
+        currency: normalizeInvoiceCurrency(transaction.moneda),
+        existingApprovedAmount,
+      });
+    }
+    const reconciliation = buildInvoiceReconciliation({
+      invoice_type: invoice.invoice_type,
+      invoice_total: invoice.total,
+      invoice_currency: invoice.currency,
+      allocations: preparedAllocations.map((allocation) => ({
+        amount: allocation.amount,
+        currency: allocation.currency,
+        transaction_total: allocation.transaction.monto_total,
+        existing_approved_amount: allocation.existingApprovedAmount,
+      })),
+      has_unclassified_items: args.items.some((item) => {
+        const category = item.category_id ? categoryById.get(String(item.category_id)) : undefined;
+        return !category || category.code === INVOICE_UNRESOLVED_CODE;
+      }),
+    });
+    const needsOverride = reconciliation.status === "exception";
+    if (needsOverride && !args.reason?.trim()) {
+      throw new Error(`La conciliación requiere una justificación (${reconciliation.exception_codes.join(", ")}).`);
+    }
+
+    const existingAllocations = await ctx.db.query("invoice_allocations").withIndex("by_invoice", (q) => q.eq("invoice_id", invoice._id)).collect();
+    for (const allocation of existingAllocations) await ctx.db.delete(allocation._id);
+    for (const allocation of preparedAllocations) {
       await ctx.db.insert("invoice_allocations", {
         invoice_id: invoice._id,
         run_id: run._id,
-        transaction_id: transaction._id,
+        transaction_id: allocation.transaction._id,
         amount: allocation.amount,
-        currency: normalizeInvoiceCurrency(transaction.moneda),
+        currency: allocation.currency,
         created_by: reviewer._id,
         created_at: now,
         updated_at: now,
       });
-    }
-    const allocatedTotal = args.allocations.reduce((sum, allocation) => sum + allocation.amount, 0);
-    if (allocationCurrencies.size > 1) needsOverride = true;
-    const onlyAllocationCurrency = [...allocationCurrencies][0];
-    if (invoice.currency && invoice.currency !== "SIN_MONEDA" && onlyAllocationCurrency !== invoice.currency) needsOverride = true;
-    if (invoice.total !== undefined && allocationCurrencies.size === 1 && Math.abs(Math.abs(allocatedTotal) - Math.abs(invoice.total)) > 0.01) needsOverride = true;
-    if (needsOverride && !args.reason?.trim()) {
-      throw new Error("Los importes no concilian. Captura un motivo de excepción para aprobar.");
     }
 
     await ctx.db.patch(run._id, { status: "approved", completed_at: now });
@@ -391,6 +520,8 @@ export const reviewInvoiceAnalysis = mutation({
       status: "approved",
       active_run_id: run._id,
       approved_category_ids: categoryIds,
+      reconciliation_status: reconciliation.status,
+      reconciliation_exception_codes: reconciliation.exception_codes,
       approved_by: reviewer._id,
       approved_at: now,
       revision: invoice.revision + 1,
@@ -403,9 +534,17 @@ export const reviewInvoiceAnalysis = mutation({
       action: needsOverride ? "approved_with_override" : "approved",
       revision: invoice.revision + 1,
       reason: args.reason?.trim() || undefined,
+      exception_codes: reconciliation.exception_codes,
+      reconciliation: {
+        allocated_total: reconciliation.allocated_total,
+        invoice_total: reconciliation.invoice_total,
+        currency: reconciliation.currency,
+        variance: reconciliation.variance,
+        allocation_count: reconciliation.allocation_count,
+      },
       created_at: now,
     });
-    return { status: "approved" as const };
+    return { status: "approved" as const, reconciliation };
   },
 });
 
@@ -414,9 +553,23 @@ export const claimRun = internalMutation({
   handler: async (ctx, args) => {
     const run = await ctx.db.get(args.run_id);
     if (!run || run.status !== "queued") return false;
+    const invoice = await ctx.db.get(run.invoice_id);
+    if (!invoice || !isCurrentInvoiceRunState({
+      active_run_id: invoice.active_run_id,
+      run_id: run._id,
+      invoice_status: invoice.status,
+      run_status: run.status,
+      allowed_statuses: ["queued"],
+    })) {
+      await ctx.db.patch(run._id, {
+        status: "stale",
+        completed_at: run.completed_at || Date.now(),
+      });
+      return false;
+    }
     const now = Date.now();
     await ctx.db.patch(run._id, { status: "extracting", started_at: now });
-    await ctx.db.patch(run.invoice_id, { status: "extracting", updated_at: now });
+    await ctx.db.patch(invoice._id, { status: "extracting", updated_at: now });
     return true;
   },
 });
@@ -428,6 +581,15 @@ export const getRunContext = internalQuery({
     if (!run) throw new Error("Ejecución no encontrada.");
     const invoice = await ctx.db.get(run.invoice_id);
     if (!invoice) throw new Error("Factura no encontrada.");
+    if (!isCurrentInvoiceRunState({
+      active_run_id: invoice.active_run_id,
+      run_id: run._id,
+      invoice_status: invoice.status,
+      run_status: run.status,
+      allowed_statuses: ["extracting"],
+    })) {
+      throw Object.assign(new Error("La ejecución dejó de ser la activa."), { code: "stale_run" });
+    }
     const [documents, transaction, categories] = await Promise.all([
       Promise.all(invoice.source_document_ids.map((id) => ctx.db.get(id))),
       ctx.db.get(invoice.primary_transaction_id),
@@ -464,7 +626,7 @@ export const completeRun = internalMutation({
     run_id: v.id("invoice_analysis_runs"),
     source_hash: v.string(),
     document_hashes: v.array(v.object({ document_id: v.id("documentos"), sha256: v.string(), mime_type: v.string() })),
-    invoice_type: v.union(v.literal("invoice"), v.literal("credit_note"), v.literal("receipt"), v.literal("unknown")),
+    invoice_type: v.union(v.literal("invoice"), v.literal("credit_note"), v.literal("receipt"), v.literal("payment_complement"), v.literal("unknown")),
     uuid: v.optional(v.string()),
     folio: v.optional(v.string()),
     issuer_name: v.optional(v.string()),
@@ -490,6 +652,19 @@ export const completeRun = internalMutation({
     if (!run || run.status !== "extracting") return false;
     const invoice = await ctx.db.get(run.invoice_id);
     if (!invoice) throw new Error("Factura no encontrada.");
+    if (!isCurrentInvoiceRunState({
+      active_run_id: invoice.active_run_id,
+      run_id: run._id,
+      invoice_status: invoice.status,
+      run_status: run.status,
+      allowed_statuses: ["extracting"],
+    })) {
+      await ctx.db.patch(run._id, {
+        status: "stale",
+        completed_at: run.completed_at || Date.now(),
+      });
+      return false;
+    }
     const existingItems = await ctx.db.query("invoice_items").withIndex("by_run", (q) => q.eq("run_id", run._id)).collect();
     for (const item of existingItems) await ctx.db.delete(item._id);
     const categories = await ctx.db.query("invoice_cost_categories")
@@ -583,8 +758,25 @@ export const failRun = internalMutation({
   },
   handler: async (ctx, args) => {
     const run = await ctx.db.get(args.run_id);
-    if (!run) return;
+    if (!run || !["queued", "extracting"].includes(run.status)) return;
     const now = Date.now();
+    const invoice = await ctx.db.get(run.invoice_id);
+    if (!invoice || !isCurrentInvoiceRunState({
+      active_run_id: invoice.active_run_id,
+      run_id: run._id,
+      invoice_status: invoice.status,
+      run_status: run.status,
+      allowed_statuses: ["queued", "extracting"],
+    })) {
+      await ctx.db.patch(run._id, {
+        status: "stale",
+        error_code: args.error_code.slice(0, 80),
+        error: args.error.slice(0, 500),
+        duration_ms: args.duration_ms,
+        completed_at: now,
+      });
+      return;
+    }
     await ctx.db.patch(run._id, {
       status: "failed",
       error_code: args.error_code.slice(0, 80),
@@ -592,7 +784,7 @@ export const failRun = internalMutation({
       duration_ms: args.duration_ms,
       completed_at: now,
     });
-    await ctx.db.patch(run.invoice_id, { status: "failed", updated_at: now });
+    await ctx.db.patch(invoice._id, { status: "failed", updated_at: now });
   },
 });
 

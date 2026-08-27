@@ -262,6 +262,7 @@ export default defineSchema({
       v.literal("invoice"),
       v.literal("credit_note"),
       v.literal("receipt"),
+      v.literal("payment_complement"),
       v.literal("unknown"),
     )),
     uuid: v.optional(v.string()),
@@ -277,6 +278,8 @@ export default defineSchema({
     transferred_taxes: v.optional(v.number()),
     retained_taxes: v.optional(v.number()),
     total: v.optional(v.number()),
+    reconciliation_status: v.optional(v.union(v.literal("matched"), v.literal("exception"))),
+    reconciliation_exception_codes: v.optional(v.array(v.string())),
     approved_category_ids: v.optional(v.array(v.id("invoice_cost_categories"))),
     active_run_id: v.optional(v.id("invoice_analysis_runs")),
     revision: v.number(),
@@ -290,7 +293,8 @@ export default defineSchema({
   }).index("by_project_status", { fields: ["proyecto", "status"] })
     .index("by_project_created", { fields: ["proyecto", "created_at"] })
     .index("by_uuid", { fields: ["uuid_normalized"] })
-    .index("by_transaction", { fields: ["primary_transaction_id"] }),
+    .index("by_transaction", { fields: ["primary_transaction_id"] })
+    .index("by_provider", { fields: ["provider_id"] }),
 
   invoice_analysis_runs: defineTable({
     invoice_id: v.id("invoice_records"),
@@ -378,6 +382,14 @@ export default defineSchema({
     action: v.string(),
     revision: v.number(),
     reason: v.optional(v.string()),
+    exception_codes: v.optional(v.array(v.string())),
+    reconciliation: v.optional(v.object({
+      allocated_total: v.number(),
+      invoice_total: v.optional(v.number()),
+      currency: v.optional(v.string()),
+      variance: v.optional(v.number()),
+      allocation_count: v.number(),
+    })),
     created_at: v.number(),
   }).index("by_invoice_created", { fields: ["invoice_id", "created_at"] }),
   document_folders: defineTable({

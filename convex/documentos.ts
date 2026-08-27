@@ -9,6 +9,7 @@ import {
     getCurrentUserOrThrow,
     hasAdminAccess,
 } from "./permissions";
+import { markLinkedInvoiceStaleForDocument } from "./invoiceIntegrity";
 
 async function assertSalesProjectAccess(ctx: QueryCtx | MutationCtx, projectId: Doc<"sales_projects">["_id"]) {
     const user = await getCurrentUserOrThrow(ctx);
@@ -27,17 +28,6 @@ async function assertDocumentAccess(ctx: QueryCtx | MutationCtx, document: Doc<"
     }
     const user = await getCurrentUserOrThrow(ctx);
     if (!hasAdminAccess(user)) throw new Error("No tienes acceso al documento.");
-}
-
-async function markLinkedInvoiceStale(ctx: MutationCtx, document: Doc<"documentos">) {
-    if (!document.invoice_id) return;
-    const invoice = await ctx.db.get(document.invoice_id);
-    if (!invoice || invoice.status === "stale") return;
-    await ctx.db.patch(invoice._id, {
-        status: "stale",
-        revision: invoice.revision + 1,
-        updated_at: Date.now(),
-    });
 }
 
 const enrichDocumentUrl = async (ctx: QueryCtx, doc: Doc<"documentos">) => {
@@ -603,7 +593,9 @@ export const update = mutation({
             existing.invoice_id && (
                 (args.proyecto !== undefined && args.proyecto !== existing.proyecto) ||
                 (args.transaccion_id !== undefined && args.transaccion_id !== existing.transaccion_id) ||
-                (args.type !== undefined && args.type !== existing.type)
+                (args.type !== undefined && args.type !== existing.type) ||
+                (args.nombre !== undefined && args.nombre !== existing.nombre) ||
+                (args.image !== undefined && args.image !== existing.image)
             )
         );
         const { id, ...updateData } = args;
@@ -614,7 +606,7 @@ export const update = mutation({
         );
         
         const result = await ctx.db.patch(id, cleanUpdateData);
-        if (sourceRelationshipChanged) await markLinkedInvoiceStale(ctx, existing);
+        if (sourceRelationshipChanged) await markLinkedInvoiceStaleForDocument(ctx, existing._id);
         return result;
     },
 });
@@ -687,6 +679,9 @@ export const renameDocument = mutation({
         const name = args.nombre.trim();
         if (!name) throw new Error("Document name is required");
 
+        if (name !== document.nombre) {
+            await markLinkedInvoiceStaleForDocument(ctx, document._id);
+        }
         return await ctx.db.patch(args.id, { nombre: name });
     },
 });
@@ -758,7 +753,7 @@ export const deleteDocument = mutation({
         }
         await assertDocumentAccess(ctx, documento);
 
-        await markLinkedInvoiceStale(ctx, documento);
+        await markLinkedInvoiceStaleForDocument(ctx, documento._id);
 
         await ctx.db.delete(args.id);
 
