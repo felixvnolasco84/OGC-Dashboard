@@ -277,6 +277,70 @@ function isPortaledPickerOpen() {
   );
 }
 
+type TaskDropIndicator = {
+  taskId: Id<"tareas">;
+  edge: "before" | "after";
+};
+
+function sortTasksByPosition(tasks: Task[]) {
+  return [...tasks].sort((a, b) => (a.position ?? a.created_at) - (b.position ?? b.created_at));
+}
+
+function taskOrderScopeKey(task: Pick<Task, "parent_task" | "proyecto" | "organization_id">) {
+  return `${task.parent_task || "root"}:${task.proyecto || "none"}:${task.organization_id || "none"}`;
+}
+
+function applyTaskOrder(tasks: Task[], orderedIds?: Id<"tareas">[]) {
+  if (!orderedIds?.length) return tasks;
+  const byId = new Map(tasks.map((task) => [task._id, task]));
+  const seen = new Set<string>();
+  const next: Task[] = [];
+  for (const id of orderedIds) {
+    const task = byId.get(id);
+    if (!task || seen.has(task._id)) continue;
+    next.push(task);
+    seen.add(task._id);
+  }
+  for (const task of tasks) {
+    if (seen.has(task._id)) continue;
+    next.push(task);
+  }
+  return next;
+}
+
+function moveTaskId(
+  orderedIds: Id<"tareas">[],
+  draggedId: Id<"tareas">,
+  targetId: Id<"tareas">,
+  edge: "before" | "after"
+) {
+  const from = orderedIds.indexOf(draggedId);
+  if (from < 0 || draggedId === targetId) return orderedIds;
+  const next = orderedIds.filter((id) => id !== draggedId);
+  const target = next.indexOf(targetId);
+  if (target < 0) return orderedIds;
+  next.splice(edge === "after" ? target + 1 : target, 0, draggedId);
+  return next;
+}
+
+function TaskDropLine({ edge }: { edge: "before" | "after" }) {
+  return (
+    <div
+        className={cn(
+          "pointer-events-none absolute inset-x-0 z-20",
+          edge === "before" ? "-top-px" : "-bottom-px"
+        )}
+    >
+      <div className="relative h-0.5 rounded-full" style={{ backgroundColor: TASK_UI_COLORS.green }}>
+        <span
+          className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ backgroundColor: TASK_UI_COLORS.green }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function formatDateTime(timestamp?: number) {
   if (!timestamp) return "-";
   return new Intl.DateTimeFormat("es-MX", {
@@ -1681,6 +1745,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [collapsedStatusSections, setCollapsedStatusSections] = useState<Set<string>>(new Set());
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
   const [draggingTaskId, setDraggingTaskId] = useState<Id<"tareas"> | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<TaskDropIndicator | null>(null);
+  const [orderOverride, setOrderOverride] = useState<Record<string, Id<"tareas">[]>>({});
+  const dropIndicatorRef = useRef<TaskDropIndicator | null>(null);
   const subtaskTitleInputRef = useRef<HTMLInputElement>(null);
   const newTaskTitleInputRef = useRef<HTMLInputElement>(null);
   const skipSubtaskCreateOnBlur = useRef(false);
@@ -1861,6 +1928,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       children.push(task);
       allChildren.set(task.parent_task, children);
     }
+    for (const [parentId, children] of allChildren) {
+      allChildren.set(parentId, sortTasksByPosition(children));
+    }
     const groups = new Map<string, TaskGroup>();
     const projectedChildren = new Map<string, Task[]>();
     const groupKeyForTask = (task: Task) => task.proyecto || `${GENERAL_SCOPE}:${task.organization_id || "legacy"}`;
@@ -1899,7 +1969,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         const scopedChildren = matchingChildren.filter((child) => groupKeyForTask(child) === scopeKey);
         if (!filteredIds.has(task._id) && scopedChildren.length === 0) continue;
         ensureGroup(scopeKey, task).tasks.push(task);
-        projectedChildren.set(`${scopeKey}:${task._id}`, scopedChildren);
+        const firstChild = scopedChildren[0];
+        projectedChildren.set(
+          `${scopeKey}:${task._id}`,
+          applyTaskOrder(scopedChildren, firstChild ? orderOverride[taskOrderScopeKey(firstChild)] : undefined)
+        );
       }
     }
 
@@ -1909,10 +1983,19 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     }
 
     return {
-      groupedTasks: Array.from(groups.values()).sort((a, b) => a.projectName.localeCompare(b.projectName, "es")),
+      groupedTasks: Array.from(groups.values()).map((group) => {
+        const firstTask = group.tasks[0];
+        return {
+          ...group,
+          tasks: applyTaskOrder(
+            sortTasksByPosition(group.tasks),
+            firstTask ? orderOverride[taskOrderScopeKey(firstTask)] : undefined
+          ),
+        };
+      }).sort((a, b) => a.projectName.localeCompare(b.projectName, "es")),
       projectedChildrenByGroup: projectedChildren,
     };
-  }, [filteredTasks, organizationScopes, projectFilter, proyectos, tareas]);
+  }, [filteredTasks, orderOverride, organizationScopes, projectFilter, proyectos, tareas]);
 
   const filteredNotifications = useMemo(() => {
     const term = notificationSearch.trim().toLowerCase();
@@ -2223,6 +2306,38 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   handleCreateInlineTaskRef.current = handleCreateInlineTask;
 
   useEffect(() => {
+    document.body.style.cursor = draggingTaskId ? "grabbing" : "";
+    return () => {
+      document.body.style.cursor = "";
+    };
+  }, [draggingTaskId]);
+
+  useEffect(() => {
+    if (!tareas || Object.keys(orderOverride).length === 0) return;
+
+    setOrderOverride((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const [scopeKey, orderedIds] of Object.entries(current)) {
+        const serverIds = sortTasksByPosition(
+          tareas.filter((task) => taskOrderScopeKey(task) === scopeKey)
+        ).map((task) => task._id);
+        const expected = orderedIds.filter((id) => serverIds.includes(id));
+        const actual = serverIds.filter((id) => orderedIds.includes(id));
+        if (
+          expected.length > 0 &&
+          expected.length === actual.length &&
+          expected.every((id, index) => id === actual[index])
+        ) {
+          delete next[scopeKey];
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [orderOverride, tareas]);
+
+  useEffect(() => {
     if (!addingSubtaskFor && !addingTaskInSection) return;
 
     const handlePointerDown = (event: PointerEvent) => {
@@ -2346,53 +2461,115 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     });
   };
 
-  const handleTaskDrop = async (targetTask: Task) => {
-    if (!draggingTaskId || draggingTaskId === targetTask._id) {
-      setDraggingTaskId(null);
+  const clearDropIndicator = () => {
+    dropIndicatorRef.current = null;
+    setDropIndicator(null);
+  };
+
+  const canReorderPair = (dragged: Task, target: Task) =>
+    dragged._id !== target._id &&
+    canManageTask(dragged) &&
+    canManageTask(target) &&
+    (dragged.parent_task || null) === (target.parent_task || null) &&
+    dragged.proyecto === target.proyecto &&
+    dragged.organization_id === target.organization_id;
+
+  const beginTaskDrag = (event: React.DragEvent, task: Task) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", task._id);
+    setDraggingTaskId(task._id);
+    clearDropIndicator();
+  };
+
+  const endTaskDrag = () => {
+    setDraggingTaskId(null);
+    clearDropIndicator();
+  };
+
+  const updateDropIndicator = (event: React.DragEvent, target: Task) => {
+    if (!draggingTaskId) return;
+
+    const draggedTask = (tareas || []).find((task) => task._id === draggingTaskId);
+    if (!draggedTask || !canReorderPair(draggedTask, target)) {
+      const allowBubbleToParent = Boolean(target.parent_task && draggedTask && !draggedTask.parent_task);
+      if (!allowBubbleToParent) event.stopPropagation();
+      event.dataTransfer.dropEffect = "none";
+      if (dropIndicatorRef.current?.taskId === target._id) clearDropIndicator();
       return;
     }
 
-    const draggedTask = filteredTasks.find((task) => task._id === draggingTaskId);
-    if (
-      !draggedTask ||
-      !canManageTask(draggedTask) ||
-      draggedTask.proyecto !== targetTask.proyecto ||
-      (draggedTask.parent_task || null) !== (targetTask.parent_task || null)
-    ) {
-      setDraggingTaskId(null);
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    const rect = event.currentTarget.getBoundingClientRect();
+    const edge: TaskDropIndicator["edge"] =
+      event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+    const next: TaskDropIndicator = { taskId: target._id, edge };
+    dropIndicatorRef.current = next;
+    setDropIndicator((current) =>
+      current?.taskId === next.taskId && current.edge === next.edge ? current : next
+    );
+  };
+
+  const handleTaskDrop = async (event: React.DragEvent, targetTask: Task) => {
+    const draggedId = draggingTaskId;
+    const draggedTask = draggedId
+      ? (tareas || []).find((task) => task._id === draggedId)
+      : undefined;
+
+    if (!draggedTask || !canReorderPair(draggedTask, targetTask)) {
+      const allowBubbleToParent = Boolean(targetTask.parent_task && draggedTask && !draggedTask.parent_task);
+      if (!allowBubbleToParent) {
+        event.preventDefault();
+        event.stopPropagation();
+        clearDropIndicator();
+        setDraggingTaskId(null);
+      }
       return;
     }
 
-    const siblings = (tareas || []).filter((task) =>
-      (task.parent_task || null) === (targetTask.parent_task || null) &&
-      task.proyecto === targetTask.proyecto &&
-      task.organization_id === targetTask.organization_id
+    event.preventDefault();
+    event.stopPropagation();
+
+    const edge =
+      dropIndicatorRef.current?.taskId === targetTask._id
+        ? dropIndicatorRef.current.edge
+        : event.clientY < event.currentTarget.getBoundingClientRect().top + event.currentTarget.getBoundingClientRect().height / 2
+          ? "before"
+          : "after";
+
+    clearDropIndicator();
+    setDraggingTaskId(null);
+
+    const siblings = sortTasksByPosition(
+      (tareas || []).filter((task) =>
+        (task.parent_task || null) === (targetTask.parent_task || null) &&
+        task.proyecto === targetTask.proyecto &&
+        task.organization_id === targetTask.organization_id
+      )
     );
     if (!siblings.every(canManageTask)) {
       toast.error("Solo el creador o un admin pueden reordenar estas tareas");
-      setDraggingTaskId(null);
       return;
     }
 
-    const orderedIds = siblings.map((task) => task._id);
-    const from = orderedIds.indexOf(draggingTaskId);
-    const to = orderedIds.indexOf(targetTask._id);
+    const currentIds = siblings.map((task) => task._id);
+    const orderedIds = moveTaskId(currentIds, draggedTask._id, targetTask._id, edge);
+    if (orderedIds.join() === currentIds.join()) return;
 
-    if (from < 0 || to < 0) {
-      setDraggingTaskId(null);
-      return;
-    }
-
-    orderedIds.splice(from, 1);
-    orderedIds.splice(to, 0, draggingTaskId);
+    const scopeKey = taskOrderScopeKey(targetTask);
+    setOrderOverride((current) => ({ ...current, [scopeKey]: orderedIds }));
 
     try {
       await reorderTasks({ orderedIds });
     } catch (error) {
       console.error("Error reordering tasks:", error);
+      setOrderOverride((current) => {
+        const next = { ...current };
+        delete next[scopeKey];
+        return next;
+      });
       toast.error("No se pudo reordenar la tarea");
-    } finally {
-      setDraggingTaskId(null);
     }
   };
 
@@ -2492,13 +2669,12 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           <button
             type="button"
             draggable={canEditTask}
-            onDragStart={(event) => {
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", task._id);
-              setDraggingTaskId(task._id);
-            }}
-            onDragEnd={() => setDraggingTaskId(null)}
-            className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-disabled-foreground opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+            onDragStart={(event) => beginTaskDrag(event, task)}
+            onDragEnd={endTaskDrag}
+            className={cn(
+              "flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-disabled-foreground transition active:cursor-grabbing",
+              draggingTaskId === task._id ? "opacity-100" : "opacity-40 group-hover:opacity-100"
+            )}
             aria-label="Reordenar tarea"
           >
             <GripVertical className="h-3.5 w-3.5" />
@@ -2612,45 +2788,45 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       <React.Fragment key={task._id}>
         <div
           key={task._id}
-          onDragOver={(event) => {
-            if (!draggingTaskId || draggingTaskId === task._id) return;
-            event.preventDefault();
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            void handleTaskDrop(task);
-          }}
           onContextMenu={(event) => {
             event.preventDefault();
             setContextMenu({ task, x: event.clientX, y: event.clientY });
           }}
+          onDragEnter={(event) => updateDropIndicator(event, task)}
+          onDragOver={(event) => updateDropIndicator(event, task)}
+          onDragLeave={(event) => {
+            const related = event.relatedTarget;
+            if (related instanceof Node && event.currentTarget.contains(related)) return;
+            if (dropIndicatorRef.current?.taskId === task._id) clearDropIndicator();
+          }}
+          onDrop={(event) => {
+            void handleTaskDrop(event, task);
+          }}
           className={cn(
-            "group border-b bg-transparent px-4 sm:px-8 transition hover:bg-muted",
-            draggingTaskId === task._id && "opacity-50",
-            draggingTaskId && draggingTaskId !== task._id && "data-[drop=true]:bg-blue-50"
+            "group relative border-b bg-transparent px-4 sm:px-8 transition hover:bg-muted",
+            draggingTaskId === task._id && "opacity-50"
           )}
           style={{ borderColor: TASK_UI_COLORS.tableBorder }}
         >
-          <div>
-            <div
-              className={cn(
-                "grid min-h-[44px] items-center gap-4 py-3 xl:py-1.5",
-                TASK_TABLE_GRID,
-                !isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && "border-b"
-              )}
-              style={!isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) ? { borderColor: TASK_UI_COLORS.tableBorder } : undefined}
-            >
+          {dropIndicator?.taskId === task._id && <TaskDropLine edge={dropIndicator.edge} />}
+          <div
+            className={cn(
+              "grid min-h-[44px] items-center gap-4 py-3 xl:py-1.5",
+              TASK_TABLE_GRID,
+              !isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && "border-b"
+            )}
+            style={!isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) ? { borderColor: TASK_UI_COLORS.tableBorder } : undefined}
+          >
               <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
                 <button
                   type="button"
                   draggable={canEditTask}
-                  onDragStart={(event) => {
-                    event.dataTransfer.effectAllowed = "move";
-                    event.dataTransfer.setData("text/plain", task._id);
-                    setDraggingTaskId(task._id);
-                  }}
-                  onDragEnd={() => setDraggingTaskId(null)}
-                  className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-disabled-foreground opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+                  onDragStart={(event) => beginTaskDrag(event, task)}
+                  onDragEnd={endTaskDrag}
+                  className={cn(
+                    "flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-disabled-foreground transition active:cursor-grabbing",
+                    draggingTaskId === task._id ? "opacity-100" : "opacity-40 group-hover:opacity-100"
+                  )}
                   aria-label="Reordenar tarea"
                 >
                   <GripVertical className="h-3.5 w-3.5" />
@@ -2794,19 +2970,22 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   <div
                     key={child._id}
                     className={cn(
-                      "border-b",
+                      "group relative border-b",
                       draggingTaskId === child._id && "opacity-50"
                     )}
                     style={{ borderColor: TASK_UI_COLORS.tableBorder }}
-                    onDragOver={(event) => {
-                      if (!draggingTaskId || draggingTaskId === child._id) return;
-                      event.preventDefault();
+                    onDragEnter={(event) => updateDropIndicator(event, child)}
+                    onDragOver={(event) => updateDropIndicator(event, child)}
+                    onDragLeave={(event) => {
+                      const related = event.relatedTarget;
+                      if (related instanceof Node && event.currentTarget.contains(related)) return;
+                      if (dropIndicatorRef.current?.taskId === child._id) clearDropIndicator();
                     }}
                     onDrop={(event) => {
-                      event.preventDefault();
-                      void handleTaskDrop(child);
+                      void handleTaskDrop(event, child);
                     }}
                   >
+                    {dropIndicator?.taskId === child._id && <TaskDropLine edge={dropIndicator.edge} />}
                     {renderTaskContent(child, 1)}
                   </div>
                 ))}
@@ -2957,7 +3136,6 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 </div>
               </>
             )}
-          </div>
         </div>
       </React.Fragment>
     );
