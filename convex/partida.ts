@@ -1,9 +1,10 @@
 import { paginationOptsValidator } from "convex/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { query } from "./_generated/server";
+import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import { assertCanWrite } from "./permissions";
+import { cleanHierarchyText, normalizeHierarchyText } from "./partidaRules";
 
 type PartidaTotals = {
   presupuesto_original: number;
@@ -19,6 +20,157 @@ type SyncPartidaResult = {
   familiasSynced: number;
   subPartidasCount: number;
 };
+
+type SubPartidaDependencyCounts = {
+  pagos: number;
+  ponderaciones: number;
+  avances: number;
+  programacion: number;
+  requisiciones: number;
+  rfis: number;
+};
+
+type SubPartidaDeletionImpact = {
+  canDelete: boolean;
+  hasEquivalentSibling: boolean;
+  counts: SubPartidaDependencyCounts;
+  blockers: string[];
+};
+
+function dependencyBlockers(counts: SubPartidaDependencyCounts) {
+  const labels: Array<[keyof SubPartidaDependencyCounts, string]> = [
+    ["pagos", "pagos"],
+    ["ponderaciones", "ponderaciones del programa de obra"],
+    ["avances", "registros de avance"],
+    ["programacion", "registros de programación"],
+    ["requisiciones", "requisiciones"],
+    ["rfis", "RFIs"],
+  ];
+  return labels
+    .filter(([key]) => counts[key] > 0)
+    .map(([key, label]) => `${counts[key]} ${label}`);
+}
+
+async function getEquivalentSubPartidas(
+  ctx: QueryCtx | MutationCtx,
+  partida: Doc<"partidas">,
+) {
+  if (!partida.proyecto || partida.nivel !== 3) return [];
+  const partidaNombre = partida.partida_nombre || partida.nombre;
+  const normalizedName = normalizeHierarchyText(partida.sub_partida || partida.nombre);
+  const siblings: Doc<"partidas">[] = await ctx.db
+    .query("partidas")
+    .withIndex("by_proyecto_nivel_partida_familia", (q) =>
+      q
+        .eq("proyecto", partida.proyecto)
+        .eq("nivel", 3)
+        .eq("partida_nombre", partidaNombre)
+        .eq("familia", partida.familia),
+    )
+    .collect();
+
+  return siblings.filter(
+    (item) =>
+      item._id !== partida._id &&
+      normalizeHierarchyText(item.sub_partida || item.nombre) === normalizedName,
+  );
+}
+
+async function getSubPartidaDeletionImpactInternal(
+  ctx: QueryCtx | MutationCtx,
+  partida: Doc<"partidas">,
+): Promise<SubPartidaDeletionImpact> {
+  const proyecto = partida.proyecto;
+  if (partida.nivel !== 3 || !proyecto) {
+    throw new Error("Solo se pueden eliminar subpartidas vinculadas a un proyecto.");
+  }
+
+  const [pagos, ponderaciones, avances, equivalentSiblings] = await Promise.all([
+    ctx.db
+      .query("pagos")
+      .withIndex("by_partida_id", (q) => q.eq("partida_id", partida._id))
+      .collect(),
+    ctx.db
+      .query("programa_obra_ponderacion")
+      .withIndex("by_partida_id", (q) => q.eq("partida_id", partida._id))
+      .collect(),
+    ctx.db
+      .query("avance_real")
+      .withIndex("by_partida_id", (q) => q.eq("partida_id", partida._id))
+      .collect(),
+    getEquivalentSubPartidas(ctx, partida),
+  ]);
+
+  const counts: SubPartidaDependencyCounts = {
+    pagos: pagos.length,
+    ponderaciones: ponderaciones.length,
+    avances: avances.length,
+    programacion: 0,
+    requisiciones: 0,
+    rfis: 0,
+  };
+
+  // Name-only references remain valid when another equivalent budget concept
+  // will survive the deletion. Otherwise they block removal to avoid orphans.
+  if (equivalentSiblings.length === 0) {
+    const partidaNombre = partida.partida_nombre || partida.nombre;
+    const normalizedPartida = normalizeHierarchyText(partidaNombre);
+    const normalizedFamilia = normalizeHierarchyText(partida.familia);
+    const normalizedSubPartida = normalizeHierarchyText(partida.sub_partida || partida.nombre);
+
+    const detalles = await ctx.db
+      .query("programa_obra_detalle")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto))
+      .collect();
+    counts.programacion = detalles.filter(
+      (detalle) =>
+        detalle.nivel === 3 &&
+        normalizeHierarchyText(detalle.partida) === normalizedPartida &&
+        normalizeHierarchyText(detalle.familia) === normalizedFamilia &&
+        normalizeHierarchyText(detalle.subpartida) === normalizedSubPartida,
+    ).length;
+
+    const nivel1Partidas: Doc<"partidas">[] = await ctx.db
+      .query("partidas")
+      .withIndex("by_proyecto_nivel_nombre", (q) =>
+        q.eq("proyecto", proyecto).eq("nivel", 1).eq("nombre", partidaNombre),
+      )
+      .collect();
+    const nivel1Ids = new Set(nivel1Partidas.map((item) => String(item._id)));
+
+    for (const parent of nivel1Partidas) {
+      const items = await ctx.db
+        .query("requisicion_items")
+        .withIndex("by_partida", (q) => q.eq("partida_id", parent._id))
+        .collect();
+      counts.requisiciones += items.filter(
+        (item) =>
+          normalizeHierarchyText(item.familia) === normalizedFamilia &&
+          normalizeHierarchyText(item.sub_partida) === normalizedSubPartida,
+      ).length;
+    }
+
+    const projectRfis = await ctx.db
+      .query("rfis")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto))
+      .collect();
+    counts.rfis = projectRfis.filter(
+      (rfi) =>
+        rfi.partida_id &&
+        nivel1Ids.has(String(rfi.partida_id)) &&
+        normalizeHierarchyText(rfi.familia) === normalizedFamilia &&
+        normalizeHierarchyText(rfi.sub_partida) === normalizedSubPartida,
+    ).length;
+  }
+
+  const blockers = dependencyBlockers(counts);
+  return {
+    canDelete: blockers.length === 0,
+    hasEquivalentSibling: equivalentSiblings.length > 0,
+    counts,
+    blockers,
+  };
+}
 
 function totalsFromPartidas(partidas: Doc<"partidas">[]): PartidaTotals {
   const presupuesto_original = partidas.reduce((sum, item) => sum + (item.presupuesto_original || 0), 0);
@@ -83,7 +235,8 @@ async function recalculateFamiliaRollup(
     proyecto: Id<"desarrollos">;
     partidaNombre: string;
     familia: string;
-  }
+  },
+  options?: { zeroWhenEmpty?: boolean },
 ) {
   const nivel2Items = await ctx.db
     .query("partidas")
@@ -101,7 +254,7 @@ async function recalculateFamiliaRollup(
     )
     .collect();
 
-  if (nivel3Items.length === 0) return;
+  if (nivel3Items.length === 0 && !options?.zeroWhenEmpty) return;
 
   const totals = totalsFromPartidas(nivel3Items);
   for (const item of nivel2Items) {
@@ -575,16 +728,140 @@ export const update = mutation({
       throw new Error("Not found");
     }
 
+    let subPartida = args.sub_partida;
+    let shouldUpdateProgrammingName = false;
+    if (existingPartida.nivel === 3) {
+      subPartida = cleanHierarchyText(args.sub_partida);
+      if (!subPartida) {
+        throw new Error("El nombre de la subpartida es obligatorio.");
+      }
+      if (!existingPartida.proyecto) {
+        throw new Error("La subpartida no está vinculada a un proyecto.");
+      }
+
+      const partidaNombre = existingPartida.partida_nombre || existingPartida.nombre;
+      const siblings: Doc<"partidas">[] = await ctx.db
+        .query("partidas")
+        .withIndex("by_proyecto_nivel_partida_familia", (q) =>
+          q
+            .eq("proyecto", existingPartida.proyecto)
+            .eq("nivel", 3)
+            .eq("partida_nombre", partidaNombre)
+            .eq("familia", existingPartida.familia),
+        )
+        .collect();
+      const normalizedNewName = normalizeHierarchyText(subPartida);
+      const duplicate = siblings.find(
+        (item) =>
+          item._id !== existingPartida._id &&
+          normalizeHierarchyText(item.sub_partida || item.nombre) === normalizedNewName,
+      );
+      if (duplicate) {
+        throw new Error(
+          `Ya existe una subpartida equivalente a "${subPartida}" dentro de esta familia.`,
+        );
+      }
+
+      const normalizedOldName = normalizeHierarchyText(
+        existingPartida.sub_partida || existingPartida.nombre,
+      );
+      const oldNameStillExists = siblings.some(
+        (item) =>
+          item._id !== existingPartida._id &&
+          normalizeHierarchyText(item.sub_partida || item.nombre) === normalizedOldName,
+      );
+      shouldUpdateProgrammingName =
+        cleanHierarchyText(existingPartida.sub_partida) !== subPartida && !oldNameStillExists;
+    }
+
     const porGastar = (args.presupuesto_aprobado || 0) - (args.pagado || 0);
     await ctx.db.patch(args.id, {
       ...rest,
+      sub_partida: subPartida,
       por_gastar: porGastar,
     });
+
+    if (shouldUpdateProgrammingName && existingPartida.proyecto) {
+      const proyecto = existingPartida.proyecto;
+      const partidaNombre = existingPartida.partida_nombre || existingPartida.nombre;
+      const normalizedPartida = normalizeHierarchyText(partidaNombre);
+      const normalizedFamilia = normalizeHierarchyText(existingPartida.familia);
+      const normalizedOldName = normalizeHierarchyText(
+        existingPartida.sub_partida || existingPartida.nombre,
+      );
+      const detalles = await ctx.db
+        .query("programa_obra_detalle")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto))
+        .collect();
+      for (const detalle of detalles) {
+        if (
+          detalle.nivel === 3 &&
+          normalizeHierarchyText(detalle.partida) === normalizedPartida &&
+          normalizeHierarchyText(detalle.familia) === normalizedFamilia &&
+          normalizeHierarchyText(detalle.subpartida) === normalizedOldName
+        ) {
+          await ctx.db.patch(detalle._id, { subpartida: subPartida });
+        }
+      }
+    }
+
     const updatedPartida = await ctx.db.get(args.id);
     if (updatedPartida) {
       await recalculateBudgetAfterPartidaChange(ctx, updatedPartida);
     }
     return updatedPartida;
+  },
+});
+
+export const getSubPartidaDeletionImpact = query({
+  args: { id: v.id("partidas") },
+  handler: async (ctx, args) => {
+    const partida = await ctx.db.get(args.id);
+    if (!partida) {
+      throw new Error("La subpartida ya no existe.");
+    }
+    return await getSubPartidaDeletionImpactInternal(ctx, partida);
+  },
+});
+
+export const deleteSubPartida = mutation({
+  args: { id: v.id("partidas") },
+  handler: async (ctx, args) => {
+    await assertCanWrite(ctx);
+
+    const partida = await ctx.db.get(args.id);
+    if (!partida) {
+      throw new Error("La subpartida ya no existe.");
+    }
+    if (partida.nivel !== 3 || !partida.proyecto) {
+      throw new Error("Solo se pueden eliminar subpartidas vinculadas a un proyecto.");
+    }
+
+    const impact = await getSubPartidaDeletionImpactInternal(ctx, partida);
+    if (!impact.canDelete) {
+      throw new Error(
+        `No se puede eliminar la subpartida porque tiene ${impact.blockers.join(", ")} asociados.`,
+      );
+    }
+
+    const partidaNombre = partida.partida_nombre || partida.nombre;
+    await ctx.db.delete(partida._id);
+    await recalculateFamiliaRollup(
+      ctx,
+      {
+        proyecto: partida.proyecto,
+        partidaNombre,
+        familia: partida.familia,
+      },
+      { zeroWhenEmpty: true },
+    );
+    await recalculatePartidaRollup(ctx, {
+      proyecto: partida.proyecto,
+      partidaNombre,
+    });
+    await updateProjectMetrics(ctx, partida.proyecto);
+
+    return { deletedId: partida._id };
   },
 });
 

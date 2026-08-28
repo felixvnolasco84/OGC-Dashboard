@@ -186,5 +186,13 @@ expectFailure(
   () => parse(referenceRows, { partidas: [...partidas, { ...partidas[0], _id: "duplicada" }] }),
   /es ambigua/i,
 );
+const renamedDuplicatePartidas = [
+  ...partidas,
+  { ...partidas[0], _id: "renombrada", sub_partida: "CABO DE OFICIOS - CUADRILLA 2" },
+];
+assert.equal(
+  parse(referenceRows, { partidas: renamedDuplicatePartidas }).rowCount,
+  referenceRows.length - 1,
+);
 
 console.log("Labor payment import rules: OK");

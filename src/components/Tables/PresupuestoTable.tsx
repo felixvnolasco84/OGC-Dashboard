@@ -458,6 +458,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                       <DropdownMenuComponentPartida
                         partida={item.originalDoc!}
                         level={item.level}
+                        currency={defaultCurrency}
                         rowData={{
                           displayName: item.displayName,
                           presupuestoOriginal: item.presupuestoOriginal,

@@ -11,6 +11,7 @@
     "test:reports": "node --experimental-strip-types scripts/test-reporting-rules.mjs",
     "test:providers": "node --experimental-strip-types scripts/test-provider-transaction-rules.mjs",
     "test:labor-import": "node --experimental-strip-types scripts/test-labor-payment-import-rules.mjs",
+    "test:partidas": "node --experimental-strip-types scripts/test-partida-rules.mjs",
     "test:chatbot": "node --experimental-strip-types scripts/test-assistant-rules.mjs",
     "test:invoices": "node --experimental-strip-types scripts/test-invoice-analysis-rules.mjs",
     "test:rfi": "node --experimental-strip-types scripts/test-rfi-rules.mjs",

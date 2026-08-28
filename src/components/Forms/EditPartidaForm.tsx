@@ -1,4 +1,4 @@
-  "use client";
+"use client";
 
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +38,9 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
   const FormSchema = z.object({
     nombre: z.string().min(1, "El nombre es requerido"),
     familia: z.string(),
-    sub_partida: z.string(),
+    sub_partida: level === 2
+      ? z.string().trim().min(1, "El nombre de la subpartida es requerido")
+      : z.string(),
     unidad: z.string(),
     cantidad: z.number().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: "Debe ser un número válido mayor o igual a 0",
@@ -75,37 +77,39 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
     },
   });
 
-  const handleUpdate = (data: z.infer<typeof FormSchema>) => {
-    const promise = update({
-      id: partida._id,
-      nivel: partida.nivel,
-      nombre: data.nombre,
-      familia: data.familia,
-      sub_partida: data.sub_partida,
-      partida_nombre: partida.partida_nombre,
-      unidad: data.unidad,
-      cantidad: data.cantidad,
-      precio_unitario: data.precio_unitario,
-      presupuesto_original: data.presupuesto_original,
-      presupuesto_aprobado: data.presupuesto_aprobado,
-      pagado: data.pagado,
-      archivo_origen: partida.archivo_origen,
-      proyecto: partida.proyecto,
-    });
-
-    toast.promise(promise, {
-      loading: "Actualizando partida...",
-      success: () => {
-        onClose?.();
-        setIsLoading(false);
-        return "Partida actualizada.";
-      },
-      error: "Error al actualizar el costo.",
-    });
+  const handleUpdate = async (data: z.infer<typeof FormSchema>) => {
+    setIsLoading(true);
+    try {
+      await update({
+        id: partida._id,
+        nivel: partida.nivel,
+        nombre: data.nombre,
+        familia: data.familia,
+        sub_partida: data.sub_partida.trim(),
+        partida_nombre: partida.partida_nombre,
+        unidad: data.unidad,
+        cantidad: data.cantidad,
+        precio_unitario: data.precio_unitario,
+        presupuesto_original: data.presupuesto_original,
+        presupuesto_aprobado: data.presupuesto_aprobado,
+        pagado: data.pagado,
+        archivo_origen: partida.archivo_origen,
+        proyecto: partida.proyecto,
+      });
+      toast.success(level === 2 ? "Subpartida actualizada." : "Partida actualizada.");
+      onClose?.();
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message.match(/Uncaught Error: ([^\n]+)/)?.[1] || error.message
+        : "Error al actualizar el costo.";
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
-    handleUpdate(data);
+    await handleUpdate(data);
   }
 
   return (
@@ -175,8 +179,8 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                     <FormControl>
                       <Input
                         placeholder="Sub partida"
-                        className="bg-muted"
-                        disabled={true}
+                        className="bg-card"
+                        disabled={isLoading}
                         {...field}
                       />
                     </FormControl>
