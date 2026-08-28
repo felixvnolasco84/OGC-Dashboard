@@ -113,7 +113,7 @@ export default function SeeTransactionsDetailsModal() {
     // TODO: IMPLEMENT THIS SOLUTION FOR THE REST OF THE MODALS
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto bg-white">
                 {paymentContext && (
                     <>
                         <div className="flex justify-end mt-4 items-end">

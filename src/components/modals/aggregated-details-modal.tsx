@@ -1,180 +1,155 @@
 "use client";
+
 import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { useAggregatedDetailsModal } from "@/hooks/aggregated-details-modal";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, CheckCircle2 } from "lucide-react";
+import { cn, formatCurrency } from "@/lib/utils";
+
+const DANGER = "#802424";
+
+function percentOf(part: number, whole: number) {
+  if (!Number.isFinite(part) || !Number.isFinite(whole) || whole === 0) return null;
+  return (part / whole) * 100;
+}
+
+function formatPercent(value: number) {
+  return `${value.toFixed(1)}%`;
+}
+
+function formatSignedCurrency(amount: number) {
+  const formatted = formatCurrency(Math.abs(amount));
+  if (amount > 0) return `+${formatted}`;
+  if (amount < 0) return `−${formatted}`;
+  return formatted;
+}
+
+function MetricRow({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "default" | "danger";
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-3">
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        {hint ? (
+          <p className="mt-0.5 text-[11px] text-subtle-foreground">{hint}</p>
+        ) : null}
+      </div>
+      <p
+        className={cn(
+          "text-right text-sm tabular-nums",
+          tone === "danger" ? "text-[#802424]" : "text-foreground"
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
 
 export default function AggregatedDetailsModal() {
-    const context = useAggregatedDetailsModal((state) => state.context);
-    const isOpen = useAggregatedDetailsModal((state) => state.isOpen);
-    const onClose = useAggregatedDetailsModal((state) => state.onClose);
+  const context = useAggregatedDetailsModal((state) => state.context);
+  const isOpen = useAggregatedDetailsModal((state) => state.isOpen);
+  const onClose = useAggregatedDetailsModal((state) => state.onClose);
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-MX', {
-            style: 'currency',
-            currency: 'MXN'
-        }).format(amount);
-    };
+  const presupuestoOriginal = context?.presupuestoOriginal ?? 0;
+  const presupuestoAprobado = context?.presupuestoAprobado ?? 0;
+  const pagado = context?.pagado ?? 0;
+  const avance = context?.avance ?? 0;
+  const porEjercer = presupuestoAprobado - pagado;
+  const isOverspent = porEjercer < -0.01;
 
-    const formatPercentage = (value: number) => {
-        return `${value.toFixed(1)}%`;
-    };
+  const paidShare = percentOf(pagado, presupuestoAprobado);
+  const variation = presupuestoAprobado - presupuestoOriginal;
+  const variationShare = percentOf(variation, presupuestoOriginal);
 
-    const getPorEjercer = () => {
-        if (!context) return 0;
-        return context.presupuestoAprobado - context.pagado;
-    };
+  const variationHint =
+    variation === 0
+      ? undefined
+      : variationShare === null
+        ? formatSignedCurrency(variation)
+        : `${formatSignedCurrency(variation)} · ${formatPercent(Math.abs(variationShare))}`;
 
-    if (!context) return null;
+  const paidHint =
+    paidShare === null ? undefined : `${formatPercent(paidShare)} del aprobado`;
 
-    const { name, levelLabel, presupuestoOriginal, presupuestoAprobado, pagado, avance } = context;
-    const porEjercer = getPorEjercer();
+  return (
+    <Sheet
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <SheetContent data-square-modal="" className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+        <SheetHeader className="space-y-1 border-b px-5 py-4 pr-12 text-left">
+          <SheetTitle className="truncate text-base">
+            {context?.name ?? "Resumen"}
+          </SheetTitle>
+          <SheetDescription>{context?.levelLabel ?? "Detalle agregado"}</SheetDescription>
+        </SheetHeader>
 
-    return (
-        <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
-                <SheetHeader>
-                    <SheetTitle className="hidden">Resumen de {levelLabel}</SheetTitle>
-                    <SheetDescription className="hidden">
-                        Información detallada del resumen agregado
-                    </SheetDescription>
-                </SheetHeader>
+        {context ? (
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs text-muted-foreground">Avance</span>
+                <span
+                  className={cn(
+                    "text-2xl tabular-nums leading-none",
+                    avance > 100 ? "text-[#802424]" : "text-foreground"
+                  )}
+                >
+                  {formatPercent(avance)}
+                </span>
+              </div>
+              <div className="h-1 w-full bg-muted">
+                <div
+                  className="h-full bg-foreground"
+                  style={{
+                    width: `${Math.min(Math.max(avance, 0), 100)}%`,
+                    backgroundColor: avance > 100 ? DANGER : undefined,
+                  }}
+                />
+              </div>
+            </div>
 
-                {/* Header Card */}
-                <Card className="mt-6 rounded-none border-none shadow-none">
-                    <CardHeader>
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <CardTitle className="text-2xl ">{name}</CardTitle>
-                                <Badge variant="outline" className="mt-2">
-                                    {levelLabel}
-                                </Badge>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm font-medium text-muted-foreground">Avance</div>
-                                <div className="text-2xl font-bold text-green-600">{formatPercentage(avance)}</div>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {/* Progress Bar */}
-                        <div>
-                            <Progress 
-                                className="h-2" 
-                                value={Math.min(avance, 100)} 
-                            />
-                        </div>
-
-                        {/* Financial Summary Grid */}
-                        <div className="grid grid-cols-1 gap-4">
-                            {/* Presupuesto Original */}
-                            <div className="p-4 bg-background rounded-none border border-border">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-sm font-medium text-muted-foreground">Presupuesto Original</span>
-                                </div>
-                                <p className="text-2xl  text-foreground">
-                                    {formatCurrency(presupuestoOriginal)}
-                                </p>
-                            </div>
-
-                            {/* Presupuesto Aprobado */}
-                            <div className="p-4 bg-blue-50 rounded-none border border-blue-200">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                                    <span className="text-sm font-medium text-blue-600">Presupuesto Aprobado</span>
-                                </div>
-                                <p className="text-2xl  text-blue-900">
-                                    {formatCurrency(presupuestoAprobado)}
-                                </p>
-                            </div>
-
-                            {/* Amount Paid */}
-                            <div className="p-4 bg-green-50 rounded-none border border-green-200">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <TrendingUp className="h-4 w-4 text-green-600" />
-                                    <span className="text-sm font-medium text-green-600">Pagado</span>
-                                </div>
-                                <p className="text-2xl  text-green-900">
-                                    {formatCurrency(pagado)}
-                                </p>
-                                <p className="text-sm text-green-700 mt-1">
-                                    {formatPercentage((pagado / presupuestoAprobado) * 100)} del presupuesto aprobado
-                                </p>
-                            </div>
-
-                            {/* Remaining Amount */}
-                            <div className={`p-4 rounded-none border ${
-                                porEjercer > 0 
-                                    ? 'bg-orange-50 border-orange-200' 
-                                    : porEjercer < 0 
-                                    ? 'bg-red-50 border-red-200'
-                                    : 'bg-background border-border'
-                            }`}>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className={`text-sm font-medium ${
-                                        porEjercer > 0 
-                                            ? 'text-orange-600' 
-                                            : porEjercer < 0 
-                                            ? 'text-red-600'
-                                            : 'text-muted-foreground'
-                                    }`}>
-                                        {porEjercer < 0 ? 'Sobrepago' : 'Por Ejercer'}
-                                    </span>
-                                </div>
-                                <p className={`text-2xl  ${
-                                    porEjercer > 0 
-                                        ? 'text-orange-900' 
-                                        : porEjercer < 0 
-                                        ? 'text-red-900'
-                                        : 'text-foreground'
-                                }`}>
-                                    {formatCurrency(Math.abs(porEjercer))}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Additional Info */}
-                        <div className="pt-4 border-t border-border">
-                            <h3 className="text-sm font-medium text-muted-foreground mb-3">Información Adicional</h3>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Variación del presupuesto:</span>
-                                    <span className={`font-medium ${
-                                        presupuestoAprobado > presupuestoOriginal 
-                                            ? 'text-orange-600' 
-                                            : presupuestoAprobado < presupuestoOriginal
-                                            ? 'text-green-600'
-                                            : 'text-muted-foreground'
-                                    }`}>
-                                        {formatCurrency(presupuestoAprobado - presupuestoOriginal)}
-                                        {presupuestoAprobado !== presupuestoOriginal && (
-                                            <span className="ml-1">
-                                                ({formatPercentage(((presupuestoAprobado - presupuestoOriginal) / presupuestoOriginal) * 100)})
-                                            </span>
-                                        )}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Estado:</span>
-                                    <Badge variant={avance >= 100 ? "default" : avance >= 50 ? "secondary" : "outline"}>
-                                        {avance >= 100 ? "Completado" : avance >= 50 ? "En progreso" : "Iniciado"}
-                                    </Badge>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-            </SheetContent>
-        </Sheet>
-    );
+            <div className="mt-6 divide-y divide-border border-y border-border">
+              <MetricRow
+                label="Presupuesto original"
+                value={formatCurrency(presupuestoOriginal)}
+              />
+              <MetricRow
+                label="Presupuesto aprobado"
+                value={formatCurrency(presupuestoAprobado)}
+                hint={variationHint}
+              />
+              <MetricRow
+                label="Pagado"
+                value={formatCurrency(pagado)}
+                hint={paidHint}
+                tone={paidShare !== null && paidShare > 100 ? "danger" : "default"}
+              />
+              <MetricRow
+                label={isOverspent ? "Sobrepago" : "Por ejercer"}
+                value={formatCurrency(Math.abs(porEjercer))}
+                tone={isOverspent ? "danger" : "default"}
+              />
+            </div>
+          </div>
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  );
 }

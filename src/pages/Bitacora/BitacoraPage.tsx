@@ -28,7 +28,7 @@ interface LogEntry {
     responsable: string;
     comentarios?: string;
     avance_dia: string;
-    fotos?: { _id: string; storage_id?: string; url?: string | null; comment?: string }[];
+    fotos?: { _id: string; storage_id?: string; url?: string | null; comment?: string; descripcion?: string; nombre?: string }[];
     documentos?: { _id: string; nombre: string; url?: string | null }[];
     partida_id: Id<"partidas">;
     familias_tags: string[];
@@ -38,7 +38,7 @@ interface LogEntry {
 
 interface GalleryState {
     isOpen: boolean;
-    photos: { _id: string; url?: string | null; comment?: string }[];
+    photos: { _id: string; url?: string | null; comment?: string; descripcion?: string; nombre?: string }[];
     initialIndex: number;
     logDate?: string;
     logResponsable?: string;

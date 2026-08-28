@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -8,12 +8,14 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Check, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Search } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { ChartConfig } from "@/hooks/useChartConfig";
 
 interface ChartConfigModalProps {
@@ -26,11 +28,108 @@ interface ChartConfigModalProps {
   onReset?: () => Promise<{ success: boolean }>;
 }
 
+const CHART_COLORS = [
+  "#256A34",
+  "#50AC66",
+  "#10B981",
+  "#3B82F6",
+  "#1D4ED8",
+  "#C45C26",
+  "#B45309",
+  "#7C3AED",
+] as const;
+
+const HEX_COLOR = /^#([0-9A-Fa-f]{6})$/;
+
+type FilterTab = "partidas" | "familias" | "sub_partidas";
+
+const FILTER_TABS: { id: FilterTab; label: string }[] = [
+  { id: "partidas", label: "Partidas" },
+  { id: "familias", label: "Familias" },
+  { id: "sub_partidas", label: "Sub-partidas" },
+];
+
+function uniqueSorted(values: Array<string | undefined | null>) {
+  return Array.from(
+    new Set(values.filter((value): value is string => Boolean(value && value !== "")))
+  ).sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function FilterList({
+  items,
+  selected,
+  query,
+  isLoading,
+  onToggle,
+}: {
+  items: string[];
+  selected: string[];
+  query: string;
+  isLoading: boolean;
+  onToggle: (item: string) => void;
+}) {
+  const filtered = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase("es");
+    if (!normalized) return items;
+    return items.filter((item) => item.toLocaleLowerCase("es").includes(normalized));
+  }, [items, query]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2 p-3">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="h-7 bg-muted animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <p className="px-3 py-8 text-center text-sm text-subtle-foreground">
+        No hay elementos en este nivel
+      </p>
+    );
+  }
+
+  if (filtered.length === 0) {
+    return (
+      <p className="px-3 py-8 text-center text-sm text-subtle-foreground">
+        Sin coincidencias
+      </p>
+    );
+  }
+
+  return (
+    <div className="py-1">
+      {filtered.map((item) => {
+        const isSelected = selected.includes(item);
+
+        return (
+          <label
+            key={item}
+            className={cn(
+              "flex cursor-pointer items-center gap-2.5 px-3 py-1.5 transition-colors",
+              isSelected ? "bg-muted" : "hover:bg-muted/60"
+            )}
+          >
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggle(item)}
+              className="rounded-none shadow-none"
+            />
+            <span className="min-w-0 flex-1 truncate text-sm">{item}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ChartConfigModal({
   isOpen,
   onClose,
   proyectoId,
-  chartId,
   currentConfig,
   onSave,
   onReset,
@@ -47,44 +146,31 @@ export default function ChartConfigModal({
   const [selectedSubPartidas, setSelectedSubPartidas] = useState<string[]>(
     currentConfig.sub_partidas || []
   );
+  const [activeTab, setActiveTab] = useState<FilterTab>("partidas");
+  const [search, setSearch] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(
-    null
-  );
 
-  // Fetch all partidas for the project
   const allPartidas = useQuery(api.partida.getByProject, {
     projectId: proyectoId as Id<"desarrollos">,
   });
+  const isLoadingFilters = allPartidas === undefined;
 
-  // Extract unique names by nivel
-  const availablePartidas = Array.from(
-    new Set(
-      allPartidas
-        ?.filter((p) => p.nivel === 1)
-        .map((p) => p.nombre) || []
-    )
-  ).sort();
-  
-  const availableFamilias = Array.from(
-    new Set(
-      allPartidas
-        ?.filter((p) => p.nivel === 2)
-        .map((p) => p.familia)
-        .filter((f) => f && f !== "") || []
-    )
-  ).sort();
-  
-  const availableSubPartidas = Array.from(
-    new Set(
-      allPartidas
-        ?.filter((p) => p.nivel === 3)
-        .map((p) => p.sub_partida)
-        .filter((sp) => sp && sp !== "") || []
-    )
-  ).sort();
+  const availablePartidas = useMemo(
+    () => uniqueSorted(allPartidas?.filter((p) => p.nivel === 1).map((p) => p.nombre) || []),
+    [allPartidas]
+  );
 
-  // Reset form when config changes
+  const availableFamilias = useMemo(
+    () => uniqueSorted(allPartidas?.filter((p) => p.nivel === 2).map((p) => p.familia) || []),
+    [allPartidas]
+  );
+
+  const availableSubPartidas = useMemo(
+    () =>
+      uniqueSorted(allPartidas?.filter((p) => p.nivel === 3).map((p) => p.sub_partida) || []),
+    [allPartidas]
+  );
+
   useEffect(() => {
     setTitle(currentConfig.title);
     setColor(currentConfig.color);
@@ -92,17 +178,52 @@ export default function ChartConfigModal({
     setSelectedPartidas(currentConfig.partidas || []);
     setSelectedFamilias(currentConfig.familias || []);
     setSelectedSubPartidas(currentConfig.sub_partidas || []);
-    setSaveMessage(null);
+    setActiveTab("partidas");
+    setSearch("");
   }, [currentConfig, isOpen]);
+
+  const selectedByTab: Record<FilterTab, string[]> = {
+    partidas: selectedPartidas,
+    familias: selectedFamilias,
+    sub_partidas: selectedSubPartidas,
+  };
+
+  const itemsByTab: Record<FilterTab, string[]> = {
+    partidas: availablePartidas,
+    familias: availableFamilias,
+    sub_partidas: availableSubPartidas,
+  };
+
+  const setSelectedByTab: Record<FilterTab, (items: string[]) => void> = {
+    partidas: setSelectedPartidas,
+    familias: setSelectedFamilias,
+    sub_partidas: setSelectedSubPartidas,
+  };
+
+  const activeSelected = selectedByTab[activeTab];
+  const totalSelected =
+    selectedPartidas.length + selectedFamilias.length + selectedSubPartidas.length;
+
+  const pickerColor = HEX_COLOR.test(color) ? color : "#256A34";
+  const isPresetColor = CHART_COLORS.some(
+    (swatch) => swatch.toUpperCase() === color.toUpperCase()
+  );
+
+  const toggleItem = (item: string) => {
+    const current = selectedByTab[activeTab];
+    setSelectedByTab[activeTab](
+      current.includes(item) ? current.filter((value) => value !== item) : [...current, item]
+    );
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
-    setSaveMessage(null);
 
+    const parsedHeight = parseInt(height, 10);
     const result = await onSave({
-      title,
-      color,
-      height: parseInt(height) || 300,
+      title: title.trim() || currentConfig.title,
+      color: HEX_COLOR.test(color) ? color : currentConfig.color,
+      height: Number.isFinite(parsedHeight) ? Math.min(800, Math.max(200, parsedHeight)) : 300,
       partidas: selectedPartidas.length > 0 ? selectedPartidas : undefined,
       familias: selectedFamilias.length > 0 ? selectedFamilias : undefined,
       sub_partidas: selectedSubPartidas.length > 0 ? selectedSubPartidas : undefined,
@@ -111,261 +232,254 @@ export default function ChartConfigModal({
     setIsSaving(false);
 
     if (result.success) {
-      setSaveMessage({ type: "success", text: "Configuración guardada correctamente" });
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      toast.success("Configuración guardada");
+      onClose();
     } else {
-      setSaveMessage({ type: "error", text: "Error al guardar la configuración" });
+      toast.error("No se pudo guardar la configuración");
     }
   };
 
   const handleReset = async () => {
     if (!onReset) return;
-    
+
     setIsSaving(true);
-    setSaveMessage(null);
-
     const result = await onReset();
-
     setIsSaving(false);
 
     if (result.success) {
-      setSaveMessage({
-        type: "success",
-        text: "Configuración restablecida a valores predeterminados",
-      });
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      toast.success("Configuración restablecida");
+      onClose();
     } else {
-      setSaveMessage({ type: "error", text: "Error al restablecer la configuración" });
-    }
-  };
-
-  const toggleSelection = (
-    item: string,
-    selectedItems: string[],
-    setSelectedItems: (items: string[]) => void
-  ) => {
-    if (selectedItems.includes(item)) {
-      setSelectedItems(selectedItems.filter((i) => i !== item));
-    } else {
-      setSelectedItems([...selectedItems, item]);
+      toast.error("No se pudo restablecer la configuración");
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Configurar Gráfica</DialogTitle>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        data-square-modal=""
+        className="flex max-h-[85vh] max-w-lg flex-col gap-0 overflow-hidden p-0"
+      >
+        <DialogHeader className="space-y-1 border-b px-5 py-4 pr-12 text-left">
+          <DialogTitle>Configurar gráfica</DialogTitle>
           <DialogDescription>
-            Personaliza el título, color y filtros de la gráfica. ID: {chartId}
+            Título, color y filtros de datos.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Título</Label>
+        <form
+          className="flex min-h-0 flex-1 flex-col"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleSave();
+          }}
+        >
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="chart-title" className="text-xs text-muted-foreground">
+              Título
+            </Label>
             <Input
-              id="title"
+              id="chart-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Nombre de la gráfica"
             />
           </div>
 
-          {/* Color */}
-          <div className="space-y-2">
-            <Label htmlFor="color">Color</Label>
-            <div className="flex gap-2">
-              <Input
-                id="color"
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-20 h-10"
-              />
-              <Input
-                type="text"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                placeholder="#3B82F6"
-                className="flex-1"
-              />
-            </div>
-          </div>
-
-          {/* Height */}
-          <div className="space-y-2">
-            <Label htmlFor="height">Altura (px)</Label>
-            <Input
-              id="height"
-              type="number"
-              value={height}
-              onChange={(e) => setHeight(e.target.value)}
-              placeholder="300"
-              min="200"
-              max="800"
-            />
-          </div>
-
-          {/* Partidas Filter */}
-          <div className="space-y-2">
-            <Label>Filtrar por Partidas (Nivel 1)</Label>
-            <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
-              {availablePartidas.length === 0 ? (
-                <p className="text-sm text-subtle-foreground">Cargando...</p>
-              ) : (
-                <div className="space-y-1">
-                  {availablePartidas.map((partida) => (
+          <div className="grid grid-cols-[1fr_auto] items-end gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Color</Label>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {CHART_COLORS.map((swatch) => {
+                  const isActive = color.toUpperCase() === swatch.toUpperCase();
+                  return (
                     <button
-                      key={partida}
+                      key={swatch}
                       type="button"
-                      onClick={() =>
-                        toggleSelection(partida, selectedPartidas, setSelectedPartidas)
-                      }
-                      className={`w-full text-left px-3 py-1.5 text-sm rounded transition-colors ${
-                        selectedPartidas.includes(partida)
-                          ? "bg-blue-100 text-blue-900"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{partida}</span>
-                        {selectedPartidas.includes(partida) && (
-                          <Check className="h-4 w-4 text-blue-600" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+                      onClick={() => setColor(swatch)}
+                      aria-label={`Usar color ${swatch}`}
+                      aria-pressed={isActive}
+                      className={cn(
+                        "h-6 w-6 border transition-shadow",
+                        isActive
+                          ? "border-foreground ring-1 ring-foreground ring-offset-1 ring-offset-background"
+                          : "border-border-strong hover:border-foreground"
+                      )}
+                      style={{ backgroundColor: swatch }}
+                    />
+                  );
+                })}
+                <label
+                  className={cn(
+                    "relative flex h-6 w-6 cursor-pointer items-center justify-center border",
+                    isPresetColor
+                      ? "border-dashed border-border-strong text-subtle-foreground hover:border-foreground hover:text-foreground"
+                      : "border-foreground ring-1 ring-foreground ring-offset-1 ring-offset-background"
+                  )}
+                  style={isPresetColor ? undefined : { backgroundColor: pickerColor }}
+                  title="Color personalizado"
+                >
+                  <span className="sr-only">Elegir color personalizado</span>
+                  {isPresetColor && (
+                    <span className="text-xs leading-none" aria-hidden>
+                      +
+                    </span>
+                  )}
+                  <input
+                    type="color"
+                    value={pickerColor}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  />
+                </label>
+              </div>
             </div>
-            {selectedPartidas.length > 0 && (
-              <p className="text-xs text-subtle-foreground">
-                {selectedPartidas.length} partida(s) seleccionada(s)
-              </p>
-            )}
+
+            <div className="w-[88px] space-y-1.5">
+              <Label htmlFor="chart-height" className="text-xs text-muted-foreground">
+                Altura
+              </Label>
+              <div className="relative">
+                <Input
+                  id="chart-height"
+                  type="number"
+                  min={200}
+                  max={800}
+                  step={10}
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  className="pr-8"
+                />
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-subtle-foreground">
+                  px
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Familias Filter */}
-          <div className="space-y-2">
-            <Label>Filtrar por Familias (Nivel 2)</Label>
-            <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
-              {availableFamilias.length === 0 ? (
-                <p className="text-sm text-subtle-foreground">Cargando...</p>
-              ) : (
-                <div className="space-y-1">
-                  {availableFamilias.map((familia) => (
-                    <button
-                      key={familia}
-                      type="button"
-                      onClick={() =>
-                        toggleSelection(familia, selectedFamilias, setSelectedFamilias)
-                      }
-                      className={`w-full text-left px-3 py-1.5 text-sm rounded transition-colors ${
-                        selectedFamilias.includes(familia)
-                          ? "bg-green-100 text-green-900"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{familia}</span>
-                        {selectedFamilias.includes(familia) && (
-                          <Check className="h-4 w-4 text-green-600" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {selectedFamilias.length > 0 && (
-              <p className="text-xs text-subtle-foreground">
-                {selectedFamilias.length} familia(s) seleccionada(s)
+          <div className="space-y-2.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <Label className="text-xs text-muted-foreground">Filtros</Label>
+              <p className="text-[11px] text-subtle-foreground">
+                {totalSelected === 0
+                  ? "Sin filtro se incluyen todas"
+                  : `${totalSelected} seleccionada${totalSelected === 1 ? "" : "s"}`}
               </p>
-            )}
-          </div>
+            </div>
 
-          {/* Sub-Partidas Filter */}
-          <div className="space-y-2">
-            <Label>Filtrar por Sub-Partidas (Nivel 3)</Label>
-            <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
-              {availableSubPartidas.length === 0 ? (
-                <p className="text-sm text-subtle-foreground">Cargando...</p>
-              ) : (
-                <div className="space-y-1">
-                  {availableSubPartidas.map((subPartida) => (
-                    <button
-                      key={subPartida}
-                      type="button"
-                      onClick={() =>
-                        toggleSelection(subPartida, selectedSubPartidas, setSelectedSubPartidas)
-                      }
-                      className={`w-full text-left px-3 py-1.5 text-sm rounded transition-colors ${
-                        selectedSubPartidas.includes(subPartida)
-                          ? "bg-purple-100 text-purple-900"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{subPartida}</span>
-                        {selectedSubPartidas.includes(subPartida) && (
-                          <Check className="h-4 w-4 text-purple-600" />
+            <div className="grid grid-cols-3 border border-border">
+              {FILTER_TABS.map((tab) => {
+                const count = selectedByTab[tab.id].length;
+                const isActive = activeTab === tab.id;
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setSearch("");
+                    }}
+                    className={cn(
+                      "flex h-9 items-center justify-center gap-1.5 border-r border-border text-xs last:border-r-0",
+                      isActive
+                        ? "bg-foreground text-background"
+                        : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <span>{tab.label}</span>
+                    {count > 0 && (
+                      <span
+                        className={cn(
+                          "min-w-4 px-1 text-[10px] tabular-nums",
+                          isActive ? "text-background/80" : "text-subtle-foreground"
                         )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            {selectedSubPartidas.length > 0 && (
-              <p className="text-xs text-subtle-foreground">
-                {selectedSubPartidas.length} sub-partida(s) seleccionada(s)
-              </p>
-            )}
-          </div>
 
-          {/* Save Message */}
-          {saveMessage && (
-            <div
-              className={`p-3 rounded-lg flex items-center gap-2 ${
-                saveMessage.type === "success"
-                  ? "bg-green-50 text-green-900"
-                  : "bg-red-50 text-red-900"
-              }`}
-            >
-              {saveMessage.type === "success" ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <X className="h-4 w-4" />
-              )}
-              <span className="text-sm">{saveMessage.text}</span>
+            <div className="border border-border">
+              <div className="flex items-center gap-2 border-b px-2.5">
+                <Search className="h-3.5 w-3.5 shrink-0 text-subtle-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.preventDefault();
+                  }}
+                  placeholder="Buscar"
+                  autoComplete="off"
+                  className="h-9 border-0 px-0 shadow-none focus-visible:ring-0"
+                />
+                {activeSelected.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedByTab[activeTab]([])}
+                    className="shrink-0 text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
+              <div className="max-h-52 overflow-y-auto">
+                <FilterList
+                  items={itemsByTab[activeTab]}
+                  selected={activeSelected}
+                  query={search}
+                  isLoading={isLoadingFilters}
+                  onToggle={toggleItem}
+                />
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleReset} disabled={isSaving}>
-            Restablecer
-          </Button>
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Guardando...
-              </>
-            ) : (
-              "Guardar"
-            )}
-          </Button>
-        </DialogFooter>
+        <div className="flex items-center justify-between gap-3 border-t px-5 py-3">
+          {onReset ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              disabled={isSaving}
+              className="text-muted-foreground"
+            >
+              Restablecer
+            </Button>
+          ) : (
+            <span />
+          )}
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={isSaving}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" size="sm" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Guardando
+                </>
+              ) : (
+                "Guardar"
+              )}
+            </Button>
+          </div>
+        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

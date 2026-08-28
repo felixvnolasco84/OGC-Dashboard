@@ -20,5 +20,5 @@ type AggregatedDetailsStore = {
 export const useAggregatedDetailsModal = create<AggregatedDetailsStore>((set) => ({
     isOpen: false,
     onOpen: (context: AggregatedDetailsContext) => set({ isOpen: true, context }),
-    onClose: () => set({ isOpen: false, context: undefined }),
+    onClose: () => set({ isOpen: false }),
 }));

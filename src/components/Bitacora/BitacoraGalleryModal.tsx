@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Loader2, Maximize2, Minimize2, Plus, Send, Trash2, User, Pencil, Check, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, Maximize2, Plus, Send, Trash2, User, Pencil, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -9,6 +9,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetPortal,
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
@@ -17,6 +18,7 @@ interface Photo {
   _id: string;
   url?: string | null;
   comment?: string;
+  descripcion?: string;
   nombre?: string;
 }
 
@@ -35,7 +37,7 @@ function PhotoCard({
   onMaximize 
 }: { 
   photo: Photo; 
-  onMaximize: (photoUrl: string) => void;
+  onMaximize: () => void;
 }) {
   const [newComment, setNewComment] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -119,9 +121,15 @@ function PhotoCard({
   };
 
   return (
-    <div className="bg-card rounded-lg border border-border overflow-hidden">
+    <div
+      id={`bitacora-gallery-photo-${photo._id}`}
+      className="bg-card rounded-lg border border-border overflow-hidden"
+    >
       {/* Image */}
-      <div className="relative bg-muted">
+      <div
+        className="relative bg-muted cursor-pointer"
+        onClick={onMaximize}
+      >
         {photo.url && (
           <img
             src={photo.url}
@@ -132,7 +140,11 @@ function PhotoCard({
         
         {/* Maximize button */}
         <button
-          onClick={() => photo.url && onMaximize(photo.url)}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMaximize();
+          }}
           className="absolute top-2 right-2 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
         >
           <Maximize2 className="h-4 w-4" />
@@ -284,62 +296,144 @@ function PhotoCard({
   );
 }
 
+function LightboxCaption({
+  photoId,
+  fallback,
+}: {
+  photoId: string;
+  fallback?: string;
+}) {
+  const comments = useQuery(api.bitacora.getPhotoComments, {
+    photoId: photoId as Id<"documentos">,
+  });
+
+  const entries =
+    comments && comments.length > 0
+      ? comments.map((item) => ({
+          id: item._id,
+          text: item.comment,
+          author: item.user_name,
+        }))
+      : fallback
+        ? [{ id: "fallback", text: fallback, author: "" }]
+        : [];
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="px-5 py-3 bg-overlay/60 space-y-2 max-h-32 overflow-y-auto text-center">
+      {entries.map((entry) => (
+        <div key={entry.id}>
+          {entry.author ? (
+            <p className="text-xs text-on-color mb-1">{entry.author}</p>
+          ) : null}
+          <p className="text-sm text-on-color whitespace-pre-wrap">{entry.text}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function BitacoraGalleryModal({
   isOpen,
   onClose,
   photos,
+  initialIndex = 0,
   logDate,
   logResponsable,
 }: BitacoraGalleryModalProps) {
-  const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
-  const fullscreenRef = useRef<HTMLDivElement>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const validPhotos = photos.filter((p) => p.url);
+  const currentPhoto =
+    lightboxIndex !== null ? validPhotos[lightboxIndex] : undefined;
 
-  // Listen for fullscreen changes
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        setFullscreenUrl(null);
-      }
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  const closeLightbox = useCallback(() => {
+    setLightboxIndex(null);
   }, []);
 
-  const handleMaximize = async (photoUrl: string) => {
-    setFullscreenUrl(photoUrl);
-    // Wait for state update and ref to be set
-    setTimeout(async () => {
-      if (fullscreenRef.current) {
-        try {
-          await fullscreenRef.current.requestFullscreen();
-        } catch (error) {
-          console.error("Fullscreen error:", error);
-        }
-      }
-    }, 50);
-  };
+  const showPrevious = useCallback(() => {
+    setLightboxIndex((current) => {
+      if (current === null || validPhotos.length === 0) return current;
+      return current === 0 ? validPhotos.length - 1 : current - 1;
+    });
+  }, [validPhotos.length]);
 
-  const handleExitFullscreen = async () => {
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      }
-      setFullscreenUrl(null);
-    } catch (error) {
-      console.error("Exit fullscreen error:", error);
+  const showNext = useCallback(() => {
+    setLightboxIndex((current) => {
+      if (current === null || validPhotos.length === 0) return current;
+      return current === validPhotos.length - 1 ? 0 : current + 1;
+    });
+  }, [validPhotos.length]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setLightboxIndex(null);
+      return;
     }
-  };
+
+    const target = photos.filter((photo) => photo.url)[initialIndex];
+    if (!target) return;
+
+    const timeout = window.setTimeout(() => {
+      document
+        .getElementById(`bitacora-gallery-photo-${target._id}`)
+        ?.scrollIntoView({ block: "nearest" });
+    }, 50);
+
+    return () => window.clearTimeout(timeout);
+  }, [isOpen, initialIndex, photos]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        showPrevious();
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        showNext();
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeLightbox();
+      }
+    };
+
+    const previousPointerEvents = document.body.style.pointerEvents;
+    document.body.style.pointerEvents = "auto";
+    window.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      document.body.style.pointerEvents = previousPointerEvents;
+      window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [lightboxIndex, showNext, showPrevious, closeLightbox]);
 
   if (validPhotos.length === 0) {
     return null;
   }
 
+  const currentLabel =
+    currentPhoto?.nombre ||
+    currentPhoto?.comment ||
+    (lightboxIndex !== null ? `Foto ${lightboxIndex + 1}` : "Foto");
+
   return (
-    <>
-      <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col">
+      <Sheet
+        open={isOpen}
+        modal={lightboxIndex === null}
+        onOpenChange={(open) => {
+          if (!open && lightboxIndex === null) onClose();
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-3xl p-0 flex flex-col"
+        >
           <SheetHeader className="p-6 pb-4 border-b">
             <SheetTitle>Galería de Fotos</SheetTitle>
             {logDate && (
@@ -351,37 +445,109 @@ export default function BitacoraGalleryModal({
 
           {/* Scrollable Photos List */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {validPhotos.map((photo) => (
+            {validPhotos.map((photo, index) => (
               <PhotoCard
                 key={photo._id}
                 photo={photo}
-                onMaximize={handleMaximize}
+                onMaximize={() => setLightboxIndex(index)}
               />
             ))}
           </div>
         </SheetContent>
-      </Sheet>
 
-      {/* Fullscreen Overlay */}
-      {fullscreenUrl && (
-        <div
-          ref={fullscreenRef}
-          className="fixed inset-0 bg-inverse flex items-center justify-center z-[100]"
-          onClick={handleExitFullscreen}
-        >
-          <img
-            src={fullscreenUrl}
-            alt="Foto en pantalla completa"
-            className="max-w-full max-h-full object-contain"
-          />
-          <button
-            onClick={handleExitFullscreen}
-            className="absolute top-4 right-4 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
-          >
-            <Minimize2 className="h-5 w-5" />
-          </button>
-        </div>
-      )}
-    </>
+        {currentPhoto && lightboxIndex !== null && (
+          <SheetPortal>
+            <div
+              className="fixed inset-0 z-[100] grid h-[100dvh] w-full grid-rows-[auto_minmax(0,1fr)_auto_auto] bg-inverse overflow-hidden pointer-events-auto"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Visor de imágenes"
+            >
+              <div className="flex min-h-14 items-center gap-3 px-5">
+                <p className="min-w-0 flex-1 truncate text-sm text-on-color">
+                  {currentLabel}
+                </p>
+                <span className="text-xs px-3 py-1 rounded-full bg-overlay/60 text-on-color">
+                  {lightboxIndex + 1} / {validPhotos.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={closeLightbox}
+                  className="p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
+                  aria-label="Cerrar visor"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center overflow-hidden">
+                {validPhotos.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={showPrevious}
+                    className="relative z-20 ml-3 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
+                    aria-label="Imagen anterior"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                ) : (
+                  <span />
+                )}
+
+                <div className="h-full min-h-0 min-w-0 overflow-hidden p-4">
+                  <img
+                    src={currentPhoto.url || undefined}
+                    alt={currentLabel}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+
+                {validPhotos.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={showNext}
+                    className="relative z-20 mr-3 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
+                    aria-label="Imagen siguiente"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                ) : (
+                  <span />
+                )}
+              </div>
+
+              <LightboxCaption
+                photoId={currentPhoto._id}
+                fallback={currentPhoto.comment || currentPhoto.descripcion}
+              />
+
+              {validPhotos.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto p-3">
+                  {validPhotos.map((photo, index) => (
+                    <button
+                      key={photo._id}
+                      type="button"
+                      onClick={() => setLightboxIndex(index)}
+                      className={`flex-shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 transition-colors ${
+                        index === lightboxIndex
+                          ? "border-foreground"
+                          : "border-transparent hover:border-border-strong"
+                      }`}
+                      aria-label={`Ver ${photo.nombre || `foto ${index + 1}`}`}
+                      aria-current={index === lightboxIndex ? "true" : undefined}
+                    >
+                      <img
+                        src={photo.url || undefined}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </SheetPortal>
+        )}
+      </Sheet>
   );
 }
