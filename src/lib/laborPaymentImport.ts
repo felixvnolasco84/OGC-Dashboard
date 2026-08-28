@@ -224,6 +224,10 @@ function partidaKey(partida: string, familia: string, subpartida: string) {
   return [partida, familia, subpartida].map(normalizeLaborImportText).join("|");
 }
 
+function partidaFamilyKey(partida: string, familia: string) {
+  return [partida, familia].map(normalizeLaborImportText).join("|");
+}
+
 function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
@@ -284,9 +288,15 @@ export function parseLaborPaymentRows(
   }
 
   const partidaCandidates = new Map<string, LaborImportPartida[]>();
+  const partidaFamilyCandidates = new Map<string, LaborImportPartida[]>();
   for (const partida of options.partidas) {
     const key = partidaKey(partida.nombre, partida.familia, partida.sub_partida);
     partidaCandidates.set(key, [...(partidaCandidates.get(key) || []), partida]);
+    const familyKey = partidaFamilyKey(partida.nombre, partida.familia);
+    partidaFamilyCandidates.set(
+      familyKey,
+      [...(partidaFamilyCandidates.get(familyKey) || []), partida],
+    );
   }
 
   const parsedRows: ParsedSourceRow[] = [];
@@ -306,7 +316,10 @@ export function parseLaborPaymentRows(
     const peopleValue = readCell(row, headers, "numero_personas");
     const numeroPersonas = parseNumber(peopleValue);
 
-    const requiredText = { administration, partida, familia, subpartida, proveedor, factura, categoria, tipoPago, moneda };
+    // SUBPARTIDA is optional when the project catalog contains a family-level
+    // partida (nivel 2) whose own sub_partida is empty. The exact catalog match
+    // below determines whether an empty value is valid for this hierarchy.
+    const requiredText = { administration, partida, familia, proveedor, factura, categoria, tipoPago, moneda };
     for (const [field, value] of Object.entries(requiredText)) {
       if (!value) errors.push(`Fila ${sourceRow}: ${field} es obligatorio.`);
     }
@@ -318,7 +331,16 @@ export function parseLaborPaymentRows(
 
     const candidates = partidaCandidates.get(partidaKey(partida, familia, subpartida)) || [];
     if (!candidates.length) {
-      errors.push(`Fila ${sourceRow}: no existe la partida ${partida} > ${familia} > ${subpartida}.`);
+      const familyCandidates = partidaFamilyCandidates.get(partidaFamilyKey(partida, familia)) || [];
+      const familyRequiresSubpartida = familyCandidates.some(
+        (candidate) => normalizeLaborImportText(candidate.sub_partida) !== "",
+      );
+      if (!subpartida && familyRequiresSubpartida) {
+        errors.push(`Fila ${sourceRow}: subpartida es obligatorio para ${partida} > ${familia}.`);
+      } else {
+        const hierarchy = [partida, familia, subpartida].filter(Boolean).join(" > ");
+        errors.push(`Fila ${sourceRow}: no existe la partida ${hierarchy}.`);
+      }
     } else if (candidates.length > 1) {
       errors.push(`Fila ${sourceRow}: la partida ${partida} > ${familia} > ${subpartida} es ambigua.`);
     }

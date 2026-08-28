@@ -173,6 +173,28 @@ expectFailure(
 const inferredProject = parse(referenceRows, { projectName: "Larena - Torre G" });
 assert.equal(inferredProject.projectMatchMode, "alias");
 assert.equal(inferredProject.administration, "TORRE_G");
+
+const familyOnlyPartida = {
+  _id: "partida-familia",
+  nivel: 2,
+  nombre: "PLOMERÍA",
+  familia: "INSTALACIÓN HIDRO SANITARIA",
+  sub_partida: "",
+};
+const familyOnlyRow = row("", 264000, "PROVEEDOR", "FAM-1", "TRANSFERENCIA", 1);
+familyOnlyRow[1] = familyOnlyPartida.nombre;
+familyOnlyRow[2] = familyOnlyPartida.familia;
+const familyOnlyParsed = parse([headers, familyOnlyRow], { partidas: [familyOnlyPartida] });
+assert.equal(familyOnlyParsed.rowCount, 1);
+assert.equal(familyOnlyParsed.weeks[0].transactions[0].line_items[0].partida_id, familyOnlyPartida._id);
+assert.equal(familyOnlyParsed.weeks[0].transactions[0].line_items[0].sub_partida, "");
+
+const missingRequiredSubpartida = row("", 100, "PROVEEDOR", "SUB-1", "TRANSFERENCIA", 1);
+expectFailure(
+  () => parse([headers, missingRequiredSubpartida]),
+  /subpartida es obligatorio para ALBAÑILERÍAS > MANO_OBRA/i,
+);
+
 const mixedAdministrationRows = referenceRows.map((entry, index) => {
   if (index === 0) return entry;
   const next = [...entry];

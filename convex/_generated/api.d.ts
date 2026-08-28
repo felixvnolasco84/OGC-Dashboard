@@ -40,6 +40,7 @@ import type * as migrations from "../migrations.js";
 import type * as ogc_movimientos from "../ogc_movimientos.js";
 import type * as pagos from "../pagos.js";
 import type * as partida from "../partida.js";
+import type * as partidaRules from "../partidaRules.js";
 import type * as permissions from "../permissions.js";
 import type * as planos from "../planos.js";
 import type * as programa_obra from "../programa_obra.js";
@@ -118,6 +119,7 @@ declare const fullApi: ApiFromModules<{
   ogc_movimientos: typeof ogc_movimientos;
   pagos: typeof pagos;
   partida: typeof partida;
+  partidaRules: typeof partidaRules;
   permissions: typeof permissions;
   planos: typeof planos;
   programa_obra: typeof programa_obra;
