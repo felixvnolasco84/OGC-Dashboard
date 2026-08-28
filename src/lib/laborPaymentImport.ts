@@ -433,8 +433,12 @@ export function parseLaborPaymentRows(
         weekWarnings.push(`Fila ${row.sourceRow}: ${row.subpartida} no tiene NO. PERSONAS.`);
         continue;
       }
-      const key = normalizeLaborImportText(row.subpartida);
-      const current = roleCounts.get(key) || { label: row.subpartida, counts: [] };
+      // Zero means this payment concept has no associated workforce. It must not
+      // create a zero-count role (or an empty role for family-only partidas).
+      if (row.numeroPersonas === 0) continue;
+      const label = row.subpartida || row.familia;
+      const key = normalizeLaborImportText(label);
+      const current = roleCounts.get(key) || { label, counts: [] };
       current.counts.push(row.numeroPersonas);
       roleCounts.set(key, current);
     }
@@ -457,8 +461,9 @@ export function parseLaborPaymentRows(
       }
     } else {
       totalPeople = explicitTotal;
-      if (totalPeople <= 0) errors.push(`${date}: no fue posible determinar el total de personas.`);
-      else weekWarnings.push("No hay un total FASAR válido; el total se infirió desde los puestos deduplicados.");
+      if (totalPeople > 0) {
+        weekWarnings.push("No hay un total FASAR válido; el total se infirió desde los puestos deduplicados.");
+      }
     }
 
     const groupedTransactions = new Map<string, ParsedSourceRow[]>();

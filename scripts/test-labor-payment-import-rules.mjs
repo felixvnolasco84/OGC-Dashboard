@@ -188,6 +188,20 @@ const familyOnlyParsed = parse([headers, familyOnlyRow], { partidas: [familyOnly
 assert.equal(familyOnlyParsed.rowCount, 1);
 assert.equal(familyOnlyParsed.weeks[0].transactions[0].line_items[0].partida_id, familyOnlyPartida._id);
 assert.equal(familyOnlyParsed.weeks[0].transactions[0].line_items[0].sub_partida, "");
+assert.equal(familyOnlyParsed.weeks[0].roles[0].label, familyOnlyPartida.familia);
+
+const paymentWithoutPeople = row(
+  "CABO DE OFICIOS",
+  100,
+  "PROVEEDOR",
+  "MAT-1",
+  "TRANSFERENCIA",
+  0,
+);
+const paymentWithoutPeopleParsed = parse([headers, paymentWithoutPeople]);
+assert.equal(paymentWithoutPeopleParsed.weeks[0].total_people, 0);
+assert.deepEqual(paymentWithoutPeopleParsed.weeks[0].roles, []);
+assert.doesNotMatch(paymentWithoutPeopleParsed.warnings.join("\n"), /total de personas/i);
 
 const missingRequiredSubpartida = row("", 100, "PROVEEDOR", "SUB-1", "TRANSFERENCIA", 1);
 expectFailure(
