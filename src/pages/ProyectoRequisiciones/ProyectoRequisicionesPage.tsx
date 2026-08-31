@@ -93,6 +93,8 @@ export default function ProyectoRequisicionesPage() {
     const [statusHistoryComment, setStatusHistoryComment] = useState("");
     const [statusHistoryDocument, setStatusHistoryDocument] = useState<File | null>(null);
     const [isSubmittingStatusHistory, setIsSubmittingStatusHistory] = useState(false);
+    const isMarkingAsPaid = pendingStatusChange?.targetStage === "pagadas"
+        || pendingStatusChange?.paymentStatus === "Pagado";
 
     // Inline review state
     const [editedQuantities, setEditedQuantities] = useState<Record<string, number>>({});
@@ -808,8 +810,8 @@ export default function ProyectoRequisicionesPage() {
 
     const handleConfirmStatusHistory = async () => {
         if (!pendingStatusChange) return;
-        const comment = statusHistoryComment.trim();
-        if (!comment) {
+        const comment = statusHistoryComment.trim() || undefined;
+        if (!comment && !isMarkingAsPaid) {
             toast.error("Agrega un comentario para registrar el cambio.");
             return;
         }
@@ -1678,7 +1680,9 @@ export default function ProyectoRequisicionesPage() {
                             {pendingStatusChange?.title || "Actualizar estado"}
                         </DialogTitle>
                         <DialogDescription>
-                            {pendingStatusChange?.description || "Registra el motivo del cambio para el historial de la requisición."}
+                            {isMarkingAsPaid
+                                ? "Puedes marcar la requisición como pagada sin adjuntar un comprobante de pago ni agregar un comentario."
+                                : pendingStatusChange?.description || "Registra el motivo del cambio para el historial de la requisición."}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -1687,7 +1691,9 @@ export default function ProyectoRequisicionesPage() {
                             <div className="flex items-start gap-3">
                                 <MessageSquare className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#50AC66]" />
                                 <p>
-                                    El comentario queda guardado en el historial del cambio. El documento es opcional para respaldar la aprobacion, pago o entrega.
+                                    {isMarkingAsPaid
+                                        ? "El cambio queda guardado en el historial. El comentario y el comprobante de pago son opcionales."
+                                        : "El comentario queda guardado en el historial del cambio. El documento es opcional para respaldar la aprobacion, pago o entrega."}
                                 </p>
                             </div>
                         </div>
@@ -1695,7 +1701,7 @@ export default function ProyectoRequisicionesPage() {
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2 text-foreground">
                                 <MessageSquare className="h-4 w-4 text-disabled-foreground" />
-                                Comentario *
+                                {isMarkingAsPaid ? "Comentario opcional" : "Comentario *"}
                             </Label>
                             <Textarea
                                 value={statusHistoryComment}
@@ -1749,7 +1755,7 @@ export default function ProyectoRequisicionesPage() {
                                 type="button"
                                 className="rounded-none bg-[#50AC66] hover:bg-[#499b5c]"
                                 onClick={handleConfirmStatusHistory}
-                                disabled={isSubmittingStatusHistory || !statusHistoryComment.trim()}
+                                disabled={isSubmittingStatusHistory || (!isMarkingAsPaid && !statusHistoryComment.trim())}
                             >
                                 {isSubmittingStatusHistory && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Guardar cambio
