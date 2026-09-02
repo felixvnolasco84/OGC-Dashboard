@@ -1742,6 +1742,7 @@ async function collectRelatedSearchMatchIds(
   for (const pago of pagos) {
     const matchesText =
       includesSearch(pago.concepto, search) ||
+      includesSearch(pago.source_description_snapshot, search) ||
       includesSearch(pago.sub_partida_snapshot, search) ||
       includesSearch(pago.familia_snapshot, search) ||
       includesSearch(pago.partida_nombre_snapshot, search);
@@ -1770,7 +1771,7 @@ async function collectRelatedSearchMatchIds(
       includesSearch(invoice.issuer_name, search);
     const matchesCategory = invoice.approved_category_ids?.some((id) => matchingCategoryIds.has(id));
     if (!matchesText && !matchesCategory) continue;
-    matchIds.add(invoice.primary_transaction_id);
+    if (invoice.primary_transaction_id) matchIds.add(invoice.primary_transaction_id);
     for (const transactionId of invoice.source_transaction_ids) {
       matchIds.add(transactionId);
     }
@@ -1815,7 +1816,7 @@ async function listFilteredProjectTransactions(
   const relatedMatchIds = search
     ? await collectRelatedSearchMatchIds(ctx, args.proyecto_id, search)
     : null;
-  const documentCounts = args.missingDocuments
+  const documentCounts = args.missingDocuments !== undefined
     ? await loadLinkedDocumentCounts(ctx, args.proyecto_id)
     : null;
 
@@ -1880,6 +1881,9 @@ async function listFilteredProjectTransactions(
     }
 
     if (args.missingDocuments && (documentCounts?.get(transaction._id) ?? 0) > 0) {
+      return false;
+    }
+    if (args.missingDocuments === false && (documentCounts?.get(transaction._id) ?? 0) === 0) {
       return false;
     }
 
@@ -2232,50 +2236,59 @@ export const getByPartidaId = query({
   },
 });
 
-// Get all transactions with project name, line items count, and documents count
+// Paginated admin table query. Loading every transaction and then querying its
+// related records exceeded Convex's read limit once the dataset grew, so the
+// enrichment is intentionally limited to the current page.
 export const getAllWithDetails = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
     await assertAdmin(ctx);
-    const transactions = await ctx.db
+    const result = await ctx.db
       .query("transacciones")
       .order("desc")
-      .collect();
+      .paginate(args.paginationOpts);
 
-    // For each transaction, get related data
+    const projectIds = [...new Set(result.page.map((transaction) => transaction.proyecto))];
+    const projects = await Promise.all(projectIds.map((projectId) => ctx.db.get(projectId)));
+    const projectsById = new Map(
+      projects
+        .filter((project): project is NonNullable<typeof project> => project !== null)
+        .map((project) => [project._id, project]),
+    );
+    const providerSummaries = await loadProviderSummaries(
+      ctx,
+      result.page.flatMap((transaction) => transaction.proveedor_id ? [transaction.proveedor_id] : []),
+    );
+
     const transactionsWithDetails = await Promise.all(
-      transactions.map(async (transaction) => {
-        // Get project name
-        const proyecto = await ctx.db.get(transaction.proyecto);
-        const proveedor = await providerSummary(ctx, transaction.proveedor_id);
-        
-        // Count line items
-        const lineItems = await ctx.db
-          .query("pagos")
-          .withIndex("by_transaccion", (q) =>
-            q.eq("transaccion_id", transaction._id)
-          )
-          .collect();
-
-        // Count documents
-        const documents = await ctx.db
-          .query("documentos")
-          .withIndex("by_transaccion", (q) =>
-            q.eq("transaccion_id", transaction._id)
-          )
-          .collect();
+      result.page.map(async (transaction) => {
+        const [lineItems, documents] = await Promise.all([
+          ctx.db
+            .query("pagos")
+            .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
+            .collect(),
+          ctx.db
+            .query("documentos")
+            .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
+            .collect(),
+        ]);
 
         return {
           ...transaction,
-          proveedor,
-          proyectoNombre: proyecto?.nombre,
+          proveedor: transaction.proveedor_id
+            ? providerSummaries.get(transaction.proveedor_id) ?? null
+            : null,
+          proyectoNombre: projectsById.get(transaction.proyecto)?.nombre,
           lineItemsCount: lineItems.length,
           documentsCount: documents.length,
         };
       })
     );
 
-    return transactionsWithDetails;
+    return {
+      ...result,
+      page: transactionsWithDetails,
+    };
   },
 });
 

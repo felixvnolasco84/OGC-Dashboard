@@ -8,10 +8,13 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { extractAssistantResponseText } from "./assistantTypes";
 import {
   INVOICE_UNRESOLVED_CODE,
+  buildInvoiceBudgetTargets,
   invoiceModelOutputJsonSchema,
   invoiceModelOutputSchema,
   normalizeInvoiceCurrency,
+  normalizeInvoiceText,
   parseCfdiXml,
+  rankInvoiceBudgetTargets,
   type InvoiceModelOutput,
   type ParsedInvoice,
 } from "./invoiceRules";
@@ -21,6 +24,7 @@ const MAX_PDF_PAGES = 25;
 const MAX_XML_SIZE = 5 * 1024 * 1024;
 const MAX_PDF_SIZE = 20 * 1024 * 1024;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_BUDGET_CATALOG_TARGETS = 2500;
 
 type StoredDocument = Doc<"documentos"> & { storage_id: Id<"_storage"> };
 type InvoiceModelResponse = {
@@ -97,6 +101,7 @@ async function loadDocuments(
 async function callInvoiceModel(args: {
   input: unknown[];
   categories: Array<{ code: string; label: string; aliases: string[] }>;
+  budgetTargetIds: Set<string>;
   safetyIdentifier: string;
 }) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -119,6 +124,9 @@ async function callInvoiceModel(args: {
           "No inventes renglones, importes, impuestos ni identificadores.",
           "Clasifica los complementos o recibos electrónicos de pago como payment_complement; no los trates como una factura de gasto.",
           `Sólo puedes usar estos códigos de categoría: ${args.categories.map((category) => category.code).join(", ")}.`,
+          "Para budget_partida_id usa únicamente un id literal incluido en budget_catalog; nunca inventes ids ni nombres.",
+          "Interpreta similitud semántica y sinónimos de construcción, pero devuelve null cuando la evidencia no sea suficiente.",
+          "learned_matches contiene decisiones humanas anteriores y debe preferirse cuando el concepto siga siendo equivalente.",
           `Si no hay evidencia suficiente usa ${INVOICE_UNRESOLVED_CODE}.`,
           "Marca asset_candidate únicamente para maquinaria o herramienta durable, no consumibles ni refacciones.",
           "Devuelve JSON estricto conforme al esquema.",
@@ -139,7 +147,20 @@ async function callInvoiceModel(args: {
       throw Object.assign(new Error(payload?.error?.message || `OpenAI respondió ${response.status}`), { code: `openai_${response.status}` });
     }
     const parsed = invoiceModelOutputSchema.parse(JSON.parse(extractAssistantResponseText(payload)));
-    return { payload, parsed };
+    const sanitized = {
+      ...parsed,
+      items: parsed.items.map((item) => args.budgetTargetIds.has(String(item.budget_partida_id || ""))
+        ? item
+        : {
+            ...item,
+            budget_partida_id: null,
+            budget_confidence: "low" as const,
+            budget_reason: item.budget_partida_id
+              ? "La IA devolvió una ruta fuera del catálogo permitido."
+              : item.budget_reason,
+          }),
+    };
+    return { payload, parsed: sanitized };
   } catch (error) {
     if ((error as Error).name === "AbortError") {
       throw Object.assign(new Error("El análisis excedió 90 segundos."), { code: "timeout" });
@@ -150,14 +171,76 @@ async function callInvoiceModel(args: {
   }
 }
 
-function xmlPrompt(parsed: ParsedInvoice, categories: Array<{ code: string; label: string; aliases: string[] }>) {
+type BudgetTargetPayload = ReturnType<typeof buildInvoiceBudgetTargets>[number];
+type BudgetMemory = Doc<"invoice_budget_mapping_memory">;
+
+function learnedMatches(
+  items: Array<{ source_index: number; description: string; product_code?: string }>,
+  memories: BudgetMemory[],
+  allowedTargetIds: Set<string>,
+) {
+  return items.flatMap((item) => {
+    const normalized = normalizeInvoiceText(item.description);
+    const matches = memories
+      .filter((memory) => allowedTargetIds.has(String(memory.partida_id)))
+      .filter((memory) => memory.normalized_description === normalized || (
+        item.product_code && memory.product_code && memory.product_code === item.product_code
+      ))
+      .sort((left, right) => right.confirmations - left.confirmations)
+      .slice(0, 3);
+    return matches.map((memory) => ({
+      source_index: item.source_index,
+      partida_id: String(memory.partida_id),
+      confirmations: memory.confirmations,
+      match_basis: memory.normalized_description === normalized ? "description" : "product_code",
+    }));
+  });
+}
+
+function selectBudgetCatalog(
+  targets: BudgetTargetPayload[],
+  items?: Array<{ description: string }>,
+) {
+  if (targets.length <= MAX_BUDGET_CATALOG_TARGETS) return targets;
+  if (!items?.length) return targets.slice(0, MAX_BUDGET_CATALOG_TARGETS);
+  const selected = new Map<string, BudgetTargetPayload>();
+  for (const item of items) {
+    for (const target of rankInvoiceBudgetTargets(item.description, targets, 120)) {
+      selected.set(target.id, target);
+    }
+  }
+  for (const target of targets) {
+    if (selected.size >= MAX_BUDGET_CATALOG_TARGETS) break;
+    selected.set(target.id, target);
+  }
+  return [...selected.values()].slice(0, MAX_BUDGET_CATALOG_TARGETS);
+}
+
+function budgetCatalogPayload(targets: BudgetTargetPayload[]) {
+  return targets.map((target) => ({
+    id: target.id,
+    partida: target.partida,
+    familia: target.familia,
+    sub_partida: target.sub_partida || null,
+  }));
+}
+
+function xmlPrompt(
+  parsed: ParsedInvoice,
+  categories: Array<{ code: string; label: string; aliases: string[] }>,
+  targets: BudgetTargetPayload[],
+  memories: BudgetMemory[],
+) {
+  const allowedTargetIds = new Set(targets.map((target) => target.id));
   return [{
     role: "user",
     content: [{
       type: "input_text",
       text: JSON.stringify({
-        task: "Clasifica cada renglón conservando exactamente source_index y description. Devuelve los demás campos de header como null porque serán sustituidos por el XML validado.",
+        task: "Clasifica cada renglón conservando exactamente source_index y description. Asigna además la ruta presupuestal semánticamente más cercana. Devuelve los demás campos de header como null porque serán sustituidos por el XML validado.",
         categories,
+        budget_catalog: budgetCatalogPayload(targets),
+        learned_matches: learnedMatches(parsed.items, memories, allowedTargetIds),
         source_items: parsed.items.map((item) => ({
           source_index: item.source_index,
           description: item.description,
@@ -171,6 +254,7 @@ function xmlPrompt(parsed: ParsedInvoice, categories: Array<{ code: string; labe
 function visualPrompt(
   document: { document: StoredDocument; buffer: Buffer; kind: "pdf" | "image"; mime: string },
   categories: Array<{ code: string; label: string; aliases: string[] }>,
+  targets: BudgetTargetPayload[],
 ) {
   const dataUrl = `data:${document.mime};base64,${document.buffer.toString("base64")}`;
   const fileContent = document.kind === "pdf"
@@ -183,8 +267,10 @@ function visualPrompt(
       {
         type: "input_text",
         text: JSON.stringify({
-          task: "Extrae encabezado y todos los conceptos visibles de una sola factura y clasifícalos.",
+          task: "Extrae encabezado y todos los conceptos visibles de una sola factura, clasifícalos y sugiere una ruta presupuestal real para cada uno.",
           categories,
+          budget_catalog: budgetCatalogPayload(targets),
+          learned_matches: [],
         }),
       },
     ],
@@ -217,6 +303,9 @@ function mergeXmlResult(parsed: ParsedInvoice, model: InvoiceModelOutput, allowe
         category_code: code,
         canonical_label: classification?.canonical_label || source.description,
         confidence: classification?.confidence || "low" as const,
+        proposed_partida_id: classification?.budget_partida_id || undefined,
+        budget_confidence: classification?.budget_confidence || "low" as const,
+        budget_reason: classification?.budget_reason || undefined,
         asset_candidate: classification?.asset_candidate || false,
         evidence_page: undefined,
       };
@@ -245,6 +334,9 @@ function unclassifiedXmlResult(parsed: ParsedInvoice, warning: string) {
       category_code: INVOICE_UNRESOLVED_CODE,
       canonical_label: source.description,
       confidence: "low" as const,
+      proposed_partida_id: undefined,
+      budget_confidence: "low" as const,
+      budget_reason: "La clasificación con IA no estuvo disponible.",
       asset_candidate: false,
       evidence_page: undefined,
     })),
@@ -281,6 +373,9 @@ function visualResult(model: InvoiceModelOutput, allowedCodes: Set<string>) {
       category_code: allowedCodes.has(item.category_code) ? item.category_code : INVOICE_UNRESOLVED_CODE,
       canonical_label: item.canonical_label,
       confidence: item.confidence,
+      proposed_partida_id: item.budget_partida_id || undefined,
+      budget_confidence: item.budget_confidence,
+      budget_reason: item.budget_reason || undefined,
       asset_candidate: item.asset_candidate,
       evidence_page: item.evidence_page || undefined,
     })),
@@ -308,15 +403,19 @@ export const processInvoiceRun = internalAction({
       const allowedCodes = new Set<string>(
         categories.map((category: { code: string }) => String(category.code)),
       );
+      const allBudgetTargets = buildInvoiceBudgetTargets(context.partidas);
       const xml = loaded.find((document) => document.kind === "xml");
       const visual = loaded.find((document) => document.kind !== "xml");
       let parsedXml: ParsedInvoice | undefined;
       let input: unknown[];
+      let promptBudgetTargets: BudgetTargetPayload[];
       if (xml) {
         parsedXml = parseCfdiXml(xml.buffer.toString("utf8"));
-        input = xmlPrompt(parsedXml, categories);
+        promptBudgetTargets = selectBudgetCatalog(allBudgetTargets, parsedXml.items);
+        input = xmlPrompt(parsedXml, categories, promptBudgetTargets, context.mapping_memories);
       } else if (visual) {
-        input = visualPrompt(visual, categories);
+        promptBudgetTargets = selectBudgetCatalog(allBudgetTargets);
+        input = visualPrompt(visual, categories, promptBudgetTargets);
       } else {
         throw Object.assign(new Error("No existe una fuente procesable."), { code: "missing_file" });
       }
@@ -325,7 +424,8 @@ export const processInvoiceRun = internalAction({
       let result: ReturnType<typeof mergeXmlResult> | ReturnType<typeof visualResult> | ReturnType<typeof unclassifiedXmlResult>;
       let completedModel = MODEL();
       try {
-        const modelResult = await callInvoiceModel({ input, categories, safetyIdentifier });
+        const budgetTargetIds = new Set(promptBudgetTargets.map((target) => target.id));
+        const modelResult = await callInvoiceModel({ input, categories, budgetTargetIds, safetyIdentifier });
         payload = modelResult.payload;
         result = parsedXml
           ? mergeXmlResult(parsedXml, modelResult.parsed, allowedCodes)
@@ -341,10 +441,10 @@ export const processInvoiceRun = internalAction({
       }
       const warnings = [...result.warnings];
       if (result.total === undefined) warnings.push("No se pudo recuperar un total verificable.");
-      if (result.total !== undefined && Math.abs(Math.abs(result.total) - Math.abs(context.transaction.monto_total)) > 0.01) {
+      if (context.transaction && result.total !== undefined && Math.abs(Math.abs(result.total) - Math.abs(context.transaction.monto_total)) > 0.01) {
         warnings.push("El total de la factura no coincide con el monto de la transacción; requiere motivo de excepción o una asignación parcial.");
       }
-      if (result.currency !== "SIN_MONEDA" && normalizeInvoiceCurrency(context.transaction.moneda) !== result.currency) {
+      if (context.transaction && result.currency !== "SIN_MONEDA" && normalizeInvoiceCurrency(context.transaction.moneda) !== result.currency) {
         warnings.push("La moneda de la factura no coincide con la moneda de la transacción.");
       }
       await ctx.runMutation(internal.invoiceAnalysis.completeRun, {

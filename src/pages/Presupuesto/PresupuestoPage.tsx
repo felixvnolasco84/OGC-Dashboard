@@ -41,6 +41,7 @@ import { useIngresosModal } from "@/hooks/ingresos-modal";
 import IngresosModal from "@/components/modals/ingresos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
 
 type CurrencyMetricProps = {
   amount: number;
@@ -402,6 +403,7 @@ export default function PresupuestoPage() {
                 </CardContent>
               </Card>
 
+              <InvoiceIntakeDialog projectId={proyecto._id} projectName={proyecto.nombre} />
 
               <Popover open={isActionsOpen} onOpenChange={setIsActionsOpen}>
                 <PopoverTrigger asChild>

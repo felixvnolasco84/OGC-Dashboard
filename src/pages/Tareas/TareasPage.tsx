@@ -115,11 +115,11 @@ const TASK_UI_COLORS = {
   tableBorder: "rgb(240, 240, 240)",
   pendingIcon: "rgb(173, 173, 173)",
 };
-const TASK_TABLE_GRID = "grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)_minmax(0,0.74fr)_minmax(0,0.7fr)_minmax(0,0.72fr)_minmax(0,1fr)_32px]";
-const TASK_TITLE_CELL = "min-w-0 md:col-span-3 xl:col-span-1";
-const TASK_FIELD_CELL = "min-w-0 space-y-1 xl:space-y-0";
-const TASK_ACTION_CELL = "flex min-w-0 justify-end md:col-span-3 xl:col-span-1";
-const TASK_MOBILE_LABEL = "block text-xs font-medium text-disabled-foreground xl:hidden";
+const TASK_TABLE_GRID = "grid-cols-[minmax(0,1fr)] md:grid-cols-[repeat(2,minmax(0,1fr))] md:gap-x-6 md:gap-y-3 min-[1440px]:grid-cols-[minmax(0,1.45fr)_minmax(0,0.9fr)_minmax(0,0.74fr)_minmax(0,0.78fr)_minmax(0,0.68fr)_minmax(0,0.72fr)_minmax(0,0.9fr)_32px] min-[1440px]:gap-4";
+const TASK_TITLE_CELL = "min-w-0 md:col-span-2 min-[1440px]:col-span-1";
+const TASK_FIELD_CELL = "min-w-0 space-y-1 min-[1440px]:space-y-0";
+const TASK_ACTION_CELL = "flex min-w-0 justify-end md:col-span-1 min-[1440px]:col-span-1";
+const TASK_MOBILE_LABEL = "block text-xs font-medium text-disabled-foreground min-[1440px]:hidden";
 const TASK_VALUE_TEXT = "text-disabled-foreground";
 const TASK_COLUMN_TEXT = "text-[14px] text-subtle-foreground";
 const TASK_CHECKBOX_CLASS = "h-[14px] w-[14px] !rounded-[4px] border-border shadow-none [&_svg]:h-3 [&_svg]:w-3 data-[state=checked]:border-[#50AC66] data-[state=checked]:bg-[#50AC66] data-[state=checked]:text-on-color";
@@ -530,6 +530,17 @@ function labelForValue(value: string, labels: TaskLabelOption[]) {
   };
 }
 
+function InlineLabelValue({ value, labels }: { value: string; labels: TaskLabelOption[] }) {
+  const activeLabel = labelForValue(value, labels);
+
+  return (
+    <div className="flex h-9 min-w-0 items-center gap-2 px-2 text-sm font-normal text-disabled-foreground min-[1440px]:h-8">
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: activeLabel.color }} />
+      <span className="truncate">{activeLabel.label}</span>
+    </div>
+  );
+}
+
 function InlineDatePicker({
   value,
   disabled,
@@ -555,7 +566,7 @@ function InlineDatePicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-6 w-full min-w-0 justify-start rounded-none border-0 bg-transparent px-0 text-left text-sm font-normal shadow-none hover:bg-transparent",
+            "h-9 w-full min-w-0 justify-start rounded-none border-0 bg-transparent px-0 text-left text-sm font-normal shadow-none hover:bg-transparent min-[1440px]:h-6",
             overdue ? "font-medium text-red-600" : TASK_VALUE_TEXT
           )}
         >
@@ -664,7 +675,7 @@ function InlineLabelPicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground",
+            "h-9 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground min-[1440px]:h-8",
             open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
           )}
         >
@@ -834,7 +845,7 @@ function InlinePriorityPicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground",
+            "h-9 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground min-[1440px]:h-8",
             open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
           )}
         >
@@ -991,7 +1002,7 @@ function InlineSingleSelectPicker({
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-8 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground",
+            "h-9 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground min-[1440px]:h-8",
             open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
           )}
         >
@@ -1084,7 +1095,7 @@ function InlineAssigneePicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "flex h-6 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            "flex h-9 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent min-[1440px]:h-6",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
@@ -1230,7 +1241,7 @@ function InlinePartidaPicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "flex h-6 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            "flex h-9 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent min-[1440px]:h-6",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
@@ -1376,7 +1387,7 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
           type="button"
           disabled={disabled}
           className={cn(
-            "flex h-6 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            "flex h-9 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent min-[1440px]:h-6",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
@@ -1521,7 +1532,7 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
           type="button"
           disabled={disabled}
           className={cn(
-            "flex h-6 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent",
+            "flex h-9 w-full min-w-0 items-center gap-2 rounded-none border-0 bg-transparent px-0 text-left hover:bg-transparent min-[1440px]:h-6",
             disabled && "cursor-not-allowed opacity-70"
           )}
         >
@@ -1617,7 +1628,6 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
   );
 });
 
-void InlineLabelPicker;
 void InlinePartidaPicker;
 void InlinePartidaPickerForCreate;
 
@@ -1726,7 +1736,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notificationTab, setNotificationTab] = useState<"all" | "mentions" | "assignments">("all");
+  const [notificationTab, setNotificationTab] = useState<"all" | "comments" | "mentions" | "assignments">("all");
   const [notificationSearch, setNotificationSearch] = useState("");
   const [onlyUnreadNotifications, setOnlyUnreadNotifications] = useState(false);
   const [contextMenu, setContextMenu] = useState<TaskContextMenu>(null);
@@ -1752,7 +1762,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const newTaskTitleInputRef = useRef<HTMLInputElement>(null);
   const skipSubtaskCreateOnBlur = useRef(false);
   const skipNewTaskCreateOnBlur = useRef(false);
-  const [statusLabels] = useState<TaskLabelOption[]>(() =>
+  const [statusLabels, setStatusLabels] = useState<TaskLabelOption[]>(() =>
     normalizeStoredLabels(window.localStorage.getItem("tareas.statusLabels"), DEFAULT_STATUS_LABELS)
   );
   const [priorityLabels, setPriorityLabels] = useState<TaskLabelOption[]>(() =>
@@ -2002,6 +2012,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     return (taskNotifications || []).filter((item) => {
       const matchesTab =
         notificationTab === "all" ||
+        (notificationTab === "comments" && item.notification_type === "comment") ||
         (notificationTab === "mentions" && item.notification_type === "mention") ||
         (notificationTab === "assignments" && item.notification_type === "assignment");
       const matchesUnread = !onlyUnreadNotifications || item.is_unread;
@@ -2661,7 +2672,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           setContextMenu({ task, x: event.clientX, y: event.clientY });
         }}
         className={cn(
-          "grid min-h-[44px] items-center gap-4 py-3 transition xl:py-1.5",
+          "grid min-h-[44px] items-center gap-4 py-3 transition min-[1440px]:py-1.5",
           TASK_TABLE_GRID
         )}
       >
@@ -2672,14 +2683,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             onDragStart={(event) => beginTaskDrag(event, task)}
             onDragEnd={endTaskDrag}
             className={cn(
-              "flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-disabled-foreground transition active:cursor-grabbing",
+              "flex h-9 w-6 shrink-0 cursor-grab items-center justify-center text-disabled-foreground transition active:cursor-grabbing min-[1440px]:h-5 min-[1440px]:w-4",
               draggingTaskId === task._id ? "opacity-100" : "opacity-40 group-hover:opacity-100"
             )}
             aria-label="Reordenar tarea"
           >
             <GripVertical className="h-3.5 w-3.5" />
           </button>
-          <div className="relative flex h-6 shrink-0 items-center gap-2">
+          <div className="relative flex h-9 shrink-0 items-center gap-2 min-[1440px]:h-6">
             <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || isSaving} className={TASK_CHECKBOX_CLASS} />
           </div>
           <div className="min-w-0 flex-1">
@@ -2695,7 +2706,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
                 }}
                 className={cn(
-                  "h-6 border-transparent bg-transparent px-1 text-sm font-normal text-muted-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0",
+                  "h-9 border-transparent bg-transparent px-1 text-sm font-normal text-muted-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0 min-[1440px]:h-6",
                   level > 0 && "text-subtle-foreground"
                 )}
               />
@@ -2721,6 +2732,16 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             overdue={overdue}
             showRelative={task.status !== "Completada" && task.status !== "Cancelada"}
             onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
+          />
+        </div>
+        <div className={TASK_FIELD_CELL}>
+          <span className={TASK_MOBILE_LABEL}>Estado</span>
+          <InlineLabelPicker
+            value={task.status}
+            labels={effectiveStatusLabels}
+            disabled={!canEditStatus || isSaving}
+            onSelect={(status) => handleStatusChange(task, status)}
+            onLabelsChange={setStatusLabels}
           />
         </div>
         <div className={TASK_FIELD_CELL}>
@@ -2765,7 +2786,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           />
         </div>
         <div className={TASK_ACTION_CELL}>
-          <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-disabled-foreground hover:text-subtle-foreground">
+          <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-9 w-9 text-disabled-foreground hover:text-subtle-foreground min-[1440px]:h-6 min-[1440px]:w-6">
             <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -2803,7 +2824,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             void handleTaskDrop(event, task);
           }}
           className={cn(
-            "group relative border-b bg-transparent px-4 sm:px-8 transition hover:bg-muted",
+            "group relative border-b bg-transparent px-4 md:px-6 min-[1440px]:px-8 transition hover:bg-muted",
             draggingTaskId === task._id && "opacity-50"
           )}
           style={{ borderColor: TASK_UI_COLORS.tableBorder }}
@@ -2811,7 +2832,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           {dropIndicator?.taskId === task._id && <TaskDropLine edge={dropIndicator.edge} />}
           <div
             className={cn(
-              "grid min-h-[44px] items-center gap-4 py-3 xl:py-1.5",
+              "grid min-h-[44px] items-center gap-4 py-3 min-[1440px]:py-1.5",
               TASK_TABLE_GRID,
               !isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && "border-b"
             )}
@@ -2824,20 +2845,20 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   onDragStart={(event) => beginTaskDrag(event, task)}
                   onDragEnd={endTaskDrag}
                   className={cn(
-                    "flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-disabled-foreground transition active:cursor-grabbing",
+                    "flex h-9 w-6 shrink-0 cursor-grab items-center justify-center text-disabled-foreground transition active:cursor-grabbing min-[1440px]:h-5 min-[1440px]:w-4",
                     draggingTaskId === task._id ? "opacity-100" : "opacity-40 group-hover:opacity-100"
                   )}
                   aria-label="Reordenar tarea"
                 >
                   <GripVertical className="h-3.5 w-3.5" />
                 </button>
-                <div className="relative flex h-6 shrink-0 items-center gap-2">
+                <div className="relative flex h-9 shrink-0 items-center gap-2 min-[1440px]:h-6">
                   <Checkbox checked={task.status === "Completada"} onCheckedChange={(checked) => handleStatusChange(task, checked ? "Completada" : "Pendiente")} disabled={!canEditStatus || inlineSavingId === task._id || updatingStatusId === task._id} className={TASK_CHECKBOX_CLASS} />
                   {hasChildren ? (
                     <button
                       type="button"
                       onClick={() => toggleTaskCollapse(task._id)}
-                      className="flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted"
+                      className="flex h-9 w-9 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted min-[1440px]:h-5 min-[1440px]:w-5"
                       aria-expanded={!isTaskCollapsed}
                     >
                       <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isTaskCollapsed && "-rotate-90")} />
@@ -2869,7 +2890,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           });
                         }
                       }}
-                      className="flex h-5 w-5 items-center justify-center rounded-sm text-disabled-foreground hover:bg-muted hover:text-muted-foreground"
+                      className="flex h-9 w-9 items-center justify-center rounded-sm text-disabled-foreground hover:bg-muted hover:text-muted-foreground min-[1440px]:h-5 min-[1440px]:w-5"
                       aria-label="Agregar subtarea"
                     >
                       <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", addingSubtaskFor !== task._id && "-rotate-90")} />
@@ -2889,7 +2910,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         if (value && value !== task.titulo) void handleInlineUpdate(task, { titulo: value });
                       }}
                       className={cn(
-                        "h-6 border-transparent bg-transparent px-1 text-sm font-normal text-muted-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0",
+                        "h-9 border-transparent bg-transparent px-1 text-sm font-normal text-muted-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0 min-[1440px]:h-6",
                         task.parent_task && "text-subtle-foreground"
                       )}
                     />
@@ -2915,6 +2936,16 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                   overdue={isOverdue(task)}
                   showRelative={task.status !== "Completada" && task.status !== "Cancelada"}
                   onChange={(value) => handleInlineUpdate(task, { fecha_limite: value })}
+                />
+              </div>
+              <div className={TASK_FIELD_CELL}>
+                <span className={TASK_MOBILE_LABEL}>Estado</span>
+                <InlineLabelPicker
+                  value={task.status}
+                  labels={effectiveStatusLabels}
+                  disabled={!canEditStatus || inlineSavingId === task._id || updatingStatusId === task._id}
+                  onSelect={(status) => handleStatusChange(task, status)}
+                  onLabelsChange={setStatusLabels}
                 />
               </div>
               <div className={TASK_FIELD_CELL}>
@@ -2959,7 +2990,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 />
               </div>
               <div className={TASK_ACTION_CELL}>
-                <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-6 w-6 text-disabled-foreground hover:text-subtle-foreground">
+                <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-9 w-9 text-disabled-foreground hover:text-subtle-foreground min-[1440px]:h-6 min-[1440px]:w-6">
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -2993,7 +3024,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             )}
             {!isTaskCollapsed && (hasChildren || addingSubtaskFor === task._id) && (
               <>
-                <div className="px-4 py-2 xl:px-6">
+                <div className="px-4 py-2 min-[1440px]:px-6">
                   {addingSubtaskFor === task._id ? (
                     <div className={cn("grid min-h-[44px] items-center gap-4 subtask-creation-form", TASK_TABLE_GRID)}>
                       <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)} style={{ paddingLeft: 26 }}>
@@ -3051,7 +3082,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                             }, 200);
                           }}
                           placeholder="Nombre de la subtarea"
-                          className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-muted-foreground shadow-none focus-visible:ring-0"
+                          className="h-9 border-0 bg-transparent px-0 text-sm font-normal text-muted-foreground shadow-none focus-visible:ring-0 min-[1440px]:h-6"
                         />
                       </div>
                       <div className={TASK_FIELD_CELL}>
@@ -3070,6 +3101,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           disabled={submitting}
                           overdue={false}
                           onChange={setSubtaskDueDate}
+                        />
+                      </div>
+                      <div className={TASK_FIELD_CELL}>
+                        <span className={TASK_MOBILE_LABEL}>Estado</span>
+                        <InlineLabelValue
+                          value={task.status}
+                          labels={effectiveStatusLabels}
                         />
                       </div>
                       <div className={TASK_FIELD_CELL}>
@@ -3158,18 +3196,18 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
     : 8;
 
   return (
-    <div className="min-h-screen bg-card text-left">
-      <div className="border-b border-border px-6 py-8 lg:px-16">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <div className="min-h-screen w-full min-w-0 bg-card text-left">
+      <div className="border-b border-border px-4 py-6 sm:px-6 sm:py-8 lg:px-10 min-[1440px]:px-16">
+        <div className="flex flex-col gap-5 min-[1200px]:flex-row min-[1200px]:items-end min-[1200px]:justify-between">
           <div>
             <p className="text-sm text-subtle-foreground">General</p>
             <h1 className="mt-1 text-3xl font-normal text-foreground">Tareas</h1>
           </div>
-          <div className="flex gap-2 self-start lg:self-auto">
+          <div className="flex w-full flex-wrap gap-2 self-start sm:w-auto min-[1200px]:self-auto">
             <Button
               variant="outline"
               onClick={() => setNotificationsOpen(true)}
-              className="relative h-14 gap-3 rounded-sm border-border bg-card px-5 text-base font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-subtle-foreground"
+              className="relative h-11 flex-1 gap-2 rounded-sm border-border bg-card px-4 text-sm font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-subtle-foreground sm:h-14 sm:flex-none sm:gap-3 sm:px-5 sm:text-base"
             >
               <span className="h-3 w-3 rounded-full bg-[#50AC66]" />
               Notificaciones
@@ -3183,7 +3221,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <Button
                 onClick={openCreateDialog}
                 variant="outline"
-                className="h-14 gap-3 rounded-sm border-border bg-card px-8 text-base font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-subtle-foreground"
+                className="h-11 flex-1 gap-2 rounded-sm border-border bg-card px-4 text-sm font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-subtle-foreground sm:h-14 sm:flex-none sm:gap-3 sm:px-8 sm:text-base"
               >
                 <Plus className="h-5 w-5 text-subtle-foreground" />
                 Nueva tarea
@@ -3193,8 +3231,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
         </div>
       </div>
 
-      <div className="space-y-8 px-6 py-8 lg:px-16">
-        <div className="flex border-b border-border">
+      <div className="space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8 lg:px-10 min-[1440px]:px-16">
+        <div className="grid grid-cols-2 border-b border-border sm:grid-cols-4">
           {[
             { id: "all" as const, label: "Total", value: stats.total },
             { id: "open" as const, label: "Abiertas", value: stats.pending },
@@ -3206,7 +3244,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               type="button"
               onClick={() => setTaskTab(item.id)}
               className={cn(
-                "flex min-w-36 items-center gap-4 px-1 py-4 text-sm text-muted-foreground",
+                "flex min-w-0 items-center justify-center gap-2 px-2 py-3 text-sm text-muted-foreground sm:py-4",
                 taskTab === item.id && "border-b-2 border-foreground text-foreground"
               )}
             >
@@ -3218,8 +3256,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           ))}
         </div>
 
-        <div className="grid gap-4 rounded-lg border border-border bg-card p-4 lg:grid-cols-[minmax(280px,1fr)_300px_350px_auto]">
-          <div className="relative">
+        <div className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:p-4 md:grid-cols-2 min-[1440px]:grid-cols-[minmax(280px,1fr)_minmax(180px,0.55fr)_minmax(220px,0.65fr)_auto] min-[1440px]:gap-4">
+          <div className="relative md:col-span-2 min-[1440px]:col-span-1">
             <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-disabled-foreground" />
             <Input
               value={search}
@@ -3261,7 +3299,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             type="button"
             variant="outline"
             onClick={() => setFiltersDialogOpen(true)}
-            className="h-9 rounded-none border-border bg-card px-5 text-sm text-disabled-foreground shadow-none hover:bg-card hover:text-disabled-foreground"
+            className="h-9 rounded-none border-border bg-card px-5 text-sm text-disabled-foreground shadow-none hover:bg-card hover:text-disabled-foreground md:col-span-2 min-[1440px]:col-span-1"
           >
             <Filter className="h-4 w-4" />
             Más filtros
@@ -3273,7 +3311,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           </Button>
         </div>
 
-        <div className="space-y-10 bg-card">
+        <div className="space-y-6 bg-card sm:space-y-8 min-[1440px]:space-y-10">
               {groupedTasks.map((group) => {
                 const isCollapsed = collapsedProjects.has(group.projectId);
 
@@ -3291,16 +3329,16 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         type="button"
                         onClick={() => toggleProjectCollapse(group.projectId)}
                         className={cn(
-                          "flex min-h-32 w-full items-center gap-3 bg-card px-8 text-left",
+                          "flex min-h-20 w-full items-center gap-2 bg-card px-4 text-left sm:px-6 md:px-8 min-[1440px]:min-h-32 min-[1440px]:gap-3",
                           !isCollapsed && "border-b"
                         )}
                         style={!isCollapsed ? { borderColor: TASK_UI_COLORS.tableBorder } : undefined}
                         aria-expanded={!isCollapsed}
                       >
                         <ChevronDown className={cn("h-4 w-4 text-subtle-foreground transition-transform", isCollapsed && "-rotate-90")} />
-                        <span className="font-medium text-subtle-foreground">{group.projectName}</span>
-                        <MoreHorizontal className="h-4 w-4 text-subtle-foreground" />
-                        <span className="ml-8 rounded-sm bg-muted px-6 py-2 text-xs text-disabled-foreground">
+                        <span className="min-w-0 flex-1 truncate font-medium text-subtle-foreground">{group.projectName}</span>
+                        <MoreHorizontal className="h-4 w-4 shrink-0 text-subtle-foreground" />
+                        <span className="ml-auto shrink-0 rounded-sm bg-muted px-3 py-2 text-xs text-disabled-foreground sm:px-4 min-[1440px]:px-6">
                           {group.tasks.reduce((count, task) => count + 1 + (projectedChildrenByGroup.get(`${group.projectId}:${task._id}`)?.length || 0), 0)} tareas
                         </span>
                       </button>
@@ -3318,7 +3356,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                 className={sectionIndex > 0 ? "border-t" : undefined}
                                 style={sectionIndex > 0 ? { borderColor: TASK_UI_COLORS.tableBorder } : undefined}
                               >
-                                <div className="px-4 pb-3 pt-8 sm:px-8">
+                                <div className="px-4 pb-3 pt-6 md:px-6 md:pt-8 min-[1440px]:px-8">
                                     <button
                                       type="button"
                                       onClick={() => toggleStatusCollapse(sectionKey)}
@@ -3334,16 +3372,17 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                 {!isStatusCollapsed && (
                                   <>
                                     <div
-                                      className={cn("grid items-center gap-4 border-b px-4 py-2 sm:px-8", TASK_COLUMN_TEXT, TASK_TABLE_GRID)}
+                                      className={cn("hidden items-center gap-4 border-b px-4 py-2 md:px-6 min-[1440px]:grid min-[1440px]:px-8", TASK_COLUMN_TEXT, TASK_TABLE_GRID)}
                                       style={{ borderColor: TASK_UI_COLORS.tableBorder }}
                                     >
-                                      <span className={cn("hidden xl:block", TASK_TITLE_CELL)}>Nombre</span>
-                                      <span className="hidden xl:block">Responsable</span>
-                                      <span className="hidden xl:block">Fecha vencimiento</span>
-                                      <span className="hidden xl:block">Prioridad</span>
-                                      <span className="hidden xl:block">Especialidad</span>
-                                      <span className="hidden xl:block">Proyecto</span>
-                                      <span className="hidden xl:block" />
+                                      <span className={cn("hidden min-[1440px]:block", TASK_TITLE_CELL)}>Nombre</span>
+                                      <span className="hidden min-[1440px]:block">Responsable</span>
+                                      <span className="hidden min-[1440px]:block">Fecha vencimiento</span>
+                                      <span className="hidden min-[1440px]:block">Estado</span>
+                                      <span className="hidden min-[1440px]:block">Prioridad</span>
+                                      <span className="hidden min-[1440px]:block">Especialidad</span>
+                                      <span className="hidden min-[1440px]:block">Proyecto</span>
+                                      <span className="hidden min-[1440px]:block" />
                                     </div>
                                     {section.tasks.length > 0 && (
                                       <div>
@@ -3351,7 +3390,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                       </div>
                                     )}
                                     {canCreate && (
-                                      <div className="px-4 py-2 sm:px-8">
+                                      <div className="px-4 py-2 md:px-6 min-[1440px]:px-8">
                                         {addingTaskInSection?.projectId === group.projectId && addingTaskInSection?.statusLabel === section.label.label ? (
                                           <div className={cn("grid min-h-[44px] items-center gap-4 task-creation-form", TASK_TABLE_GRID)}>
                                             <div className={cn("flex items-center gap-2", TASK_TITLE_CELL)}>
@@ -3416,7 +3455,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                   }, 200);
                                                 }}
                                                 placeholder="Nombre de la tarea"
-                                                className="h-6 border-0 bg-transparent px-0 text-sm font-normal text-muted-foreground shadow-none focus-visible:ring-0"
+                                                className="h-9 border-0 bg-transparent px-0 text-sm font-normal text-muted-foreground shadow-none focus-visible:ring-0 min-[1440px]:h-6"
                                               />
                                             </div>
                                             <div className={TASK_FIELD_CELL}>
@@ -3435,6 +3474,13 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                                 disabled={submitting}
                                                 overdue={false}
                                                 onChange={setNewTaskDueDate}
+                                              />
+                                            </div>
+                                            <div className={TASK_FIELD_CELL}>
+                                              <span className={TASK_MOBILE_LABEL}>Estado</span>
+                                              <InlineLabelValue
+                                                value={section.label.label}
+                                                labels={effectiveStatusLabels}
                                               />
                                             </div>
                                             <div className={TASK_FIELD_CELL}>
@@ -3626,8 +3672,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
           <div className="space-y-5 p-6">
             <Tabs value={notificationTab} onValueChange={(value) => setNotificationTab(value as typeof notificationTab)}>
-              <TabsList className="grid w-full grid-cols-3 bg-muted rounded-none">
+              <TabsList className="grid w-full grid-cols-4 bg-muted rounded-none">
                 <TabsTrigger className="rounded-none" value="all">Todas</TabsTrigger>
+                <TabsTrigger className="rounded-none" value="comments">Comentarios</TabsTrigger>
                 <TabsTrigger className="rounded-none" value="mentions">Menciones</TabsTrigger>
                 <TabsTrigger className="rounded-none" value="assignments">Asignaciones</TabsTrigger>
               </TabsList>
@@ -3710,7 +3757,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                         {item.notification_type === "assignment" ? (
                           <ListChecks className="h-4 w-4" />
-                        ) : item.notification_type === "mention" ? (
+                        ) : item.notification_type === "mention" || item.notification_type === "comment" ? (
                           <MessageSquare className="h-4 w-4" />
                         ) : (
                           <Clock3 className="h-4 w-4" />

@@ -443,6 +443,10 @@ function getNotificationType(item: Doc<"tarea_history">, task: Doc<"tareas">, us
     return "mention";
   }
 
+  if (item.action === "comment_added") {
+    return "comment";
+  }
+
   if (
     item.field_changed === "asignados" ||
     (item.action === "created" && task.asignados.includes(user._id))
@@ -751,6 +755,7 @@ export const getUnreadSummary = query({
       total: unreadItems.length,
       hasAssignments: unreadItems.some((item) => item.notification_type === "assignment"),
       hasMentions: unreadItems.some((item) => item.notification_type === "mention"),
+      hasComments: unreadItems.some((item) => item.notification_type === "comment"),
       hasUpdates: unreadItems.some((item) => item.notification_type === "update"),
     };
   },
@@ -807,6 +812,7 @@ export const getAllUnreadSummary = query({
       total: unreadItems.length,
       hasAssignments: unreadItems.some((item) => item.notification_type === "assignment"),
       hasMentions: unreadItems.some((item) => item.notification_type === "mention"),
+      hasComments: unreadItems.some((item) => item.notification_type === "comment"),
       hasUpdates: unreadItems.some((item) => item.notification_type === "update"),
     };
   },

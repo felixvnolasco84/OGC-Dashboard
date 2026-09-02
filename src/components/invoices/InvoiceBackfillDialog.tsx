@@ -122,7 +122,7 @@ export function InvoiceBackfillDialog({ projectId }: { projectId: Id<"desarrollo
                 {queue === undefined ? <Loader2 className="h-4 w-4 animate-spin" /> : queue.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No hay análisis pendientes.</p>
                 ) : queue.map((invoice) => (
-                  <button key={invoice._id} type="button" className="flex w-full items-center justify-between border border-border p-3 text-left text-sm hover:bg-muted/40" onClick={() => { setOpen(false); documentsModal.onOpen(invoice.primary_transaction_id, invoice._id); }}>
+                  <button key={invoice._id} type="button" className="flex w-full items-center justify-between border border-border p-3 text-left text-sm hover:bg-muted/40" onClick={() => { if (!invoice.primary_transaction_id) return; setOpen(false); documentsModal.onOpen(invoice.primary_transaction_id, invoice._id); }}>
                     <span><span className="block font-medium">{invoice.folio || invoice.issuer_name || "Factura sin folio"}</span><span className="text-xs text-muted-foreground">{invoice.status}</span></span>
                     <span className="text-xs text-primary">Abrir revisión</span>
                   </button>

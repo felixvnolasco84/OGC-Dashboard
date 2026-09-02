@@ -159,6 +159,8 @@ export default defineSchema({
   // Line items (concepts) that reference a parent transaction
   pagos: defineTable({
     transaccion_id: v.id("transacciones"), // Foreign key to parent transaction
+    invoice_item_id: v.optional(v.id("invoice_items")),
+    source_description_snapshot: v.optional(v.string()),
     // Optional for historical/custom concepts that cannot be mapped safely to
     // the current project budget. New mapped writes always include this field.
     partida_id: v.optional(v.id("partidas")),
@@ -177,6 +179,7 @@ export default defineSchema({
     numero_personas_origen: v.optional(v.number()),
     source_row: v.optional(v.number()),
   }).index("by_transaccion", { fields: ["transaccion_id"] })
+    .index("by_invoice_item", { fields: ["invoice_item_id"] })
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_proyecto", { fields: ["proyecto_id"] })
     .index("by_proyecto_concepto", { fields: ["proyecto_id", "concepto_normalizado"] }),
@@ -241,7 +244,10 @@ export default defineSchema({
     proyecto: v.id("desarrollos"),
     source_document_ids: v.array(v.id("documentos")),
     source_transaction_ids: v.array(v.id("transacciones")),
-    primary_transaction_id: v.id("transacciones"),
+    primary_transaction_id: v.optional(v.id("transacciones")),
+    integrated_transaction_id: v.optional(v.id("transacciones")),
+    intake_mode: v.optional(v.union(v.literal("linked_transaction"), v.literal("direct"))),
+    duplicate_invoice_id: v.optional(v.id("invoice_records")),
     provider_id: v.optional(v.id("proveedores")),
     source_kind: v.union(
       v.literal("xml"),
@@ -352,6 +358,16 @@ export default defineSchema({
       v.literal("overridden"),
       v.literal("unresolved"),
     ),
+    proposed_partida_id: v.optional(v.id("partidas")),
+    partida_id: v.optional(v.id("partidas")),
+    budget_match_confidence: v.optional(v.union(v.literal("high"), v.literal("medium"), v.literal("low"))),
+    budget_match_reason: v.optional(v.string()),
+    budget_mapping_status: v.optional(v.union(
+      v.literal("proposed"),
+      v.literal("confirmed"),
+      v.literal("overridden"),
+      v.literal("unresolved"),
+    )),
     asset_candidate: v.boolean(),
     evidence_page: v.optional(v.number()),
     reviewed_by: v.optional(v.id("users")),
@@ -360,7 +376,21 @@ export default defineSchema({
     updated_at: v.number(),
   }).index("by_run", { fields: ["run_id"] })
     .index("by_invoice", { fields: ["invoice_id"] })
-    .index("by_category", { fields: ["category_id"] }),
+    .index("by_category", { fields: ["category_id"] })
+    .index("by_partida", { fields: ["partida_id"] }),
+
+  invoice_budget_mapping_memory: defineTable({
+    project_id: v.id("desarrollos"),
+    normalized_description: v.string(),
+    product_code: v.optional(v.string()),
+    partida_id: v.id("partidas"),
+    confirmations: v.number(),
+    last_confirmed_by: v.id("users"),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_project", { fields: ["project_id"] })
+    .index("by_project_description", { fields: ["project_id", "normalized_description"] })
+    .index("by_project_product", { fields: ["project_id", "product_code"] }),
 
   invoice_allocations: defineTable({
     invoice_id: v.id("invoice_records"),

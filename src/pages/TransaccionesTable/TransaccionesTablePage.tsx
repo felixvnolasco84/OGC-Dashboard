@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { usePaginatedQuery, useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +11,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    Building2,
     Eye,
     FileText,
-    Files,
-    Layers,
     Loader2,
     MoreVertical,
     Search,
@@ -36,8 +33,6 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
-import { useTransactionConceptosModal } from "@/hooks/transaction-conceptos-modal";
-import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import {
@@ -48,6 +43,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import AssignProviderDialog from "@/components/providers/AssignProviderDialog";
+import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
 
 const EXTRA_COLUMNS = [
     { id: "tipoPago", label: "Tipo de pago" },
@@ -71,25 +67,27 @@ export default function TransaccionesTablePage() {
     } | null>(null);
     const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
     const [selectedProveedor, setSelectedProveedor] = useState<Id<"proveedores"> | "all" | "unassigned">("all");
-    const [assigningTransaction, setAssigningTransaction] = useState<{
-        id: Id<"transacciones">;
-        proveedorId?: Id<"proveedores">;
-    } | null>(null);
     const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<Id<"transacciones">>>(new Set());
     const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
     const extraColumns = useOptionalTableColumns(EXTRA_COLUMNS);
 
     // Queries
     const proyectos = useQuery(api.desarrollos.getAll);
-    const transacciones = useQuery(api.transacciones.getAllWithDetails);
+    const {
+        results: transacciones,
+        status: transaccionesStatus,
+        loadMore: loadMoreTransacciones,
+    } = usePaginatedQuery(api.transacciones.getAllWithDetails, {}, { initialNumItems: 50 });
     const proveedores = useQuery(api.proveedores.getAllWithStats, { include_archived: true });
     const deleteTransaction = useMutation(api.transacciones.deleteTransaction);
+    const isLoadingFirstPage = transaccionesStatus === "LoadingFirstPage";
+    const isLoadingMore = transaccionesStatus === "LoadingMore";
+    const canLoadMore = transaccionesStatus === "CanLoadMore";
+    const allTransactionsLoaded = transaccionesStatus === "Exhausted";
 
     const detailsModal = useTransactionDetailsModal();
-    const conceptosModal = useTransactionConceptosModal();
-    const documentosModal = useTransactionDocumentosModal();
 
-    const filteredTransacciones = transacciones?.filter((transaccion) => {
+    const filteredTransacciones = transacciones.filter((transaccion) => {
         const matchesSearch = transaccion.proyectoNombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             transaccion.factura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             transaccion.codigo_referencia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -209,7 +207,7 @@ export default function TransaccionesTablePage() {
         });
     };
 
-    const visibleTransactionIds = filteredTransacciones?.map((transaction) => transaction._id) || [];
+    const visibleTransactionIds = filteredTransacciones.map((transaction) => transaction._id);
     const allVisibleSelected = visibleTransactionIds.length > 0 &&
         visibleTransactionIds.every((id) => selectedTransactionIds.has(id));
     const tableColSpan = 8 + extraColumns.visibleCount;
@@ -236,15 +234,16 @@ export default function TransaccionesTablePage() {
                             </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
+                            <InvoiceIntakeDialog />
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
-                                    Total: {transacciones?.length || 0}
+                                    {allTransactionsLoaded ? "Total" : "Cargadas"}: {transacciones.length}
                                 </span>
                             </Badge>
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
-                                    Monto total: {formatCurrency(
-                                        transacciones?.reduce((sum, t) => sum + t.monto_total, 0) || 0
+                                    {allTransactionsLoaded ? "Monto total" : "Monto cargado"}: {formatCurrency(
+                                        transacciones.reduce((sum, t) => sum + t.monto_total, 0)
                                     )}
                                 </span>
                             </Badge>
@@ -399,24 +398,25 @@ export default function TransaccionesTablePage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {!transacciones ? (
+                            {isLoadingFirstPage ? (
                                 <tr>
                                     <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
-                            ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
+                            ) : filteredTransacciones.length === 0 ? (
                                 <tr>
                                     <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
                             ) : (
-                                filteredTransacciones?.map((transaccion) => (
-                                    <tr
-                                        key={transaccion._id}
-                                        className="group hover:bg-background transition-colors"
-                                    >
+                                <>
+                                    {filteredTransacciones.map((transaccion) => (
+                                        <tr
+                                            key={transaccion._id}
+                                            className="group hover:bg-background transition-colors"
+                                        >
                                         <td className="sticky left-0 z-10 w-12 min-w-12 bg-card px-4 py-4 text-center border-b border-r border-border group-hover:bg-background">
                                             <input
                                                 type="checkbox"
@@ -431,14 +431,7 @@ export default function TransaccionesTablePage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 border-b border-r border-border">
-                                            <button
-                                                type="button"
-                                                className="text-left"
-                                                onClick={() => setAssigningTransaction({
-                                                    id: transaccion._id,
-                                                    proveedorId: transaccion.proveedor_id,
-                                                })}
-                                            >
+                                            <div className="text-left">
                                                 <span className="block truncate text-sm font-medium text-foreground">
                                                     {transaccion.proveedor?.razon_social || "Sin proveedor"}
                                                 </span>
@@ -448,20 +441,27 @@ export default function TransaccionesTablePage() {
                                                             ? "Archivado"
                                                             : transaccion.proveedor.tipo === "generico"
                                                             ? "Genérico"
-                                                            : transaccion.proveedor.is_complete ? "Completo" : "Incompleto"}
+                                                        : transaccion.proveedor.is_complete ? "Completo" : "Incompleto"}
                                                     </span>
                                                 )}
-                                            </button>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 border-b border-r border-border">
-                                            <div className="flex min-w-0 items-center gap-2">
-                                                {transaccion.factura && (
+                                            {transaccion.factura ? (
+                                                <button
+                                                    type="button"
+                                                    className="flex min-w-0 items-center gap-2 text-left text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                    onClick={() => detailsModal.onOpen(transaccion._id)}
+                                                    aria-label={`Ver detalle de la factura ${transaccion.factura}`}
+                                                >
                                                     <FileText className="h-4 w-4 shrink-0 text-disabled-foreground" />
-                                                )}
-                                                <span className="truncate text-sm text-foreground font-medium">
-                                                    {transaccion.factura || "-"}
-                                                </span>
-                                            </div>
+                                                    <span className="truncate text-sm font-medium">
+                                                        {transaccion.factura}
+                                                    </span>
+                                                </button>
+                                            ) : (
+                                                <span className="text-sm text-disabled-foreground">-</span>
+                                            )}
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-foreground border-b border-r border-border">
                                             {formatCurrency(transaccion.monto_total)}
@@ -556,21 +556,6 @@ export default function TransaccionesTablePage() {
                                                         <Eye />
                                                         Ver detalles
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="h-9 rounded-none" onSelect={() => conceptosModal.onOpen(transaccion._id)}>
-                                                        <Layers />
-                                                        Ver conceptos
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className="h-9 rounded-none" onSelect={() => documentosModal.onOpen(transaccion._id)}>
-                                                        <Files />
-                                                        Ver documentos
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className="h-9 rounded-none" onSelect={() => setAssigningTransaction({
-                                                        id: transaccion._id,
-                                                        proveedorId: transaccion.proveedor_id,
-                                                    })}>
-                                                        <Building2 />
-                                                        Asignar / cambiar proveedor
-                                                    </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem
                                                         className="h-9 rounded-none text-red-600 focus:bg-red-50 focus:text-red-700"
@@ -582,8 +567,25 @@ export default function TransaccionesTablePage() {
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </td>
-                                    </tr>
-                                ))
+                                        </tr>
+                                    ))}
+                                    {(canLoadMore || isLoadingMore) && (
+                                        <tr>
+                                            <td colSpan={tableColSpan} className="px-6 py-5 text-center">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="rounded-none"
+                                                    onClick={() => loadMoreTransacciones(50)}
+                                                    disabled={isLoadingMore}
+                                                >
+                                                    {isLoadingMore && <Loader2 className="animate-spin" />}
+                                                    {isLoadingMore ? "Cargando..." : "Cargar más transacciones"}
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </>
                             )}
                         </tbody>
                     </table>
@@ -647,12 +649,6 @@ export default function TransaccionesTablePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <AssignProviderDialog
-                open={Boolean(assigningTransaction)}
-                onOpenChange={(open) => !open && setAssigningTransaction(null)}
-                transactionId={assigningTransaction?.id || null}
-                currentProviderId={assigningTransaction?.proveedorId}
-            />
             <AssignProviderDialog
                 open={bulkAssignOpen}
                 onOpenChange={(open) => {

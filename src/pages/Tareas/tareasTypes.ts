@@ -64,7 +64,7 @@ export type TaskHistory = {
 export type TaskNotification = TaskHistory & {
   proyecto_nombre?: string;
   is_unread: boolean;
-  notification_type: "assignment" | "mention" | "update";
+  notification_type: "assignment" | "mention" | "comment" | "update";
   task: {
     _id: Id<"tareas">;
     titulo: string;

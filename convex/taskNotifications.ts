@@ -19,6 +19,11 @@ const taskNotificationTypeValidator = v.union(
   ...TASK_EMAIL_NOTIFICATION_TYPES.map((type) => v.literal(type)),
 );
 
+const COMMENT_MOCK_USER_EMAILS = [
+  "felixvnolasco@gmail.com",
+  "felix@polygon.com",
+] as const;
+
 const dispatchArgs = {
   taskId: v.id("tareas"),
   type: taskNotificationTypeValidator,
@@ -100,6 +105,45 @@ export const prepareTaskEmail = internalQuery({
       actorName: actor?.name || actor?.email || "OGC Dashboard",
       recipients: Array.from(recipientsByEmail.values()),
     };
+  },
+});
+
+export const getCommentMockUsers = internalQuery({
+  args: {
+    emails: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const normalizedEmails = Array.from(new Set(args.emails.map(normalizedEmail)));
+    const indexedUsers = await Promise.all(normalizedEmails.map(async (email) => {
+      return await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .first();
+    }));
+
+    const indexedByEmail = new Map(
+      indexedUsers
+        .filter((user) => user !== null)
+        .map((user) => [normalizedEmail(user.email), user]),
+    );
+    const missingEmails = normalizedEmails.filter((email) => !indexedByEmail.has(email));
+    if (missingEmails.length > 0) {
+      const missingSet = new Set(missingEmails);
+      const caseInsensitiveMatches = (await ctx.db.query("users").collect())
+        .filter((user) => missingSet.has(normalizedEmail(user.email)));
+      for (const user of caseInsensitiveMatches) {
+        indexedByEmail.set(normalizedEmail(user.email), user);
+      }
+    }
+
+    return normalizedEmails
+      .map((email) => indexedByEmail.get(email))
+      .filter((user) => user !== undefined)
+      .map((user) => ({
+        id: user._id,
+        name: user.name || user.email,
+        email: normalizedEmail(user.email),
+      }));
   },
 });
 
@@ -436,6 +480,138 @@ export const sendMockEmailSuite = action({
         error: message,
       }));
     }
+    return {
+      recipient: allowedRecipient,
+      total: results.length,
+      sent: results.filter((result) => result.status === "sent").length,
+      failed: results.filter((result) => result.status === "failed").length,
+      results,
+    };
+  },
+});
+
+export const sendCommentMockEmails = action({
+  args: {
+    recipient: v.string(),
+    mockKey: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const configuredKey = process.env.TASK_EMAIL_MOCK_SECRET;
+    const allowedRecipient = normalizedEmail(process.env.TASK_EMAIL_MOCK_RECIPIENT || COMMENT_MOCK_USER_EMAILS[0]);
+    if (!configuredKey || args.mockKey !== configuredKey) {
+      throw new Error("Invalid task email mock key");
+    }
+    if (normalizedEmail(args.recipient) !== allowedRecipient) {
+      throw new Error("Comment mocks may only be sent to the configured test recipient");
+    }
+
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL;
+    const appUrl = (process.env.APP_URL || process.env.SITE_URL || "").replace(/\/$/, "");
+    if (!resendApiKey || !resendFromEmail || !appUrl) {
+      throw new Error("Comment mock emails require RESEND_API_KEY, RESEND_FROM_EMAIL and APP_URL");
+    }
+
+    const users: Array<{ id: Id<"users">; name: string; email: string }> = await ctx.runQuery(
+      convexInternal.taskNotifications.getCommentMockUsers,
+      { emails: [...COMMENT_MOCK_USER_EMAILS] },
+    );
+    const usersByEmail = new Map(users.map((user) => [user.email, user]));
+    type CommentMockUser = { name: string; email: string };
+    const mockUser = (email: typeof COMMENT_MOCK_USER_EMAILS[number]): CommentMockUser => {
+      return usersByEmail.get(email) || { name: email, email };
+    };
+    const gmailUser = mockUser(COMMENT_MOCK_USER_EMAILS[0]);
+    const polygonUser = mockUser(COMMENT_MOCK_USER_EMAILS[1]);
+
+    const scenarios: Array<{
+      type: "comment_added" | "mentioned";
+      actor: CommentMockUser;
+      simulatedRecipient: CommentMockUser;
+      detail: string;
+    }> = [
+      {
+        type: "comment_added",
+        actor: polygonUser,
+        simulatedRecipient: gmailUser,
+        detail: "Ya revisé la tarea. La propuesta está lista para validar y continuar con el siguiente paso.",
+      },
+      {
+        type: "mentioned",
+        actor: gmailUser,
+        simulatedRecipient: polygonUser,
+        detail: `@${polygonUser.name} ¿puedes revisar este comentario y confirmar si procedemos con la actualización?`,
+      },
+    ];
+
+    const mockEmails = scenarios.map((scenario, index) => {
+      const data = buildTaskEmailMockData(
+        scenario.type,
+        { current: index + 1, total: scenarios.length },
+        {
+          recipientName: scenario.simulatedRecipient.name,
+          actorName: scenario.actor.name,
+          detail: scenario.detail,
+          taskUrl: `${appUrl}/tareas?mock=${scenario.type}`,
+          logoUrl: `${appUrl}/OGC-LOGO.svg`,
+        },
+      );
+      return {
+        type: scenario.type,
+        actorEmail: scenario.actor.email,
+        simulatedRecipientEmail: scenario.simulatedRecipient.email,
+        payload: {
+          from: resendFromEmail,
+          to: [allowedRecipient],
+          subject: getTaskEmailSubject(data),
+          html: renderTaskEmail(data),
+          tags: [
+            { name: "module", value: "tasks" },
+            { name: "template", value: scenario.type },
+            { name: "kind", value: "comment-mock" },
+          ],
+        },
+      };
+    });
+
+    let results: Array<{
+      type: "comment_added" | "mentioned";
+      actorEmail: string;
+      simulatedRecipientEmail: string;
+      deliveryRecipient: string;
+      status: "sent" | "failed";
+      id?: string;
+      error?: string;
+    }>;
+    try {
+      const responseItems = await sendBatchWithResend({
+        apiKey: resendApiKey,
+        emails: mockEmails.map((item) => item.payload),
+        idempotencyKey: `task-comment-mocks-${Date.now()}`,
+      });
+      if (responseItems.length !== mockEmails.length) {
+        throw new Error(`Resend returned ${responseItems.length} ids for ${mockEmails.length} comment mock emails`);
+      }
+      results = mockEmails.map((item, index) => ({
+        type: item.type,
+        actorEmail: item.actorEmail,
+        simulatedRecipientEmail: item.simulatedRecipientEmail,
+        deliveryRecipient: allowedRecipient,
+        status: "sent",
+        id: responseItems[index]?.id,
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown comment mock batch error";
+      results = mockEmails.map((item) => ({
+        type: item.type,
+        actorEmail: item.actorEmail,
+        simulatedRecipientEmail: item.simulatedRecipientEmail,
+        deliveryRecipient: allowedRecipient,
+        status: "failed",
+        error: message,
+      }));
+    }
+
     return {
       recipient: allowedRecipient,
       total: results.length,

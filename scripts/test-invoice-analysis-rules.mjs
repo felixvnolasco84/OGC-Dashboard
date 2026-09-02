@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   allocateInvoiceAmount,
+  buildInvoiceBudgetTargets,
   buildInvoiceReconciliation,
   invoiceModelOutputSchema,
   invoiceAllocationValidationError,
@@ -14,6 +15,7 @@ import {
   normalizeInvoiceUuid,
   parseInvoiceIssuedDate,
   parseCfdiXml,
+  rankInvoiceBudgetTargets,
   resolveInvoiceAggregateSearch,
 } from "../convex/invoiceRules.ts";
 import {
@@ -38,6 +40,15 @@ assert.equal(inferInvoiceDateBasis("¿Cuánto pagamos durante agosto?"), "paymen
 assert.equal(parseInvoiceIssuedDate("2026-08-25T10:30:00"), "2026-08-25");
 assert.equal(parseInvoiceIssuedDate("25/08/2026"), "2026-08-25");
 assert.equal(parseInvoiceIssuedDate("31/02/2026"), undefined);
+
+const budgetTargets = buildInvoiceBudgetTargets([
+  { _id: "p1", nivel: 1, nombre: "OBRA GRIS", familia: "", sub_partida: "" },
+  { _id: "f1", nivel: 2, nombre: "CEMENTOS", partida_nombre: "OBRA GRIS", familia: "CEMENTOS", sub_partida: "" },
+  { _id: "s1", nivel: 3, nombre: "CEMENTO GRIS", partida_nombre: "OBRA GRIS", familia: "CEMENTOS", sub_partida: "CEMENTO GRIS" },
+  { _id: "f2", nivel: 2, nombre: "FLETES", partida_nombre: "LOGÍSTICA", familia: "FLETES", sub_partida: "" },
+]);
+assert.deepEqual(budgetTargets.map((target) => target.id), ["f2", "s1"], "Sólo nivel 3 y familias hoja son destinos válidos");
+assert.equal(rankInvoiceBudgetTargets("Bulto de cemento", budgetTargets, 1)[0].id, "s1");
 
 const sharedUuid = "11111111-2222-3333-4444-555555555555";
 assert.equal(invoiceDocumentPairKey(`CFDI_${sharedUuid}.xml`), invoiceDocumentPairKey(`Factura ${sharedUuid}.pdf`));
@@ -227,6 +238,9 @@ const validModelOutput = {
     category_code: "power_tools",
     canonical_label: "Taladro percutor",
     confidence: "high",
+    budget_partida_id: "s1",
+    budget_confidence: "high",
+    budget_reason: "Coincide con cemento gris",
     asset_candidate: true,
     evidence_page: null,
   }],

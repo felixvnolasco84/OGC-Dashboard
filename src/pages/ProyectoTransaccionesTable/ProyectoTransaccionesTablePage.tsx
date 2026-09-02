@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, FileText, Upload, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon, Eye, Layers, Files, UserCog, Trash2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, MoreVertical, FileText, Upload, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon, Eye, Files, UserCog, Trash2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,9 +28,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
-import { useTransactionConceptosModal } from "@/hooks/transaction-conceptos-modal";
 import { InvoiceBackfillDialog } from "@/components/invoices/InvoiceBackfillDialog";
-import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 
 import { Id } from "../../../convex/_generated/dataModel";
@@ -126,7 +124,9 @@ export default function ProyectoTransaccionesTablePage() {
     const initialStatus = searchParams.get("status") || "all";
     const initialCurrency = searchParams.get("moneda") || "all";
     const initialProvider = searchParams.get("proveedor") || "all";
-    const initialDocuments = searchParams.get("documentos") === "sin" ? "missing" : "all";
+    const initialDocuments = searchParams.get("documentos") === "sin"
+        ? "missing"
+        : searchParams.get("documentos") === "con" ? "with" : "all";
     const initialFrom = searchDate(searchParams.get("desde"));
     const initialTo = searchDate(searchParams.get("hasta"));
     const initialInvoiceFrom = searchDate(searchParams.get("fecha_factura_desde"));
@@ -155,11 +155,7 @@ export default function ProyectoTransaccionesTablePage() {
     const [categoriaFilter, setCategoriaFilter] = useState<string>("all");
     const [monedaFilter, setMonedaFilter] = useState<string>(initialCurrency);
     const [proveedorFilter, setProveedorFilter] = useState<string>(initialProvider);
-    const [documentosFilter, setDocumentosFilter] = useState<"all" | "missing">(initialDocuments);
-    const [assigningTransaction, setAssigningTransaction] = useState<{
-        id: Id<"transacciones">;
-        proveedorId?: Id<"proveedores">;
-    } | null>(null);
+    const [documentosFilter, setDocumentosFilter] = useState<"all" | "missing" | "with">(initialDocuments);
     const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<Id<"transacciones">>>(new Set());
     const [selectFilteredPending, setSelectFilteredPending] = useState(false);
     const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
@@ -222,7 +218,9 @@ export default function ProyectoTransaccionesTablePage() {
             categoria: categoriaFilter === "all" ? undefined : categoriaFilter,
             moneda: monedaFilter === "all" ? undefined : monedaFilter,
             proveedorId: proveedorFilter === "all" ? undefined : proveedorFilter,
-            missingDocuments: documentosFilter === "missing" ? true : undefined,
+            missingDocuments: documentosFilter === "missing"
+                ? true
+                : documentosFilter === "with" ? false : undefined,
         };
     }, [
         proyectoId,
@@ -268,8 +266,6 @@ export default function ProyectoTransaccionesTablePage() {
     // Subscribe only to the stable actions. Subscribing this large table to the
     // complete modal stores caused every modal open/close to rerender all rows.
     const openDetailsModal = useTransactionDetailsModal((state) => state.onOpen);
-    const openConceptosModal = useTransactionConceptosModal((state) => state.onOpen);
-    const openDocumentosModal = useTransactionDocumentosModal((state) => state.onOpen);
 
     const transacciones = transaccionesPage?.items ?? [];
     const matchedCount = transaccionesPage?.total ?? 0;
@@ -779,13 +775,24 @@ export default function ProyectoTransaccionesTablePage() {
                                     <label className="text-sm font-medium text-foreground">Documentos</label>
                                     <Select
                                         value={documentosFilter}
-                                        onValueChange={(value) => setDocumentosFilter(value as "all" | "missing")}
+                                        onValueChange={(value) => {
+                                            const next = value as "all" | "missing" | "with";
+                                            setDocumentosFilter(next);
+                                            setSearchParams((prev) => {
+                                                const params = new URLSearchParams(prev);
+                                                if (next === "missing") params.set("documentos", "sin");
+                                                else if (next === "with") params.set("documentos", "con");
+                                                else params.delete("documentos");
+                                                return params;
+                                            }, { replace: true });
+                                        }}
                                     >
                                         <SelectTrigger className="rounded-none h-10">
                                             <SelectValue placeholder="Todos" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Todos</SelectItem>
+                                            <SelectItem value="with">Con documentos</SelectItem>
                                             <SelectItem value="missing">Sin documentos</SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -977,29 +984,31 @@ export default function ProyectoTransaccionesTablePage() {
                                             />
                                         </td>
                                         <td className="sticky left-12 z-10 min-w-56 w-56 bg-card px-6 py-4 border-b border-r border-border group-hover:bg-background">
-                                            <div className="flex min-w-0 items-start gap-2">
-                                                <FileText className="h-4 w-4 text-disabled-foreground mt-0.5 flex-shrink-0" />
-                                                <div className="min-w-0">
-                                                    <span className="block truncate text-sm text-foreground font-medium">
-                                                        {transaccion.factura || "-"}
-                                                    </span>
-                                                    {transaccion.fecha && (
-                                                        <span className="block truncate text-xs text-disabled-foreground">
-                                                            {formatTransactionDate(transaccion.fecha)}
+                                            {transaccion.factura ? (
+                                                <button
+                                                    type="button"
+                                                    className="flex min-w-0 items-start gap-2 text-left text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                    onClick={() => openDetailsModal(transaccion._id)}
+                                                    aria-label={`Ver detalle de la factura ${transaccion.factura}`}
+                                                >
+                                                    <FileText className="mt-0.5 h-4 w-4 shrink-0 text-disabled-foreground" />
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate text-sm font-medium">
+                                                            {transaccion.factura}
                                                         </span>
-                                                    )}
-                                                </div>
-                                            </div>
+                                                        {transaccion.fecha && (
+                                                            <span className="block truncate text-xs text-disabled-foreground no-underline">
+                                                                {formatTransactionDate(transaccion.fecha)}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </button>
+                                            ) : (
+                                                <span className="text-sm text-disabled-foreground">-</span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 border-b border-r border-border">
-                                            <button
-                                                type="button"
-                                                className="text-left"
-                                                onClick={() => setAssigningTransaction({
-                                                    id: transaccion._id,
-                                                    proveedorId: transaccion.proveedor_id,
-                                                })}
-                                            >
+                                            <div className="text-left">
                                                 <span className="block truncate text-sm font-medium text-foreground">
                                                     {transaccion.proveedor?.razon_social || "Sin proveedor"}
                                                 </span>
@@ -1012,7 +1021,7 @@ export default function ProyectoTransaccionesTablePage() {
                                                             : transaccion.proveedor.is_complete ? "Completo" : "Incompleto"}
                                                     </span>
                                                 )}
-                                            </button>
+                                            </div>
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground border-b border-r border-border">
                                             {formatCurrency(transaccion.monto_total)} {transaccion.moneda || "MXN"}
@@ -1063,21 +1072,6 @@ export default function ProyectoTransaccionesTablePage() {
                                                     <DropdownMenuItem onClick={() => openDetailsModal(transaccion._id)}>
                                                         <Eye className="h-4 w-4" />
                                                         Ver detalles
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => openConceptosModal(transaccion._id)}>
-                                                        <Layers className="h-4 w-4" />
-                                                        Ver conceptos
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => openDocumentosModal(transaccion._id)}>
-                                                        <Files className="h-4 w-4" />
-                                                        Ver documentos
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => setAssigningTransaction({
-                                                        id: transaccion._id,
-                                                        proveedorId: transaccion.proveedor_id,
-                                                    })}>
-                                                        <UserCog className="h-4 w-4" />
-                                                        Asignar / cambiar proveedor
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem
@@ -1242,12 +1236,6 @@ export default function ProyectoTransaccionesTablePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <AssignProviderDialog
-                open={Boolean(assigningTransaction)}
-                onOpenChange={(open) => !open && setAssigningTransaction(null)}
-                transactionId={assigningTransaction?.id || null}
-                currentProviderId={assigningTransaction?.proveedorId}
-            />
             <AssignProviderDialog
                 open={bulkAssignOpen}
                 onOpenChange={(open) => {

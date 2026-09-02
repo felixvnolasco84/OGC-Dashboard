@@ -24,12 +24,19 @@ assert.deepEqual(
 
 const previewLinks = [];
 for (const [index, type] of TASK_EMAIL_NOTIFICATION_TYPES.entries()) {
+  const mockDueDate = type === "overdue"
+    ? "2026-08-17"
+    : type === "due_today"
+      ? "2026-08-19"
+      : "2026-08-22";
   const data = buildTaskEmailMockData(type, {
     current: index + 1,
     total: TASK_EMAIL_NOTIFICATION_TYPES.length,
   }, {
     taskUrl: `http://localhost:5173/tareas?mock=${type}`,
     logoUrl: "../../public/OGC-LOGO.svg",
+    dueDate: mockDueDate,
+    occurredAt: Date.parse("2026-08-19T13:24:00-06:00"),
   });
   const subject = getTaskEmailSubject(data);
   const html = renderTaskEmail(data);

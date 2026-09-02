@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const INVOICE_ANALYSIS_SCHEMA_VERSION = 1;
+export const INVOICE_ANALYSIS_SCHEMA_VERSION = 2;
 export const INVOICE_TAXONOMY_VERSION = 1;
 export const INVOICE_UNRESOLVED_CODE = "unresolved";
 
@@ -47,6 +47,85 @@ export function normalizeInvoiceUuid(value: unknown) {
 export function normalizeInvoiceCurrency(value: unknown) {
   const currency = String(value || "").trim().toUpperCase();
   return /^[A-Z]{3}$/.test(currency) ? currency : "SIN_MONEDA";
+}
+
+export type InvoiceBudgetPartidaInput = {
+  _id: unknown;
+  nivel: number;
+  nombre: string;
+  familia: string;
+  sub_partida: string;
+  partida_nombre?: string;
+};
+
+export type InvoiceBudgetTarget = {
+  id: string;
+  nivel: 2 | 3;
+  partida: string;
+  familia: string;
+  sub_partida: string;
+  label: string;
+  normalized_label: string;
+};
+
+/** Returns only valid payment destinations: level 3, or leaf level 2 families. */
+export function buildInvoiceBudgetTargets(partidas: InvoiceBudgetPartidaInput[]): InvoiceBudgetTarget[] {
+  const familiesWithChildren = new Set(
+    partidas
+      .filter((partida) => partida.nivel === 3)
+      .map((partida) => `${normalizeInvoiceText(partida.partida_nombre)}|${normalizeInvoiceText(partida.familia)}`),
+  );
+  const seen = new Set<string>();
+  const targets: InvoiceBudgetTarget[] = [];
+  for (const partida of partidas) {
+    if (partida.nivel !== 2 && partida.nivel !== 3) continue;
+    const parent = String(partida.partida_nombre || partida.nombre || "").trim();
+    const family = String(partida.familia || "").trim();
+    const subPartida = String(partida.sub_partida || (partida.nivel === 3 ? partida.nombre : "")).trim();
+    if (!parent || !family) continue;
+    if (partida.nivel === 2 && familiesWithChildren.has(`${normalizeInvoiceText(parent)}|${normalizeInvoiceText(family)}`)) continue;
+    if (partida.nivel === 3 && !subPartida) continue;
+    const id = String(partida._id);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const label = [parent, family, subPartida].filter(Boolean).join(" › ");
+    targets.push({
+      id,
+      nivel: partida.nivel as 2 | 3,
+      partida: parent,
+      familia: family,
+      sub_partida: subPartida,
+      label,
+      normalized_label: normalizeInvoiceText(label),
+    });
+  }
+  return targets.sort((left, right) => left.label.localeCompare(right.label, "es-MX"));
+}
+
+function invoiceTextTokens(value: string) {
+  return new Set(normalizeInvoiceText(value).split(" ").filter((token) => token.length >= 3));
+}
+
+export function scoreInvoiceBudgetTarget(description: string, target: InvoiceBudgetTarget) {
+  const normalized = normalizeInvoiceText(description);
+  if (!normalized) return 0;
+  if (target.normalized_label.includes(normalized) || normalized.includes(target.normalized_label)) return 1;
+  const sourceTokens = invoiceTextTokens(normalized);
+  const targetTokens = invoiceTextTokens(target.normalized_label);
+  if (!sourceTokens.size || !targetTokens.size) return 0;
+  let overlap = 0;
+  for (const source of sourceTokens) {
+    if ([...targetTokens].some((targetToken) =>
+      targetToken === source || targetToken.startsWith(source) || source.startsWith(targetToken))) overlap += 1;
+  }
+  return (2 * overlap) / (sourceTokens.size + targetTokens.size);
+}
+
+export function rankInvoiceBudgetTargets(description: string, targets: InvoiceBudgetTarget[], limit = 80) {
+  return targets
+    .map((target) => ({ ...target, score: scoreInvoiceBudgetTarget(description, target) }))
+    .sort((left, right) => right.score - left.score || left.label.localeCompare(right.label, "es-MX"))
+    .slice(0, Math.max(1, limit));
 }
 
 export function isInvoiceAnalysisIntent(text: string) {
@@ -449,6 +528,9 @@ export const invoiceModelOutputSchema = z.object({
     category_code: z.string().min(1).max(80),
     canonical_label: z.string().min(1).max(180),
     confidence: z.enum(["high", "medium", "low"]),
+    budget_partida_id: nullableText,
+    budget_confidence: z.enum(["high", "medium", "low"]),
+    budget_reason: nullableText,
     asset_candidate: z.boolean(),
     evidence_page: z.number().int().min(1).nullable(),
   }).strict()).max(250),
@@ -488,7 +570,7 @@ export const invoiceModelOutputJsonSchema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["source_index", "description", "product_code", "quantity", "unit", "unit_price", "discount", "net_amount", "tax_amount", "gross_amount", "category_code", "canonical_label", "confidence", "asset_candidate", "evidence_page"],
+        required: ["source_index", "description", "product_code", "quantity", "unit", "unit_price", "discount", "net_amount", "tax_amount", "gross_amount", "category_code", "canonical_label", "confidence", "budget_partida_id", "budget_confidence", "budget_reason", "asset_candidate", "evidence_page"],
         properties: {
           source_index: { type: "integer", minimum: 0 },
           description: { type: "string", minLength: 1, maxLength: 500 },
@@ -503,6 +585,9 @@ export const invoiceModelOutputJsonSchema = {
           category_code: { type: "string", minLength: 1, maxLength: 80 },
           canonical_label: { type: "string", minLength: 1, maxLength: 180 },
           confidence: { type: "string", enum: ["high", "medium", "low"] },
+          budget_partida_id: { type: ["string", "null"] },
+          budget_confidence: { type: "string", enum: ["high", "medium", "low"] },
+          budget_reason: { type: ["string", "null"] },
           asset_candidate: { type: "boolean" },
           evidence_page: { type: ["integer", "null"], minimum: 1 },
         },
