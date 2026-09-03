@@ -102,6 +102,18 @@ assert.equal(parsed.weeks[0].total_people, 23);
 assert.deepEqual(parsed.weeks[0].roles.map((role) => role.count), [10, 8, 1, 1, 3]);
 assert.equal(parsed.weeks[0].roles.at(-1)?.label, "No desglosado");
 
+const splitCrews = [
+  headers,
+  row("OFICIAL ALBAÑIL", 7900, "DISPERSIÓN", "DIS-CABODELSOL-20072026.pdf", "TRANSFERENCIA", 2),
+  row("OFICIAL ALBAÑIL", 5100, "EFECTIVO", "EFE-CABODELSOL-20072026.pdf", "EFECTIVO", 2),
+  row("OFICIAL ALBAÑIL", 3950, "DISPERSIÓN", "DIS-CABODELSOL-20072026.pdf", "TRANSFERENCIA", 1),
+  row("OFICIAL ALBAÑIL", 2550, "EFECTIVO", "EFE-CABODELSOL-20072026.pdf", "EFECTIVO", 1),
+];
+const splitCrewsParsed = parse(splitCrews);
+assert.equal(splitCrewsParsed.weeks[0].roles[0].count, 3);
+assert.equal(splitCrewsParsed.weeks[0].total_people, 3);
+assert.doesNotMatch(splitCrewsParsed.warnings.join("\n"), /conteos distintos/i);
+
 const withoutFasarCount = referenceRows.map((entry, index) => (
   index === referenceRows.length - 1 ? [...entry.slice(0, 11), ""] : [...entry]
 ));

@@ -272,6 +272,23 @@ function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+function roleHeadcount(entries: Array<{ count: number; tipoPago: string }>) {
+  const byCount = new Map<number, Map<string, number>>();
+  for (const entry of entries) {
+    const tipo = normalizeLaborImportText(entry.tipoPago) || "SIN TIPO";
+    const byTipo = byCount.get(entry.count) || new Map<string, number>();
+    byTipo.set(tipo, (byTipo.get(tipo) || 0) + 1);
+    byCount.set(entry.count, byTipo);
+  }
+  let total = 0;
+  for (const [count, byTipo] of byCount) {
+    // Same headcount on transferencia and efectivo is one crew paid in two
+    // ways. Distinct headcounts (or extra rows of the same type) are extra people.
+    total += count * Math.max(...byTipo.values());
+  }
+  return total;
+}
+
 function stringifyRow(row: ParsedSourceRow) {
   return JSON.stringify({
     administration: normalizeLaborImportText(row.administration),
@@ -479,7 +496,7 @@ export function parseLaborPaymentRows(
       weekWarnings.push("La fila FASAR no declara NO. PERSONAS; el total se inferirá desde los puestos.");
     }
 
-    const roleCounts = new Map<string, { label: string; counts: number[] }>();
+    const roleCounts = new Map<string, { label: string; entries: Array<{ count: number; tipoPago: string }> }>();
     for (const row of weekRows) {
       if (normalizeLaborImportText(row.subpartida).includes("FASAR")) continue;
       if (row.numeroPersonas === undefined) {
@@ -491,18 +508,16 @@ export function parseLaborPaymentRows(
       if (row.numeroPersonas === 0) continue;
       const label = row.subpartida || row.familia;
       const key = normalizeLaborImportText(label);
-      const current = roleCounts.get(key) || { label, counts: [] };
-      current.counts.push(row.numeroPersonas);
+      const current = roleCounts.get(key) || { label, entries: [] };
+      current.entries.push({ count: row.numeroPersonas, tipoPago: row.tipoPago });
       roleCounts.set(key, current);
     }
 
-    const roles: LaborPaymentRole[] = [...roleCounts.entries()].map(([key, role]) => {
-      const uniqueCounts = [...new Set(role.counts)];
-      if (uniqueCounts.length > 1) {
-        weekWarnings.push(`${role.label}: hay conteos distintos; se usará el mayor para evitar duplicar pagos divididos.`);
-      }
-      return { key, label: role.label, count: Math.max(...role.counts) };
-    });
+    const roles: LaborPaymentRole[] = [...roleCounts.entries()].map(([key, role]) => ({
+      key,
+      label: role.label,
+      count: roleHeadcount(role.entries),
+    }));
     const explicitTotal = roles.reduce((sum, role) => sum + role.count, 0);
     let totalPeople: number;
     if (summaryCounts.length === 1) {
