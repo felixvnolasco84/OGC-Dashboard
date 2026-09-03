@@ -175,6 +175,7 @@ export default function UploadProjectTransactionsModal() {
           nombre: partida.nombre,
           familia: partida.familia,
           sub_partida: partida.sub_partida,
+          partida_nombre: partida.partida_nombre,
         })),
       });
       const fileHash = await hashFile(file);

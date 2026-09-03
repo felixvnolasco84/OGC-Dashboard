@@ -190,6 +190,57 @@ assert.equal(familyOnlyParsed.weeks[0].transactions[0].line_items[0].partida_id,
 assert.equal(familyOnlyParsed.weeks[0].transactions[0].line_items[0].sub_partida, "");
 assert.equal(familyOnlyParsed.weeks[0].roles[0].label, familyOnlyPartida.familia);
 
+const airFamily = {
+  _id: "aire-familia",
+  nivel: 2,
+  nombre: "AIRE_ACONDICIONADO",
+  partida_nombre: "AIRE_ACONDICIONADO",
+  familia: "INSTALACIÓN Y EQUIPOS VIVIENDAS",
+  sub_partida: "",
+};
+const airParent = {
+  _id: "aire-partida",
+  nivel: 1,
+  nombre: "AIRE_ACONDICIONADO",
+  familia: "INSTALACIÓN Y EQUIPOS VIVIENDAS",
+  sub_partida: "",
+};
+const airRow = row("", 433262.5, "FIGUEROA Y DE BUEN, S.A. DE C.V.", "FBU-INS-260807.pdf", "TRANSFERENCIA", 0);
+airRow[1] = "AIRE_ACONDICIONADO";
+airRow[2] = "INSTALACIÓN Y EQUIPOS VIVIENDAS";
+const airParsed = parse([headers, airRow], { partidas: [airParent, airFamily] });
+assert.equal(airParsed.weeks[0].transactions[0].line_items[0].partida_id, airFamily._id);
+
+const airNamedAsFamily = {
+  ...airFamily,
+  _id: "aire-nombre-familia",
+  nombre: "INSTALACIÓN Y EQUIPOS VIVIENDAS",
+};
+const airNamedParsed = parse([headers, airRow], { partidas: [airParent, airNamedAsFamily] });
+assert.equal(airNamedParsed.weeks[0].transactions[0].line_items[0].partida_id, airNamedAsFamily._id);
+
+const duplicateFamilyParsed = parse([headers, airRow], {
+  partidas: [airFamily, { ...airFamily, _id: "aire-familia-duplicada" }],
+});
+assert.equal(duplicateFamilyParsed.weeks[0].transactions[0].line_items[0].partida_id, airFamily._id);
+
+const familyWithChildren = [
+  airParent,
+  airFamily,
+  {
+    _id: "aire-sub",
+    nivel: 3,
+    nombre: "AIRE_ACONDICIONADO",
+    partida_nombre: "AIRE_ACONDICIONADO",
+    familia: "INSTALACIÓN Y EQUIPOS VIVIENDAS",
+    sub_partida: "EQUIPO MINISPLIT",
+  },
+];
+expectFailure(
+  () => parse([headers, airRow], { partidas: familyWithChildren }),
+  /subpartida es obligatorio para AIRE_ACONDICIONADO > INSTALACIÓN Y EQUIPOS VIVIENDAS/i,
+);
+
 const paymentWithoutPeople = row(
   "CABO DE OFICIOS",
   100,

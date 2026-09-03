@@ -47,6 +47,7 @@ export type LaborImportPartida = {
   nombre: string;
   familia: string;
   sub_partida: string;
+  partida_nombre?: string;
 };
 
 export type LaborPaymentLineItem = {
@@ -228,6 +229,45 @@ function partidaFamilyKey(partida: string, familia: string) {
   return [partida, familia].map(normalizeLaborImportText).join("|");
 }
 
+function catalogParentName(partida: LaborImportPartida) {
+  return partida.nivel === 1 ? partida.nombre : (partida.partida_nombre || partida.nombre);
+}
+
+function pushUniquePartida(
+  map: Map<string, LaborImportPartida[]>,
+  key: string,
+  partida: LaborImportPartida,
+) {
+  const current = map.get(key) || [];
+  if (current.some((item) => item._id === partida._id)) return;
+  map.set(key, [...current, partida]);
+}
+
+/**
+ * Payments go to nivel 3 when SUBPARTIDA is present, or to the family leaf
+ * (nivel 2) when it is empty. Parent rollups (nivel 1) share nombre+familia
+ * with their children in many catalogs, so they must not count as a second
+ * match. Duplicate family rows are also collapsed the same way the budget
+ * table hides them.
+ */
+function resolvePartidaMatch(
+  candidates: LaborImportPartida[],
+  subpartida: string,
+): LaborImportPartida[] {
+  if (candidates.length <= 1) return candidates;
+  const preferredNivel = subpartida ? 3 : 2;
+  const atNivel = candidates.filter((item) => item.nivel === preferredNivel);
+  if (atNivel.length === 1) return atNivel;
+  if (!subpartida && atNivel.length > 1) return [atNivel[0]];
+  if (atNivel.length > 1) return atNivel;
+  if (!subpartida) {
+    const leaves = candidates.filter((item) => item.nivel !== 1);
+    if (leaves.length === 1) return leaves;
+    if (leaves.length > 1) return [leaves[0]];
+  }
+  return candidates;
+}
+
 function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
@@ -290,13 +330,19 @@ export function parseLaborPaymentRows(
   const partidaCandidates = new Map<string, LaborImportPartida[]>();
   const partidaFamilyCandidates = new Map<string, LaborImportPartida[]>();
   for (const partida of options.partidas) {
-    const key = partidaKey(partida.nombre, partida.familia, partida.sub_partida);
-    partidaCandidates.set(key, [...(partidaCandidates.get(key) || []), partida]);
-    const familyKey = partidaFamilyKey(partida.nombre, partida.familia);
-    partidaFamilyCandidates.set(
-      familyKey,
-      [...(partidaFamilyCandidates.get(familyKey) || []), partida],
-    );
+    const parentName = catalogParentName(partida);
+    for (const name of new Set([parentName, partida.nombre].filter(Boolean))) {
+      pushUniquePartida(
+        partidaCandidates,
+        partidaKey(name, partida.familia, partida.sub_partida),
+        partida,
+      );
+      pushUniquePartida(
+        partidaFamilyCandidates,
+        partidaFamilyKey(name, partida.familia),
+        partida,
+      );
+    }
   }
 
   const parsedRows: ParsedSourceRow[] = [];
@@ -329,20 +375,25 @@ export function parseLaborPaymentRows(
       errors.push(`Fila ${sourceRow}: NO. PERSONAS debe ser un entero no negativo.`);
     }
 
-    const candidates = partidaCandidates.get(partidaKey(partida, familia, subpartida)) || [];
-    if (!candidates.length) {
-      const familyCandidates = partidaFamilyCandidates.get(partidaFamilyKey(partida, familia)) || [];
-      const familyRequiresSubpartida = familyCandidates.some(
-        (candidate) => normalizeLaborImportText(candidate.sub_partida) !== "",
+    const familyCandidates = partidaFamilyCandidates.get(partidaFamilyKey(partida, familia)) || [];
+    const familyRequiresSubpartida = familyCandidates.some(
+      (candidate) =>
+        candidate.nivel === 3 && normalizeLaborImportText(candidate.sub_partida) !== "",
+    );
+    let candidates: LaborImportPartida[] = [];
+    if (!subpartida && familyRequiresSubpartida) {
+      errors.push(`Fila ${sourceRow}: subpartida es obligatorio para ${partida} > ${familia}.`);
+    } else {
+      candidates = resolvePartidaMatch(
+        partidaCandidates.get(partidaKey(partida, familia, subpartida)) || [],
+        subpartida,
       );
-      if (!subpartida && familyRequiresSubpartida) {
-        errors.push(`Fila ${sourceRow}: subpartida es obligatorio para ${partida} > ${familia}.`);
-      } else {
+      if (!candidates.length) {
         const hierarchy = [partida, familia, subpartida].filter(Boolean).join(" > ");
         errors.push(`Fila ${sourceRow}: no existe la partida ${hierarchy}.`);
+      } else if (candidates.length > 1) {
+        errors.push(`Fila ${sourceRow}: la partida ${partida} > ${familia} > ${subpartida} es ambigua.`);
       }
-    } else if (candidates.length > 1) {
-      errors.push(`Fila ${sourceRow}: la partida ${partida} > ${familia} > ${subpartida} es ambigua.`);
     }
 
     if (monto !== null && monto > 0 && date && candidates.length === 1) {
