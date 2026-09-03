@@ -109,6 +109,13 @@ const inferred = parse(withoutFasarCount);
 assert.equal(inferred.weeks[0].total_people, 20);
 assert.match(inferred.warnings.join("\n"), /se infirió/i);
 
+const zeroFasarCount = referenceRows.map((entry, index) => (
+  index === referenceRows.length - 1 ? [...entry.slice(0, 11), 0] : [...entry]
+));
+const inferredFromZeroFasar = parse(zeroFasarCount);
+assert.equal(inferredFromZeroFasar.weeks[0].total_people, 20);
+assert.match(inferredFromZeroFasar.warnings.join("\n"), /se infirió/i);
+
 const secondWeekRole = row(
   "CABO DE OFICIOS",
   100,

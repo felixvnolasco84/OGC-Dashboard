@@ -465,10 +465,12 @@ export function parseLaborPaymentRows(
     const weekWarnings: string[] = [];
     const fasarRows = weekRows
       .filter((row) => normalizeLaborImportText(row.subpartida).includes("FASAR"));
+    // Zero on a FASAR payment means "this line has no headcount", not "the
+    // week has zero people". Treat it like a blank cell and infer from roles.
     const summaryCounts = [...new Set(
       fasarRows
         .map((row) => row.numeroPersonas)
-        .filter((value): value is number => value !== undefined),
+        .filter((value): value is number => value !== undefined && value > 0),
     )];
     if (summaryCounts.length > 1) {
       errors.push(`${date}: las filas FASAR declaran totales de personas distintos.`);
