@@ -110,6 +110,59 @@ type ValidationReport = {
   costosEstructura: number;
 };
 
+type BulkPreflight = {
+  validRows: number[];
+  duplicateRows: number[];
+  rejectedRows: number[];
+};
+
+type ExcelPreviewState = {
+  fileName: string;
+  movements: OgcUploadMovement[];
+  report: ValidationReport;
+  preflight: BulkPreflight;
+  parserErrors: Array<{ row: number; message: string }>;
+};
+
+type ExistingOgcMovement = {
+  tipo: string;
+  categoria?: string;
+  monto: number;
+  fecha: string;
+  moneda?: string;
+  tipo_cambio?: number;
+  proyecto?: Id<"desarrollos">;
+  status?: string;
+};
+
+type PnlPeriodFilter = {
+  year: number;
+  cutoffMonth: number;
+};
+
+type ImpactTotals = {
+  currentIngresos: number;
+  currentCostos: number;
+  incomingIngresos: number;
+  incomingCostos: number;
+  projectedIngresos: number;
+  projectedCostos: number;
+};
+
+type ImpactGroupRow = ImpactTotals & {
+  key: string;
+  label: string;
+};
+
+type ExcelImpactReport = {
+  totals: ImpactTotals;
+  byProject: ImpactGroupRow[];
+  byCategory: ImpactGroupRow[];
+  inPeriodCount: number;
+  outOfPeriodCount: number;
+  outOfPeriodAmount: number;
+};
+
 type EditableMovementRow = {
   id: string;
   tipo: OgcMovementType;
@@ -159,6 +212,16 @@ const CATEGORIES = [
   "OTROS",
   "DISP HONORARIOS",
 ];
+const MONTH_LABELS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const EMPTY_PREFLIGHT: BulkPreflight = { validRows: [], duplicateRows: [], rejectedRows: [] };
+const EMPTY_IMPACT_TOTALS: ImpactTotals = {
+  currentIngresos: 0,
+  currentCostos: 0,
+  incomingIngresos: 0,
+  incomingCostos: 0,
+  projectedIngresos: 0,
+  projectedCostos: 0,
+};
 
 const normalizeLookupText = (value?: string) => {
   return (value || "")
@@ -167,6 +230,11 @@ const normalizeLookupText = (value?: string) => {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, " ");
+};
+
+const isCompanyObraValue = (value?: string) => {
+  const normalized = normalizeLookupText(value);
+  return !normalized || normalized === "empresa";
 };
 
 const normalizeTipo = (value?: string, fallback: OgcMovementType = "costo_estructura"): OgcMovementType => {
@@ -242,6 +310,137 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / 1024 ** unitIndex).toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 };
 
+const formatMxn = (value: number) => {
+  return value.toLocaleString("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    maximumFractionDigits: 2,
+  });
+};
+
+const formatPeriodLabel = (period?: PnlPeriodFilter) => {
+  if (!period) return "todos los movimientos";
+  return `${MONTH_LABELS[0]}–${MONTH_LABELS[period.cutoffMonth - 1]} ${period.year}`;
+};
+
+const convertMovementToMxn = (
+  monto: number,
+  moneda: string | undefined,
+  tipoCambio: number | undefined,
+  rates: ExchangeRateSettings
+) => {
+  const amount = Math.abs(Number.isFinite(monto) ? monto : 0);
+  const currency = (moneda || "MXN").toUpperCase();
+  if (currency === "USD") return amount * (tipoCambio && tipoCambio > 0 ? tipoCambio : rates.USD);
+  if (currency === "EUR") return amount * (tipoCambio && tipoCambio > 0 ? tipoCambio : rates.EUR);
+  return amount;
+};
+
+const isFechaInPeriod = (fecha: string, period?: PnlPeriodFilter) => {
+  if (!period) return true;
+  const normalized = normalizeDate(fecha);
+  const match = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return false;
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  return year === period.year && month >= 1 && month <= period.cutoffMonth;
+};
+
+const addImpactAmount = (totals: ImpactTotals, tipo: string, amount: number, bucket: "current" | "incoming") => {
+  const isIngreso = tipo === "ingreso";
+  if (bucket === "current") {
+    if (isIngreso) totals.currentIngresos += amount;
+    else totals.currentCostos += amount;
+    return;
+  }
+  if (isIngreso) totals.incomingIngresos += amount;
+  else totals.incomingCostos += amount;
+};
+
+const finalizeImpactTotals = (totals: ImpactTotals): ImpactTotals => ({
+  ...totals,
+  projectedIngresos: totals.currentIngresos + totals.incomingIngresos,
+  projectedCostos: totals.currentCostos + totals.incomingCostos,
+});
+
+const getOrCreateImpactRow = (rows: Map<string, ImpactGroupRow>, key: string, label: string) => {
+  const existing = rows.get(key);
+  if (existing) return existing;
+  const created: ImpactGroupRow = { key, label, ...EMPTY_IMPACT_TOTALS };
+  rows.set(key, created);
+  return created;
+};
+
+const buildExcelImpact = ({
+  existingMovements,
+  incoming,
+  projectNameById,
+  exchangeRates,
+  period,
+}: {
+  existingMovements: ExistingOgcMovement[];
+  incoming: PreparedMovement[];
+  projectNameById: Map<string, string>;
+  exchangeRates: ExchangeRateSettings;
+  period?: PnlPeriodFilter;
+}): ExcelImpactReport => {
+  const totals: ImpactTotals = { ...EMPTY_IMPACT_TOTALS };
+  const byProject = new Map<string, ImpactGroupRow>();
+  const byCategory = new Map<string, ImpactGroupRow>();
+  let inPeriodCount = 0;
+  let outOfPeriodCount = 0;
+  let outOfPeriodAmount = 0;
+
+  const applyAmount = (
+    tipo: string,
+    categoria: string,
+    proyecto: Id<"desarrollos"> | undefined,
+    amount: number,
+    bucket: "current" | "incoming"
+  ) => {
+    addImpactAmount(totals, tipo, amount, bucket);
+    const projectKey = proyecto || "empresa";
+    const projectLabel = proyecto ? projectNameById.get(proyecto) || "Obra" : "Empresa";
+    addImpactAmount(getOrCreateImpactRow(byProject, projectKey, projectLabel), tipo, amount, bucket);
+    const categoryKey = `${tipo}:${categoria || "OTROS"}`;
+    const categoryLabel = `${categoria || "OTROS"} · ${tipo === "ingreso" ? "Ingreso" : "Costo"}`;
+    addImpactAmount(getOrCreateImpactRow(byCategory, categoryKey, categoryLabel), tipo, amount, bucket);
+  };
+
+  existingMovements.forEach((movement) => {
+    if (movement.status && movement.status !== "activo") return;
+    if (!isFechaInPeriod(movement.fecha, period)) return;
+    const amount = convertMovementToMxn(movement.monto, movement.moneda, movement.tipo_cambio, exchangeRates);
+    applyAmount(normalizeTipo(movement.tipo), movement.categoria || "OTROS", movement.proyecto, amount, "current");
+  });
+
+  incoming.forEach((movement) => {
+    const amount = convertMovementToMxn(movement.monto, movement.moneda, movement.tipo_cambio, exchangeRates);
+    if (!isFechaInPeriod(movement.fecha, period)) {
+      outOfPeriodCount += 1;
+      outOfPeriodAmount += amount;
+      return;
+    }
+    inPeriodCount += 1;
+    applyAmount(movement.tipo, movement.categoria || "OTROS", movement.proyecto, amount, "incoming");
+  });
+
+  const affected = (rows: Map<string, ImpactGroupRow>) =>
+    Array.from(rows.values())
+      .filter((row) => row.incomingIngresos !== 0 || row.incomingCostos !== 0)
+      .map((row) => ({ ...row, ...finalizeImpactTotals(row) }))
+      .sort((a, b) => a.label.localeCompare(b.label, "es"));
+
+  return {
+    totals: finalizeImpactTotals(totals),
+    byProject: affected(byProject),
+    byCategory: affected(byCategory),
+    inPeriodCount,
+    outOfPeriodCount,
+    outOfPeriodAmount,
+  };
+};
+
 const createMovementRow = (overrides: Partial<EditableMovementRow> = {}): EditableMovementRow => ({
   id: crypto.randomUUID(),
   tipo: "costo_estructura",
@@ -291,20 +490,33 @@ export function OgcMovementsUploadModal({
   open,
   onOpenChange,
   exchangeRates = { USD: 17, EUR: 18.5 },
+  periodYear,
+  cutoffMonth,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   exchangeRates?: ExchangeRateSettings;
+  periodYear?: number;
+  cutoffMonth?: number;
 }) {
   const fileInputId = useId();
   const [file, setFile] = useState<File | null>(null);
   const [manualRows, setManualRows] = useState<EditableMovementRow[]>(() => [createMovementRow()]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<OgcUploadResult | null>(null);
+  const [excelPreview, setExcelPreview] = useState<ExcelPreviewState | null>(null);
   const proyectos = useQuery(api.desarrollos.getAll) as DesarrolloOption[] | undefined;
+  const existingMovements = useQuery(
+    api.ogc_movimientos.getAll,
+    open ? { includeInactive: false } : "skip"
+  ) as ExistingOgcMovement[] | undefined;
   const generateOgcUploadUrl = useMutation(api.ogc_movimientos.generateUploadUrl);
   const validateBulkCreateMovements = useMutation(api.ogc_movimientos.validateBulkCreate);
   const bulkCreateMovements = useMutation(api.ogc_movimientos.bulkCreate);
+  const pnlPeriod = useMemo<PnlPeriodFilter | undefined>(() => {
+    if (!periodYear || !cutoffMonth) return undefined;
+    return { year: periodYear, cutoffMonth };
+  }, [periodYear, cutoffMonth]);
 
   const projectLookup = useMemo(() => {
     const lookup = new Map<string, Id<"desarrollos">>();
@@ -326,6 +538,7 @@ export function OgcMovementsUploadModal({
     setFile(null);
     setManualRows([createMovementRow()]);
     setResult(null);
+    setExcelPreview(null);
   };
 
   const getConfiguredExchangeRate = (currency?: string) => {
@@ -353,12 +566,13 @@ export function OgcMovementsUploadModal({
       const moneda = (movement.moneda || "MXN").toUpperCase();
       const tipoCambio = safeAmount(movement.tipo_cambio || getConfiguredExchangeRate(moneda));
       const projectName = normalizeLookupText(movement.proyecto_nombre);
-      const proyecto = projectName ? projectLookup.get(projectName) : undefined;
+      const isCompanyRow = isCompanyObraValue(movement.proyecto_nombre);
+      const proyecto = isCompanyRow ? undefined : projectLookup.get(projectName);
 
       if (monto <= 0) rowErrors.push("Monto invalido");
       if (!isValidDate(fecha)) rowErrors.push("Fecha invalida");
       if (moneda !== "MXN" && tipoCambio <= 0) rowErrors.push("Tipo de cambio requerido");
-      if (projectName && !proyecto) {
+      if (!isCompanyRow && !proyecto) {
         missingProjects.add(movement.proyecto_nombre || "Sin nombre");
         rowErrors.push("Obra no encontrada");
       }
@@ -624,6 +838,7 @@ export function OgcMovementsUploadModal({
 
     setFile(selectedFile);
     setResult(null);
+    setExcelPreview(null);
     event.target.value = "";
   };
 
@@ -641,6 +856,7 @@ export function OgcMovementsUploadModal({
         if (response.ok && data) {
           const parsed = data as OgcUploadResult;
           if (parsed.success && parsed.movimientos?.length) return parsed;
+          if (parsed.movimientos?.length || parsed.errors?.length) return parsed;
           lastError = parsed.message || parsed.errors?.[0]?.error || lastError;
           continue;
         }
@@ -653,6 +869,21 @@ export function OgcMovementsUploadModal({
     }
 
     throw new Error(lastError);
+  };
+
+  const runBulkPreflight = async (movements: PreparedMovement[]): Promise<BulkPreflight> => {
+    if (movements.length === 0) return { ...EMPTY_PREFLIGHT };
+
+    const preflight: BulkPreflight = { validRows: [], duplicateRows: [], rejectedRows: [] };
+    const chunkSize = 100;
+    for (let index = 0; index < movements.length; index += chunkSize) {
+      const chunk = movements.slice(index, index + chunkSize);
+      const result = await validateBulkCreateMovements({ movimientos: chunk });
+      preflight.validRows.push(...result.validRows);
+      preflight.duplicateRows.push(...result.duplicateRows);
+      preflight.rejectedRows.push(...result.rejectedRows);
+    }
+    return preflight;
   };
 
   const saveValidatedMovements = async (report: ValidationReport) => {
@@ -688,14 +919,14 @@ export function OgcMovementsUploadModal({
     handleClose(false);
   };
 
-  const handleUpload = async () => {
+  const handleValidateExcel = async () => {
     if (!file) {
       toast.error("Selecciona un archivo");
       return;
     }
 
-    if (!proyectos) {
-      toast.error("Espera a que carguen las obras");
+    if (!proyectos || existingMovements === undefined) {
+      toast.error("Espera a que carguen las obras y movimientos actuales");
       return;
     }
 
@@ -705,12 +936,58 @@ export function OgcMovementsUploadModal({
       const parsed = await parseFile(file);
       setResult(parsed);
 
-      if (!parsed.success || !parsed.movimientos?.length) {
-        throw new Error(parsed.message || "No se encontraron movimientos validos.");
-      }
+      const movements = parsed.movimientos || [];
+      const report = validateMovements(movements, file.name);
+      const preflight = await runBulkPreflight(report.valid);
+      const parserErrors = (parsed.errors || []).map((error) => ({
+        row: error.row,
+        message: error.error,
+      }));
 
-      const report = validateMovements(parsed.movimientos, file.name);
-      await saveValidatedMovements(report);
+      setExcelPreview({
+        fileName: file.name,
+        movements,
+        report,
+        preflight,
+        parserErrors,
+      });
+
+      const createCount = preflight.validRows.length;
+      const issueCount = parserErrors.length + report.errors.length + preflight.duplicateRows.length + preflight.rejectedRows.length;
+      if (createCount === 0) {
+        toast.error("El archivo no tiene movimientos listos para cargar", {
+          description: issueCount > 0 ? `${issueCount} observaciones encontradas.` : parsed.message,
+        });
+      } else if (issueCount > 0) {
+        toast.warning("Validacion con observaciones", {
+          description: `${createCount} se cargarian, ${issueCount} con error, duplicado o rechazados.`,
+        });
+      } else {
+        toast.success("Archivo validado", {
+          description: `${createCount} movimientos listos para cargar.`,
+        });
+      }
+    } catch (error) {
+      setExcelPreview(null);
+      toast.error("Error al validar el Excel", {
+        description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleConfirmExcel = async () => {
+    if (!excelPreview) return;
+
+    if (excelPreview.preflight.validRows.length === 0) {
+      toast.error("No hay movimientos validos para guardar.");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await saveValidatedMovements(excelPreview.report);
     } catch (error) {
       toast.error("Error al cargar movimientos OGC", {
         description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
@@ -766,6 +1043,19 @@ export function OgcMovementsUploadModal({
 
   const manualMovements = useMemo(() => rowsToMovements(manualRows), [manualRows, projectNameById, exchangeRates]);
   const manualReport = useMemo(() => validateMovements(manualMovements, "captura masiva"), [manualMovements, projectLookup, exchangeRates]);
+  const excelImpact = useMemo(() => {
+    if (!excelPreview || existingMovements === undefined) return null;
+    const rowsToCreate = new Set(excelPreview.preflight.validRows);
+    return buildExcelImpact({
+      existingMovements,
+      incoming: excelPreview.report.valid.filter((movement) => (
+        movement.fila_origen != null && rowsToCreate.has(movement.fila_origen)
+      )),
+      projectNameById,
+      exchangeRates,
+      period: pnlPeriod,
+    });
+  }, [excelPreview, existingMovements, projectNameById, exchangeRates, pnlPeriod]);
   const deliveryNoteSummary = useMemo(() => {
     const activeRows = manualRows.filter(rowHasUserInput);
     const total = activeRows.length;
@@ -779,7 +1069,10 @@ export function OgcMovementsUploadModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent data-square-modal="" className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-4xl overflow-x-hidden overflow-y-auto sm:w-full">
+      <DialogContent data-square-modal="" className={cn(
+        "max-h-[90vh] w-[calc(100vw-2rem)] overflow-x-hidden overflow-y-auto sm:w-full",
+        excelPreview ? "max-w-5xl" : "max-w-4xl"
+      )}>
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Cargar movimientos OGC</DialogTitle>
           <DialogDescription>
@@ -866,7 +1159,16 @@ export function OgcMovementsUploadModal({
                         <p className="text-xs text-subtle-foreground">{formatFileSize(file.size)}</p>
                       </div>
                     </div>
-                    <Button type="button" variant="outline" onClick={() => setFile(null)} disabled={isProcessing}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setFile(null);
+                        setResult(null);
+                        setExcelPreview(null);
+                      }}
+                      disabled={isProcessing}
+                    >
                       Cambiar
                     </Button>
                   </div>
@@ -875,7 +1177,7 @@ export function OgcMovementsUploadModal({
                     <Upload className="h-10 w-10 text-disabled-foreground" />
                     <div>
                       <p className="text-sm text-foreground">Excel con columnas: tipo, categoria, monto, fecha, obra, descripcion</p>
-                      <p className="mt-1 text-xs text-subtle-foreground">La obra puede quedar vacia para costos solo de empresa.</p>
+                      <p className="mt-1 text-xs text-subtle-foreground">Obra vacia o “Empresa” queda a nivel empresa. Primero se valida el archivo; no se guarda hasta que confirmes.</p>
                     </div>
                     <Button type="button" variant="outline" onClick={() => document.getElementById(fileInputId)?.click()}>
                       Seleccionar archivo
@@ -892,7 +1194,13 @@ export function OgcMovementsUploadModal({
               </div>
             </div>
 
-            {result?.summary && (
+            {excelPreview && excelImpact ? (
+              <ExcelValidationPreview
+                preview={excelPreview}
+                impact={excelImpact}
+                period={pnlPeriod}
+              />
+            ) : result?.summary && !excelPreview ? (
               <div className="border border-border bg-[#FBFAF2] p-4 text-sm text-foreground">
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <SummaryStat label="Filas validas" value={result.summary.validRows} />
@@ -901,15 +1209,48 @@ export function OgcMovementsUploadModal({
                   <SummaryStat label="Errores" value={result.summary.errors} />
                 </div>
               </div>
-            )}
+            ) : null}
 
             <div className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:justify-end">
-              <Button type="button" variant="outline" onClick={() => handleClose(false)} disabled={isProcessing}>
-                Cancelar
-              </Button>
-              <Button type="button" onClick={handleUpload} disabled={!file || isProcessing}>
-                {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</> : "Cargar Excel"}
-              </Button>
+              {excelPreview ? (
+                <>
+                  <Button type="button" variant="outline" onClick={() => handleClose(false)} disabled={isProcessing}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setExcelPreview(null)}
+                    disabled={isProcessing}
+                  >
+                    Volver
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleConfirmExcel}
+                    disabled={isProcessing || excelPreview.preflight.validRows.length === 0}
+                  >
+                    {isProcessing
+                      ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</>
+                      : `Confirmar carga (${excelPreview.preflight.validRows.length})`}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" variant="outline" onClick={() => handleClose(false)} disabled={isProcessing}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleValidateExcel}
+                    disabled={!file || isProcessing || !proyectos || existingMovements === undefined}
+                  >
+                    {isProcessing
+                      ? <><Loader2 className="h-4 w-4 animate-spin" /> Validando...</>
+                      : "Validar archivo"}
+                  </Button>
+                </>
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -923,6 +1264,253 @@ function SummaryStat({ label, value }: { label: string; value: number }) {
     <div>
       <p className="text-xs text-subtle-foreground">{label}</p>
       <p className="text-lg text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function deltaClass(value: number, invert = false) {
+  if (Math.abs(value) < 0.005) return "text-subtle-foreground";
+  const positive = invert ? value < 0 : value > 0;
+  return positive ? "text-[#1A5D21]" : "text-[#802424]";
+}
+
+function formatDelta(value: number) {
+  if (Math.abs(value) < 0.005) return "Sin cambio";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatMxn(value)}`;
+}
+
+function ValueChange({
+  current,
+  projected,
+  invert = false,
+}: {
+  current: number;
+  projected: number;
+  invert?: boolean;
+}) {
+  const delta = projected - current;
+  return (
+    <div className="min-w-0">
+      <p className="text-sm text-foreground">
+        <span className="text-subtle-foreground">{formatMxn(current)}</span>
+        <span className="mx-1.5 text-disabled-foreground">→</span>
+        {formatMxn(projected)}
+      </p>
+      <p className={cn("text-xs", deltaClass(delta, invert))}>{formatDelta(delta)}</p>
+    </div>
+  );
+}
+
+function ExcelValidationPreview({
+  preview,
+  impact,
+  period,
+}: {
+  preview: ExcelPreviewState;
+  impact: ExcelImpactReport;
+  period?: PnlPeriodFilter;
+}) {
+  const createCount = preview.preflight.validRows.length;
+  const duplicateCount = preview.preflight.duplicateRows.length;
+  const rejectedCount = preview.preflight.rejectedRows.length;
+  const validationErrors = [
+    ...preview.parserErrors,
+    ...preview.report.errors,
+    ...preview.preflight.rejectedRows.map((row) => ({ row, message: "Fila rechazada por datos invalidos" })),
+  ].filter((error, index, all) => (
+    all.findIndex((item) => item.row === error.row && item.message === error.message) === index
+  ));
+  const duplicateRows = new Set(preview.preflight.duplicateRows);
+  const hasBlockingIssues = createCount === 0;
+  const hasObservations = validationErrors.length > 0 || duplicateCount > 0 || preview.report.missingProjects.length > 0;
+  const duplicateMovements = preview.movements.filter((movement) => duplicateRows.has(movement.rowIndex));
+
+  return (
+    <div className="space-y-5">
+      <div className={cn(
+        "flex items-start gap-2 border p-3 text-sm",
+        hasBlockingIssues
+          ? "border-red-200 bg-red-50 text-red-800"
+          : hasObservations
+            ? "border-amber-200 bg-amber-50 text-amber-900"
+            : "border-[#B7D9BE] bg-[#F4FBF5] text-foreground"
+      )}>
+        {hasBlockingIssues ? (
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        ) : (
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#1A5D21]" />
+        )}
+        <div>
+          <p className="font-medium">
+            {hasBlockingIssues
+              ? "La carga esta bloqueada"
+              : hasObservations
+                ? "El archivo se puede cargar con observaciones"
+                : "Archivo listo para cargar"}
+          </p>
+          <p className="mt-1 text-xs">
+            {createCount} movimientos nuevos se sumarian al P&L de {formatPeriodLabel(period)}.
+            Los duplicados no modifican valores actuales.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="border border-border bg-[#FBFAF2] p-3">
+          <p className="text-xs text-subtle-foreground">Se crearian</p>
+          <p className="text-lg text-foreground">{createCount}</p>
+        </div>
+        <div className="border border-border bg-card p-3">
+          <p className="text-xs text-subtle-foreground">Duplicados</p>
+          <p className="text-lg text-foreground">{duplicateCount}</p>
+        </div>
+        <div className="border border-border bg-card p-3">
+          <p className="text-xs text-subtle-foreground">Con error</p>
+          <p className="text-lg text-foreground">{validationErrors.length}</p>
+        </div>
+        <div className="border border-border bg-card p-3">
+          <p className="text-xs text-subtle-foreground">Rechazados</p>
+          <p className="text-lg text-foreground">{rejectedCount}</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm text-foreground">Impacto si se confirma la carga</p>
+          <p className="text-xs text-subtle-foreground">
+            Valores actuales vs proyectados en {formatPeriodLabel(period)}. Montos en MXN.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="border border-border bg-card p-3">
+            <p className="text-xs text-subtle-foreground">Ingresos</p>
+            <ValueChange current={impact.totals.currentIngresos} projected={impact.totals.projectedIngresos} />
+          </div>
+          <div className="border border-border bg-card p-3">
+            <p className="text-xs text-subtle-foreground">Costos de estructura</p>
+            <ValueChange current={impact.totals.currentCostos} projected={impact.totals.projectedCostos} invert />
+          </div>
+          <div className="border border-border bg-[#FBFAF2] p-3">
+            <p className="text-xs text-subtle-foreground">Neto (ingresos - costos)</p>
+            <ValueChange
+              current={impact.totals.currentIngresos - impact.totals.currentCostos}
+              projected={impact.totals.projectedIngresos - impact.totals.projectedCostos}
+            />
+          </div>
+        </div>
+
+        {impact.outOfPeriodCount > 0 && (
+          <p className="text-xs text-amber-800">
+            {impact.outOfPeriodCount} movimientos ({formatMxn(impact.outOfPeriodAmount)}) se crearian pero no afectan este periodo P&L.
+          </p>
+        )}
+      </div>
+
+      {impact.byProject.length > 0 && (
+        <ImpactGroupTable
+          title="Obras afectadas"
+          rows={impact.byProject}
+        />
+      )}
+
+      {impact.byCategory.length > 0 && (
+        <ImpactGroupTable
+          title="Categorias afectadas"
+          rows={impact.byCategory}
+        />
+      )}
+
+      {createCount > 0 && impact.inPeriodCount === 0 && (
+        <p className="text-xs text-subtle-foreground">
+          Los movimientos validos no cambian los totales del periodo actual, pero si se confirman se guardarian en el ledger.
+        </p>
+      )}
+
+      {validationErrors.length > 0 && (
+        <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          <p className="mb-2 font-medium">Errores de validacion</p>
+          <div className="max-h-40 space-y-1 overflow-y-auto">
+            {validationErrors.slice(0, 12).map((error) => (
+              <p key={`${error.row}-${error.message}`}>Fila {error.row}: {error.message}</p>
+            ))}
+            {validationErrors.length > 12 && (
+              <p>Y {validationErrors.length - 12} errores mas.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {preview.report.missingProjects.length > 0 && (
+        <div className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-medium">Obras no encontradas</p>
+          <p className="mt-1 text-xs">{preview.report.missingProjects.join(", ")}</p>
+        </div>
+      )}
+
+      {duplicateMovements.length > 0 && (
+        <div className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-medium">Duplicados que no se cargaran</p>
+          <p className="mt-1 text-xs">
+            Filas {duplicateMovements.slice(0, 12).map((movement) => movement.rowIndex).join(", ")}
+            {duplicateMovements.length > 12 ? ` y ${duplicateMovements.length - 12} mas` : ""}.
+            Estos valores ya existen y permanecen igual.
+          </p>
+        </div>
+      )}
+
+      {preview.movements.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm text-foreground">Filas del archivo</p>
+          <MovementPreview
+            report={{ ...preview.report, errors: validationErrors }}
+            movements={preview.movements}
+            duplicateRows={duplicateRows}
+            compact={false}
+            showSummary={false}
+            showErrors={false}
+            maxRows={20}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImpactGroupTable({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: ImpactGroupRow[];
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-foreground">{title}</p>
+      <div className="max-h-64 min-w-0 overflow-y-auto border border-border text-sm">
+        <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] border-b border-border bg-[#FBFAF2] text-subtle-foreground md:grid">
+          <p className="px-3 py-2">{title === "Obras afectadas" ? "Obra" : "Categoria"}</p>
+          <p className="px-3 py-2">Ingresos</p>
+          <p className="px-3 py-2">Costos</p>
+        </div>
+        {rows.map((row) => (
+          <div
+            key={row.key}
+            className="grid min-w-0 grid-cols-1 gap-2 border-b border-border p-3 last:border-b-0 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] md:gap-0 md:p-0"
+          >
+            <PreviewCell label={title === "Obras afectadas" ? "Obra" : "Categoria"}>
+              {row.label}
+            </PreviewCell>
+            <PreviewCell label="Ingresos">
+              <ValueChange current={row.currentIngresos} projected={row.projectedIngresos} />
+            </PreviewCell>
+            <PreviewCell label="Costos">
+              <ValueChange current={row.currentCostos} projected={row.projectedCostos} invert />
+            </PreviewCell>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1288,37 +1876,48 @@ function FieldLabel({ children }: { children: ReactNode }) {
 function MovementPreview({
   report,
   movements,
+  duplicateRows,
   compact = false,
+  showSummary = true,
+  showErrors = true,
+  maxRows,
 }: {
   report: ValidationReport;
   movements: OgcUploadMovement[];
+  duplicateRows?: Set<number>;
   compact?: boolean;
+  showSummary?: boolean;
+  showErrors?: boolean;
+  maxRows?: number;
 }) {
   const errorRows = new Set(report.errors.map((error) => error.row));
-  const visibleMovements = movements.slice(0, compact ? 5 : 8);
+  const visibleLimit = maxRows ?? (compact ? 5 : 8);
+  const visibleMovements = movements.slice(0, visibleLimit);
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="border border-border bg-[#FBFAF2] p-3">
-          <p className="text-xs text-subtle-foreground">Validos</p>
-          <p className="flex items-center gap-2 text-lg text-foreground"><CheckCircle2 className="h-4 w-4 text-[#1A5D21]" />{report.valid.length}</p>
+      {showSummary && (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="border border-border bg-[#FBFAF2] p-3">
+            <p className="text-xs text-subtle-foreground">Validos</p>
+            <p className="flex items-center gap-2 text-lg text-foreground"><CheckCircle2 className="h-4 w-4 text-[#1A5D21]" />{report.valid.length}</p>
+          </div>
+          <div className="border border-border bg-card p-3">
+            <p className="text-xs text-subtle-foreground">Con error</p>
+            <p className="flex items-center gap-2 text-lg text-foreground"><AlertTriangle className="h-4 w-4 text-[#802424]" />{report.errors.length}</p>
+          </div>
+          <div className="border border-border bg-card p-3">
+            <p className="text-xs text-subtle-foreground">Ingresos</p>
+            <p className="text-lg text-foreground">{report.ingresos}</p>
+          </div>
+          <div className="border border-border bg-card p-3">
+            <p className="text-xs text-subtle-foreground">Costos</p>
+            <p className="text-lg text-foreground">{report.costosEstructura}</p>
+          </div>
         </div>
-        <div className="border border-border bg-card p-3">
-          <p className="text-xs text-subtle-foreground">Con error</p>
-          <p className="flex items-center gap-2 text-lg text-foreground"><AlertTriangle className="h-4 w-4 text-[#802424]" />{report.errors.length}</p>
-        </div>
-        <div className="border border-border bg-card p-3">
-          <p className="text-xs text-subtle-foreground">Ingresos</p>
-          <p className="text-lg text-foreground">{report.ingresos}</p>
-        </div>
-        <div className="border border-border bg-card p-3">
-          <p className="text-xs text-subtle-foreground">Costos</p>
-          <p className="text-lg text-foreground">{report.costosEstructura}</p>
-        </div>
-      </div>
+      )}
 
-      <div className="min-w-0 border border-border text-sm">
+      <div className={compact ? "min-w-0 border border-border text-sm" : "max-h-72 min-w-0 overflow-y-auto border border-border text-sm"}>
         <div className="hidden grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] border-b border-border bg-[#FBFAF2] text-subtle-foreground md:grid">
           <p className="px-3 py-2">Fila</p>
           <p className="px-3 py-2">Tipo</p>
@@ -1328,12 +1927,20 @@ function MovementPreview({
           <p className="px-3 py-2">Obra</p>
         </div>
 
+        {visibleMovements.length === 0 && (
+          <p className="px-3 py-4 text-sm text-subtle-foreground">No hay filas para mostrar.</p>
+        )}
+
         {visibleMovements.map((movement) => (
           <div
             key={movement.rowIndex}
             className={cn(
               "grid min-w-0 grid-cols-1 gap-2 border-b border-border p-3 md:grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] md:gap-0 md:p-0",
-              errorRows.has(movement.rowIndex) ? "bg-red-50" : "bg-card"
+              errorRows.has(movement.rowIndex)
+                ? "bg-red-50"
+                : duplicateRows?.has(movement.rowIndex)
+                  ? "bg-amber-50"
+                  : "bg-card"
             )}
           >
             <PreviewCell label="Fila">{movement.rowIndex}</PreviewCell>
@@ -1341,12 +1948,17 @@ function MovementPreview({
             <PreviewCell label="Categoria">{movement.categoria}</PreviewCell>
             <PreviewCell label="Monto">${movement.monto.toLocaleString("es-MX")}</PreviewCell>
             <PreviewCell label="Fecha">{movement.fecha}</PreviewCell>
-            <PreviewCell label="Obra">{movement.proyecto_nombre || "Empresa"}</PreviewCell>
+            <PreviewCell label="Obra">{isCompanyObraValue(movement.proyecto_nombre) ? "Empresa" : movement.proyecto_nombre}</PreviewCell>
           </div>
         ))}
+        {movements.length > visibleMovements.length && (
+          <p className="px-3 py-2 text-xs text-subtle-foreground">
+            Mostrando {visibleMovements.length} de {movements.length} filas.
+          </p>
+        )}
       </div>
 
-      {report.errors.length > 0 && (
+      {showErrors && report.errors.length > 0 && (
         <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {report.errors.slice(0, 4).map((error) => (
             <p key={`${error.row}-${error.message}`}>Fila {error.row}: {error.message}</p>
@@ -1367,7 +1979,7 @@ function PreviewCell({
   return (
     <div className="min-w-0 break-words md:px-3 md:py-2">
       <span className="mr-2 text-xs text-subtle-foreground md:hidden">{label}</span>
-      <span>{children}</span>
+      <div className="min-w-0 md:inline">{children}</div>
     </div>
   );
 }

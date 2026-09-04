@@ -1831,6 +1831,8 @@ export default function ProfitAndLossPage() {
         open={isOgcUploadOpen}
         onOpenChange={setIsOgcUploadOpen}
         exchangeRates={ogcExchangeRates}
+        periodYear={periodYear}
+        cutoffMonth={cutoffMonth}
       />
       <div className="max-w-full mx-auto space-y-6">
         <div className="border-b border-border-strong">
