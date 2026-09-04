@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -93,7 +93,15 @@ function EvidenceCitations({
   );
 }
 
-function AnswerView({ answer, onFollowUp }: { answer: AssistantAnswer; onFollowUp: (prompt: string) => void }) {
+const AnswerView = memo(function AnswerView({
+  answer,
+  disabled,
+  onFollowUp,
+}: {
+  answer: AssistantAnswer;
+  disabled: boolean;
+  onFollowUp: (prompt: string) => void;
+}) {
   const evidence = new Map(answer.evidence.map((item) => [item.id, item]));
   const answerStatusKey = answer.answer_status ||
     (answer.overall_status === "insufficient_data" ? "insufficient_data" : "answered");
@@ -190,8 +198,14 @@ function AnswerView({ answer, onFollowUp }: { answer: AssistantAnswer; onFollowU
         <section>
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-disabled-foreground">Puedes continuar con</h4>
           <div className="space-y-2">
-            {answer.follow_up_prompts.map((prompt) => (
-              <button key={prompt} type="button" onClick={() => onFollowUp(prompt)} className="w-full rounded-xl border border-border px-3 py-2 text-left text-xs leading-5 text-muted-foreground transition hover:border-border-strong hover:bg-background">
+            {answer.follow_up_prompts.map((prompt, index) => (
+              <button
+                key={`${prompt}-${index}`}
+                type="button"
+                disabled={disabled}
+                onClick={() => onFollowUp(prompt)}
+                className="w-full rounded-xl border border-border px-3 py-2 text-left text-xs leading-5 text-muted-foreground transition hover:border-border-strong hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 {prompt}
               </button>
             ))}
@@ -200,7 +214,7 @@ function AnswerView({ answer, onFollowUp }: { answer: AssistantAnswer; onFollowU
       )}
     </div>
   );
-}
+});
 
 export default function ProjectAssistantPanel({
   open,
@@ -217,7 +231,9 @@ export default function ProjectAssistantPanel({
   const [references, setReferences] = useState<AssistantReference[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [localTurn, setLocalTurn] = useState<{ text: string; references: AssistantReference[]; failed?: boolean }>();
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const submittingRef = useRef(false);
+  const requestGenerationRef = useRef(0);
   const conversations = useQuery(api.assistant.listConversations, open ? {} : "skip");
   const messages = useQuery(
     api.assistant.getMessages,
@@ -230,10 +246,24 @@ export default function ProjectAssistantPanel({
   const sendMessage = useAction(api.assistant.sendMessage);
   const archiveConversation = useMutation(api.assistant.archiveConversation);
 
+  const lastMessage = messages?.[messages.length - 1];
+
   useEffect(() => {
-    if (!open) return;
-    requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }));
-  }, [open, messages, localTurn]);
+    if (!open || showHistory) return;
+    const frame = requestAnimationFrame(() => {
+      const transcript = transcriptRef.current;
+      if (transcript) transcript.scrollTop = transcript.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    activeConversationId,
+    lastMessage?._id,
+    lastMessage?.status,
+    localTurn?.failed,
+    localTurn?.text,
+    open,
+    showHistory,
+  ]);
 
   const currentConversation = useMemo(
     () => conversations?.find((conversation) => conversation._id === activeConversationId),
@@ -241,6 +271,9 @@ export default function ProjectAssistantPanel({
   );
 
   const newChat = () => {
+    requestGenerationRef.current += 1;
+    submittingRef.current = false;
+    setSubmitting(false);
     setActiveConversationId(undefined);
     setShowHistory(false);
     setText("");
@@ -248,10 +281,11 @@ export default function ProjectAssistantPanel({
     setLocalTurn(undefined);
   };
 
-  const submit = async (retryTurn?: { text: string; references: AssistantReference[] }) => {
-    const nextText = retryTurn?.text ?? text;
-    const nextReferences = retryTurn?.references ?? references;
-    if (!nextText.trim() || submitting) return;
+  const submitTurn = useCallback(async (nextText: string, nextReferences: AssistantReference[]) => {
+    if (!nextText.trim() || submittingRef.current) return;
+    const requestGeneration = requestGenerationRef.current + 1;
+    requestGenerationRef.current = requestGeneration;
+    submittingRef.current = true;
     setSubmitting(true);
     setLocalTurn({ text: nextText, references: nextReferences });
     try {
@@ -262,17 +296,26 @@ export default function ProjectAssistantPanel({
         route_project_id: routeProjectId,
         client_request_id: newRequestId(),
       });
+      if (requestGenerationRef.current !== requestGeneration) return;
       setActiveConversationId(result.conversation_id);
       setText("");
       setReferences([]);
       setLocalTurn(undefined);
     } catch (error) {
+      if (requestGenerationRef.current !== requestGeneration) return;
       setLocalTurn({ text: nextText, references: nextReferences, failed: true });
       toast.error(error instanceof Error ? error.message : "No fue posible obtener una respuesta");
     } finally {
-      setSubmitting(false);
+      if (requestGenerationRef.current === requestGeneration) {
+        submittingRef.current = false;
+        setSubmitting(false);
+      }
     }
-  };
+  }, [activeConversationId, routeProjectId, sendMessage]);
+
+  const handleFollowUp = useCallback((prompt: string) => {
+    void submitTurn(prompt, []);
+  }, [submitTurn]);
 
   const archiveCurrent = async () => {
     if (!activeConversationId) return;
@@ -336,6 +379,9 @@ export default function ProjectAssistantPanel({
                     key={conversation._id}
                     type="button"
                     onClick={() => {
+                      requestGenerationRef.current += 1;
+                      submittingRef.current = false;
+                      setSubmitting(false);
                       setActiveConversationId(conversation._id);
                       setShowHistory(false);
                       setLocalTurn(undefined);
@@ -351,7 +397,7 @@ export default function ProjectAssistantPanel({
           </div>
         ) : (
           <>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+            <div ref={transcriptRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
               {!activeConversationId && !localTurn ? (
                 <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center py-6">
                   <div className="mb-6 text-center">
@@ -390,14 +436,14 @@ export default function ProjectAssistantPanel({
                               {message.reply_to_message_id && (() => {
                                 const original = messages.find((candidate) => candidate._id === message.reply_to_message_id);
                                 return original ? (
-                                  <Button variant="outline" size="sm" className="gap-2 rounded-lg" onClick={() => submit({ text: original.content, references: original.references as AssistantReference[] })} disabled={submitting}>
+                                  <Button variant="outline" size="sm" className="gap-2 rounded-lg" onClick={() => void submitTurn(original.content, original.references as AssistantReference[])} disabled={submitting}>
                                     <RotateCcw className="h-3.5 w-3.5" /> Reintentar
                                   </Button>
                                 ) : null;
                               })()}
                             </div>
                           ) : message.answer ? (
-                            <AnswerView answer={message.answer as AssistantAnswer} onFollowUp={(prompt) => { setText(prompt); setReferences([]); }} />
+                            <AnswerView answer={message.answer as AssistantAnswer} disabled={submitting} onFollowUp={handleFollowUp} />
                           ) : (
                             <p className="text-sm text-foreground">{message.content}</p>
                           )}
@@ -415,7 +461,7 @@ export default function ProjectAssistantPanel({
                         {localTurn.failed ? (
                           <div className="space-y-3">
                             <p className="text-sm text-red-700">La respuesta falló. El mensaje quedó guardado si el servidor alcanzó a iniciar la conversación.</p>
-                            <Button variant="outline" size="sm" className="gap-2 rounded-lg" onClick={() => submit(localTurn)} disabled={submitting}>
+                            <Button variant="outline" size="sm" className="gap-2 rounded-lg" onClick={() => void submitTurn(localTurn.text, localTurn.references)} disabled={submitting}>
                               <RotateCcw className="h-3.5 w-3.5" /> Reintentar
                             </Button>
                           </div>
@@ -425,7 +471,6 @@ export default function ProjectAssistantPanel({
                       </div>
                     </>
                   )}
-                  <div ref={bottomRef} />
                 </div>
               )}
             </div>
@@ -440,7 +485,7 @@ export default function ProjectAssistantPanel({
                   setText(nextText);
                   setReferences(nextReferences);
                 }}
-                onSubmit={() => submit()}
+                onSubmit={() => void submitTurn(text, references)}
               />
               {!routeProjectId && references.every((reference) => !reference.project_id && reference.type !== "project") && (
                 <p className="mt-2 flex items-center gap-1.5 text-[11px] text-amber-600">

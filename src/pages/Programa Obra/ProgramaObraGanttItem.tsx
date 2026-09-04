@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { type ProgramaItem, parseDate } from "./programa-obra-types";
-import { Check, MessageSquare } from "lucide-react";
+import {
+  type ProgramaItem,
+  type ProgramaMilestoneKind,
+  type ProgramaMilestoneSummary,
+  parseDate,
+} from "./programa-obra-types";
+import { AlertTriangle, CheckCircle2, CircleDollarSign, Flag, MessageSquare, Package } from "lucide-react";
+import { getMilestoneLabel, getMilestoneStatusLabel } from "./programa-obra-milestone-ui";
 
 // ============================================================
 // Helpers
@@ -46,12 +52,71 @@ type Props = {
   timelineMonths: TimelineMonth[];
   currentTime: number;
   forceShowMilestones?: boolean;
+  onMilestoneSelect?: (milestone: ProgramaMilestoneSummary) => void;
 };
 
-export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonths, currentTime, forceShowMilestones }: Props) {
+function markerClasses(status: ProgramaMilestoneSummary["status"]) {
+  if (status === "completed") return "border-green-700 bg-green-700 text-on-color";
+  if (status === "scheduled") return "border-blue-600 bg-card text-blue-700";
+  if (status === "upcoming") return "border-blue-700 bg-blue-50 text-blue-800";
+  if (status === "review_required" || status === "partial") return "border-amber-700 bg-amber-50 text-amber-900";
+  return "border-red-700 bg-red-50 text-red-800";
+}
+
+function MilestoneMarker({
+  milestone,
+  left,
+  forceLabel,
+  onSelect,
+}: {
+  milestone: ProgramaMilestoneSummary;
+  left: number;
+  forceLabel?: boolean;
+  onSelect?: (milestone: ProgramaMilestoneSummary) => void;
+}) {
+  const Icon = milestone.kind === "anticipo" ? CircleDollarSign : milestone.kind === "suministro" ? Package : Flag;
+  const StateIcon = milestone.status === "completed" ? CheckCircle2 : AlertTriangle;
+  const label = getMilestoneLabel(milestone.kind);
+  const statusLabel = getMilestoneStatusLabel(milestone.status);
+  return (
+    <div className="absolute top-1 z-20" style={{ left }}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            data-viewer-readonly-allow="true"
+            className={cn(
+              "flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+              markerClasses(milestone.status),
+            )}
+            onClick={(event) => {
+              event.stopPropagation();
+              onSelect?.(milestone);
+            }}
+            aria-label={`${label} de ${milestone.partidaName}: ${statusLabel}, ${milestone.plannedDate}`}
+          >
+            <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={6}>
+          <div className="flex items-center gap-1.5">
+            <StateIcon className="h-3.5 w-3.5" />
+            <span>{label} · {statusLabel}</span>
+          </div>
+          <p className="mt-0.5 text-[11px] opacity-80">{milestone.plannedDate}</p>
+        </TooltipContent>
+      </Tooltip>
+      {forceLabel && (
+        <div className={cn("absolute left-3 top-0 flex h-6 items-center whitespace-nowrap border px-1.5 text-[9px]", markerClasses(milestone.status))}>
+          {label} · {statusLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonths, currentTime, forceShowMilestones, onMilestoneSelect }: Props) {
   const [isHovered, setIsHovered] = useState(false);
-  const [showAnticipo, setShowAnticipo] = useState(false);
-  const [showSuministro, setShowSuministro] = useState(false);
   const [expandedComentarios, setExpandedComentarios] = useState<Set<string>>(new Set());
 
   // Use detalle schedule if available (from Excel upload), then familia schedule, then parent
@@ -68,6 +133,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
   const rawEndDate = parseDate(effectiveSchedule?.fecha_fin);
   const anticipoDate = parseDate(schedule?.anticipo_fecha);
   const suministroDate = parseDate(schedule?.suministro_fecha);
+  const finiquitoDate = parseDate(schedule?.finiquito_fecha);
 
   // Clamp child items' start to parent start
   let startDate = rawStartDate;
@@ -224,6 +290,33 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
   // Milestone positions (relative to bar start)
   const anticipoPx = anticipoDate ? dateToPixel(anticipoDate, columnWidth, timelineMonths) : null;
   const suministroPx = suministroDate ? dateToPixel(suministroDate, columnWidth, timelineMonths) : null;
+  const finiquitoPx = finiquitoDate ? dateToPixel(finiquitoDate, columnWidth, timelineMonths) : null;
+  const getMilestone = (kind: ProgramaMilestoneKind): ProgramaMilestoneSummary | null => {
+    const existing = item.milestones?.find((milestone) => milestone.kind === kind);
+    if (existing) return existing;
+    if (!schedule || !item.partidaDbId) return null;
+    const plannedDate = kind === "anticipo"
+      ? schedule.anticipo_fecha
+      : kind === "suministro"
+        ? schedule.suministro_fecha
+        : schedule.finiquito_fecha;
+    if (!plannedDate) return null;
+    return {
+      scheduleId: schedule._id,
+      partidaId: item.partidaDbId,
+      partidaName: item.partida,
+      kind,
+      plannedDate,
+      reminderDays: kind === "suministro" ? 14 : 7,
+      status: "scheduled",
+      actionable: false,
+      daysUntil: null,
+      sourceCount: 0,
+      candidateCount: 0,
+      evidenceCount: 0,
+      canViewFinancial: false,
+    };
+  };
 
   // For nivel 1 (familia) and nivel 2 (sub-partida), inherit parent schedule
   // They render under the parent's bar range. For now, they span the same range
@@ -421,67 +514,15 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
           </div>
         )}
 
-        {/* === Milestone markers (only for nivel 0) === */}
-        {item.level === 0 && anticipoPx != null && (
-          <div
-            className="absolute top-0 z-20 h-full cursor-pointer"
-            style={{ left: `${anticipoPx - startPx}px` }}
-            onClick={(e) => { e.stopPropagation(); setShowAnticipo(!showAnticipo); }}
-          >
-            <div className="flex space-x-0.5 h-full">
-              <div
-                className={cn(
-                  "px-0.5 py-0.5 text-[11px] shadow-sm cursor-pointer whitespace-nowrap h-full",
-                  "bg-disabled text-on-color flex flex-row gap-0.5 items-center"
-                )}
-              >
-              </div>
-              {(showAnticipo || forceShowMilestones) && (
-                <div className="flex flex-col">
-                  <div className="flex bg-disabled px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-on-color flex-row gap-0.5 items-center h-1/2">
-                    <span>Anticipo</span>
-                    <Check className="inline text-on-color" size={12} />
-                  </div>
-                  <div className="block text-[11px] bg-muted px-1 py-0.5 text-muted-foreground h-1/2">
-                    {schedule?.anticipo_porcentaje}% - { }
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        {/* === Operational milestone markers (only for nivel 0) === */}
+        {item.level === 0 && anticipoPx != null && getMilestone("anticipo") && (
+          <MilestoneMarker milestone={getMilestone("anticipo")!} left={anticipoPx - startPx} forceLabel={forceShowMilestones} onSelect={onMilestoneSelect} />
         )}
-
-        {item.level === 0 && suministroPx != null && (
-          <div
-            className="absolute top-0 z-20 h-full cursor-pointer"
-            style={{ left: `${suministroPx - startPx}px` }}
-            onClick={(e) => { e.stopPropagation(); setShowSuministro(!showSuministro); }}
-          >
-            <div className="flex space-x-0.5 h-full">
-              <div
-                className={cn(
-                  "px-0.5 py-0.5 text-[11px] shadow-sm cursor-pointer whitespace-nowrap h-full",
-                  "bg-[#C46B34B3] text-on-color flex flex-row gap-0.5 items-center"
-                )}
-              >
-              </div>
-              {(showSuministro || forceShowMilestones) && (
-                <div
-                  className={cn(
-                    "flex flex-col space-y-0.5 h-full",
-                  )}
-                >
-                  <div className="bg-[#C46B34B3] px-1.5 py-0.5 text-[11px] cursor-default whitespace-nowrap text-on-color flex flex-row gap-0.5 items-center">
-                    Suministro
-                    <Check className="inline" size={12} />
-                  </div>
-                  <div className="block text-[11px] bg-muted px-1 py-0.5 text-muted-foreground">
-                    {schedule?.suministro_fecha}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        {item.level === 0 && suministroPx != null && getMilestone("suministro") && (
+          <MilestoneMarker milestone={getMilestone("suministro")!} left={suministroPx - startPx} forceLabel={forceShowMilestones} onSelect={onMilestoneSelect} />
+        )}
+        {item.level === 0 && finiquitoPx != null && getMilestone("finiquito") && (
+          <MilestoneMarker milestone={getMilestone("finiquito")!} left={finiquitoPx - startPx} forceLabel={forceShowMilestones} onSelect={onMilestoneSelect} />
         )}
 
         {/* === Comentario bars (blue) for nivel 0 and nivel 1 === */}

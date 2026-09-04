@@ -33,6 +33,9 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
+import { useAddPaymentModal } from "@/hooks/add-payment-modal";
+import { useUploadTransactionsModal } from "@/hooks/upload-transactions-modal";
+import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import {
@@ -42,8 +45,18 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import AssignProviderDialog from "@/components/providers/AssignProviderDialog";
 import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
+import { AddTransactionMenu } from "@/components/transactions/AddTransactionMenu";
 
 const EXTRA_COLUMNS = [
     { id: "tipoPago", label: "Tipo de pago" },
@@ -69,9 +82,16 @@ export default function TransaccionesTablePage() {
     const [selectedProveedor, setSelectedProveedor] = useState<Id<"proveedores"> | "all" | "unassigned">("all");
     const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<Id<"transacciones">>>(new Set());
     const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+    const [invoiceOpen, setInvoiceOpen] = useState(false);
+    const [paymentProjectPickerOpen, setPaymentProjectPickerOpen] = useState(false);
+    const [paymentProjectId, setPaymentProjectId] = useState<Id<"desarrollos"> | "">("");
     const extraColumns = useOptionalTableColumns(EXTRA_COLUMNS);
+    const addPaymentModal = useAddPaymentModal();
+    const uploadTransactionsModal = useUploadTransactionsModal();
+    const uploadProjectTransactionsModal = useUploadProjectTransactionsModal();
 
     // Queries
+    const currentUser = useQuery(api.users.getCurrentUser);
     const proyectos = useQuery(api.desarrollos.getAll);
     const {
         results: transacciones,
@@ -86,6 +106,34 @@ export default function TransaccionesTablePage() {
     const allTransactionsLoaded = transaccionesStatus === "Exhausted";
 
     const detailsModal = useTransactionDetailsModal();
+    const canCreateTransactions = Boolean(currentUser && currentUser.role !== "viewer");
+
+    const handleAddPayment = () => {
+        if (selectedProyecto) {
+            addPaymentModal.onOpen({ projectId: selectedProyecto });
+            return;
+        }
+        setPaymentProjectId("");
+        setPaymentProjectPickerOpen(true);
+    };
+
+    const handleUploadExcel = () => {
+        if (selectedProyecto) {
+            const proyecto = proyectos?.find((item) => item._id === selectedProyecto);
+            if (proyecto) {
+                uploadProjectTransactionsModal.onOpen(proyecto._id, proyecto.nombre);
+                return;
+            }
+        }
+        uploadTransactionsModal.onOpen();
+    };
+
+    const handleConfirmPaymentProject = () => {
+        if (!paymentProjectId) return;
+        addPaymentModal.onOpen({ projectId: paymentProjectId });
+        setPaymentProjectPickerOpen(false);
+        setPaymentProjectId("");
+    };
 
     const filteredTransacciones = transacciones.filter((transaccion) => {
         const matchesSearch = transaccion.proyectoNombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -234,7 +282,12 @@ export default function TransaccionesTablePage() {
                             </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                            <InvoiceIntakeDialog />
+                            <AddTransactionMenu
+                                visible={canCreateTransactions}
+                                onAddPayment={handleAddPayment}
+                                onUploadExcel={handleUploadExcel}
+                                onUploadInvoice={() => setInvoiceOpen(true)}
+                            />
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
                                     {allTransactionsLoaded ? "Total" : "Cargadas"}: {transacciones.length}
@@ -658,6 +711,64 @@ export default function TransaccionesTablePage() {
                 transactionId={null}
                 transactionIds={[...selectedTransactionIds]}
             />
+            <InvoiceIntakeDialog
+                hideTrigger
+                open={invoiceOpen}
+                onOpenChange={setInvoiceOpen}
+                defaultProjectId={selectedProyecto || undefined}
+            />
+            <Dialog
+                open={paymentProjectPickerOpen}
+                onOpenChange={(open) => {
+                    setPaymentProjectPickerOpen(open);
+                    if (!open) setPaymentProjectId("");
+                }}
+            >
+                <DialogContent data-square-modal="" className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-normal">Agregar pago</DialogTitle>
+                        <DialogDescription>
+                            Selecciona el proyecto al que pertenece la transacción.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 py-2">
+                        <Label htmlFor="payment-project">Proyecto *</Label>
+                        <Select
+                            value={paymentProjectId || undefined}
+                            onValueChange={(value) => setPaymentProjectId(value as Id<"desarrollos">)}
+                        >
+                            <SelectTrigger id="payment-project" className="rounded-none h-11">
+                                <SelectValue placeholder="Selecciona un proyecto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {proyectos?.map((proyecto) => (
+                                    <SelectItem key={proyecto._id} value={proyecto._id}>
+                                        {proyecto.nombre}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="rounded-none"
+                            onClick={() => setPaymentProjectPickerOpen(false)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            className="rounded-none"
+                            onClick={handleConfirmPaymentProject}
+                            disabled={!paymentProjectId}
+                        >
+                            Continuar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

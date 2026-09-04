@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, FileText, Upload, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon, Eye, Files, UserCog, Trash2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, MoreVertical, FileText, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon, Eye, Files, UserCog, Trash2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,7 +29,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
 import { InvoiceBackfillDialog } from "@/components/invoices/InvoiceBackfillDialog";
+import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
+import { AddTransactionMenu } from "@/components/transactions/AddTransactionMenu";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
+import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -117,6 +120,10 @@ const EXTRA_COLUMNS = [
 export default function ProyectoTransaccionesTablePage() {
 
     const uploadProjectTransactionsModal = useUploadProjectTransactionsModal();
+    const addPaymentModal = useAddPaymentModal();
+    const currentUser = useQuery(api.users.getCurrentUser);
+    const canCreateTransactions = Boolean(currentUser && currentUser.role !== "viewer");
+    const [invoiceOpen, setInvoiceOpen] = useState(false);
 
     const { proyectoId } = useParams<{ proyectoId: string }>();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -524,16 +531,13 @@ export default function ProyectoTransaccionesTablePage() {
                             <h1 className="break-words text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
+                            <AddTransactionMenu
+                                visible={canCreateTransactions}
+                                onAddPayment={() => addPaymentModal.onOpen({ projectId: proyecto._id })}
+                                onUploadExcel={() => uploadProjectTransactionsModal.onOpen(proyectoId as Id<"desarrollos">, proyecto.nombre)}
+                                onUploadInvoice={() => setInvoiceOpen(true)}
+                            />
                             <InvoiceBackfillDialog projectId={proyectoId as Id<"desarrollos">} />
-                            <Button
-                                onClick={() => uploadProjectTransactionsModal.onOpen(proyectoId as Id<"desarrollos">, proyecto.nombre)}
-                                variant="outline"
-                                size="lg"
-                                className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
-                            >
-                                Subir Transacciones
-                                <Upload className="h-6 w-6 rounded-full shadow-none" />
-                            </Button>
                             <Button
                                 onClick={handleSync}
                                 disabled={isSyncing}
@@ -669,6 +673,8 @@ export default function ProyectoTransaccionesTablePage() {
                                                     ) : (
                                                         format(dateRange.from, "dd MMM yyyy", { locale: es })
                                                     )
+                                                ) : dateRange?.to ? (
+                                                    <>Hasta {format(dateRange.to, "dd MMM yyyy", { locale: es })}</>
                                                 ) : (
                                                     "Seleccionar rango"
                                                 )}
@@ -1244,6 +1250,13 @@ export default function ProyectoTransaccionesTablePage() {
                 }}
                 transactionId={null}
                 transactionIds={[...selectedTransactionIds]}
+            />
+            <InvoiceIntakeDialog
+                hideTrigger
+                open={invoiceOpen}
+                onOpenChange={setInvoiceOpen}
+                projectId={proyecto._id}
+                projectName={proyecto.nombre}
             />
         </div>
     );

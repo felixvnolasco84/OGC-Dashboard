@@ -16,6 +16,15 @@
   opacity: 1;
 }
 
+[data-viewer-readonly="true"] [data-viewer-readonly-allow="true"] button,
+[data-viewer-readonly="true"] [data-viewer-readonly-allow="true"] input,
+[data-viewer-readonly="true"] [data-viewer-readonly-allow="true"] textarea,
+[data-viewer-readonly="true"] [data-viewer-readonly-allow="true"] select,
+[data-viewer-readonly="true"] [data-viewer-readonly-allow="true"] [role="button"] {
+  pointer-events: auto;
+  opacity: 1;
+}
+
 [data-rfi-entry-form="true"] input:not([type="checkbox"]):not([type="file"]),
 [data-rfi-entry-form="true"] textarea {
   border-color: hsl(var(--input));

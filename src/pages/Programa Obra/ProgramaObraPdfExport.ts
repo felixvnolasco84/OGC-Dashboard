@@ -2,6 +2,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { STATIC_NEUTRAL_COLORS } from "@/lib/design-tokens";
 import type { ProgramaItem } from "./programa-obra-types";
+import { computeGanttPagination, ROW_CSS_PX } from "./programa-obra-pdf-layout";
 
 export interface ComentarioForPdf {
   partidaNombre: string;
@@ -11,6 +12,12 @@ export interface ComentarioForPdf {
   createdByName?: string;
 }
 
+export type ProgramaObraExportViewState = {
+  expandedIds: Set<string>;
+  searchTerm: string;
+  statusFilter: string;
+};
+
 export interface PdfExportOptions {
   /** Ref to the fixed left-columns container (shrink-0 div) */
   leftColumnsEl: HTMLElement;
@@ -18,10 +25,10 @@ export interface PdfExportOptions {
   timelineEl: HTMLElement;
   /** Project name for the PDF header & filename */
   projectName: string;
-  /** Callback to collapse all expanded items before capture */
-  collapseAll: () => Set<string>;
-  /** Callback to restore previously expanded items after capture */
-  restoreExpanded: (ids: Set<string>) => void;
+  /** Expand every partida/familia so the PDF includes the full breakdown */
+  expandAll: () => ProgramaObraExportViewState;
+  /** Restore the on-screen expand/filter state after capture */
+  restoreView: (state: ProgramaObraExportViewState) => void;
   /** Level-0 items with comentarios attached (for the comments pages) */
   programaData: ProgramaItem[];
 }
@@ -51,10 +58,109 @@ const PDF_EXPORT_CSS = `
     max-height: 44px !important;
     height: 44px !important;
   }
-  [data-pdf-export-active] .overflow-hidden {
+  [data-pdf-export-active] .overflow-hidden,
+  [data-pdf-export-active] .overflow-auto,
+  [data-pdf-export-active] .overflow-x-hidden,
+  [data-pdf-export-active] .overflow-y-auto {
     overflow: visible !important;
   }
+  [data-pdf-export-active] .sticky {
+    position: static !important;
+  }
+  [data-pdf-export-active] button[aria-label^="Opciones de"] {
+    display: none !important;
+  }
 `;
+
+const MAX_CANVAS_DIM = 16384;
+
+type StyleSnapshot = {
+  el: HTMLElement;
+  overflow: string;
+  overflowX: string;
+  overflowY: string;
+  height: string;
+  maxHeight: string;
+};
+
+function waitForLayout(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.setTimeout(resolve, ms);
+      });
+    });
+  });
+}
+
+/** Temporarily unclip Gantt scroll wrappers so html2canvas can see every expanded row. */
+function unclipAncestors(roots: HTMLElement[], maxDepth = 4): () => void {
+  const snapshots: StyleSnapshot[] = [];
+  const seen = new Set<HTMLElement>();
+  for (const root of roots) {
+    let current: HTMLElement | null = root;
+    let depth = 0;
+    while (current && current !== document.body && depth < maxDepth) {
+      if (!seen.has(current)) {
+        seen.add(current);
+        snapshots.push({
+          el: current,
+          overflow: current.style.overflow,
+          overflowX: current.style.overflowX,
+          overflowY: current.style.overflowY,
+          height: current.style.height,
+          maxHeight: current.style.maxHeight,
+        });
+        current.style.overflow = "visible";
+        current.style.overflowX = "visible";
+        current.style.overflowY = "visible";
+        current.style.height = "auto";
+        current.style.maxHeight = "none";
+      }
+      current = current.parentElement;
+      depth += 1;
+    }
+  }
+  return () => {
+    for (const snap of snapshots) {
+      snap.el.style.overflow = snap.overflow;
+      snap.el.style.overflowX = snap.overflowX;
+      snap.el.style.overflowY = snap.overflowY;
+      snap.el.style.height = snap.height;
+      snap.el.style.maxHeight = snap.maxHeight;
+    }
+  };
+}
+
+function captureScale(cssW: number, cssH: number): number {
+  return Math.min(2, MAX_CANVAS_DIM / Math.max(cssW, 1), MAX_CANVAS_DIM / Math.max(cssH, 1));
+}
+
+function sliceCanvas(
+  source: HTMLCanvasElement,
+  sx: number,
+  sy: number,
+  sw: number,
+  sh: number,
+): HTMLCanvasElement {
+  const rx = Math.max(0, Math.round(sx));
+  const ry = Math.max(0, Math.round(sy));
+  const rw = Math.max(1, Math.min(Math.round(sw), source.width - rx));
+  const rh = Math.max(1, Math.min(Math.round(sh), source.height - ry));
+  const canvas = document.createElement("canvas");
+  canvas.width = rw;
+  canvas.height = rh;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.drawImage(source, rx, ry, rw, rh, 0, 0, rw, rh);
+  }
+  return canvas;
+}
+
+function headerCssHeight(el: HTMLElement): number {
+  const header = el.firstElementChild as HTMLElement | null;
+  return header?.offsetHeight || ROW_CSS_PX;
+}
 
 /** Inject temporary style overrides for PDF capture */
 function injectPdfStyles(): void {
@@ -71,10 +177,10 @@ function removePdfStyles(): void {
   document.body.removeAttribute("data-pdf-export-active");
 }
 
-/** Collect all comments from programaData (level 0 items only) */
+/** Collect comments from partidas and their desglose (familias). */
 function collectComments(programaData: ProgramaItem[]): ComentarioForPdf[] {
   const result: ComentarioForPdf[] = [];
-  for (const item of programaData) {
+  const walk = (item: ProgramaItem) => {
     if (item.comentarios && item.comentarios.length > 0) {
       for (const c of item.comentarios) {
         result.push({
@@ -86,7 +192,9 @@ function collectComments(programaData: ProgramaItem[]): ComentarioForPdf[] {
         });
       }
     }
-  }
+    for (const child of item.children) walk(child);
+  };
+  for (const item of programaData) walk(item);
   return result;
 }
 
@@ -210,144 +318,156 @@ function renderCommentsPages(
 
 /**
  * Export the Programa de Obra Gantt view as a multi-page landscape PDF.
- * Left columns are repeated on every page; the timeline is sliced horizontally.
+ * Every partida is expanded so familias appear in the capture.
+ * Left columns and Gantt headers repeat on every page; the timeline is sliced
+ * horizontally and the rows are sliced vertically when the breakdown is tall.
  * Comments are rendered as separate pages at the end.
  */
 export async function exportProgramaObraPdf({
   leftColumnsEl,
   timelineEl,
   projectName,
-  collapseAll,
-  restoreExpanded,
+  expandAll,
+  restoreView,
   programaData,
 }: PdfExportOptions): Promise<void> {
-  // 1. Collapse all expanded items, save previous state
-  const previouslyExpanded = collapseAll();
+  const previousView = expandAll();
+  await waitForLayout(350);
 
-  // Small delay to let React re-render
-  await new Promise((r) => setTimeout(r, 300));
+  let restoreClip: (() => void) | null = null;
 
   try {
-    // 2. Inject CSS overrides to prevent text clipping during capture
     injectPdfStyles();
+    restoreClip = unclipAncestors([leftColumnsEl, timelineEl]);
+    if (leftColumnsEl.parentElement) leftColumnsEl.parentElement.scrollTop = 0;
+    if (timelineEl.parentElement) timelineEl.parentElement.scrollTop = 0;
+    if (timelineEl.parentElement) timelineEl.parentElement.scrollLeft = 0;
 
-    // 3. Temporarily remove overflow clipping on timeline so full width renders
-    const prevOverflow = timelineEl.style.overflow;
-    const prevOverflowX = timelineEl.style.overflowX;
-    timelineEl.style.overflow = "visible";
-    timelineEl.style.overflowX = "visible";
+    await waitForLayout(120);
 
-    // Small delay for style injection to take effect
-    await new Promise((r) => setTimeout(r, 100));
+    const leftCssW = Math.max(leftColumnsEl.scrollWidth, leftColumnsEl.offsetWidth);
+    const leftCssH = Math.max(leftColumnsEl.scrollHeight, leftColumnsEl.offsetHeight);
+    const tlCssW = Math.max(timelineEl.scrollWidth, timelineEl.offsetWidth);
+    const tlCssH = Math.max(timelineEl.scrollHeight, timelineEl.offsetHeight);
+    const scale = Math.min(captureScale(leftCssW, leftCssH), captureScale(tlCssW, tlCssH));
 
-    // 4. Capture left columns
+    const captureOpts = {
+      scale,
+      useCORS: true,
+      backgroundColor: STATIC_NEUTRAL_COLORS.surface,
+      logging: false as const,
+      scrollX: 0,
+      scrollY: 0,
+    };
+
     const leftCanvas = await html2canvas(leftColumnsEl, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: STATIC_NEUTRAL_COLORS.surface,
-      logging: false,
+      ...captureOpts,
+      width: leftCssW,
+      height: leftCssH,
+      windowWidth: leftCssW,
+      windowHeight: leftCssH,
     });
 
-    // 5. Capture full timeline
     const timelineCanvas = await html2canvas(timelineEl, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: STATIC_NEUTRAL_COLORS.surface,
-      logging: false,
-      width: timelineEl.scrollWidth,
-      windowWidth: timelineEl.scrollWidth + leftColumnsEl.offsetWidth + 100,
+      ...captureOpts,
+      width: tlCssW,
+      height: tlCssH,
+      windowWidth: tlCssW + leftCssW + 100,
+      windowHeight: tlCssH,
     });
 
-    // Restore overflow and remove CSS overrides
-    timelineEl.style.overflow = prevOverflow;
-    timelineEl.style.overflowX = prevOverflowX;
+    restoreClip();
+    restoreClip = null;
     removePdfStyles();
 
-    // 6. Compute dimensions
     const leftImgW = leftCanvas.width;
-    const leftImgH = leftCanvas.height;
     const tlImgW = timelineCanvas.width;
-    const tlImgH = timelineCanvas.height;
-
-    const totalPixelH = Math.max(leftImgH, tlImgH);
-
-    // Scale so the row height fits in the usable height
-    const scaleToFitH = USABLE_H_MM / totalPixelH;
+    const pagination = computeGanttPagination({
+      canvasHeight: leftCanvas.height,
+      elementHeight: leftCssH,
+      headerCssH: headerCssHeight(leftColumnsEl),
+      usableHMm: USABLE_H_MM,
+    });
+    const { scaleToFitH, headerCanvasH, bodyCanvasH, bodyCanvasPerPage, vPages, headerMmH } = pagination;
 
     const leftMmW = leftImgW * scaleToFitH;
-    const leftMmH = leftImgH * scaleToFitH;
-
-    // Available width for each timeline slice
     const sliceAvailMmW = USABLE_W_MM - leftMmW;
-
-    // How many timeline pixels fit per slice
     const tlPixelsPerSlice = sliceAvailMmW / scaleToFitH;
+    const hPages = Math.max(1, Math.ceil(tlImgW / tlPixelsPerSlice));
+    const ganttPages = hPages * vPages;
 
-    // Number of Gantt pages
-    const ganttPages = Math.max(1, Math.ceil(tlImgW / tlPixelsPerSlice));
-
-    // Collect comments to estimate total page count
     const comments = collectComments(programaData);
-    // Rough estimate: ~8 comments per page
     const commentPages = comments.length > 0 ? Math.max(1, Math.ceil(comments.length / 8)) : 0;
     const totalPages = ganttPages + commentPages;
 
-    // 7. Create PDF
     const pdf = new jsPDF({
       orientation: "landscape",
       unit: "mm",
       format: "a3",
     });
 
-    // Pre-generate left columns data URL once (avoid repeated toDataURL calls)
-    const leftDataUrl = leftCanvas.toDataURL("image/png");
+    const contentY = MARGIN_MM + HEADER_H_MM;
+    let pageNum = 0;
 
-    for (let page = 0; page < ganttPages; page++) {
-      if (page > 0) pdf.addPage();
-
-      drawPageHeader(pdf, `Programa de Obra — ${projectName}`, page + 1, totalPages);
-
-      const contentY = MARGIN_MM + HEADER_H_MM;
-
-      // Draw left columns
-      pdf.addImage(leftDataUrl, "PNG", MARGIN_MM, contentY, leftMmW, leftMmH);
-
-      // Draw timeline slice
-      const srcX = page * tlPixelsPerSlice;
+    for (let h = 0; h < hPages; h++) {
+      const srcX = h * tlPixelsPerSlice;
       const srcW = Math.min(tlPixelsPerSlice, tlImgW - srcX);
       if (srcW <= 0) continue;
 
-      // Create a temporary canvas for this slice
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width = srcW;
-      sliceCanvas.height = tlImgH;
-      const ctx = sliceCanvas.getContext("2d");
-      if (!ctx) continue;
-      ctx.drawImage(timelineCanvas, srcX, 0, srcW, tlImgH, 0, 0, srcW, tlImgH);
+      for (let v = 0; v < vPages; v++) {
+        pageNum += 1;
+        if (pageNum > 1) pdf.addPage();
+        drawPageHeader(pdf, `Programa de Obra — ${projectName}`, pageNum, totalPages);
 
-      const sliceMmW = srcW * scaleToFitH;
-      const sliceMmH = tlImgH * scaleToFitH;
+        const bodySrcY = headerCanvasH + v * bodyCanvasPerPage;
+        const bodySrcH = Math.max(0, Math.min(bodyCanvasPerPage, bodyCanvasH - v * bodyCanvasPerPage));
+        const bodyMmH = bodySrcH * scaleToFitH;
 
-      pdf.addImage(
-        sliceCanvas.toDataURL("image/png"),
-        "PNG",
-        MARGIN_MM + leftMmW,
-        contentY,
-        sliceMmW,
-        sliceMmH,
-      );
+        const leftHeader = sliceCanvas(leftCanvas, 0, 0, leftImgW, headerCanvasH);
+        pdf.addImage(leftHeader.toDataURL("image/png"), "PNG", MARGIN_MM, contentY, leftMmW, headerMmH);
+        if (bodySrcH > 0) {
+          const leftBody = sliceCanvas(leftCanvas, 0, bodySrcY, leftImgW, bodySrcH);
+          pdf.addImage(
+            leftBody.toDataURL("image/png"),
+            "PNG",
+            MARGIN_MM,
+            contentY + headerMmH,
+            leftMmW,
+            bodyMmH,
+          );
+        }
+
+        const tlHeader = sliceCanvas(timelineCanvas, srcX, 0, srcW, headerCanvasH);
+        pdf.addImage(
+          tlHeader.toDataURL("image/png"),
+          "PNG",
+          MARGIN_MM + leftMmW,
+          contentY,
+          srcW * scaleToFitH,
+          headerMmH,
+        );
+        if (bodySrcH > 0) {
+          const tlBody = sliceCanvas(timelineCanvas, srcX, bodySrcY, srcW, bodySrcH);
+          pdf.addImage(
+            tlBody.toDataURL("image/png"),
+            "PNG",
+            MARGIN_MM + leftMmW,
+            contentY + headerMmH,
+            srcW * scaleToFitH,
+            bodyMmH,
+          );
+        }
+      }
     }
 
-    // 8. Render comments pages
     if (comments.length > 0) {
       renderCommentsPages(pdf, comments, projectName, ganttPages + 1, totalPages);
     }
 
-    // 9. Save
     pdf.save(`Programa de Obra - ${projectName}.pdf`);
   } finally {
-    // 10. Cleanup: restore expanded items and remove any lingering overrides
+    restoreClip?.();
     removePdfStyles();
-    restoreExpanded(previouslyExpanded);
+    restoreView(previousView);
   }
 }

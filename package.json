@@ -16,6 +16,7 @@
     "test:invoices": "node --experimental-strip-types scripts/test-invoice-analysis-rules.mjs",
     "test:rfi": "node --experimental-strip-types scripts/test-rfi-rules.mjs",
     "test:task-emails": "node --experimental-strip-types scripts/test-task-email-notifications.mjs",
+    "test:programa": "node --experimental-strip-types scripts/test-programa-obra-rules.mjs",
     "send:task-email-mocks": "node scripts/send-task-email-mocks.mjs",
     "send:task-comment-mocks": "node scripts/send-task-comment-email-mocks.mjs",
     "eval:chatbot": "node scripts/evaluate-assistant.mjs",

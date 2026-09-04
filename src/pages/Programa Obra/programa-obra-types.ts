@@ -11,6 +11,37 @@ export type AvanceRealData = Doc<"avance_real">;
 export type AvanceHistorialData = Doc<"programa_obra_avance_historial">;
 export type ComentarioData = Doc<"programa_obra_comentarios">;
 
+export type ProgramaMilestoneKind = "anticipo" | "suministro" | "finiquito";
+export type ProgramaMilestoneStatus =
+  | "scheduled"
+  | "upcoming"
+  | "due_today"
+  | "overdue"
+  | "review_required"
+  | "partial"
+  | "completed"
+  | "missing_evidence";
+
+export type ProgramaMilestoneSummary = {
+  scheduleId: Id<"programa_obra">;
+  partidaId: Id<"partidas">;
+  partidaName: string;
+  kind: ProgramaMilestoneKind;
+  plannedDate: string;
+  reminderDays: number;
+  status: ProgramaMilestoneStatus;
+  actionable: boolean;
+  daysUntil: number | null;
+  sourceCount: number;
+  candidateCount: number;
+  evidenceCount: number;
+  actualDate?: string;
+  canViewFinancial: boolean;
+  expectedAmount?: number;
+  actualAmount?: number;
+  variance?: number;
+};
+
 export type ProgramaItem = {
   id: string;
   partidaDbId?: Id<"partidas">; // actual DB id for mutations
@@ -36,6 +67,7 @@ export type ProgramaItem = {
   completionKnown?: boolean; // false when completion predates the available history
   maxChildEndDate?: string; // farthest familia end date (only nivel 0, for red extension)
   comentarios?: ComentarioData[];
+  milestones?: ProgramaMilestoneSummary[];
   children: ProgramaItem[];
 };
 

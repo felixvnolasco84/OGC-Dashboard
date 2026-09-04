@@ -1,10 +1,29 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { flushSync } from "react-dom";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Search, MoreHorizontal, Upload, Loader2, MessageSquare, FileDown, CalendarDays, Percent, History } from "lucide-react";
+import {
+  Bell,
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Crosshair,
+  FileDown,
+  Focus,
+  History,
+  Loader2,
+  MessageSquare,
+  Minimize2,
+  MoreHorizontal,
+  Percent,
+  Search,
+  Upload,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +39,8 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import ProgramaObraGanttItem from "./ProgramaObraGanttItem";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -27,14 +48,22 @@ import {
   type AvanceHistorialData,
   type ScheduleData,
   type ProgramaItem,
+  type ProgramaMilestoneSummary,
   parseDate,
 } from "./programa-obra-types";
+import { collectExpandableIds } from "./programa-obra-pdf-layout";
 import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
 import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 import ProgramaObraComentarios from "./ProgramaObraComentarios";
 import ProgramaObraAvanceHistorial from "./ProgramaObraAvanceHistorial";
 import ProgramaObraExcelPreview, { type ExcelPartida, type ExcelRow } from "./ProgramaObraExcelPreview";
 import { exportProgramaObraPdf } from "./ProgramaObraPdfExport";
+import {
+  ProgramaObraAlertsPanel,
+  ProgramaObraMilestoneDetail,
+} from "./ProgramaObraMilestones";
+import { useSidebar } from "@/components/ui/Sidebar";
+import { toast } from "sonner";
 
 // ============================================================
 // Helpers
@@ -168,13 +197,20 @@ function dateStrToPixel(
 
 export default function ProgramaObra() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
+  const { open: sidebarOpen, setOpen: setSidebarOpen, isMobile } = useSidebar();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const leftColumnsRef = useRef<HTMLDivElement>(null);
   const ganttContainerRef = useRef<HTMLDivElement>(null);
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const isSyncingScroll = useRef(false);
+  const hasAutoCenteredRef = useRef(false);
+  const sidebarBeforeFocusRef = useRef<boolean | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [selectedMilestone, setSelectedMilestone] = useState<ProgramaMilestoneSummary | null>(null);
+  const [focusMode, setFocusMode] = useState(false);
   const [editingPartida, setEditingPartida] = useState<ProgramaItem | null>(null);
   const [editingFamilia, setEditingFamilia] = useState<ProgramaItem | null>(null);
   const [comentariosItem, setComentariosItem] = useState<ProgramaItem | null>(null);
@@ -192,6 +228,27 @@ export default function ProgramaObra() {
 
   const currentUser = useQuery(api.users.getCurrentUser);
   const canEditPesos = currentUser?.role === "admin";
+
+  const toggleFocusMode = useCallback(() => {
+    setFocusMode((enabled) => {
+      if (!enabled) {
+        sidebarBeforeFocusRef.current = sidebarOpen;
+        if (!isMobile) setSidebarOpen(false);
+        return true;
+      }
+      if (!isMobile && sidebarBeforeFocusRef.current != null) {
+        setSidebarOpen(sidebarBeforeFocusRef.current);
+      }
+      sidebarBeforeFocusRef.current = null;
+      return false;
+    });
+  }, [isMobile, setSidebarOpen, sidebarOpen]);
+
+  useEffect(() => () => {
+    if (!isMobile && sidebarBeforeFocusRef.current != null) {
+      setSidebarOpen(sidebarBeforeFocusRef.current);
+    }
+  }, [isMobile, setSidebarOpen]);
 
   // Fetch current project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -222,6 +279,11 @@ export default function ProgramaObra() {
 
   const avanceHistorial = useQuery(
     api.programa_obra.getAvanceHistorialByProyecto,
+    proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
+  );
+
+  const milestoneDashboard = useQuery(
+    api.programa_obra.getMilestoneDashboard,
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
 
@@ -260,6 +322,37 @@ export default function ProgramaObra() {
     return map;
   }, [avanceHistorial]);
 
+  const detallesByPartida = useMemo(() => {
+    const map = new Map<string, NonNullable<typeof detalles>>();
+    detalles?.forEach((detalle) => {
+      const group = map.get(detalle.partida) ?? [];
+      group.push(detalle);
+      map.set(detalle.partida, group);
+    });
+    return map;
+  }, [detalles]);
+
+  const comentariosByParent = useMemo(() => {
+    const map = new Map<string, NonNullable<typeof comentarios>>();
+    comentarios?.forEach((comentario) => {
+      const key = `${comentario.parent_type}:${comentario.parent_id}`;
+      const group = map.get(key) ?? [];
+      group.push(comentario);
+      map.set(key, group);
+    });
+    return map;
+  }, [comentarios]);
+
+  const milestonesBySchedule = useMemo(() => {
+    const map = new Map<string, ProgramaMilestoneSummary[]>();
+    milestoneDashboard?.forEach((milestone) => {
+      const group = map.get(milestone.scheduleId) ?? [];
+      group.push(milestone as ProgramaMilestoneSummary);
+      map.set(milestone.scheduleId, group);
+    });
+    return map;
+  }, [milestoneDashboard]);
+
   // ============================================================
   // Build hierarchical tree: nivel 1 partidas + detalle children
   // ============================================================
@@ -282,7 +375,7 @@ export default function ProgramaObra() {
       const schedule = scheduleMap.get(p1._id) || null;
 
       // Get nivel 2 detalles for this partida (familia items only, with orden set from Excel), sorted by Excel order
-      const familiaDetalles = (detalles?.filter((d) => d.partida === p1.nombre && d.nivel === 2 && d.orden != null) || [])
+      const familiaDetalles = (detallesByPartida.get(p1.nombre)?.filter((d) => d.nivel === 2 && d.orden != null) || [])
         .sort((a, b) => (a.orden ?? Infinity) - (b.orden ?? Infinity));
 
       // Build familia (level 1) items from nivel 2 detalles
@@ -414,27 +507,24 @@ export default function ProgramaObra() {
         completedAt,
         completionKnown,
         maxChildEndDate,
+        milestones: schedule ? milestonesBySchedule.get(schedule._id) ?? [] : [],
         children: familiaItems,
       } as ProgramaItem;
     });
-  }, [nivel1Partidas, scheduleMap, detalles, avanceHistorialMap]);
+  }, [nivel1Partidas, scheduleMap, detallesByPartida, avanceHistorialMap, milestonesBySchedule]);
 
   // Attach comentarios to items
   const programaDataWithComentarios = useMemo(() => {
     if (!comentarios || comentarios.length === 0) return programaData;
     return programaData.map((item) => {
-      const itemComentarios = comentarios.filter(
-        (c) => c.parent_type === "partida" && c.parent_id === (item.schedule?._id ?? "")
-      );
+      const itemComentarios = comentariosByParent.get(`partida:${item.schedule?._id ?? ""}`) ?? [];
       const childrenWithComentarios = item.children.map((child) => {
-        const childComentarios = comentarios.filter(
-          (c) => c.parent_type === "familia" && c.parent_id === (child.detalleSchedule?._id ?? "")
-        );
+        const childComentarios = comentariosByParent.get(`familia:${child.detalleSchedule?._id ?? ""}`) ?? [];
         return { ...child, comentarios: childComentarios };
       });
       return { ...item, comentarios: itemComentarios, children: childrenWithComentarios };
     });
-  }, [programaData, comentarios]);
+  }, [programaData, comentarios, comentariosByParent]);
 
   // ============================================================
   // Expansion state management (separate from data to avoid resets)
@@ -468,21 +558,32 @@ export default function ProgramaObra() {
     setSavingPonderacion(false);
   }, []);
 
-  // Compute overall weighted progress from level 0 items
-  // const overallProgress = useMemo(() => {
-  //   if (programaDataWithComentarios.length === 0) return 0;
-  //   const totalWeight = programaDataWithComentarios.reduce((s, p) => s + (p.ponderacion || 0), 0);
-  //   if (totalWeight > 0) {
-  //     const weighted = programaDataWithComentarios.reduce(
-  //       (s, p) => s + (p.avanceReal ?? 0) * (p.ponderacion || 0), 0
-  //     ) / totalWeight;
-  //     return Math.round(weighted * 100) / 100;
-  //   }
-  //   // Simple average if no weights
-  //   return Math.round(
-  //     (programaDataWithComentarios.reduce((s, p) => s + (p.avanceReal ?? 0), 0) / programaDataWithComentarios.length) * 100
-  //   ) / 100;
-  // }, [programaDataWithComentarios]);
+  const overallProgress = useMemo(() => {
+    if (programaDataWithComentarios.length === 0) return 0;
+    const totalWeight = programaDataWithComentarios.reduce((sum, item) => sum + (item.ponderacion || 0), 0);
+    const progress = totalWeight > 0
+      ? programaDataWithComentarios.reduce(
+          (sum, item) => sum + (item.avanceReal ?? 0) * (item.ponderacion || 0),
+          0,
+        ) / totalWeight
+      : programaDataWithComentarios.reduce((sum, item) => sum + (item.avanceReal ?? 0), 0) /
+        programaDataWithComentarios.length;
+    return Math.round(progress * 100) / 100;
+  }, [programaDataWithComentarios]);
+
+  const delayedCount = useMemo(() => {
+    const today = new Date(currentTime);
+    return programaDataWithComentarios.filter((item) => {
+      const end = parseDate(item.schedule?.fecha_fin);
+      return end && today > end && !(item.isComplete ?? false);
+    }).length;
+  }, [currentTime, programaDataWithComentarios]);
+
+  const actionableMilestones = useMemo(
+    () => (milestoneDashboard ?? []).filter((milestone) => milestone.actionable) as ProgramaMilestoneSummary[],
+    [milestoneDashboard],
+  );
+  const upcomingMilestones = actionableMilestones.filter((milestone) => milestone.status === "upcoming").length;
 
   // Save peso for a level 0 or level 1 item
   const handleSavePeso = useCallback(
@@ -491,7 +592,7 @@ export default function ProgramaObra() {
       const rawValue = editingPesoValueRef.current;
       const value = parseFloat(rawValue);
       if (isNaN(value) || value < 0 || value > 100) {
-        closePonderacionEditor();
+        toast.error("La ponderación debe estar entre 0 y 100.");
         return;
       }
       setSavingPonderacion(true);
@@ -501,9 +602,12 @@ export default function ProgramaObra() {
         } else if (item?.level === 1 && item.detalleSchedule?._id) {
           await updateDetallePeso({ detalle_id: item.detalleSchedule._id, peso: value });
         }
+        toast.success("Ponderación actualizada");
         closePonderacionEditor();
       } catch (err) {
-        console.error("Error saving peso:", err);
+        toast.error("No se pudo guardar la ponderación", {
+          description: err instanceof Error ? err.message : undefined,
+        });
         setSavingPonderacion(false);
       }
     },
@@ -524,9 +628,7 @@ export default function ProgramaObra() {
       }
       const value = parseFloat(rawValue);
       if (isNaN(value) || value < 0 || value > 100) {
-        editingItemRef.current = null;
-        setEditingAvanceId(null);
-        setEditingAvanceValue("");
+        toast.error("El avance debe estar entre 0 y 100.");
         return;
       }
       try {
@@ -534,8 +636,12 @@ export default function ProgramaObra() {
           detalle_id: detalleId,
           avance_porcentaje: value,
         });
+        toast.success("Avance actualizado");
       } catch (err) {
-        console.error("Error saving avance:", err);
+        toast.error("No se pudo guardar el avance", {
+          description: err instanceof Error ? err.message : undefined,
+        });
+        return;
       }
       editingItemRef.current = null;
       setEditingAvanceId(null);
@@ -544,28 +650,47 @@ export default function ProgramaObra() {
     [updateDetalleAvance]
   );
 
-  // Flatten tree respecting expanded state
-  const flattenedData = useMemo(() => {
-    const result: ProgramaItem[] = [];
-    const walk = (items: ProgramaItem[]) => {
-      items.forEach((item) => {
-        result.push(item);
-        if (expandedIds.has(item.id) && item.children.length > 0) {
-          walk(item.children);
-        }
-      });
-    };
-    walk(programaDataWithComentarios);
-    return result;
-  }, [programaDataWithComentarios, expandedIds]);
-
-  // Filter
   const filteredData = useMemo(() => {
-    return flattenedData.filter((item) => {
-      if (searchTerm && !item.partida.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    const result: ProgramaItem[] = [];
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("es-MX");
+    const filtersActive = normalizedSearch.length > 0 || statusFilter !== "all";
+    const matchesSearch = (item: ProgramaItem) =>
+      !normalizedSearch || item.partida.toLocaleLowerCase("es-MX").includes(normalizedSearch);
+    const isDelayed = (item: ProgramaItem) => {
+      const end = parseDate(item.level === 1 ? item.detalleSchedule?.fecha_fin : item.schedule?.fecha_fin);
+      return Boolean(end && new Date(currentTime) > end && !(item.isComplete ?? false));
+    };
+    const matchesStatus = (item: ProgramaItem) => {
+      if (statusFilter === "all") return true;
+      if (statusFilter === "delayed") return isDelayed(item);
+      if (statusFilter === "milestones") return item.level === 0 && Boolean(item.milestones?.some((milestone) => milestone.actionable));
+      if (statusFilter === "in_progress") return (item.avanceReal ?? 0) > 0 && (item.avanceReal ?? 0) < 100;
+      if (statusFilter === "completed") return item.isComplete ?? (item.avanceReal ?? 0) >= 100;
       return true;
-    });
-  }, [flattenedData, searchTerm]);
+    };
+
+    for (const parent of programaDataWithComentarios) {
+      const parentSearchMatch = matchesSearch(parent);
+      const parentStatusMatch = matchesStatus(parent);
+      const matchingChildren = parent.children.filter((child) => matchesSearch(child) && matchesStatus(child));
+      const parentMatches = parentSearchMatch && parentStatusMatch;
+      if (!parentMatches && matchingChildren.length === 0) continue;
+
+      result.push(parent);
+      const shouldShowChildren = expandedIds.has(parent.id) || filtersActive;
+      if (!shouldShowChildren) continue;
+
+      if (filtersActive) {
+        const childrenToShow = parentMatches && parentSearchMatch
+          ? parent.children.filter(matchesStatus)
+          : matchingChildren;
+        result.push(...childrenToShow);
+      } else {
+        result.push(...parent.children);
+      }
+    }
+    return result;
+  }, [currentTime, expandedIds, programaDataWithComentarios, searchTerm, statusFilter]);
 
   // Compute date range (year + month) from all data dates
   const yearRange = useMemo(() => {
@@ -574,7 +699,13 @@ export default function ProgramaObra() {
       const d = parseDate(dateStr);
       if (d) dates.push(d);
     };
-    schedules?.forEach((s) => { extractDate(s.fecha_inicio); extractDate(s.fecha_fin); extractDate(s.anticipo_fecha); extractDate(s.suministro_fecha); });
+    schedules?.forEach((s) => {
+      extractDate(s.fecha_inicio);
+      extractDate(s.fecha_fin);
+      extractDate(s.anticipo_fecha);
+      extractDate(s.suministro_fecha);
+      extractDate(s.finiquito_fecha);
+    });
     detalles?.forEach((d) => { extractDate(d.fecha_inicio); extractDate(d.fecha_fin); });
     comentarios?.forEach((c) => { extractDate(c.fecha_inicio); extractDate(c.fecha_fin); });
     const now = new Date(currentTime);
@@ -726,19 +857,29 @@ export default function ProgramaObra() {
   // PDF Export handler
   const handleExportPdf = useCallback(async () => {
     if (!leftColumnsRef.current || !scrollContainerRef.current || !proyecto) return;
-    setExporting(true);
+    flushSync(() => setExporting(true));
     try {
       await exportProgramaObraPdf({
         leftColumnsEl: leftColumnsRef.current,
         timelineEl: scrollContainerRef.current,
         projectName: proyecto.nombre,
-        collapseAll: () => {
-          const prev = new Set(expandedIds);
-          setExpandedIds(new Set());
+        expandAll: () => {
+          const prev = {
+            expandedIds: new Set(expandedIds),
+            searchTerm,
+            statusFilter,
+          };
+          flushSync(() => {
+            setExpandedIds(collectExpandableIds(programaDataWithComentarios));
+            setSearchTerm("");
+            setStatusFilter("all");
+          });
           return prev;
         },
-        restoreExpanded: (ids: Set<string>) => {
-          setExpandedIds(ids);
+        restoreView: (prev) => {
+          setExpandedIds(prev.expandedIds);
+          setSearchTerm(prev.searchTerm);
+          setStatusFilter(prev.statusFilter);
         },
         programaData: programaDataWithComentarios,
       });
@@ -747,7 +888,7 @@ export default function ProgramaObra() {
     } finally {
       setExporting(false);
     }
-  }, [proyecto, expandedIds, programaDataWithComentarios]);
+  }, [proyecto, expandedIds, searchTerm, statusFilter, programaDataWithComentarios]);
 
   // Synchronized vertical scroll between left columns and timeline
   const handleLeftScroll = useCallback(() => {
@@ -768,36 +909,59 @@ export default function ProgramaObra() {
     isSyncingScroll.current = false;
   }, []);
 
-  // Scroll to today on mount
+  const scrollToToday = useCallback(() => {
+    if (todayPosition == null || !ganttContainerRef.current) return;
+    const offset = todayPosition - ganttContainerRef.current.clientWidth / 2;
+    ganttContainerRef.current.scrollTo({ left: Math.max(0, offset), behavior: "smooth" });
+  }, [todayPosition]);
+
+  // Center once after the timeline first becomes available. Hourly updates do
+  // not steal the user's horizontal scroll position.
   useEffect(() => {
-    if (todayPosition && ganttContainerRef.current) {
+    if (!hasAutoCenteredRef.current && todayPosition != null && ganttContainerRef.current) {
       const offset = todayPosition - ganttContainerRef.current.clientWidth / 2;
       ganttContainerRef.current.scrollLeft = Math.max(0, offset);
+      hasAutoCenteredRef.current = true;
     }
   }, [todayPosition]);
 
   // Loading state
-  if (!proyecto || !nivel1Partidas) {
+  if (
+    proyecto === undefined ||
+    nivel1Partidas === undefined ||
+    schedules === undefined ||
+    detalles === undefined ||
+    comentarios === undefined ||
+    avanceHistorial === undefined ||
+    milestoneDashboard === undefined
+  ) {
     return (
-      <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4" />
-          <p className="text-subtle-foreground">Cargando datos...</p>
+      <div className="min-h-[calc(100dvh-2.5rem)] bg-card px-4 py-8 sm:px-8 lg:px-12" aria-busy="true">
+        <div className="space-y-5">
+          <Skeleton className="h-16 w-full max-w-md rounded-none" />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-20 rounded-none" />)}
+          </div>
+          <Skeleton className="h-[480px] w-full rounded-none" />
         </div>
       </div>
     );
   }
 
+  if (!proyecto) {
+    return <div className="p-12 text-sm text-muted-foreground">No se encontró el proyecto.</div>;
+  }
+
   return (
-    <div className="bg-card pt-6 space-y-6">
+    <div className={cn("space-y-5 bg-card pt-4", focusMode && "fixed inset-0 z-40 overflow-auto pt-3")}>
       {/* Header */}
-      <div className="px-12">
-        <div className="flex items-end justify-between py-6 border-b border-border pb-8">
+      <div className="px-4 sm:px-8 lg:px-12">
+        <div className="flex flex-col gap-4 border-b border-border py-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col text-left">
             <p className="text-base text-subtle-foreground mb-1">Programa de Obra</p>
             <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
@@ -812,6 +976,7 @@ export default function ProgramaObra() {
             <Button
               variant="outline"
               className="rounded-none gap-2"
+              data-viewer-readonly-allow="true"
               disabled={exporting}
               onClick={handleExportPdf}
             >
@@ -834,6 +999,20 @@ export default function ProgramaObra() {
                 <Upload className="h-4 w-4" />
               )}
               {parsing ? "Leyendo archivo..." : "Cargar Excel"}
+            </Button>
+            <Button
+              variant="outline"
+              className="relative rounded-none gap-2"
+              data-viewer-readonly-allow="true"
+              onClick={() => setAlertsOpen(true)}
+              aria-label={`Abrir alertas del programa: ${actionableMilestones.length} pendientes`}
+            >
+              <Bell className="h-4 w-4" /> Alertas
+              {actionableMilestones.length > 0 && (
+                <span className="ml-1 inline-flex min-w-5 items-center justify-center bg-red-700 px-1.5 py-0.5 text-[10px] font-semibold text-on-color">
+                  {actionableMilestones.length}
+                </span>
+              )}
             </Button>
           </div>
         </div>
@@ -920,42 +1099,109 @@ export default function ProgramaObra() {
         })()}
       </div>
 
+      <div className="grid grid-cols-2 gap-px border-y border-border bg-border sm:grid-cols-4">
+        <div className="bg-card px-4 py-3 sm:px-6 lg:px-12">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avance físico</p>
+          <p className="mt-1 text-xl font-semibold text-foreground">{overallProgress.toFixed(1)}%</p>
+        </div>
+        <button type="button" data-viewer-readonly-allow="true" onClick={() => setStatusFilter("delayed")} className="bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Partidas retrasadas</p>
+          <p className="mt-1 text-xl font-semibold text-red-700">{delayedCount}</p>
+        </button>
+        <button type="button" data-viewer-readonly-allow="true" onClick={() => setAlertsOpen(true)} className="bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Hitos próximos</p>
+          <p className="mt-1 text-xl font-semibold text-blue-700">{upcomingMilestones}</p>
+        </button>
+        <button type="button" data-viewer-readonly-allow="true" onClick={() => setAlertsOpen(true)} className="bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6 lg:pr-12">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Alertas pendientes</p>
+          <p className="mt-1 text-xl font-semibold text-amber-800">{actionableMilestones.length}</p>
+        </button>
+      </div>
 
-      {/* Search */}
-      <div className="px-12">
-        <div className="flex items-center space-x-3 text-left max-w-sm">
-          <Search className="w-4 h-4 text-disabled-foreground shrink-0" />
+      {/* Search and timeline controls */}
+      <div className="flex flex-col gap-3 px-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-12" data-viewer-readonly-allow="true">
+        <div className="flex h-9 min-w-0 flex-1 items-center gap-2 border-b border-border text-left lg:max-w-sm">
+          <Search className="h-4 w-4 shrink-0 text-disabled-foreground" />
           <Input
-            placeholder="Buscar partida..."
+            aria-label="Buscar partida o familia"
+            placeholder="Buscar partida o familia..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-none shadow-none p-0 h-auto font-normal text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="h-auto border-none p-0 font-normal text-foreground shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[170px] rounded-none" aria-label="Filtrar programa por estado">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="delayed">Con retraso</SelectItem>
+              <SelectItem value="milestones">Con alertas de hitos</SelectItem>
+              <SelectItem value="in_progress">En progreso</SelectItem>
+              <SelectItem value="completed">Completadas</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" className="rounded-none" onClick={scrollToToday} disabled={todayPosition == null}>
+            <Crosshair className="mr-1.5 h-3.5 w-3.5" /> Hoy
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-none" onClick={() => setExpandedIds(new Set(programaDataWithComentarios.map((item) => item.id)))}>
+            <ChevronsUpDown className="mr-1.5 h-3.5 w-3.5" /> Expandir
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-none" onClick={() => setExpandedIds(new Set())}>
+            <ChevronsDownUp className="mr-1.5 h-3.5 w-3.5" /> Contraer
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-none" onClick={toggleFocusMode}>
+            {focusMode ? <Minimize2 className="mr-1.5 h-3.5 w-3.5" /> : <Focus className="mr-1.5 h-3.5 w-3.5" />}
+            {focusMode ? "Salir de enfoque" : "Enfoque"}
+          </Button>
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 text-[11px] text-muted-foreground sm:px-8 lg:px-12" aria-label="Leyenda del programa">
+        <span className="flex items-center gap-1.5"><span className="h-2 w-6 bg-green-700" /> Avance físico</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-6 bg-green-300" /> Avance financiero</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-6 bg-[#B17C7C]" /> Retraso o extensión</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border border-blue-700 bg-blue-50" /> Hito programado</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border border-red-700 bg-red-50" /> Hito requiere atención</span>
+      </div>
+
       <div>
-        {/* General progress bar — aligned to timeline columns, only visible width */}
-        {/* <div className="flex"> */}
-          {/* Spacer matching fixed left columns (w-72 + w-28 = 400px) */}
-          {/* <div className="shrink-0 w-[400px]" />/ */}
-          {/* Progress bar fills only the remaining visible viewport width */}
-          {/* <div className="flex-1 min-w-0 overflow-hidden"> */}
-            {/* <div className="h-2 bg-muted"> */}
-              {/* <div */}
-                {/* className="h-full bg-green-500 rounded-none transition-all duration-500" */}
-                {/* style={{ width: `${Math.min(overallProgress, 100)}%` }} */}
-              {/* /> */}
-            {/* </div> */}
-          {/* </div> */}
-        {/* </div> */}
+        {programaDataWithComentarios.length === 0 && (
+          <div className="mx-4 border border-dashed border-border px-6 py-14 text-center sm:mx-8 lg:mx-12">
+            <CalendarDays className="mx-auto h-9 w-9 text-disabled-foreground" />
+            <h2 className="mt-4 text-base font-semibold text-foreground">Aún no hay un programa cargado</h2>
+            <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+              Carga el archivo de programa para generar actividades, fechas, hitos y alertas del proyecto.
+            </p>
+            <Button className="mt-5 rounded-none" onClick={() => fileInputRef.current?.click()} disabled={uploading || parsing}>
+              <Upload className="mr-2 h-4 w-4" /> Cargar Excel
+            </Button>
+          </div>
+        )}
 
+        {programaDataWithComentarios.length > 0 && filteredData.length === 0 && (
+          <div className="mx-4 border border-dashed border-border px-6 py-12 text-center sm:mx-8 lg:mx-12">
+            <Search className="mx-auto h-8 w-8 text-disabled-foreground" />
+            <h2 className="mt-3 text-sm font-semibold text-foreground">No hay resultados</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Prueba otra búsqueda o restablece los filtros.</p>
+            <Button variant="outline" size="sm" className="mt-4 rounded-none" data-viewer-readonly-allow="true" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>
+              Restablecer filtros
+            </Button>
+          </div>
+        )}
 
+        {programaDataWithComentarios.length > 0 && filteredData.length > 0 && (
+        <>
+        <div className="mx-4 border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground min-[850px]:hidden">
+          El resumen y las alertas están disponibles en móvil. Abre esta vista en una pantalla de al menos 850 px para operar el Gantt.
+        </div>
         {/* Gantt Chart */}
-        <div className="flex bg-card h-screen">
+        <div className={cn("hidden min-[850px]:flex bg-card min-h-[440px] h-[58dvh]", focusMode && "h-[calc(100dvh-13rem)]")}>
           {/* Fixed left columns — separate scroll container, only vertical */}
           <div
-            className="shrink-0 w-[400px] bg-card z-30 overflow-y-auto overflow-x-hidden shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="z-30 w-[320px] shrink-0 overflow-x-hidden overflow-y-auto bg-card shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:w-[400px]"
             ref={leftScrollRef}
             onScroll={handleLeftScroll}
           >
@@ -963,12 +1209,12 @@ export default function ProgramaObra() {
               {/* Header — pt-[8px] accounts for year label that overflows above the border */}
               <div className="sticky top-0 z-40 bg-card pt-[8px]">
                 <div className="flex border-b border-t border-border bg-card">
-                  <div className="w-72 border-r border-border px-4 h-[36px] flex items-center text-left">
+                  <div className="flex h-[36px] w-[216px] shrink-0 items-center border-r border-border px-3 text-left xl:w-72 xl:px-4">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Partida · Familia
                     </span>
                   </div>
-                  <div className="w-28 border-r border-border px-3 h-[36px] flex items-center justify-end text-right">
+                  <div className="flex h-[36px] w-[104px] shrink-0 items-center justify-end border-r border-border px-2 text-right xl:w-28 xl:px-3">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Presupuesto
                     </span>
@@ -990,15 +1236,19 @@ export default function ProgramaObra() {
                     )}
                   >
                     {/* Name */}
-                    <div className="w-72 border-r border-border px-2 py-3 flex items-center text-left">
+                    <div className="flex w-[216px] shrink-0 items-center border-r border-border px-2 py-3 text-left xl:w-72">
                       <div
                         className="flex items-center gap-1.5 flex-1 min-w-0"
                         style={{ paddingLeft: `${item.level * 16}px` }}
                       >
                         {item.children.length > 0 ? (
                           <button
+                            type="button"
+                            data-viewer-readonly-allow="true"
                             onClick={() => toggleExpanded(item.id)}
                             className="p-0.5 hover:bg-muted rounded shrink-0"
+                            aria-label={`${isExpanded ? "Contraer" : "Expandir"} ${item.partida}`}
+                            aria-expanded={isExpanded}
                           >
                             {isExpanded ? (
                               <ChevronDown className="h-3.5 w-3.5 text-disabled-foreground" />
@@ -1026,8 +1276,9 @@ export default function ProgramaObra() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
+                                  type="button"
                                   className="p-1 hover:bg-muted rounded opacity-60 hover:opacity-100"
-                                  title="Opciones"
+                                  aria-label={`Opciones de ${item.partida}`}
                                 >
                                   <MoreHorizontal className="h-3.5 w-3.5 text-disabled-foreground" />
                                 </button>
@@ -1062,8 +1313,9 @@ export default function ProgramaObra() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
+                                  type="button"
                                   className="p-1 hover:bg-muted rounded opacity-60 hover:opacity-100"
-                                  title="Opciones"
+                                  aria-label={`Opciones de ${item.partida}`}
                                 >
                                   <MoreHorizontal className="h-3.5 w-3.5 text-disabled-foreground" />
                                 </button>
@@ -1099,7 +1351,7 @@ export default function ProgramaObra() {
                     </div>
 
                     {/* Presupuesto / Peso / Avance */}
-                    <div className="w-28 border-r border-border px-3 py-3 flex items-center justify-end">
+                    <div className="flex w-[104px] shrink-0 items-center justify-end border-r border-border px-2 py-3 xl:w-28 xl:px-3">
                       {item.level === 0 ? (
                         <div className="flex flex-col items-end gap-0.5">
                           <span className="text-sm text-foreground font-medium">
@@ -1186,6 +1438,7 @@ export default function ProgramaObra() {
                             <div className="flex items-center gap-0.5">
                               <span className="text-[10px] text-foreground">Avance: </span>
                               <button
+                                type="button"
                                 onClick={() => {
                                   editingItemRef.current = item;
                                   editingAvanceValueRef.current = String(item.avanceReal ?? 0);
@@ -1198,7 +1451,7 @@ export default function ProgramaObra() {
                                     ? ""
                                     : "text-disabled-foreground bg-background border-border hover:bg-muted"
                                 )}
-                                title="Editar avance real"
+                                aria-label={`Editar avance real de ${item.partida}, ${Math.round(item.avanceReal ?? 0)} por ciento`}
                               >
                                 {Math.round(item.avanceReal ?? 0)}%
                               </button>
@@ -1370,15 +1623,36 @@ export default function ProgramaObra() {
                     timelineMonths={timelineMonths}
                     currentTime={currentTime}
                     forceShowMilestones={exporting}
+                    onMilestoneSelect={setSelectedMilestone}
                   />
                 </div>
               ))}
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
 
 
+
+      <ProgramaObraAlertsPanel
+        open={alertsOpen}
+        onOpenChange={setAlertsOpen}
+        milestones={(milestoneDashboard ?? []) as ProgramaMilestoneSummary[]}
+        onSelect={(milestone) => {
+          setAlertsOpen(false);
+          setSelectedMilestone(milestone);
+        }}
+      />
+
+      {selectedMilestone && proyectoId && (
+        <ProgramaObraMilestoneDetail
+          milestone={selectedMilestone}
+          proyectoId={proyectoId as Id<"desarrollos">}
+          onClose={() => setSelectedMilestone(null)}
+        />
+      )}
 
       {/* Partida Editor Sheet */}
       {editingPartida && proyectoId && (
@@ -1421,7 +1695,7 @@ export default function ProgramaObra() {
       {/* Ponderacion Sheet */}
       {canEditPesos && ponderacionItem && (
         <Sheet open onOpenChange={(open) => !open && closePonderacionEditor()}>
-          <SheetContent className="w-[360px] sm:max-w-[360px] overflow-y-auto">
+          <SheetContent className="w-full overflow-y-auto sm:max-w-[360px]">
             <SheetHeader>
               <SheetTitle className="text-left flex items-center gap-2">
                 <Percent className="h-4 w-4" />
@@ -1434,9 +1708,10 @@ export default function ProgramaObra() {
 
             <div className="mt-6 space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-xs text-subtle-foreground">Peso del elemento</Label>
+                <Label htmlFor="programa-ponderacion" className="text-xs text-subtle-foreground">Peso del elemento</Label>
                 <div className="flex items-center gap-2">
                   <Input
+                    id="programa-ponderacion"
                     type="number"
                     min={0}
                     max={100}

@@ -127,7 +127,9 @@ assert.equal(resolveCostCandidates("PEGAMARMOL", [
   { id: "provider:p1", kind: "provider", label: "PEGAMARMOL" },
 ]).status, "ambiguous");
 assert.equal(canonicalTransactionStatus("Pagado"), "paid");
+assert.equal(canonicalTransactionStatus("PAGADA"), "paid");
 assert.equal(canonicalTransactionStatus("Pendiente"), "pending");
+assert.equal(canonicalTransactionStatus(" pendiente de pago "), "pending");
 assert.equal(canonicalTransactionStatus("Cancelado"), "other");
 
 assert.equal(deterministicAssistantStatus({ hasData: false, hasCriticalInsight: true, hasAttentionInsight: true, hasBlockedOrOverdueWork: true }), "insufficient_data");

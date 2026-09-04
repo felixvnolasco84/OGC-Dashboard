@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router";
 import AppSidebar from "./ui/SidebarComponent";
 import { useQuery } from "convex/react";
@@ -25,9 +25,14 @@ function WebsiteLayout() {
   const isAdmin = currentUser?.role === "admin";
   const [assistantOpen, setAssistantOpen] = useState(false);
   const location = useLocation();
+  const mainScrollRef = useRef<HTMLElement>(null);
   const routeProjectId = location.pathname.match(/^\/proyecto\/([^/]+)/)?.[1] as
     | Id<"desarrollos">
     | undefined;
+
+  useEffect(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [location.pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -35,7 +40,7 @@ function WebsiteLayout() {
         <StoreUserEffect />
         <SidebarProvider className="bg-card overflow-x-hidden">
           <AppSidebar />
-          <main className="flex-1 h-screen overflow-auto">
+          <main ref={mainScrollRef} className="flex-1 h-screen overflow-auto">
             <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b border-border bg-card px-2">
               <SidebarTrigger />
               <div className="flex items-center gap-1">

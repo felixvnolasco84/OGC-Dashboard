@@ -210,7 +210,7 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
 
   return (
     <Sheet open onOpenChange={onClose}>
-      <SheetContent className="w-[400px] sm:max-w-[400px] overflow-y-auto">
+      <SheetContent className="w-full overflow-y-auto sm:max-w-[420px]">
         <SheetHeader>
           <SheetTitle className="text-left">{item.partida}</SheetTitle>
           <SheetDescription className="text-left">
@@ -227,10 +227,11 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
           {/* Dates section */}
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-foreground">Duración de actividad</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-xs text-subtle-foreground">Fecha inicio</Label>
+                <Label htmlFor="familia-fecha-inicio" className="text-xs text-subtle-foreground">Fecha inicio</Label>
                 <Input
+                  id="familia-fecha-inicio"
                   type="date"
                   value={fechaInicio}
                   onChange={(e) => setFechaInicio(e.target.value)}
@@ -240,8 +241,9 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-subtle-foreground">Fecha fin</Label>
+                <Label htmlFor="familia-fecha-fin" className="text-xs text-subtle-foreground">Fecha fin</Label>
                 <Input
+                  id="familia-fecha-fin"
                   type="date"
                   value={fechaFin}
                   onChange={(e) => setFechaFin(e.target.value)}
@@ -263,6 +265,8 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                   hasExtraTime ? "bg-[#f0e4e4]" : "bg-disabled"
                 }`}
+                aria-label="Activar tiempo extra"
+                aria-pressed={hasExtraTime}
               >
                 <span
                   className={`inline-block h-3.5 w-3.5 transform rounded-full bg-card transition-transform ${
@@ -274,10 +278,11 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
 
             {hasExtraTime && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-subtle-foreground">Cantidad</Label>
+                    <Label htmlFor="familia-tiempo-cantidad" className="text-xs text-subtle-foreground">Cantidad</Label>
                     <Input
+                      id="familia-tiempo-cantidad"
                       type="number"
                       min={1}
                       value={extraCantidad}
@@ -287,9 +292,9 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-subtle-foreground">Unidad</Label>
+                    <Label htmlFor="familia-tiempo-unidad" className="text-xs text-subtle-foreground">Unidad</Label>
                     <Select value={extraUnidad} onValueChange={setExtraUnidad}>
-                      <SelectTrigger className="h-9 rounded-none text-sm">
+                      <SelectTrigger id="familia-tiempo-unidad" className="h-9 rounded-none text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

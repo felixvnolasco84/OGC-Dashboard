@@ -21,7 +21,14 @@ import {
   classifyProjectMatch,
   type ProjectMatchMode,
 } from "./projectMatchUtils";
-import { moneyDelta, mostSpecificCostLabel, normalizeCostText } from "./costRules";
+import {
+  canonicalTransactionStatus,
+  moneyDelta,
+  mostSpecificCostLabel,
+  normalizeCostCurrency,
+  normalizeCostText,
+  parseCostDate,
+} from "./costRules";
 import { parseInvoiceIssuedDate } from "./invoiceRules";
 import {
   markInvoicesStaleForTransaction,
@@ -1691,14 +1698,8 @@ function fechaSortValue(fecha: string): number {
   return parts.year * 10000 + parts.month * 100 + parts.day;
 }
 
-function fechaToYmd(fecha: string): string | null {
-  const parts = parseFechaParts(fecha);
-  if (!parts) return null;
-  return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
-}
-
 function includesSearch(value: string | undefined, search: string): boolean {
-  return Boolean(value && value.toLowerCase().includes(search));
+  return Boolean(value && normalizeCostText(value).includes(search));
 }
 
 async function loadProviderSummaries(
@@ -1717,10 +1718,11 @@ async function loadProviderSummaries(
 async function collectRelatedSearchMatchIds(
   ctx: QueryCtx,
   proyectoId: Id<"desarrollos">,
+  transactionIds: Array<Id<"transacciones">>,
   search: string,
 ) {
   const matchIds = new Set<string>();
-  const [pagos, partidas, invoices] = await Promise.all([
+  const [projectPayments, partidas, invoices] = await Promise.all([
     ctx.db.query("pagos").withIndex("by_proyecto", (q) => q.eq("proyecto_id", proyectoId)).collect(),
     ctx.db.query("partidas").withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId)).collect(),
     ctx.db
@@ -1738,6 +1740,25 @@ async function collectRelatedSearchMatchIds(
       )
       .map((partida) => partida._id),
   );
+
+  // Older line items may predate pagos.proyecto_id. Retrieve those through the
+  // transaction index so assistant evidence links keep working for historical
+  // projects as well as newly created transactions.
+  const indexedPaymentIds = new Set(projectPayments.map((pago) => String(pago._id)));
+  const indexedTransactionIds = new Set(projectPayments.map((pago) => String(pago.transaccion_id)));
+  const legacyTransactionIds = transactionIds.filter((transactionId) =>
+    !indexedTransactionIds.has(String(transactionId))
+  );
+  const legacyPaymentGroups = await Promise.all(legacyTransactionIds.map((transactionId) =>
+    ctx.db
+      .query("pagos")
+      .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transactionId))
+      .collect()
+  ));
+  const pagos = [
+    ...projectPayments,
+    ...legacyPaymentGroups.flat().filter((pago) => !indexedPaymentIds.has(String(pago._id))),
+  ];
 
   for (const pago of pagos) {
     const matchesText =
@@ -1801,7 +1822,7 @@ async function listFilteredProjectTransactions(
   ctx: QueryCtx,
   args: TableListFilterArgs,
 ) {
-  const search = args.search?.trim().toLowerCase() || "";
+  const search = normalizeCostText(args.search);
   const transactions = await ctx.db
     .query("transacciones")
     .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -1814,7 +1835,12 @@ async function listFilteredProjectTransactions(
       )
     : new Map<Id<"proveedores">, NonNullable<Awaited<ReturnType<typeof providerSummary>>>>();
   const relatedMatchIds = search
-    ? await collectRelatedSearchMatchIds(ctx, args.proyecto_id, search)
+    ? await collectRelatedSearchMatchIds(
+        ctx,
+        args.proyecto_id,
+        transactions.map((transaction) => transaction._id),
+        search,
+      )
     : null;
   const documentCounts = args.missingDocuments !== undefined
     ? await loadLinkedDocumentCounts(ctx, args.proyecto_id)
@@ -1860,7 +1886,7 @@ async function listFilteredProjectTransactions(
       return false;
     }
 
-    const transactionYmd = fechaToYmd(transaction.fecha);
+    const transactionYmd = parseCostDate(transaction.fecha);
     if (args.dateFrom && (!transactionYmd || transactionYmd < args.dateFrom)) return false;
     if (args.dateTo && (!transactionYmd || transactionYmd > args.dateTo)) return false;
     const invoiceDates = approvedInvoiceDates.get(String(transaction._id));
@@ -1869,10 +1895,14 @@ async function listFilteredProjectTransactions(
       (!args.invoiceDateFrom || invoiceYmd >= args.invoiceDateFrom) &&
       (!args.invoiceDateTo || invoiceYmd <= args.invoiceDateTo))) return false;
 
-    if (args.status && transaction.status !== args.status) return false;
+    if (args.status && canonicalTransactionStatus(transaction.status) !== canonicalTransactionStatus(args.status)) {
+      return false;
+    }
     if (args.tipoPago && transaction.tipo_pago?.toLowerCase() !== args.tipoPago.toLowerCase()) return false;
     if (args.categoria && transaction.categoria?.toLowerCase() !== args.categoria.toLowerCase()) return false;
-    if (args.moneda && transaction.moneda !== args.moneda) return false;
+    if (args.moneda && normalizeCostCurrency(transaction.moneda) !== normalizeCostCurrency(args.moneda)) {
+      return false;
+    }
 
     if (args.proveedorId === "unassigned") {
       if (transaction.proveedor_id) return false;

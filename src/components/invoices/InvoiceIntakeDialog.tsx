@@ -167,14 +167,27 @@ export function InvoiceIntakeDialog({
   projectId: fixedProjectId,
   projectName,
   className,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
+  defaultProjectId,
 }: {
   projectId?: Id<"desarrollos">;
   projectName?: string;
   className?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+  defaultProjectId?: Id<"desarrollos">;
 }) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(fixedProjectId || "");
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (nextOpen: boolean) => {
+    if (controlledOpen === undefined) setUncontrolledOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  };
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(fixedProjectId || defaultProjectId || "");
   const [files, setFiles] = useState<File[]>([]);
   const [invoiceId, setInvoiceId] = useState<Id<"invoice_records"> | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -220,6 +233,11 @@ export function InvoiceIntakeDialog({
   useEffect(() => {
     if (fixedProjectId) setSelectedProjectId(fixedProjectId);
   }, [fixedProjectId]);
+
+  useEffect(() => {
+    if (fixedProjectId || !open || !defaultProjectId) return;
+    setSelectedProjectId(defaultProjectId);
+  }, [open, defaultProjectId, fixedProjectId]);
 
   useEffect(() => {
     if (!analysis?.run || analysis.invoice.status !== "review_required") return;
@@ -415,10 +433,12 @@ export function InvoiceIntakeDialog({
 
   return (
     <>
-      <Button variant="outline" size="lg" className={cn("flex items-center gap-2 rounded-none py-6 text-subtle-foreground", className)} onClick={() => setOpen(true)}>
-        Cargar factura
-        <Upload className="h-5 w-5" />
-      </Button>
+      {!hideTrigger && (
+        <Button variant="outline" size="lg" className={cn("flex items-center gap-2 rounded-none py-6 text-subtle-foreground", className)} onClick={() => setOpen(true)}>
+          Cargar factura
+          <Upload className="h-5 w-5" />
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
         if (!nextOpen && analysis?.invoice.status === "approved") resetDraft();

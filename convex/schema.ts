@@ -1242,11 +1242,37 @@ export default defineSchema({
     suministro_fecha: v.optional(v.string()), // Material/equipment delivery date
     finiquito_fecha: v.optional(v.string()), // Finiquito date
     finiquito_porcentaje: v.optional(v.number()), // Finiquito %
+    anticipo_recordatorio_dias: v.optional(v.number()),
+    suministro_recordatorio_dias: v.optional(v.number()),
+    finiquito_recordatorio_dias: v.optional(v.number()),
     peso: v.optional(v.number()), // Weight (0-100%)
     orden: v.optional(v.number()), // Row order from Excel upload
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] }),
+
+  // Manual decisions for matching program milestones with their operational evidence.
+  programa_obra_hito_links: defineTable({
+    proyecto: v.id("desarrollos"),
+    programa_obra_id: v.id("programa_obra"),
+    partida_id: v.id("partidas"),
+    hito: v.union(
+      v.literal("anticipo"),
+      v.literal("suministro"),
+      v.literal("finiquito")
+    ),
+    source_type: v.union(v.literal("transaccion"), v.literal("requisicion")),
+    transaccion_id: v.optional(v.id("transacciones")),
+    requisicion_id: v.optional(v.id("requisiciones")),
+    decision: v.union(v.literal("confirmed"), v.literal("rejected")),
+    decided_by_id: v.id("users"),
+    decided_by_name: v.string(),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_programa_hito", { fields: ["programa_obra_id", "hito"] })
+    .index("by_transaccion", { fields: ["transaccion_id"] })
+    .index("by_requisicion", { fields: ["requisicion_id"] }),
   
   // Programa de Obra - Ponderación (complexity weight) per familia/sub-partida
   programa_obra_ponderacion: defineTable({

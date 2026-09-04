@@ -42,6 +42,8 @@ import IngresosModal from "@/components/modals/ingresos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
+import { AddTransactionMenu } from "@/components/transactions/AddTransactionMenu";
+import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 
 type CurrencyMetricProps = {
   amount: number;
@@ -94,6 +96,7 @@ export default function PresupuestoPage() {
   const navigate = useNavigate();
   const currentUser = useQuery(api.users.getCurrentUser);
   const isAdmin = currentUser?.role === "admin";
+  const canCreateTransactions = Boolean(currentUser && currentUser.role !== "viewer");
 
   const [selectedPartidas, setSelectedPartidas] = useState<string[]>([]);
   const [selectedFamilias, setSelectedFamilias] = useState<string[]>([]);
@@ -107,11 +110,13 @@ export default function PresupuestoPage() {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
 
   // Modals
   const addPaymentModal = useAddPaymentModal();
   const addPartidaModal = useAddPartidaModal();
   const ingresosModal = useIngresosModal();
+  const uploadProjectTransactionsModal = useUploadProjectTransactionsModal();
 
   // Sync mutation
   const syncProjectData = useMutation(api.partida.syncProjectData);
@@ -403,7 +408,14 @@ export default function PresupuestoPage() {
                 </CardContent>
               </Card>
 
-              <InvoiceIntakeDialog projectId={proyecto._id} projectName={proyecto.nombre} />
+              <AddTransactionMenu
+                visible={canCreateTransactions}
+                onAddPayment={handleOpenAddPayment}
+                onUploadExcel={() => {
+                  uploadProjectTransactionsModal.onOpen(proyecto._id, proyecto.nombre);
+                }}
+                onUploadInvoice={() => setInvoiceOpen(true)}
+              />
 
               <Popover open={isActionsOpen} onOpenChange={setIsActionsOpen}>
                 <PopoverTrigger asChild>
@@ -439,13 +451,6 @@ export default function PresupuestoPage() {
                         >
                           <CreditCard className="h-4 w-4" />
                           Gestionar ingresos
-                        </CommandItem>
-                        <CommandItem
-                          onSelect={handleOpenAddPayment}
-                          className="data-[selected=true]:bg-muted"
-                        >
-                          <CreditCard className="h-4 w-4" />
-                          Nuevo pago
                         </CommandItem>
                         <CommandItem
                           onSelect={handleOpenAddPartida}
@@ -849,6 +854,13 @@ export default function PresupuestoPage() {
 
       {/* Ingresos Modal */}
       <IngresosModal />
+      <InvoiceIntakeDialog
+        hideTrigger
+        open={invoiceOpen}
+        onOpenChange={setInvoiceOpen}
+        projectId={proyecto._id}
+        projectName={proyecto.nombre}
+      />
     </div>
   );
 }
