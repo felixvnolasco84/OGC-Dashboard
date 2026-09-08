@@ -588,7 +588,7 @@ function WorkInProgressView({
         <WipMetricCard
           label="Ingresos cobrados registrados"
           value={formatMetricCurrency(totals.wip.pagado)}
-          badge="Tabla ingresos a la fecha"
+          badge="Ingresos y OGC a la fecha"
           valueClassName="text-[#1A5D21]"
         />
         <WipMetricCard
