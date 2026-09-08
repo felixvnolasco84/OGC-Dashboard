@@ -47,7 +47,7 @@ La compilación informa avisos sobre el tamaño de los paquetes y la antigüedad
 
 ## Publicación
 
-Los cambios están destinados a una rama de desarrollo independiente. No se integran en `main`. El estado y enlace del despliegue Preview de Vercel se comunicarán después de verificar la publicación de la rama.
+La implementación se subió a [codex/simplificar-programa-obra](https://github.com/felixvnolasco84/OGC-Dashboard/tree/codex/simplificar-programa-obra), con el commit `1f304a9`. `main` no se modificó. Vercel inició automáticamente el [despliegue de desarrollo](https://vercel.com/felixvnolasco84s-projects/ogc-dashboard/EExT5dp6Bbnjj3PC9oRooqtLi9nb); el enlace permite consultar su estado y abrir la vista previa.
 
 ## Mensaje propuesto para Ro
 
@@ -56,5 +56,7 @@ Hola buenas tardes Ro, simplifiqué la página de Programa de Obra para que sea 
 El problema original era que se mostraban muchas opciones al mismo tiempo y había varios accesos que abrían las mismas alertas. Ahora agrupé la carga de Excel y la exportación en «Archivo», y las opciones del calendario en «Vista». También dejé un solo acceso a alertas y la guía de colores se puede desplegar cuando se necesita.
 
 Las funciones de edición y la previsualización del Excel se conservan. En móvil oculté los controles del calendario que no se podían utilizar en esa vista.
+
+Subí los cambios a una rama de desarrollo separada de main para revisarlos en Vercel antes de llevarlos a producción.
 
 Quedo atento a tus comentarios. Saludos.
