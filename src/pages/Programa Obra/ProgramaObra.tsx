@@ -973,47 +973,31 @@ export default function ProgramaObra() {
                 if (f) handleExcelParse(f);
               }}
             />
-            <Button
-              variant="outline"
-              className="rounded-none gap-2"
-              data-viewer-readonly-allow="true"
-              disabled={exporting}
-              onClick={handleExportPdf}
-            >
-              {exporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileDown className="h-4 w-4" />
-              )}
-              {exporting ? "Exportando..." : "Exportar PDF"}
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-none gap-2"
-              disabled={uploading || parsing}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {parsing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              {parsing ? "Leyendo archivo..." : "Cargar Excel"}
-            </Button>
-            <Button
-              variant="outline"
-              className="relative rounded-none gap-2"
-              data-viewer-readonly-allow="true"
-              onClick={() => setAlertsOpen(true)}
-              aria-label={`Abrir alertas del programa: ${actionableMilestones.length} pendientes`}
-            >
-              <Bell className="h-4 w-4" /> Alertas
-              {actionableMilestones.length > 0 && (
-                <span className="ml-1 inline-flex min-w-5 items-center justify-center bg-red-700 px-1.5 py-0.5 text-[10px] font-semibold text-on-color">
-                  {actionableMilestones.length}
-                </span>
-              )}
-            </Button>
+            {focusMode && (
+              <Button variant="outline" className="rounded-none gap-2" onClick={toggleFocusMode} data-viewer-readonly-allow="true">
+                <Minimize2 className="h-4 w-4" /> Salir de enfoque
+              </Button>
+            )}
+            {programaDataWithComentarios.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="rounded-none gap-2" data-viewer-readonly-allow="true" disabled={exporting || parsing || uploading}>
+                    {(exporting || parsing || uploading) && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {exporting ? "Exportando..." : parsing ? "Leyendo archivo..." : uploading ? "Cargando..." : "Archivo"}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onSelect={handleExportPdf} disabled={exporting || parsing || uploading} data-viewer-readonly-allow="true">
+                    <FileDown className="h-4 w-4" /> Exportar PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => fileInputRef.current?.click()} disabled={exporting || parsing || uploading || !currentUser || currentUser.role === "viewer"}>
+                    <Upload className="h-4 w-4" /> Cargar Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
 
@@ -1099,22 +1083,24 @@ export default function ProgramaObra() {
         })()}
       </div>
 
-      <div className="grid grid-cols-2 gap-px border-y border-border bg-border sm:grid-cols-4">
+      {programaDataWithComentarios.length > 0 && (
+      <>
+      <div className="grid grid-cols-2 gap-px border-y border-border bg-border sm:grid-cols-3">
         <div className="bg-card px-4 py-3 sm:px-6 lg:px-12">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avance físico</p>
           <p className="mt-1 text-xl font-semibold text-foreground">{overallProgress.toFixed(1)}%</p>
         </div>
-        <button type="button" data-viewer-readonly-allow="true" onClick={() => setStatusFilter("delayed")} className="bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
+        <button type="button" data-viewer-readonly-allow="true" aria-pressed={statusFilter === "delayed"} onClick={() => setStatusFilter(statusFilter === "delayed" ? "all" : "delayed")} className={cn("bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6", statusFilter === "delayed" && "bg-muted ring-1 ring-inset ring-border")}>
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Partidas retrasadas</p>
-          <p className="mt-1 text-xl font-semibold text-red-700">{delayedCount}</p>
+          <p className={cn("mt-1 text-xl font-semibold", delayedCount > 0 ? "text-red-700" : "text-foreground")}>{delayedCount}</p>
         </button>
-        <button type="button" data-viewer-readonly-allow="true" onClick={() => setAlertsOpen(true)} className="bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Hitos próximos</p>
-          <p className="mt-1 text-xl font-semibold text-blue-700">{upcomingMilestones}</p>
-        </button>
-        <button type="button" data-viewer-readonly-allow="true" onClick={() => setAlertsOpen(true)} className="bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6 lg:pr-12">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Alertas pendientes</p>
-          <p className="mt-1 text-xl font-semibold text-amber-800">{actionableMilestones.length}</p>
+        <button type="button" data-viewer-readonly-allow="true" onClick={() => setAlertsOpen(true)} aria-label={`Ver alertas: ${actionableMilestones.length} pendientes, ${upcomingMilestones} hitos próximos`} className="col-span-2 flex items-center justify-between gap-3 bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:col-span-1 sm:px-6 lg:pr-12">
+          <div>
+            <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground"><Bell className="h-3.5 w-3.5" /> Alertas pendientes</p>
+            <p className={cn("mt-1 text-xl font-semibold", actionableMilestones.length > 0 ? "text-amber-800" : "text-foreground")}>{actionableMilestones.length}</p>
+            {upcomingMilestones > 0 && <p className="mt-1 text-xs text-muted-foreground">{upcomingMilestones} hitos próximos</p>}
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
       </div>
 
@@ -1143,29 +1129,50 @@ export default function ProgramaObra() {
               <SelectItem value="completed">Completadas</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="rounded-none" onClick={scrollToToday} disabled={todayPosition == null}>
+          {(searchTerm || statusFilter !== "all") && (
+            <Button variant="ghost" size="sm" className="rounded-none" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>
+              Limpiar filtros
+            </Button>
+          )}
+          <Button variant="outline" size="sm" className="hidden rounded-none min-[850px]:inline-flex" onClick={scrollToToday} disabled={todayPosition == null}>
             <Crosshair className="mr-1.5 h-3.5 w-3.5" /> Hoy
           </Button>
-          <Button variant="outline" size="sm" className="rounded-none" onClick={() => setExpandedIds(new Set(programaDataWithComentarios.map((item) => item.id)))}>
-            <ChevronsUpDown className="mr-1.5 h-3.5 w-3.5" /> Expandir
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-none" onClick={() => setExpandedIds(new Set())}>
-            <ChevronsDownUp className="mr-1.5 h-3.5 w-3.5" /> Contraer
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-none" onClick={toggleFocusMode}>
-            {focusMode ? <Minimize2 className="mr-1.5 h-3.5 w-3.5" /> : <Focus className="mr-1.5 h-3.5 w-3.5" />}
-            {focusMode ? "Salir de enfoque" : "Enfoque"}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="hidden rounded-none gap-2 min-[850px]:inline-flex">
+                Vista <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56" data-viewer-readonly-allow="true">
+              <DropdownMenuItem disabled={Boolean(searchTerm.trim()) || statusFilter !== "all"} onSelect={() => setExpandedIds(new Set(programaDataWithComentarios.map((item) => item.id)))}>
+                <ChevronsUpDown className="h-4 w-4" /> Expandir familias
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={Boolean(searchTerm.trim()) || statusFilter !== "all"} onSelect={() => setExpandedIds(new Set())}>
+                <ChevronsDownUp className="h-4 w-4" /> Contraer familias
+              </DropdownMenuItem>
+              {(searchTerm.trim() || statusFilter !== "all") && <p className="px-2 py-1.5 text-xs text-muted-foreground">Limpia los filtros para cambiar el nivel de detalle.</p>}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={toggleFocusMode}>
+                {focusMode ? <Minimize2 className="h-4 w-4" /> : <Focus className="h-4 w-4" />}
+                {focusMode ? "Salir de enfoque" : "Ampliar programa"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 text-[11px] text-muted-foreground sm:px-8 lg:px-12" aria-label="Leyenda del programa">
+      <details className="hidden px-4 text-xs text-muted-foreground min-[850px]:block sm:px-8 lg:px-12" data-viewer-readonly-allow="true">
+        <summary className="w-fit cursor-pointer py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Guía de colores del programa</summary>
+        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2" aria-label="Leyenda del programa">
         <span className="flex items-center gap-1.5"><span className="h-2 w-6 bg-green-700" /> Avance físico</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-6 bg-green-300" /> Avance financiero</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-6 bg-[#B17C7C]" /> Retraso o extensión</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border border-blue-700 bg-blue-50" /> Hito programado</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border border-red-700 bg-red-50" /> Hito requiere atención</span>
-      </div>
+        </div>
+      </details>
+      </>
+      )}
 
       <div>
         {programaDataWithComentarios.length === 0 && (
