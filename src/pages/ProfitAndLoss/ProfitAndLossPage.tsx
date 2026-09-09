@@ -366,6 +366,28 @@ const formatCurrencyWithCode = (amount: number, currency: string) => {
   }).format(safeNumber(amount));
 };
 
+const parseIncomeDate = (value?: string) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  const dayFirstMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  const parts = isoMatch
+    ? { year: Number(isoMatch[1]), month: Number(isoMatch[2]), day: Number(isoMatch[3]) }
+    : dayFirstMatch
+      ? { year: Number(dayFirstMatch[3]), month: Number(dayFirstMatch[2]), day: Number(dayFirstMatch[1]) }
+      : null;
+
+  if (!parts) {
+    const parsed = new Date(trimmed);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+
+  const parsed = new Date(parts.year, parts.month - 1, parts.day);
+  return parsed.getFullYear() === parts.year && parsed.getMonth() === parts.month - 1 && parsed.getDate() === parts.day
+    ? parsed
+    : null;
+};
+
 const formatAccountingCurrency = (amount?: number) => {
   if (amount === undefined || !Number.isFinite(amount)) return "-";
   if (amount < 0) return `(${formatMetricCurrency(Math.abs(amount))})`;
@@ -603,9 +625,15 @@ function WipMetricCard({
 function WorkInProgressView({
   summary,
   periodLabel,
+  periodYear,
+  cutoffMonth,
+  exchangeRates,
 }: {
   summary: ProfitabilitySummary;
   periodLabel: string;
+  periodYear: number;
+  cutoffMonth: number;
+  exchangeRates: { USD: number; EUR: number };
 }) {
   const totals = summary.totals;
   const activeProjects = summary.projects.filter((project) => project.status !== "Cancelado");
@@ -725,6 +753,9 @@ function WorkInProgressView({
         key={selectedProject?.id || "closed"}
         project={selectedProject}
         periodLabel={periodLabel}
+        periodYear={periodYear}
+        cutoffMonth={cutoffMonth}
+        exchangeRates={exchangeRates}
         onOpenChange={(open) => !open && setSelectedProject(null)}
       />
     </>
@@ -734,17 +765,87 @@ function WorkInProgressView({
 function CollectedIncomeBreakdownDialog({
   project,
   periodLabel,
+  periodYear,
+  cutoffMonth,
+  exchangeRates,
   onOpenChange,
 }: {
   project: ProfitabilityProject | null;
   periodLabel: string;
+  periodYear: number;
+  cutoffMonth: number;
+  exchangeRates: { USD: number; EUR: number };
   onOpenChange: (open: boolean) => void;
 }) {
   const [historyScope, setHistoryScope] = useState<IncomeHistoryScope>("cutoff");
+  const projectId = project?.id as Id<"desarrollos"> | undefined;
+  const presupuestoIngresos = useQuery(
+    api.ingresos.getByProyecto,
+    projectId ? { proyecto_id: projectId } : "skip"
+  );
+  const ogcIngresos = useQuery(
+    api.ogc_movimientos.getIncomeByProyecto,
+    projectId ? { proyecto_id: projectId } : "skip"
+  );
 
   if (!project) return null;
 
-  const allRecords = project.wip.ingresosBreakdown || [];
+  const cutoffEnd = new Date(periodYear, cutoffMonth, 0, 23, 59, 59, 999).getTime();
+  const getIncludedInCutoff = (fecha: string) => {
+    const parsedDate = parseIncomeDate(fecha);
+    return parsedDate !== null && parsedDate.getTime() <= cutoffEnd;
+  };
+  const getCurrencyDetails = (monto: number, moneda?: string, tipoCambio?: number) => {
+    const normalizedCurrency = (moneda || "MXN").trim().toUpperCase();
+    const configuredRate = normalizedCurrency === "USD"
+      ? exchangeRates.USD
+      : normalizedCurrency === "EUR"
+        ? exchangeRates.EUR
+        : 1;
+    const appliedRate = normalizedCurrency === "MXN"
+      ? 1
+      : Number.isFinite(tipoCambio) && safeNumber(tipoCambio) > 0
+        ? safeNumber(tipoCambio)
+        : configuredRate;
+
+    return {
+      moneda: normalizedCurrency,
+      tipoCambio: appliedRate,
+      montoMxn: Math.abs(safeNumber(monto)) * appliedRate,
+    };
+  };
+  const queriedRecords: CollectedIncomeRecord[] = [
+    ...(presupuestoIngresos || []).map((ingreso) => {
+      const currency = getCurrencyDetails(ingreso.monto, ingreso.moneda);
+      return {
+        id: String(ingreso._id),
+        source: "ingresos" as const,
+        fecha: ingreso.fecha,
+        descripcion: ingreso.descripcion,
+        montoOriginal: Math.abs(safeNumber(ingreso.monto)),
+        agregadoPor: ingreso.added_by_name,
+        includedInCutoff: getIncludedInCutoff(ingreso.fecha),
+        ...currency,
+      };
+    }),
+    ...(ogcIngresos || []).map((movement) => {
+      const currency = getCurrencyDetails(movement.monto, movement.moneda, movement.tipo_cambio);
+      return {
+        id: String(movement._id),
+        source: "ogc" as const,
+        fecha: movement.fecha,
+        descripcion: movement.descripcion,
+        montoOriginal: Math.abs(safeNumber(movement.monto)),
+        agregadoPor: movement.created_by_name,
+        includedInCutoff: getIncludedInCutoff(movement.fecha),
+        ...currency,
+      };
+    }),
+  ].sort((a, b) => (parseIncomeDate(b.fecha)?.getTime() || 0) - (parseIncomeDate(a.fecha)?.getTime() || 0));
+  const allRecords = queriedRecords.length > 0
+    ? queriedRecords
+    : project.wip.ingresosBreakdown || [];
+  const isLoadingRecords = presupuestoIngresos === undefined || ogcIngresos === undefined;
   const records = historyScope === "all"
     ? allRecords
     : allRecords.filter((record) => record.includedInCutoff);
@@ -811,7 +912,11 @@ function CollectedIncomeBreakdownDialog({
             Cálculo: ingresos de Presupuesto + movimientos OGC de tipo ingreso. Los montos en USD y EUR se convierten a MXN con el tipo de cambio configurado o el registrado en el movimiento OGC.
           </p>
 
-          {records.length > 0 ? (
+          {isLoadingRecords ? (
+            <div className="border border-border px-6 py-10 text-center text-sm text-muted-foreground">
+              Cargando ingresos...
+            </div>
+          ) : records.length > 0 ? (
             <div className="overflow-x-auto border border-border">
               <table className="w-full min-w-[960px] border-collapse text-left">
                 <thead>
@@ -2157,7 +2262,13 @@ export default function ProfitAndLossPage() {
             </div>
           </>
         ) : activeTab === "wip" ? (
-          <WorkInProgressView summary={profitabilitySummary} periodLabel={periodLabel} />
+          <WorkInProgressView
+            summary={profitabilitySummary}
+            periodLabel={periodLabel}
+            periodYear={periodYear}
+            cutoffMonth={cutoffMonth}
+            exchangeRates={ogcExchangeRates}
+          />
         ) : (
           <ProjectProfitabilityView
             summary={profitabilitySummary}
