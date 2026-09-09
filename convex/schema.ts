@@ -466,12 +466,48 @@ export default defineSchema({
     created_by: v.optional(v.id("users")), // User who created this provider
     created_at: v.optional(v.number()), // Timestamp when created
     updated_at: v.optional(v.number()),
+    stats_transaction_count: v.optional(v.number()),
+    stats_total_amount: v.optional(v.number()),
+    stats_project_count: v.optional(v.number()),
+    stats_initialized_at: v.optional(v.number()),
+    list_search_text: v.optional(v.string()),
+    list_is_complete: v.optional(v.boolean()),
+    list_is_archived: v.optional(v.boolean()),
+    list_is_generic: v.optional(v.boolean()),
   }).index("by_rfc", { fields: ["rfc"] })
     .index("by_rfc_normalizado", { fields: ["rfc_normalizado"] })
     .index("by_razon_social", { fields: ["razon_social"] })
     .index("by_razon_social_normalizada", { fields: ["razon_social_normalizada"] })
     .index("by_archived_at", { fields: ["archived_at"] })
-    .index("by_created_by", { fields: ["created_by"] }),
+    .index("by_created_by", { fields: ["created_by"] })
+    .index("by_stats_transaction_count", { fields: ["stats_transaction_count"] })
+    .index("by_stats_project_count", { fields: ["stats_project_count"] })
+    .index("by_stats_total_amount", { fields: ["stats_total_amount"] })
+    .searchIndex("search_provider_list", {
+      searchField: "list_search_text",
+      filterFields: ["list_is_complete", "list_is_archived", "list_is_generic"],
+    }),
+
+  provider_project_stats: defineTable({
+    provider_id: v.id("proveedores"),
+    proyecto_id: v.id("desarrollos"),
+    transaction_count: v.number(),
+    total_amount: v.number(),
+    provider_name_sort: v.string(),
+    search_text: v.string(),
+    is_complete: v.boolean(),
+    is_archived: v.boolean(),
+    is_generic: v.boolean(),
+    updated_at: v.number(),
+  }).index("by_provider_project", { fields: ["provider_id", "proyecto_id"] })
+    .index("by_provider", { fields: ["provider_id"] })
+    .index("by_project_name", { fields: ["proyecto_id", "provider_name_sort"] })
+    .index("by_project_transaction_count", { fields: ["proyecto_id", "transaction_count"] })
+    .index("by_project_total_amount", { fields: ["proyecto_id", "total_amount"] })
+    .searchIndex("search_project_provider_list", {
+      searchField: "search_text",
+      filterFields: ["proyecto_id", "is_complete", "is_archived", "is_generic"],
+    }),
 
   transaction_import_batches: defineTable({
     proyecto: v.id("desarrollos"),
@@ -748,21 +784,26 @@ export default defineSchema({
   // Original Excel files used to create OGC movements. One import record can
   // be referenced by every movement produced from the same workbook.
   ogc_movimientos_importaciones: defineTable({
-    storage_id: v.id("_storage"),
+    storage_id: v.optional(v.id("_storage")),
     nombre: v.string(),
     type: v.string(),
     size: v.number(),
-    status: v.string(), // "procesando" | "completada" | "parcial"
+    file_hash: v.optional(v.string()),
+    status: v.union(v.literal("procesando"), v.literal("completada"), v.literal("parcial")),
     total_filas: v.number(),
     movimientos_creados: v.number(),
     duplicados_omitidos: v.number(),
     rechazados: v.number(),
     organization_id: v.optional(v.string()),
+    scope_key: v.optional(v.string()),
     imported_by_id: v.id("users"),
     imported_by_name: v.string(),
     imported_at: v.number(),
+    updated_at: v.optional(v.number()),
     completed_at: v.optional(v.number()),
   }).index("by_organization", { fields: ["organization_id"] })
+    .index("by_organization_file_hash", { fields: ["organization_id", "file_hash"] })
+    .index("by_scope_file_hash", { fields: ["scope_key", "file_hash"] })
     .index("by_imported_at", { fields: ["imported_at"] }),
 
   ogc_movimientos_audit: defineTable({

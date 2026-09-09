@@ -34,6 +34,7 @@ import {
   markInvoicesStaleForTransaction,
   transactionChangeInvalidatesInvoice,
 } from "./invoiceIntegrity";
+import { updateProviderStatsForTransactionChange } from "./providerStats";
 
 type TransactionLineItemInput = {
   partida_id: Id<"partidas">;
@@ -785,6 +786,7 @@ export const createTransaction = mutation({
 
     // Create the parent transaction
     const transaccionId = await ctx.db.insert("transacciones", transactionData);
+    await updateProviderStatsForTransactionChange(ctx, null, transactionData);
 
     // Create all line items referencing this transaction
     const pagoIds = [];
@@ -908,6 +910,7 @@ export const createTransactionBulk = baseMutation({
       ...transactionData,
       fecha: normalizedFecha,
     });
+    await updateProviderStatsForTransactionChange(ctx, null, transactionData);
 
     // Insert all line items (raw DB, no triggers)
     const pagoIds = [];
@@ -1007,6 +1010,14 @@ export const updateTransaction = mutation({
       await markInvoicesStaleForTransaction(ctx, id);
     }
 
+    await updateProviderStatsForTransactionChange(ctx, existingTransaction, {
+      ...existingTransaction,
+      proveedor_id: updateData.proveedor_id === null
+        ? undefined
+        : updateData.proveedor_id ?? existingTransaction.proveedor_id,
+      monto_total: updateData.monto_total ?? existingTransaction.monto_total,
+    });
+
     await ctx.db.patch(
       id,
       cleanUpdateData as Partial<
@@ -1051,6 +1062,10 @@ export const assignProviderBulk = baseMutation({
       if (String(transaction.proveedor_id || "") !== String(args.proveedor_id || "")) {
         await markInvoicesStaleForTransaction(ctx, transaction._id);
       }
+      await updateProviderStatsForTransactionChange(ctx, transaction, {
+        ...transaction,
+        proveedor_id: args.proveedor_id || undefined,
+      });
       await ctx.db.patch(transaction._id, {
         proveedor_id: args.proveedor_id || undefined,
       });
@@ -1111,6 +1126,10 @@ export const syncProvidersPage = baseMutation({
       if (transaction.proveedor_id !== row.providerId) {
         await markInvoicesStaleForTransaction(ctx, transaction._id);
       }
+      await updateProviderStatsForTransactionChange(ctx, transaction, {
+        ...transaction,
+        proveedor_id: row.providerId,
+      });
       await ctx.db.patch(transaction._id, { proveedor_id: row.providerId });
       counts.updated += 1;
     }
@@ -1180,6 +1199,14 @@ export const syncProvidersFromExcel = baseMutation({
             created_by: user._id,
             created_at: Date.now(),
             updated_at: Date.now(),
+            stats_transaction_count: 0,
+            stats_total_amount: 0,
+            stats_project_count: 0,
+            stats_initialized_at: Date.now(),
+            list_search_text: normalizedName,
+            list_is_complete: isGenericProviderName(resolution.candidate.provider_name),
+            list_is_archived: false,
+            list_is_generic: isGenericProviderName(resolution.candidate.provider_name),
           });
           createdProviders.set(normalizedName, providerId);
           report.counts.providers_created += 1;
@@ -1190,6 +1217,10 @@ export const syncProvidersFromExcel = baseMutation({
         if (transaction.proveedor_id !== providerId) {
           await markInvoicesStaleForTransaction(ctx, transaction._id);
         }
+        await updateProviderStatsForTransactionChange(ctx, transaction, {
+          ...transaction,
+          proveedor_id: providerId,
+        });
         await ctx.db.patch(transaction._id, {
           proveedor: resolution.candidate.provider_name.trim(),
           proveedor_id: providerId,
@@ -1240,6 +1271,7 @@ export const deleteTransaction = mutation({
     }
 
     // Delete the transaction
+    await updateProviderStatsForTransactionChange(ctx, existingTransaction, null);
     await ctx.db.delete(args.id);
   },
 });

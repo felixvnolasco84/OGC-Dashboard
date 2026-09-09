@@ -9,6 +9,7 @@ import {
   normalizeProviderName,
   normalizeRfc,
 } from "../convex/providerUtils.ts";
+import { calculateProviderStatsDelta } from "../convex/providerStatsRules.ts";
 import {
   classifyProjectMatch,
   normalizeProjectName,
@@ -44,6 +45,38 @@ assert.equal(isGenericProviderName("Proveedor real"), false);
 assert.equal(isProviderComplete({ tipo: "regular", razon_social: "Proveedor", rfc: "" }), false);
 assert.equal(isProviderComplete({ tipo: "regular", razon_social: "Proveedor", rfc: "ABC010203X9Z" }), true);
 assert.equal(isProviderComplete({ tipo: "generico", razon_social: "VARIOS" }), true);
+
+const firstProviderTransaction = calculateProviderStatsDelta({
+  currentProviderTransactionCount: 0,
+  currentProviderTotalAmount: 0,
+  currentProviderProjectCount: 0,
+  currentProjectTransactionCount: 0,
+  currentProjectTotalAmount: 0,
+  transactionAmount: 1250.55,
+  direction: 1,
+});
+assert.deepEqual(firstProviderTransaction, {
+  providerTransactionCount: 1,
+  providerTotalAmount: 1250.55,
+  providerProjectCount: 1,
+  projectTransactionCount: 1,
+  projectTotalAmount: 1250.55,
+  projectAdded: true,
+  projectRemoved: false,
+});
+const lastProviderTransactionRemoved = calculateProviderStatsDelta({
+  currentProviderTransactionCount: 1,
+  currentProviderTotalAmount: 1250.55,
+  currentProviderProjectCount: 1,
+  currentProjectTransactionCount: 1,
+  currentProjectTotalAmount: 1250.55,
+  transactionAmount: 1250.55,
+  direction: -1,
+});
+assert.equal(lastProviderTransactionRemoved.providerTransactionCount, 0);
+assert.equal(lastProviderTransactionRemoved.providerTotalAmount, 0);
+assert.equal(lastProviderTransactionRemoved.providerProjectCount, 0);
+assert.equal(lastProviderTransactionRemoved.projectRemoved, true);
 
 const providerMatchIndex = buildProviderMatchIndex([
   { _id: "active", razon_social: "Ferretería Santana" },

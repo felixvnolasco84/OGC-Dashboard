@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { updateProviderStatsForTransactionChange } from "./providerStats";
 import { v } from "convex/values";
 import {
   updateHonorariosMonto,
@@ -130,6 +131,14 @@ async function resolveProvider(
     created_by: userId,
     created_at: Date.now(),
     updated_at: Date.now(),
+    stats_transaction_count: 0,
+    stats_total_amount: 0,
+    stats_project_count: 0,
+    stats_initialized_at: Date.now(),
+    list_search_text: normalized,
+    list_is_complete: isGenericProviderName(providerName),
+    list_is_archived: false,
+    list_is_generic: isGenericProviderName(providerName),
   });
   return { providerId: createdProviderId, status: "created" as const };
 }
@@ -337,6 +346,7 @@ export const replaceLaborPaymentImport = mutation({
             }
             await ctx.db.delete(payment._id);
           }
+          await updateProviderStatsForTransactionChange(ctx, transaction, null);
           await ctx.db.delete(transaction._id);
         }
       }
@@ -421,6 +431,11 @@ export const replaceLaborPaymentImport = mutation({
           status: "Pagado",
           categoria: transaction.categoria.trim(),
           factura: transaction.factura.trim(),
+        });
+        await updateProviderStatsForTransactionChange(ctx, null, {
+          proveedor_id: providerResolution.providerId,
+          proyecto: args.proyecto,
+          monto_total: Math.round(transaction.monto_total * 100) / 100,
         });
         for (const item of transaction.line_items) {
           const partida = partidaDocs.get(String(item.partida_id));

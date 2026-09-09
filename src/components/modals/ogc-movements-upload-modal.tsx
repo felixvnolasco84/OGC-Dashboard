@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { hashFile } from "@/lib/transactionImport";
 import { AlertTriangle, CheckCircle2, Copy, FileSpreadsheet, FileText, Image, Loader2, Paperclip, Plus, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -118,6 +119,7 @@ type BulkPreflight = {
 
 type ExcelPreviewState = {
   fileName: string;
+  fileHash: string;
   movements: OgcUploadMovement[];
   report: ValidationReport;
   preflight: BulkPreflight;
@@ -193,6 +195,7 @@ const OGC_UPLOAD_ENDPOINTS = [
   "http://localhost:3000/upload/ogc-transactions",
 ];
 const MAX_DELIVERY_NOTE_FILE_SIZE = 20 * 1024 * 1024;
+const MAX_EXCEL_FILE_SIZE = 20 * 1024 * 1024;
 const MAX_DELIVERY_NOTE_FILES_PER_ROW = 8;
 const DELIVERY_NOTE_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".gif", ".bmp", ".tif", ".tiff"];
 const DELIVERY_NOTE_ACCEPT = [
@@ -511,8 +514,10 @@ export function OgcMovementsUploadModal({
     open ? { includeInactive: false } : "skip"
   ) as ExistingOgcMovement[] | undefined;
   const generateOgcUploadUrl = useMutation(api.ogc_movimientos.generateUploadUrl);
-  const createOgcImport = useMutation(api.ogc_movimientos.createImport);
+  const startOgcImport = useMutation(api.ogc_movimientos.startImport);
+  const attachOgcImportFile = useMutation(api.ogc_movimientos.attachImportFile);
   const completeOgcImport = useMutation(api.ogc_movimientos.completeImport);
+  const failOgcImport = useMutation(api.ogc_movimientos.failImport);
   const validateBulkCreateMovements = useMutation(api.ogc_movimientos.validateBulkCreate);
   const bulkCreateMovements = useMutation(api.ogc_movimientos.bulkCreate);
   const pnlPeriod = useMemo<PnlPeriodFilter | undefined>(() => {
@@ -837,6 +842,13 @@ export function OgcMovementsUploadModal({
       event.target.value = "";
       return;
     }
+    if (selectedFile.size > MAX_EXCEL_FILE_SIZE) {
+      toast.error("Archivo demasiado grande", {
+        description: `El Excel debe pesar maximo ${formatFileSize(MAX_EXCEL_FILE_SIZE)}.`,
+      });
+      event.target.value = "";
+      return;
+    }
 
     setFile(selectedFile);
     setResult(null);
@@ -873,14 +885,21 @@ export function OgcMovementsUploadModal({
     throw new Error(lastError);
   };
 
-  const runBulkPreflight = async (movements: PreparedMovement[]): Promise<BulkPreflight> => {
+  const runBulkPreflight = async (
+    movements: PreparedMovement[],
+    fileHash: string
+  ): Promise<BulkPreflight> => {
     if (movements.length === 0) return { ...EMPTY_PREFLIGHT };
 
     const preflight: BulkPreflight = { validRows: [], duplicateRows: [], rejectedRows: [] };
     const chunkSize = 100;
     for (let index = 0; index < movements.length; index += chunkSize) {
       const chunk = movements.slice(index, index + chunkSize);
-      const result = await validateBulkCreateMovements({ movimientos: chunk });
+      const result = await validateBulkCreateMovements({
+        movimientos: chunk,
+        allow_repeated_rows: true,
+        file_hash: fileHash,
+      });
       preflight.validRows.push(...result.validRows);
       preflight.duplicateRows.push(...result.duplicateRows);
       preflight.rejectedRows.push(...result.rejectedRows);
@@ -890,7 +909,8 @@ export function OgcMovementsUploadModal({
 
   const saveValidatedMovements = async (
     report: ValidationReport,
-    importacionId?: Id<"ogc_movimientos_importaciones">
+    importacionId?: Id<"ogc_movimientos_importaciones">,
+    parserErrorCount = 0
   ) => {
     if (report.valid.length === 0) {
       throw new Error("No hay movimientos validos para guardar.");
@@ -898,6 +918,7 @@ export function OgcMovementsUploadModal({
 
     let createdCount = 0;
     let duplicateCount = 0;
+    let resumedCount = 0;
     let rejectedCount = 0;
     const chunkSize = 100;
     for (let index = 0; index < report.valid.length; index += chunkSize) {
@@ -908,6 +929,7 @@ export function OgcMovementsUploadModal({
       });
       createdCount += created.created;
       duplicateCount += created.skippedDuplicates || 0;
+      resumedCount += created.alreadyImported || 0;
       rejectedCount += created.rejected || 0;
     }
 
@@ -915,17 +937,18 @@ export function OgcMovementsUploadModal({
       report.errors.length ? `${report.errors.length} filas omitidas` : "",
       report.missingProjects.length ? `${report.missingProjects.length} obras no encontradas` : "",
       duplicateCount ? `${duplicateCount} duplicadas` : "",
+      resumedCount ? `${resumedCount} ya vinculadas a esta importacion` : "",
       rejectedCount ? `${rejectedCount} rechazadas` : "",
-      report.valid.length - createdCount - duplicateCount - rejectedCount > 0
-        ? `${report.valid.length - createdCount - duplicateCount - rejectedCount} no guardadas`
+      report.valid.length - createdCount - duplicateCount - resumedCount - rejectedCount > 0
+        ? `${report.valid.length - createdCount - duplicateCount - resumedCount - rejectedCount} no guardadas`
         : "",
     ].filter(Boolean).join(", ");
 
     if (importacionId) {
-      const hasIssues = report.errors.length > 0 || duplicateCount > 0 || rejectedCount > 0;
       await completeOgcImport({
         id: importacionId,
-        status: hasIssues ? "parcial" : "completada",
+        duplicados_omitidos: duplicateCount,
+        rechazados: rejectedCount + report.errors.length + parserErrorCount,
       });
     }
 
@@ -949,12 +972,12 @@ export function OgcMovementsUploadModal({
     setIsProcessing(true);
 
     try {
-      const parsed = await parseFile(file);
+      const [parsed, fileHash] = await Promise.all([parseFile(file), hashFile(file)]);
       setResult(parsed);
 
       const movements = parsed.movimientos || [];
       const report = validateMovements(movements, file.name);
-      const preflight = await runBulkPreflight(report.valid);
+      const preflight = await runBulkPreflight(report.valid, fileHash);
       const parserErrors = (parsed.errors || []).map((error) => ({
         row: error.row,
         message: error.error,
@@ -962,6 +985,7 @@ export function OgcMovementsUploadModal({
 
       setExcelPreview({
         fileName: file.name,
+        fileHash,
         movements,
         report,
         preflight,
@@ -1004,29 +1028,47 @@ export function OgcMovementsUploadModal({
     setIsProcessing(true);
     let importacionId: Id<"ogc_movimientos_importaciones"> | undefined;
     try {
-      const uploadUrl = await generateOgcUploadUrl();
-      const uploadResult = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file,
-      });
-      if (!uploadResult.ok) {
-        throw new Error("No se pudo guardar el archivo Excel en Convex.");
-      }
-
-      const { storageId } = await uploadResult.json();
-      importacionId = await createOgcImport({
-        storage_id: storageId as Id<"_storage">,
+      const importStart = await startOgcImport({
         nombre: file.name,
         type: file.type || "application/octet-stream",
         size: file.size,
+        file_hash: excelPreview.fileHash,
         total_filas: excelPreview.report.valid.length,
       });
+      if (importStart.already_completed) {
+        throw new Error("Este archivo ya fue importado anteriormente.");
+      }
+      if (importStart.already_in_progress) {
+        throw new Error("Este archivo ya se esta importando en otra sesion.");
+      }
+      importacionId = importStart.id;
 
-      await saveValidatedMovements(excelPreview.report, importacionId);
+      if (importStart.needs_upload) {
+        const uploadUrl = await generateOgcUploadUrl();
+        const uploadResult = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: file,
+        });
+        if (!uploadResult.ok) {
+          throw new Error("No se pudo guardar el archivo Excel en Convex.");
+        }
+
+        const { storageId } = await uploadResult.json();
+        await attachOgcImportFile({
+          id: importacionId,
+          storage_id: storageId as Id<"_storage">,
+        });
+      }
+
+      await saveValidatedMovements(
+        excelPreview.report,
+        importacionId,
+        excelPreview.parserErrors.length
+      );
     } catch (error) {
       if (importacionId) {
-        await completeOgcImport({ id: importacionId, status: "parcial" }).catch(() => undefined);
+        await failOgcImport({ id: importacionId }).catch(() => undefined);
       }
       toast.error("Error al cargar movimientos OGC", {
         description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",

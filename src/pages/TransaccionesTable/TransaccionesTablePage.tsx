@@ -107,7 +107,7 @@ export default function TransaccionesTablePage() {
             : {},
         { initialNumItems: 50 }
     );
-    const proveedores = useQuery(api.proveedores.getAllWithStats, { include_archived: true });
+    const proveedores = useQuery(api.proveedores.getAll);
     const deleteTransaction = useMutation(api.transacciones.deleteTransaction);
     const isLoadingFirstPage = transaccionesStatus === "LoadingFirstPage";
     const isLoadingMore = transaccionesStatus === "LoadingMore";
