@@ -302,7 +302,7 @@ export const getAll = query({
 
     const allowedIds = new Set(user.allowed_desarrollos.map((id) => id as string));
 
-    return allMovements
+    const visibleMovements = allMovements
       .filter((movement) => includeInactive || isActiveMovement(movement))
       .filter((movement) => {
         if (hasGlobalAdminAccess(user)) {
@@ -320,6 +320,34 @@ export const getAll = query({
         return allowedIds.has(movement.proyecto as string);
       })
       .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+    const importIds = Array.from(new Set(
+      visibleMovements.flatMap((movement) => movement.importacion_id ? [movement.importacion_id] : [])
+    ));
+    const imports = await Promise.all(importIds.map((id) => ctx.db.get(id)));
+    const importById = new Map(imports.flatMap((importRecord) => (
+      importRecord ? [[String(importRecord._id), importRecord] as const] : []
+    )));
+
+    return await Promise.all(visibleMovements.map(async (movement) => {
+      const importRecord = movement.importacion_id
+        ? importById.get(String(movement.importacion_id))
+        : undefined;
+      if (!importRecord) return movement;
+
+      return {
+        ...movement,
+        importacion: {
+          _id: importRecord._id,
+          nombre: importRecord.nombre,
+          type: importRecord.type,
+          size: importRecord.size,
+          imported_at: importRecord.imported_at,
+          imported_by_name: importRecord.imported_by_name,
+          url: await ctx.storage.getUrl(importRecord.storage_id),
+        },
+      };
+    }));
   },
 });
 
@@ -400,6 +428,58 @@ export const generateUploadUrl = mutation({
   },
 });
 
+export const createImport = mutation({
+  args: {
+    storage_id: v.id("_storage"),
+    nombre: v.string(),
+    type: v.string(),
+    size: v.number(),
+    total_filas: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await assertCanWrite(ctx);
+    const nombre = args.nombre.trim();
+    if (!nombre) throw new Error("El archivo de importacion requiere nombre.");
+    if (!Number.isFinite(args.size) || args.size < 0) throw new Error("Tamano de archivo invalido.");
+    if (!Number.isInteger(args.total_filas) || args.total_filas < 1) throw new Error("La importacion no contiene filas validas.");
+
+    return await ctx.db.insert("ogc_movimientos_importaciones", {
+      storage_id: args.storage_id,
+      nombre,
+      type: args.type.trim() || "application/octet-stream",
+      size: args.size,
+      status: "procesando",
+      total_filas: args.total_filas,
+      movimientos_creados: 0,
+      duplicados_omitidos: 0,
+      rechazados: 0,
+      organization_id: getScopedOrganizationId(user),
+      imported_by_id: user._id,
+      imported_by_name: user.name,
+      imported_at: Date.now(),
+    });
+  },
+});
+
+export const completeImport = mutation({
+  args: {
+    id: v.id("ogc_movimientos_importaciones"),
+    status: v.union(v.literal("completada"), v.literal("parcial")),
+  },
+  handler: async (ctx, args) => {
+    const user = await assertCanWrite(ctx);
+    const importRecord = await ctx.db.get(args.id);
+    if (!importRecord) throw new Error("Importacion no encontrada.");
+    const organizationId = getScopedOrganizationId(user);
+    if (!hasGlobalAdminAccess(user) && importRecord.organization_id !== organizationId) {
+      throw new Error("No tienes acceso a esta importacion.");
+    }
+
+    await ctx.db.patch(args.id, { status: args.status, completed_at: Date.now() });
+    return { ok: true };
+  },
+});
+
 export const validateBulkCreate = mutation({
   args: {
     movimientos: v.array(ogcMovementInputValidator),
@@ -445,10 +525,16 @@ export const validateBulkCreate = mutation({
 export const bulkCreate = mutation({
   args: {
     movimientos: v.array(ogcMovementInputValidator),
+    importacion_id: v.optional(v.id("ogc_movimientos_importaciones")),
   },
   handler: async (ctx, args) => {
     const user = await assertCanWrite(ctx);
     const organizationId = getScopedOrganizationId(user);
+    const importRecord = args.importacion_id ? await ctx.db.get(args.importacion_id) : null;
+    if (args.importacion_id && !importRecord) throw new Error("Importacion no encontrada.");
+    if (importRecord && !hasGlobalAdminAccess(user) && importRecord.organization_id !== organizationId) {
+      throw new Error("No tienes acceso a esta importacion.");
+    }
     const ids: Id<"ogc_movimientos">[] = [];
     const now = Date.now();
     let skippedDuplicates = 0;
@@ -480,6 +566,7 @@ export const bulkCreate = mutation({
         ...normalized,
         archivo_origen: item.archivo_origen,
         fila_origen: item.fila_origen,
+        importacion_id: args.importacion_id,
         ...deliveryNote,
         status: "activo",
         duplicate_key: duplicateKey,
@@ -502,6 +589,14 @@ export const bulkCreate = mutation({
       }
 
       ids.push(id);
+    }
+
+    if (args.importacion_id && importRecord) {
+      await ctx.db.patch(args.importacion_id, {
+        movimientos_creados: importRecord.movimientos_creados + ids.length,
+        duplicados_omitidos: importRecord.duplicados_omitidos + skippedDuplicates,
+        rechazados: importRecord.rechazados + rejected,
+      });
     }
 
     return { created: ids.length, ids, skippedDuplicates, rejected };

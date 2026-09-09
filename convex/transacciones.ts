@@ -2270,13 +2270,22 @@ export const getByPartidaId = query({
 // related records exceeded Convex's read limit once the dataset grew, so the
 // enrichment is intentionally limited to the current page.
 export const getAllWithDetails = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: {
+    paginationOpts: paginationOptsValidator,
+    proveedor_id: v.optional(v.id("proveedores")),
+  },
   handler: async (ctx, args) => {
     await assertAdmin(ctx);
-    const result = await ctx.db
-      .query("transacciones")
-      .order("desc")
-      .paginate(args.paginationOpts);
+    const result = args.proveedor_id
+      ? await ctx.db
+          .query("transacciones")
+          .withIndex("by_proveedor", (q) => q.eq("proveedor_id", args.proveedor_id))
+          .order("desc")
+          .paginate(args.paginationOpts)
+      : await ctx.db
+          .query("transacciones")
+          .order("desc")
+          .paginate(args.paginationOpts);
 
     const projectIds = [...new Set(result.page.map((transaction) => transaction.proyecto))];
     const projects = await Promise.all(projectIds.map((projectId) => ctx.db.get(projectId)));

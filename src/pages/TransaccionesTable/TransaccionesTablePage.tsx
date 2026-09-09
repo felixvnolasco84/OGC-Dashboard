@@ -57,6 +57,7 @@ import { Label } from "@/components/ui/label";
 import AssignProviderDialog from "@/components/providers/AssignProviderDialog";
 import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
 import { AddTransactionMenu } from "@/components/transactions/AddTransactionMenu";
+import { useSearchParams } from "react-router";
 
 const EXTRA_COLUMNS = [
     { id: "tipoPago", label: "Tipo de pago" },
@@ -67,6 +68,9 @@ const EXTRA_COLUMNS = [
 ] as const;
 
 export default function TransaccionesTablePage() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const providerFromUrl = searchParams.get("proveedor");
+    const selectedProveedor = (providerFromUrl || "all") as Id<"proveedores"> | "all" | "unassigned";
     const [searchTerm, setSearchTerm] = useState("");
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -79,7 +83,6 @@ export default function TransaccionesTablePage() {
         proveedorNombre: string;
     } | null>(null);
     const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
-    const [selectedProveedor, setSelectedProveedor] = useState<Id<"proveedores"> | "all" | "unassigned">("all");
     const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<Id<"transacciones">>>(new Set());
     const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
     const [invoiceOpen, setInvoiceOpen] = useState(false);
@@ -97,7 +100,13 @@ export default function TransaccionesTablePage() {
         results: transacciones,
         status: transaccionesStatus,
         loadMore: loadMoreTransacciones,
-    } = usePaginatedQuery(api.transacciones.getAllWithDetails, {}, { initialNumItems: 50 });
+    } = usePaginatedQuery(
+        api.transacciones.getAllWithDetails,
+        selectedProveedor !== "all" && selectedProveedor !== "unassigned"
+            ? { proveedor_id: selectedProveedor }
+            : {},
+        { initialNumItems: 50 }
+    );
     const proveedores = useQuery(api.proveedores.getAllWithStats, { include_archived: true });
     const deleteTransaction = useMutation(api.transacciones.deleteTransaction);
     const isLoadingFirstPage = transaccionesStatus === "LoadingFirstPage";
@@ -107,6 +116,17 @@ export default function TransaccionesTablePage() {
 
     const detailsModal = useTransactionDetailsModal();
     const canCreateTransactions = Boolean(currentUser && currentUser.role !== "viewer");
+
+    const handleProviderChange = (value: Id<"proveedores"> | "all" | "unassigned") => {
+        setSelectedTransactionIds(new Set());
+        const nextSearchParams = new URLSearchParams(searchParams);
+        if (value === "all") {
+            nextSearchParams.delete("proveedor");
+        } else {
+            nextSearchParams.set("proveedor", value);
+        }
+        setSearchParams(nextSearchParams, { replace: true });
+    };
 
     const handleAddPayment = () => {
         if (selectedProyecto) {
@@ -346,7 +366,7 @@ export default function TransaccionesTablePage() {
 
                         <Select
                             value={selectedProveedor}
-                            onValueChange={(value) => setSelectedProveedor(value as Id<"proveedores"> | "all" | "unassigned")}
+                            onValueChange={(value) => handleProviderChange(value as Id<"proveedores"> | "all" | "unassigned")}
                         >
                             <SelectTrigger className="rounded-none h-12">
                                 <SelectValue placeholder="Todos los proveedores" />

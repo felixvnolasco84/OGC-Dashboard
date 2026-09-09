@@ -703,6 +703,7 @@ export default defineSchema({
     proyecto: v.optional(v.id("desarrollos")),
     archivo_origen: v.optional(v.string()),
     fila_origen: v.optional(v.number()),
+    importacion_id: v.optional(v.id("ogc_movimientos_importaciones")),
     nota_recepcion_status: v.optional(v.union(v.literal("parcial"), v.literal("completa"))),
     nota_recepcion_storage_id: v.optional(v.id("_storage")),
     nota_recepcion_nombre: v.optional(v.string()),
@@ -740,8 +741,29 @@ export default defineSchema({
     .index("by_proyecto", { fields: ["proyecto"] })
     .index("by_fecha", { fields: ["fecha"] })
     .index("by_organization", { fields: ["organization_id"] })
+    .index("by_importacion", { fields: ["importacion_id"] })
     .index("by_duplicate_key", { fields: ["duplicate_key"] })
     .index("by_status", { fields: ["status"] }),
+
+  // Original Excel files used to create OGC movements. One import record can
+  // be referenced by every movement produced from the same workbook.
+  ogc_movimientos_importaciones: defineTable({
+    storage_id: v.id("_storage"),
+    nombre: v.string(),
+    type: v.string(),
+    size: v.number(),
+    status: v.string(), // "procesando" | "completada" | "parcial"
+    total_filas: v.number(),
+    movimientos_creados: v.number(),
+    duplicados_omitidos: v.number(),
+    rechazados: v.number(),
+    organization_id: v.optional(v.string()),
+    imported_by_id: v.id("users"),
+    imported_by_name: v.string(),
+    imported_at: v.number(),
+    completed_at: v.optional(v.number()),
+  }).index("by_organization", { fields: ["organization_id"] })
+    .index("by_imported_at", { fields: ["imported_at"] }),
 
   ogc_movimientos_audit: defineTable({
     movimiento_id: v.id("ogc_movimientos"),

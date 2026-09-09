@@ -511,6 +511,8 @@ export function OgcMovementsUploadModal({
     open ? { includeInactive: false } : "skip"
   ) as ExistingOgcMovement[] | undefined;
   const generateOgcUploadUrl = useMutation(api.ogc_movimientos.generateUploadUrl);
+  const createOgcImport = useMutation(api.ogc_movimientos.createImport);
+  const completeOgcImport = useMutation(api.ogc_movimientos.completeImport);
   const validateBulkCreateMovements = useMutation(api.ogc_movimientos.validateBulkCreate);
   const bulkCreateMovements = useMutation(api.ogc_movimientos.bulkCreate);
   const pnlPeriod = useMemo<PnlPeriodFilter | undefined>(() => {
@@ -886,7 +888,10 @@ export function OgcMovementsUploadModal({
     return preflight;
   };
 
-  const saveValidatedMovements = async (report: ValidationReport) => {
+  const saveValidatedMovements = async (
+    report: ValidationReport,
+    importacionId?: Id<"ogc_movimientos_importaciones">
+  ) => {
     if (report.valid.length === 0) {
       throw new Error("No hay movimientos validos para guardar.");
     }
@@ -897,7 +902,10 @@ export function OgcMovementsUploadModal({
     const chunkSize = 100;
     for (let index = 0; index < report.valid.length; index += chunkSize) {
       const chunk = report.valid.slice(index, index + chunkSize);
-      const created = await bulkCreateMovements({ movimientos: chunk });
+      const created = await bulkCreateMovements({
+        movimientos: chunk,
+        importacion_id: importacionId,
+      });
       createdCount += created.created;
       duplicateCount += created.skippedDuplicates || 0;
       rejectedCount += created.rejected || 0;
@@ -912,6 +920,14 @@ export function OgcMovementsUploadModal({
         ? `${report.valid.length - createdCount - duplicateCount - rejectedCount} no guardadas`
         : "",
     ].filter(Boolean).join(", ");
+
+    if (importacionId) {
+      const hasIssues = report.errors.length > 0 || duplicateCount > 0 || rejectedCount > 0;
+      await completeOgcImport({
+        id: importacionId,
+        status: hasIssues ? "parcial" : "completada",
+      });
+    }
 
     toast.success("Carga OGC completada", {
       description: `${createdCount} movimientos guardados${skippedDetails ? `, ${skippedDetails}` : ""}.`,
@@ -978,7 +994,7 @@ export function OgcMovementsUploadModal({
   };
 
   const handleConfirmExcel = async () => {
-    if (!excelPreview) return;
+    if (!excelPreview || !file) return;
 
     if (excelPreview.preflight.validRows.length === 0) {
       toast.error("No hay movimientos validos para guardar.");
@@ -986,9 +1002,32 @@ export function OgcMovementsUploadModal({
     }
 
     setIsProcessing(true);
+    let importacionId: Id<"ogc_movimientos_importaciones"> | undefined;
     try {
-      await saveValidatedMovements(excelPreview.report);
+      const uploadUrl = await generateOgcUploadUrl();
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!uploadResult.ok) {
+        throw new Error("No se pudo guardar el archivo Excel en Convex.");
+      }
+
+      const { storageId } = await uploadResult.json();
+      importacionId = await createOgcImport({
+        storage_id: storageId as Id<"_storage">,
+        nombre: file.name,
+        type: file.type || "application/octet-stream",
+        size: file.size,
+        total_filas: excelPreview.report.valid.length,
+      });
+
+      await saveValidatedMovements(excelPreview.report, importacionId);
     } catch (error) {
+      if (importacionId) {
+        await completeOgcImport({ id: importacionId, status: "parcial" }).catch(() => undefined);
+      }
       toast.error("Error al cargar movimientos OGC", {
         description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
       });
