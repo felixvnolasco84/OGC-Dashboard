@@ -411,20 +411,38 @@ const getAverageMonthlyExpense = async (
     return totalExpenses / monthlyExpenses.size;
 };
 
+const sumIncomeRecordsOnOrBeforeCutoff = (
+    records: Array<{ monto?: number; fecha?: string; moneda?: string; tipo_cambio?: string | number }>,
+    period: PnlPeriod,
+    rates: ExchangeRates
+) => {
+    return records
+        .filter((record) => isDateOnOrBeforeCutoff(parseReportDate(record.fecha), period))
+        .reduce(
+            (sum, record) => sum + Math.abs(convertToMxn(record.monto || 0, record.moneda, record.tipo_cambio, rates)),
+            0
+        );
+};
+
 const getProjectCollectedIncome = async (
     ctx: QueryCtx,
     proyectoId: Doc<"desarrollos">["_id"],
     period: PnlPeriod,
-    rates: ExchangeRates
+    rates: ExchangeRates,
+    ogcMovements: OgcMovement[] = []
 ) => {
     const ingresos = await ctx.db
         .query("ingresos")
         .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
         .collect();
 
-    return ingresos
-        .filter((ingreso) => isDateOnOrBeforeCutoff(parseReportDate(ingreso.fecha), period))
-        .reduce((sum, ingreso) => sum + Math.abs(convertToMxn(ingreso.monto || 0, ingreso.moneda, undefined, rates)), 0);
+    const ogcIngresos = ogcMovements.filter((movement) => movement.tipo === "ingreso");
+
+    // Match Presupuesto: tabla ingresos + movimientos OGC tipo ingreso.
+    return (
+        sumIncomeRecordsOnOrBeforeCutoff(ingresos, period, rates) +
+        sumIncomeRecordsOnOrBeforeCutoff(ogcIngresos, period, rates)
+    );
 };
 
 const summarizeProjectPayments = async (
@@ -603,11 +621,12 @@ const getWipFormulaTotals = async (
     proyecto: Doc<"desarrollos">,
     formulaTotals: Awaited<ReturnType<typeof getOgcFormulaTotals>>,
     period: PnlPeriod,
-    rates: ExchangeRates
+    rates: ExchangeRates,
+    ogcMovements: OgcMovement[] = []
 ) => {
     const presupuesto = formulaTotals.metrics?.presupuesto_aprobado || 0;
     const costoReal = formulaTotals.metrics?.gasto_total || 0;
-    const pagado = await getProjectCollectedIncome(ctx, proyecto._id, period, rates);
+    const pagado = await getProjectCollectedIncome(ctx, proyecto._id, period, rates, ogcMovements);
     const avance = await getControlPhysicalProgressPercent(ctx, proyecto._id);
     const valorGanado = avance * presupuesto;
     const restante = presupuesto - costoReal;
@@ -773,14 +792,15 @@ export const getProfitabilitySummary = query({
 
     const projects = await Promise.all(
         proyectos.map(async (proyecto) => {
+            const projectOgcMovements = ogcMovements.filter((movement) => movement.proyecto === proyecto._id);
             const formulaTotals = await getOgcFormulaTotals(
                 ctx,
                 proyecto,
                 period,
                 rates,
-                ogcMovements.filter((movement) => movement.proyecto === proyecto._id)
+                projectOgcMovements
             );
-            const wip = await getWipFormulaTotals(ctx, proyecto, formulaTotals, period, rates);
+            const wip = await getWipFormulaTotals(ctx, proyecto, formulaTotals, period, rates, projectOgcMovements);
             const ingresosOgc = formulaTotals.ingresosOgc;
             // Project profitability compares the operating income charged to the
             // client against that same indirect component plus administrative OGC
