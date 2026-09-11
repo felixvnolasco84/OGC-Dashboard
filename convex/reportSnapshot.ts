@@ -549,7 +549,9 @@ export async function buildReportSnapshot(
       name: sanitizeReportText(row.nombre, 80) || "Partida",
       approved_budget: numberValue(row.presupuesto_aprobado),
       actual_cost: numberValue(row.pagado),
-      variance: numberValue(row.presupuesto_aprobado) - numberValue(row.pagado),
+      // Keep the report aligned with ControlPage/getTopVariancePartidas:
+      // negative values mean the amount paid is still below budget.
+      variance: numberValue(row.pagado) - numberValue(row.presupuesto_aprobado),
       exercised_percent: percent(numberValue(row.pagado), numberValue(row.presupuesto_aprobado)),
       program_progress_percent: programProgressByPartida.get(normalizeLabel(row.nombre)) ?? null,
     }))

@@ -136,7 +136,7 @@ const snapshot: ReportSnapshotV1 = {
     period_net_cashflow: -520_000,
     pending_payments: 2_870_000,
     approved_commitments: 4_240_000,
-    honorarios: 1_380_000,
+    honorarios: 781_199,
   },
   earned_value: {
     physical_progress_percent: 68,
@@ -157,18 +157,18 @@ const snapshot: ReportSnapshotV1 = {
     timeline,
   },
   variances: [
-    ["MÁRMOL", 6_452_000, 6_958_492, -506_492, 65],
-    ["CANCELERÍA", 5_452_000, 5_777_000, -325_000, 35],
-    ["YESO Y PINTURA", 4_452_000, 4_300_000, 152_000, 45],
-    ["CARPINTERÍA", 3_452_000, 3_572_500, -120_500, 22],
-    ["AIRE ACONDICIONADO", 7_452_000, 7_572_500, -120_500, 4],
-  ].map(([name, approved, actual, variance, progress]) => ({
+    ["MÁRMOL", 4_572_260, 0],
+    ["HONORARIOS", 5_076_589, 781_199],
+    ["VIÁTICOS", 3_613_120, 130_354],
+    ["ALBAÑILERÍAS", 3_365_451, 252_620],
+    ["CARPINTERÍA", 2_579_379, 0],
+  ].map(([name, approved, actual]) => ({
     name: String(name),
     approved_budget: Number(approved),
     actual_cost: Number(actual),
-    variance: Number(variance),
+    variance: Number(actual) - Number(approved),
     exercised_percent: Number(actual) / Number(approved) * 100,
-    program_progress_percent: Number(progress),
+    program_progress_percent: null,
   })),
   concentration: { top_five_spend: 28_180_492, top_five_share_percent: 37.81 },
   requisitions: {
@@ -262,7 +262,7 @@ const snapshot: ReportSnapshotV1 = {
   },
   methodology: [
     "Los importes se calculan de forma determinista desde los registros del proyecto.",
-    "El avance de la tabla de variaciones proviene del Programa de Obra.",
+    "El avance de la tabla de variaciones corresponde al porcentaje financiero pagado de cada partida.",
     "PV y EV usan el presupuesto aprobado multiplicado por el avance planeado y físico.",
     "La IA sólo explica métricas existentes y no recalcula cantidades.",
   ],
