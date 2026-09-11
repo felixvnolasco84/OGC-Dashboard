@@ -1207,10 +1207,6 @@ function drawControlProgressChart(
 
 function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
   paintWhitePage(doc, true);
-  // The executive page already contains budget and earned-value metrics. Start
-  // this continuation directly with the chart, exactly as ControlPage does.
-  drawControlProgressChart(doc, snapshot, 12);
-
   const configuredCharts = snapshot.control?.family_charts || [];
   const fallbackCharts = [
     {
@@ -1238,7 +1234,7 @@ function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
     drawPortraitLineChart(
       doc,
       MARGIN + index * (familyChartWidth + gap),
-      96,
+      12,
       familyChartWidth,
       84,
       chart.title,
@@ -1249,11 +1245,11 @@ function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
     );
   });
 
-  portraitSectionTitle(doc, "TOP 5 PARTIDAS CON MAYOR VARIANZA", 190);
+  portraitSectionTitle(doc, "TOP 5 PARTIDAS CON MAYOR VARIANZA", 106);
   const rows = snapshot.variances.slice(0, 5);
   const widths = [0.42, 0.18, 0.18, 0.15, 0.07].map((ratio) => CONTENT_WIDTH * ratio);
   const headers = ["Partida", "Presupuesto", "Pagado", "Varianza", "Avance"];
-  const tableY = 196;
+  const tableY = 112;
   const headerHeight = 10;
   const rowHeight = 10.2;
   const tableHeight = headerHeight + rowHeight * Math.max(rows.length, 1);
@@ -1299,6 +1295,8 @@ function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
       doc.line(MARGIN, rowY + rowHeight, PAGE_WIDTH - MARGIN, rowY + rowHeight);
     }
   });
+
+  drawWorkforceSection(doc, snapshot, tableY + tableHeight + 11);
 }
 
 function drawControlTablePages(
@@ -1429,6 +1427,7 @@ function drawOverviewPage(
   doc: jsPDF,
   snapshot: ReportSnapshotV1,
   insights: ReportInsights,
+  includeFinancialContent: boolean,
 ) {
   paintWhitePage(doc, true);
   const code = snapshot.project.currency;
@@ -1480,14 +1479,23 @@ function drawOverviewPage(
       tone: toneForMetric(snapshot.earned_value.variance_at_completion),
     },
   ]);
+
+  if (includeFinancialContent) {
+    drawControlProgressChart(doc, snapshot, 139);
+  } else {
+    drawWorkforceSection(doc, snapshot, 143);
+  }
 }
 
-function drawWorkforcePage(doc: jsPDF, snapshot: ReportSnapshotV1) {
-  paintWhitePage(doc, true);
+function drawWorkforceSection(
+  doc: jsPDF,
+  snapshot: ReportSnapshotV1,
+  y: number,
+) {
   const workforce = snapshot.workforce;
-  portraitSectionTitle(doc, "Fuerza de trabajo semanal", 27.5);
+  portraitSectionTitle(doc, "Fuerza de trabajo semanal", y);
   const roles = workforceRolesForOverview(workforce?.roles || []);
-  drawPortraitMetricCards(doc, 34, [
+  drawPortraitMetricCards(doc, y + 6.5, [
     {
       label: "Personal en obra",
       value: workforce?.total === null || workforce?.total === undefined ? "-" : String(workforce.total),
@@ -1922,21 +1930,12 @@ export async function renderReportPdf(
     || selected(sections, "earned_value")
     || selected(sections, "cashflow")
   ) {
-    drawOverviewPage(doc, snapshot, insights);
+    drawOverviewPage(doc, snapshot, insights, selected(sections, "financial"));
   }
 
   if (selected(sections, "financial")) {
     drawControlDashboardPage(doc, snapshot);
     drawControlImssPages(doc, snapshot);
-  }
-
-  if (
-    selected(sections, "executive")
-    || selected(sections, "financial")
-    || selected(sections, "earned_value")
-    || selected(sections, "cashflow")
-  ) {
-    drawWorkforcePage(doc, snapshot);
   }
 
   if (selected(sections, "program")) {
