@@ -90,7 +90,7 @@ const SECTION_DESCRIPTIONS: Record<ReportSection, string> = {
   executive:
     "KPIs principales, alertas prioritarias, tendencias e iniciativas recomendadas.",
   financial:
-    "Replica Control de Obra: presupuesto, gasto, ingresos, curvas, gráficas, variaciones, permisos, contratos e IMSS/SIROC.",
+    "Continúa el resumen con gasto real y proyectado, las dos gráficas configuradas, variaciones e IMSS/SIROC, sin repetir KPIs.",
   earned_value:
     "Avance físico y planeado, PV, EV, AC, CPI, SPI, EAC, ETC y variación al cierre.",
   cashflow:

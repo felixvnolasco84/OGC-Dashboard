@@ -96,6 +96,7 @@ export const getPreview = query({
       periodEnd: period.end,
       periodKey: `preview:${period.start}:${period.end}`,
       profile,
+      chartUserId: String(currentUser._id),
     });
     return {
       financial: snapshot.financial,
@@ -627,6 +628,7 @@ export const getSnapshotForRun = internalQuery({
       periodEnd: run.period_end,
       periodKey: run.period_key,
       profile: args.profile as ReportVisibilityProfile,
+      chartUserId: String(run.requested_by_user_id),
     });
   },
 });

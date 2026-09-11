@@ -93,6 +93,36 @@ const axisCurrency = (value: number) => {
   return `$${number(value / 1_000, 0)}K`;
 };
 
+const progressAxisMax = (value: number) => {
+  const safe = Math.max(1, value);
+  const roughStep = safe / 8;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const normalized = roughStep / magnitude;
+  const niceStep = normalized <= 1
+    ? 1
+    : normalized <= 2
+      ? 2
+      : normalized <= 2.5
+        ? 2.5
+        : normalized <= 5
+          ? 5
+          : 10;
+  return Math.ceil(safe / (niceStep * magnitude)) * niceStep * magnitude;
+};
+
+const progressAxisCurrency = (value: number) => {
+  if (value === 0) return "$0";
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${number(value / 1_000, 0)}K`;
+  return currency(value, "MXN");
+};
+
+const hexToPdfColor = (value: string, fallback: PdfColor): PdfColor => {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(value);
+  if (!match) return fallback;
+  return [Number.parseInt(match[1], 16), Number.parseInt(match[2], 16), Number.parseInt(match[3], 16)];
+};
+
 const selected = (sections: ReportSection[], section: ReportSection) =>
   sections.includes(section);
 
@@ -914,35 +944,54 @@ function drawPortraitLineChart(
   title: string,
   total: string,
   points: Array<{ date: string; value: number }>,
+  color: PdfColor = COLORS.greenDark,
+  showSettings = false,
 ) {
-  doc.setFillColor(252, 252, 252);
-  doc.setDrawColor(231, 231, 229);
-  doc.setLineWidth(0.24);
-  doc.roundedRect(x, y, width, height, 0.7, 0.7, "FD");
+  doc.setFillColor(...COLORS.white);
+  doc.setDrawColor(222, 222, 219);
+  doc.setLineWidth(0.28);
+  doc.roundedRect(x, y, width, height, 1.2, 1.2, "FD");
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.6);
+  doc.setFontSize(6.2);
   doc.setTextColor(...COLORS.text);
-  doc.text(title, x + 4.8, y + 7.7);
-  doc.setFontSize(4.6);
+  doc.text(doc.splitTextToSize(title, width - 16)[0] || title, x + 5.2, y + 8);
+  if (showSettings) {
+    const gearX = x + width - 6.5;
+    const gearY = y + 6.8;
+    doc.setDrawColor(...COLORS.secondary);
+    doc.setLineWidth(0.35);
+    doc.circle(gearX, gearY, 1.15, "S");
+    doc.circle(gearX, gearY, 0.38, "S");
+    for (let index = 0; index < 8; index += 1) {
+      const angle = Math.PI * index / 4;
+      doc.line(
+        gearX + Math.cos(angle) * 1.15,
+        gearY + Math.sin(angle) * 1.15,
+        gearX + Math.cos(angle) * 1.65,
+        gearY + Math.sin(angle) * 1.65,
+      );
+    }
+  }
+  doc.setFontSize(4.3);
   doc.setTextColor(...COLORS.secondary);
-  doc.text("Total", x + 4.8, y + 15.2);
-  doc.setFontSize(6.3);
+  doc.text("Total", x + 5.2, y + 15.2);
+  doc.setFontSize(6.1);
   doc.setTextColor(...COLORS.text);
-  doc.text(total, x + 4.8, y + 19.2);
+  doc.text(total, x + 5.2, y + 19.5);
 
-  const chartX = x + 12;
-  const chartY = y + 26;
+  const chartX = x + 13;
+  const chartY = y + 25;
   const chartWidth = width - 19;
-  const chartHeight = height - 35;
+  const chartHeight = height - 33.5;
   const maxValue = niceAxisMax(Math.max(1, ...points.map((point) => point.value)));
-  for (let index = 0; index <= 3; index += 1) {
-    const gridY = chartY + chartHeight * index / 3;
-    const gridValue = maxValue * (1 - index / 3);
+  for (let index = 0; index <= 5; index += 1) {
+    const gridY = chartY + chartHeight * index / 5;
+    const gridValue = maxValue * (1 - index / 5);
     doc.setDrawColor(235, 235, 233);
-    doc.setLineDashPattern([0.8, 1.1], 0);
+    doc.setLineDashPattern([1.2, 1.6], 0);
     doc.setLineWidth(0.12);
     doc.line(chartX, gridY, chartX + chartWidth, gridY);
-    doc.setFontSize(3.9);
+    doc.setFontSize(3.4);
     doc.setTextColor(...COLORS.secondary);
     doc.text(axisCurrency(gridValue), chartX - 1.5, gridY + 1, { align: "right" });
   }
@@ -955,8 +1004,11 @@ function drawPortraitLineChart(
     return;
   }
 
-  const plotted = points.map((point, index) => ({
-    x: chartX + (points.length === 1 ? 0.5 : index / (points.length - 1)) * chartWidth,
+  const pointTime = (date: string) => new Date(`${date}T00:00:00Z`).getTime();
+  const minTime = pointTime(points[0].date);
+  const maxTime = pointTime(points.at(-1)!.date);
+  const plotted = points.map((point) => ({
+    x: chartX + (maxTime === minTime ? 0.5 : (pointTime(point.date) - minTime) / (maxTime - minTime)) * chartWidth,
     y: chartY + chartHeight - point.value / maxValue * chartHeight,
   }));
   if (plotted.length > 1) {
@@ -969,27 +1021,40 @@ function drawPortraitLineChart(
       point.x - polygon[index].x,
       point.y - polygon[index].y,
     ] as [number, number]);
-    doc.setFillColor(205, 222, 207);
-    doc.lines(vectors, polygon[0].x, polygon[0].y, [1, 1], "F", true);
-    doc.setDrawColor(...COLORS.greenDark);
-    doc.setLineWidth(0.4);
+    doc.saveGraphicsState();
+    doc.lines(vectors, polygon[0].x, polygon[0].y, [1, 1], null, true);
+    doc.clip();
+    doc.discardPath();
+    const blendWithWhite = (opacity: number): PdfColor => color.map((channel) => (
+      Math.round(255 - (255 - channel) * opacity)
+    )) as PdfColor;
+    const bands = 40;
+    for (let band = 0; band < bands; band += 1) {
+      const ratio = (band + 0.5) / bands;
+      const opacity = 0.42 + (0.02 - 0.42) * ratio;
+      doc.setFillColor(...blendWithWhite(opacity));
+      doc.rect(chartX, chartY + chartHeight * band / bands, chartWidth, chartHeight / bands + 0.08, "F");
+    }
+    doc.restoreGraphicsState();
+    doc.setDrawColor(...color);
+    doc.setLineWidth(0.45);
     plotted.slice(1).forEach((point, index) => {
       doc.line(plotted[index].x, plotted[index].y, point.x, point.y);
     });
   } else {
-    doc.setFillColor(...COLORS.greenDark);
+    doc.setFillColor(...color);
     doc.circle(plotted[0].x, plotted[0].y, 0.7, "F");
   }
 
-  doc.setFontSize(3.9);
+  doc.setFontSize(3.4);
   doc.setTextColor(...COLORS.secondary);
-  const tickCount = Math.min(5, points.length);
+  const tickCount = Math.min(7, points.length);
   const rendered = new Set<number>();
   for (let tick = 0; tick < tickCount; tick += 1) {
     const index = Math.round(tick / Math.max(1, tickCount - 1) * (points.length - 1));
     if (rendered.has(index)) continue;
     rendered.add(index);
-    const tickX = chartX + (points.length === 1 ? 0.5 : index / (points.length - 1)) * chartWidth;
+    const tickX = plotted[index].x;
     doc.text(formatChartDate(points[index].date), tickX, y + height - 3.2, {
       align: tick === 0 ? "left" : tick === tickCount - 1 ? "right" : "center",
     });
@@ -1002,7 +1067,7 @@ function drawControlProgressChart(
   y: number,
 ) {
   const points = snapshot.projection.timeline;
-  const height = 91;
+  const height = 76;
   outlineCard(doc, MARGIN, y, CONTENT_WIDTH, height);
 
   const headline = [
@@ -1031,16 +1096,16 @@ function drawControlProgressChart(
   const chartX = MARGIN + 17;
   const chartY = y + 31;
   const chartWidth = CONTENT_WIDTH - 24;
-  const chartHeight = 45;
-  const maxValue = niceAxisMax(Math.max(
+  const chartHeight = 30;
+  const maxValue = progressAxisMax(Math.max(
     1,
     ...points.map((point) => Math.max(point.actual_cumulative, point.projected_cumulative || 0)),
   ));
-  for (let index = 0; index <= 4; index += 1) {
-    const gridY = chartY + chartHeight * index / 4;
+  for (let index = 0; index <= 8; index += 1) {
+    const gridY = chartY + chartHeight * index / 8;
     doc.setFontSize(4.2);
     doc.setTextColor(...COLORS.secondary);
-    doc.text(axisCurrency(maxValue * (1 - index / 4)), chartX - 2, gridY + 1.2, { align: "right" });
+    doc.text(progressAxisCurrency(maxValue * (1 - index / 8)), chartX - 2, gridY + 1.2, { align: "right" });
   }
   if (!points.length) {
     doc.setFontSize(6.5);
@@ -1122,7 +1187,7 @@ function drawControlProgressChart(
   }
 
   const tickSource = positiveDates.length ? positiveDates : points;
-  const tickCount = Math.min(9, tickSource.length);
+  const tickCount = Math.min(16, tickSource.length);
   const rendered = new Set<number>();
   for (let tick = 0; tick < tickCount; tick += 1) {
     const index = Math.round(tick / Math.max(1, tickCount - 1) * (tickSource.length - 1));
@@ -1142,35 +1207,53 @@ function drawControlProgressChart(
 
 function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
   paintWhitePage(doc, true);
-  portraitSectionTitle(doc, "Control de obra", 27.5);
-  drawPortraitMetricCards(doc, 34, [
-    { label: "Presupuesto aprobado", value: compactCurrency(snapshot.financial.approved_budget, snapshot.project.currency) },
-    { label: "Gasto total", value: compactCurrency(snapshot.financial.accumulated_cost, snapshot.project.currency), tone: COLORS.danger },
-    { label: "Por ejercer", value: compactCurrency(snapshot.financial.balance, snapshot.project.currency), tone: COLORS.greenDark },
-  ], 22);
-  doc.setDrawColor(218, 218, 215);
-  doc.setLineWidth(0.2);
-  doc.line(MARGIN, 63, PAGE_WIDTH - MARGIN, 63);
-  drawPortraitMetricCards(doc, 69, [
-    { label: "Avance físico real", value: `${number(snapshot.earned_value.physical_progress_percent, 0)}%` },
-    { label: "Valor ganado (EV)", value: compactCurrency(snapshot.earned_value.ev, snapshot.project.currency) },
-    { label: "Costo real acum. (AC)", value: compactCurrency(snapshot.earned_value.ac, snapshot.project.currency) },
-    { label: "CPI", value: metric(snapshot.earned_value.cpi), tone: toneForMetric(snapshot.earned_value.cpi) },
-    {
-      label: "EAC (Costo al cierre)",
-      value: snapshot.earned_value.eac === null
-        ? "N/D"
-        : compactCurrency(snapshot.earned_value.eac, snapshot.project.currency),
-      tone: toneForMetric(snapshot.earned_value.variance_at_completion),
-    },
-  ], 21);
-  drawControlProgressChart(doc, snapshot, 97);
+  // The executive page already contains budget and earned-value metrics. Start
+  // this continuation directly with the chart, exactly as ControlPage does.
+  drawControlProgressChart(doc, snapshot, 12);
 
-  portraitSectionTitle(doc, "TOP 5 PARTIDAS CON MAYOR VARIANZA", 199);
+  const configuredCharts = snapshot.control?.family_charts || [];
+  const fallbackCharts = [
+    {
+      chart_id: "control-chart-1",
+      title: "Gasto Mano de Obra",
+      color: "#256A34",
+      total: snapshot.workforce?.labor_cost_total || 0,
+      timeline: (snapshot.workforce?.labor_cost_timeline || []),
+    },
+    {
+      chart_id: "control-chart-2",
+      title: "Indirectos",
+      color: "#10B981",
+      total: snapshot.financial.accumulated_cost,
+      timeline: snapshot.projection.timeline.map((point) => ({
+        date: point.date,
+        cumulative: point.actual_cumulative,
+      })),
+    },
+  ];
+  const familyCharts = fallbackCharts.map((fallback, index) => configuredCharts[index] || fallback);
+  const gap = 4.2;
+  const familyChartWidth = (CONTENT_WIDTH - gap) / 2;
+  familyCharts.forEach((chart, index) => {
+    drawPortraitLineChart(
+      doc,
+      MARGIN + index * (familyChartWidth + gap),
+      96,
+      familyChartWidth,
+      84,
+      chart.title,
+      compactCurrency(chart.total, snapshot.project.currency),
+      chart.timeline.map((point) => ({ date: point.date, value: point.cumulative })),
+      hexToPdfColor(chart.color, index === 0 ? COLORS.greenDark : COLORS.green),
+      true,
+    );
+  });
+
+  portraitSectionTitle(doc, "TOP 5 PARTIDAS CON MAYOR VARIANZA", 190);
   const rows = snapshot.variances.slice(0, 5);
   const widths = [0.42, 0.18, 0.18, 0.15, 0.07].map((ratio) => CONTENT_WIDTH * ratio);
   const headers = ["Partida", "Presupuesto", "Pagado", "Varianza", "Avance"];
-  const tableY = 205;
+  const tableY = 196;
   const headerHeight = 10;
   const rowHeight = 10.2;
   const tableHeight = headerHeight + rowHeight * Math.max(rows.length, 1);
@@ -1402,7 +1485,6 @@ function drawOverviewPage(
 function drawWorkforcePage(doc: jsPDF, snapshot: ReportSnapshotV1) {
   paintWhitePage(doc, true);
   const workforce = snapshot.workforce;
-  const code = snapshot.project.currency;
   portraitSectionTitle(doc, "Fuerza de trabajo semanal", 27.5);
   const roles = workforceRolesForOverview(workforce?.roles || []);
   drawPortraitMetricCards(doc, 34, [
@@ -1412,31 +1494,6 @@ function drawWorkforcePage(doc: jsPDF, snapshot: ReportSnapshotV1) {
     },
     ...roles.map((role) => ({ label: role.label, value: role.count === null ? "-" : String(role.count) })),
   ]);
-
-  const gap = 4.2;
-  const chartWidth = (CONTENT_WIDTH - gap) / 2;
-  const laborPoints = (workforce?.labor_cost_timeline || []).map((point) => ({ date: point.date, value: point.cumulative }));
-  const financialPoints = snapshot.projection.timeline.map((point) => ({ date: point.date, value: point.actual_cumulative }));
-  drawPortraitLineChart(
-    doc,
-    MARGIN,
-    64,
-    chartWidth,
-    84,
-    "Gasto Mano de Obra",
-    compactCurrency(workforce?.labor_cost_total || 0, code),
-    laborPoints,
-  );
-  drawPortraitLineChart(
-    doc,
-    MARGIN + chartWidth + gap,
-    64,
-    chartWidth,
-    84,
-    "Avance financiero acumulado",
-    compactCurrency(snapshot.financial.accumulated_cost, code),
-    financialPoints,
-  );
 }
 
 function normalizedLabel(value: string) {

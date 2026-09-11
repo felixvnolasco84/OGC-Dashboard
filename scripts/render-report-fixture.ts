@@ -208,6 +208,28 @@ const snapshot: ReportSnapshotV1 = {
     source: "captured",
   },
   control: {
+    family_charts: [
+      {
+        chart_id: "control-chart-1",
+        title: "Gasto Mano de Obra",
+        color: "#256A34",
+        total: 1_015_000,
+        timeline: Array.from({ length: 9 }, (_, index) => ({
+          date: new Date(Date.UTC(2026, 6, 12 + index * 6)).toISOString().slice(0, 10),
+          cumulative: 25_000 + index * index * 15_000 + index * 4_000,
+        })),
+      },
+      {
+        chart_id: "control-chart-2",
+        title: "Muros de Planta Baja",
+        color: "#10B981",
+        total: 998_000,
+        timeline: Array.from({ length: 9 }, (_, index) => ({
+          date: new Date(Date.UTC(2026, 6, 5 + index * 7)).toISOString().slice(0, 10),
+          cumulative: index < 4 ? 18_000 + index * 12_000 : 70_000 + (index - 3) ** 2 * 37_000,
+        })),
+      },
+    ],
     legal_sections: [
       { section: "Licencia de construcción", status: "Activo", detail: "Licencia L77-2026 · Vence 31/12/2026", document_name: "licencia-l77.pdf" },
       { section: "Póliza de seguro", status: "Activo", detail: "Suma asegurada 12000000 · Vigencia 31/12/2026", document_name: "poliza.pdf" },

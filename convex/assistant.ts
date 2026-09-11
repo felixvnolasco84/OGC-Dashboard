@@ -1924,7 +1924,14 @@ export const executeTool = internalQuery({
       const statuses: AssistantOverallStatus[] = [];
       const limitations: string[] = [];
       for (const projectId of projectIds) {
-        const snapshot = await buildReportSnapshot(ctx, { proyecto: String(projectId), periodStart: from, periodEnd: to, periodKey: `${from}:${to}`, profile: "full" });
+        const snapshot = await buildReportSnapshot(ctx, {
+          proyecto: String(projectId),
+          periodStart: from,
+          periodEnd: to,
+          periodKey: `${from}:${to}`,
+          profile: "full",
+          chartUserId: String(user._id),
+        });
         const insights = deterministicReportInsights(snapshot);
         const [tasks, rfis] = await Promise.all([
           ctx.db.query("tareas").withIndex("by_proyecto", (q) => q.eq("proyecto", projectId)).collect(),

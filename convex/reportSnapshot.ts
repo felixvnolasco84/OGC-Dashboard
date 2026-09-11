@@ -235,6 +235,7 @@ function applyVisibilityProfile(
       result.workforce.labor_cost_total = 0;
       result.workforce.labor_cost_timeline = [];
     }
+    if (result.control) result.control.family_charts = [];
   }
 
   return result;
@@ -248,12 +249,14 @@ export async function buildReportSnapshot(
     periodEnd: string;
     periodKey: string;
     profile: ReportVisibilityProfile;
+    chartUserId?: string;
   },
 ): Promise<ReportSnapshotV1> {
   const [
     project,
     partidas,
     metrics,
+    chartConfigurations,
     transactions,
     incomes,
     ogcMovements,
@@ -276,6 +279,11 @@ export async function buildReportSnapshot(
       ctx.db.get(args.proyecto),
       ctx.db.query("partidas").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("meticas_presupuesto").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).first(),
+      args.chartUserId
+        ? ctx.db.query("chart_configurations").withIndex("by_user_proyecto", (q: any) =>
+          q.eq("user_id", args.chartUserId).eq("proyecto_id", args.proyecto)).collect()
+        : ctx.db.query("chart_configurations").withIndex("by_proyecto", (q: any) =>
+          q.eq("proyecto_id", args.proyecto)).collect(),
       ctx.db.query("transacciones").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("ingresos").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("ogc_movimientos").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
@@ -319,6 +327,54 @@ export async function buildReportSnapshot(
       ),
     )
   ).flat();
+  const transactionById = new Map<string, any>(transactions.map((row: any) => [String(row._id), row]));
+
+  const chartDefaults = [
+    { chart_id: "control-chart-1", title: "Gasto Mano de Obra", color: "#256A34" },
+    { chart_id: "control-chart-2", title: "Indirectos", color: "#10B981" },
+  ];
+  const chartConfigById = new Map<string, any>();
+  [...chartConfigurations]
+    .sort((left: any, right: any) => numberValue(right.updated_at) - numberValue(left.updated_at))
+    .forEach((config: any) => {
+      if (!chartConfigById.has(config.chart_id)) chartConfigById.set(config.chart_id, config);
+    });
+  const familyCharts = chartDefaults.map((defaults) => {
+    const config = chartConfigById.get(defaults.chart_id) || defaults;
+    const filteredPartidas = partidas.filter((partida: any) => {
+      if (config.partidas?.length && !(
+        config.partidas.includes(partida.nombre)
+        || config.partidas.includes(partida.partida_nombre || "")
+      )) return false;
+      if (config.familias?.length && !config.familias.includes(partida.familia)) return false;
+      if (config.sub_partidas?.length && !config.sub_partidas.includes(partida.sub_partida)) return false;
+      return true;
+    });
+    const selectedPartidaIds = new Set(filteredPartidas.map((partida: any) => String(partida._id)));
+    const amountsByDate = new Map<string, number>();
+    for (const payment of paymentItems) {
+      if (!selectedPartidaIds.has(String(payment.partida_id))) continue;
+      const transaction = transactionById.get(String(payment.transaccion_id));
+      if (!transaction || transaction.status !== "Pagado") continue;
+      const date = parseProjectDate(transaction.fecha);
+      if (!date || date > args.periodEnd) continue;
+      amountsByDate.set(date, (amountsByDate.get(date) || 0) + numberValue(payment.monto));
+    }
+    let total = 0;
+    const timeline = [...amountsByDate.entries()]
+      .sort(([left], [right]) => compareIsoDates(left, right))
+      .map(([date, amount]) => {
+        total += amount;
+        return { date, cumulative: total };
+      });
+    return {
+      chart_id: defaults.chart_id,
+      title: sanitizeReportText(config.title || defaults.title, 80) || defaults.title,
+      color: /^#[0-9a-f]{6}$/i.test(config.color || "") ? config.color : defaults.color,
+      total,
+      timeline,
+    };
+  });
 
   const levelOne = partidas.filter((partida: any) => partida.nivel === 1);
   const originalBudget = metrics
@@ -517,7 +573,6 @@ export async function buildReportSnapshot(
       milestones: activity.milestones,
     }));
 
-  const transactionById = new Map<string, any>(transactions.map((row: any) => [String(row._id), row]));
   const laborByDate = new Map<string, number>();
   for (const payment of paymentItems) {
     const transaction = transactionById.get(String(payment.transaccion_id));
@@ -724,7 +779,7 @@ export async function buildReportSnapshot(
       period_net_cashflow: periodIncome - periodCost,
       pending_payments: pendingPayments,
       approved_commitments: approvedCommitments,
-      honorarios: numberValue(metrics?.honorarios_monto),
+      honorarios: numberValue(project.honorarios_monto),
     },
     earned_value: {
       physical_progress_percent: physicalProgressPercent,
@@ -785,6 +840,7 @@ export async function buildReportSnapshot(
       source: selectedWorkforce.latest ? "captured" : "not_available",
     },
     control: {
+      family_charts: familyCharts,
       legal_sections: authorizationSections.map((row: any) => ({
         section: sanitizeReportText(String(row.seccion || "Sección").replace(/_/g, " "), 60),
         status: row.status_manual === "activo" ? "Activo" : "Pendiente",

@@ -247,6 +247,13 @@ export type ReportSnapshotV1 = {
     source: "captured" | "not_available";
   };
   control?: {
+    family_charts?: Array<{
+      chart_id: string;
+      title: string;
+      color: string;
+      total: number;
+      timeline: ReportLaborCostPoint[];
+    }>;
     legal_sections: Array<{
       section: string;
       status: string;
