@@ -90,7 +90,7 @@ const SECTION_DESCRIPTIONS: Record<ReportSection, string> = {
   executive:
     "KPIs principales, alertas prioritarias, tendencias e iniciativas recomendadas.",
   financial:
-    "Presupuesto original y aprobado, gasto, saldo, ingresos, pagos y compromisos.",
+    "Replica Control de Obra: presupuesto, gasto, ingresos, curvas, gráficas, variaciones, permisos, contratos e IMSS/SIROC.",
   earned_value:
     "Avance físico y planeado, PV, EV, AC, CPI, SPI, EAC, ETC y variación al cierre.",
   cashflow:
@@ -100,7 +100,7 @@ const SECTION_DESCRIPTIONS: Record<ReportSection, string> = {
   requisitions:
     "Revisión, pago, entrega, vencimientos y montos comprometidos de requisiciones.",
   program:
-    "Avance del programa, actividades atrasadas y comparación físico-planeado.",
+    "Gantt operativo centrado en el corte: un mes anterior, mes actual y un mes posterior, con actividades que cruzan la ventana.",
   logbook:
     "Resumen sanitizado de registros e incidencias de Bitácora dentro del periodo.",
   data_quality:
@@ -550,8 +550,8 @@ export default function ReportesPage() {
               Reportes {project?.nombre || "Proyecto"}
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-subtle-foreground">
-              Genera y programa reportes financieros con cifras verificables,
-              análisis de IA y contenido ajustado a los permisos de cada destinatario.
+              Genera y programa reportes semanales de obra con el nuevo formato ejecutivo,
+              cifras verificables y contenido ajustado a los permisos de cada destinatario.
             </p>
           </div>
           <TooltipProvider>
@@ -662,6 +662,7 @@ export default function ReportesPage() {
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {[
                       ["Gasto del periodo", formatCurrency(preview.financial.period_cost, project?.moneda_principal)],
+                      ["Total ingresos", formatCurrency(preview.financial.accumulated_income, project?.moneda_principal)],
                       ["Flujo neto", formatCurrency(preview.financial.period_net_cashflow, project?.moneda_principal)],
                       ["CPI", preview.earned_value.cpi?.toFixed(2) || "N/D"],
                       ["SPI", preview.earned_value.spi?.toFixed(2) || "N/D"],

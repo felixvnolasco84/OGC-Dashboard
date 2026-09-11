@@ -11,6 +11,8 @@ import {
   compareIsoDates,
   excelSerialToIsoDate,
   isDateInRange,
+  isActiveOgcIncome,
+  ogcIncomeValueInMxn,
   parseProjectDate,
   sanitizeReportText,
   selectWorkforceCaptures,
@@ -206,6 +208,7 @@ function applyVisibilityProfile(
       period_net_cashflow: 0,
       pending_payments: 0,
       approved_commitments: 0,
+      honorarios: 0,
     };
     result.earned_value = {
       physical_progress_percent: result.program.physical_progress_percent,
@@ -247,13 +250,35 @@ export async function buildReportSnapshot(
     profile: ReportVisibilityProfile;
   },
 ): Promise<ReportSnapshotV1> {
-  const [project, partidas, metrics, transactions, incomes, requisitions, schedules, details, projections, weeklyProgress, logs, documents, laborImports] =
+  const [
+    project,
+    partidas,
+    metrics,
+    transactions,
+    incomes,
+    ogcMovements,
+    requisitions,
+    schedules,
+    details,
+    projections,
+    weeklyProgress,
+    logs,
+    documents,
+    laborImports,
+    authorizationSections,
+    authorizationProcedures,
+    contractors,
+    subcontractors,
+    imssConfiguration,
+    imssPayments,
+  ] =
     await Promise.all([
       ctx.db.get(args.proyecto),
       ctx.db.query("partidas").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("meticas_presupuesto").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).first(),
       ctx.db.query("transacciones").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("ingresos").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
+      ctx.db.query("ogc_movimientos").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("requisiciones").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("programa_obra").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("programa_obra_detalle").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
@@ -265,6 +290,12 @@ export async function buildReportSnapshot(
         .withIndex("by_proyecto_estado_fecha", (q: any) =>
           q.eq("proyecto", args.proyecto).eq("status", "active"))
         .collect(),
+      ctx.db.query("autorizaciones_obra").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
+      ctx.db.query("autorizaciones_obra_tramites").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
+      ctx.db.query("contratistas_generales").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
+      ctx.db.query("subcontratistas").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
+      ctx.db.query("imss_configuracion").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).first(),
+      ctx.db.query("imss_pagos_cuota").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
     ]);
 
   if (!project) throw new Error("Project not found");
@@ -314,14 +345,26 @@ export async function buildReportSnapshot(
         : 0),
     0,
   );
+  // The Ingresos modal presents both manual entries and active OGC movements.
+  // Reports must use the same two sources so their headline total cannot drift.
+  const activeOgcIncomes = ogcMovements.filter((movement: any) =>
+    isActiveOgcIncome(movement));
   const accumulatedIncome = incomes.reduce(
     (sum: number, income: any) => sum + numberValue(income.monto),
+    0,
+  ) + activeOgcIncomes.reduce(
+    (sum: number, income: any) => sum + ogcIncomeValueInMxn(income),
     0,
   );
   const periodIncome = incomes.reduce((sum: number, income: any) => {
     const date = parseProjectDate(income.fecha);
     return sum + (isDateInRange(date, args.periodStart, args.periodEnd)
       ? numberValue(income.monto)
+      : 0);
+  }, 0) + activeOgcIncomes.reduce((sum: number, income: any) => {
+    const date = parseProjectDate(income.fecha);
+    return sum + (isDateInRange(date, args.periodStart, args.periodEnd)
+      ? ogcIncomeValueInMxn(income)
       : 0);
   }, 0);
 
@@ -600,7 +643,7 @@ export async function buildReportSnapshot(
   const invalidTransactionDates = transactions.filter(
     (row: any) => row.fecha && !parseProjectDate(row.fecha),
   ).length;
-  const invalidIncomeDates = incomes.filter(
+  const invalidIncomeDates = [...incomes, ...activeOgcIncomes].filter(
     (row: any) => row.fecha && !parseProjectDate(row.fecha),
   ).length;
   const invalidLogDates = logs.filter(
@@ -612,6 +655,7 @@ export async function buildReportSnapshot(
   const currencies = new Set([
     ...transactions.map((row: any) => row.moneda).filter(Boolean),
     ...incomes.map((row: any) => row.moneda).filter(Boolean),
+    ...activeOgcIncomes.map((row: any) => row.moneda).filter(Boolean),
   ]);
   const qualityIssues = [
     metricIssue(
@@ -678,6 +722,7 @@ export async function buildReportSnapshot(
       period_net_cashflow: periodIncome - periodCost,
       pending_payments: pendingPayments,
       approved_commitments: approvedCommitments,
+      honorarios: numberValue(metrics?.honorarios_monto),
     },
     earned_value: {
       physical_progress_percent: physicalProgressPercent,
@@ -737,6 +782,71 @@ export async function buildReportSnapshot(
       labor_cost_timeline: laborCostTimeline,
       source: selectedWorkforce.latest ? "captured" : "not_available",
     },
+    control: {
+      legal_sections: authorizationSections.map((row: any) => ({
+        section: sanitizeReportText(String(row.seccion || "Sección").replace(/_/g, " "), 60),
+        status: row.status_manual === "activo" ? "Activo" : "Pendiente",
+        detail: sanitizeReportText([
+          row.numero_licencia ? `Licencia ${row.numero_licencia}` : "",
+          row.fecha_vencimiento ? `Vence ${row.fecha_vencimiento}` : "",
+          row.vigencia ? `Vigencia ${row.vigencia}` : "",
+          Number.isFinite(row.suma_asegurada) ? `Suma asegurada ${row.suma_asegurada}` : "",
+        ].filter(Boolean).join(" · ") || "Sin datos complementarios", 140),
+        document_name: row.documento_nombre
+          ? sanitizeReportText(row.documento_nombre, 80)
+          : undefined,
+      })),
+      procedures: authorizationProcedures.map((row: any) => ({
+        service: sanitizeReportText(row.servicio || "Servicio", 50),
+        procedure: sanitizeReportText(row.tramite || "Trámite", 90),
+        status: sanitizeReportText(row.estado || "Pendiente", 30),
+        document_name: row.documento_nombre
+          ? sanitizeReportText(row.documento_nombre, 80)
+          : undefined,
+      })),
+      contractors: contractors.map((row: any) => ({
+        name: sanitizeReportText(row.nombre || "Contratista", 80),
+        status: row.status_manual === "activo" ? "Activo" : "Inactivo",
+        contract_name: row.contrato_nombre
+          ? sanitizeReportText(row.contrato_nombre, 80)
+          : undefined,
+        siroc_number: row.siroc_numero
+          ? sanitizeReportText(row.siroc_numero, 40)
+          : undefined,
+      })),
+      subcontractors: subcontractors.map((row: any) => ({
+        name: sanitizeReportText(row.nombre || "Subcontratista", 80),
+        trade: sanitizeReportText(row.partida_nombre || "Sin partida", 70),
+        amount: numberValue(row.monto),
+        status: row.status_manual === "activo" ? "Activo" : "Inactivo",
+        budget_name: row.presupuesto_nombre
+          ? sanitizeReportText(row.presupuesto_nombre, 80)
+          : undefined,
+        contract_name: row.contrato_nombre
+          ? sanitizeReportText(row.contrato_nombre, 80)
+          : undefined,
+        siroc_number: row.siroc_numero
+          ? sanitizeReportText(row.siroc_numero, 40)
+          : undefined,
+      })),
+      imss: {
+        registered_cost: numberValue(imssConfiguration?.costo_total_imss),
+        paid_total: imssPayments.reduce(
+          (sum: number, row: any) => sum + numberValue(row.monto),
+          0,
+        ),
+        payments: imssPayments.map((row: any) => ({
+          concept: sanitizeReportText(row.cuota_tipo || "Cuota IMSS", 60),
+          amount: numberValue(row.monto),
+          receipt_name: row.comprobante_nombre
+            ? sanitizeReportText(row.comprobante_nombre, 80)
+            : undefined,
+          support_name: row.soporte_nombre
+            ? sanitizeReportText(row.soporte_nombre, 80)
+            : undefined,
+        })),
+      },
+    },
     logbook: {
       entries_in_period: periodLogs.length,
       incidents_in_period: incidentLogs.length,
@@ -753,7 +863,9 @@ export async function buildReportSnapshot(
     source_counts: {
       partidas: partidas.length,
       transactions: transactions.length,
-      incomes: incomes.length,
+      incomes: incomes.length + activeOgcIncomes.length,
+      manual_incomes: incomes.length,
+      ogc_incomes: activeOgcIncomes.length,
       requisitions: requisitions.length,
       program_rows: scheduleRows.length,
       logbook_entries: logs.length,

@@ -20,7 +20,7 @@ export type ReportVisibilityProfile =
 
 export const REPORT_SECTION_LABELS: Record<ReportSection, string> = {
   executive: "Resumen ejecutivo",
-  financial: "Estado financiero",
+  financial: "Control de obra",
   earned_value: "Valor ganado",
   cashflow: "Flujo y proyección",
   variances: "Variaciones",
@@ -197,6 +197,7 @@ export type ReportSnapshotV1 = {
     period_net_cashflow: number;
     pending_payments: number;
     approved_commitments: number;
+    honorarios: number;
   };
   earned_value: {
     physical_progress_percent: number;
@@ -244,6 +245,45 @@ export type ReportSnapshotV1 = {
     labor_cost_total: number;
     labor_cost_timeline: ReportLaborCostPoint[];
     source: "captured" | "not_available";
+  };
+  control?: {
+    legal_sections: Array<{
+      section: string;
+      status: string;
+      detail: string;
+      document_name?: string;
+    }>;
+    procedures: Array<{
+      service: string;
+      procedure: string;
+      status: string;
+      document_name?: string;
+    }>;
+    contractors: Array<{
+      name: string;
+      status: string;
+      contract_name?: string;
+      siroc_number?: string;
+    }>;
+    subcontractors: Array<{
+      name: string;
+      trade: string;
+      amount: number;
+      status: string;
+      budget_name?: string;
+      contract_name?: string;
+      siroc_number?: string;
+    }>;
+    imss: {
+      registered_cost: number;
+      paid_total: number;
+      payments: Array<{
+        concept: string;
+        amount: number;
+        receipt_name?: string;
+        support_name?: string;
+      }>;
+    };
   };
   logbook: {
     entries_in_period: number;

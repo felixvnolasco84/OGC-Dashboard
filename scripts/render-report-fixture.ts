@@ -136,6 +136,7 @@ const snapshot: ReportSnapshotV1 = {
     period_net_cashflow: -520_000,
     pending_payments: 2_870_000,
     approved_commitments: 4_240_000,
+    honorarios: 1_380_000,
   },
   earned_value: {
     physical_progress_percent: 68,
@@ -205,6 +206,32 @@ const snapshot: ReportSnapshotV1 = {
       cumulative: 210_000 + index * 295_000 + Math.sin(index) * 80_000,
     })),
     source: "captured",
+  },
+  control: {
+    legal_sections: [
+      { section: "Licencia de construcción", status: "Activo", detail: "Licencia L77-2026 · Vence 31/12/2026", document_name: "licencia-l77.pdf" },
+      { section: "Póliza de seguro", status: "Activo", detail: "Suma asegurada 12000000 · Vigencia 31/12/2026", document_name: "poliza.pdf" },
+      { section: "Plan de seguridad", status: "Pendiente", detail: "Sin datos complementarios" },
+    ],
+    procedures: [
+      { service: "CFE", procedure: "Solicitud de suministro definitivo", status: "Activo", document_name: "solicitud-cfe.pdf" },
+      { service: "Agua potable", procedure: "Factibilidad de servicio", status: "Pendiente" },
+    ],
+    contractors: [
+      { name: "OGC Developments", status: "Activo", contract_name: "contrato-general.pdf", siroc_number: "C1049546" },
+    ],
+    subcontractors: [
+      { name: "Estructuras del Norte", trade: "Estructura", amount: 4_850_000, status: "Activo", budget_name: "presupuesto-estructura.pdf", contract_name: "contrato-estructura.pdf", siroc_number: "A5653203" },
+      { name: "Instalaciones MX", trade: "Instalaciones", amount: 2_340_000, status: "Activo", contract_name: "contrato-instalaciones.pdf" },
+    ],
+    imss: {
+      registered_cost: 8_200_000,
+      paid_total: 845_000,
+      payments: [
+        { concept: "Mano de obra", amount: 525_000, receipt_name: "pago-imss-julio.pdf", support_name: "cedula-julio.pdf" },
+        { concept: "Mano de obra", amount: 320_000, receipt_name: "pago-imss-agosto.pdf", support_name: "cedula-agosto.pdf" },
+      ],
+    },
   },
   logbook: {
     entries_in_period: 24,

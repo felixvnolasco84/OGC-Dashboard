@@ -11,8 +11,8 @@ import type {
 type PdfColor = [number, number, number];
 type ImageAsset = { data: Uint8Array | string; format: "JPEG" | "PNG" };
 
-const PAGE_WIDTH = 210;
-const PAGE_HEIGHT = 297;
+const PAGE_WIDTH = 215.9;
+const PAGE_HEIGHT = 279.4;
 const MARGIN = 13;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 
@@ -180,6 +180,49 @@ function monthStart(iso: string) {
 function monthLabel(timestamp: number) {
   return new Intl.DateTimeFormat("es-MX", { month: "long", timeZone: "UTC" })
     .format(new Date(timestamp));
+}
+
+export function getProgramDisplayWindow(asOf: string) {
+  const date = new Date(`${asOf}T00:00:00Z`);
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const start = Date.UTC(safeDate.getUTCFullYear(), safeDate.getUTCMonth() - 1, 1);
+  const endExclusive = Date.UTC(safeDate.getUTCFullYear(), safeDate.getUTCMonth() + 2, 1);
+  return { start, endExclusive };
+}
+
+function selectProgramActivities(
+  activities: ReportProgramActivity[],
+  asOf: string,
+  limit = 12,
+) {
+  const { start, endExclusive } = getProgramDisplayWindow(asOf);
+  const cut = Date.parse(`${asOf}T00:00:00Z`);
+  return activities
+    .filter((activity) => {
+      if (!activity.start || !activity.end) return false;
+      const activityStart = Date.parse(`${activity.start}T00:00:00Z`);
+      const activityEnd = Date.parse(`${activity.extension_end || activity.end}T00:00:00Z`);
+      return activityStart < endExclusive && activityEnd >= start;
+    })
+    .map((activity, originalIndex) => {
+      const activityStart = Date.parse(`${activity.start}T00:00:00Z`);
+      const activityEnd = Date.parse(`${activity.extension_end || activity.end}T00:00:00Z`);
+      const priority = activityStart <= cut && activityEnd >= cut
+        ? 0
+        : activity.delayed
+          ? 1
+          : activityStart > cut
+            ? 2
+            : 3;
+      return { activity, priority, originalIndex };
+    })
+    .sort((left, right) =>
+      left.priority - right.priority
+      || left.activity.level - right.activity.level
+      || left.originalIndex - right.originalIndex)
+    .slice(0, limit)
+    .sort((left, right) => left.originalIndex - right.originalIndex)
+    .map(({ activity }) => activity);
 }
 
 function drawGantt(
@@ -955,6 +998,333 @@ function drawPortraitLineChart(
   }
 }
 
+function drawControlProgressChart(
+  doc: jsPDF,
+  snapshot: ReportSnapshotV1,
+  y: number,
+) {
+  const points = snapshot.projection.timeline;
+  const height = 75;
+  outlineCard(doc, MARGIN, y, CONTENT_WIDTH, height);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.2);
+  doc.setTextColor(...COLORS.text);
+  doc.text("Gasto real y proyectado", MARGIN + 5, y + 8);
+
+  const headline = [
+    ["Gasto", preciseCurrency(snapshot.financial.accumulated_cost, snapshot.project.currency)],
+    ["Por ejercer", preciseCurrency(snapshot.financial.balance, snapshot.project.currency)],
+    ["Honorarios", preciseCurrency(snapshot.financial.honorarios || 0, snapshot.project.currency)],
+  ];
+  headline.forEach(([label, value], index) => {
+    const itemX = MARGIN + 5 + index * 43;
+    doc.setFontSize(4.8);
+    doc.setTextColor(...COLORS.secondary);
+    doc.text(label, itemX, y + 16);
+    doc.setFontSize(7.4);
+    doc.setTextColor(...COLORS.text);
+    doc.text(value, itemX, y + 21.5);
+  });
+  doc.setFontSize(4.7);
+  doc.setTextColor(...COLORS.secondary);
+  doc.text("Gasto proyectado", PAGE_WIDTH - MARGIN - 34, y + 16);
+  doc.text("Gasto real", PAGE_WIDTH - MARGIN - 34, y + 21.5);
+  doc.setFillColor(182, 195, 208);
+  doc.circle(PAGE_WIDTH - MARGIN - 37, y + 14.6, 1, "F");
+  doc.setFillColor(37, 106, 52);
+  doc.circle(PAGE_WIDTH - MARGIN - 37, y + 20.1, 1, "F");
+
+  const chartX = MARGIN + 16;
+  const chartY = y + 29;
+  const chartWidth = CONTENT_WIDTH - 23;
+  const chartHeight = 35;
+  const maxValue = niceAxisMax(Math.max(
+    1,
+    ...points.map((point) => Math.max(point.actual_cumulative, point.projected_cumulative || 0)),
+  ));
+  for (let index = 0; index <= 3; index += 1) {
+    const gridY = chartY + chartHeight * index / 3;
+    doc.setDrawColor(235, 235, 233);
+    doc.setLineDashPattern([0.8, 1.1], 0);
+    doc.line(chartX, gridY, chartX + chartWidth, gridY);
+    doc.setFontSize(3.7);
+    doc.setTextColor(...COLORS.secondary);
+    doc.text(axisCurrency(maxValue * (1 - index / 3)), chartX - 1.5, gridY + 1, { align: "right" });
+  }
+  doc.setLineDashPattern([], 0);
+  if (!points.length) {
+    doc.setFontSize(6.5);
+    doc.setTextColor(...COLORS.secondary);
+    doc.text("Sin datos para mostrar", chartX + chartWidth / 2, chartY + chartHeight / 2, { align: "center" });
+    return;
+  }
+
+  const xFor = (index: number) => chartX + (points.length === 1 ? 0.5 : index / (points.length - 1)) * chartWidth;
+  const yFor = (value: number) => chartY + chartHeight - value / maxValue * chartHeight;
+  const drawSeries = (values: Array<number | null>, color: PdfColor, dashed = false) => {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(0.42);
+    doc.setLineDashPattern(dashed ? [1.2, 1] : [], 0);
+    let previous: { x: number; y: number } | null = null;
+    values.forEach((value, index) => {
+      if (value === null) return;
+      const current = { x: xFor(index), y: yFor(value) };
+      if (previous) doc.line(previous.x, previous.y, current.x, current.y);
+      previous = current;
+    });
+    doc.setLineDashPattern([], 0);
+  };
+  drawSeries(points.map((point) => point.projected_cumulative), [147, 176, 195], true);
+  drawSeries(points.map((point) => point.actual_cumulative), COLORS.greenDark);
+
+  const tickCount = Math.min(5, points.length);
+  for (let tick = 0; tick < tickCount; tick += 1) {
+    const index = Math.round(tick / Math.max(1, tickCount - 1) * (points.length - 1));
+    doc.setFontSize(3.7);
+    doc.setTextColor(...COLORS.secondary);
+    doc.text(formatChartDate(points[index].date), xFor(index), y + height - 4, {
+      align: tick === 0 ? "left" : tick === tickCount - 1 ? "right" : "center",
+    });
+  }
+}
+
+function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
+  paintWhitePage(doc, true);
+  portraitSectionTitle(doc, "Control de obra", 27.5);
+  drawPortraitMetricCards(doc, 34, [
+    { label: "Presupuesto aprobado", value: compactCurrency(snapshot.financial.approved_budget, snapshot.project.currency) },
+    { label: "Gasto total", value: compactCurrency(snapshot.financial.accumulated_cost, snapshot.project.currency), tone: COLORS.danger },
+    { label: "Por ejercer", value: compactCurrency(snapshot.financial.balance, snapshot.project.currency), tone: COLORS.greenDark },
+  ], 22);
+  drawControlProgressChart(doc, snapshot, 63);
+
+  const gap = 4.2;
+  const chartWidth = (CONTENT_WIDTH - gap) / 2;
+  const laborPoints = (snapshot.workforce?.labor_cost_timeline || [])
+    .map((point) => ({ date: point.date, value: point.cumulative }));
+  const financialPoints = snapshot.projection.timeline
+    .map((point) => ({ date: point.date, value: point.actual_cumulative }));
+  drawPortraitLineChart(
+    doc, MARGIN, 145, chartWidth, 57,
+    "Gasto Mano de Obra",
+    compactCurrency(snapshot.workforce?.labor_cost_total || 0, snapshot.project.currency),
+    laborPoints,
+  );
+  drawPortraitLineChart(
+    doc, MARGIN + chartWidth + gap, 145, chartWidth, 57,
+    "Avance financiero acumulado",
+    compactCurrency(snapshot.financial.accumulated_cost, snapshot.project.currency),
+    financialPoints,
+  );
+
+  portraitSectionTitle(doc, "Partidas con mayor varianza", 214);
+  const rows = snapshot.variances.slice(0, 5);
+  const rawWidths = [66, 29, 29, 31, 29];
+  const widthScale = CONTENT_WIDTH / rawWidths.reduce((sum, width) => sum + width, 0);
+  const widths = rawWidths.map((width) => width * widthScale);
+  const headers = ["PARTIDA", "PRESUPUESTO", "PAGADO", "VARIANZA", "AVANCE"];
+  const rowHeight = 8.4;
+  let columnX = MARGIN;
+  headers.forEach((header, index) => {
+    doc.setFontSize(4.4);
+    doc.setTextColor(...COLORS.secondary);
+    doc.text(header, columnX + 2, 222);
+    columnX += widths[index];
+  });
+  rows.forEach((row, index) => {
+    const rowY = 225 + index * rowHeight;
+    if (index % 2 === 0) {
+      doc.setFillColor(250, 250, 249);
+      doc.rect(MARGIN, rowY - 3.7, CONTENT_WIDTH, rowHeight, "F");
+    }
+    const values = [
+      row.name,
+      compactCurrency(row.approved_budget, snapshot.project.currency),
+      compactCurrency(row.actual_cost, snapshot.project.currency),
+      compactCurrency(row.variance, snapshot.project.currency),
+      row.program_progress_percent === null || row.program_progress_percent === undefined
+        ? "Sin dato"
+        : `${number(row.program_progress_percent, 0)}%`,
+    ];
+    columnX = MARGIN;
+    values.forEach((value, valueIndex) => {
+      doc.setFontSize(valueIndex === 0 ? 5.4 : 5);
+      doc.setTextColor(...(valueIndex === 3 && row.variance < 0 ? COLORS.danger : COLORS.text));
+      doc.text(doc.splitTextToSize(value, widths[valueIndex] - 4)[0] || value, columnX + 2, rowY + 1.6);
+      columnX += widths[valueIndex];
+    });
+  });
+}
+
+function drawControlTablePages(
+  doc: jsPDF,
+  title: string,
+  headers: string[],
+  widths: number[],
+  rows: string[][],
+  options: {
+    metrics?: Array<{ label: string; value: string }>;
+    emptyMessage: string;
+  },
+) {
+  const rawWidthTotal = widths.reduce((sum, width) => sum + width, 0);
+  const normalizedWidths = widths.map((width) => width * CONTENT_WIDTH / rawWidthTotal);
+  const pageSize = options.metrics ? 18 : 23;
+  const chunks = rows.length
+    ? Array.from({ length: Math.ceil(rows.length / pageSize) }, (_, index) =>
+      rows.slice(index * pageSize, (index + 1) * pageSize))
+    : [[]];
+  chunks.forEach((chunk, pageIndex) => {
+    paintWhitePage(doc, true);
+    portraitSectionTitle(
+      doc,
+      `${title}${pageIndex ? ` - continuación ${pageIndex + 1}` : ""}`,
+      27.5,
+    );
+    let tableY = 35;
+    if (options.metrics?.length) {
+      drawPortraitMetricCards(doc, tableY, options.metrics, 20);
+      tableY += 28;
+    }
+    if (!chunk.length) {
+      outlineCard(doc, MARGIN, tableY, CONTENT_WIDTH, 28);
+      doc.setFontSize(7.2);
+      doc.setTextColor(...COLORS.secondary);
+      doc.text(options.emptyMessage, MARGIN + 5, tableY + 15);
+      return;
+    }
+
+    const headerHeight = 9;
+    const rowHeight = 9.7;
+    const tableHeight = headerHeight + rowHeight * chunk.length;
+    doc.setDrawColor(218, 218, 215);
+    doc.setLineWidth(0.18);
+    doc.rect(MARGIN, tableY, CONTENT_WIDTH, tableHeight, "S");
+    let x = MARGIN;
+    headers.forEach((header, index) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(4.4);
+      doc.setTextColor(...COLORS.secondary);
+      doc.text(header.toUpperCase(), x + 2, tableY + 5.8);
+      x += normalizedWidths[index];
+      if (index < normalizedWidths.length - 1) doc.line(x, tableY, x, tableY + tableHeight);
+    });
+    doc.line(MARGIN, tableY + headerHeight, PAGE_WIDTH - MARGIN, tableY + headerHeight);
+    chunk.forEach((row, rowIndex) => {
+      const rowY = tableY + headerHeight + rowIndex * rowHeight;
+      if (rowIndex % 2 === 0) {
+        doc.setFillColor(250, 250, 249);
+        doc.rect(MARGIN, rowY, CONTENT_WIDTH, rowHeight, "F");
+      }
+      doc.setDrawColor(226, 226, 223);
+      doc.line(MARGIN, rowY + rowHeight, PAGE_WIDTH - MARGIN, rowY + rowHeight);
+      let cellX = MARGIN;
+      row.forEach((value, valueIndex) => {
+        doc.setFontSize(4.8);
+        doc.setTextColor(...COLORS.text);
+        const clipped = doc.splitTextToSize(value || "-", normalizedWidths[valueIndex] - 4).slice(0, 2);
+        doc.text(clipped, cellX + 2, rowY + 4.1, { lineHeightFactor: 1.05 });
+        cellX += normalizedWidths[valueIndex];
+      });
+    });
+
+    // Restore the vertical rules after striped row fills.
+    x = MARGIN;
+    normalizedWidths.slice(0, -1).forEach((width) => {
+      x += width;
+      doc.setDrawColor(218, 218, 215);
+      doc.line(x, tableY, x, tableY + tableHeight);
+    });
+    doc.setDrawColor(218, 218, 215);
+    doc.rect(MARGIN, tableY, CONTENT_WIDTH, tableHeight, "S");
+  });
+}
+
+function drawControlRegistryPages(doc: jsPDF, snapshot: ReportSnapshotV1) {
+  const control = snapshot.control;
+  if (!control) return;
+
+  const legalRows = [
+    ...control.legal_sections.map((row) => [
+      "Permiso / legal",
+      row.section,
+      row.status,
+      row.detail,
+      row.document_name || "Sin archivo",
+    ]),
+    ...control.procedures.map((row) => [
+      "Trámite",
+      row.service,
+      row.status,
+      row.procedure,
+      row.document_name || "Sin archivo",
+    ]),
+  ];
+  if (legalRows.length) {
+    drawControlTablePages(
+      doc,
+      "Control - permisos y legal",
+      ["Tipo", "Sección / servicio", "Estado", "Detalle", "Documento"],
+      [27, 39, 22, 60, 36],
+      legalRows,
+      { emptyMessage: "No hay permisos, secciones legales o trámites registrados." },
+    );
+  }
+
+  const contractRows = [
+    ...control.contractors.map((row) => [
+      "General",
+      row.name,
+      row.siroc_number || "Sin SIROC",
+      "-",
+      row.status,
+      row.contract_name || "Sin contrato",
+    ]),
+    ...control.subcontractors.map((row) => [
+      "Subcontratista",
+      row.name,
+      row.trade,
+      compactCurrency(row.amount, snapshot.project.currency),
+      row.status,
+      [row.budget_name, row.contract_name, row.siroc_number].filter(Boolean).join(" · ") || "Sin documentos",
+    ]),
+  ];
+  if (contractRows.length) {
+    drawControlTablePages(
+      doc,
+      "Control - presupuestos y contratos",
+      ["Tipo", "Nombre", "Partida / SIROC", "Monto", "Estado", "Documentos"],
+      [25, 45, 38, 25, 19, 32],
+      contractRows,
+      { emptyMessage: "No hay contratistas o subcontratistas registrados." },
+    );
+  }
+
+  const imssRows = control.imss.payments.map((row) => [
+    row.concept,
+    compactCurrency(row.amount, snapshot.project.currency),
+    row.receipt_name || "Sin comprobante",
+    row.support_name || "Sin soporte",
+  ]);
+  if (imssRows.length || control.imss.registered_cost > 0) {
+    drawControlTablePages(
+      doc,
+      "Control - IMSS y SIROC",
+      ["Concepto", "Monto", "Comprobante", "Soporte"],
+      [50, 30, 52, 52],
+      imssRows,
+      {
+        metrics: [
+          { label: "Costo registrado IMSS", value: compactCurrency(control.imss.registered_cost, snapshot.project.currency) },
+          { label: "Cuotas pagadas", value: compactCurrency(control.imss.paid_total, snapshot.project.currency) },
+          { label: "Registros", value: String(control.imss.payments.length) },
+        ],
+        emptyMessage: "No hay pagos de cuotas IMSS registrados.",
+      },
+    );
+  }
+}
+
 function workforceRolesForOverview(
   roles: Array<{ label: string; count: number | null }>,
 ) {
@@ -1071,7 +1441,7 @@ function drawProgramMatrix(
   activities: ReportProgramActivity[],
   y: number,
 ) {
-  const rows = activities.filter((activity) => activity.start && activity.end).slice(0, 12);
+  const rows = selectProgramActivities(activities, snapshot.period.end);
   const height = 109;
   const tableWidth = 65;
   const valueWidth = 19;
@@ -1091,11 +1461,7 @@ function drawProgramMatrix(
     return height;
   }
 
-  const minRaw = Math.min(...rows.map((activity) => Date.parse(`${activity.start}T00:00:00Z`)));
-  const maxRaw = Math.max(...rows.map((activity) => Date.parse(`${activity.extension_end || activity.end}T00:00:00Z`)));
-  const minTime = monthStart(new Date(minRaw).toISOString().slice(0, 10));
-  const maxDate = new Date(maxRaw);
-  const maxTime = Date.UTC(maxDate.getUTCFullYear(), maxDate.getUTCMonth() + 1, 1);
+  const { start: minTime, endExclusive: maxTime } = getProgramDisplayWindow(snapshot.period.end);
   const span = Math.max(86_400_000, maxTime - minTime);
   const dateToX = (date: string | number) => {
     const timestamp = typeof date === "number" ? date : Date.parse(`${date}T00:00:00Z`);
@@ -1177,8 +1543,10 @@ function drawProgramMatrix(
     doc.setTextColor(...COLORS.text);
     doc.text(value, MARGIN + tableWidth - 1.5, rowY + rowHeight * 0.63, { align: "right" });
 
-    const barX = dateToX(activity.start!);
-    const endX = dateToX(activity.end!);
+    const clippedStart = Math.max(minTime, Date.parse(`${activity.start}T00:00:00Z`));
+    const clippedEnd = Math.min(maxTime, Date.parse(`${activity.end}T00:00:00Z`));
+    const barX = dateToX(clippedStart);
+    const endX = dateToX(clippedEnd);
     const barWidth = Math.max(0.9, endX - barX);
     if (activity.level === 1) {
       doc.setFillColor(244, 239, 236);
@@ -1195,7 +1563,7 @@ function drawProgramMatrix(
     }
     if (activity.extension_end && Date.parse(`${activity.extension_end}T00:00:00Z`) > Date.parse(`${activity.end}T00:00:00Z`)) {
       doc.setFillColor(186, 126, 121);
-      doc.rect(endX, rowY + 0.2, Math.max(0.8, dateToX(activity.extension_end) - endX), 0.8, "F");
+      doc.rect(endX, rowY + 0.2, Math.max(0.8, dateToX(Math.min(maxTime, Date.parse(`${activity.extension_end}T00:00:00Z`))) - endX), 0.8, "F");
     }
     doc.setFont("helvetica", "normal");
     doc.setFontSize(3.5);
@@ -1276,8 +1644,9 @@ function drawBulletedNarrativeCard(doc: jsPDF, y: number, bullets: string[]) {
 function drawProgramPage(doc: jsPDF, snapshot: ReportSnapshotV1, activities: ReportProgramActivity[]) {
   paintWhitePage(doc, true);
   portraitSectionTitle(doc, "Programa de obra - avance por concepto", 31.5);
-  const matrixHeight = drawProgramMatrix(doc, snapshot, activities, 40.5);
-  drawBulletedNarrativeCard(doc, 40.5 + matrixHeight + 7, programNarrative(activities));
+  const visibleActivities = selectProgramActivities(activities, snapshot.period.end);
+  const matrixHeight = drawProgramMatrix(doc, snapshot, visibleActivities, 40.5);
+  drawBulletedNarrativeCard(doc, 40.5 + matrixHeight + 7, programNarrative(visibleActivities));
 }
 
 function drawImageCover(
@@ -1391,7 +1760,7 @@ function drawControlPage(
     y += 29;
   }
 
-  if (selected(sections, "variances")) {
+  if (selected(sections, "variances") && !selected(sections, "financial")) {
     portraitSectionTitle(doc, "Partidas con mayor varianza", y);
     y += 5;
     const rows = snapshot.variances.slice(0, 5);
@@ -1476,7 +1845,7 @@ export async function renderReportPdf(
   insights: ReportInsights,
   sections: ReportSection[],
 ) {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter", compress: true });
   const activities = snapshot.program.activities || [];
   const logbookSections = snapshot.logbook.sections || [];
   const assets = selected(sections, "logbook") ? await loadLogbookAssets(snapshot) : new Map<string, ImageAsset>();
@@ -1491,6 +1860,11 @@ export async function renderReportPdf(
     || selected(sections, "cashflow")
   ) {
     drawOverviewPage(doc, snapshot, insights);
+  }
+
+  if (selected(sections, "financial")) {
+    drawControlDashboardPage(doc, snapshot);
+    drawControlRegistryPages(doc, snapshot);
   }
 
   if (selected(sections, "program")) {
