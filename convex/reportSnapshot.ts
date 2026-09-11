@@ -514,6 +514,7 @@ export async function buildReportSnapshot(
       name,
       group: name,
       level: 1,
+      approved_budget: numberValue(partida?.presupuesto_aprobado),
       start: parseProjectDate(schedule.fecha_inicio),
       end,
       actual_progress_percent: actual,
@@ -522,6 +523,7 @@ export async function buildReportSnapshot(
       delayed: Boolean(end && end < args.periodEnd && actual < 100),
       milestones,
       order: numberValue(schedule.orden),
+      group_order: numberValue(schedule.orden),
     };
   });
   const detailActivities = details.map((detail: any) => {
@@ -539,6 +541,7 @@ export async function buildReportSnapshot(
       name,
       group,
       level: numberValue(detail.nivel) || 2,
+      approved_budget: null,
       start: parseProjectDate(detail.fecha_inicio),
       end,
       parent_start: parseProjectDate(parent?.fecha_inicio),
@@ -552,15 +555,22 @@ export async function buildReportSnapshot(
       planned_progress_percent: plannedProgress(detail.fecha_inicio, detail.fecha_fin, args.periodEnd),
       delayed: Boolean(end && end < args.periodEnd && actual < 100),
       order: numberValue(detail.orden),
+      group_order: numberValue(parent?.orden),
     };
   });
   const programActivities = [...parentActivities, ...detailActivities]
-    .sort((a, b) => a.group.localeCompare(b.group, "es") || a.order - b.order || a.level - b.level)
+    .sort((a, b) => (
+      a.group_order - b.group_order
+      || (a.level === 1 ? -1 : b.level === 1 ? 1 : 0)
+      || a.order - b.order
+      || a.level - b.level
+    ))
     .map((activity) => ({
       id: activity.id,
       name: activity.name,
       group: activity.group,
       level: activity.level,
+      approved_budget: activity.approved_budget,
       start: activity.start,
       end: activity.end,
       parent_start: activity.parent_start,

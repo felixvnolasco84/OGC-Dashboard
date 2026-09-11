@@ -100,7 +100,7 @@ const SECTION_DESCRIPTIONS: Record<ReportSection, string> = {
   requisitions:
     "Revisión, pago, entrega, vencimientos y montos comprometidos de requisiciones.",
   program:
-    "Gantt operativo centrado en el corte: un mes anterior, mes actual y un mes posterior, con actividades que cruzan la ventana.",
+    "Gantt operativo con el rango completo del programa, respetando el orden y la jerarquía cargados desde Excel.",
   logbook:
     "Resumen sanitizado de registros e incidencias de Bitácora dentro del periodo.",
   data_quality:

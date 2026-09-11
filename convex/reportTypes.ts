@@ -118,6 +118,7 @@ export type ReportProgramActivity = {
   name: string;
   group: string;
   level: number;
+  approved_budget?: number | null;
   start: string | null;
   end: string | null;
   parent_start?: string | null;

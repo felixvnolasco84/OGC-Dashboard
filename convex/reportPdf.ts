@@ -79,6 +79,16 @@ const formatChartDate = (iso: string) => {
   }).format(date).replace(/\./g, "");
 };
 
+const formatControlChartDate = (iso: string) => {
+  const date = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(date);
+};
+
 const niceAxisMax = (value: number) => {
   const safe = Math.max(1, value);
   const roughStep = safe / 3;
@@ -222,37 +232,33 @@ export function getProgramDisplayWindow(asOf: string) {
 
 function selectProgramActivities(
   activities: ReportProgramActivity[],
-  asOf: string,
+  _asOf: string,
   limit = 12,
 ) {
-  const { start, endExclusive } = getProgramDisplayWindow(asOf);
-  const cut = Date.parse(`${asOf}T00:00:00Z`);
   return activities
-    .filter((activity) => {
-      if (!activity.start || !activity.end) return false;
-      const activityStart = Date.parse(`${activity.start}T00:00:00Z`);
-      const activityEnd = Date.parse(`${activity.extension_end || activity.end}T00:00:00Z`);
-      return activityStart < endExclusive && activityEnd >= start;
-    })
-    .map((activity, originalIndex) => {
-      const activityStart = Date.parse(`${activity.start}T00:00:00Z`);
-      const activityEnd = Date.parse(`${activity.extension_end || activity.end}T00:00:00Z`);
-      const priority = activityStart <= cut && activityEnd >= cut
-        ? 0
-        : activity.delayed
-          ? 1
-          : activityStart > cut
-            ? 2
-            : 3;
-      return { activity, priority, originalIndex };
-    })
-    .sort((left, right) =>
-      left.priority - right.priority
-      || left.activity.level - right.activity.level
-      || left.originalIndex - right.originalIndex)
-    .slice(0, limit)
-    .sort((left, right) => left.originalIndex - right.originalIndex)
-    .map(({ activity }) => activity);
+    .filter((activity) => Boolean(activity.start && activity.end))
+    .slice(0, limit);
+}
+
+function getProgramActivityDisplayWindow(
+  activities: ReportProgramActivity[],
+  asOf: string,
+) {
+  const timestamps = activities.flatMap((activity) => [
+    activity.start,
+    activity.end,
+    activity.extension_end,
+  ])
+    .filter((value): value is string => Boolean(value))
+    .map((value) => Date.parse(`${value}T00:00:00Z`))
+    .filter(Number.isFinite);
+  if (!timestamps.length) return getProgramDisplayWindow(asOf);
+  const first = new Date(Math.min(...timestamps));
+  const last = new Date(Math.max(...timestamps));
+  return {
+    start: Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1),
+    endExclusive: Date.UTC(last.getUTCFullYear(), last.getUTCMonth() + 1, 1),
+  };
 }
 
 function drawGantt(
@@ -1067,7 +1073,7 @@ function drawControlProgressChart(
   y: number,
 ) {
   const points = snapshot.projection.timeline;
-  const height = 76;
+  const height = 60;
   outlineCard(doc, MARGIN, y, CONTENT_WIDTH, height);
 
   const headline = [
@@ -1075,28 +1081,31 @@ function drawControlProgressChart(
     ["Por ejercer", currency(snapshot.financial.balance, snapshot.project.currency)],
     ["Honorarios", currency(snapshot.financial.honorarios || 0, snapshot.project.currency)],
   ];
+  const metricStep = CONTENT_WIDTH * 0.16;
   headline.forEach(([label, value], index) => {
-    const itemX = MARGIN + 7 + index * 44;
-    doc.setFontSize(5.2);
+    const itemX = MARGIN + 7 + index * metricStep;
+    doc.setFontSize(5.6);
     doc.setTextColor(...COLORS.secondary);
-    doc.text(label, itemX, y + 12);
-    doc.setFontSize(10.2);
+    doc.text(label, itemX, y + 10.5);
+    doc.setFontSize(13.5);
     doc.setTextColor(...COLORS.text);
-    doc.text(value, itemX, y + 20.5);
+    doc.text(value, itemX, y + 20.2);
   });
-  doc.setFontSize(5.1);
+  doc.setFontSize(5.4);
   doc.setTextColor(...COLORS.secondary);
-  doc.text("Gasto Proyectado", PAGE_WIDTH - MARGIN - 38, y + 11.8);
-  doc.text("Gasto Real", PAGE_WIDTH - MARGIN - 38, y + 19.2);
+  const projectedLegendX = PAGE_WIDTH - MARGIN - 63;
+  const realLegendX = PAGE_WIDTH - MARGIN - 28;
+  doc.text("Gasto Proyectado", projectedLegendX, y + 10.8);
+  doc.text("Gasto Real", realLegendX, y + 10.8);
   doc.setFillColor(182, 195, 208);
-  doc.circle(PAGE_WIDTH - MARGIN - 41.5, y + 10.4, 1.35, "F");
+  doc.circle(projectedLegendX - 3.5, y + 9.4, 1.35, "F");
   doc.setFillColor(147, 176, 195);
-  doc.circle(PAGE_WIDTH - MARGIN - 41.5, y + 17.8, 1.35, "F");
+  doc.circle(realLegendX - 3.5, y + 9.4, 1.35, "F");
 
   const chartX = MARGIN + 17;
-  const chartY = y + 31;
+  const chartY = y + 23;
   const chartWidth = CONTENT_WIDTH - 24;
-  const chartHeight = 30;
+  const chartHeight = 27;
   const maxValue = progressAxisMax(Math.max(
     1,
     ...points.map((point) => Math.max(point.actual_cumulative, point.projected_cumulative || 0)),
@@ -1187,7 +1196,7 @@ function drawControlProgressChart(
   }
 
   const tickSource = positiveDates.length ? positiveDates : points;
-  const tickCount = Math.min(16, tickSource.length);
+  const tickCount = Math.min(18, tickSource.length);
   const rendered = new Set<number>();
   for (let tick = 0; tick < tickCount; tick += 1) {
     const index = Math.round(tick / Math.max(1, tickCount - 1) * (tickSource.length - 1));
@@ -1199,7 +1208,7 @@ function drawControlProgressChart(
     doc.line(tickX, chartY, tickX, chartY + chartHeight);
     doc.setFontSize(4.2);
     doc.setTextColor(...COLORS.secondary);
-    doc.text(formatChartDate(tickSource[index].date), tickX, y + height - 5, {
+    doc.text(formatControlChartDate(tickSource[index].date), tickX, y + height - 5, {
       align: tick === 0 ? "left" : tick === tickCount - 1 ? "right" : "center",
     });
   }
@@ -1207,6 +1216,7 @@ function drawControlProgressChart(
 
 function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
   paintWhitePage(doc, true);
+  drawWorkforceSection(doc, snapshot, 12);
   const configuredCharts = snapshot.control?.family_charts || [];
   const fallbackCharts = [
     {
@@ -1234,7 +1244,7 @@ function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
     drawPortraitLineChart(
       doc,
       MARGIN + index * (familyChartWidth + gap),
-      12,
+      48,
       familyChartWidth,
       84,
       chart.title,
@@ -1245,11 +1255,11 @@ function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
     );
   });
 
-  portraitSectionTitle(doc, "TOP 5 PARTIDAS CON MAYOR VARIANZA", 106);
+  portraitSectionTitle(doc, "TOP 5 PARTIDAS CON MAYOR VARIANZA", 142);
   const rows = snapshot.variances.slice(0, 5);
   const widths = [0.42, 0.18, 0.18, 0.15, 0.07].map((ratio) => CONTENT_WIDTH * ratio);
   const headers = ["Partida", "Presupuesto", "Pagado", "Varianza", "Avance"];
-  const tableY = 112;
+  const tableY = 148;
   const headerHeight = 10;
   const rowHeight = 10.2;
   const tableHeight = headerHeight + rowHeight * Math.max(rows.length, 1);
@@ -1295,8 +1305,6 @@ function drawControlDashboardPage(doc: jsPDF, snapshot: ReportSnapshotV1) {
       doc.line(MARGIN, rowY + rowHeight, PAGE_WIDTH - MARGIN, rowY + rowHeight);
     }
   });
-
-  drawWorkforceSection(doc, snapshot, tableY + tableHeight + 11);
 }
 
 function drawControlTablePages(
@@ -1515,12 +1523,12 @@ function drawProgramMatrix(
   y: number,
 ) {
   const rows = selectProgramActivities(activities, snapshot.period.end);
-  const height = 109;
-  const tableWidth = 65;
-  const valueWidth = 19;
+  const height = 72;
+  const tableWidth = 50;
+  const valueWidth = 14;
   const chartX = MARGIN + tableWidth;
   const chartWidth = CONTENT_WIDTH - tableWidth;
-  const headerHeight = 12.2;
+  const headerHeight = 9.5;
   const rowHeight = (height - headerHeight) / Math.max(1, rows.length);
 
   doc.setFillColor(...COLORS.white);
@@ -1534,7 +1542,10 @@ function drawProgramMatrix(
     return height;
   }
 
-  const { start: minTime, endExclusive: maxTime } = getProgramDisplayWindow(snapshot.period.end);
+  const { start: minTime, endExclusive: maxTime } = getProgramActivityDisplayWindow(
+    activities,
+    snapshot.period.end,
+  );
   const span = Math.max(86_400_000, maxTime - minTime);
   const dateToX = (date: string | number) => {
     const timestamp = typeof date === "number" ? date : Date.parse(`${date}T00:00:00Z`);
@@ -1542,7 +1553,7 @@ function drawProgramMatrix(
   };
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(4.5);
+  doc.setFontSize(4.8);
   doc.setTextColor(...COLORS.secondary);
   doc.text("PARTIDA · FAMILIA", MARGIN + 2.5, y + 5.1);
   doc.text("PRESUPUESTO", MARGIN + tableWidth - valueWidth + 1.5, y + 5.1);
@@ -1552,17 +1563,25 @@ function drawProgramMatrix(
 
   const monthBoundaries: number[] = [];
   let month = minTime;
+  let lastRenderedYear: number | null = null;
   while (month < maxTime) {
     const current = new Date(month);
     const next = Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, 1);
     const monthX = dateToX(month);
     const nextX = dateToX(Math.min(next, maxTime));
     monthBoundaries.push(monthX);
+    doc.setFont("helvetica", "bold");
+    if (lastRenderedYear !== current.getUTCFullYear()) {
+      doc.setFontSize(3.8);
+      doc.setTextColor(...COLORS.secondary);
+      doc.text(String(current.getUTCFullYear()), monthX + 1, y + 2.4);
+      lastRenderedYear = current.getUTCFullYear();
+    }
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(4.6);
+    doc.setFontSize(4.4);
     doc.setTextColor(...COLORS.secondary);
     const label = monthLabel(month);
-    doc.text(label.charAt(0).toUpperCase() + label.slice(1), (monthX + nextX) / 2, y + 4.5, { align: "center" });
+    doc.text(label.charAt(0).toUpperCase() + label.slice(1), (monthX + nextX) / 2, y + 5.6, { align: "center" });
     doc.setDrawColor(220, 220, 217);
     doc.line(monthX, y, monthX, y + height);
     const monthDays = Math.max(28, Math.round((next - month) / 86_400_000));
@@ -1571,7 +1590,7 @@ function drawProgramMatrix(
       const weekX = dateToX(weekTime);
       doc.setFontSize(3.2);
       doc.setTextColor(185, 185, 181);
-      doc.text(`S${week + 1}`, weekX + 0.8, y + 9.6);
+      doc.text(`S${week + 1}`, weekX + 0.6, y + 8.4);
       doc.setDrawColor(235, 235, 233);
       doc.setLineDashPattern([0.5, 0.7], 0);
       doc.line(weekX, y + headerHeight, weekX, y + height);
@@ -1593,7 +1612,7 @@ function drawProgramMatrix(
     doc.line(MARGIN, rowY + rowHeight, PAGE_WIDTH - MARGIN, rowY + rowHeight);
 
     doc.setFont("helvetica", activity.level === 1 ? "bold" : "normal");
-    doc.setFontSize(activity.level === 1 ? 4.9 : 4.6);
+    doc.setFontSize(activity.level === 1 ? 5.2 : 4.8);
     doc.setTextColor(activity.level === 1 ? COLORS.text[0] : 91, activity.level === 1 ? COLORS.text[1] : 91, activity.level === 1 ? COLORS.text[2] : 88);
     const indent = activity.level === 1 ? 4.8 : 8.2;
     const availableNameWidth = tableWidth - valueWidth - indent - 2;
@@ -1606,10 +1625,11 @@ function drawProgramMatrix(
       doc.text("v", MARGIN + 2, rowY + rowHeight * 0.63);
     }
 
-    const matchingBudget = varianceByName.get(normalizedLabel(activity.name))
+    const matchingBudget = activity.approved_budget
+      ?? varianceByName.get(normalizedLabel(activity.name))
       ?? varianceByName.get(normalizedLabel(activity.group));
-    const value = activity.level === 1 && matchingBudget
-      ? compactCurrency(matchingBudget, snapshot.project.currency)
+    const value = activity.level === 1 && matchingBudget !== null && matchingBudget !== undefined
+      ? currency(matchingBudget, snapshot.project.currency)
       : `Avance: ${number(activity.actual_progress_percent, 0)}%`;
     doc.setFont("helvetica", activity.level === 1 ? "bold" : "normal");
     doc.setFontSize(activity.level === 1 ? 4.6 : 3.9);
@@ -1718,7 +1738,7 @@ function drawProgramPage(doc: jsPDF, snapshot: ReportSnapshotV1, activities: Rep
   paintWhitePage(doc, true);
   portraitSectionTitle(doc, "Programa de obra - avance por concepto", 31.5);
   const visibleActivities = selectProgramActivities(activities, snapshot.period.end);
-  const matrixHeight = drawProgramMatrix(doc, snapshot, visibleActivities, 40.5);
+  const matrixHeight = drawProgramMatrix(doc, snapshot, activities, 40.5);
   drawBulletedNarrativeCard(doc, 40.5 + matrixHeight + 7, programNarrative(visibleActivities));
 }
 
