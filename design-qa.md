@@ -6,11 +6,13 @@
   - `C:\Users\felix\.codex\attachments\5d0ed3c7-d73e-4d10-b174-8b66cdc11964\image-1.png` (964 x 1028 px): required section order.
   - `C:\Users\felix\.codex\attachments\5d0ed3c7-d73e-4d10-b174-8b66cdc11964\image-3.png` (2070 x 642 px): ControlPage progress chart.
   - `C:\Users\felix\.codex\attachments\5d0ed3c7-d73e-4d10-b174-8b66cdc11964\image-5.png` (2162 x 796 px): ProgramaObra Gantt.
+  - `C:\Users\felix\AppData\Local\Temp\codex-clipboard-b9de41bd-82fd-471e-a768-410a2ec612b0.png` (1300 x 742 px): separación entre métricas y gráfica de avance.
 - Rendered implementation:
   - `C:\Users\felix\Documents\OGC-Dashboard\output\design-qa\report-organization-final.png` (1275 x 1650 px): workforce, family charts, and variance table.
 - Comparison images:
   - `C:\Users\felix\Documents\OGC-Dashboard\output\design-qa\report-progress-comparison.png`.
   - `C:\Users\felix\Documents\OGC-Dashboard\output\design-qa\report-gantt-comparison.png`.
+  - `C:\Users\felix\Documents\OGC-Dashboard\output\design-qa\report-progress-spacing-comparison.png`.
 - Viewport: US Letter portrait, 612 x 792 pt; implementation rendered at 150 dpi.
 - State: full report fixture with executive, financial, earned value, cashflow, variances, requisitions, program, logbook, and data quality enabled.
 - Density normalization: focused implementation regions were cropped from the 150 dpi page render; references were proportionally resized to the same comparison height without changing aspect ratio.
@@ -19,12 +21,12 @@
 
 - The workforce summary now precedes the two family charts and the variance table on the same page, matching the organization instruction in image 1.
 - The progress chart uses the ControlPage composition: three left-aligned metrics, one horizontal legend at the upper right, and a wide, shallow plot below.
-- The Gantt uses the ProgramaObra composition: approximately 26% fixed columns and 74% timeline, Excel hierarchy order, full data-month range, year/month/week headers, and aligned row/grid boundaries.
+- The Gantt uses the ProgramaObra composition: approximately 26% fixed columns and 74% timeline, Excel hierarchy order, a strict previous/current/next month window, year/month/week headers, and aligned row/grid boundaries.
 
 ## Focused region comparison
 
-- Progress chart: `report-progress-comparison.png` verifies metric hierarchy, legend direction, card aspect ratio, chart density, axis placement, colors, and date-label style.
-- Gantt: `report-gantt-comparison.png` verifies fixed-column proportions, header hierarchy, row density, full calendar span, grid cadence, bar colors, and cutoff line.
+- Progress chart: `report-progress-comparison.png` and `report-progress-spacing-comparison.png` verify metric hierarchy, legend direction, card aspect ratio, the enlarged metric-to-plot gap, chart density, axis placement, colors, and date-label style.
+- Gantt: `report-gantt-comparison.png` verifies fixed-column proportions, header hierarchy, row density, three-month calendar span, grid cadence, bar colors, and cutoff line.
 
 ## Fidelity surfaces
 
@@ -49,6 +51,16 @@ Fixes: moved workforce first; preserved schedule order; added parent budgets to 
 
 - Post-fix evidence: `report-progress-comparison.png`, `report-gantt-comparison.png`, and `report-organization-final.png`.
 - No actionable P0, P1, or P2 fidelity differences remain. Project-specific values and date ranges are expected data differences, not design drift.
+
+### Iteration 3
+
+- User clarification: the operational program must show only the month before the cutoff, the cutoff month, and the following month.
+- P2: the plot began too close to the large metric values in the progress card.
+
+Fixes: constrained both the Gantt header and visible activities to the three-month window while retaining Excel order; moved the plot 4 mm lower and reduced its height by 4 mm to preserve the card dimensions and date-label clearance.
+
+- Post-fix evidence: `report-progress-spacing-comparison.png` and the rendered program page showing July, August, and September for the 03 Aug 2026 fixture cutoff.
+- No clipping, overlap, or out-of-window month remains.
 
 ## Technical verification
 

@@ -232,33 +232,21 @@ export function getProgramDisplayWindow(asOf: string) {
 
 function selectProgramActivities(
   activities: ReportProgramActivity[],
-  _asOf: string,
+  asOf: string,
   limit = 12,
 ) {
+  const { start, endExclusive } = getProgramDisplayWindow(asOf);
   return activities
-    .filter((activity) => Boolean(activity.start && activity.end))
+    .filter((activity) => {
+      if (!activity.start || !activity.end) return false;
+      const activityStart = Date.parse(`${activity.start}T00:00:00Z`);
+      const activityEnd = Date.parse(`${activity.end}T00:00:00Z`);
+      return Number.isFinite(activityStart)
+        && Number.isFinite(activityEnd)
+        && activityStart < endExclusive
+        && activityEnd >= start;
+    })
     .slice(0, limit);
-}
-
-function getProgramActivityDisplayWindow(
-  activities: ReportProgramActivity[],
-  asOf: string,
-) {
-  const timestamps = activities.flatMap((activity) => [
-    activity.start,
-    activity.end,
-    activity.extension_end,
-  ])
-    .filter((value): value is string => Boolean(value))
-    .map((value) => Date.parse(`${value}T00:00:00Z`))
-    .filter(Number.isFinite);
-  if (!timestamps.length) return getProgramDisplayWindow(asOf);
-  const first = new Date(Math.min(...timestamps));
-  const last = new Date(Math.max(...timestamps));
-  return {
-    start: Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1),
-    endExclusive: Date.UTC(last.getUTCFullYear(), last.getUTCMonth() + 1, 1),
-  };
 }
 
 function drawGantt(
@@ -1103,9 +1091,9 @@ function drawControlProgressChart(
   doc.circle(realLegendX - 3.5, y + 9.4, 1.35, "F");
 
   const chartX = MARGIN + 17;
-  const chartY = y + 23;
+  const chartY = y + 27;
   const chartWidth = CONTENT_WIDTH - 24;
-  const chartHeight = 27;
+  const chartHeight = 23;
   const maxValue = progressAxisMax(Math.max(
     1,
     ...points.map((point) => Math.max(point.actual_cumulative, point.projected_cumulative || 0)),
@@ -1542,10 +1530,7 @@ function drawProgramMatrix(
     return height;
   }
 
-  const { start: minTime, endExclusive: maxTime } = getProgramActivityDisplayWindow(
-    activities,
-    snapshot.period.end,
-  );
+  const { start: minTime, endExclusive: maxTime } = getProgramDisplayWindow(snapshot.period.end);
   const span = Math.max(86_400_000, maxTime - minTime);
   const dateToX = (date: string | number) => {
     const timestamp = typeof date === "number" ? date : Date.parse(`${date}T00:00:00Z`);
