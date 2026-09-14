@@ -17,51 +17,6 @@ type ApplyResult =
   | { status: "conflict"; reason: "changed" | "deleted"; server: RemoteEntry | null }
   | { status: "forbidden" | "validation_error"; message: string };
 
-async function makeBlurThumbnail(source: Blob) {
-  const sourceUrl = URL.createObjectURL(source);
-  try {
-    const image = new Image();
-    image.decoding = "async";
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve();
-      image.onerror = () => reject(new Error("No se pudo preparar la miniatura."));
-      image.src = sourceUrl;
-    });
-    const maxSide = 64;
-    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.32));
-  } finally {
-    URL.revokeObjectURL(sourceUrl);
-  }
-}
-
-async function cachePhotoThumbnails(userId: string, projectId: string) {
-  const photos = (await bitacoraDb.attachments
-    .where("[userId+projectId]")
-    .equals([userId, projectId])
-    .toArray())
-    .filter((item) => item.kind === "photo" && !item.deleted && !item.blob && !item.thumbnail && item.url);
-  let cursor = 0;
-  const workers = Array.from({ length: Math.min(4, photos.length) }, async () => {
-    while (cursor < photos.length) {
-      const photo = photos[cursor++];
-      try {
-        const response = await fetch(photo.url!);
-        if (!response.ok) continue;
-        const thumbnail = await makeBlurThumbnail(await response.blob());
-        if (thumbnail) await bitacoraDb.attachments.update(photo.key, { thumbnail });
-      } catch {
-        // A generic blurred placeholder is used if a historical image cannot be read.
-      }
-    }
-  });
-  await Promise.all(workers);
-}
-
 async function setSyncStatus(
   userId: string,
   projectId: string,
@@ -102,8 +57,6 @@ export async function pullProjectChanges(
     cursor = result.isDone ? null : result.continueCursor;
     latestVersion = Math.max(latestVersion, result.latestVersion);
   } while (cursor);
-  await cachePhotoThumbnails(userId, projectId);
-
   const current = await bitacoraDb.syncMetadata.get(key);
   await bitacoraDb.syncMetadata.put({
     key,

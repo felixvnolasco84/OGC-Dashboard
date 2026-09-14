@@ -1,8 +1,9 @@
 import "fake-indexeddb/auto";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { ConvexReactClient } from "convex/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bitacoraDb, findValidOfflineProfile, OFFLINE_PROFILE_TTL_MS } from "./db";
 import { acceptServerVersion, deleteEntryLocally, mergeRemoteEntries, saveEntryLocally } from "./repository";
-import { queueHistoricalAttachmentDownload } from "./sync";
+import { pullProjectChanges, queueHistoricalAttachmentDownload } from "./sync";
 import type { BitacoraFields, OfflineProfile, RemoteEntry } from "./types";
 
 const fields: BitacoraFields = {
@@ -54,6 +55,7 @@ describe("BitacoraRepository offline", () => {
   });
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     await bitacoraDb.delete();
   });
 
@@ -166,6 +168,32 @@ describe("BitacoraRepository offline", () => {
     const photo = await bitacoraDb.attachments.get("user-a:photo-client-1");
     expect(photo?.downloadRequested).toBe(true);
     expect(photo?.blob).toBeUndefined();
+  });
+
+  it("sincroniza metadatos sin descargar fotografías históricas", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const query = vi.fn().mockResolvedValue({
+      page: [remote({
+        fotos: [{
+          _id: "photo-server-1",
+          client_id: "photo-client-1",
+          kind: "photo",
+          nombre: "avance.jpg",
+          url: "https://example.test/avance.jpg",
+        }],
+      })],
+      continueCursor: "",
+      isDone: true,
+      latestVersion: 1,
+    });
+
+    await pullProjectChanges({ query } as unknown as ConvexReactClient, "user-a", "project-1");
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const photo = await bitacoraDb.attachments.get("user-a:photo-client-1");
+    expect(photo?.url).toBe("https://example.test/avance.jpg");
+    expect(photo?.blob).toBeUndefined();
+    expect(photo?.thumbnail).toBeUndefined();
   });
 
   it("guarda localmente los cambios de descripción de fotografías existentes", async () => {
