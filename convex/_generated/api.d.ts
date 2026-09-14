@@ -18,6 +18,8 @@ import type * as assistantRules from "../assistantRules.js";
 import type * as assistantTypes from "../assistantTypes.js";
 import type * as autorizaciones_obra from "../autorizaciones_obra.js";
 import type * as bitacora from "../bitacora.js";
+import type * as bitacoraOffline from "../bitacoraOffline.js";
+import type * as bitacoraRules from "../bitacoraRules.js";
 import type * as chart_configurations from "../chart_configurations.js";
 import type * as costDataMaintenance from "../costDataMaintenance.js";
 import type * as costRules from "../costRules.js";
@@ -101,6 +103,8 @@ declare const fullApi: ApiFromModules<{
   assistantTypes: typeof assistantTypes;
   autorizaciones_obra: typeof autorizaciones_obra;
   bitacora: typeof bitacora;
+  bitacoraOffline: typeof bitacoraOffline;
+  bitacoraRules: typeof bitacoraRules;
   chart_configurations: typeof chart_configurations;
   costDataMaintenance: typeof costDataMaintenance;
   costRules: typeof costRules;
