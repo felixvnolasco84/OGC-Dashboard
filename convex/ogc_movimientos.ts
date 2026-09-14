@@ -9,6 +9,12 @@ import {
   getScopedOrganizationId,
   hasGlobalAdminAccess,
 } from "./permissions";
+import {
+  classifyOgcImportDuplicate,
+  getOgcImportCompletionStatus,
+  isOgcImportLeaseActive,
+  isValidOgcImportFile,
+} from "./ogcImportRules";
 
 type OgcMovement = Doc<"ogc_movimientos">;
 type CurrentUser = Awaited<ReturnType<typeof getCurrentUserOrThrow>>;
@@ -278,7 +284,7 @@ const auditMovement = async (
   });
 };
 
-const findActiveDuplicate = async (
+const findActiveDuplicates = async (
   ctx: MutationCtx,
   duplicateKey: string,
   exceptId?: Id<"ogc_movimientos">
@@ -288,7 +294,15 @@ const findActiveDuplicate = async (
     .withIndex("by_duplicate_key", (q) => q.eq("duplicate_key", duplicateKey))
     .collect();
 
-  return matches.find((movement) => movement._id !== exceptId && isActiveMovement(movement));
+  return matches.filter((movement) => movement._id !== exceptId && isActiveMovement(movement));
+};
+
+const findActiveDuplicate = async (
+  ctx: MutationCtx,
+  duplicateKey: string,
+  exceptId?: Id<"ogc_movimientos">
+) => {
+  return (await findActiveDuplicates(ctx, duplicateKey, exceptId))[0];
 };
 
 export const getAll = query({
@@ -302,7 +316,7 @@ export const getAll = query({
 
     const allowedIds = new Set(user.allowed_desarrollos.map((id) => id as string));
 
-    return allMovements
+    const visibleMovements = allMovements
       .filter((movement) => includeInactive || isActiveMovement(movement))
       .filter((movement) => {
         if (hasGlobalAdminAccess(user)) {
@@ -320,6 +334,43 @@ export const getAll = query({
         return allowedIds.has(movement.proyecto as string);
       })
       .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+    const importIds = Array.from(new Set(
+      visibleMovements.flatMap((movement) => movement.importacion_id ? [movement.importacion_id] : [])
+    ));
+    const imports = await Promise.all(importIds.map((id) => ctx.db.get(id)));
+    const importById = new Map(imports.flatMap((importRecord) => (
+      importRecord ? [[String(importRecord._id), importRecord] as const] : []
+    )));
+
+    const importUrlById = new Map<string, string | null>();
+    await Promise.all(imports.map(async (importRecord) => {
+      if (!importRecord) return;
+      importUrlById.set(
+        String(importRecord._id),
+        importRecord.storage_id ? await ctx.storage.getUrl(importRecord.storage_id) : null
+      );
+    }));
+
+    return visibleMovements.map((movement) => {
+      const importRecord = movement.importacion_id
+        ? importById.get(String(movement.importacion_id))
+        : undefined;
+      if (!importRecord) return movement;
+
+      return {
+        ...movement,
+        importacion: {
+          _id: importRecord._id,
+          nombre: importRecord.nombre,
+          type: importRecord.type,
+          size: importRecord.size,
+          imported_at: importRecord.imported_at,
+          imported_by_name: importRecord.imported_by_name,
+          url: importUrlById.get(String(importRecord._id)) || null,
+        },
+      };
+    });
   },
 });
 
@@ -400,17 +451,235 @@ export const generateUploadUrl = mutation({
   },
 });
 
-export const validateBulkCreate = mutation({
+const assertImportAccess = (importRecord: Doc<"ogc_movimientos_importaciones">, user: CurrentUser) => {
+  if (hasGlobalAdminAccess(user)) return;
+  const organizationId = getScopedOrganizationId(user);
+  const hasAccess = organizationId
+    ? importRecord.organization_id === organizationId
+    : importRecord.imported_by_id === user._id;
+  if (!hasAccess) {
+    throw new Error("No tienes acceso a esta importacion.");
+  }
+};
+
+const getImportScopeKey = (user: CurrentUser, organizationId?: string) => {
+  return organizationId ? `organization:${organizationId}` : `user:${user._id}`;
+};
+
+export const startImport = mutation({
   args: {
-    movimientos: v.array(ogcMovementInputValidator),
+    nombre: v.string(),
+    type: v.string(),
+    size: v.number(),
+    file_hash: v.string(),
+    total_filas: v.number(),
   },
   handler: async (ctx, args) => {
     const user = await assertCanWrite(ctx);
     const organizationId = getScopedOrganizationId(user);
+    const scopeKey = getImportScopeKey(user, organizationId);
+    const nombre = args.nombre.trim();
+    const fileHash = args.file_hash.trim().toLowerCase();
+    if (!nombre) throw new Error("El archivo de importacion requiere nombre.");
+    if (!isValidOgcImportFile(nombre, args.size, fileHash)) {
+      throw new Error("El archivo de importacion no es un Excel valido o excede el limite permitido.");
+    }
+    if (!Number.isInteger(args.total_filas) || args.total_filas < 1) throw new Error("La importacion no contiene filas validas.");
+
+    const existing = await ctx.db
+      .query("ogc_movimientos_importaciones")
+      .withIndex("by_scope_file_hash", (q) => (
+        q.eq("scope_key", scopeKey).eq("file_hash", fileHash)
+      ))
+      .first();
+
+    const existingStorageMetadata = existing?.storage_id
+      ? await ctx.storage.getMetadata(existing.storage_id)
+      : null;
+
+    if (existing?.status === "completada" && existingStorageMetadata) {
+      return {
+        id: existing._id,
+        needs_upload: false,
+        already_completed: true,
+        already_in_progress: false,
+      };
+    }
+
+    if (
+      existing && isOgcImportLeaseActive(
+        existing.status,
+        existing.updated_at || existing.imported_at,
+        Date.now()
+      )
+    ) {
+      return {
+        id: existing._id,
+        needs_upload: !existingStorageMetadata,
+        already_completed: false,
+        already_in_progress: true,
+      };
+    }
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        ...(!existingStorageMetadata ? {
+          nombre,
+          type: args.type.trim() || existing.type,
+          size: args.size,
+          storage_id: undefined,
+        } : {}),
+        status: "procesando",
+        total_filas: args.total_filas,
+        updated_at: Date.now(),
+        completed_at: undefined,
+      });
+      return {
+        id: existing._id,
+        needs_upload: !existingStorageMetadata,
+        already_completed: false,
+        already_in_progress: false,
+      };
+    }
+
+    const id = await ctx.db.insert("ogc_movimientos_importaciones", {
+      nombre,
+      type: args.type.trim() || "application/octet-stream",
+      size: args.size,
+      file_hash: fileHash,
+      status: "procesando",
+      total_filas: args.total_filas,
+      movimientos_creados: 0,
+      duplicados_omitidos: 0,
+      rechazados: 0,
+      organization_id: organizationId,
+      scope_key: scopeKey,
+      imported_by_id: user._id,
+      imported_by_name: user.name,
+      imported_at: Date.now(),
+      updated_at: Date.now(),
+    });
+    return { id, needs_upload: true, already_completed: false, already_in_progress: false };
+  },
+});
+
+export const attachImportFile = mutation({
+  args: {
+    id: v.id("ogc_movimientos_importaciones"),
+    storage_id: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const user = await assertCanWrite(ctx);
+    const importRecord = await ctx.db.get(args.id);
+    if (!importRecord) throw new Error("Importacion no encontrada.");
+    assertImportAccess(importRecord, user);
+    if (importRecord.status !== "procesando") throw new Error("La importacion ya no acepta archivos.");
+    if (importRecord.storage_id) {
+      if (importRecord.storage_id === args.storage_id) return { ok: true };
+      throw new Error("La importacion ya tiene un archivo asociado.");
+    }
+
+    const metadata = await ctx.storage.getMetadata(args.storage_id);
+    if (!metadata) throw new Error("El archivo no existe en Convex Storage.");
+    if (metadata.sha256.toLowerCase() !== importRecord.file_hash) {
+      throw new Error("El archivo guardado no corresponde al Excel validado.");
+    }
+    if (metadata.size !== importRecord.size) {
+      throw new Error("El tamano del archivo guardado no coincide con el Excel validado.");
+    }
+
+    await ctx.db.patch(args.id, {
+      storage_id: args.storage_id,
+      type: metadata.contentType || importRecord.type,
+      size: metadata.size,
+      updated_at: Date.now(),
+    });
+    return { ok: true };
+  },
+});
+
+export const completeImport = mutation({
+  args: {
+    id: v.id("ogc_movimientos_importaciones"),
+    duplicados_omitidos: v.number(),
+    rechazados: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await assertCanWrite(ctx);
+    const importRecord = await ctx.db.get(args.id);
+    if (!importRecord) throw new Error("Importacion no encontrada.");
+    assertImportAccess(importRecord, user);
+    if (!importRecord.storage_id) throw new Error("La importacion no tiene un archivo asociado.");
+
+    const movements = await ctx.db
+      .query("ogc_movimientos")
+      .withIndex("by_importacion", (q) => q.eq("importacion_id", args.id))
+      .collect();
+    const duplicates = Math.max(0, Math.floor(args.duplicados_omitidos));
+    const rejected = Math.max(0, Math.floor(args.rechazados));
+    const status = getOgcImportCompletionStatus({
+      totalRows: importRecord.total_filas,
+      linkedMovements: movements.length,
+      skippedDuplicates: duplicates,
+      rejectedRows: rejected,
+    });
+
+    await ctx.db.patch(args.id, {
+      status,
+      movimientos_creados: movements.length,
+      duplicados_omitidos: duplicates,
+      rechazados: rejected,
+      updated_at: Date.now(),
+      completed_at: Date.now(),
+    });
+    return { ok: true, status };
+  },
+});
+
+export const failImport = mutation({
+  args: { id: v.id("ogc_movimientos_importaciones") },
+  handler: async (ctx, args) => {
+    const user = await assertCanWrite(ctx);
+    const importRecord = await ctx.db.get(args.id);
+    if (!importRecord) return { ok: true };
+    assertImportAccess(importRecord, user);
+    const movements = await ctx.db
+      .query("ogc_movimientos")
+      .withIndex("by_importacion", (q) => q.eq("importacion_id", args.id))
+      .collect();
+    await ctx.db.patch(args.id, {
+      status: "parcial",
+      movimientos_creados: movements.length,
+      updated_at: Date.now(),
+      completed_at: Date.now(),
+    });
+    return { ok: true };
+  },
+});
+
+export const validateBulkCreate = mutation({
+  args: {
+    movimientos: v.array(ogcMovementInputValidator),
+    allow_repeated_rows: v.optional(v.boolean()),
+    file_hash: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await assertCanWrite(ctx);
+    const organizationId = getScopedOrganizationId(user);
+    const scopeKey = getImportScopeKey(user, organizationId);
     const validRows: number[] = [];
     const duplicateRows: number[] = [];
     const rejectedRows: number[] = [];
     const pendingDuplicateKeys = new Set<string>();
+    const fileHash = args.file_hash?.trim().toLowerCase();
+    const existingImport = fileHash && /^[a-f0-9]{64}$/.test(fileHash)
+      ? await ctx.db
+        .query("ogc_movimientos_importaciones")
+        .withIndex("by_scope_file_hash", (q) => (
+          q.eq("scope_key", scopeKey).eq("file_hash", fileHash)
+        ))
+        .first()
+      : null;
 
     for (const [index, item] of args.movimientos.entries()) {
       const row = item.fila_origen ?? index + 1;
@@ -429,8 +698,18 @@ export const validateBulkCreate = mutation({
       }
 
       const duplicateKey = buildDuplicateKey(normalized, organizationId);
-      const duplicate = await findActiveDuplicate(ctx, duplicateKey);
-      if (duplicate || pendingDuplicateKeys.has(duplicateKey)) {
+      const duplicates = await findActiveDuplicates(ctx, duplicateKey);
+      const duplicateDisposition = classifyOgcImportDuplicate(
+        duplicates.map((movement) => ({
+          importacionId: movement.importacion_id ? String(movement.importacion_id) : undefined,
+          filaOrigen: movement.fila_origen,
+        })),
+        existingImport?.status !== "completada" ? String(existingImport?._id || "") || undefined : undefined,
+        item.fila_origen
+      );
+      const isDatabaseDuplicate = duplicateDisposition === "external_duplicate" ||
+        (existingImport?.status === "completada" && duplicates.length > 0);
+      if (isDatabaseDuplicate || (!args.allow_repeated_rows && pendingDuplicateKeys.has(duplicateKey))) {
         duplicateRows.push(row);
       } else {
         pendingDuplicateKeys.add(duplicateKey);
@@ -445,13 +724,23 @@ export const validateBulkCreate = mutation({
 export const bulkCreate = mutation({
   args: {
     movimientos: v.array(ogcMovementInputValidator),
+    importacion_id: v.optional(v.id("ogc_movimientos_importaciones")),
   },
   handler: async (ctx, args) => {
     const user = await assertCanWrite(ctx);
     const organizationId = getScopedOrganizationId(user);
+    const importRecord = args.importacion_id ? await ctx.db.get(args.importacion_id) : null;
+    if (args.importacion_id && !importRecord) throw new Error("Importacion no encontrada.");
+    if (importRecord) {
+      assertImportAccess(importRecord, user);
+      if (importRecord.status !== "procesando" || !importRecord.storage_id) {
+        throw new Error("La importacion no esta lista para recibir movimientos.");
+      }
+    }
     const ids: Id<"ogc_movimientos">[] = [];
     const now = Date.now();
     let skippedDuplicates = 0;
+    let alreadyImported = 0;
     let rejected = 0;
 
     for (const item of args.movimientos) {
@@ -469,17 +758,30 @@ export const bulkCreate = mutation({
       }
 
       const duplicateKey = buildDuplicateKey(normalized, organizationId);
-      const duplicate = await findActiveDuplicate(ctx, duplicateKey);
-      if (duplicate) {
-        skippedDuplicates += 1;
+      const duplicates = await findActiveDuplicates(ctx, duplicateKey);
+      const duplicateDisposition = classifyOgcImportDuplicate(
+        duplicates.map((movement) => ({
+          importacionId: movement.importacion_id ? String(movement.importacion_id) : undefined,
+          filaOrigen: movement.fila_origen,
+        })),
+        args.importacion_id ? String(args.importacion_id) : undefined,
+        item.fila_origen
+      );
+      if (duplicateDisposition !== "create") {
+        if (duplicateDisposition === "already_imported") {
+          alreadyImported += 1;
+        } else {
+          skippedDuplicates += 1;
+        }
         continue;
       }
 
       const deliveryNote = normalizeDeliveryNoteInput(item);
       const id = await ctx.db.insert("ogc_movimientos", {
         ...normalized,
-        archivo_origen: item.archivo_origen,
+        archivo_origen: importRecord?.nombre || item.archivo_origen,
         fila_origen: item.fila_origen,
+        importacion_id: args.importacion_id,
         ...deliveryNote,
         status: "activo",
         duplicate_key: duplicateKey,
@@ -504,7 +806,11 @@ export const bulkCreate = mutation({
       ids.push(id);
     }
 
-    return { created: ids.length, ids, skippedDuplicates, rejected };
+    if (args.importacion_id) {
+      await ctx.db.patch(args.importacion_id, { updated_at: Date.now() });
+    }
+
+    return { created: ids.length, ids, skippedDuplicates, alreadyImported, rejected };
   },
 });
 

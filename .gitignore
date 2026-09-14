@@ -8,6 +8,9 @@
 # Dependencies
 .DS_Store
 dist/
+test-results/
+playwright-report/
+playwright/.auth/
 
 # Local Convex migration snapshots, manifests, and deploy credentials
 .migration/

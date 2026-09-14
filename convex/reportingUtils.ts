@@ -48,6 +48,26 @@ function pad(value: number) {
   return String(value).padStart(2, "0");
 }
 
+export function isActiveOgcIncome(movement: {
+  tipo?: string;
+  status?: string;
+}) {
+  return movement.tipo === "ingreso" && (!movement.status || movement.status === "activo");
+}
+
+export function ogcIncomeValueInMxn(income: {
+  monto?: number;
+  moneda?: string;
+  tipo_cambio?: number;
+}) {
+  const parsedAmount = Number(income.monto);
+  const amount = Math.abs(Number.isFinite(parsedAmount) ? parsedAmount : 0);
+  if (String(income.moneda || "MXN").toUpperCase() === "MXN") return amount;
+  const parsedExchangeRate = Number(income.tipo_cambio);
+  const exchangeRate = Number.isFinite(parsedExchangeRate) ? parsedExchangeRate : 0;
+  return amount * exchangeRate;
+}
+
 function isValidUtcDate(year: number, month: number, day: number) {
   const date = new Date(Date.UTC(year, month - 1, day));
   return (

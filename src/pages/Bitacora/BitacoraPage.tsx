@@ -1,647 +1,541 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router";
-import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { useUser } from "@clerk/clerk-react";
-import { Id } from "../../../convex/_generated/dataModel";
-import { ChevronRight, Plus, MoreHorizontal, ChevronDown, Edit2, Trash2, Eye, Calendar as CalendarIcon, Loader2, ChevronsUpDown, FileText } from "lucide-react";
-import { useBitacoraModal } from "../../hooks/use-bitacora-modal";
-import { Button } from "@/components/ui/button";
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertCircle,
+  Calendar as CalendarIcon,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  ChevronsUpDown,
+  CloudDownload,
+  CloudOff,
+  Download,
+  Eye,
+  FileText,
+  ImageOff,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+  WifiOff,
+} from "lucide-react";
+import { toast } from "sonner";
 import BitacoraCalendarView from "@/components/Bitacora/BitacoraCalendarView";
 import BitacoraGalleryModal from "@/components/Bitacora/BitacoraGalleryModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useBitacoraModal } from "@/hooks/use-bitacora-modal";
+import { useBitacoraRepository } from "@/lib/bitacora-offline/context";
+import type {
+  BitacoraAttachmentView,
+  BitacoraEntryView,
+} from "@/lib/bitacora-offline/types";
 
-interface LogEntry {
-    _id: Id<"bitacora">;
-    fecha: string;
-    categoria: string;
-    departamento?: string; // Enriched by backend
-    responsable: string;
-    comentarios?: string;
-    avance_dia: string;
-    fotos?: { _id: string; storage_id?: string; url?: string | null; comment?: string; descripcion?: string; nombre?: string }[];
-    documentos?: { _id: string; nombre: string; url?: string | null }[];
-    partida_id: Id<"partidas">;
-    familias_tags: string[];
-    status: string;
-    uploaded_at?: number;
-}
+const months = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
 
 interface GalleryState {
-    isOpen: boolean;
-    photos: { _id: string; url?: string | null; comment?: string; descripcion?: string; nombre?: string }[];
-    initialIndex: number;
-    logDate?: string;
-    logResponsable?: string;
+  isOpen: boolean;
+  photos: BitacoraAttachmentView[];
+  initialIndex: number;
+  logDate?: string;
+  logResponsable?: string;
+  logTitle?: string;
 }
 
-type ViewMode = "grouped" | "list" | "calendar";
+function displayDate(value: string) {
+  const [day, month, year] = value.split("/").map(Number);
+  return day && month && year ? `${day} ${months[month - 1]}, ${year}` : value;
+}
 
-// Format date from DD/MM/YYYY to "21 Noviembre, 2025"
-const formatDateDisplay = (dateStr: string): string => {
-    const monthNames = [
-        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-    ];
-    
-    // Parse DD/MM/YYYY format
-    const parts = dateStr.split("/");
-    if (parts.length !== 3) return dateStr;
-    
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // 0-indexed
-    const year = parts[2];
-    
-    if (isNaN(day) || isNaN(month) || month < 0 || month > 11) return dateStr;
-    
-    return `${day} ${monthNames[month]}, ${year}`;
-};
+function dateValue(value: string) {
+  const [day, month, year] = value.split("/").map(Number);
+  return year && month && day ? new Date(year, month - 1, day).getTime() : 0;
+}
+
+function truncateName(value: string, length = 17) {
+  return value.length > length ? `${value.slice(0, length)}…` : value;
+}
+
+function syncLabel(entry: BitacoraEntryView) {
+  if (entry.sync_state === "conflict") return { text: "Conflicto", className: "border-red-200 bg-red-50 text-red-700" };
+  if (entry.sync_state === "error") return { text: "Error", className: "border-red-200 bg-red-50 text-red-700" };
+  if (entry.sync_state === "syncing") return { text: "Sincronizando", className: "border-blue-200 bg-blue-50 text-blue-700" };
+  if (entry.sync_state === "pending") return { text: "Guardado localmente", className: "border-amber-200 bg-amber-50 text-amber-800" };
+  return { text: "Sincronizado", className: "border-green-200 bg-green-50 text-green-700" };
+}
+
+function DocumentPill({ file, online, onDownload }: {
+  file: BitacoraAttachmentView;
+  online: boolean;
+  onDownload: () => Promise<void>;
+}) {
+  const href = file.available_offline ? file.local_url : file.url;
+  const canOpen = file.available_offline || online;
+  return (
+    <div className="inline-flex max-w-full items-center rounded-full border border-border bg-background text-xs">
+      {canOpen && href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-w-0 items-center gap-1.5 px-3 py-1.5 hover:underline"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <FileText className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{truncateName(file.nombre)}</span>
+        </a>
+      ) : (
+        <span className="inline-flex min-w-0 items-center gap-1.5 px-3 py-1.5 text-muted-foreground">
+          <FileText className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{truncateName(file.nombre)}</span>
+        </span>
+      )}
+      {!file.available_offline && (
+        <button
+          type="button"
+          title={online ? "Descargar para uso sin conexión" : "Descargar automáticamente al reconectar"}
+          className="border-l border-border px-2 py-1.5 text-muted-foreground hover:text-foreground"
+          onClick={(event) => {
+            event.stopPropagation();
+            void onDownload();
+          }}
+        >
+          {file.download_requested ? <CloudDownload className="h-3.5 w-3.5 text-amber-700" /> : online ? <Download className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PhotoPreview({ file, online, downloading, onDownload, onOpen }: {
+  file: BitacoraAttachmentView;
+  online: boolean;
+  downloading: boolean;
+  onDownload: () => void;
+  onOpen: () => void;
+}) {
+  if (file.available_offline && file.local_url) {
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md border-none bg-muted transition-opacity hover:opacity-85"
+        title="Abrir en la galería"
+      >
+        <img src={file.local_url} alt={file.descripcion || file.nombre} className="h-full w-full object-cover rounded-md" />
+        <span className="absolute bottom-1 right-1 rounded bg-black/65 px-1.5 py-0.5 text-[10px] text-white">Offline</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md border border-border-strong bg-neutral-200">
+      {file.thumbnail_url ? (
+        <img src={file.thumbnail_url} alt="Vista previa borrosa" className="h-full w-full scale-125 object-cover blur-md" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-300">
+          <ImageOff className="h-6 w-6 text-neutral-500" />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-black/25" />
+      <button
+        type="button"
+        disabled={downloading}
+        onClick={onDownload}
+        title={online ? "Descargar original para uso sin conexión" : "Descargar automáticamente al reconectar"}
+        className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/10 px-2 text-center text-[11px] font-medium text-white transition-colors hover:bg-black/30 disabled:cursor-not-allowed"
+      >
+        {downloading ? <Loader2 className="h-5 w-5 animate-spin" /> : file.download_requested ? <CloudDownload className="h-5 w-5" /> : online ? <Download className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
+        <span>{downloading ? "Descargando" : file.download_requested ? "En espera" : online ? "Descargar" : "Al reconectar"}</span>
+      </button>
+    </div>
+  );
+}
 
 export default function BitacoraPage() {
-    const { proyectoId } = useParams<{ proyectoId: string }>();
-    const bitacoraModal = useBitacoraModal();
-    const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<ViewMode>("grouped");
-    const [galleryState, setGalleryState] = useState<GalleryState>({
-        isOpen: false,
-        photos: [],
-        initialIndex: 0,
+  const { proyectoId = "" } = useParams<{ proyectoId: string }>();
+  const repository = useBitacoraRepository();
+  const modal = useBitacoraModal();
+  const [view, setView] = useState<"grouped" | "calendar">("grouped");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [downloading, setDownloading] = useState<Set<string>>(new Set());
+  const [deleteEntry, setDeleteEntry] = useState<BitacoraEntryView | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [gallery, setGallery] = useState<GalleryState>({ isOpen: false, photos: [], initialIndex: 0 });
+
+  const grouped = useMemo(() => {
+    const result: Record<string, BitacoraEntryView[]> = {};
+    [...repository.entries].sort((a, b) => dateValue(b.fecha) - dateValue(a.fecha)).forEach((entry) => {
+      (result[entry.categoria || "General"] ??= []).push(entry);
     });
-    const [deleteDialogState, setDeleteDialogState] = useState<{
-        isOpen: boolean;
-        logId: Id<"bitacora"> | null;
-        logDate: string;
-    }>({ isOpen: false, logId: null, logDate: "" });
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-    const deleteLog = useMutation(api.bitacora.deleteLogEntry);
-    
-    // Get current user for role-based features
-    const { user: clerkUser } = useUser();
-    const currentUser = useQuery(
-        api.users.getCurrentUser,
-        clerkUser ? undefined : "skip"
-    );
-    const isAdmin = currentUser?.role === "admin";
+    return result;
+  }, [repository.entries]);
 
-    const handleDeleteConfirm = async () => {
-        if (!deleteDialogState.logId) return;
-        setIsDeleting(true);
-        try {
-            await deleteLog({ logId: deleteDialogState.logId });
-            setDeleteDialogState({ isOpen: false, logId: null, logDate: "" });
-        } catch (error) {
-            console.error("Error deleting log:", error);
-            alert("Error al eliminar la entrada");
-        } finally {
-            setIsDeleting(false);
-        }
-    };
+  const open = (mode: "create" | "edit" | "view", logEntry?: BitacoraEntryView, fecha?: string, categoria?: string) => {
+    modal.onOpen({ proyectoId, mode, logEntry, fecha, categoria });
+  };
 
-    const openGallery = (log: LogEntry, photoIndex: number = 0) => {
-        if (!log.fotos || log.fotos.length === 0) return;
-        setGalleryState({
-            isOpen: true,
-            photos: log.fotos,
-            initialIndex: photoIndex,
-            logDate: log.fecha,
-            logResponsable: log.responsable,
-        });
-    };
+  const toggleEntry = (entryClientId: string) => {
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (next.has(entryClientId)) next.delete(entryClientId);
+      else next.add(entryClientId);
+      return next;
+    });
+  };
 
-    const closeGallery = () => {
-        setGalleryState(prev => ({ ...prev, isOpen: false }));
-    };
+  const toggleCategory = (category: string) => {
+    setExpandedCategories((current) => {
+      const next = new Set(current);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
 
-    // Get project details
-    const proyecto = useQuery(
-        api.desarrollos.getById,
-        proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip"
-    );
-
-    // Get log entries in pages so large projects don't exceed Convex read limits.
-    const {
-        results: logEntries,
-        status: logEntriesStatus,
-        loadMore: loadMoreLogEntries,
-    } = usePaginatedQuery(
-        api.bitacora.getLogEntriesByProject,
-        proyectoId
-            ? {
-                proyecto: proyectoId as Id<"desarrollos">,
-            }
-            : "skip",
-        { initialNumItems: 50 }
-    );
-    const isLoadingLogEntries = logEntriesStatus === "LoadingFirstPage";
-    const canLoadMoreLogEntries = logEntriesStatus === "CanLoadMore";
-    const isLoadingMoreLogEntries = logEntriesStatus === "LoadingMore";
-
-    // Parse date from DD/MM/YYYY format to comparable value
-    const parseDateForSort = (dateStr: string): number => {
-        const parts = dateStr.split("/");
-        if (parts.length !== 3) return 0;
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        return new Date(year, month, day).getTime();
-    };
-
-    // Group logs by Departamento/Partida (all logs grouped, pagination per category)
-    // Sort by date descending (most recent first) within each category
-    const groupedLogs = useMemo(() => {
-        if (!logEntries) return {};
-        // Cast to LogEntry[] to avoid type issues with Convex generic return types
-        const logs = logEntries as unknown as LogEntry[];
-        
-        // Sort all logs by date descending (most recent first)
-        const sortedLogs = [...logs].sort((a, b) => parseDateForSort(b.fecha) - parseDateForSort(a.fecha));
-
-        // Group by categoria (Estructura, Instalaciones, Acabados, etc.)
-        return sortedLogs.reduce((acc, log) => {
-            const group = log.categoria || "General";
-            if (!acc[group]) acc[group] = [];
-            acc[group].push(log);
-            return acc;
-        }, {} as Record<string, LogEntry[]>);
-    }, [logEntries]);
-    
-    // Toggle showing all logs for a specific category
-    const toggleCategoryExpansion = (categoryName: string) => {
-        setExpandedCategories(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(categoryName)) {
-                newSet.delete(categoryName);
-            } else {
-                newSet.add(categoryName);
-            }
-            return newSet;
-        });
-    };
-    
-    // Get visible logs for a category (6 by default, all if expanded, or compact mode)
-    const getVisibleLogs = (categoryName: string, logs: LogEntry[]) => {
-        const isExpanded = expandedCategories.has(categoryName);
-        return isExpanded ? logs : logs.slice(0, 6);
-    };
-    
-    // Check if category has more logs to show
-    // const categoryHasMore = (categoryName: string, logs: LogEntry[]) => {
-    //     return !expandedCategories.has(categoryName) && logs.length > 6;
-    // };    
-
-    const handleCreateLog = () => {
-        if (!proyectoId) return;
-        bitacoraModal.onOpen({
-            proyectoId: proyectoId as Id<"desarrollos">,
-            mode: "create",
-        });
-    };
-
-    const toggleLog = (id: string) => {
-        const newSet = new Set(expandedLogIds);
-        if (newSet.has(id)) {
-            newSet.delete(id);
-        } else {
-            newSet.add(id);
-        }
-        setExpandedLogIds(newSet);
-    };
-
-    if (!proyectoId || !proyecto) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground"></div>
-            </div>
-        );
+  const downloadAttachment = async (file: BitacoraAttachmentView) => {
+    if (downloading.has(file.client_id) || file.download_requested) return;
+    setDownloading((current) => new Set(current).add(file.client_id));
+    try {
+      const result = await repository.makeAttachmentAvailableOffline(file.client_id);
+      toast.success(result === "queued"
+        ? `${file.nombre} se descargará al recuperar la conexión.`
+        : `${file.nombre} ya está disponible sin conexión.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo descargar el archivo.");
+    } finally {
+      setDownloading((current) => {
+        const next = new Set(current);
+        next.delete(file.client_id);
+        return next;
+      });
     }
+  };
 
+  const openGallery = (entry: BitacoraEntryView, selectedClientId?: string) => {
+    const photos = repository.isOnline
+      ? entry.fotos.filter((photo) => Boolean(photo.local_url || photo.url))
+      : entry.fotos.filter((photo) => photo.available_offline && Boolean(photo.local_url));
+    if (photos.length === 0) {
+      toast.info(repository.isOnline
+        ? "Descarga una imagen para abrirla en la galería."
+        : "No hay imágenes de este reporte descargadas en el dispositivo.");
+      return;
+    }
+    const selectedIndex = selectedClientId ? photos.findIndex((photo) => photo.client_id === selectedClientId) : 0;
+    setGallery({
+      isOpen: true,
+      photos,
+      initialIndex: Math.max(selectedIndex, 0),
+      logDate: displayDate(entry.fecha),
+      logResponsable: entry.responsable,
+      logTitle: entry.departamento || entry.categoria,
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteEntry) return;
+    setDeleting(true);
+    try {
+      await repository.deleteEntry(deleteEntry.client_id);
+      toast.success(repository.isOnline ? "Eliminación guardada; se sincronizará." : "Eliminación guardada localmente.");
+      setDeleteEntry(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (!repository.isReady) {
     return (
-        <div className="min-h-screen ">
-            {/* Header */}
-            <div className="bg-card border-b border-border">
-                <div className="px-16 py-12">
-                    {/* Breadcrumb */}
-                    <div className="flex items-center gap-2 text-sm text-subtle-foreground mb-2">
-                        <span className="hover:text-foreground cursor-pointer">Proyecto</span>
-                    </div>
-
-                    {/* Title and Actions */}
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-medium text-foreground">Bitácora {proyecto?.nombre || ""}</h1>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {/* View Mode Toggle */}
-                            <div className="flex items-center border border-border-strong">
-                                <Button
-                                    onClick={() => setViewMode("grouped")}
-                                    variant={viewMode === "grouped" ? "default" : "outline"}                                    
-                                >
-                                    <ChevronDown className="h-4 w-4" />
-                                    Agrupado
-                                </Button>
-                                {/* <button
-                                    onClick={() => setViewMode("list")}
-                                    className={`px-3 py-2 text-sm flex items-center gap-2 border-x border-border-strong transition-colors ${viewMode === "list"
-                                        ? "bg-inverse text-on-color"
-                                        : "bg-card text-foreground hover:bg-background"
-                                        }`}
-                                >
-                                    <List className="h-4 w-4" />
-                                    Lista
-                                </button> */}
-                                <Button
-                                    onClick={() => setViewMode("calendar")}
-                                    variant={viewMode === "calendar" ? "default" : "outline"}
-                                >
-                                    <CalendarIcon className="h-4 w-4" />
-                                    Calendario
-                                </Button>
-                            </div>
-                            <Button
-                                onClick={handleCreateLog}
-                                variant={"outline"}
-                                className="flex items-center gap-2"                                
-                            >
-                                Agregar Reporte
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Content Area */}
-            <div className="px-16 py-12 space-y-6">
-                {/* Calendar View */}
-                {viewMode === "calendar" && proyectoId && (
-                    <BitacoraCalendarView
-                        proyectoId={proyectoId as Id<"desarrollos">}
-                        onOpenModal={(data) => bitacoraModal.onOpen(data)}
-                    />
-                )}
-
-                {/* List View */}
-                {/* {viewMode === "list" && logEntries && (
-                    <BitacoraListView
-                        logEntries={logEntries as unknown as LogEntry[]}
-                        proyectoId={proyectoId as Id<"desarrollos">}
-                        onOpenModal={(data) => bitacoraModal.onOpen(data)}
-                    />
-                )} */}
-
-                {/* Grouped View (Default) */}
-                {viewMode === "grouped" && Object.entries(groupedLogs).map(([groupName, logs]) => (
-                    <div key={groupName} className="bg-card rounded-lg border border-border overflow-hidden">
-                        {/* Group Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-border">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-medium text-foreground">{groupName}</h2>
-                            </div>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 p-0"
-                                onClick={() => {
-                                    if (!proyectoId) return;
-                                    bitacoraModal.onOpen({
-                                        proyectoId: proyectoId as Id<"desarrollos">,
-                                        mode: "create",
-                                        categoria: groupName, // Auto-populate with group name
-                                    });
-                                }}
-                            >
-                                <Plus className="h-4 w-4 text-subtle-foreground" />
-                            </Button>
-                        </div>
-
-                        {/* Logs List */}
-                        <div className="divide-y divide-border">
-                            {getVisibleLogs(groupName, logs).map((log) => {
-                                const isExpanded = expandedLogIds.has(log._id);
-                                return (
-                                    <div key={log._id} className="">
-                                        {/* Row Header (Always Visible) */}
-                                        <div
-                                            className="flex items-center justify-between pl-12 p-6 cursor-pointer hover:bg-background"
-                                            onClick={() => toggleLog(log._id)}
-                                        >
-
-                                            <div className="flex gap-4 items-start">
-                                                <div className="text-disabled-foreground">
-                                                    {isExpanded ? <ChevronDown className="h-6 w-6" /> : <ChevronRight className="h-6 w-6" />}
-                                                </div>
-                                                               <div className="flex flex-col items-start gap-1">
-                                                
-                                                <span className="font-normal text-foreground text-base">
-                                                    {formatDateDisplay(log.fecha)}
-                                                </span>
-                                                <div className="flex items-center gap-8">
-                                                    <span className="text-muted-foreground text-sm">{log.departamento}</span>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${log.status === "Sin problemas"
-                                                            ? "bg-green-50 text-green-700 border border-green-200"
-                                                            : "bg-yellow-50 text-yellow-700 border border-yellow-200"
-                                                            }`}>
-                                                            {log.status || "Sin problemas"}
-                                                        </span>
-                                                        {log.familias_tags && log.familias_tags.length > 0 && log.familias_tags.map((tag) => (
-                                                            <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-background text-foreground border border-border">
-                                                                {tag}
-                                                            </span>
-                                                        ))}
-                                                        {log.documentos && log.documentos.length > 0 && log.documentos.map((doc) => (
-                                                            <a
-                                                                key={doc._id}
-                                                                href={doc.url || "#"}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-background text-foreground border border-border hover:bg-muted transition-colors"
-                                                            >
-                                                                <FileText className="h-3 w-3" />
-                                                                {doc.nombre.length > 15 ? doc.nombre.substring(0, 15) + "..." : doc.nombre}
-                                                            </a>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                            </div>
-                                            </div>
-                             
-
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-7 w-7 rounded-full bg-disabled flex items-center justify-center text-xs text-foreground">
-                                                        {log.responsable.substring(0, 1).toUpperCase()}
-                                                    </div>
-                                                    <span className="text-sm text-muted-foreground">{log.responsable}</span>
-                                                </div>
-                                                <div className="relative">
-                                                    <button
-                                                        className="p-1 hover:bg-muted rounded"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setOpenMenuId(openMenuId === log._id ? null : log._id);
-                                                        }}
-                                                    >
-                                                        <MoreHorizontal className="h-5 w-5 text-disabled-foreground" />
-                                                    </button>
-
-                                                    {openMenuId === log._id && (
-                                                        <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border py-1 z-10">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    bitacoraModal.onOpen({
-                                                                        proyectoId: proyectoId as Id<"desarrollos">,
-                                                                        mode: "view",
-                                                                        logEntry: {
-                                                                            _id: log._id as Id<"bitacora">,
-                                                                            departamento: log.departamento,
-                                                                            categoria: log.categoria,
-                                                                            partida_id: log.partida_id as Id<"partidas">,
-                                                                            familias_tags: log.familias_tags,
-                                                                            responsable: log.responsable,
-                                                                            fecha: log.fecha,
-                                                                            avance_dia: log.avance_dia,
-                                                                            comentarios: log.comentarios,
-                                                                            status: log.status,
-                                                                        },
-                                                                    });
-                                                                    setOpenMenuId(null);
-                                                                }}
-                                                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-background flex items-center gap-2"
-                                                            >
-                                                                <Eye className="h-4 w-4" />
-                                                                Ver detalles
-                                                            </button>
-                                                            {isAdmin && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    bitacoraModal.onOpen({
-                                                                        proyectoId: proyectoId as Id<"desarrollos">,
-                                                                        mode: "edit",
-                                                                        logEntry: {
-                                                                            _id: log._id as Id<"bitacora">,
-                                                                            departamento: log.departamento,
-                                                                            categoria: log.categoria,
-                                                                            partida_id: log.partida_id as Id<"partidas">,
-                                                                            familias_tags: log.familias_tags,
-                                                                            responsable: log.responsable,
-                                                                            fecha: log.fecha,
-                                                                            avance_dia: log.avance_dia,
-                                                                            comentarios: log.comentarios,
-                                                                            status: log.status,
-                                                                        },
-                                                                    });
-                                                                    setOpenMenuId(null);
-                                                                }}
-                                                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-background flex items-center gap-2"
-                                                            >
-                                                                <Edit2 className="h-4 w-4" />
-                                                                Editar
-                                                            </button>
-                                                            )}
-                                                            {isAdmin && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setDeleteDialogState({
-                                                                        isOpen: true,
-                                                                        logId: log._id as Id<"bitacora">,
-                                                                        logDate: log.fecha,
-                                                                    });
-                                                                    setOpenMenuId(null);
-                                                                }}
-                                                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                                Eliminar
-                                                            </button>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Expanded Content */}
-                                        {isExpanded && (
-                                            <div className="px-6 pb-6 pl-24 flex gap-8 text-left items-start">
-                                                <div className="flex-1 space-y-6 pb-4 pt-6">
-                                                    <div>
-                                                        <h4 className="text-sm   mb-2">Retos / Incidencias:</h4>
-                                                        <p className="text-muted-foreground leading-relaxed text-sm">
-                                                            {log.comentarios || "Sin incidencias reportadas."}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-sm   mb-2">Avance General:</h4>
-                                                        <p className="text-muted-foreground leading-relaxed whitespace-pre-line text-sm">
-                                                            {log.avance_dia}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Photos */}
-                                                {log.fotos && log.fotos.length > 0 && (
-                                                    <div className="flex gap-3 items-start pb-4">
-                                                        {log.fotos.slice(0, 3).map((foto, index) => (
-                                                            <div
-                                                                key={foto._id}
-                                                                className="h-20 w-20 bg-disabled rounded-md overflow-hidden border border-border-strong cursor-pointer hover:opacity-80 transition-opacity"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openGallery(log, index);
-                                                                }}
-                                                            >
-                                                                {foto.url && (
-                                                                    <img
-                                                                        src={foto.url}
-                                                                        alt="Evidencia"
-                                                                        className="h-full w-full object-cover"
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                        {log.fotos.length > 3 && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openGallery(log, 0);
-                                                                }}
-                                                                className="h-20 w-20 bg-inverse rounded-md flex items-center justify-center text-on-color text-sm font-medium hover:bg-muted-foreground transition-colors"
-                                                            >
-                                                                +{log.fotos.length - 3} más
-                                                            </button>
-                                                        )}
-                                                        {/* <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openGallery(log, 0);
-                                                            }}
-                                                            className="h-20 px-4 bg-muted rounded-md flex items-center justify-center gap-2 text-muted-foreground text-sm font-medium hover:bg-disabled transition-colors border border-border-strong"
-                                                        >
-                                                            <Images className="h-4 w-4" />
-                                                            Ver galería
-                                                        </button> */}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        
-                        {/* Per-category Expand/Compact Button */}
-                        {logs.length > 6 && (
-                            <div className="flex justify-center py-4 border-t border-border">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => toggleCategoryExpansion(groupName)}
-                                    className="text-muted-foreground hover:text-foreground flex items-center gap-2"
-                                >
-                                    <ChevronsUpDown className="h-4 w-4" />
-                                    {expandedCategories.has(groupName) 
-                                        ? "Compactar" 
-                                        : `Expandir (${logs.length - 6} más)`}
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                ))}
-
-                {viewMode === "grouped" && isLoadingLogEntries && (
-                    <div className="flex justify-center py-12">
-                        <Loader2 className="h-6 w-6 animate-spin text-subtle-foreground" />
-                    </div>
-                )}
-
-                {viewMode === "grouped" && (canLoadMoreLogEntries || isLoadingMoreLogEntries) && (
-                    <div className="flex justify-center pt-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => loadMoreLogEntries(50)}
-                            disabled={isLoadingMoreLogEntries}
-                            className="flex items-center gap-2"
-                        >
-                            {isLoadingMoreLogEntries && <Loader2 className="h-4 w-4 animate-spin" />}
-                            Cargar más entradas
-                        </Button>
-                    </div>
-                )}
-
-                {/* Empty State (for grouped view) */}
-                {viewMode === "grouped" && !isLoadingLogEntries && logEntries.length === 0 && (
-                    <div className="text-center py-12 bg-card rounded-lg border border-border">
-                        <p className="text-subtle-foreground">No hay registros de bitácora aún.</p>
-                        <Button
-                            onClick={handleCreateLog}
-                            variant="link"
-                            className="mt-2"
-                        >
-                            Crear primera entrada
-                        </Button>
-                    </div>
-                )}
-            </div>
-
-            {/* Gallery Modal */}
-            <BitacoraGalleryModal
-                isOpen={galleryState.isOpen}
-                onClose={closeGallery}
-                photos={galleryState.photos}
-                initialIndex={galleryState.initialIndex}
-                logDate={galleryState.logDate}
-                logResponsable={galleryState.logResponsable}
-            />
-
-            {/* Delete Confirmation Dialog */}
-            <AlertDialog
-                open={deleteDialogState.isOpen}
-                onOpenChange={(open) => !open && setDeleteDialogState({ isOpen: false, logId: null, logDate: "" })}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar entrada?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción eliminará permanentemente la entrada del {formatDateDisplay(deleteDialogState.logDate)}.
-                            Esta acción no se puede deshacer.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleDeleteConfirm}
-                            disabled={isDeleting}
-                            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-                        >
-                            {isDeleting ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Eliminando...
-                                </>
-                            ) : (
-                                "Eliminar"
-                            )}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        {repository.syncStatus === "error" ? <AlertCircle className="h-10 w-10 text-red-600" /> : <Loader2 className="h-10 w-10 animate-spin" />}
+        <div>
+          <h1 className="text-xl font-medium">Preparando Bitácora offline</h1>
+          <p className="mt-1 text-sm text-muted-foreground">La primera preparación necesita una conexión y una sesión válida.</p>
         </div>
+        {repository.syncError && <p className="max-w-xl text-sm text-red-700">{repository.syncError}</p>}
+        <Button onClick={() => void repository.retrySync()} disabled={!repository.isOnline}>
+          <RefreshCw className="mr-2 h-4 w-4" />Reintentar
+        </Button>
+      </div>
     );
+  }
+
+  const globalStatus = !repository.isOnline
+    ? { icon: WifiOff, label: "Sin conexión", className: "bg-slate-100 text-slate-800" }
+    : repository.syncStatus === "syncing"
+      ? { icon: Loader2, label: "Sincronizando", className: "bg-blue-50 text-blue-700" }
+      : repository.syncStatus === "error"
+        ? { icon: AlertCircle, label: "Error", className: "bg-red-50 text-red-700" }
+        : repository.conflictCount
+          ? { icon: AlertCircle, label: `${repository.conflictCount} conflicto${repository.conflictCount === 1 ? "" : "s"}`, className: "bg-red-50 text-red-700" }
+          : repository.pendingCount
+            ? { icon: CloudOff, label: `${repository.pendingCount} pendiente${repository.pendingCount === 1 ? "" : "s"}`, className: "bg-amber-50 text-amber-800" }
+            : { icon: CheckCircle2, label: "Sincronizado", className: "bg-green-50 text-green-700" };
+  const StatusIcon = globalStatus.icon;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card">
+        <div className="px-5 py-12 md:px-10 lg:px-16">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="text-left">
+              <p className="mb-1 text-sm text-muted-foreground">Proyecto</p>
+              <h1 className="text-2xl font-medium text-foreground md:text-3xl">Bitácora {repository.project?.name}</h1>
+            </div>
+            <div className="inline-flex h-9 max-w-full items-center overflow-hidden rounded-md border border-border bg-card shadow-sm">
+              <span className={`inline-flex h-full items-center gap-1.5 px-2.5 text-xs font-medium ${globalStatus.className}`}>
+                <StatusIcon className={`h-3.5 w-3.5 ${repository.syncStatus === "syncing" ? "animate-spin" : ""}`} />
+                {globalStatus.label}
+              </span>
+              {repository.lastSyncAt && (
+                <span className="hidden whitespace-nowrap px-2.5 text-xs text-muted-foreground sm:inline">
+                  {new Date(repository.lastSyncAt).toLocaleString("es-MX", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+              <button
+                type="button"
+                title="Reintentar sincronización"
+                aria-label="Reintentar sincronización"
+                disabled={!repository.isOnline || repository.syncStatus === "syncing"}
+                onClick={() => void repository.retrySync()}
+                className="flex h-full w-9 items-center justify-center border-l border-border hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex overflow-hidden border border-border-strong">
+              <Button className="rounded-none" variant={view === "grouped" ? "default" : "ghost"} onClick={() => setView("grouped")}>
+                <ChevronDown className="mr-2 h-4 w-4" />Agrupado
+              </Button>
+              <Button className="rounded-none border-l border-border" variant={view === "calendar" ? "default" : "ghost"} onClick={() => setView("calendar")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />Calendario
+              </Button>
+            </div>
+            {repository.canCreate && (
+              <Button variant={"outline"} onClick={() => open("create")}><Plus className="mr-2 h-4 w-4" />Agregar reporte</Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="space-y-6 bg-white px-5 py-6 md:px-10 lg:px-16 lg:py-8">
+        {view === "calendar" && (
+          <BitacoraCalendarView
+            proyectoId={proyectoId}
+            logEntries={repository.entries}
+            canCreate={repository.canCreate}
+            onOpenModal={({ mode, logEntry, fecha }) => open(mode, logEntry, fecha)}
+          />
+        )}
+
+        {view === "grouped" && Object.entries(grouped).map(([category, entries]) => {
+          const visibleEntries = expandedCategories.has(category) ? entries : entries.slice(0, 6);
+          return (
+            <section key={category} className="overflow-hidden rounded-lg border border-border bg-card">
+              <div className="flex items-center justify-between border-b border-border px-5 py-6 md:px-6">
+                <h2 className="text-xl font-medium text-foreground">{category}</h2>
+                {repository.canCreate && (
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => open("create", undefined, undefined, category)}>
+                    <Plus className="h-4 w-4" /><span className="sr-only">Agregar reporte a {category}</span>
+                  </Button>
+                )}
+              </div>
+
+              <div className="divide-y divide-border">
+                {visibleEntries.map((entry) => {
+                  const isExpanded = expanded.has(entry.client_id);
+                  const badge = syncLabel(entry);
+                  return (
+                    <article key={entry.client_id}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        className="flex cursor-pointer flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/30 md:flex-row md:items-start md:justify-between md:pl-10 md:pr-6"
+                        onClick={() => toggleEntry(entry.client_id)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            toggleEntry(entry.client_id);
+                          }
+                        }}
+                      >
+                        <div className="flex min-w-0 items-start gap-3 md:gap-4">
+                          {isExpanded ? <ChevronDown className="mt-0.5 h-5 w-5 shrink-0 text-disabled-foreground" /> : <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-disabled-foreground" />}
+                          <div className="min-w-0 textl-left">
+                            <p className="text-base text-foreground text-left">{displayDate(entry.fecha)}</p>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                              <span className="mr-3 text-sm text-muted-foreground">{entry.departamento || "Partida sin nombre"}</span>
+                              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${entry.status === "Sin problemas" ? "border-green-200 bg-green-50 text-green-700" : "border-yellow-200 bg-yellow-50 text-yellow-800"}`}>
+                                {entry.status || "Sin problemas"}
+                              </span>
+                              {entry.familias_tags.map((tag) => <span key={tag} className="rounded-full border border-border px-3 py-1 text-xs font-medium">{tag}</span>)}
+                              <span className={`rounded-full border px-2.5 py-1 text-[11px] ${badge.className}`}>{badge.text}</span>
+                              {entry.documentos.slice(0, 2).map((file) => (
+                                <DocumentPill key={file.client_id} file={file} online={repository.isOnline} onDownload={() => downloadAttachment(file)} />
+                              ))}
+                              {entry.documentos.length > 2 && <span className="text-xs text-muted-foreground">+{entry.documentos.length - 2} documentos</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-3 pl-8 md:pl-0" onClick={(event) => event.stopPropagation()}>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-disabled text-xs text-foreground">{entry.responsable.slice(0, 1).toUpperCase()}</div>
+                            <span className="max-w-44 truncate text-sm text-muted-foreground">{entry.responsable}</span>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Acciones del reporte"><MoreHorizontal className="h-5 w-5 text-disabled-foreground" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem onClick={() => open("view", entry)}><Eye className="mr-2 h-4 w-4" />Ver detalles</DropdownMenuItem>
+                              {repository.canEdit && <DropdownMenuItem onClick={() => open("edit", entry)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>}
+                              {repository.canEdit && <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => setDeleteEntry(entry)}><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="px-5 pb-6 md:pl-[6rem] md:pr-6">
+                          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-8">
+                            <div className="space-y-6 pt-2 text-left">
+                              <div>
+                                <h3 className="mb-2 text-sm">Retos / Incidencias:</h3>
+                                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{entry.comentarios || "Sin incidencias reportadas."}</p>
+                              </div>
+                              <div>
+                                <h3 className="mb-2 text-sm">Avance General:</h3>
+                                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{entry.avance_dia}</p>
+                              </div>
+                            </div>
+
+                            {entry.fotos.length > 0 && (
+                              <div className="flex max-w-full gap-3 overflow-x-auto pb-2 lg:pt-2">
+                                {entry.fotos.slice(0, 3).map((file) => (
+                                  <PhotoPreview
+                                    key={file.client_id}
+                                    file={file}
+                                    online={repository.isOnline}
+                                    downloading={downloading.has(file.client_id)}
+                                    onDownload={() => void downloadAttachment(file)}
+                                    onOpen={() => openGallery(entry, file.client_id)}
+                                  />
+                                ))}
+                                {entry.fotos.length > 3 && (
+                                  <button type="button" onClick={() => openGallery(entry)} className="flex h-24 w-24 shrink-0 items-center justify-center rounded-md bg-inverse px-2 text-center text-sm font-medium text-on-color transition-opacity hover:opacity-85">
+                                    +{entry.fotos.length - 3} más
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {entry.sync_state === "conflict" && (
+                            <div className="mt-6 border border-red-200 bg-red-50 p-4">
+                              <p className="font-medium text-red-800">Conflicto de sincronización</p>
+                              <p className="mt-1 text-sm text-red-700">{entry.sync_error} Tu versión local nunca se sobrescribirá automáticamente.</p>
+                              {entry.server_version && (
+                                <div className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+                                  <div className="border border-red-200 bg-white/70 p-3">
+                                    <p className="mb-1 font-medium text-red-900">Tu versión local</p><p>{entry.fecha} · {entry.responsable}</p>
+                                    <p className="mt-1 whitespace-pre-wrap">{entry.locally_deleted ? "Eliminación pendiente" : entry.avance_dia}</p>
+                                  </div>
+                                  <div className="border border-red-200 bg-white/70 p-3">
+                                    <p className="mb-1 font-medium text-red-900">Versión del servidor</p><p>{entry.server_version.fecha} · {entry.server_version.responsable}</p>
+                                    <p className="mt-1 whitespace-pre-wrap">{entry.server_deleted ? "Eliminado en el servidor" : entry.server_version.avance_dia}</p>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <Button size="sm" variant="outline" onClick={() => void repository.acceptServer(entry.client_id)}>Aceptar servidor</Button>
+                                <Button size="sm" onClick={() => void repository.reapplyLocal(entry.client_id)}>{entry.locally_deleted ? "Confirmar eliminación" : "Reaplicar versión local"}</Button>
+                                {entry.server_deleted && !entry.locally_deleted && <Button size="sm" variant="outline" onClick={() => void repository.restoreAsNew(entry.client_id)}>Restaurar como nuevo reporte</Button>}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+
+              {entries.length > 6 && (
+                <div className="flex justify-center border-t border-border py-3">
+                  <Button variant="ghost" className="text-muted-foreground" onClick={() => toggleCategory(category)}>
+                    <ChevronsUpDown className="mr-2 h-4 w-4" />{expandedCategories.has(category) ? "Compactar" : `Expandir (${entries.length - 6} más)`}
+                  </Button>
+                </div>
+              )}
+            </section>
+          );
+        })}
+
+        {view === "grouped" && repository.entries.length === 0 && (
+          <div className="rounded-lg border border-dashed border-border p-12 text-center">
+            <FileText className="mx-auto h-10 w-10 text-muted-foreground" />
+            <h2 className="mt-4 font-medium">No hay reportes</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Puedes crear el primero incluso sin conexión.</p>
+          </div>
+        )}
+      </main>
+
+      <BitacoraGalleryModal
+        isOpen={gallery.isOpen}
+        onClose={() => setGallery((current) => ({ ...current, isOpen: false }))}
+        photos={gallery.photos}
+        initialIndex={gallery.initialIndex}
+        logDate={gallery.logDate}
+        logResponsable={gallery.logResponsable}
+        logTitle={gallery.logTitle}
+        online={repository.isOnline}
+        canWriteComments={repository.canCreate}
+        onPhotoViewed={(photo) => repository.makeAttachmentAvailableOffline(photo.client_id)}
+      />
+
+      <AlertDialog open={Boolean(deleteEntry)} onOpenChange={(isOpen) => !isOpen && setDeleteEntry(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este reporte?</AlertDialogTitle>
+            <AlertDialogDescription>Se ocultará de inmediato. Si ya existe en el servidor, la eliminación quedará pendiente y respetará su revisión actual.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(event) => { event.preventDefault(); void confirmDelete(); }} disabled={deleting}>
+              {deleting ? "Eliminando…" : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }

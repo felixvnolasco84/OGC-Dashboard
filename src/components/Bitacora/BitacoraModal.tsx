@@ -1,1043 +1,476 @@
-import { X, Upload, Loader2, Trash2, ChevronLeft, ChevronRight, CalendarIcon, Maximize2, Minimize2, FileText } from "lucide-react";
-import { useBitacoraModal } from "../../hooks/use-bitacora-modal";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { useState, useEffect, useRef } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
-import { Id } from "../../../convex/_generated/dataModel";
-import { Checkbox } from "../ui/checkbox";
-import { Calendar } from "../ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Button } from "../ui/button";
-import { cn } from "@/lib/utils";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileText,
+  ImageOff,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  Trash2,
+  Upload,
+  WifiOff,
+  X,
+} from "lucide-react";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
+import { useBitacoraModal } from "../../hooks/use-bitacora-modal";
+import { useBitacoraRepository } from "@/lib/bitacora-offline/context";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
-// Type for unified photo management
 interface ManagedPhoto {
   id: string;
   type: "existing" | "new";
-  url: string;
+  name: string;
+  url?: string;
+  thumbnailUrl?: string;
   file?: File;
-  isDeleting?: boolean;
-  description: string; // Required description for each photo
+  description: string;
+  availableOffline: boolean;
+  downloadRequested?: boolean;
 }
 
-// Type for unified document management
 interface ManagedDocument {
   id: string;
   type: "existing" | "new";
   name: string;
   url?: string;
   file?: File;
-  isDeleting?: boolean;
+  availableOffline: boolean;
+  downloadRequested?: boolean;
+}
+
+const categoryDefaults = ["Estructura", "Instalaciones", "Acabados", "Seguridad", "Generales"];
+
+function parseDate(value: string): Date | undefined {
+  const [day, month, year] = value.split("/").map(Number);
+  if (!day || !month || !year) return undefined;
+  const result = new Date(year, month - 1, day);
+  return Number.isNaN(result.getTime()) ? undefined : result;
+}
+
+function formatDate(value: Date) {
+  return `${String(value.getDate()).padStart(2, "0")}/${String(value.getMonth() + 1).padStart(2, "0")}/${value.getFullYear()}`;
+}
+
+function today() {
+  return formatDate(new Date());
+}
+
+function ExistingPhotoPreview({ photo, online, onDownload }: { photo: ManagedPhoto; online: boolean; onDownload: () => void }) {
+  if (photo.availableOffline && photo.url) {
+    return <img src={photo.url} alt={photo.description || photo.name} className="h-24 w-24 rounded-md border border-border object-cover md:h-36 md:w-36" />;
+  }
+  return (
+    <div className="relative h-24 w-24 overflow-hidden rounded-md border border-border bg-muted md:h-36 md:w-36">
+      {photo.thumbnailUrl ? <img src={photo.thumbnailUrl} alt="Vista previa borrosa" className="h-full w-full scale-110 object-cover blur-sm" /> : <div className="flex h-full items-center justify-center"><ImageOff className="h-5 w-5 text-muted-foreground" /></div>}
+      <button type="button" onClick={onDownload} className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/25 text-[10px] font-medium text-white hover:bg-black/40">
+        {photo.downloadRequested || online ? <Download className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+        {photo.downloadRequested ? "En espera" : online ? "Descargar" : "Al reconectar"}
+      </button>
+    </div>
+  );
 }
 
 export default function BitacoraModal() {
-  const { isOpen, onClose, mode, proyectoId, logEntry, categoria: storeCategoria, fecha: storeFecha } = useBitacoraModal();
-  const createLog = useMutation(api.bitacora.createLogEntry);
-  const updateLog = useMutation(api.bitacora.updateLogEntry);
-  const deletePhoto = useMutation(api.bitacora.deletePhoto);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  const currentUser = useQuery(api.users.getCurrentUser);
-  
-  // Check if current user is admin for reassignment feature
-  const isAdmin = currentUser?.role === "admin";
-  
-  // Fetch all users for admin reassignment (only when admin and in edit mode)
-  const allUsers = useQuery(
-    api.users.getAllUsers,
-    isAdmin && mode === "edit" ? undefined : "skip"
+  const modal = useBitacoraModal();
+  const repository = useBitacoraRepository();
+  const existing = useMemo(
+    () => repository.entries.find((entry) => entry.client_id === modal.logEntry?.client_id || entry._id === modal.logEntry?._id),
+    [modal.logEntry?._id, modal.logEntry?.client_id, repository.entries],
   );
-  
-  // Fetch Level 1 Partidas
-  const partidas = useQuery(api.partida.getByNivel, proyectoId ? { proyecto: proyectoId, nivel: 1 } : "skip");
-  
-  // Fetch Level 2 Familias for the selected partida
-  const [categoria, setCategoria] = useState<string>(logEntry?.categoria || "");
-  const [selectedPartidaId, setSelectedPartidaId] = useState<string>(logEntry?.partida_id || "");
-  const familias = useQuery(
-    api.partida.getByNivel, 
-    proyectoId && selectedPartidaId 
-      ? { proyecto: proyectoId, nivel: 2 } 
-      : "skip"
-  );
-
-  const [selectedFamiliasTags, setSelectedFamiliasTags] = useState<string[]>(logEntry?.familias_tags || []);
-  const [responsable, setResponsable] = useState(logEntry?.responsable || "");
-  const [fecha, setFecha] = useState(logEntry?.fecha || new Date().toLocaleDateString("es-MX"));
-  const [avanceDia, setAvanceDia] = useState(logEntry?.avance_dia || "");
-  const [comentarios, setComentarios] = useState(logEntry?.comentarios || "");
-  const [status, setStatus] = useState(logEntry?.status || "Sin problemas");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  // Unified photo management state
-  const [managedPhotos, setManagedPhotos] = useState<ManagedPhoto[]>([]);
-  const [photosToDelete, setPhotosToDelete] = useState<string[]>([]); // Track existing photos to delete on save
-  const [newFiles, setNewFiles] = useState<File[]>([]); // Track new files to upload on save
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Document management state
-  const [managedDocuments, setManagedDocuments] = useState<ManagedDocument[]>([]);
-  const [documentsToDelete, setDocumentsToDelete] = useState<string[]>([]);
-  const [newDocFiles, setNewDocFiles] = useState<File[]>([]);
-  const docFileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Gallery view state (for view mode)
+  const levelOne = repository.partidas.filter((item) => item.nivel === 1);
+  const levelTwo = repository.partidas.filter((item) => item.nivel === 2);
+  const [categoria, setCategoria] = useState("");
+  const [partidaId, setPartidaId] = useState("");
+  const [familias, setFamilias] = useState<string[]>([]);
+  const [responsable, setResponsable] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [avance, setAvance] = useState("");
+  const [comentarios, setComentarios] = useState("");
+  const [status, setStatus] = useState("Sin problemas");
+  const [photos, setPhotos] = useState<ManagedPhoto[]>([]);
+  const [documents, setDocuments] = useState<ManagedDocument[]>([]);
   const [galleryIndex, setGalleryIndex] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const imageContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Calendar popover state
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const initializedFor = useRef<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const requestedPhotos = useRef(new Set<string>());
 
-  // Track whether the form has been initialized for the current modal opening
-  // to avoid resetting the user's selections when async queries (currentUser,
-  // fullLogEntry) later resolve and change their reference identity.
-  const hasInitializedRef = useRef(false);
-  const hasHydratedResponsableRef = useRef(false);
-  const hasHydratedFromFullLogRef = useRef(false);
-
-  // Fetch log entry with photos for view/edit mode
-  const fullLogEntry = useQuery(
-    api.bitacora.getLogEntryById,
-    logEntry?._id ? { logId: logEntry._id } : "skip"
-  );
-
-  // Reset the init flags whenever the modal closes so that next time it opens
-  // it re-initializes cleanly.
   useEffect(() => {
-    if (!isOpen) {
-      hasInitializedRef.current = false;
-      hasHydratedResponsableRef.current = false;
-      hasHydratedFromFullLogRef.current = false;
-    }
-  }, [isOpen]);
-
-  // Initialize form state ONCE per modal opening. This prevents the form from
-  // being reset when async dependencies (currentUser, fullLogEntry) resolve
-  // after the user already started interacting with the form.
-  useEffect(() => {
-    if (!isOpen || hasInitializedRef.current) return;
-    hasInitializedRef.current = true;
-
-    setCategoria(logEntry?.categoria || storeCategoria || "");
-    setSelectedPartidaId(logEntry?.partida_id || "");
-    setSelectedFamiliasTags(logEntry?.familias_tags || []);
-    setResponsable(logEntry?.responsable || currentUser?.name || "");
-    setFecha(logEntry?.fecha || storeFecha || new Date().toLocaleDateString("es-MX"));
-    setAvanceDia(logEntry?.avance_dia || "");
-    setComentarios(logEntry?.comentarios || "");
-    setStatus(logEntry?.status || "Sin problemas");
-    setPhotosToDelete([]);
-    setNewFiles([]);
-    setGalleryIndex(0);
-    setManagedPhotos([]);
-    setDocumentsToDelete([]);
-    setNewDocFiles([]);
-    setManagedDocuments([]);
-
-    // If currentUser was already loaded at init time, mark responsable as hydrated.
-    if (currentUser?.name || logEntry?.responsable) {
-      hasHydratedResponsableRef.current = true;
-    }
-  }, [isOpen, logEntry, currentUser, storeCategoria, storeFecha]);
-
-  // Hydrate `responsable` once when currentUser becomes available (only if the
-  // user hasn't typed anything yet and it's a create flow).
-  useEffect(() => {
-    if (!isOpen) return;
-    if (hasHydratedResponsableRef.current) return;
-    if (logEntry?.responsable) {
-      hasHydratedResponsableRef.current = true;
-      return;
-    }
-    if (currentUser?.name) {
-      setResponsable(currentUser.name);
-      hasHydratedResponsableRef.current = true;
-    }
-  }, [isOpen, currentUser, logEntry]);
-
-  // Hydrate photos / documents once when fullLogEntry resolves (edit/view modes).
-  useEffect(() => {
-    if (!isOpen) return;
-    if (hasHydratedFromFullLogRef.current) return;
-    if (!fullLogEntry) return;
-    hasHydratedFromFullLogRef.current = true;
-
-    if (fullLogEntry.fotos) {
-      const existingManaged: ManagedPhoto[] = fullLogEntry.fotos
-        .filter((f) => f.url)
-        .map((f) => ({
-          id: f._id,
-          type: "existing" as const,
-          url: f.url!,
-          description: f.descripcion || f.nombre || "",
-        }));
-      setManagedPhotos(existingManaged);
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const logEntryWithDocs = fullLogEntry as any;
-    if (logEntryWithDocs?.documentos) {
-      const existingDocs: ManagedDocument[] = logEntryWithDocs.documentos.map(
-        (d: { _id: string; nombre: string; url?: string }) => ({
-          id: d._id,
-          type: "existing" as const,
-          name: d.nombre,
-          url: d.url || undefined,
-        })
-      );
-      setManagedDocuments(existingDocs);
-    }
-  }, [isOpen, fullLogEntry]);
-  
-  // Listen for fullscreen changes
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    const fullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", fullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", fullscreenChange);
   }, []);
 
-  // Handle file selection - add to managed photos
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const fileArray = Array.from(files);
-    const newManagedPhotos: ManagedPhoto[] = fileArray.map((file, index) => ({
-      id: `new-${Date.now()}-${index}`,
-      type: "new" as const,
-      url: URL.createObjectURL(file),
-      file,
-      description: "", // Initialize with empty description
-    }));
-    
-    setManagedPhotos(prev => [...prev, ...newManagedPhotos]);
-    setNewFiles(prev => [...prev, ...fileArray]);
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  // Remove photo from managed list
-  const removePhoto = (photo: ManagedPhoto) => {
-    if (photo.type === "existing") {
-      // Mark for deletion on save
-      setPhotosToDelete(prev => [...prev, photo.id]);
-    } else {
-      // Remove from new files
-      setNewFiles(prev => prev.filter(f => f !== photo.file));
-      // Revoke object URL to prevent memory leaks
-      URL.revokeObjectURL(photo.url);
-    }
-    setManagedPhotos(prev => prev.filter(p => p.id !== photo.id));
-  };
-
-  // Update photo description
-  const updatePhotoDescription = (photoId: string, description: string) => {
-    setManagedPhotos(prev => 
-      prev.map(p => p.id === photoId ? { ...p, description } : p)
-    );
-  };
-
-  // Check if all photos have descriptions
-  const allPhotosHaveDescriptions = () => {
-    return managedPhotos.every(p => p.description.trim().length > 0);
-  };
-
-  // Handle document file selection
-  const handleDocFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const fileArray = Array.from(files);
-    const newManagedDocs: ManagedDocument[] = fileArray.map((file, index) => ({
-      id: `new-doc-${Date.now()}-${index}`,
-      type: "new" as const,
-      name: file.name,
-      file,
-    }));
-    
-    setManagedDocuments(prev => [...prev, ...newManagedDocs]);
-    setNewDocFiles(prev => [...prev, ...fileArray]);
-    
-    if (docFileInputRef.current) {
-      docFileInputRef.current.value = "";
-    }
-  };
-
-  // Remove document from managed list
-  const removeDocument = (doc: ManagedDocument) => {
-    if (doc.type === "existing") {
-      setDocumentsToDelete(prev => [...prev, doc.id]);
-    } else {
-      setNewDocFiles(prev => prev.filter(f => f !== doc.file));
-    }
-    setManagedDocuments(prev => prev.filter(d => d.id !== doc.id));
-  };
-  
-  // Gallery navigation for view mode
-  const handlePreviousPhoto = () => {
-    setGalleryIndex(prev => (prev > 0 ? prev - 1 : managedPhotos.length - 1));
-  };
-  
-  const handleNextPhoto = () => {
-    setGalleryIndex(prev => (prev < managedPhotos.length - 1 ? prev + 1 : 0));
-  };
-  
-  const handleFullscreen = async () => {
-    if (!imageContainerRef.current) return;
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-        setIsFullscreen(false);
-      } else {
-        await imageContainerRef.current.requestFullscreen();
-        setIsFullscreen(true);
-      }
-    } catch (error) {
-      console.error("Fullscreen error:", error);
-    }
-  };
-  
-  // Parse date string to Date object
-  const parseDate = (dateStr: string): Date | undefined => {
-    try {
-      // Try DD/MM/YYYY format
-      const parts = dateStr.split("/");
-      if (parts.length === 3) {
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        return new Date(year, month, day);
-      }
-      return undefined;
-    } catch {
-      return undefined;
-    }
-  };
-  
-  // Format Date to DD/MM/YYYY string
-  const formatDateToString = (date: Date): string => {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!proyectoId || !selectedPartidaId || !categoria) return;
-
-    // Validate that all photos have descriptions
-    if (managedPhotos.length > 0 && !allPhotosHaveDescriptions()) {
-      alert("Por favor, agrega una descripción a todas las fotografías antes de guardar.");
+  useEffect(() => {
+    if (!modal.isOpen) {
+      initializedFor.current = null;
+      requestedPhotos.current.clear();
+      setPhotos((current) => {
+        current.filter((photo) => photo.type === "new" && photo.url).forEach((photo) => URL.revokeObjectURL(photo.url!));
+        return current.length ? [] : current;
+      });
+      setDocuments([]);
       return;
     }
+    const openingKey = `${modal.mode}:${existing?.client_id ?? modal.logEntry?._id ?? "new"}:${modal.fecha ?? ""}`;
+    if (initializedFor.current === openingKey) return;
+    initializedFor.current = openingKey;
+    setCategoria(existing?.categoria ?? modal.logEntry?.categoria ?? modal.categoria ?? "");
+    setPartidaId(existing?.partida_id ?? modal.logEntry?.partida_id ?? "");
+    setFamilias(existing?.familias_tags ?? modal.logEntry?.familias_tags ?? []);
+    setResponsable(existing?.responsable ?? modal.logEntry?.responsable ?? repository.profile?.name ?? "");
+    setFecha(existing?.fecha ?? modal.logEntry?.fecha ?? modal.fecha ?? today());
+    setAvance(existing?.avance_dia ?? modal.logEntry?.avance_dia ?? "");
+    setComentarios(existing?.comentarios ?? modal.logEntry?.comentarios ?? "");
+    setStatus(existing?.status ?? modal.logEntry?.status ?? "Sin problemas");
+    setGalleryIndex(0);
+    setCalendarOpen(false);
+    setPhotos((existing?.fotos ?? []).map((photo) => ({
+      id: photo.client_id,
+      type: "existing",
+      name: photo.nombre,
+      url: photo.local_url || photo.url || undefined,
+      thumbnailUrl: photo.thumbnail_url,
+      description: photo.descripcion || photo.nombre || "",
+      availableOffline: photo.available_offline,
+      downloadRequested: photo.download_requested,
+    })));
+    setDocuments((existing?.documentos ?? []).map((item) => ({
+      id: item.client_id,
+      type: "existing",
+      name: item.nombre,
+      url: item.local_url || item.url || undefined,
+      availableOffline: item.available_offline,
+      downloadRequested: item.download_requested,
+    })));
+  }, [existing, modal.categoria, modal.fecha, modal.isOpen, modal.logEntry, modal.mode, repository.profile?.name]);
 
-    setIsSubmitting(true);
+  useEffect(() => {
+    if (!modal.isOpen || !existing) return;
+    const latestPhotos = new Map(existing.fotos.map((photo) => [photo.client_id, photo]));
+    const latestDocuments = new Map(existing.documentos.map((document) => [document.client_id, document]));
+    setPhotos((current) => current.map((photo) => {
+      if (photo.type === "new") return photo;
+      const latest = latestPhotos.get(photo.id);
+      return latest ? {
+        ...photo,
+        url: latest.local_url || latest.url || photo.url,
+        thumbnailUrl: latest.thumbnail_url || photo.thumbnailUrl,
+        availableOffline: latest.available_offline,
+        downloadRequested: latest.download_requested,
+      } : photo;
+    }));
+    setDocuments((current) => current.map((document) => {
+      if (document.type === "new") return document;
+      const latest = latestDocuments.get(document.id);
+      return latest ? {
+        ...document,
+        url: latest.local_url || latest.url || document.url,
+        availableOffline: latest.available_offline,
+        downloadRequested: latest.download_requested,
+      } : document;
+    }));
+  }, [existing, modal.isOpen]);
+
+  const readOnly = modal.mode === "view" || (modal.mode === "edit" && !repository.canEdit);
+  const categoryOptions = Array.from(new Set([...categoryDefaults, categoria].filter(Boolean)));
+  const responsibleOptions = Array.from(new Set([
+    ...repository.assignableUsers.map((user) => user.name),
+    responsable,
+  ].filter(Boolean)));
+  const relatedFamilies = levelTwo.filter((item) => item.parentId === partidaId);
+  const familyOptions = (relatedFamilies.length > 0 ? relatedFamilies : levelTwo)
+    .map((item) => item.name)
+    .filter((name, index, all) => all.indexOf(name) === index);
+  const galleryPhotos = repository.isOnline ? photos : photos.filter((photo) => photo.type === "new" || photo.availableOffline);
+  const currentPhoto = galleryPhotos[Math.min(galleryIndex, Math.max(galleryPhotos.length - 1, 0))];
+
+  useEffect(() => {
+    if (!modal.isOpen || modal.mode !== "view" || !repository.isOnline || !currentPhoto || currentPhoto.type !== "existing" || currentPhoto.availableOffline) return;
+    if (requestedPhotos.current.has(currentPhoto.id)) return;
+    requestedPhotos.current.add(currentPhoto.id);
+    void repository.makeAttachmentAvailableOffline(currentPhoto.id);
+  }, [currentPhoto, modal.isOpen, modal.mode, repository]);
+
+  const downloadAttachment = async (attachment: ManagedPhoto | ManagedDocument) => {
+    if (attachment.type !== "existing" || attachment.downloadRequested) return;
     try {
-      // Delete marked photos first (for edit mode)
-      if (mode === "edit" && photosToDelete.length > 0) {
-        for (const photoId of photosToDelete) {
-          await deletePhoto({ photoId: photoId as Id<"documentos"> });
-        }
+      const result = await repository.makeAttachmentAvailableOffline(attachment.id);
+      if (result === "queued") {
+        if ("description" in attachment) setPhotos((items) => items.map((item) => item.id === attachment.id ? { ...item, downloadRequested: true } : item));
+        else setDocuments((items) => items.map((item) => item.id === attachment.id ? { ...item, downloadRequested: true } : item));
+        toast.success("La descarga se iniciará al recuperar la conexión.");
+      } else {
+        toast.success("Archivo disponible para uso sin conexión.");
       }
-      
-      // Delete marked documents (for edit mode)
-      if (mode === "edit" && documentsToDelete.length > 0) {
-        for (const docId of documentsToDelete) {
-          await deletePhoto({ photoId: docId as Id<"documentos"> });
-        }
-      }
-      
-      // Upload new images with their descriptions
-      const imageData: { storageId: Id<"_storage">; description: string }[] = [];
-      const newPhotos = managedPhotos.filter(p => p.type === "new" && p.file);
-      
-      for (const photo of newPhotos) {
-        if (photo.file) {
-          const uploadUrl = await generateUploadUrl();
-          const result = await fetch(uploadUrl, {
-            method: "POST",
-            headers: { "Content-Type": photo.file.type },
-            body: photo.file,
-          });
-          const { storageId } = await result.json();
-          imageData.push({ storageId, description: photo.description });
-        }
-      }
-      
-      // Upload new documents
-      const documentData: { storageId: Id<"_storage">; name: string }[] = [];
-      const newDocs = managedDocuments.filter(d => d.type === "new" && d.file);
-      
-      for (const doc of newDocs) {
-        if (doc.file) {
-          const uploadUrl = await generateUploadUrl();
-          const result = await fetch(uploadUrl, {
-            method: "POST",
-            headers: { "Content-Type": doc.file.type },
-            body: doc.file,
-          });
-          const { storageId } = await result.json();
-          documentData.push({ storageId, name: doc.name });
-        }
-      }
-
-      if (mode === "create") {
-        await createLog({
-          proyecto: proyectoId,
-          categoria,
-          partida_id: selectedPartidaId as Id<"partidas">,
-          familias_tags: selectedFamiliasTags,
-          responsable,
-          fecha,
-          avance_dia: avanceDia,
-          comentarios,
-          status,
-          imagenes: imageData.length > 0 ? imageData.map(d => d.storageId) : undefined,
-          imagenesDescripciones: imageData.length > 0 ? imageData.map(d => d.description) : undefined,
-          documentos: documentData.length > 0 ? documentData.map(d => d.storageId) : undefined,
-          documentosNombres: documentData.length > 0 ? documentData.map(d => d.name) : undefined,
-        });
-      } else if (mode === "edit" && logEntry) {
-        await updateLog({
-          logId: logEntry._id,
-          categoria,
-          partida_id: selectedPartidaId as Id<"partidas">,
-          familias_tags: selectedFamiliasTags,
-          responsable,
-          fecha,
-          avance_dia: avanceDia,
-          comentarios,
-          status,
-          imagenes: imageData.length > 0 ? imageData.map(d => d.storageId) : undefined,
-          imagenesDescripciones: imageData.length > 0 ? imageData.map(d => d.description) : undefined,
-          documentos: documentData.length > 0 ? documentData.map(d => d.storageId) : undefined,
-          documentosNombres: documentData.length > 0 ? documentData.map(d => d.name) : undefined,
-        });
-      }
-      handleClose();
     } catch (error) {
-      console.error("Error saving log:", error);
-      alert("Error al guardar la entrada");
-    } finally {
-      setIsSubmitting(false);
+      toast.error(error instanceof Error ? error.message : "No se pudo descargar el archivo.");
     }
   };
 
-  const handleClose = () => {
-    setCategoria("");
-    setSelectedPartidaId("");
-    setSelectedFamiliasTags([]);
-    setResponsable("");
-    setFecha(new Date().toLocaleDateString("es-MX"));
-    setAvanceDia("");
-    setComentarios("");
-    setStatus("Sin problemas");
-    setManagedPhotos([]);
-    setPhotosToDelete([]);
-    setNewFiles([]);
+  const addPhotos = (files: FileList | null) => {
+    if (!files) return;
+    const created = Array.from(files).map((file, index): ManagedPhoto => ({
+      id: `new-photo-${Date.now()}-${index}`,
+      type: "new",
+      name: file.name,
+      url: URL.createObjectURL(file),
+      file,
+      description: "",
+      availableOffline: true,
+    }));
+    setPhotos((current) => [...current, ...created]);
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const addDocuments = (files: FileList | null) => {
+    if (!files) return;
+    const created = Array.from(files).map((file, index): ManagedDocument => ({
+      id: `new-document-${Date.now()}-${index}`,
+      type: "new",
+      name: file.name,
+      file,
+      availableOffline: true,
+    }));
+    setDocuments((current) => [...current, ...created]);
+    if (documentInputRef.current) documentInputRef.current.value = "";
+  };
+
+  const removePhoto = (photo: ManagedPhoto) => {
+    if (photo.type === "new" && photo.url) URL.revokeObjectURL(photo.url);
+    setPhotos((current) => current.filter((item) => item.id !== photo.id));
     setGalleryIndex(0);
-    setManagedDocuments([]);
-    setDocumentsToDelete([]);
-    setNewDocFiles([]);
-    onClose();
   };
 
-  const handlePartidaChange = (partidaId: string) => {
-    setSelectedPartidaId(partidaId);
-    // Reset familias when partida changes
-    setSelectedFamiliasTags([]);
+  const removeDocument = (document: ManagedDocument) => {
+    setDocuments((current) => current.filter((item) => item.id !== document.id));
   };
 
-  const toggleFamiliaTag = (familiaName: string) => {
-    setSelectedFamiliasTags(prev => 
-      prev.includes(familiaName)
-        ? prev.filter(f => f !== familiaName)
-        : [...prev, familiaName]
-    );
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (readOnly) return;
+    if (!categoria || !partidaId || !responsable.trim() || !fecha || !avance.trim()) {
+      toast.error("Completa categoría, partida, responsable, fecha y avance del día.");
+      return;
+    }
+    if (photos.some((photo) => !photo.description.trim())) {
+      toast.error("Agrega una descripción a todas las fotografías.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const newAttachments = [
+        ...photos.filter((photo) => photo.type === "new" && photo.file).map((photo) => ({ file: photo.file!, kind: "photo" as const, description: photo.description })),
+        ...documents.filter((document) => document.type === "new" && document.file).map((document) => ({ file: document.file!, kind: "document" as const })),
+      ];
+      const capacity = await repository.saveEntry({
+        entryClientId: modal.mode === "edit" ? existing?.client_id : undefined,
+        fields: {
+          categoria,
+          partidaId,
+          familiasTags: familias,
+          responsable: responsable.trim(),
+          fecha,
+          avanceDia: avance.trim(),
+          comentarios: comentarios.trim() || undefined,
+          status,
+        },
+        newAttachments,
+        keptAttachmentClientIds: [
+          ...photos.filter((photo) => photo.type === "existing").map((photo) => photo.id),
+          ...documents.filter((document) => document.type === "existing").map((document) => document.id),
+        ],
+        attachmentUpdates: [
+          ...photos.filter((photo) => photo.type === "existing").map((photo) => ({ clientId: photo.id, description: photo.description })),
+          ...documents.filter((document) => document.type === "existing").map((document) => ({ clientId: document.id, name: document.name })),
+        ],
+      });
+      modal.onClose();
+      toast.success(repository.isOnline ? "Guardado localmente; se sincronizará enseguida." : "Guardado localmente sin conexión.");
+      if (capacity.warning) toast.warning("El almacenamiento local superará el 70% de su cuota.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el reporte.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // Get unique familia names for the selected partida
-  const availableFamilias = familias?.filter(f => {
-    // For nivel 2, we want to match partida_nombre to the selected partida
-    const selectedPartida = partidas?.find(p => p._id === selectedPartidaId);
-    return f.partida_nombre === selectedPartida?.nombre;
-  }).map(f => f.familia).filter((v, i, a) => a.indexOf(v) === i) || [];
+  const close = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    modal.onClose();
+  };
 
-  if (!isOpen) return null;
+  const toggleFullscreen = async () => {
+    if (!imageContainerRef.current) return;
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await imageContainerRef.current.requestFullscreen();
+    } catch {
+      toast.error("El navegador no permitió abrir la imagen en pantalla completa.");
+    }
+  };
 
-  const isViewMode = mode === "view";
-
-  // Single-source title to avoid adjacent `{cond && "text"}` text-nodes which
-  // can break React reconciliation when a browser translation extension
-  // (e.g. Chrome Translate) mutates the DOM.
-  const modalTitle =
-    mode === "create"
-      ? "Nueva Entrada de Bitácora"
-      : mode === "edit"
-        ? "Editar Entrada"
-        : "Detalle de Entrada";
+  const modalTitle = modal.mode === "create" ? "Nueva Entrada de Bitácora" : modal.mode === "edit" ? "Editar Entrada" : "Detalle de Entrada";
 
   return (
-    // translate="no" and the `notranslate` class tell Chrome/Google Translate
-    // NOT to mutate the contents of this modal. Translation extensions wrap
-    // text nodes in `<font>` elements which makes React throw
-    // "Failed to execute 'removeChild' on 'Node'" when it tries to update
-    // those nodes later.
-    <div
-      className="fixed inset-0 bg-inverse bg-opacity-50 flex items-center justify-center z-50 p-4 notranslate"
-      translate="no"
-    >
-      <div className="bg-card rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
+    <Dialog open={modal.isOpen} onOpenChange={(open) => !open && close()}>
+      <DialogContent
+        data-bitacora-surface="true"
+        translate="no"
+        className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-6xl flex-col gap-0 overflow-hidden rounded-lg border-0 bg-card p-0 shadow-xl sm:rounded-lg [&>button]:hidden"
+      >
+        <header className="flex shrink-0 items-center justify-between border-b border-border px-5 py-5 md:px-9 md:py-8">
           <div>
-            <h2 className="text-2xl font-bold text-foreground">
-              <span>{modalTitle}</span>
-            </h2>
-            <p className="text-sm text-subtle-foreground mt-1">
-              <span>
-                {mode === "view"
-                  ? "Visualización de registro"
-                  : "Registro diario de avance"}
-              </span>
-            </p>
+            <DialogTitle className="text-2xl font-bold text-foreground md:text-3xl">{modalTitle}</DialogTitle>
+            <DialogDescription className="mt-1 text-sm text-subtle-foreground md:mt-2 md:text-lg">{modal.mode === "view" ? "Visualización de registro" : "Registro diario de avance"}</DialogDescription>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5 text-subtle-foreground" />
-          </button>
-        </div>
+          <button type="button" onClick={close} className="p-2 text-subtle-foreground hover:bg-muted" aria-label="Cerrar modal"><X className="h-5 w-5" /></button>
+        </header>
 
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-          <div className="space-y-6">
-            {/* Categoria Selection */}
-            <div>
-              <Label>
-                Categoría <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={categoria}
-                onValueChange={setCategoria}
-                disabled={isViewMode}
-                required
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona una categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Estructura">Estructura</SelectItem>
-                  <SelectItem value="Instalaciones">Instalaciones</SelectItem>
-                  <SelectItem value="Acabados">Acabados</SelectItem>
-                  <SelectItem value="Seguridad">Seguridad</SelectItem>
-                  <SelectItem value="Generales">Generales</SelectItem>
-                </SelectContent>
+        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-5 text-left md:p-9">
+            {!repository.isOnline && <div className="flex items-center gap-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"><WifiOff className="h-4 w-4" />Los cambios y archivos se guardarán en este dispositivo.</div>}
+
+            <div className="space-y-2">
+              <Label>Categoría <span className="text-red-500">*</span></Label>
+              <Select value={categoria} onValueChange={setCategoria} disabled={readOnly}>
+                <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
+                <SelectContent>{categoryOptions.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent>
               </Select>
             </div>
 
-            {/* Partida Selection / Display */}
-            <div>
-              <Label>
-                Partida (Nivel 1) <span className="text-red-500">*</span>
-              </Label>
-              {isViewMode ? (
-                <Input
-                  value={partidas?.find(p => p._id === selectedPartidaId)?.nombre || "N/A"}
-                  disabled
-                />
-              ) : (
-                <Select
-                  value={selectedPartidaId}
-                  onValueChange={handlePartidaChange}
-                  required
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona una partida" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {partidas?.map((partida) => (
-                      <SelectItem key={partida._id} value={partida._id}>
-                        {partida.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+            <div className="space-y-2">
+              <Label>Partida (Nivel 1) <span className="text-red-500">*</span></Label>
+              {modal.mode === "view" ? <Input value={levelOne.find((item) => item.id === partidaId)?.name || existing?.departamento || "N/A"} disabled /> : (
+                <Select value={partidaId} onValueChange={(value) => { setPartidaId(value); setFamilias([]); }} disabled={readOnly}>
+                  <SelectTrigger id="bitacora-partida"><SelectValue placeholder="Selecciona una partida" /></SelectTrigger>
+                  <SelectContent>{levelOne.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
                 </Select>
               )}
             </div>
 
-            {/* Familias Tags Display / Selection */}
-            {selectedPartidaId && (isViewMode ? selectedFamiliasTags.length > 0 : availableFamilias.length > 0) && (
-              <div>
-                <Label className="block text-sm font-medium text-foreground mb-2">
-                  Familias (Tags)
-                </Label>
-                {isViewMode ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedFamiliasTags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-background text-foreground border border-border"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="border border-border-strong rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
-                    {availableFamilias.map((familia) => (
-                      <div key={familia} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`familia-${familia}`}
-                          checked={selectedFamiliasTags.includes(familia)}
-                          onCheckedChange={() => toggleFamiliaTag(familia)}
-                        />
-                        <label
-                          htmlFor={`familia-${familia}`}
-                          className="text-sm text-foreground cursor-pointer"
-                        >
-                          {familia}
-                        </label>
-                      </div>
-                    ))}
+            {partidaId && (readOnly ? familias.length > 0 : familyOptions.length > 0) && (
+              <div className="space-y-2">
+                <Label>Familias (Tags)</Label>
+                {readOnly ? <div className="flex flex-wrap gap-2">{familias.map((tag) => <span key={tag} className="rounded-full border border-border px-3 py-1 text-xs font-medium">{tag}</span>)}</div> : (
+                  <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-border-strong p-3">
+                    {familyOptions.map((family) => <label key={family} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={familias.includes(family)} onCheckedChange={() => setFamilias((current) => current.includes(family) ? current.filter((item) => item !== family) : [...current, family])} />{family}</label>)}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Date and Responsible */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>
-                  Fecha <span className="text-red-500">*</span>
-                </Label>
-                {isViewMode ? (
-                  <Input value={fecha} disabled />
-                ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Fecha <span className="text-red-500">*</span></Label>
+                {modal.mode === "view" ? <Input value={fecha} disabled /> : (
                   <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !fecha && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {fecha || "Selecciona una fecha"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={parseDate(fecha)}
-                        onSelect={(date) => {
-                          if (date) {
-                            setFecha(formatDateToString(date));
-                            setCalendarOpen(false);
-                          }
-                        }}
-                        locale={es}
-                        initialFocus
-                      />
-                    </PopoverContent>
+                    <PopoverTrigger asChild><Button type="button" variant="outline" className={cn("w-full justify-start text-left font-normal", !fecha && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{fecha || "Selecciona una fecha"}</Button></PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={parseDate(fecha)} onSelect={(value) => { if (value) { setFecha(formatDate(value)); setCalendarOpen(false); } }} locale={es} initialFocus /></PopoverContent>
                   </Popover>
                 )}
               </div>
-              <div>
-                <Label>
-                  Responsable <span className="text-red-500">*</span>
-                </Label>
-                {isAdmin && mode === "edit" && allUsers ? (
-                  <Select
-                    value={responsable}
-                    onValueChange={setResponsable}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecciona un responsable" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allUsers.map((user) => (
-                        <SelectItem key={user._id} value={user.name}>
-                          {user.name} ({user.email})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    type="text"
-                    value={responsable}
-                    onChange={(e) => setResponsable(e.target.value)}
-                    disabled={true}
-                    placeholder="Nombre del responsable"
-                    required
-                  />
-                )}
+              <div className="space-y-2">
+                <Label>Responsable <span className="text-red-500">*</span></Label>
+                {repository.canEdit && modal.mode === "edit" && responsibleOptions.length > 0 ? (
+                  <Select value={responsable} onValueChange={setResponsable}><SelectTrigger><SelectValue placeholder="Selecciona un responsable" /></SelectTrigger><SelectContent>{responsibleOptions.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>
+                ) : <Input value={responsable} onChange={(event) => setResponsable(event.target.value)} disabled={modal.mode === "view" || modal.mode === "edit"} />}
               </div>
             </div>
 
-            {/* Status */}
-            <div>
-              <Label>
-                Estado <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={status}
-                onValueChange={setStatus}
-                disabled={isViewMode}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona el estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Sin problemas">Sin problemas</SelectItem>
-                  <SelectItem value="Con retrasos">Con retrasos</SelectItem>
-                  <SelectItem value="Problemas críticos">Problemas críticos</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label>Estado <span className="text-red-500">*</span></Label>
+              <Select value={status} onValueChange={setStatus} disabled={readOnly}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from(new Set(["Sin problemas", "Con retrasos", "Problemas críticos", status].filter(Boolean))).map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select>
             </div>
 
-            {/* Comentarios / Retos */}
-            { status !== "Sin problemas" && (
-            <div>
-              <Label className="block text-sm font-medium text-foreground mb-2">
-                Retos / Incidencias
-              </Label>
-              <Textarea
-                value={comentarios}
-                onChange={(e) => setComentarios(e.target.value)}
-                disabled={isViewMode}
-                placeholder="Describe los retos o incidencias del día..."
-                rows={3}
-                className="resize-none"
-              />
-            </div>
-            )}
-            {/* Daily Progress */}
-            <div>
-              <Label className="block text-sm font-medium text-foreground mb-2">
-                Avance del día <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                value={avanceDia}
-                onChange={(e) => setAvanceDia(e.target.value)}
-                disabled={isViewMode}
-                placeholder={`TORRE G:\nCIMBRADO DE LOSA 2DO NIVEL 65%\nARMADO DE LOSA 2DO NIVEL 45%\nCIMBRADO DE CASTILLOS 100%, SE VACIA CONCRETO 25 DE SEPTIEMBRE`}
-                rows={8}
-                className="w-full px-4 py-2 border border-border-strong rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent resize-none font-mono text-sm disabled:bg-muted"
-                required
-              />
-              <p className="text-xs text-subtle-foreground mt-1">
-                Describe el avance detallado del día. Puedes usar líneas separadas para cada actividad.
-              </p>
+            {(status !== "Sin problemas" || comentarios) && <div className="space-y-2"><Label>Retos / Incidencias</Label><Textarea value={comentarios} onChange={(event) => setComentarios(event.target.value)} disabled={readOnly} rows={3} className="resize-none" placeholder="Describe los retos o incidencias del día…" /></div>}
+
+            <div className="space-y-2">
+              <Label>Avance del día <span className="text-red-500">*</span></Label>
+              <Textarea id="bitacora-avance" value={avance} onChange={(event) => setAvance(event.target.value)} disabled={readOnly} rows={8} className="resize-none font-mono text-sm" placeholder={"TORRE I\nINSTALACIÓN DE ACCESORIOS 80%"} />
+              <p className="text-xs text-subtle-foreground">Describe el avance detallado del día. Puedes usar líneas separadas para cada actividad.</p>
             </div>
 
-            {/* Photos Section */}
-            <div>
-              <Label className="block text-sm font-medium text-foreground mb-2">
-                Fotografías {managedPhotos.length > 0 && `(${managedPhotos.length})`}
-              </Label>
-              
-              {/* View Mode - Gallery */}
-              {isViewMode && managedPhotos.length > 0 && (
+            <section className="space-y-3">
+              <Label className="block text-sm font-medium">Fotografías {photos.length > 0 && `(${photos.length})`}</Label>
+              {modal.mode === "view" && galleryPhotos.length > 0 && currentPhoto && (
                 <div className="space-y-3">
-                  {/* Main Image */}
-                  <div 
-                    ref={imageContainerRef}
-                    className={`relative bg-muted rounded-lg overflow-hidden ${isFullscreen ? "flex items-center justify-center bg-inverse" : ""}`}
-                  >
-                    <img
-                      src={managedPhotos[galleryIndex]?.url}
-                      alt="Foto de bitácora"
-                      className={`w-full object-contain ${isFullscreen ? "h-screen" : "h-64"}`}
-                    />
-                    
-                    {/* Fullscreen button */}
-                    <button
-                      type="button"
-                      onClick={handleFullscreen}
-                      className="absolute top-2 right-2 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors z-10"
-                    >
-                      {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                    </button>
-                    
-                    {/* Navigation arrows */}
-                    {managedPhotos.length > 1 && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handlePreviousPhoto}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleNextPhoto}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-overlay/50 hover:bg-overlay/70 text-on-color rounded-full transition-colors"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      </>
-                    )}
-                    
-                    {/* Photo counter */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-overlay/60 text-on-color text-xs px-3 py-1 rounded-full">
-                      {galleryIndex + 1} / {managedPhotos.length}
-                    </div>
+                  <div ref={imageContainerRef} className={`relative flex h-[min(42vh,24rem)] items-center justify-center overflow-hidden rounded-lg bg-muted ${isFullscreen ? "h-screen bg-inverse" : ""}`}>
+                    {currentPhoto.url ? <img src={currentPhoto.url} alt={currentPhoto.description || currentPhoto.name} className="h-full w-full object-contain" /> : <ImageOff className="h-8 w-8 text-muted-foreground" />}
+                    <button type="button" onClick={() => void toggleFullscreen()} className="absolute right-3 top-3 bg-overlay/50 p-2 text-on-color hover:bg-overlay/70" aria-label={isFullscreen ? "Salir de pantalla completa" : "Ver en pantalla completa"}>{isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</button>
+                    {galleryPhotos.length > 1 && <><button type="button" onClick={() => setGalleryIndex((value) => (value - 1 + galleryPhotos.length) % galleryPhotos.length)} className="absolute left-3 top-1/2 -translate-y-1/2 bg-overlay/45 p-3 text-on-color" aria-label="Foto anterior"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={() => setGalleryIndex((value) => (value + 1) % galleryPhotos.length)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-overlay/45 p-3 text-on-color" aria-label="Foto siguiente"><ChevronRight className="h-5 w-5" /></button></>}
+                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-overlay/60 px-3 py-1 text-xs text-on-color">{galleryIndex + 1} / {galleryPhotos.length}</span>
                   </div>
-                  
-                  {/* Thumbnails */}
-                  {managedPhotos.length > 1 && (
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      {managedPhotos.map((photo, index) => (
-                        <button
-                          key={photo.id}
-                          type="button"
-                          onClick={() => setGalleryIndex(index)}
-                          className={`flex-shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 transition-colors ${
-                            index === galleryIndex ? "border-foreground" : "border-transparent hover:border-border-strong"
-                          }`}
-                        >
-                          <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">{currentPhoto.description}</p>
+                  {galleryPhotos.length > 1 && <div className="flex gap-2 overflow-x-auto overflow-y-hidden pb-2">{galleryPhotos.map((photo, index) => { const source = photo.availableOffline || photo.type === "new" ? photo.url : photo.thumbnailUrl; return <button key={photo.id} type="button" onClick={() => setGalleryIndex(index)} className={`h-20 w-24 shrink-0 overflow-hidden border-2 ${index === galleryIndex ? "border-foreground" : "border-transparent"}`}>{source ? <img src={source} alt="" className={`h-full w-full object-cover ${!photo.availableOffline && photo.thumbnailUrl ? "blur-sm" : ""}`} /> : <span className="flex h-full items-center justify-center bg-muted"><ImageOff className="h-5 w-5" /></span>}</button>; })}</div>}
                 </div>
               )}
-              
-              {isViewMode && managedPhotos.length === 0 && (
-                <p className="text-sm text-muted-foreground">Sin fotografías</p>
-              )}
-              
-              {/* Edit/Create Mode - Unified Photo Management */}
-              {!isViewMode && (
-                <div className="space-y-4">
-                  {/* Upload area */}
-                  <div 
-                    className="border-2 border-dashed border-border-strong rounded-lg p-6 text-center hover:border-border-strong transition-colors cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="h-6 w-6 text-disabled-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Haz clic para agregar fotos
-                    </p>
-                    <p className="text-xs text-subtle-foreground">
-                      PNG, JPG, JPEG hasta 10MB
-                    </p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                  </div>
-                  
-                  {/* All photos with descriptions */}
-                  {managedPhotos.length > 0 && (
-                    <div className="space-y-4">
-                      {managedPhotos.map((photo, index) => (
-                        <div key={photo.id} className="border border-border rounded-lg p-3">
-                          <div className="flex gap-3">
-                            {/* Photo thumbnail */}
-                            <div className="relative flex-shrink-0">
-                              <img
-                                src={photo.url}
-                                alt="Foto"
-                                className="w-24 h-24 object-cover rounded-md border border-border"
-                              />
-                              {/* Type badge */}
-                              {photo.type === "new" && (
-                                <div className="absolute bottom-1 left-1 bg-green-500 text-on-color text-[10px] px-1.5 py-0.5 rounded">
-                                  Nueva
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Description input */}
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label className="text-sm font-medium">
-                                  Descripción de foto {index + 1} <span className="text-red-500">*</span>
-                                </Label>
-                                <button
-                                  type="button"
-                                  onClick={() => removePhoto(photo)}
-                                  className="p-1.5 hover:bg-red-100 rounded-full transition-colors"
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </button>
-                              </div>
-                              <Textarea
-                                value={photo.description}
-                                onChange={(e) => updatePhotoDescription(photo.id, e.target.value)}
-                                placeholder="Describe qué muestra esta fotografía..."
-                                className={`resize-none text-sm ${!photo.description.trim() ? "border-red-300" : ""}`}
-                                rows={2}
-                                required
-                              />
-                              {!photo.description.trim() && (
-                                <p className="text-xs text-red-500">La descripción es requerida</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Summary */}
-                  {(managedPhotos.length > 0 || photosToDelete.length > 0) && (
-                    <p className="text-xs text-muted-foreground">
-                      {managedPhotos.filter(p => p.type === "existing").length} existentes
-                      {newFiles.length > 0 && `, ${newFiles.length} nuevas`}
-                      {photosToDelete.length > 0 && ` (${photosToDelete.length} se eliminarán al guardar)`}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+              {modal.mode === "view" && galleryPhotos.length === 0 && <p className="text-sm text-muted-foreground">Sin fotografías descargadas disponibles.</p>}
 
-            {/* Documents Section */}
-            <div>
-              <Label className="block text-sm font-medium text-foreground mb-2">
-                Documentos {managedDocuments.length > 0 && `(${managedDocuments.length})`}
-              </Label>
-              
-              {/* View Mode - Document List */}
-              {isViewMode && managedDocuments.length > 0 && (
-                <div className="space-y-2">
-                  {managedDocuments.map((doc) => (
-                    <a
-                      key={doc.id}
-                      href={doc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-3 bg-background rounded-lg border border-border hover:bg-muted transition-colors"
-                    >
-                      <FileText className="h-5 w-5 text-subtle-foreground" />
-                      <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
-                    </a>
+              {!readOnly && (
+                <div className="space-y-4">
+                  <button type="button" onClick={() => photoInputRef.current?.click()} className="w-full rounded-lg border-2 border-dashed border-border-strong px-6 py-8 text-center hover:bg-muted/30"><Upload className="mx-auto mb-2 h-7 w-7 text-disabled-foreground" /><span className="block text-sm text-muted-foreground md:text-base">Haz clic para agregar fotos</span><span className="mt-1 block text-xs text-subtle-foreground md:text-sm">PNG, JPG, JPEG hasta 10MB</span></button>
+                  <input ref={photoInputRef} type="file" multiple accept="image/jpeg,image/png" className="hidden" onChange={(event) => addPhotos(event.target.files)} />
+                  {photos.map((photo, index) => (
+                    <div key={photo.id} className="rounded-lg border border-border p-4">
+                      <div className="flex flex-col gap-4 sm:flex-row">
+                        <div className="shrink-0">{photo.type === "new" && photo.url ? <img src={photo.url} alt="" className="h-24 w-24 rounded-md border border-border object-cover md:h-36 md:w-36" /> : <ExistingPhotoPreview photo={photo} online={repository.isOnline} onDownload={() => void downloadAttachment(photo)} />}</div>
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="flex items-center justify-between gap-3"><Label>Descripción de foto {index + 1} <span className="text-red-500">*</span></Label><button type="button" onClick={() => removePhoto(photo)} className="p-1.5 text-red-500 hover:bg-red-50" aria-label="Eliminar fotografía"><Trash2 className="h-4 w-4" /></button></div>
+                          <Textarea value={photo.description} onChange={(event) => setPhotos((current) => current.map((item) => item.id === photo.id ? { ...item, description: event.target.value } : item))} rows={4} className={cn("resize-none text-sm", !photo.description.trim() && "border-red-300")} placeholder="Describe qué muestra esta fotografía…" />
+                          {!photo.description.trim() && <p className="text-xs text-red-500">La descripción es requerida.</p>}
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
-              
-              {isViewMode && managedDocuments.length === 0 && (
-                <p className="text-sm text-muted-foreground">Sin documentos</p>
-              )}
-              
-              {/* Edit/Create Mode - Document Management */}
-              {!isViewMode && (
-                <div className="space-y-4">
-                  {/* Upload area */}
-                  <div 
-                    className="border-2 border-dashed border-border-strong rounded-lg p-6 text-center hover:border-border-strong transition-colors cursor-pointer"
-                    onClick={() => docFileInputRef.current?.click()}
-                  >
-                    <FileText className="h-6 w-6 text-disabled-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Haz clic para agregar documentos
-                    </p>
-                    <p className="text-xs text-subtle-foreground">
-                      PDF, DOC, DOCX, XLS, XLSX hasta 10MB
-                    </p>
-                    <input
-                      ref={docFileInputRef}
-                      type="file"
-                      multiple
-                      accept=".pdf,.doc,.docx,.xls,.xlsx"
-                      className="hidden"
-                      onChange={handleDocFileChange}
-                    />
-                  </div>
-                  
-                  {/* Document list */}
-                  {managedDocuments.length > 0 && (
-                    <div className="space-y-2">
-                      {managedDocuments.map((doc) => (
-                        <div key={doc.id} className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border">
-                          <FileText className="h-5 w-5 text-subtle-foreground flex-shrink-0" />
-                          <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
-                          {doc.type === "new" && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-green-500 text-on-color rounded">
-                              Nuevo
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => removeDocument(doc)}
-                            className="p-1.5 hover:bg-red-100 rounded-full transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Summary */}
-                  {(managedDocuments.length > 0 || documentsToDelete.length > 0) && (
-                    <p className="text-xs text-muted-foreground">
-                      {managedDocuments.filter(d => d.type === "existing").length} existentes
-                      {newDocFiles.length > 0 && `, ${newDocFiles.length} nuevos`}
-                      {documentsToDelete.length > 0 && ` (${documentsToDelete.length} se eliminarán al guardar)`}
-                    </p>
-                  )}
+            </section>
+
+            <section className="space-y-3">
+              <Label className="block text-sm font-medium">Documentos {documents.length > 0 && `(${documents.length})`}</Label>
+              {modal.mode === "view" && documents.map((document) => {
+                const canOpen = document.availableOffline || repository.isOnline;
+                return <div key={document.id} className="flex items-center gap-2 border border-border p-3 text-sm"><FileText className="h-5 w-5 shrink-0 text-subtle-foreground" />{canOpen && document.url ? <a href={document.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate hover:underline">{document.name}</a> : <span className="min-w-0 flex-1 truncate text-muted-foreground">{document.name}</span>}{!document.availableOffline && <Button type="button" size="icon" variant="ghost" onClick={() => void downloadAttachment(document)} aria-label="Guardar documento offline"><Download className="h-4 w-4" /></Button>}</div>;
+              })}
+              {modal.mode === "view" && documents.length === 0 && <p className="text-sm text-muted-foreground">Sin documentos.</p>}
+              {!readOnly && (
+                <div className="space-y-3">
+                  <button type="button" onClick={() => documentInputRef.current?.click()} className="w-full rounded-lg border-2 border-dashed border-border-strong p-6 text-center hover:bg-muted/30"><FileText className="mx-auto mb-2 h-6 w-6 text-disabled-foreground" /><span className="block text-sm text-muted-foreground">Haz clic para agregar documentos</span><span className="mt-1 block text-xs text-subtle-foreground">PDF, DOC, DOCX, XLS, XLSX hasta 10MB</span></button>
+                  <input ref={documentInputRef} type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx" className="hidden" onChange={(event) => addDocuments(event.target.files)} />
+                  {documents.map((document) => <div key={document.id} className="flex items-center gap-3 rounded-lg border border-border p-3"><FileText className="h-5 w-5 shrink-0 text-subtle-foreground" /><span className="min-w-0 flex-1 truncate text-sm">{document.name}</span>{document.type === "new" && <span className="bg-green-50 px-2 py-1 text-[10px] text-green-700">Nuevo</span>}<button type="button" onClick={() => removeDocument(document)} className="p-1.5 text-red-500 hover:bg-red-50" aria-label="Eliminar documento"><Trash2 className="h-4 w-4" /></button></div>)}
                 </div>
               )}
-            </div>
+            </section>
           </div>
+
+          <footer className="flex shrink-0 items-center justify-end gap-3 border-t border-border bg-background p-4 md:px-6">
+            {modal.mode === "view" ? <Button type="button" onClick={close}>Cerrar</Button> : <><Button type="button" variant="outline" onClick={close} disabled={submitting}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{modal.mode === "create" ? "Crear Entrada" : "Guardar Cambios"}</Button></>}
+          </footer>
         </form>
-
-        {/* Footer */}
-        {!isViewMode && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-border bg-background">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 border border-border-strong rounded-lg hover:bg-background transition-colors disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-inverse text-on-color rounded-lg hover:bg-inverse transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {mode === "create" ? "Crear Entrada" : "Guardar Cambios"}
-            </button>
-          </div>
-        )}
-
-        {isViewMode && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-border bg-background">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-4 py-2 bg-inverse text-on-color rounded-lg hover:bg-inverse transition-colors"
-            >
-              Cerrar
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -54,17 +54,23 @@ import RFIListPage from "./pages/RFIs/RFIListPage.tsx";
 import RFINewPage from "./pages/RFIs/RFINewPage.tsx";
 import RFIDetailPage from "./pages/RFIs/RFIDetailPage.tsx";
 import ProfitAndLossPage from "./pages/ProfitAndLoss/ProfitAndLossPage.tsx";
+import { findValidOfflineProfile } from "./lib/bitacora-offline/db.ts";
+import { OfflineAccessBlocked, OfflineBitacoraApp } from "./pages/Bitacora/OfflineBitacoraApp.tsx";
+import PwaUpdatePrompt from "./components/pwa/PwaUpdatePrompt.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
 // Get Clerk publishable key from environment
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const BITACORA_OFFLINE_ENABLED = import.meta.env.VITE_BITACORA_OFFLINE_ENABLED !== "false";
 
 if (!CLERK_PUBLISHABLE_KEY) {
   console.warn("Missing VITE_CLERK_PUBLISHABLE_KEY. Authentication will not work.");
 }
 
-createRoot(document.getElementById("root")!).render(
+const root = createRoot(document.getElementById("root")!);
+
+const onlineApplication = (
   <StrictMode>
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY || ""}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
@@ -304,3 +310,27 @@ createRoot(document.getElementById("root")!).render(
     </ClerkProvider>
   </StrictMode>
 );
+
+async function bootstrapApplication() {
+  if (navigator.onLine) {
+    root.render(<>{onlineApplication}<PwaUpdatePrompt /></>);
+    return;
+  }
+
+  const match = window.location.pathname.match(/^\/proyecto\/([^/]+)\/bitacora\/?$/);
+  if (!match || !BITACORA_OFFLINE_ENABLED) {
+    root.render(<StrictMode><OfflineAccessBlocked /><PwaUpdatePrompt /></StrictMode>);
+    return;
+  }
+
+  const projectId = decodeURIComponent(match[1]);
+  const profile = await findValidOfflineProfile(projectId);
+  if (!profile) {
+    root.render(<StrictMode><OfflineAccessBlocked expired /><PwaUpdatePrompt /></StrictMode>);
+    return;
+  }
+
+  root.render(<StrictMode><OfflineBitacoraApp projectId={projectId} profile={profile} /><PwaUpdatePrompt /></StrictMode>);
+}
+
+void bootstrapApplication();

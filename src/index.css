@@ -304,6 +304,14 @@
     @apply bg-background text-foreground;
   }
 
+  body:has([data-bitacora-surface="true"]) {
+    overflow: hidden;
+  }
+
+  body:has([data-bitacora-surface="true"]) [data-dashboard-scroll="true"] {
+    overflow: hidden;
+  }
+
   :where(button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"]) {
     border-radius: 0 !important;
   }

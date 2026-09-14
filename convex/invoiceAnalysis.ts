@@ -9,6 +9,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
+import { updateProviderStatsForTransactionChange } from "./providerStats";
 import {
   assertCanWrite,
   assertInvoiceReviewer,
@@ -897,6 +898,11 @@ export const approveDirectInvoice = mutation({
       status: args.transaction.status,
       codigo_referencia: args.transaction.codigo_referencia?.trim() || undefined,
       factura: (invoice.folio || invoice.uuid || `Factura ${String(invoice._id).slice(-8)}`).slice(0, 240),
+    });
+    await updateProviderStatsForTransactionChange(ctx, null, {
+      proveedor_id: provider._id,
+      proyecto: invoice.proyecto,
+      monto_total: transactionTotal,
     });
 
     for (const submitted of args.items) {

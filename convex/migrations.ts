@@ -1,10 +1,127 @@
 import { internalMutation } from "./functions";
+import { internal } from "./_generated/api";
+import { paginationOptsValidator } from "convex/server";
+import { v } from "convex/values";
 import {
   cleanOptional,
   isGenericProviderName,
   normalizeProviderName,
   normalizeRfc,
 } from "./providerUtils";
+import {
+  providerListMetadata,
+  syncProviderListMetadata,
+  updateProviderStatsForTransactionChange,
+} from "./providerStats";
+
+/**
+ * Phase 1 of the provider statistics migration. Run page by page until isDone,
+ * then run backfillProviderStatsFromTransactions from a null cursor.
+ */
+export const resetProviderStatsPage = internalMutation({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const page = await ctx.db.query("proveedores").paginate(args.paginationOpts);
+    for (const provider of page.page) {
+      const projectStats = await ctx.db
+        .query("provider_project_stats")
+        .withIndex("by_provider", (q) => q.eq("provider_id", provider._id))
+        .collect();
+      for (const stat of projectStats) await ctx.db.delete(stat._id);
+      const metadata = providerListMetadata(provider);
+      await ctx.db.patch(provider._id, {
+        stats_transaction_count: 0,
+        stats_total_amount: 0,
+        stats_project_count: 0,
+        stats_initialized_at: Date.now(),
+        list_search_text: metadata.searchText,
+        list_is_complete: metadata.isComplete,
+        list_is_archived: metadata.isArchived,
+        list_is_generic: metadata.isGeneric,
+      });
+      await syncProviderListMetadata(ctx, provider._id);
+    }
+    return {
+      processed: page.page.length,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
+  },
+});
+
+/** Phase 2: rebuilds materialized aggregates without ever collecting all transactions. */
+export const backfillProviderStatsFromTransactions = internalMutation({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const page = await ctx.db.query("transacciones").paginate(args.paginationOpts);
+    for (const transaction of page.page) {
+      await updateProviderStatsForTransactionChange(ctx, null, transaction);
+    }
+    return {
+      processed: page.page.length,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
+  },
+});
+
+/**
+ * Scheduled, bounded rebuild for production data. Start it once with no args;
+ * each invocation processes a small page and schedules the next one.
+ */
+export const rebuildProviderStats = internalMutation({
+  args: {
+    phase: v.optional(v.union(v.literal("reset"), v.literal("transactions"))),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const phase = args.phase || "reset";
+    if (phase === "reset") {
+      const page = await ctx.db.query("proveedores").paginate({
+        cursor: args.cursor || null,
+        numItems: 25,
+      });
+      for (const provider of page.page) {
+        const projectStats = await ctx.db
+          .query("provider_project_stats")
+          .withIndex("by_provider", (q) => q.eq("provider_id", provider._id))
+          .collect();
+        for (const stat of projectStats) await ctx.db.delete(stat._id);
+        const metadata = providerListMetadata(provider);
+        await ctx.db.patch(provider._id, {
+          stats_transaction_count: 0,
+          stats_total_amount: 0,
+          stats_project_count: 0,
+          stats_initialized_at: Date.now(),
+          list_search_text: metadata.searchText,
+          list_is_complete: metadata.isComplete,
+          list_is_archived: metadata.isArchived,
+          list_is_generic: metadata.isGeneric,
+        });
+        await syncProviderListMetadata(ctx, provider._id);
+      }
+      await ctx.scheduler.runAfter(0, internal.migrations.rebuildProviderStats, page.isDone
+        ? { phase: "transactions", cursor: null }
+        : { phase: "reset", cursor: page.continueCursor });
+      return { phase, processed: page.page.length, isDone: false };
+    }
+
+    const page = await ctx.db.query("transacciones").paginate({
+      cursor: args.cursor || null,
+      numItems: 100,
+    });
+    for (const transaction of page.page) {
+      await updateProviderStatsForTransactionChange(ctx, null, transaction);
+    }
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.rebuildProviderStats, {
+        phase: "transactions",
+        cursor: page.continueCursor,
+      });
+    }
+    return { phase, processed: page.page.length, isDone: page.isDone };
+  },
+});
 
 /**
  * One-time migration: Populate moneda_principal field for all existing projects

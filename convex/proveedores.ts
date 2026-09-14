@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import {
   assertAdmin,
@@ -21,6 +22,11 @@ import {
   markInvoicesStaleForProvider,
   markInvoicesStaleForTransaction,
 } from "./invoiceIntegrity";
+import {
+  providerListMetadata,
+  syncProviderListMetadata,
+  updateProviderStatsForTransactionChange,
+} from "./providerStats";
 
 const providerTypeValidator = v.union(v.literal("regular"), v.literal("generico"));
 
@@ -114,45 +120,151 @@ export const getAll = query(async (ctx) => {
   );
 });
 
-export const getAllWithStats = query({
+const providerSortValidator = v.union(
+  v.literal("name"),
+  v.literal("transactions"),
+  v.literal("projects"),
+  v.literal("amount"),
+);
+const providerSortDirectionValidator = v.union(v.literal("asc"), v.literal("desc"));
+const providerStatusFilterValidator = v.union(
+  v.literal("all"),
+  v.literal("active"),
+  v.literal("archived"),
+  v.literal("incomplete"),
+  v.literal("generic"),
+);
+
+export const getPaginatedWithStats = query({
   args: {
-    include_archived: v.optional(v.boolean()),
+    paginationOpts: paginationOptsValidator,
     proyecto_id: v.optional(v.id("desarrollos")),
+    search: v.optional(v.string()),
+    status: providerStatusFilterValidator,
+    sort: providerSortValidator,
+    direction: providerSortDirectionValidator,
   },
   handler: async (ctx, args) => {
     await assertAdmin(ctx);
-    const [providers, transactions] = await Promise.all([
-      ctx.db.query("proveedores").collect(),
-      ctx.db.query("transacciones").collect(),
-    ]);
+    const search = args.search ? normalizeProviderName(args.search) : undefined;
+    const matchesStatus = (row: {
+      is_archived?: boolean;
+      is_complete?: boolean;
+      is_generic?: boolean;
+    }) => args.status === "all"
+      || (args.status === "active" && !row.is_archived)
+      || (args.status === "archived" && Boolean(row.is_archived))
+      || (args.status === "incomplete" && !row.is_complete && !row.is_generic)
+      || (args.status === "generic" && Boolean(row.is_generic));
 
-    const stats = new Map<string, { count: number; amount: number; projects: Set<string> }>();
-    for (const transaction of transactions) {
-      if (args.proyecto_id && transaction.proyecto !== args.proyecto_id) continue;
-      if (!transaction.proveedor_id) continue;
-      const key = transaction.proveedor_id as string;
-      const current = stats.get(key) || { count: 0, amount: 0, projects: new Set<string>() };
-      current.count += 1;
-      current.amount += transaction.monto_total;
-      current.projects.add(transaction.proyecto as string);
-      stats.set(key, current);
+    if (args.proyecto_id) {
+      const page = search
+        ? await ctx.db.query("provider_project_stats")
+          .withSearchIndex("search_project_provider_list", (q) => {
+            const scoped = q.search("search_text", search).eq("proyecto_id", args.proyecto_id!);
+            if (args.status === "active") return scoped.eq("is_archived", false);
+            if (args.status === "archived") return scoped.eq("is_archived", true);
+            if (args.status === "generic") return scoped.eq("is_generic", true);
+            if (args.status === "incomplete") {
+              return scoped.eq("is_complete", false).eq("is_generic", false);
+            }
+            return scoped;
+          })
+          .paginate(args.paginationOpts)
+        : await (args.sort === "transactions"
+          ? ctx.db.query("provider_project_stats").withIndex("by_project_transaction_count", (q) => q.eq("proyecto_id", args.proyecto_id!))
+          : args.sort === "amount"
+            ? ctx.db.query("provider_project_stats").withIndex("by_project_total_amount", (q) => q.eq("proyecto_id", args.proyecto_id!))
+            : ctx.db.query("provider_project_stats").withIndex("by_project_name", (q) => q.eq("proyecto_id", args.proyecto_id!)))
+          .filter((q) => {
+            if (args.status === "active") return q.eq(q.field("is_archived"), false);
+            if (args.status === "archived") return q.eq(q.field("is_archived"), true);
+            if (args.status === "generic") return q.eq(q.field("is_generic"), true);
+            if (args.status === "incomplete") {
+              return q.and(
+                q.eq(q.field("is_complete"), false),
+                q.eq(q.field("is_generic"), false),
+              );
+            }
+            return q.eq(q.field("provider_id"), q.field("provider_id"));
+          })
+          .order(args.direction)
+          .paginate(args.paginationOpts);
+
+      const rows = await Promise.all(page.page.map(async (stat) => {
+        const provider = await ctx.db.get(stat.provider_id);
+        if (!provider || provider.merged_into || !matchesStatus({
+          is_archived: stat.is_archived,
+          is_complete: stat.is_complete,
+          is_generic: stat.is_generic,
+        })) return null;
+        return {
+          ...enrichProvider(provider, await getCreatorName(ctx, provider)),
+          transaccionesCount: stat.transaction_count,
+          totalAmount: stat.total_amount,
+          proyectosCount: 1,
+        };
+      }));
+      return { ...page, page: rows.filter((row) => row !== null) };
     }
 
-    return await Promise.all(
-      providers
-        .filter((provider) => !provider.merged_into)
-        .filter((provider) => args.include_archived || !provider.archived_at)
-        .filter((provider) => !args.proyecto_id || stats.has(provider._id as string))
-        .map(async (provider) => {
-          const providerStats = stats.get(provider._id as string);
-          return {
-            ...enrichProvider(provider, await getCreatorName(ctx, provider)),
-            transaccionesCount: providerStats?.count || 0,
-            totalAmount: providerStats?.amount || 0,
-            proyectosCount: providerStats?.projects.size || 0,
-          };
+    const page = search
+      ? await ctx.db.query("proveedores")
+        .withSearchIndex("search_provider_list", (q) => {
+          const searched = q.search("list_search_text", search);
+          if (args.status === "active") return searched.eq("list_is_archived", false);
+          if (args.status === "archived") return searched.eq("list_is_archived", true);
+          if (args.status === "generic") return searched.eq("list_is_generic", true);
+          if (args.status === "incomplete") {
+            return searched.eq("list_is_complete", false).eq("list_is_generic", false);
+          }
+          return searched;
         })
-    );
+        .paginate(args.paginationOpts)
+      : await (args.sort === "transactions"
+        ? ctx.db.query("proveedores").withIndex("by_stats_transaction_count")
+        : args.sort === "projects"
+          ? ctx.db.query("proveedores").withIndex("by_stats_project_count")
+          : args.sort === "amount"
+            ? ctx.db.query("proveedores").withIndex("by_stats_total_amount")
+          : ctx.db.query("proveedores").withIndex("by_razon_social_normalizada"))
+        .filter((q) => {
+          const isNotMerged = q.eq(q.field("merged_into"), undefined);
+          if (args.status === "active") {
+            return q.and(isNotMerged, q.eq(q.field("archived_at"), undefined));
+          }
+          if (args.status === "archived") {
+            return q.and(isNotMerged, q.neq(q.field("archived_at"), undefined));
+          }
+          if (args.status === "generic") {
+            return q.and(isNotMerged, q.eq(q.field("tipo"), "generico"));
+          }
+          if (args.status === "incomplete") {
+            return q.and(
+              isNotMerged,
+              q.eq(q.field("list_is_complete"), false),
+              q.eq(q.field("list_is_generic"), false),
+            );
+          }
+          return isNotMerged;
+        })
+        .order(args.direction)
+        .paginate(args.paginationOpts);
+
+    const rows = await Promise.all(page.page.map(async (provider) => {
+      if (provider.merged_into || !matchesStatus({
+        is_archived: provider.list_is_archived ?? Boolean(provider.archived_at),
+        is_complete: provider.list_is_complete ?? isProviderComplete(provider),
+        is_generic: provider.list_is_generic ?? provider.tipo === "generico",
+      })) return null;
+      return {
+        ...enrichProvider(provider, await getCreatorName(ctx, provider)),
+        transaccionesCount: provider.stats_transaction_count || 0,
+        totalAmount: provider.stats_total_amount || 0,
+        proyectosCount: provider.stats_project_count || 0,
+      };
+    }));
+    return { ...page, page: rows.filter((row) => row !== null) };
   },
 });
 
@@ -163,28 +275,18 @@ export const getByProyectoWithStats = query({
       throw new Error("No tienes acceso a este proyecto.");
     }
 
-    const transactions = await ctx.db
-      .query("transacciones")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+    const projectStats = await ctx.db
+      .query("provider_project_stats")
+      .withIndex("by_project_name", (q) => q.eq("proyecto_id", args.proyecto_id))
       .collect();
-    const grouped = new Map<string, { count: number; amount: number }>();
-    for (const transaction of transactions) {
-      if (!transaction.proveedor_id) continue;
-      const key = transaction.proveedor_id as string;
-      const current = grouped.get(key) || { count: 0, amount: 0 };
-      current.count += 1;
-      current.amount += transaction.monto_total;
-      grouped.set(key, current);
-    }
-
     const results = [];
-    for (const [providerId, stats] of grouped) {
-      const provider = await ctx.db.get(providerId as Id<"proveedores">);
+    for (const stats of projectStats) {
+      const provider = await ctx.db.get(stats.provider_id);
       if (!provider) continue;
       results.push({
         ...enrichProvider(provider, await getCreatorName(ctx, provider)),
-        transaccionesCount: stats.count,
-        totalAmount: stats.amount,
+        transaccionesCount: stats.transaction_count,
+        totalAmount: stats.total_amount,
       });
     }
     return results;
@@ -255,6 +357,14 @@ export const create = mutation({
     await assertProviderUniqueness(ctx, normalizedName, normalizedRfc);
 
     const tipo = args.tipo || (isGenericProviderName(razonSocial) ? "generico" : "regular");
+    const metadata = providerListMetadata({
+      razon_social: razonSocial,
+      rfc: cleanOptional(args.rfc),
+      nombre_contacto: cleanOptional(args.nombre_contacto),
+      banco: cleanOptional(args.banco),
+      tipo,
+      archived_at: undefined,
+    });
     return await ctx.db.insert("proveedores", {
       razon_social: razonSocial,
       razon_social_normalizada: normalizedName,
@@ -270,6 +380,14 @@ export const create = mutation({
       created_by: user._id,
       created_at: Date.now(),
       updated_at: Date.now(),
+      stats_transaction_count: 0,
+      stats_total_amount: 0,
+      stats_project_count: 0,
+      stats_initialized_at: Date.now(),
+      list_search_text: metadata.searchText,
+      list_is_complete: metadata.isComplete,
+      list_is_archived: false,
+      list_is_generic: metadata.isGeneric,
     });
   },
 });
@@ -309,6 +427,14 @@ export const resolveOrCreate = mutation({
       created_by: user._id,
       created_at: Date.now(),
       updated_at: Date.now(),
+      stats_transaction_count: 0,
+      stats_total_amount: 0,
+      stats_project_count: 0,
+      stats_initialized_at: Date.now(),
+      list_search_text: normalizedName,
+      list_is_complete: tipo === "generico",
+      list_is_archived: false,
+      list_is_generic: tipo === "generico",
     });
     return { status: "created" as const, provider_id: providerId };
   },
@@ -350,6 +476,7 @@ export const update = mutation({
       tipo: args.tipo || existing.tipo || "regular",
       updated_at: Date.now(),
     });
+    await syncProviderListMetadata(ctx, args.id);
     return args.id;
   },
 });
@@ -367,6 +494,7 @@ export const archive = mutation({
       archived_by: user._id,
       updated_at: Date.now(),
     });
+    await syncProviderListMetadata(ctx, args.id);
     return args.id;
   },
 });
@@ -392,6 +520,7 @@ export const reactivate = mutation({
       reactivated_by: user._id,
       updated_at: Date.now(),
     });
+    await syncProviderListMetadata(ctx, args.id);
     return args.id;
   },
 });
@@ -425,6 +554,10 @@ export const merge = mutation({
     ]);
     for (const transaction of transactions) {
       await markInvoicesStaleForTransaction(ctx, transaction._id);
+      await updateProviderStatsForTransactionChange(ctx, transaction, {
+        ...transaction,
+        proveedor_id: args.target_id,
+      });
       await ctx.db.patch(transaction._id, { proveedor_id: args.target_id });
     }
     for (const requisition of requisitions) {
@@ -439,6 +572,7 @@ export const merge = mutation({
       merged_into: target._id,
       updated_at: Date.now(),
     });
+    await syncProviderListMetadata(ctx, source._id);
     return {
       source_id: source._id,
       target_id: target._id,
@@ -462,6 +596,7 @@ export const deleteProveedor = mutation({
       archived_by: user._id,
       updated_at: Date.now(),
     });
+    await syncProviderListMetadata(ctx, args.id);
     return { success: true };
   },
 });

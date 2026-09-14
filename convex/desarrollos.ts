@@ -411,20 +411,7 @@ const getAverageMonthlyExpense = async (
     return totalExpenses / monthlyExpenses.size;
 };
 
-const sumIncomeRecordsOnOrBeforeCutoff = (
-    records: Array<{ monto?: number; fecha?: string; moneda?: string; tipo_cambio?: string | number }>,
-    period: PnlPeriod,
-    rates: ExchangeRates
-) => {
-    return records
-        .filter((record) => isDateOnOrBeforeCutoff(parseReportDate(record.fecha), period))
-        .reduce(
-            (sum, record) => sum + Math.abs(convertToMxn(record.monto || 0, record.moneda, record.tipo_cambio, rates)),
-            0
-        );
-};
-
-const getProjectCollectedIncome = async (
+const getProjectCollectedIncomeBreakdown = async (
     ctx: QueryCtx,
     proyectoId: Doc<"desarrollos">["_id"],
     period: PnlPeriod,
@@ -437,12 +424,55 @@ const getProjectCollectedIncome = async (
         .collect();
 
     const ogcIngresos = ogcMovements.filter((movement) => movement.tipo === "ingreso");
+    const records = [
+        ...ingresos.map((ingreso) => ({
+            id: String(ingreso._id),
+            source: "ingresos" as const,
+            fecha: ingreso.fecha,
+            descripcion: ingreso.descripcion,
+            montoOriginal: Math.abs(ingreso.monto || 0),
+            moneda: (ingreso.moneda || "MXN").trim().toUpperCase(),
+            tipoCambio: (ingreso.moneda || "MXN").trim().toUpperCase() === "USD"
+                ? rates.USD
+                : (ingreso.moneda || "MXN").trim().toUpperCase() === "EUR"
+                    ? rates.EUR
+                    : 1,
+            montoMxn: Math.abs(convertToMxn(ingreso.monto || 0, ingreso.moneda, undefined, rates)),
+            agregadoPor: ingreso.added_by_name,
+        })),
+        ...ogcIngresos.map((movement) => {
+            const moneda = (movement.moneda || "MXN").trim().toUpperCase();
+            const tipoCambio = moneda === "USD"
+                ? parseExchangeRate(movement.tipo_cambio) || rates.USD
+                : moneda === "EUR"
+                    ? parseExchangeRate(movement.tipo_cambio) || rates.EUR
+                    : 1;
 
-    // Match Presupuesto: tabla ingresos + movimientos OGC tipo ingreso.
-    return (
-        sumIncomeRecordsOnOrBeforeCutoff(ingresos, period, rates) +
-        sumIncomeRecordsOnOrBeforeCutoff(ogcIngresos, period, rates)
-    );
+            return {
+                id: String(movement._id),
+                source: "ogc" as const,
+                fecha: movement.fecha,
+                descripcion: movement.descripcion,
+                montoOriginal: Math.abs(movement.monto || 0),
+                moneda,
+                tipoCambio,
+                montoMxn: Math.abs(convertToMxn(movement.monto || 0, movement.moneda, movement.tipo_cambio, rates)),
+                agregadoPor: movement.created_by_name,
+            };
+        }),
+    ]
+        .map((record) => ({
+            ...record,
+            includedInCutoff: isDateOnOrBeforeCutoff(parseReportDate(record.fecha), period),
+        }))
+        .sort((a, b) => (parseReportDate(b.fecha)?.getTime() || 0) - (parseReportDate(a.fecha)?.getTime() || 0));
+
+    return {
+        records,
+        total: records
+            .filter((record) => record.includedInCutoff)
+            .reduce((sum, record) => sum + record.montoMxn, 0),
+    };
 };
 
 const summarizeProjectPayments = async (
@@ -626,7 +656,8 @@ const getWipFormulaTotals = async (
 ) => {
     const presupuesto = formulaTotals.metrics?.presupuesto_aprobado || 0;
     const costoReal = formulaTotals.metrics?.gasto_total || 0;
-    const pagado = await getProjectCollectedIncome(ctx, proyecto._id, period, rates, ogcMovements);
+    const collectedIncome = await getProjectCollectedIncomeBreakdown(ctx, proyecto._id, period, rates, ogcMovements);
+    const pagado = collectedIncome.total;
     const avance = await getControlPhysicalProgressPercent(ctx, proyecto._id);
     const valorGanado = avance * presupuesto;
     const restante = presupuesto - costoReal;
@@ -648,6 +679,7 @@ const getWipFormulaTotals = async (
         varianza,
         cpi,
         pagado,
+        ingresosBreakdown: collectedIncome.records,
         saldo,
         runway,
         averageMonthlyExpense,
