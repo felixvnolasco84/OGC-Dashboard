@@ -10,6 +10,12 @@ import {
     hasAdminAccess,
     hasGlobalAdminAccess,
 } from "./permissions";
+import { PROJECT_LOCATIONS } from "../src/lib/project-locations";
+
+const projectLocationValidator = v.union(
+    ...PROJECT_LOCATIONS.map((location) => v.literal(location)),
+);
+const nullableProjectLocationValidator = v.union(projectLocationValidator, v.null());
 
 // Get all projects (filtered by user permissions)
 export const getAll = query(async (ctx) => {
@@ -944,6 +950,7 @@ export const create = mutation({
         nombre: v.string(),
         descripcion: v.string(),
         image: v.string(),
+        ubicacion: v.optional(projectLocationValidator),
         status: v.optional(v.string()),
         fecha_creacion: v.optional(v.string()),
         honorarios_porcentaje: v.optional(v.number()),
@@ -959,6 +966,7 @@ export const create = mutation({
             nombre: args.nombre,
             descripcion: args.descripcion,
             image: args.image,
+            ...(args.ubicacion ? { ubicacion: args.ubicacion } : {}),
             status: args.status || "Activo",
             fecha_creacion: args.fecha_creacion || new Date().toLocaleDateString("es-MX", {
                 day: "2-digit",
@@ -987,6 +995,7 @@ export const update = mutation({
         nombre: v.optional(v.string()),
         descripcion: v.optional(v.string()),
         image: v.optional(v.string()),
+        ubicacion: v.optional(nullableProjectLocationValidator),
         status: v.optional(v.string()),
         fecha_creacion: v.optional(v.string()),
         honorarios_porcentaje: v.optional(v.number()),
@@ -1004,9 +1013,10 @@ export const update = mutation({
             throw new Error("Unauthorized: Project belongs to another organization");
         }
 
-        // Filter out undefined valuese
         const updateData = Object.fromEntries(
-            Object.entries(rest).filter(([, value]) => value !== undefined)
+            Object.entries(rest)
+                .filter(([, value]) => value !== undefined)
+                .map(([key, value]) => [key, key === "ubicacion" && value === null ? undefined : value])
         );
         return await ctx.db.patch(id, updateData);
     },

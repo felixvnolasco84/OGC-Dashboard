@@ -4,6 +4,11 @@ import {
   assistantAnswerValidator,
   assistantReferenceValidator,
 } from "./assistantTypes";
+import { PROJECT_LOCATIONS } from "../src/lib/project-locations";
+
+const projectLocationValidator = v.union(
+  ...PROJECT_LOCATIONS.map((location) => v.literal(location)),
+);
 
 export default defineSchema({
   users: defineTable({
@@ -51,6 +56,7 @@ export default defineSchema({
     nombre: v.string(),
     descripcion: v.string(),
     image: v.string(),
+    ubicacion: v.optional(projectLocationValidator),
     status: v.optional(v.string()), // Activo, Cancelado, Entregado
     fecha_creacion: v.optional(v.string()),
     honorarios_porcentaje: v.optional(v.number()), // User-set percentage (e.g., 15 for 15%)

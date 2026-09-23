@@ -17,6 +17,19 @@ import { api } from "../../../convex/_generated/api";
 import { Upload, FolderPlus, FileSpreadsheet } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import {
+  NO_PROJECT_LOCATION,
+  NO_PROJECT_LOCATION_LABEL,
+  PROJECT_LOCATIONS,
+  type ProjectLocation,
+} from "@/lib/project-locations";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function AddProyectoModal() {
   const isOpen = useAddProyectoModal((state) => state.isOpen);
@@ -189,6 +202,7 @@ export default function AddProyectoModal() {
         nombre: formData.nombre,
         descripcion: formData.descripcion,
         image: "",
+        ubicacion: formData.ubicacion,
         honorarios_porcentaje: formData.honorarios_porcentaje,
       });
 
@@ -349,7 +363,13 @@ export default function AddProyectoModal() {
       });
 
       // Reset form and close modal
-      updateFormData({ nombre: '', descripcion: '', excel: null, honorarios_porcentaje: 0 });
+      updateFormData({
+        nombre: '',
+        descripcion: '',
+        excel: null,
+        honorarios_porcentaje: 0,
+        ubicacion: undefined,
+      });
       setFile(null);
       setShowExcelUploader(false);
       onClose();
@@ -421,6 +441,35 @@ export default function AddProyectoModal() {
                 rows={4}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ubicacion">Ubicación</Label>
+              <Select
+                value={formData.ubicacion || NO_PROJECT_LOCATION}
+                onValueChange={(value) => updateFormData({
+                  ubicacion: value === NO_PROJECT_LOCATION
+                    ? undefined
+                    : value as ProjectLocation,
+                })}
+              >
+                <SelectTrigger id="ubicacion" className="rounded-none">
+                  <SelectValue placeholder="Selecciona una ubicación" />
+                </SelectTrigger>
+                <SelectContent data-square-modal="">
+                  <SelectItem value={NO_PROJECT_LOCATION}>
+                    {NO_PROJECT_LOCATION_LABEL}
+                  </SelectItem>
+                  {PROJECT_LOCATIONS.map((location) => (
+                    <SelectItem key={location} value={location}>
+                      {location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-subtle-foreground">
+                Opcional. Se utilizará para filtrar y agrupar el proyecto.
+              </p>
             </div>
 
             {/* Honorarios Percentage */}

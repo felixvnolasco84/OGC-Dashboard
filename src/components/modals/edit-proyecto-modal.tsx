@@ -24,6 +24,12 @@ import { Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Id } from "../../../convex/_generated/dataModel";
+import {
+  NO_PROJECT_LOCATION,
+  NO_PROJECT_LOCATION_LABEL,
+  PROJECT_LOCATIONS,
+  type ProjectLocation,
+} from "@/lib/project-locations";
 
 export default function EditProyectoModal() {
   const { isOpen, onClose, proyectoId } = useEditProyectoModal();
@@ -36,6 +42,7 @@ export default function EditProyectoModal() {
   const [status, setStatus] = useState("Activo");
   const [fechaCreacion, setFechaCreacion] = useState("");
   const [honorariosPorcentaje, setHonorariosPorcentaje] = useState<number>(0);
+  const [ubicacion, setUbicacion] = useState<ProjectLocation | undefined>();
   const [excludedPartidas, setExcludedPartidas] = useState<Id<"partidas">[]>([]);
 
   // Queries and mutations
@@ -58,6 +65,7 @@ export default function EditProyectoModal() {
       setStatus(proyecto.status || "Activo");
       setFechaCreacion(proyecto.fecha_creacion || "");
       setHonorariosPorcentaje(proyecto.honorarios_porcentaje || 0);
+      setUbicacion(proyecto.ubicacion);
       setExcludedPartidas(proyecto.excluded_partidas_honorarios || []);
     }
   }, [proyecto]);
@@ -69,6 +77,7 @@ export default function EditProyectoModal() {
     setStatus("Activo");
     setFechaCreacion("");
     setHonorariosPorcentaje(0);
+    setUbicacion(undefined);
     setExcludedPartidas([]);
     setIsSubmitting(false);
     onClose();
@@ -89,6 +98,7 @@ export default function EditProyectoModal() {
         status,
         fecha_creacion: fechaCreacion || undefined,
         honorarios_porcentaje: honorariosPorcentaje,
+        ubicacion: ubicacion ?? null,
         excluded_partidas_honorarios: excludedPartidas,
       });
 
@@ -163,6 +173,35 @@ export default function EditProyectoModal() {
               className="rounded-none min-h-[100px]"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ubicacion" className="text-sm font-medium">
+              Ubicación
+            </Label>
+            <Select
+              value={ubicacion || NO_PROJECT_LOCATION}
+              onValueChange={(value) => setUbicacion(
+                value === NO_PROJECT_LOCATION ? undefined : value as ProjectLocation
+              )}
+            >
+              <SelectTrigger id="ubicacion" className="rounded-none">
+                <SelectValue placeholder="Selecciona una ubicación" />
+              </SelectTrigger>
+              <SelectContent data-square-modal="">
+                <SelectItem value={NO_PROJECT_LOCATION}>
+                  {NO_PROJECT_LOCATION_LABEL}
+                </SelectItem>
+                {PROJECT_LOCATIONS.map((location) => (
+                  <SelectItem key={location} value={location}>
+                    {location}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-subtle-foreground">
+              Opcional. Los proyectos sin asignación aparecen en Sin ubicación.
+            </p>
           </div>
 
           {/* Honorarios Percentage */}

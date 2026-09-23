@@ -21,9 +21,26 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { useUploadTransactionsModal } from "@/hooks/upload-transactions-modal";
 import { useUploadProjectionsModal } from "@/hooks/upload-projections-modal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getProjectLocationLabel,
+  NO_PROJECT_LOCATION,
+  NO_PROJECT_LOCATION_LABEL,
+  PROJECT_LOCATIONS,
+  type ProjectLocation,
+} from "@/lib/project-locations";
+
+type LocationFilter = "all" | ProjectLocation | typeof NO_PROJECT_LOCATION;
 
 export default function ProyectosTablePage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [locationFilter, setLocationFilter] = useState<LocationFilter>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Id<"desarrollos"> | null>(null);
 
@@ -34,9 +51,15 @@ export default function ProyectosTablePage() {
   const uploadTransactionsModal = useUploadTransactionsModal();
   const uploadProjectionsModal = useUploadProjectionsModal();
 
-  const filteredProjects = projects?.filter((project) =>
-    project.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProjects = projects?.filter((project) => {
+    const matchesSearch = project.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesLocation = locationFilter === "all"
+      || (locationFilter === NO_PROJECT_LOCATION
+        ? !project.ubicacion
+        : project.ubicacion === locationFilter);
+
+    return matchesSearch && matchesLocation;
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-MX", {
@@ -112,27 +135,51 @@ export default function ProyectosTablePage() {
           </div>
 
           {/* Search Bar */}
-          <div className="mb-8 relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
-            <Input
-              type="text"
-              placeholder="Buscar..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 rounded-none border-border-strong h-12"
-            />
+          <div className="mb-8 flex flex-col gap-3 md:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
+              <Input
+                type="text"
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-12 rounded-none border-border-strong h-12"
+              />
+            </div>
+            <Select
+              value={locationFilter}
+              onValueChange={(value) => setLocationFilter(value as LocationFilter)}
+            >
+              <SelectTrigger className="h-12 w-full rounded-none border-border-strong md:w-64">
+                <SelectValue placeholder="Filtrar por ubicación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las ubicaciones</SelectItem>
+                {PROJECT_LOCATIONS.map((location) => (
+                  <SelectItem key={location} value={location}>
+                    {location}
+                  </SelectItem>
+                ))}
+                <SelectItem value={NO_PROJECT_LOCATION}>
+                  {NO_PROJECT_LOCATION_LABEL}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         {/* Header */}
 
 
         {/* Table */}
-        <div className="border border-border rounded-none">
-          <table className="w-full">
+        <div className="overflow-x-auto border border-border rounded-none">
+          <table className="w-full min-w-[1200px]">
             <thead className=" border-b border-border">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                   Proyecto
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
+                  Ubicación
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
                   Presupuesto original
@@ -161,13 +208,13 @@ export default function ProyectosTablePage() {
             <tbody className="divide-y divide-border">
               {!projects ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
                     Cargando proyectos...
                   </td>
                 </tr>
               ) : filteredProjects && filteredProjects.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
                     No se encontraron proyectos
                   </td>
                 </tr>
@@ -181,6 +228,11 @@ export default function ProyectosTablePage() {
                       <div className="text-sm font-normal text-foreground">
                         {project.nombre}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 border-r border-border">
+                      <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-normal">
+                        {getProjectLocationLabel(project.ubicacion)}
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 text-sm text-foreground border-r border-border">
                       {formatCurrency(project.presupuesto_original)}

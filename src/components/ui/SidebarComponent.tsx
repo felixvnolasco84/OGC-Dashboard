@@ -18,7 +18,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
@@ -37,11 +36,9 @@ import {
   // LockKeyhole,
   // User,
   FileText,
-  Tag,
   // TrendingUp,
   ChevronsUpDown,
   ChevronRight,
-  TagIcon,
   LucideProps,
   ChartBar,
   ChartArea,
@@ -57,6 +54,7 @@ import {
   ListTodo,
   FileQuestion,
   PanelsTopLeft,
+  MapPin,
   // Settings,
 } from "lucide-react";
 import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
@@ -64,6 +62,12 @@ import { ForwardRefExoticComponent, RefAttributes, useMemo, useState } from "rea
 import { useProjectDocumentNavigation } from "@/hooks/project-document-navigation";
 import { useProjectPlanNavigation } from "@/hooks/project-plan-navigation";
 import { planDirectorySegments, planPathsMatch } from "@/lib/plan-folder-navigation";
+import {
+  getProjectLocationLabel,
+  NO_PROJECT_LOCATION,
+  PROJECT_LOCATIONS,
+  type ProjectLocation,
+} from "@/lib/project-locations";
 
 
 
@@ -80,6 +84,7 @@ type ProjectOption = {
   _id: string;
   nombre: string;
   organization_id?: string;
+  ubicacion?: ProjectLocation;
 };
 
 type UserOption = {
@@ -96,6 +101,13 @@ type ProjectGroup = {
   title: string;
   subtitle: string;
   projects: ProjectOption[];
+};
+
+type LocationProjectGroup = {
+  id: ProjectLocation | typeof NO_PROJECT_LOCATION;
+  title: string;
+  projects: ProjectOption[];
+  organizationGroups: ProjectGroup[];
 };
 
 const NO_ORGANIZATION_GROUP_ID = "__sin_organizacion__";
@@ -141,12 +153,16 @@ function groupProjectsByOrganization(
 
   return Array.from(projectsByOrganization.entries())
     .map(([organizationId, groupedProjects]) => {
+      const sortedProjects = [...groupedProjects].sort((a, b) =>
+        a.nombre.localeCompare(b.nombre, "es")
+      );
+
       if (organizationId === NO_ORGANIZATION_GROUP_ID) {
         return {
           id: organizationId,
           title: "Sin organización",
           subtitle: "Proyectos globales o legacy",
-          projects: groupedProjects,
+          projects: sortedProjects,
         };
       }
 
@@ -155,7 +171,7 @@ function groupProjectsByOrganization(
         id: organizationId,
         title: adminLabel.title,
         subtitle: adminLabel.subtitle,
-        projects: groupedProjects,
+        projects: sortedProjects,
       };
     })
     .sort((a, b) => {
@@ -165,24 +181,86 @@ function groupProjectsByOrganization(
     });
 }
 
-function OrganizationProjectGroups({
-  groups,
-  type,
+function groupProjectsByLocation(
+  projects: ProjectOption[],
+  users: UserOption[] = [],
+): LocationProjectGroup[] {
+  const locations: Array<ProjectLocation | typeof NO_PROJECT_LOCATION> = [
+    ...PROJECT_LOCATIONS,
+    NO_PROJECT_LOCATION,
+  ];
+
+  return locations
+    .map((location) => {
+      const groupedProjects = projects
+        .filter((project) => location === NO_PROJECT_LOCATION
+          ? !project.ubicacion
+          : project.ubicacion === location)
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+
+      return {
+        id: location,
+        title: location === NO_PROJECT_LOCATION
+          ? getProjectLocationLabel()
+          : location,
+        projects: groupedProjects,
+        organizationGroups: groupProjectsByOrganization(groupedProjects, users),
+      };
+    })
+    .filter((group) => group.projects.length > 0);
+}
+
+function ProjectMenuItems({
+  projects,
   activeProjectId,
   onProjectSelect,
 }: {
-  groups: ProjectGroup[];
-  type: "proyecto" | "sales";
+  projects: ProjectOption[];
   activeProjectId?: string;
-  onProjectSelect: (id: string, type: "proyecto" | "sales") => void;
+  onProjectSelect: (id: string) => void;
 }) {
-  const ProjectIcon = type === "sales" ? Tag : Folder;
-
   return (
-    <SidebarMenu className="gap-0.5 px-1">
-      {groups.map((group) => {
+    <SidebarMenuSub className="mb-1 ml-5 mr-0 mt-1">
+      {projects.map((project) => (
+        <SidebarMenuSubItem key={project._id}>
+          <DropdownMenuItem asChild>
+            <SidebarMenuSubButton
+              asChild
+              isActive={project._id === activeProjectId}
+              size="md"
+              className="h-8 cursor-pointer"
+            >
+              <button
+                type="button"
+                onClick={() => onProjectSelect(project._id)}
+              >
+                <Folder className="h-4 w-4" />
+                <span>{project.nombre}</span>
+              </button>
+            </SidebarMenuSubButton>
+          </DropdownMenuItem>
+        </SidebarMenuSubItem>
+      ))}
+    </SidebarMenuSub>
+  );
+}
+
+function OrganizationProjectGroups({
+  groups,
+  activeProjectId,
+  onProjectSelect,
+  nested = false,
+}: {
+  groups: ProjectGroup[];
+  activeProjectId?: string;
+  onProjectSelect: (id: string) => void;
+  nested?: boolean;
+}) {
+  return (
+    <SidebarMenu className={cn("gap-0.5 px-1", nested && "ml-3 border-l border-border pl-2")}>
+      {groups.map((group, index) => {
         const hasActiveProject = group.projects.some((project) => project._id === activeProjectId);
-        const defaultOpen = hasActiveProject || groups.length <= 3;
+        const defaultOpen = hasActiveProject || (!activeProjectId && index === 0);
 
         return (
           <Collapsible
@@ -211,32 +289,77 @@ function OrganizationProjectGroups({
                 </SidebarMenuButton>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <SidebarMenuSub className="mb-1 ml-5 mr-0 mt-1">
-                  {group.projects.map((project) => {
-                    const isActiveProject = project._id === activeProjectId;
+                <ProjectMenuItems
+                  projects={group.projects}
+                  activeProjectId={activeProjectId}
+                  onProjectSelect={onProjectSelect}
+                />
+              </CollapsibleContent>
+            </SidebarMenuItem>
+          </Collapsible>
+        );
+      })}
+    </SidebarMenu>
+  );
+}
 
-                    return (
-                      <SidebarMenuSubItem key={project._id}>
-                        <DropdownMenuItem asChild>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={isActiveProject}
-                            size="md"
-                            className="h-8 cursor-pointer"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => onProjectSelect(project._id, type)}
-                            >
-                              <ProjectIcon className="h-4 w-4" />
-                              <span>{project.nombre}</span>
-                            </button>
-                          </SidebarMenuSubButton>
-                        </DropdownMenuItem>
-                      </SidebarMenuSubItem>
-                    );
-                  })}
-                </SidebarMenuSub>
+function LocationProjectGroups({
+  groups,
+  activeProjectId,
+  onProjectSelect,
+  showOrganizations,
+}: {
+  groups: LocationProjectGroup[];
+  activeProjectId?: string;
+  onProjectSelect: (id: string) => void;
+  showOrganizations: boolean;
+}) {
+  return (
+    <SidebarMenu className="gap-0.5 px-1">
+      {groups.map((group, index) => {
+        const hasActiveProject = group.projects.some((project) => project._id === activeProjectId);
+
+        return (
+          <Collapsible
+            key={group.id}
+            asChild
+            defaultOpen={hasActiveProject || (!activeProjectId && index === 0)}
+            className="group/location-collapsible"
+          >
+            <SidebarMenuItem>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton
+                  type="button"
+                  tooltip={group.title}
+                  className="h-auto min-h-10 items-start py-2"
+                >
+                  <MapPin className="mt-0.5 h-4 w-4 text-subtle-foreground" />
+                  <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+                    <span className="w-full truncate text-sm font-medium text-foreground">
+                      {group.title}
+                    </span>
+                    <span className="w-full truncate text-xs font-normal text-subtle-foreground">
+                      {group.projects.length} proyecto{group.projects.length === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                  <ChevronRight className="ml-auto mt-0.5 h-4 w-4 text-disabled-foreground transition-transform group-data-[state=open]/location-collapsible:rotate-90" />
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                {showOrganizations ? (
+                  <OrganizationProjectGroups
+                    groups={group.organizationGroups}
+                    activeProjectId={activeProjectId}
+                    onProjectSelect={onProjectSelect}
+                    nested
+                  />
+                ) : (
+                  <ProjectMenuItems
+                    projects={group.projects}
+                    activeProjectId={activeProjectId}
+                    onProjectSelect={onProjectSelect}
+                  />
+                )}
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
@@ -711,14 +834,6 @@ const viewerMenuItems: ProjectMenuItem[] = [
   { id: "planos", label: "Planos", path: "planos", disabled: false, icon: PanelsTopLeft },
 ];
 
-const salesProjectMenuItems: ProjectMenuItem[] = [
-  { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: TagIcon },
-  { id: "control", label: "Control", path: "control", disabled: false, icon: Folder },
-  // { id: "flujo", label: "Flujo", path: "flujo", disabled: false },
-  { id: "documentos", label: "Documentos", path: "documentos", disabled: false, icon: Bookmark },
-  { id: "transacciones", label: "Transacciones", path: "transacciones", disabled: false, icon: Bookmark },
-];
-
 // const bottomProjectMenuItems = [
 //   { id: "proyectos", label: "Proyectos", path: "/proyectos", icon: Bookmark },
 //   // { id: "transacciones", label: "Transacciones", path: "/transacciones", icon: CreditCard },
@@ -728,16 +843,6 @@ const salesProjectMenuItems: ProjectMenuItem[] = [
 //   // { id: "admin", label: "Admin", path: "/admin", icon: LockKeyhole },
 //   { id: "usuarios", label: "Usuarios", path: "/usuarios", icon: User },
 // ];
-
-// const bottomSalesMenuItems = [
-//   { id: "sales-proyectos", label: "Proyectos Ventas", path: "/sales-proyectos", icon: Bookmark },
-//   // { id: "sales-transacciones", label: "Transacciones", path: "/sales-transacciones", icon: CreditCard },
-//   { id: "sales-flujo", label: "Flujo ", path: "/admin/sales-flujo", icon: TrendingUp },
-//   // { id: "sales-documentos", label: "Documentos", path: "/sales-documentos", icon: FileText },
-//   // { id: "sales-gestion", label: "Gestión Proyectos", path: "/sales-gestion", icon: Settings },
-//   { id: "sales-usuarios", label: "Acceso Usuarios", path: "/sales-usuarios", icon: User },
-// ];
-
 
 // Notification dot component for requisiciones
 function RequisicionNotificationDot({
@@ -881,22 +986,6 @@ function SidebarUserCard({ role }: { role?: string }) {
               <Users className="w-4 h-4" />
               Gestionar usuarios
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs">
-              Proyectos de Ventas
-            </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigate("/sales-proyectos")} className="gap-2">
-              <Bookmark className="w-4 h-4" />
-              Ver proyectos
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/admin/sales-flujo")} className="gap-2">
-              <Upload className="w-4 h-4" />
-              Cargar flujo
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/sales-usuarios")} className="gap-2">
-              <Users className="w-4 h-4" />
-              Gestionar usuarios
-            </DropdownMenuItem>
           </>
         )}
 
@@ -915,12 +1004,11 @@ function SidebarUserCard({ role }: { role?: string }) {
 
 export default function SidebarComponent() {
   const location = useLocation();
-  const { proyectoId, salesProyectoId } = useParams<{ proyectoId?: string; salesProyectoId?: string }>();
+  const { proyectoId } = useParams<{ proyectoId?: string }>();
   const [isDocumentsNavigationExpanded, setIsDocumentsNavigationExpanded] = useState(true);
   const [isPlansNavigationExpanded, setIsPlansNavigationExpanded] = useState(true);
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const desarrollos = useQuery(api.desarrollos.getAll);
-  const salesProjects = useQuery(api.sales_projects.getAll);
   const currentUser = useQuery(api.users.getCurrentUser);
   const isSuperAdmin = currentUser?.is_super_admin === true;
   const allUsers = useQuery(api.users.getAllUsers, isSuperAdmin ? {} : "skip");
@@ -941,28 +1029,14 @@ export default function SidebarComponent() {
     return true;
   });
 
-  // Filter sales projects based on user access
-  const filteredSalesProjects = (salesProjects || []).filter((proyecto) => {
-    if (currentUser?.role === "admin") return true;
-    if (currentUser?.role === "viewer") return false;
-    return (currentUser?.allowed_sales_projects || []).includes(proyecto._id);
-  });
-
   // Derive current project from URL params
   const currentProject = filteredProjects.find(p => p._id === proyectoId);
-  const currentSalesProject = filteredSalesProjects.find(p => p._id === salesProyectoId);
-  const groupedProjects = isSuperAdmin
-    ? groupProjectsByOrganization(filteredProjects, allUsers)
-    : [];
-  const groupedSalesProjects = isSuperAdmin
-    ? groupProjectsByOrganization(filteredSalesProjects, allUsers)
-    : [];
-  const activeProject = currentProject || currentSalesProject;
-  const activeProjectType: "proyecto" | "sales" | null = currentProject
-    ? "proyecto"
-    : currentSalesProject
-      ? "sales"
-      : null;
+  const groupedProjectsByLocation = groupProjectsByLocation(
+    filteredProjects,
+    isSuperAdmin ? allUsers : [],
+  );
+  const isOrganizationGroupingLoading = isSuperAdmin && allUsers === undefined;
+  const activeProject = currentProject;
   const isCurrentProjectDocuments = Boolean(
     currentProject &&
       location.pathname.startsWith(`/proyecto/${currentProject._id}/documentos`),
@@ -1013,22 +1087,14 @@ export default function SidebarComponent() {
           ? projectMenuItems
           : userProjectMenuItems;
 
-  const getFirstMenuItem = (type: "proyecto" | "sales") => {
-    if (type === "proyecto") {
-      if (currentUser?.role === "contratista") return "bitacora";
-      if (currentUser?.role === "finance") return "requisiciones";
-      return "presupuesto";
-    }
+  const getFirstMenuItem = () => {
+    if (currentUser?.role === "contratista") return "bitacora";
+    if (currentUser?.role === "finance") return "requisiciones";
     return "presupuesto";
   };
 
-  const handleProjectSelect = (id: string, type: "proyecto" | "sales") => {
-    const firstItem = getFirstMenuItem(type);
-    if (type === "proyecto") {
-      navigate(`/proyecto/${id}/${firstItem}`);
-    } else {
-      navigate(`/sales-proyecto/${id}/${firstItem}`);
-    }
+  const handleProjectSelect = (id: string) => {
+    navigate(`/proyecto/${id}/${getFirstMenuItem()}`);
   };
 
   const isActive = (path: string) => {
@@ -1066,11 +1132,7 @@ export default function SidebarComponent() {
                     activeProject ? "w-full" : "h-9 w-9 justify-center p-0"
                   )}
                 >
-                  {activeProjectType === "sales" ? (
-                    <Tag className="w-4 h-4 text-subtle-foreground flex-shrink-0" />
-                  ) : (
-                    <Folder className="w-4 h-4 text-subtle-foreground flex-shrink-0" />
-                  )}
+                  <Folder className="w-4 h-4 text-subtle-foreground flex-shrink-0" />
                   {activeProject && (
                     <>
                       <div className="flex flex-col gap-0.5 leading-none text-left group-data-[collapsible=icon]:hidden">
@@ -1078,7 +1140,7 @@ export default function SidebarComponent() {
                           {activeProject.nombre}
                         </span>
                         <span className="text-xs text-subtle-foreground">
-                          {activeProjectType === "sales" ? "Ventas" : "Proyecto"}
+                          Proyecto
                         </span>
                       </div>
                       <ChevronsUpDown className="ml-auto w-4 h-4 text-disabled-foreground group-data-[collapsible=icon]:hidden" />
@@ -1088,10 +1150,8 @@ export default function SidebarComponent() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className={cn(
-                  "w-[--radix-dropdown-menu-trigger-width]",
-                  isSuperAdmin
-                    ? "max-h-[72vh] min-w-72 overflow-y-auto"
-                    : "min-w-56"
+                  "max-h-[72vh] w-[--radix-dropdown-menu-trigger-width] overflow-y-auto",
+                  isSuperAdmin ? "min-w-72" : "min-w-56"
                 )}
                 side="bottom"
                 align="start"
@@ -1100,50 +1160,18 @@ export default function SidebarComponent() {
                 {filteredProjects.length > 0 && (
                   <>
                     <DropdownMenuLabel>Proyectos</DropdownMenuLabel>
-                    {isSuperAdmin
-                      ? (
-                        <OrganizationProjectGroups
-                          groups={groupedProjects}
-                          type="proyecto"
-                          activeProjectId={proyectoId}
-                          onProjectSelect={handleProjectSelect}
-                        />
-                      )
-                      : filteredProjects.map((p) => (
-                        <DropdownMenuItem
-                          key={p._id}
-                          onClick={() => handleProjectSelect(p._id, "proyecto")}
-                          className="gap-2 p-2"
-                        >
-                          <Folder className="w-4 h-4 flex-shrink-0" />
-                          <span className="truncate">{p.nombre}</span>
-                        </DropdownMenuItem>
-                      ))}
-                  </>
-                )}
-                {filteredSalesProjects.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Proyectos de Ventas</DropdownMenuLabel>
-                    {isSuperAdmin
-                      ? (
-                        <OrganizationProjectGroups
-                          groups={groupedSalesProjects}
-                          type="sales"
-                          activeProjectId={salesProyectoId}
-                          onProjectSelect={handleProjectSelect}
-                        />
-                      )
-                      : filteredSalesProjects.map((p) => (
-                        <DropdownMenuItem
-                          key={p._id}
-                          onClick={() => handleProjectSelect(p._id, "sales")}
-                          className="gap-2 p-2"
-                        >
-                          <Tag className="w-4 h-4 flex-shrink-0" />
-                          <span className="truncate">{p.nombre}</span>
-                        </DropdownMenuItem>
-                      ))}
+                    {isOrganizationGroupingLoading ? (
+                      <DropdownMenuItem disabled>
+                        Cargando organizaciones...
+                      </DropdownMenuItem>
+                    ) : (
+                      <LocationProjectGroups
+                        groups={groupedProjectsByLocation}
+                        activeProjectId={proyectoId}
+                        onProjectSelect={handleProjectSelect}
+                        showOrganizations={isSuperAdmin}
+                      />
+                    )}
                   </>
                 )}
               </DropdownMenuContent>
@@ -1270,39 +1298,6 @@ export default function SidebarComponent() {
           </SidebarGroup>
         )}
 
-        {currentSalesProject && (
-          <SidebarGroup className="text-left">
-            <SidebarGroupLabel className="text-xs font-medium text-disabled-foreground px-3">
-              {currentSalesProject.nombre.toUpperCase()}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {salesProjectMenuItems.map((item) => (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.label}
-                      className={cn(
-                        "px-3 py-2 text-sm transition-colors",
-                        item.disabled ? "text-disabled-foreground cursor-not-allowed" : "",
-                        isActive(`/sales-proyecto/${currentSalesProject._id}/${item.path}`)
-                          ? "text-foreground bg-muted font-medium"
-                          : "text-muted-foreground hover:text-foreground hover:bg-background"
-                      )}
-                    >
-                      <Link to={`/sales-proyecto/${currentSalesProject._id}/${item.path}`}>
-                        <item.icon className="w-4 h-4" />
-                        <span className="flex items-center justify-between w-full">
-                          {item.label}
-                        </span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
 
       {isAuthenticated && !authLoading && (
@@ -1422,32 +1417,6 @@ export default function SidebarComponent() {
               );
             })}
           </SidebarMenu>
-          <SidebarSeparator />
-          <SidebarMenu className="space-y-1">
-            {bottomSalesMenuItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.label}
-                    className={cn(
-                      "px-3 py-2 text-sm rounded-lg transition-colors",
-                      isActive(item.path)
-                        ? "text-foreground bg-muted font-medium"
-                        : "text-muted-foreground hover:text-foreground hover:bg-background"
-                    )}
-                  >
-                    <Link to={item.path}>
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-
           <SidebarSeparator /> */}
 
           {/* User card with dropdown */}

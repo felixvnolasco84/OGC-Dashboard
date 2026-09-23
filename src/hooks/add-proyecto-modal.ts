@@ -1,10 +1,12 @@
 import { create } from "zustand";
+import type { ProjectLocation } from "@/lib/project-locations";
 
 type ProyectoFormData = {
   nombre: string;
   descripcion: string;
   excel: File | null;
   honorarios_porcentaje: number;
+  ubicacion?: ProjectLocation;
 };
 
 type AddProyectoModalStore = {
@@ -21,6 +23,7 @@ const initialFormData: ProyectoFormData = {
   descripcion: "",
   excel: null,
   honorarios_porcentaje: 0,
+  ubicacion: undefined,
 };
 
 export const useAddProyectoModal = create<AddProyectoModalStore>((set) => ({
