@@ -4,11 +4,6 @@ import {
   assistantAnswerValidator,
   assistantReferenceValidator,
 } from "./assistantTypes";
-import { PROJECT_LOCATIONS } from "../src/lib/project-locations";
-
-const projectLocationValidator = v.union(
-  ...PROJECT_LOCATIONS.map((location) => v.literal(location)),
-);
 
 export default defineSchema({
   users: defineTable({
@@ -56,7 +51,7 @@ export default defineSchema({
     nombre: v.string(),
     descripcion: v.string(),
     image: v.string(),
-    ubicacion: v.optional(projectLocationValidator),
+    ubicacion: v.optional(v.string()),
     status: v.optional(v.string()), // Activo, Cancelado, Entregado
     fecha_creacion: v.optional(v.string()),
     honorarios_porcentaje: v.optional(v.number()), // User-set percentage (e.g., 15 for 15%)
@@ -65,6 +60,11 @@ export default defineSchema({
     moneda_principal: v.optional(v.string()), // Primary currency for project (MXN, USD, EUR) - auto-updated from transactions
     organization_id: v.optional(v.string()),
   }).index("by_organization", { fields: ["organization_id"] }),
+  project_locations: defineTable({
+    name: v.string(),
+    order: v.number(),
+    default_key: v.optional(v.string()),
+  }).index("by_default_key", { fields: ["default_key"] }),
   sales_projects: defineTable({
     nombre: v.string(),
     descripcion: v.string(),

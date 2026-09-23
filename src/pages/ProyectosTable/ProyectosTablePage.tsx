@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, Upload } from "lucide-react";
+import { Search, MoreVertical, Plus, Settings2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -32,19 +32,20 @@ import {
   getProjectLocationLabel,
   NO_PROJECT_LOCATION,
   NO_PROJECT_LOCATION_LABEL,
-  PROJECT_LOCATIONS,
-  type ProjectLocation,
 } from "@/lib/project-locations";
+import ProjectLocationsModal from "@/components/modals/project-locations-modal";
 
-type LocationFilter = "all" | ProjectLocation | typeof NO_PROJECT_LOCATION;
+type LocationFilter = string;
 
 export default function ProyectosTablePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState<LocationFilter>("all");
+  const [locationsModalOpen, setLocationsModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Id<"desarrollos"> | null>(null);
 
   const projects = useQuery(api.desarrollos.getAllWithMetrics);
+  const projectLocations = useQuery(api.project_locations.list);
   const deleteProject = useMutation(api.desarrollos.deleteProject);
   const addProyectoModal = useAddProyectoModal();
   const editProyectoModal = useEditProyectoModal();
@@ -155,9 +156,9 @@ export default function ProyectosTablePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las ubicaciones</SelectItem>
-                {PROJECT_LOCATIONS.map((location) => (
-                  <SelectItem key={location} value={location}>
-                    {location}
+                {(projectLocations || []).map((location) => (
+                  <SelectItem key={location.key} value={location.key}>
+                    {location.name}
                   </SelectItem>
                 ))}
                 <SelectItem value={NO_PROJECT_LOCATION}>
@@ -165,6 +166,15 @@ export default function ProyectosTablePage() {
                 </SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLocationsModalOpen(true)}
+              className="h-12 shrink-0 rounded-none"
+            >
+              <Settings2 className="h-4 w-4" />
+              Configurar ubicaciones
+            </Button>
           </div>
         </div>
         {/* Header */}
@@ -231,7 +241,7 @@ export default function ProyectosTablePage() {
                     </td>
                     <td className="px-6 py-4 border-r border-border">
                       <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-normal">
-                        {getProjectLocationLabel(project.ubicacion)}
+                        {getProjectLocationLabel(project.ubicacion, projectLocations || [])}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-sm text-foreground border-r border-border">
@@ -322,6 +332,10 @@ export default function ProyectosTablePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ProjectLocationsModal
+        open={locationsModalOpen}
+        onOpenChange={setLocationsModalOpen}
+      />
     </div>
   );
 }

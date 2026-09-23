@@ -16,6 +16,7 @@
     "test:labor-import": "node --experimental-strip-types scripts/test-labor-payment-import-rules.mjs",
     "test:ogc-import": "node --experimental-strip-types scripts/test-ogc-import-rules.mjs",
     "test:partidas": "node --experimental-strip-types scripts/test-partida-rules.mjs",
+    "test:project-locations": "node --experimental-strip-types scripts/test-project-location-rules.mjs",
     "test:chatbot": "node --experimental-strip-types scripts/test-assistant-rules.mjs",
     "test:invoices": "node --experimental-strip-types scripts/test-invoice-analysis-rules.mjs",
     "test:rfi": "node --experimental-strip-types scripts/test-rfi-rules.mjs",

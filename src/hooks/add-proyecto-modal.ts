@@ -1,12 +1,12 @@
 import { create } from "zustand";
-import type { ProjectLocation } from "@/lib/project-locations";
+import type { ProjectLocationKey } from "@/lib/project-locations";
 
 type ProyectoFormData = {
   nombre: string;
   descripcion: string;
   excel: File | null;
   honorarios_porcentaje: number;
-  ubicacion?: ProjectLocation;
+  ubicacion?: ProjectLocationKey;
 };
 
 type AddProyectoModalStore = {

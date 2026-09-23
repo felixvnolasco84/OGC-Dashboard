@@ -10,12 +10,9 @@ import {
     hasAdminAccess,
     hasGlobalAdminAccess,
 } from "./permissions";
-import { PROJECT_LOCATIONS } from "../src/lib/project-locations";
+import { isValidProjectLocationKey } from "./project_locations";
 
-const projectLocationValidator = v.union(
-    ...PROJECT_LOCATIONS.map((location) => v.literal(location)),
-);
-const nullableProjectLocationValidator = v.union(projectLocationValidator, v.null());
+const nullableProjectLocationValidator = v.union(v.string(), v.null());
 
 // Get all projects (filtered by user permissions)
 export const getAll = query(async (ctx) => {
@@ -982,7 +979,7 @@ export const create = mutation({
         nombre: v.string(),
         descripcion: v.string(),
         image: v.string(),
-        ubicacion: v.optional(projectLocationValidator),
+        ubicacion: v.optional(v.string()),
         status: v.optional(v.string()),
         fecha_creacion: v.optional(v.string()),
         honorarios_porcentaje: v.optional(v.number()),
@@ -991,6 +988,10 @@ export const create = mutation({
         const currentUser = await getCurrentUserOrThrow(ctx);
         if (!hasAdminAccess(currentUser)) {
             throw new Error("Unauthorized: Admin access required");
+        }
+
+        if (args.ubicacion && !(await isValidProjectLocationKey(ctx, args.ubicacion))) {
+            throw new Error("La ubicación seleccionada no existe");
         }
 
         const organizationId = getScopedOrganizationId(currentUser);
@@ -1043,6 +1044,14 @@ export const update = mutation({
         const hasAccess = await checkDesarrolloAccess(ctx, id);
         if (!hasAccess) {
             throw new Error("Unauthorized: Project belongs to another organization");
+        }
+
+        if (
+            rest.ubicacion !== undefined &&
+            rest.ubicacion !== null &&
+            !(await isValidProjectLocationKey(ctx, rest.ubicacion))
+        ) {
+            throw new Error("La ubicación seleccionada no existe");
         }
 
         const updateData = Object.fromEntries(

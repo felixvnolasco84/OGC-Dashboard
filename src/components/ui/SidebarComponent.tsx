@@ -64,10 +64,10 @@ import { useProjectPlanNavigation } from "@/hooks/project-plan-navigation";
 import { bitacoraDb, clearOfflineUser } from "@/lib/bitacora-offline/db";
 import { planDirectorySegments, planPathsMatch } from "@/lib/plan-folder-navigation";
 import {
-  getProjectLocationLabel,
+  DEFAULT_PROJECT_LOCATIONS,
   NO_PROJECT_LOCATION,
-  PROJECT_LOCATIONS,
-  type ProjectLocation,
+  NO_PROJECT_LOCATION_LABEL,
+  type ProjectLocationOption,
 } from "@/lib/project-locations";
 
 
@@ -85,7 +85,7 @@ type ProjectOption = {
   _id: string;
   nombre: string;
   organization_id?: string;
-  ubicacion?: ProjectLocation;
+  ubicacion?: string;
 };
 
 type UserOption = {
@@ -105,7 +105,7 @@ type ProjectGroup = {
 };
 
 type LocationProjectGroup = {
-  id: ProjectLocation | typeof NO_PROJECT_LOCATION;
+  id: string;
   title: string;
   projects: ProjectOption[];
   organizationGroups: ProjectGroup[];
@@ -184,26 +184,25 @@ function groupProjectsByOrganization(
 
 function groupProjectsByLocation(
   projects: ProjectOption[],
+  locations: readonly ProjectLocationOption[],
   users: UserOption[] = [],
 ): LocationProjectGroup[] {
-  const locations: Array<ProjectLocation | typeof NO_PROJECT_LOCATION> = [
-    ...PROJECT_LOCATIONS,
-    NO_PROJECT_LOCATION,
+  const locationOptions: ProjectLocationOption[] = [
+    ...locations,
+    { key: NO_PROJECT_LOCATION, name: NO_PROJECT_LOCATION_LABEL, order: Number.MAX_SAFE_INTEGER },
   ];
 
-  return locations
+  return locationOptions
     .map((location) => {
       const groupedProjects = projects
-        .filter((project) => location === NO_PROJECT_LOCATION
+        .filter((project) => location.key === NO_PROJECT_LOCATION
           ? !project.ubicacion
-          : project.ubicacion === location)
+          : project.ubicacion === location.key)
         .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
       return {
-        id: location,
-        title: location === NO_PROJECT_LOCATION
-          ? getProjectLocationLabel()
-          : location,
+        id: location.key,
+        title: location.name,
         projects: groupedProjects,
         organizationGroups: groupProjectsByOrganization(groupedProjects, users),
       };
@@ -1022,6 +1021,7 @@ export default function SidebarComponent() {
   const [isPlansNavigationExpanded, setIsPlansNavigationExpanded] = useState(true);
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const desarrollos = useQuery(api.desarrollos.getAll);
+  const projectLocations = useQuery(api.project_locations.list);
   const currentUser = useQuery(api.users.getCurrentUser);
   const isSuperAdmin = currentUser?.is_super_admin === true;
   const allUsers = useQuery(api.users.getAllUsers, isSuperAdmin ? {} : "skip");
@@ -1046,6 +1046,7 @@ export default function SidebarComponent() {
   const currentProject = filteredProjects.find(p => p._id === proyectoId);
   const groupedProjectsByLocation = groupProjectsByLocation(
     filteredProjects,
+    projectLocations || DEFAULT_PROJECT_LOCATIONS,
     isSuperAdmin ? allUsers : [],
   );
   const isOrganizationGroupingLoading = isSuperAdmin && allUsers === undefined;

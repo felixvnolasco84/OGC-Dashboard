@@ -49,6 +49,7 @@ import type * as planos from "../planos.js";
 import type * as programaObraMilestoneRules from "../programaObraMilestoneRules.js";
 import type * as programa_obra from "../programa_obra.js";
 import type * as projectMatchUtils from "../projectMatchUtils.js";
+import type * as project_locations from "../project_locations.js";
 import type * as projected_transactions from "../projected_transactions.js";
 import type * as proveedores from "../proveedores.js";
 import type * as providerStats from "../providerStats.js";
@@ -134,6 +135,7 @@ declare const fullApi: ApiFromModules<{
   programaObraMilestoneRules: typeof programaObraMilestoneRules;
   programa_obra: typeof programa_obra;
   projectMatchUtils: typeof projectMatchUtils;
+  project_locations: typeof project_locations;
   projected_transactions: typeof projected_transactions;
   proveedores: typeof proveedores;
   providerStats: typeof providerStats;

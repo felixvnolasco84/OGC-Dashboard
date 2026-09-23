@@ -20,15 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Id } from "../../../convex/_generated/dataModel";
 import {
   NO_PROJECT_LOCATION,
   NO_PROJECT_LOCATION_LABEL,
-  PROJECT_LOCATIONS,
-  type ProjectLocation,
+  normalizeProjectLocationName,
 } from "@/lib/project-locations";
 
 export default function EditProyectoModal() {
@@ -38,12 +37,11 @@ export default function EditProyectoModal() {
   // Form state
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [image, setImage] = useState("");
   const [status, setStatus] = useState("Activo");
-  const [fechaCreacion, setFechaCreacion] = useState("");
   const [honorariosPorcentaje, setHonorariosPorcentaje] = useState<number>(0);
-  const [ubicacion, setUbicacion] = useState<ProjectLocation | undefined>();
+  const [ubicacion, setUbicacion] = useState<string | undefined>();
   const [excludedPartidas, setExcludedPartidas] = useState<Id<"partidas">[]>([]);
+  const [partidaSearch, setPartidaSearch] = useState("");
 
   // Queries and mutations
   const proyecto = useQuery(
@@ -54,6 +52,7 @@ export default function EditProyectoModal() {
     api.partida.getByProject,
     proyectoId ? { projectId: proyectoId } : "skip"
   );
+  const projectLocations = useQuery(api.project_locations.list);
   const updateProyecto = useMutation(api.desarrollos.update);
 
   // Load proyecto data when modal opens
@@ -61,24 +60,22 @@ export default function EditProyectoModal() {
     if (proyecto) {
       setNombre(proyecto.nombre || "");
       setDescripcion(proyecto.descripcion || "");
-      setImage(proyecto.image || "");
       setStatus(proyecto.status || "Activo");
-      setFechaCreacion(proyecto.fecha_creacion || "");
       setHonorariosPorcentaje(proyecto.honorarios_porcentaje || 0);
       setUbicacion(proyecto.ubicacion);
       setExcludedPartidas(proyecto.excluded_partidas_honorarios || []);
+      setPartidaSearch("");
     }
   }, [proyecto]);
 
   const handleClose = () => {
     setNombre("");
     setDescripcion("");
-    setImage("");
     setStatus("Activo");
-    setFechaCreacion("");
     setHonorariosPorcentaje(0);
     setUbicacion(undefined);
     setExcludedPartidas([]);
+    setPartidaSearch("");
     setIsSubmitting(false);
     onClose();
   };
@@ -94,9 +91,7 @@ export default function EditProyectoModal() {
         id: proyectoId,
         nombre,
         descripcion,
-        image: image || undefined,
         status,
-        fecha_creacion: fechaCreacion || undefined,
         honorarios_porcentaje: honorariosPorcentaje,
         ubicacion: ubicacion ?? null,
         excluded_partidas_honorarios: excludedPartidas,
@@ -131,11 +126,17 @@ export default function EditProyectoModal() {
 
   // Filter to only show nivel 1 partidas
   const nivel1Partidas = partidas?.filter((partida) => partida.nivel === 1);
+  const normalizedPartidaSearch = normalizeProjectLocationName(partidaSearch);
+  const filteredNivel1Partidas = nivel1Partidas?.filter((partida) =>
+    normalizeProjectLocationName(partida.nombre).includes(normalizedPartidaSearch)
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent data-square-modal="" className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent data-square-modal=""
+        className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0"
+      >
+        <DialogHeader className="shrink-0 border-b px-6 py-5 pr-12">
           <DialogTitle className="text-2xl font-normal">
             Editar Proyecto
           </DialogTitle>
@@ -144,7 +145,8 @@ export default function EditProyectoModal() {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
           {/* Nombre */}
           <div className="space-y-2">
             <Label htmlFor="nombre" className="text-sm font-medium">
@@ -182,7 +184,7 @@ export default function EditProyectoModal() {
             <Select
               value={ubicacion || NO_PROJECT_LOCATION}
               onValueChange={(value) => setUbicacion(
-                value === NO_PROJECT_LOCATION ? undefined : value as ProjectLocation
+                value === NO_PROJECT_LOCATION ? undefined : value
               )}
             >
               <SelectTrigger id="ubicacion" className="rounded-none">
@@ -192,9 +194,9 @@ export default function EditProyectoModal() {
                 <SelectItem value={NO_PROJECT_LOCATION}>
                   {NO_PROJECT_LOCATION_LABEL}
                 </SelectItem>
-                {PROJECT_LOCATIONS.map((location) => (
-                  <SelectItem key={location} value={location}>
-                    {location}
+                {(projectLocations || []).map((location) => (
+                  <SelectItem key={location.key} value={location.key}>
+                    {location.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -226,7 +228,12 @@ export default function EditProyectoModal() {
           </div>
 
           {/* Partidas Exclusion Section */}
-          {nivel1Partidas && nivel1Partidas.length > 0 && (
+          {partidas === undefined ? (
+            <div className="flex items-center gap-2 border-t pt-4 text-sm text-subtle-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Cargando partidas...
+            </div>
+          ) : nivel1Partidas && nivel1Partidas.length > 0 ? (
             <div className="space-y-3 border-t pt-4">
               <div className="flex items-start gap-2">
                 <Info className="h-4 w-4 text-blue-500 mt-0.5" />
@@ -240,41 +247,57 @@ export default function EditProyectoModal() {
                 </div>
               </div>
 
-              <div className="max-h-[300px] overflow-y-auto border rounded-none p-4 space-y-2">
-                {nivel1Partidas.map((partida) => (
-                  <div
-                    key={partida._id}
-                    className="flex items-start gap-3 p-2 hover:bg-background rounded-none"
-                  >
-                    <Checkbox
-                      id={`partida-${partida._id}`}
-                      checked={excludedPartidas.includes(partida._id)}
-                      onCheckedChange={() => handlePartidaToggle(partida._id)}
-                      className="mt-1"
-                    />
-                    <label
-                      htmlFor={`partida-${partida._id}`}
-                      className="flex-1 cursor-pointer"
-                    >
-                      <div className="text-sm font-medium">{partida.nombre}</div>
-                      <div className="text-xs text-subtle-foreground">
-                        {partida.familia} - {partida.sub_partida}
-                      </div>
-                      <div className="text-xs text-disabled-foreground">
-                        Presupuesto: ${partida.presupuesto_aprobado.toLocaleString()}
-                      </div>
-                    </label>
-                  </div>
-                ))}
+              <div className="border">
+                <div className="relative border-b">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
+                  <Input
+                    value={partidaSearch}
+                    onChange={(event) => setPartidaSearch(event.target.value)}
+                    placeholder="Buscar partida..."
+                    aria-label="Buscar partida de nivel 1"
+                    className="h-10 rounded-none border-0 pl-9 shadow-none focus-visible:ring-0"
+                  />
+                </div>
+                <div className="max-h-56 overflow-y-auto">
+                  {filteredNivel1Partidas && filteredNivel1Partidas.length > 0 ? (
+                    filteredNivel1Partidas.map((partida) => (
+                      <label
+                        key={partida._id}
+                        htmlFor={`partida-${partida._id}`}
+                        className="flex cursor-pointer items-center gap-3 border-b px-3 py-2 last:border-b-0 hover:bg-muted/50"
+                      >
+                        <Checkbox
+                          id={`partida-${partida._id}`}
+                          checked={excludedPartidas.includes(partida._id)}
+                          onCheckedChange={() => handlePartidaToggle(partida._id)}
+                        />
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                          {partida.nombre}
+                        </span>
+                        <span className="shrink-0 text-xs tabular-nums text-subtle-foreground">
+                          {new Intl.NumberFormat("es-MX", {
+                            style: "currency",
+                            currency: "MXN",
+                            maximumFractionDigits: 0,
+                          }).format(partida.presupuesto_aprobado)}
+                        </span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="px-4 py-6 text-center text-sm text-subtle-foreground">
+                      No se encontraron partidas
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <p className="text-xs text-subtle-foreground italic">
+              <p className="text-xs text-subtle-foreground">
                 {excludedPartidas.length > 0
                   ? `${excludedPartidas.length} partida${excludedPartidas.length > 1 ? 's' : ''} excluida${excludedPartidas.length > 1 ? 's' : ''} del cálculo`
                   : 'Ninguna partida excluida'}
               </p>
             </div>
-          )}
+          ) : null}
 
           {/* Status */}
           <div className="space-y-2">
@@ -293,42 +316,10 @@ export default function EditProyectoModal() {
             </Select>
           </div>
 
-          {/* Fecha Creación */}
-          <div className="space-y-2">
-            <Label htmlFor="fecha" className="text-sm font-medium">
-              Fecha de Creación
-            </Label>
-            <Input
-              id="fecha"
-              type="date"
-              value={fechaCreacion}
-              onChange={(e) => setFechaCreacion(e.target.value)}
-              className="rounded-none"
-            />
-            <p className="text-xs text-subtle-foreground">
-              Si se deja vacío, se usará la fecha actual
-            </p>
-          </div>
-
-          {/* Image URL */}
-          <div className="space-y-2">
-            <Label htmlFor="image" className="text-sm font-medium">
-              URL de Imagen
-            </Label>
-            <Input
-              id="image"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="https://ejemplo.com/imagen.jpg"
-              className="rounded-none"
-            />
-            <p className="text-xs text-subtle-foreground">
-              Si se deja vacío, se usará una imagen placeholder
-            </p>
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-6 py-4">
             <Button
               type="button"
               variant="outline"

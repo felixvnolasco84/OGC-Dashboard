@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useCallback } from 'react';
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Upload, FolderPlus, FileSpreadsheet } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -20,8 +20,6 @@ import { toast } from "sonner";
 import {
   NO_PROJECT_LOCATION,
   NO_PROJECT_LOCATION_LABEL,
-  PROJECT_LOCATIONS,
-  type ProjectLocation,
 } from "@/lib/project-locations";
 import {
   Select,
@@ -42,6 +40,7 @@ export default function AddProyectoModal() {
   const [dragActive, setDragActive] = useState(false);
   const [, setResult] = useState<UploadResult | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const projectLocations = useQuery(api.project_locations.list);
 
   type UploadResult = {
     success: boolean;
@@ -450,7 +449,7 @@ export default function AddProyectoModal() {
                 onValueChange={(value) => updateFormData({
                   ubicacion: value === NO_PROJECT_LOCATION
                     ? undefined
-                    : value as ProjectLocation,
+                    : value,
                 })}
               >
                 <SelectTrigger id="ubicacion" className="rounded-none">
@@ -460,9 +459,9 @@ export default function AddProyectoModal() {
                   <SelectItem value={NO_PROJECT_LOCATION}>
                     {NO_PROJECT_LOCATION_LABEL}
                   </SelectItem>
-                  {PROJECT_LOCATIONS.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
+                  {(projectLocations || []).map((location) => (
+                    <SelectItem key={location.key} value={location.key}>
+                      {location.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
