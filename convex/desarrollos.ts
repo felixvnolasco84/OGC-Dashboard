@@ -11,6 +11,10 @@ import {
     hasGlobalAdminAccess,
 } from "./permissions";
 import { isValidProjectLocationKey } from "./project_locations";
+import {
+    NO_PROJECT_LOCATION,
+    matchesProjectLocation,
+} from "../src/lib/project-locations";
 
 const nullableProjectLocationValidator = v.union(v.string(), v.null());
 
@@ -694,17 +698,44 @@ const pnlQueryArgs = {
     cutoffMonth: v.optional(v.number()),
     usdToMxn: v.optional(v.number()),
     eurToMxn: v.optional(v.number()),
+    locationKey: v.optional(v.string()),
+};
+
+const getPnlLocationScope = async (ctx: QueryCtx, locationKey?: string) => {
+    const accessibleProjects = await getUserDesarrollos(ctx);
+    if (
+        locationKey &&
+        locationKey !== NO_PROJECT_LOCATION &&
+        !(await isValidProjectLocationKey(ctx, locationKey))
+    ) {
+        throw new Error("La ubicación seleccionada no existe");
+    }
+
+    const projects = locationKey
+        ? accessibleProjects.filter((project) => matchesProjectLocation(project.ubicacion, locationKey))
+        : accessibleProjects;
+    const accessibleMovements = await getAccessibleOgcMovements(ctx, accessibleProjects);
+
+    if (!locationKey) {
+        return { projects, ogcMovements: accessibleMovements };
+    }
+
+    const projectIds = new Set(projects.map((project) => String(project._id)));
+    const ogcMovements = accessibleMovements.filter(
+        (movement) => !movement.proyecto || projectIds.has(String(movement.proyecto)),
+    );
+
+    return { projects, ogcMovements };
 };
 
 // Aggregated P&L metrics using the formulas from the OGC monthly P&L reference.
 export const getPnlSummary = query({
     args: pnlQueryArgs,
     handler: async (ctx, args) => {
-    const proyectos = await getUserDesarrollos(ctx);
+    const { projects: proyectos, ogcMovements } = await getPnlLocationScope(ctx, args.locationKey);
     const now = new Date();
     const period = normalizePnlPeriod(args);
     const rates = normalizeExchangeRates(args);
-    const ogcMovements = await getAccessibleOgcMovements(ctx, proyectos);
     const allMovementSummary = summarizeOgcMovements(ogcMovements, period, rates);
     const companyOnlyMovementSummary = summarizeOgcMovements(ogcMovements.filter((movement) => !movement.proyecto), period, rates);
 
@@ -818,11 +849,10 @@ export const getPnlSummary = query({
 export const getProfitabilitySummary = query({
     args: pnlQueryArgs,
     handler: async (ctx, args) => {
-    const proyectos = await getUserDesarrollos(ctx);
+    const { projects: proyectos, ogcMovements } = await getPnlLocationScope(ctx, args.locationKey);
     const now = new Date();
     const period = normalizePnlPeriod(args);
     const rates = normalizeExchangeRates(args);
-    const ogcMovements = await getAccessibleOgcMovements(ctx, proyectos);
     const allMovementSummary = summarizeOgcMovements(ogcMovements, period, rates);
 
     const projects = await Promise.all(

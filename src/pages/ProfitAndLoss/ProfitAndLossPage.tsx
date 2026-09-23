@@ -27,6 +27,12 @@ import { OgcMovementsUploadModal } from "@/components/modals/ogc-movements-uploa
 import { cn } from "@/lib/utils";
 import { Ban, CalendarDays, Check, Copy, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  ALL_PROJECT_LOCATIONS,
+  NO_PROJECT_LOCATION,
+  NO_PROJECT_LOCATION_LABEL,
+  matchesProjectLocation,
+} from "@/lib/project-locations";
 
 type PnlTab = "pnl" | "wip" | "profitability";
 type PnlRowType = "section" | "line" | "subtotal" | "metric";
@@ -105,6 +111,7 @@ type PnlMonthlyMovement = {
 type DesarrolloOption = {
   _id: Id<"desarrollos">;
   nombre: string;
+  ubicacion?: string;
 };
 
 type OgcLedgerMovement = {
@@ -165,6 +172,7 @@ type PnlQueryParams = {
   cutoffMonth: number;
   usdToMxn: number;
   eurToMxn: number;
+  locationKey?: string;
 };
 
 type ProfitabilitySummary = {
@@ -2101,6 +2109,7 @@ export default function ProfitAndLossPage() {
   const [usdToMxn, setUsdToMxn] = useState(DEFAULT_USD_TO_MXN);
   const [eurToMxn, setEurToMxn] = useState(DEFAULT_EUR_TO_MXN);
   const [taxSettings, setTaxSettings] = useState<TaxSettings>(DEFAULT_TAX_SETTINGS);
+  const [locationFilter, setLocationFilter] = useState<string>(ALL_PROJECT_LOCATIONS);
 
   const pnlQueryParams = useMemo<PnlQueryParams>(
     () => ({
@@ -2108,8 +2117,11 @@ export default function ProfitAndLossPage() {
       cutoffMonth,
       usdToMxn,
       eurToMxn,
+      ...(locationFilter === ALL_PROJECT_LOCATIONS
+        ? {}
+        : { locationKey: locationFilter }),
     }),
-    [periodYear, cutoffMonth, usdToMxn, eurToMxn]
+    [periodYear, cutoffMonth, usdToMxn, eurToMxn, locationFilter]
   );
   const ogcExchangeRates = useMemo(() => ({ USD: usdToMxn, EUR: eurToMxn }), [usdToMxn, eurToMxn]);
 
@@ -2117,6 +2129,24 @@ export default function ProfitAndLossPage() {
   const profitabilitySummary = useQuery(api.desarrollos.getProfitabilitySummary, pnlQueryParams) as ProfitabilitySummary | undefined;
   const ogcMovements = useQuery(api.ogc_movimientos.getAll, { includeInactive: true }) as OgcLedgerMovement[] | undefined;
   const proyectos = useQuery(api.desarrollos.getAll) as DesarrolloOption[] | undefined;
+  const projectLocations = useQuery(api.project_locations.list);
+
+  const ledgerProjects = useMemo(
+    () => (proyectos || []).filter((project) =>
+      matchesProjectLocation(project.ubicacion, locationFilter)
+    ),
+    [locationFilter, proyectos],
+  );
+  const ledgerMovements = useMemo(() => {
+    if (!ogcMovements || locationFilter === ALL_PROJECT_LOCATIONS) {
+      return ogcMovements || [];
+    }
+
+    const projectIds = new Set(ledgerProjects.map((project) => String(project._id)));
+    return ogcMovements.filter(
+      (movement) => !movement.proyecto || projectIds.has(String(movement.proyecto)),
+    );
+  }, [ledgerProjects, locationFilter, ogcMovements]);
 
   const months = useMemo(() => buildMonths(periodYear, cutoffMonth), [periodYear, cutoffMonth]);
   const periodLabel = buildPeriodLabel(periodYear, cutoffMonth);
@@ -2147,13 +2177,15 @@ export default function ProfitAndLossPage() {
     setUsdToMxn(DEFAULT_USD_TO_MXN);
     setEurToMxn(DEFAULT_EUR_TO_MXN);
     setTaxSettings(DEFAULT_TAX_SETTINGS);
+    setLocationFilter(ALL_PROJECT_LOCATIONS);
   };
 
   if (
     pnlSummary === undefined ||
     profitabilitySummary === undefined ||
     ogcMovements === undefined ||
-    proyectos === undefined
+    proyectos === undefined ||
+    projectLocations === undefined
   ) {
     return (
       <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
@@ -2191,7 +2223,26 @@ export default function ProfitAndLossPage() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={locationFilter} onValueChange={setLocationFilter}>
+                <SelectTrigger
+                  aria-label="Filtrar Profit & Loss por ubicación"
+                  className="mb-3 h-10 w-full min-w-52 rounded-none bg-card text-foreground md:w-60"
+                >
+                  <SelectValue placeholder="Todas las ubicaciones" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_PROJECT_LOCATIONS}>Todas las ubicaciones</SelectItem>
+                  {projectLocations.map((location) => (
+                    <SelectItem key={location.key} value={location.key}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={NO_PROJECT_LOCATION}>
+                    {NO_PROJECT_LOCATION_LABEL}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <PnlSettingsDialog
                 periodLabel={periodLabel}
                 periodYear={periodYear}
@@ -2206,7 +2257,7 @@ export default function ProfitAndLossPage() {
                 onTaxSettingChange={updateTaxSetting}
                 onReset={resetSettings}
               />
-              <OgcLedgerDialog movements={ogcMovements} proyectos={proyectos} />
+              <OgcLedgerDialog movements={ledgerMovements} proyectos={ledgerProjects} />
               <Button
                 type="button"
                 variant="outline"

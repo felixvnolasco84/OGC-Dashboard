@@ -13,6 +13,16 @@ export const DEFAULT_PROJECT_LOCATIONS: readonly ProjectLocationOption[] = [
 
 export const NO_PROJECT_LOCATION = "__sin_ubicacion__" as const;
 export const NO_PROJECT_LOCATION_LABEL = "Sin ubicación";
+export const ALL_PROJECT_LOCATIONS = "__all_project_locations__" as const;
+
+export const matchesProjectLocation = (
+  projectLocation: string | undefined,
+  locationFilter: string,
+) =>
+  locationFilter === ALL_PROJECT_LOCATIONS ||
+  (locationFilter === NO_PROJECT_LOCATION
+    ? !projectLocation
+    : projectLocation === locationFilter);
 
 export const normalizeProjectLocationName = (value: string) =>
   value

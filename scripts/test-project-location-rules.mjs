@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import {
+  ALL_PROJECT_LOCATIONS,
   DEFAULT_PROJECT_LOCATIONS,
+  NO_PROJECT_LOCATION,
   NO_PROJECT_LOCATION_LABEL,
   getProjectLocationLabel,
+  matchesProjectLocation,
   normalizeProjectLocationName,
   validateProjectLocationName,
 } from "../src/lib/project-locations.ts";
@@ -32,5 +35,10 @@ assert.throws(
   () => validateProjectLocationName("Sin ubicación", DEFAULT_PROJECT_LOCATIONS),
   /reservado/,
 );
+assert.equal(matchesProjectLocation("Los Cabos", ALL_PROJECT_LOCATIONS), true);
+assert.equal(matchesProjectLocation("Los Cabos", "Los Cabos"), true);
+assert.equal(matchesProjectLocation("Ciudad de México", "Los Cabos"), false);
+assert.equal(matchesProjectLocation(undefined, NO_PROJECT_LOCATION), true);
+assert.equal(matchesProjectLocation("Los Cabos", NO_PROJECT_LOCATION), false);
 
 console.log("Project location catalog rules: OK");
