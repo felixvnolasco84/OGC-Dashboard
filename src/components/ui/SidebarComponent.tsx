@@ -61,6 +61,7 @@ import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
 import { ForwardRefExoticComponent, RefAttributes, useMemo, useState } from "react";
 import { useProjectDocumentNavigation } from "@/hooks/project-document-navigation";
 import { useProjectPlanNavigation } from "@/hooks/project-plan-navigation";
+import { bitacoraDb, clearOfflineUser } from "@/lib/bitacora-offline/db";
 import { planDirectorySegments, planPathsMatch } from "@/lib/plan-folder-navigation";
 import {
   getProjectLocationLabel,
@@ -914,6 +915,18 @@ function SidebarUserCard({ role }: { role?: string }) {
   const email = user?.primaryEmailAddress?.emailAddress || "";
   const avatarUrl = user?.imageUrl;
 
+  const handleSignOut = async () => {
+    if (user?.id) {
+      const pending = await bitacoraDb.outbox.where("userId").equals(user.id).count();
+      if (pending > 0) {
+        const discard = window.confirm(`Hay ${pending} operación${pending === 1 ? "" : "es"} de Bitácora sin sincronizar.\n\nAceptar descarta los datos locales pendientes y cierra la sesión. Cancelar conserva todo para que vuelvas a Bitácora y sincronices.`);
+        if (!discard) return;
+      }
+      await clearOfflineUser(user.id);
+    }
+    await signOut({ redirectUrl: "/" });
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -991,7 +1004,7 @@ function SidebarUserCard({ role }: { role?: string }) {
 
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => signOut({ redirectUrl: "/" })}
+          onClick={() => void handleSignOut()}
           className="gap-2"
         >
           <LogOut className="w-4 h-4" />

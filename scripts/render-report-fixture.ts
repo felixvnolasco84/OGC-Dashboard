@@ -136,6 +136,7 @@ const snapshot: ReportSnapshotV1 = {
     period_net_cashflow: -520_000,
     pending_payments: 2_870_000,
     approved_commitments: 4_240_000,
+    honorarios: 781_199,
   },
   earned_value: {
     physical_progress_percent: 68,
@@ -156,18 +157,18 @@ const snapshot: ReportSnapshotV1 = {
     timeline,
   },
   variances: [
-    ["MÁRMOL", 6_452_000, 6_958_492, -506_492, 65],
-    ["CANCELERÍA", 5_452_000, 5_777_000, -325_000, 35],
-    ["YESO Y PINTURA", 4_452_000, 4_300_000, 152_000, 45],
-    ["CARPINTERÍA", 3_452_000, 3_572_500, -120_500, 22],
-    ["AIRE ACONDICIONADO", 7_452_000, 7_572_500, -120_500, 4],
-  ].map(([name, approved, actual, variance, progress]) => ({
+    ["MÁRMOL", 4_572_260, 0],
+    ["HONORARIOS", 5_076_589, 781_199],
+    ["VIÁTICOS", 3_613_120, 130_354],
+    ["ALBAÑILERÍAS", 3_365_451, 252_620],
+    ["CARPINTERÍA", 2_579_379, 0],
+  ].map(([name, approved, actual]) => ({
     name: String(name),
     approved_budget: Number(approved),
     actual_cost: Number(actual),
-    variance: Number(variance),
+    variance: Number(actual) - Number(approved),
     exercised_percent: Number(actual) / Number(approved) * 100,
-    program_progress_percent: Number(progress),
+    program_progress_percent: null,
   })),
   concentration: { top_five_spend: 28_180_492, top_five_share_percent: 37.81 },
   requisitions: {
@@ -206,6 +207,54 @@ const snapshot: ReportSnapshotV1 = {
     })),
     source: "captured",
   },
+  control: {
+    family_charts: [
+      {
+        chart_id: "control-chart-1",
+        title: "Gasto Mano de Obra",
+        color: "#256A34",
+        total: 1_015_000,
+        timeline: Array.from({ length: 9 }, (_, index) => ({
+          date: new Date(Date.UTC(2026, 6, 12 + index * 6)).toISOString().slice(0, 10),
+          cumulative: 25_000 + index * index * 15_000 + index * 4_000,
+        })),
+      },
+      {
+        chart_id: "control-chart-2",
+        title: "Muros de Planta Baja",
+        color: "#10B981",
+        total: 998_000,
+        timeline: Array.from({ length: 9 }, (_, index) => ({
+          date: new Date(Date.UTC(2026, 6, 5 + index * 7)).toISOString().slice(0, 10),
+          cumulative: index < 4 ? 18_000 + index * 12_000 : 70_000 + (index - 3) ** 2 * 37_000,
+        })),
+      },
+    ],
+    legal_sections: [
+      { section: "Licencia de construcción", status: "Activo", detail: "Licencia L77-2026 · Vence 31/12/2026", document_name: "licencia-l77.pdf" },
+      { section: "Póliza de seguro", status: "Activo", detail: "Suma asegurada 12000000 · Vigencia 31/12/2026", document_name: "poliza.pdf" },
+      { section: "Plan de seguridad", status: "Pendiente", detail: "Sin datos complementarios" },
+    ],
+    procedures: [
+      { service: "CFE", procedure: "Solicitud de suministro definitivo", status: "Activo", document_name: "solicitud-cfe.pdf" },
+      { service: "Agua potable", procedure: "Factibilidad de servicio", status: "Pendiente" },
+    ],
+    contractors: [
+      { name: "OGC Developments", status: "Activo", contract_name: "contrato-general.pdf", siroc_number: "C1049546" },
+    ],
+    subcontractors: [
+      { name: "Estructuras del Norte", trade: "Estructura", amount: 4_850_000, status: "Activo", budget_name: "presupuesto-estructura.pdf", contract_name: "contrato-estructura.pdf", siroc_number: "A5653203" },
+      { name: "Instalaciones MX", trade: "Instalaciones", amount: 2_340_000, status: "Activo", contract_name: "contrato-instalaciones.pdf" },
+    ],
+    imss: {
+      registered_cost: 8_200_000,
+      paid_total: 845_000,
+      payments: [
+        { concept: "Mano de obra", amount: 525_000, receipt_name: "pago-imss-julio.pdf", support_name: "cedula-julio.pdf" },
+        { concept: "Mano de obra", amount: 320_000, receipt_name: "pago-imss-agosto.pdf", support_name: "cedula-agosto.pdf" },
+      ],
+    },
+  },
   logbook: {
     entries_in_period: 24,
     incidents_in_period: 1,
@@ -235,7 +284,7 @@ const snapshot: ReportSnapshotV1 = {
   },
   methodology: [
     "Los importes se calculan de forma determinista desde los registros del proyecto.",
-    "El avance de la tabla de variaciones proviene del Programa de Obra.",
+    "El avance de la tabla de variaciones corresponde al porcentaje financiero pagado de cada partida.",
     "PV y EV usan el presupuesto aprobado multiplicado por el avance planeado y físico.",
     "La IA sólo explica métricas existentes y no recalcula cantidades.",
   ],

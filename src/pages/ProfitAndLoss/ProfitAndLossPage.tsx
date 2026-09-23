@@ -43,6 +43,21 @@ type PnlRow = {
   percentages?: number[];
 };
 
+type CollectedIncomeRecord = {
+  id: string;
+  source: "ingresos" | "ogc";
+  fecha: string;
+  descripcion?: string;
+  montoOriginal: number;
+  moneda: string;
+  tipoCambio: number;
+  montoMxn: number;
+  agregadoPor?: string;
+  includedInCutoff: boolean;
+};
+
+type IncomeHistoryScope = "cutoff" | "all";
+
 type ProfitabilityProject = {
   id: string;
   nombre: string;
@@ -67,6 +82,7 @@ type ProfitabilityProject = {
     varianza: number;
     cpi: number;
     pagado: number;
+    ingresosBreakdown: CollectedIncomeRecord[];
     saldo: number;
     runway: number;
     averageMonthlyExpense: number;
@@ -111,6 +127,17 @@ type OgcLedgerMovement = {
   created_at: number;
   updated_by_name?: string;
   updated_at?: number;
+  archivo_origen?: string;
+  fila_origen?: number;
+  importacion?: {
+    _id: Id<"ogc_movimientos_importaciones">;
+    nombre: string;
+    type: string;
+    size: number;
+    imported_at: number;
+    imported_by_name: string;
+    url: string | null;
+  };
 };
 
 type LedgerDraft = {
@@ -328,6 +355,37 @@ const formatMetricCurrency = (amount: number) => {
 const formatTableCurrency = (amount?: number) => {
   if (amount === undefined || !Number.isFinite(amount)) return "-";
   return formatMetricCurrency(amount);
+};
+
+const formatCurrencyWithCode = (amount: number, currency: string) => {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(safeNumber(amount));
+};
+
+const parseIncomeDate = (value?: string) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  const dayFirstMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  const parts = isoMatch
+    ? { year: Number(isoMatch[1]), month: Number(isoMatch[2]), day: Number(isoMatch[3]) }
+    : dayFirstMatch
+      ? { year: Number(dayFirstMatch[3]), month: Number(dayFirstMatch[2]), day: Number(dayFirstMatch[1]) }
+      : null;
+
+  if (!parts) {
+    const parsed = new Date(trimmed);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+
+  const parsed = new Date(parts.year, parts.month - 1, parts.day);
+  return parsed.getFullYear() === parts.year && parsed.getMonth() === parts.month - 1 && parsed.getDate() === parts.day
+    ? parsed
+    : null;
 };
 
 const formatAccountingCurrency = (amount?: number) => {
@@ -566,11 +624,20 @@ function WipMetricCard({
 
 function WorkInProgressView({
   summary,
+  periodLabel,
+  periodYear,
+  cutoffMonth,
+  exchangeRates,
 }: {
   summary: ProfitabilitySummary;
+  periodLabel: string;
+  periodYear: number;
+  cutoffMonth: number;
+  exchangeRates: { USD: number; EUR: number };
 }) {
   const totals = summary.totals;
   const activeProjects = summary.projects.filter((project) => project.status !== "Cancelado");
+  const [selectedProject, setSelectedProject] = useState<ProfitabilityProject | null>(null);
 
   return (
     <>
@@ -626,7 +693,20 @@ function WorkInProgressView({
             </thead>
             <tbody>
               {activeProjects.map((project) => (
-                <tr key={project.id} className="border-b border-border bg-card">
+                <tr
+                  key={project.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Ver desglose de ingresos de ${project.nombre}`}
+                  onClick={() => setSelectedProject(project)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedProject(project);
+                    }
+                  }}
+                  className="cursor-pointer border-b border-border bg-card transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                >
                   <td className="px-8 py-6 align-middle text-base text-foreground">
                     <span className="block max-w-[240px] truncate">{project.nombre}</span>
                   </td>
@@ -668,7 +748,244 @@ function WorkInProgressView({
           </table>
         </div>
       </div>
+
+      <CollectedIncomeBreakdownDialog
+        key={selectedProject?.id || "closed"}
+        project={selectedProject}
+        periodLabel={periodLabel}
+        periodYear={periodYear}
+        cutoffMonth={cutoffMonth}
+        exchangeRates={exchangeRates}
+        onOpenChange={(open) => !open && setSelectedProject(null)}
+      />
     </>
+  );
+}
+
+function CollectedIncomeBreakdownDialog({
+  project,
+  periodLabel,
+  periodYear,
+  cutoffMonth,
+  exchangeRates,
+  onOpenChange,
+}: {
+  project: ProfitabilityProject | null;
+  periodLabel: string;
+  periodYear: number;
+  cutoffMonth: number;
+  exchangeRates: { USD: number; EUR: number };
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [historyScope, setHistoryScope] = useState<IncomeHistoryScope>("cutoff");
+  const projectId = project?.id as Id<"desarrollos"> | undefined;
+  const presupuestoIngresos = useQuery(
+    api.ingresos.getByProyecto,
+    projectId ? { proyecto_id: projectId } : "skip"
+  );
+  const ogcIngresos = useQuery(
+    api.ogc_movimientos.getIncomeByProyecto,
+    projectId ? { proyecto_id: projectId } : "skip"
+  );
+
+  if (!project) return null;
+
+  const cutoffEnd = new Date(periodYear, cutoffMonth, 0, 23, 59, 59, 999).getTime();
+  const getIncludedInCutoff = (fecha: string) => {
+    const parsedDate = parseIncomeDate(fecha);
+    return parsedDate !== null && parsedDate.getTime() <= cutoffEnd;
+  };
+  const getCurrencyDetails = (monto: number, moneda?: string, tipoCambio?: number) => {
+    const normalizedCurrency = (moneda || "MXN").trim().toUpperCase();
+    const configuredRate = normalizedCurrency === "USD"
+      ? exchangeRates.USD
+      : normalizedCurrency === "EUR"
+        ? exchangeRates.EUR
+        : 1;
+    const appliedRate = normalizedCurrency === "MXN"
+      ? 1
+      : Number.isFinite(tipoCambio) && safeNumber(tipoCambio) > 0
+        ? safeNumber(tipoCambio)
+        : configuredRate;
+
+    return {
+      moneda: normalizedCurrency,
+      tipoCambio: appliedRate,
+      montoMxn: Math.abs(safeNumber(monto)) * appliedRate,
+    };
+  };
+  const queriedRecords: CollectedIncomeRecord[] = [
+    ...(presupuestoIngresos || []).map((ingreso) => {
+      const currency = getCurrencyDetails(ingreso.monto, ingreso.moneda);
+      return {
+        id: String(ingreso._id),
+        source: "ingresos" as const,
+        fecha: ingreso.fecha,
+        descripcion: ingreso.descripcion,
+        montoOriginal: Math.abs(safeNumber(ingreso.monto)),
+        agregadoPor: ingreso.added_by_name,
+        includedInCutoff: getIncludedInCutoff(ingreso.fecha),
+        ...currency,
+      };
+    }),
+    ...(ogcIngresos || []).map((movement) => {
+      const currency = getCurrencyDetails(movement.monto, movement.moneda, movement.tipo_cambio);
+      return {
+        id: String(movement._id),
+        source: "ogc" as const,
+        fecha: movement.fecha,
+        descripcion: movement.descripcion,
+        montoOriginal: Math.abs(safeNumber(movement.monto)),
+        agregadoPor: movement.created_by_name,
+        includedInCutoff: getIncludedInCutoff(movement.fecha),
+        ...currency,
+      };
+    }),
+  ].sort((a, b) => (parseIncomeDate(b.fecha)?.getTime() || 0) - (parseIncomeDate(a.fecha)?.getTime() || 0));
+  const allRecords = queriedRecords.length > 0
+    ? queriedRecords
+    : project.wip.ingresosBreakdown || [];
+  const isLoadingRecords = presupuestoIngresos === undefined || ogcIngresos === undefined;
+  const records = historyScope === "all"
+    ? allRecords
+    : allRecords.filter((record) => record.includedInCutoff);
+  const presupuestoTotal = records
+    .filter((record) => record.source === "ingresos")
+    .reduce((sum, record) => sum + record.montoMxn, 0);
+  const ogcTotal = records
+    .filter((record) => record.source === "ogc")
+    .reduce((sum, record) => sum + record.montoMxn, 0);
+  const displayedTotal = presupuestoTotal + ogcTotal;
+  const scopeLabel = historyScope === "all" ? "Todo el histórico" : `Corte actual · ${periodLabel}`;
+
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent data-square-modal="" className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-5xl overflow-y-auto p-0">
+        <DialogHeader className="border-b border-border px-6 py-5 pr-12 text-left">
+          <DialogTitle className="text-2xl font-normal">Desglose de cobrado registrado</DialogTitle>
+          <DialogDescription>
+            {project.nombre} · {historyScope === "all"
+              ? "Todos los ingresos registrados."
+              : `Ingresos acumulados incluidos hasta ${periodLabel}.`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Label htmlFor="income-history-scope" className="text-xs font-normal text-subtle-foreground">
+              Periodo del desglose
+            </Label>
+            <p className="mt-1 text-sm text-foreground">{scopeLabel}</p>
+          </div>
+          <Select value={historyScope} onValueChange={(value) => setHistoryScope(value as IncomeHistoryScope)}>
+            <SelectTrigger id="income-history-scope" className="w-full sm:w-[220px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent data-square-modal="">
+              <SelectItem value="cutoff">Corte actual</SelectItem>
+              <SelectItem value="all">Todo el histórico</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <section className="grid grid-cols-1 divide-y divide-border border-b border-border bg-muted/40 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="px-6 py-4">
+            <p className="text-xs text-subtle-foreground">Ingresos de Presupuesto</p>
+            <p className="mt-1 text-lg font-medium tabular-nums">{formatCurrencyWithCode(presupuestoTotal, "MXN")}</p>
+          </div>
+          <div className="px-6 py-4">
+            <p className="text-xs text-subtle-foreground">Movimientos OGC</p>
+            <p className="mt-1 text-lg font-medium tabular-nums">{formatCurrencyWithCode(ogcTotal, "MXN")}</p>
+          </div>
+          <div className="px-6 py-4">
+            <p className="text-xs text-subtle-foreground">
+              {historyScope === "all" ? "Cobrado histórico" : "Cobrado registrado"}
+            </p>
+            <p className="mt-1 text-lg font-medium tabular-nums text-foreground">
+              {formatCurrencyWithCode(displayedTotal, "MXN")}
+            </p>
+          </div>
+        </section>
+
+        <div className="space-y-4 px-6 py-5">
+          <p className="text-xs text-muted-foreground">
+            Cálculo: ingresos de Presupuesto + movimientos OGC de tipo ingreso. Los montos en USD y EUR se convierten a MXN con el tipo de cambio configurado o el registrado en el movimiento OGC.
+          </p>
+
+          {isLoadingRecords ? (
+            <div className="border border-border px-6 py-10 text-center text-sm text-muted-foreground">
+              Cargando ingresos...
+            </div>
+          ) : records.length > 0 ? (
+            <div className="overflow-x-auto border border-border">
+              <table className="w-full min-w-[960px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40 text-xs text-subtle-foreground">
+                    <th className="px-3 py-3 font-medium">Fecha</th>
+                    <th className="px-3 py-3 font-medium">Origen</th>
+                    <th className="px-3 py-3 font-medium">Descripción</th>
+                    <th className="px-3 py-3 text-right font-medium">Monto original</th>
+                    <th className="px-3 py-3 text-right font-medium">T. cambio</th>
+                    <th className="px-3 py-3 text-right font-medium">Incluido en total</th>
+                    <th className="px-3 py-3 font-medium">Agregado por</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {records.map((record) => (
+                    <tr key={`${record.source}-${record.id}`} className="border-b border-border bg-card">
+                      <td className="whitespace-nowrap px-3 py-3 text-sm font-medium tabular-nums">{record.fecha}</td>
+                      <td className="px-3 py-3">
+                        <Badge variant="secondary" className="border border-border text-[10px] font-normal text-muted-foreground">
+                          {record.source === "ogc" ? "OGC" : "Presupuesto"}
+                        </Badge>
+                      </td>
+                      <td className="max-w-[260px] px-3 py-3 text-sm text-muted-foreground">
+                        <span className="block truncate" title={record.descripcion || undefined}>
+                          {record.descripcion || "—"}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right text-sm tabular-nums text-muted-foreground">
+                        {formatCurrencyWithCode(record.montoOriginal, record.moneda)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right text-sm tabular-nums text-muted-foreground">
+                        {record.moneda === "MXN" ? "—" : record.tipoCambio.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right text-sm font-medium tabular-nums text-foreground">
+                        {formatCurrencyWithCode(record.montoMxn, "MXN")}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-subtle-foreground">{record.agregadoPor || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-muted/40">
+                    <td colSpan={5} className="px-3 py-3 text-sm font-medium text-foreground">
+                      {historyScope === "all" ? "Total histórico" : "Total cobrado registrado"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right text-sm font-medium tabular-nums text-foreground">
+                      {formatCurrencyWithCode(displayedTotal, "MXN")}
+                    </td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <div className="border border-border px-6 py-10 text-center text-sm text-muted-foreground">
+              {historyScope === "all"
+                ? "No hay ingresos registrados para esta obra."
+                : "No hay ingresos registrados para esta obra al corte seleccionado."}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="border-t border-border px-6 py-4">
+          <DialogClose asChild>
+            <Button type="button">Cerrar</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1399,6 +1716,26 @@ function OgcLedgerDialog({
                         <div className="space-y-1">
                           <p>Creado: {formatLedgerTimestamp(movement.created_at)}</p>
                           <p>Por: {movement.created_by_name}</p>
+                          {movement.importacion?.url ? (
+                            <p>
+                              Archivo:{" "}
+                              <a
+                                href={movement.importacion.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline underline-offset-2"
+                                title={`Abrir ${movement.importacion.nombre}`}
+                              >
+                                {movement.importacion.nombre}
+                              </a>
+                              {movement.fila_origen ? ` · fila ${movement.fila_origen}` : ""}
+                            </p>
+                          ) : movement.archivo_origen ? (
+                            <p>
+                              Archivo: {movement.archivo_origen}
+                              {movement.fila_origen ? ` · fila ${movement.fila_origen}` : ""}
+                            </p>
+                          ) : null}
                           {movement.updated_at && <p>Ultimo cambio: {formatLedgerTimestamp(movement.updated_at)}</p>}
                           {movement.updated_by_name && <p>Por: {movement.updated_by_name}</p>}
                           {movement.void_reason && <p className="text-[#802424]">Motivo: {movement.void_reason}</p>}
@@ -1925,7 +2262,13 @@ export default function ProfitAndLossPage() {
             </div>
           </>
         ) : activeTab === "wip" ? (
-          <WorkInProgressView summary={profitabilitySummary} />
+          <WorkInProgressView
+            summary={profitabilitySummary}
+            periodLabel={periodLabel}
+            periodYear={periodYear}
+            cutoffMonth={cutoffMonth}
+            exchangeRates={ogcExchangeRates}
+          />
         ) : (
           <ProjectProfitabilityView
             summary={profitabilitySummary}

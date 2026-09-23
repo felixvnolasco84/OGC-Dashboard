@@ -5,7 +5,9 @@ import {
   calculateApprovedCommitments,
   calculateEarnedValue,
   excelSerialToIsoDate,
+  isActiveOgcIncome,
   nextRunAt,
+  ogcIncomeValueInMxn,
   parseProjectDate,
   previousPeriod,
   reportSubscriptionPeriodKey,
@@ -14,6 +16,7 @@ import {
   shouldAttachReportPdf,
   zonedDateTimeToTimestamp,
 } from "../convex/reportingUtils.ts";
+import { getProgramDisplayWindow } from "../convex/reportPdf.ts";
 import {
   allowedSectionsForRole,
   profileForRole,
@@ -32,6 +35,17 @@ assert.equal(parseProjectDate("05 Sep 2026"), "2026-09-05");
 assert.equal(excelSerialToIsoDate(25569), "1970-01-01");
 assert.equal(addIsoDays("2025-12-31", 1), "2026-01-01");
 assert.equal(addIsoDays("2024-02-28", 1), "2024-02-29");
+
+assert.equal(isActiveOgcIncome({ tipo: "ingreso" }), true);
+assert.equal(isActiveOgcIncome({ tipo: "ingreso", status: "activo" }), true);
+assert.equal(isActiveOgcIncome({ tipo: "ingreso", status: "anulado" }), false);
+assert.equal(isActiveOgcIncome({ tipo: "costo_estructura", status: "activo" }), false);
+assert.equal(ogcIncomeValueInMxn({ monto: -1_000, moneda: "MXN" }), 1_000);
+assert.equal(ogcIncomeValueInMxn({ monto: 500, moneda: "USD", tipo_cambio: 18.25 }), 9_125);
+
+const septemberWindow = getProgramDisplayWindow("2026-09-10");
+assert.equal(new Date(septemberWindow.start).toISOString().slice(0, 10), "2026-08-01");
+assert.equal(new Date(septemberWindow.endExclusive).toISOString().slice(0, 10), "2026-11-01");
 
 const mexicoMonday = zonedDateTimeToTimestamp(
   2026,

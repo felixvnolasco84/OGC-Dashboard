@@ -30,7 +30,7 @@ import BitacoraModal from "../Bitacora/BitacoraModal";
 import ModalErrorBoundary from "../ui/ModalErrorBoundary";
 import { useBitacoraModal } from "@/hooks/use-bitacora-modal";
 
-export const ModalProvider = () => {
+export const ModalProvider = ({ includeBitacora = false }: { includeBitacora?: boolean }) => {
   const [isMounted, setIsMounted] = useState(false);
   const closeBitacoraModal = useBitacoraModal((state) => state.onClose);
 
@@ -68,8 +68,10 @@ export const ModalProvider = () => {
     <EditSalesProjectModal />
     <UploadSalesProjectTransactionsModal />
     <UploadSalesProyectoDocumentsModal />
-    <ModalErrorBoundary modalName="BitacoraModal" onClose={closeBitacoraModal}>
-      <BitacoraModal />
-    </ModalErrorBoundary>
+    {includeBitacora && (
+      <ModalErrorBoundary modalName="BitacoraModal" onClose={closeBitacoraModal}>
+        <BitacoraModal />
+      </ModalErrorBoundary>
+    )}
   </>;
 };

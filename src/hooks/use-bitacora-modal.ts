@@ -1,11 +1,10 @@
 import { create } from "zustand";
-import { Id } from "../../convex/_generated/dataModel";
-
 interface LogEntry {
-  _id: Id<"bitacora">;
+  _id: string;
+  client_id?: string;
   departamento?: string; // Enriched by backend
   categoria: string;
-  partida_id: Id<"partidas">;
+  partida_id: string;
   familias_tags: string[];
   responsable: string;
   fecha: string;
@@ -17,12 +16,12 @@ interface LogEntry {
 interface BitacoraModalState {
   isOpen: boolean;
   mode: "create" | "edit" | "view";
-  proyectoId?: Id<"desarrollos">;
+  proyectoId?: string;
   logEntry?: LogEntry;
   categoria?: string; // Auto-populate category when creating from a specific group
   fecha?: string; // Auto-populate date when creating from calendar
   onOpen: (data: {
-    proyectoId: Id<"desarrollos">;
+    proyectoId: string;
     mode: "create" | "edit" | "view";
     logEntry?: LogEntry;
     categoria?: string; // Optional category to pre-fill
