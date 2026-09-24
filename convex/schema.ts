@@ -55,7 +55,8 @@ export default defineSchema({
     status: v.optional(v.string()), // Activo, Cancelado, Entregado
     fecha_creacion: v.optional(v.string()),
     honorarios_porcentaje: v.optional(v.number()), // User-set percentage (e.g., 15 for 15%)
-    honorarios_monto: v.optional(v.number()), // Auto-calculated amount based on percentage
+    honorarios_monto: v.optional(v.number()), // Calculated according to honorarios_modo
+    honorarios_modo: v.optional(v.union(v.literal("automatico"), v.literal("transacciones"))),
     excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
     moneda_principal: v.optional(v.string()), // Primary currency for project (MXN, USD, EUR) - auto-updated from transactions
     organization_id: v.optional(v.string()),

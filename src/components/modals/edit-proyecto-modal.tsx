@@ -39,6 +39,7 @@ export default function EditProyectoModal() {
   const [descripcion, setDescripcion] = useState("");
   const [status, setStatus] = useState("Activo");
   const [honorariosPorcentaje, setHonorariosPorcentaje] = useState<number>(0);
+  const [honorariosModo, setHonorariosModo] = useState<"automatico" | "transacciones">("automatico");
   const [ubicacion, setUbicacion] = useState<string | undefined>();
   const [excludedPartidas, setExcludedPartidas] = useState<Id<"partidas">[]>([]);
   const [partidaSearch, setPartidaSearch] = useState("");
@@ -62,6 +63,7 @@ export default function EditProyectoModal() {
       setDescripcion(proyecto.descripcion || "");
       setStatus(proyecto.status || "Activo");
       setHonorariosPorcentaje(proyecto.honorarios_porcentaje || 0);
+      setHonorariosModo(proyecto.honorarios_modo === "transacciones" ? "transacciones" : "automatico");
       setUbicacion(proyecto.ubicacion);
       setExcludedPartidas(proyecto.excluded_partidas_honorarios || []);
       setPartidaSearch("");
@@ -73,6 +75,7 @@ export default function EditProyectoModal() {
     setDescripcion("");
     setStatus("Activo");
     setHonorariosPorcentaje(0);
+    setHonorariosModo("automatico");
     setUbicacion(undefined);
     setExcludedPartidas([]);
     setPartidaSearch("");
@@ -93,6 +96,7 @@ export default function EditProyectoModal() {
         descripcion,
         status,
         honorarios_porcentaje: honorariosPorcentaje,
+        honorarios_modo: honorariosModo,
         ubicacion: ubicacion ?? null,
         excluded_partidas_honorarios: excludedPartidas,
       });
@@ -206,6 +210,24 @@ export default function EditProyectoModal() {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="honorarios_modo" className="text-sm font-medium">Cálculo de honorarios</Label>
+            <Select value={honorariosModo} onValueChange={(value) => setHonorariosModo(value as "automatico" | "transacciones")}>
+              <SelectTrigger id="honorarios_modo" className="rounded-none">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent data-square-modal="">
+                <SelectItem value="automatico">Automático por porcentaje</SelectItem>
+                <SelectItem value="transacciones">Por transacciones de HONORARIOS</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-subtle-foreground">
+              {honorariosModo === "transacciones"
+                ? "Suma los conceptos vinculados a la partida HONORARIOS, incluidas transacciones por pagar."
+                : "Calcula honorarios con el porcentaje y las partidas excluidas configuradas abajo."}
+            </p>
+          </div>
+
           {/* Honorarios Percentage */}
           <div className="space-y-2">
             <Label htmlFor="honorarios_porcentaje" className="text-sm font-medium">
@@ -223,7 +245,9 @@ export default function EditProyectoModal() {
               className="rounded-none"
             />
             <p className="text-xs text-subtle-foreground">
-              Porcentaje que se aplicará sobre el total de transacciones para calcular honorarios
+              {honorariosModo === "automatico"
+                ? "Porcentaje aplicado a la base de transacciones para calcular honorarios."
+                : "Se conserva para cuando vuelvas al modo automático."}
             </p>
           </div>
 
@@ -242,7 +266,9 @@ export default function EditProyectoModal() {
                     Excluir Partidas del Cálculo de Honorarios (Nivel 1)
                   </Label>
                   <p className="text-xs text-subtle-foreground mt-1">
-                    Selecciona las partidas de nivel 1 que NO deben incluirse en el cálculo de honorarios
+                    {honorariosModo === "automatico"
+                      ? "Selecciona las partidas de nivel 1 que no se incluirán en el cálculo automático."
+                      : "Las exclusiones se conservan para cuando vuelvas al modo automático."}
                   </p>
                 </div>
               </div>

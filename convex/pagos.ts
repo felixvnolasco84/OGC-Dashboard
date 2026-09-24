@@ -10,6 +10,7 @@ import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
+import { calculateHonorariosFromRecords } from "./honorariosRules";
 
 // Type for enriched payment with transaction and partida data
 type EnrichedPayment = Doc<"pagos"> & {
@@ -350,6 +351,7 @@ export const getPaymentsByDateRange = query({
 
     // Aggregate pagos by partida_id
     const paymentsByPartida: Record<string, number> = {};
+    const periodPagos: Doc<"pagos">[] = [];
     let total = 0;
 
     for (const transaction of filtered) {
@@ -359,13 +361,30 @@ export const getPaymentsByDateRange = query({
         .collect();
 
       for (const pago of pagos) {
+        periodPagos.push(pago);
         const partidaId = pago.partida_id as string;
         paymentsByPartida[partidaId] = (paymentsByPartida[partidaId] || 0) + pago.monto;
         total += pago.monto;
       }
     }
 
-    return { paymentsByPartida, total };
+    const [proyecto, partidas] = await Promise.all([
+      ctx.db.get(args.proyecto_id),
+      ctx.db.query("partidas")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+        .collect(),
+    ]);
+    const honorarios = calculateHonorariosFromRecords({
+      proyectoId: String(args.proyecto_id),
+      modo: proyecto?.honorarios_modo,
+      porcentaje: proyecto?.honorarios_porcentaje,
+      excludedPartidas: proyecto?.excluded_partidas_honorarios,
+      transactions: filtered,
+      pagos: periodPagos,
+      partidas,
+    });
+
+    return { paymentsByPartida, total, honorarios };
   },
 });
 
@@ -382,6 +401,16 @@ export const updatePago = mutation({
     }
 
     await ctx.db.patch(args.id, { monto: args.monto });
+    const transaction = await ctx.db.get(existingPago.transaccion_id);
+    if (transaction) {
+      const lineItems = await ctx.db.query("pagos")
+        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
+        .collect();
+      const montoTotal = lineItems.reduce((sum, lineItem) => sum + lineItem.monto, 0);
+      if (transaction.monto_total !== montoTotal) {
+        await ctx.db.patch(transaction._id, { monto_total: montoTotal });
+      }
+    }
     return args.id;
   },
 });

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { calculateHonorariosFromRecords, getHonorariosModo, isHonorariosPartida } from "../convex/honorariosRules.ts";
 import {
   addIsoDays,
   canClaimReportSubscription,
@@ -25,6 +26,35 @@ import {
   canUserAccessDesarrollo,
   canUserReceiveProjectReport,
 } from "../convex/permissions.ts";
+
+const honorariosPartidas = [
+  { _id: "hon", proyecto: "obra", nivel: 1, nombre: " HONORARIOS " },
+  { _id: "child", proyecto: "obra", nivel: 2, nombre: "Consultoría", partida_nombre: "HONORARIOS" },
+  { _id: "mat", proyecto: "obra", nivel: 1, nombre: "Materiales" },
+  { _id: "other", proyecto: "otra", nivel: 1, nombre: "HONORARIOS" },
+];
+const honorariosTransactions = [
+  { _id: "paid", monto_total: 130 },
+  { _id: "pending", monto_total: 60 },
+];
+const honorariosPagos = [
+  { transaccion_id: "paid", partida_id: "child", monto: 100 },
+  { transaccion_id: "paid", partida_id: "mat", monto: 30 },
+  { transaccion_id: "pending", partida_id: "hon", monto: 40 },
+  { transaccion_id: "pending", partida_id: "other", monto: 20 },
+];
+const honorariosInput = {
+  proyectoId: "obra",
+  transactions: honorariosTransactions,
+  pagos: honorariosPagos,
+  partidas: honorariosPartidas,
+};
+assert.equal(getHonorariosModo(undefined), "automatico");
+assert.equal(isHonorariosPartida(honorariosPartidas[1]), true);
+assert.equal(isHonorariosPartida(honorariosPartidas[2]), false);
+assert.equal(calculateHonorariosFromRecords({ ...honorariosInput, modo: "transacciones" }), 140);
+assert.equal(calculateHonorariosFromRecords({ ...honorariosInput, modo: "transacciones", transactions: [honorariosTransactions[1]] }), 40);
+assert.equal(calculateHonorariosFromRecords({ ...honorariosInput, porcentaje: 10, excludedPartidas: ["mat"] }), 16);
 
 assert.equal(parseProjectDate("31/12/2025"), "2025-12-31");
 assert.equal(parseProjectDate("2026-01-01T17:20:00Z"), "2026-01-01");
@@ -209,5 +239,5 @@ assert.equal(selectWorkforceCaptures(workforceCaptures, "2026-05-27").stale, fal
 assert.equal(selectWorkforceCaptures(workforceCaptures, "2026-06-03").stale, true);
 
 console.log(
-  "Reporting rules passed: mixed dates, leap years, timezone periods, scheduling, earned value, and sanitization.",
+  "Reporting rules passed: honorarios modes, mixed dates, leap years, timezone periods, scheduling, earned value, and sanitization.",
 );

@@ -1,8 +1,9 @@
 import { mutation as rawMutation, internalMutation as rawInternalMutation } from "./_generated/server";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DataModel } from "./_generated/dataModel";
+import { DataModel, Doc, Id } from "./_generated/dataModel";
 import { Triggers } from "convex-helpers/server/triggers";
 import { customCtx, customMutation } from "convex-helpers/server/customFunctions";
+import { getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
 
 // Initialize Triggers with table types from schema.ts
 const triggers = new Triggers<DataModel>();
@@ -24,45 +25,43 @@ triggers.register("pagos", async (ctx, change) => {
       return;
     }
     
-    // Fetch related data from partidas and transacciones tables
-    // (pagos table is now simplified and doesn't store these fields)
-    const partidaDoc = payment.partida_id ? await ctx.db.get(payment.partida_id) : null;
-    if (!partidaDoc || partidaDoc === null) {
-      console.log("Partida not found, skipping trigger");
-      return;
-    }
-    
     const transactionDoc = await ctx.db.get(payment.transaccion_id);
-    if (!transactionDoc || transactionDoc === null) {
+    if (!transactionDoc) {
       console.log("Transaction not found, skipping trigger");
       return;
     }
-    
-    // Type assertion to access fields
-    const partida = partidaDoc as any;
     const transaction = transactionDoc as any;
-    if (partida.proyecto !== transaction.proyecto) {
-      console.warn("Payment references a partida from another project; skipping budget rollup", payment._id);
-      return;
+    const affectedIds = new Set<Id<"partidas">>();
+    if (payment.partida_id) affectedIds.add(payment.partida_id);
+    if (change.operation === "update" && change.oldDoc?.partida_id) {
+      affectedIds.add(change.oldDoc.partida_id);
     }
-    
-    const context = {
-      partida: partida.partida_nombre || partida.nombre || "",
-      familia: partida.familia || "",
-      sub_partida: partida.sub_partida || "",
-      nivel: partida.nivel,
-      proyecto: transaction.proyecto
-    };
-    
-    console.log("Payment details:", context);
-    
-    // Recalculate pagado for all affected partidas in the hierarchy
-    await updatePagadoForHierarchy(ctx, context);
+    const affectedPartidas = (await Promise.all([...affectedIds].map((id) => ctx.db.get(id))))
+      .filter((partida): partida is Doc<"partidas"> =>
+        Boolean(partida && partida.proyecto === transaction.proyecto));
+
+    for (const partida of affectedPartidas) {
+      await updatePagadoForHierarchy(ctx, {
+        partida: partida.partida_nombre || partida.nombre || "",
+        familia: partida.familia || "",
+        sub_partida: partida.sub_partida || "",
+        nivel: partida.nivel,
+        proyecto: transaction.proyecto,
+      });
+    }
     console.log("✅ Successfully updated pagado for all hierarchy levels");
-    
-    // Update meticas_presupuesto after payment changes
-    await updateMeticasPresupuesto(ctx, transaction.proyecto);
-    console.log("✅ Successfully updated meticas_presupuesto");
+
+    const proyectoDoc = await ctx.db.get(transaction.proyecto as Id<"desarrollos">);
+    const manualMode = getHonorariosModo(proyectoDoc?.honorarios_modo) === "transacciones";
+    const shouldRecalculate = manualMode
+      ? affectedPartidas.some(isHonorariosPartida)
+      : Boolean(proyectoDoc?.excluded_partidas_honorarios?.length);
+    if (shouldRecalculate) {
+      await updateHonorariosMonto(ctx, transaction.proyecto);
+    } else {
+      await updateMeticasPresupuesto(ctx, transaction.proyecto);
+    }
+    console.log("✅ Successfully updated budget metrics");
   } catch (error) {
     console.error("❌ Error in payment trigger:", error);
     throw error; // Re-throw to see the error in Convex logs
@@ -496,6 +495,30 @@ async function updateHonorariosMonto(
       .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId))
       .collect();
     
+    if (getHonorariosModo(proyecto.honorarios_modo) === "transacciones") {
+      let honorariosMonto = 0;
+      const partidasById = new Map<string, any>();
+      for (const transaction of allTransactions) {
+        const pagos = await ctx.db.query("pagos")
+          .withIndex("by_transaccion", (q: any) => q.eq("transaccion_id", transaction._id))
+          .collect();
+        for (const pago of pagos) {
+          if (!pago.partida_id) continue;
+          const key = String(pago.partida_id);
+          if (!partidasById.has(key)) partidasById.set(key, await ctx.db.get(pago.partida_id));
+          const partida = partidasById.get(key);
+          if (partida?.proyecto === proyectoId && isHonorariosPartida(partida)) {
+            honorariosMonto += pago.monto || 0;
+          }
+        }
+      }
+      const roundedMonto = Math.round(honorariosMonto * 100) / 100;
+      await ctx.db.patch(proyectoId, { honorarios_monto: roundedMonto });
+      await updateHonorariosPartida(ctx, proyectoId, roundedMonto);
+      await updateMeticasPresupuesto(ctx, proyectoId);
+      return;
+    }
+
     // Calculate total amount from all transactions
     const totalAmount = allTransactions.reduce(
       (sum: number, t: any) => sum + (t.monto_total || 0),
@@ -584,6 +607,7 @@ async function updateHonorariosMonto(
     
     // Update the HONORARIOS partida with the new amount
     await updateHonorariosPartida(ctx, proyectoId, roundedHonorariosMonto);
+    await updateMeticasPresupuesto(ctx, proyectoId);
   } catch (error) {
     console.error("❌ Error updating honorarios_monto:", error);
     throw error;
@@ -749,13 +773,15 @@ triggers.register("transacciones", async (ctx, change) => {
   }
 });
 
-// Register trigger for desarrollos table to recalculate honorarios_monto when percentage changes
+// Recalculate honorarios when the project calculation settings change.
 triggers.register("desarrollos", async (ctx, change) => {
   console.log("Desarrollo changed:", change.operation, change.id);
   
   try {
-    // Only handle updates where honorarios_porcentaje or excluded_partidas_honorarios changed
+    // Ignore updates to derived fields to avoid triggering the calculation again.
     if (change.operation === "update" && change.oldDoc) {
+      const modeChanged = getHonorariosModo(change.oldDoc.honorarios_modo) !==
+        getHonorariosModo(change.newDoc.honorarios_modo);
       const oldPercentage = change.oldDoc.honorarios_porcentaje;
       const newPercentage = change.newDoc.honorarios_porcentaje;
       const oldExcludedPartidas = JSON.stringify(change.oldDoc.excluded_partidas_honorarios || []);
@@ -764,7 +790,7 @@ triggers.register("desarrollos", async (ctx, change) => {
       const percentageChanged = oldPercentage !== newPercentage;
       const excludedPartidasChanged = oldExcludedPartidas !== newExcludedPartidas;
       
-      if (percentageChanged || excludedPartidasChanged) {
+      if (modeChanged || percentageChanged || excludedPartidasChanged) {
         if (percentageChanged) {
           console.log(`Honorarios percentage changed from ${oldPercentage} to ${newPercentage}`);
         }

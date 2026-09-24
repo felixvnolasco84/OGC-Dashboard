@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
-import { mutation } from "./functions";
+import { mutation, updateHonorariosMonto } from "./functions";
 import { v } from "convex/values";
 import { assertCanWrite } from "./permissions";
 import { cleanHierarchyText, normalizeHierarchyText } from "./partidaRules";
@@ -1465,157 +1465,27 @@ export const syncProjectData = mutation({
           .collect();
       }
 
-      // ============================================
-      // STEP 3: Calculate and update honorarios
-      // ============================================
-      console.log("Step 3: Calculating honorarios...");
-
-      const honorariosPorcentaje = proyecto.honorarios_porcentaje || 0;
-      const excludedPartidasIds = proyecto.excluded_partidas_honorarios || [];
-
-      // Get all transactions for this project
-      const allTransactions = await ctx.db
-        .query("transacciones")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
-        .collect();
-
-      // Calculate total amount from all transactions
-      const totalAmount = allTransactions.reduce(
-        (sum, t) => sum + (t.monto_total || 0),
-        0
-      );
-
-      // Calculate excluded amount if there are excluded partidas
-      let excludedAmount = 0;
-      if (excludedPartidasIds.length > 0) {
-        // Get the excluded nivel 1 partidas to find their names
-        const excludedNivel1Partidas: Doc<"partidas">[] = [];
-        for (const excludedId of excludedPartidasIds) {
-          const partida = await ctx.db.get(excludedId);
-          if (partida) excludedNivel1Partidas.push(partida);
-        }
-
-        const excludedPartidasNames = excludedNivel1Partidas.map(p => p.nombre);
-
-        // Filter to get all partidas that should be excluded (nivel 1, 2, and 3)
-        const allExcludedPartidas = allPartidas.filter(p =>
-          excludedPartidasIds.includes(p._id) ||
-          (p.partida_nombre && excludedPartidasNames.includes(p.partida_nombre))
-        );
-
-        const allExcludedPartidasIds = allExcludedPartidas.map(p => p._id);
-        const transactionIds = allTransactions.map(t => t._id);
-
-        // Get pagos that belong to excluded partidas
-        const excludedPagos = allPagos.filter(pago =>
-          transactionIds.includes(pago.transaccion_id) &&
-          Boolean(pago.partida_id && allExcludedPartidasIds.includes(pago.partida_id))
-        );
-
-        excludedAmount = excludedPagos.reduce(
-          (sum, pago) => sum + (pago.monto || 0),
-          0
-        );
-
-        console.log(`Excluding ${allExcludedPartidas.length} partidas, amount: ${excludedAmount}`);
-      }
-
-      // Calculate honorarios
-      const baseAmount = totalAmount - excludedAmount;
-      const honorariosMonto = Math.round(baseAmount * (honorariosPorcentaje / 100) * 100) / 100;
-
-      console.log("Honorarios calculation:", {
-        totalAmount,
-        excludedAmount,
-        baseAmount,
-        honorariosPorcentaje,
-        honorariosMonto
-      });
-
-      // Update proyecto's honorarios_monto
-      await ctx.db.patch(args.projectId, {
-        honorarios_monto: honorariosMonto
-      });
-      console.log(`✅ Updated proyecto honorarios_monto to ${honorariosMonto}`);
-
-      // ============================================
-      // STEP 4: Update HONORARIOS partida
-      // ============================================
-      console.log("Step 4: Updating HONORARIOS partida...");
-
-      // Find HONORARIOS partida with case-insensitive match (honorarios, Honorarios, HONORARIOS)
-      // Use allPartidas which was already fetched earlier
-      const honorariosPartida = allPartidas.find(p => 
-        p.nivel === 1 && p.nombre.toLowerCase() === "honorarios"
-      );
-
-      if (honorariosPartida) {
-        const presupuestoAprobado = honorariosPartida.presupuesto_aprobado || 0;
-        const porGastar = presupuestoAprobado - honorariosMonto;
-
-        await ctx.db.patch(honorariosPartida._id, {
-          pagado: honorariosMonto,
-          por_gastar: porGastar
-        });
-        console.log(`✅ Updated HONORARIOS partida (found as "${honorariosPartida.nombre}"): pagado=${honorariosMonto}, por_gastar=${porGastar}`);
-      } else {
-        console.log("⚠️ HONORARIOS partida not found (checked: honorarios, Honorarios, HONORARIOS)");
-      }
-
-      // ============================================
+      // Reuse the same mode-aware calculation used by transaction triggers.
+      await updateHonorariosMonto(ctx, String(args.projectId));
       allPartidas = await ctx.db
         .query("partidas")
         .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
         .collect();
 
-      // ============================================
-      // STEP 5: Update meticas_presupuesto
-      // ============================================
-      console.log("Step 5: Updating meticas_presupuesto...");
-
-      // Calculate totals from nivel 1 partidas only
-      const nivel1Partidas = allPartidas.filter(p => p.nivel === 1);
-      const presupuesto_original = nivel1Partidas.reduce((sum, p) => sum + (p.presupuesto_original || 0), 0);
-      const presupuesto_aprobado = nivel1Partidas.reduce((sum, p) => sum + (p.presupuesto_aprobado || 0), 0);
-      const gasto_total = nivel1Partidas.reduce((sum, p) => sum + (p.pagado || 0), 0);
-      const por_gastar = presupuesto_aprobado - gasto_total;
-
-      const existingMetrics = await ctx.db
+      const updatedProject = await ctx.db.get(args.projectId);
+      const metrics = await ctx.db
         .query("meticas_presupuesto")
         .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
         .first();
-
-      if (existingMetrics) {
-        await ctx.db.patch(existingMetrics._id, {
-          presupuesto_original,
-          presupuesto_aprobado,
-          gasto_total,
-          por_gastar
-        });
-      } else {
-        await ctx.db.insert("meticas_presupuesto", {
-          proyecto: args.projectId,
-          presupuesto_original,
-          presupuesto_aprobado,
-          gasto_total,
-          por_gastar
-        });
-      }
-      console.log(`✅ Updated meticas_presupuesto`);
 
       const summary = {
         projectId: args.projectId,
         budgetRollupsUpdated,
         partidasUpdated: updatedPagadoCount,
         totalPartidas: allPartidas.length,
-        honorariosPorcentaje,
-        honorariosMonto,
-        metrics: {
-          presupuesto_original,
-          presupuesto_aprobado,
-          gasto_total,
-          por_gastar
-        }
+        honorariosPorcentaje: proyecto.honorarios_porcentaje || 0,
+        honorariosMonto: updatedProject?.honorarios_monto || 0,
+        metrics,
       };
 
       console.log("✅ Comprehensive sync completed:", summary);

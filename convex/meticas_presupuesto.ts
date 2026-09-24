@@ -1,6 +1,7 @@
 import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
+import { calculateHonorariosFromRecords } from "./honorariosRules";
 
 // Query to get metrics for a specific proyecto
 export const getByProyecto = query({
@@ -137,20 +138,25 @@ export const getFilteredMetrics = query({
 
     // Calculate honorarios based on date filter
     const proyecto = await ctx.db.get(args.proyecto_id);
-    const honorariosPorcentaje = proyecto?.honorarios_porcentaje || 0;
-    
     let honorarios = 0;
     if (!startDate) {
       // "Todo el tiempo" - use pre-calculated honorarios_monto
       honorarios = proyecto?.honorarios_monto || 0;
     } else {
-      // Date filtered - calculate honorarios from filtered transactions
-      // honorarios = filtered total * (honorarios_porcentaje / 100)
-      const filteredTotal = filteredTransactions.reduce(
-        (sum, t) => sum + (t.monto_total || 0),
-        0
-      );
-      honorarios = filteredTotal * (honorariosPorcentaje / 100);
+      const pagos = (await Promise.all(filteredTransactions.map((transaction) =>
+        ctx.db.query("pagos")
+          .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
+          .collect()
+      ))).flat();
+      honorarios = calculateHonorariosFromRecords({
+        proyectoId: String(args.proyecto_id),
+        modo: proyecto?.honorarios_modo,
+        porcentaje: proyecto?.honorarios_porcentaje,
+        excludedPartidas: proyecto?.excluded_partidas_honorarios,
+        transactions: filteredTransactions,
+        pagos,
+        partidas: allPartidas,
+      });
     }
 
     return {

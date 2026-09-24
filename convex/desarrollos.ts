@@ -11,6 +11,8 @@ import {
     hasGlobalAdminAccess,
 } from "./permissions";
 import { isValidProjectLocationKey } from "./project_locations";
+import { getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
+import { updateHonorariosMonto } from "./functions";
 import {
     NO_PROJECT_LOCATION,
     matchesProjectLocation,
@@ -73,8 +75,6 @@ const matchesAnyReportLabel = (value: string | undefined, labels: string[]) => {
     return labels.some((label) => normalized.includes(label));
 };
 
-const HONORARIOS_LABELS = ["honorarios"];
-const DISP_HONORARIOS_LABELS = ["disp honorarios", "dispersion honorarios"];
 const INDIRECTOS_LABELS = [
     "indirectos",
     "indirecto",
@@ -521,7 +521,7 @@ const summarizeProjectPayments = async (
     });
 
     const honorariosRate = Math.max(toFiniteNumber(proyecto.honorarios_porcentaje), 0) / 100;
-    const usesAutomaticHonorarios = honorariosRate > 0;
+    const automaticMode = getHonorariosModo(proyecto.honorarios_modo) === "automatico";
     const summary = {
         metrics,
         honorarios: 0,
@@ -532,7 +532,6 @@ const summarizeProjectPayments = async (
     };
 
     const periodTransactions = transactions.filter((transaction) => {
-        if (transaction.status !== "Pagado") return false;
         return isDateWithinPeriod(parseReportDate(transaction.fecha), period);
     });
 
@@ -550,15 +549,21 @@ const summarizeProjectPayments = async (
 
             if (!partida || amount === 0) continue;
 
+            const isHonorariosPayment = isHonorariosPartida(partida);
+
+            if (!automaticMode && isHonorariosPayment) {
+                const honorariosAmount = convertToMxn(pago.monto || 0, transaction.moneda, transaction.tipo_cambio, rates);
+                summary.honorarios += honorariosAmount;
+                addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
+                    monthlySummary.honorarios += honorariosAmount;
+                });
+            }
+
+            if (transaction.status !== "Pagado") continue;
             summary.totalPagado += amount;
 
-            const isHonorariosPayment = [partida.nombre, partida.familia, partida.sub_partida].some((label) => (
-                matchesAnyReportLabel(label, HONORARIOS_LABELS) &&
-                !matchesAnyReportLabel(label, DISP_HONORARIOS_LABELS)
-            ));
-
             if (
-                usesAutomaticHonorarios &&
+                automaticMode &&
                 !isHonorariosPayment &&
                 !excludedPartidaIds.has(String(partida._id))
             ) {
@@ -570,12 +575,6 @@ const summarizeProjectPayments = async (
             }
 
             if (isHonorariosPayment) {
-                if (usesAutomaticHonorarios) continue;
-
-                summary.honorarios += amount;
-                addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
-                    monthlySummary.honorarios += amount;
-                });
                 continue;
             }
 
@@ -1063,6 +1062,7 @@ export const update = mutation({
         fecha_creacion: v.optional(v.string()),
         honorarios_porcentaje: v.optional(v.number()),
         excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
+        honorarios_modo: v.optional(v.union(v.literal("automatico"), v.literal("transacciones"))),
     },
     handler: async (ctx, args) => {
         const { id, ...rest } = args;
@@ -1394,35 +1394,13 @@ export const recalculateHonorariosMonto = mutation({
             throw new Error("Project not found");
         }
 
-        const honorariosPorcentaje = project.honorarios_porcentaje || 0;
-
-        // Get all transactions for this proyecto
-        const allTransactions = await ctx.db
-            .query("transacciones")
-            .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
-            .collect();
-
-        // Calculate total amount from all transactions
-        const totalAmount = allTransactions.reduce(
-            (sum, t) => sum + (t.monto_total || 0),
-            0
-        );
-
-        // Calculate honorarios amount: total * percentage / 100
-        const honorariosMonto = totalAmount * (honorariosPorcentaje / 100);
-
-        // Round to 2 decimal places
-        const roundedHonorariosMonto = Math.round(honorariosMonto * 100) / 100;
-
-        // Update the desarrollo's honorarios_monto field
-        await ctx.db.patch(args.id, { 
-            honorarios_monto: roundedHonorariosMonto 
-        });
+        await updateHonorariosMonto(ctx, String(args.id));
+        const updatedProject = await ctx.db.get(args.id);
 
         return {
-            honorarios_porcentaje: honorariosPorcentaje,
-            honorarios_monto: roundedHonorariosMonto,
-            totalAmount,
+            honorarios_porcentaje: project.honorarios_porcentaje || 0,
+            honorarios_monto: updatedProject?.honorarios_monto || 0,
+            honorarios_modo: getHonorariosModo(project.honorarios_modo),
         };
     },
 });
@@ -1437,36 +1415,15 @@ export const recalculateAllHonorariosMonto = mutation({
         const results = [];
         
         for (const project of allProjects) {
-            const honorariosPorcentaje = project.honorarios_porcentaje || 0;
-
-            // Get all transactions for this proyecto
-            const allTransactions = await ctx.db
-                .query("transacciones")
-                .withIndex("by_proyecto", (q) => q.eq("proyecto", project._id))
-                .collect();
-
-            // Calculate total amount from all transactions
-            const totalAmount = allTransactions.reduce(
-                (sum, t) => sum + (t.monto_total || 0),
-                0
-            );
-
-            // Calculate honorarios amount: total * percentage / 100
-            const honorariosMonto = totalAmount * (honorariosPorcentaje / 100);
-
-            // Round to 2 decimal places
-            const roundedHonorariosMonto = Math.round(honorariosMonto * 100) / 100;
-
-            // Update the desarrollo's honorarios_monto field
-            await ctx.db.patch(project._id, { 
-                honorarios_monto: roundedHonorariosMonto 
-            });
+            await updateHonorariosMonto(ctx, String(project._id));
+            const updatedProject = await ctx.db.get(project._id);
 
             results.push({
                 projectId: project._id,
                 projectName: project.nombre,
-                honorarios_porcentaje: honorariosPorcentaje,
-                honorarios_monto: roundedHonorariosMonto,
+                honorarios_porcentaje: project.honorarios_porcentaje || 0,
+                honorarios_monto: updatedProject?.honorarios_monto || 0,
+                honorarios_modo: getHonorariosModo(project.honorarios_modo),
             });
         }
 

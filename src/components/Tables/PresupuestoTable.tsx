@@ -67,11 +67,12 @@ interface PresupuestoTableProps {
   status: "CanLoadMore" | "LoadingFirstPage" | "LoadingMore" | "Exhausted";
   showPrecioUnitario: boolean;
   filteredPayments?: Record<string, number>;
+  filteredHonorarios?: number;
   dateFilterLabel?: string;
   loadMore: (numItems: number) => void;
 }
 
-export default function PresupuestoTable({ data, status, showPrecioUnitario, filteredPayments, dateFilterLabel, loadMore }: PresupuestoTableProps) {
+export default function PresupuestoTable({ data, status, showPrecioUnitario, filteredPayments, filteredHonorarios, dateFilterLabel, loadMore }: PresupuestoTableProps) {
   // Get project's default currency based on transaction history
   const projectId = data.length > 0 ? data[0].proyecto : undefined;
   const currencyInfo = useQuery(
@@ -427,8 +428,13 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                     <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       <div className="flex flex-col gap-2 text-left">
                         {/* For Honorarios level 0 items, show honorarios_monto from proyecto in pagado column */}
-                        {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_monto !== undefined && !filteredPayments ? (
-                          <span>{formatCurrency(proyecto.honorarios_monto, defaultCurrency)}</span>
+                        {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_monto !== undefined ? (
+                          <>
+                            <span>{formatCurrency(filteredPayments ? (filteredHonorarios ?? 0) : proyecto.honorarios_monto, defaultCurrency)}</span>
+                            {proyecto.honorarios_modo === "transacciones" && (
+                              <span className="text-xs text-subtle-foreground">Incluye transacciones por pagar</span>
+                            )}
+                          </>
                         ) : (
                           <span>{formatCurrency(displayPagado, defaultCurrency)}</span>
                         )}
@@ -448,7 +454,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                     </TableCell>
                     <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       {/* For Honorarios level 0 items, show honorarios_porcentaje from proyecto */}
-                      {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_porcentaje !== undefined ? (
+                      {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_modo !== "transacciones" && proyecto?.honorarios_porcentaje !== undefined ? (
                         <span>{proyecto.honorarios_porcentaje}%</span>
                       ) : (
                         <span>{item.avance}%</span>

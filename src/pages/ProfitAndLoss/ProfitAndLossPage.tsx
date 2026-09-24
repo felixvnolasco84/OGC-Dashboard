@@ -501,10 +501,10 @@ const buildMonthlyDataNote = (months: PnlMonth[], pnlSummary?: PnlSummary) => {
     safeNumber(pnlSummary.totals.ingresosOgc) > 0 || safeNumber(pnlSummary.totals.costosEstructuraOgc) > 0;
 
   if (hasPeriodActivity && monthsWithMovements < months.length) {
-    return `Honorarios calculados con el porcentaje de cada obra sobre sus pagos; indirectos, viáticos y general conditions según la fecha del pago. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
+    return `Honorarios según el método configurado en cada obra y la fecha de cada transacción; indirectos, viáticos y general conditions según la fecha del pago. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
   }
 
-  return "Honorarios calculados con el porcentaje de cada obra sobre sus pagos; indirectos, viáticos y general conditions según la fecha del pago, sin prorrateo lineal.";
+  return "Honorarios según el método configurado en cada obra y la fecha de cada transacción; indirectos, viáticos y general conditions según la fecha del pago, sin prorrateo lineal.";
 };
 
 function MonthlyPnlTable({
