@@ -83,6 +83,7 @@ function BaseBitacoraRepositoryProvider({
 }: BaseProviderProps) {
   const [profile, setProfile] = useState<OfflineProfile | undefined>(initialProfile);
   const [networkOnline, setNetworkOnline] = useState(() => navigator.onLine);
+  const [backendConnected, setBackendConnected] = useState(() => client?.connectionState().isWebSocketConnected ?? false);
   const [objectUrls, setObjectUrls] = useState<{ local: Record<string, string>; thumbnails: Record<string, string> }>({ local: {}, thumbnails: {} });
   const preparingRef = useRef(false);
   const userId = profile?.clerkId ?? onlineUser?.clerkId;
@@ -195,11 +196,23 @@ function BaseBitacoraRepositoryProvider({
   }, [retrySync]);
 
   useEffect(() => {
-    if (!client || !networkOnline || !outbox?.some((operation) => operation.status === "pending")) return;
+    if (!client) return;
+    let connected = client.connectionState().isWebSocketConnected;
+    setBackendConnected(connected);
+    return client.subscribeToConnectionState((state) => {
+      const wasConnected = connected;
+      connected = state.isWebSocketConnected;
+      setBackendConnected(connected);
+      if (connected && !wasConnected && navigator.onLine) void retrySync();
+    });
+  }, [client, retrySync]);
+
+  useEffect(() => {
+    if (!client || !networkOnline || !backendConnected || !outbox?.some((operation) => operation.status === "pending")) return;
     const nextAttempt = Math.min(...outbox.filter((operation) => operation.status === "pending").map((operation) => operation.nextRetryAt ?? Date.now()));
     const timer = window.setTimeout(() => void retrySync(), Math.max(500, nextAttempt - Date.now()));
     return () => window.clearTimeout(timer);
-  }, [client, networkOnline, outbox, retrySync]);
+  }, [backendConnected, client, networkOnline, outbox, retrySync]);
 
   useEffect(() => {
     if (!client || !onlineUser?.clerkId || !navigator.onLine || preparingRef.current) return;
@@ -290,7 +303,7 @@ function BaseBitacoraRepositoryProvider({
     partidas: (partidas ?? []).map((item) => ({ id: item.partidaId, name: item.name, nivel: item.nivel, parentId: item.parentId })),
     assignableUsers: (cachedUsers ?? []).map((item) => ({ id: item.targetUserId, name: item.name })),
     isReady: Boolean(profile && project && syncMetadata?.prepared && (client || profile.expiresAt > Date.now())),
-    isOnline: Boolean(client && networkOnline),
+    isOnline: Boolean(client && networkOnline && backendConnected),
     canCreate: Boolean(profile && ["admin", "user", "finance", "contratista"].includes(profile.role)),
     canEdit: profile?.role === "admin",
     pendingCount: outbox?.length ?? 0,
@@ -317,7 +330,7 @@ function BaseBitacoraRepositoryProvider({
     },
     makeAttachmentAvailableOffline: async (attachmentClientId) => {
       if (!userId) return "queued";
-      if (!networkOnline) {
+      if (!networkOnline || !backendConnected) {
         await queueHistoricalAttachmentDownload(userId, attachmentClientId);
         return "queued";
       }
@@ -326,6 +339,7 @@ function BaseBitacoraRepositoryProvider({
     },
   }), [
     cachedUsers,
+    backendConnected,
     client,
     entries,
     networkOnline,

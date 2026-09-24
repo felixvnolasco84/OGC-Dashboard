@@ -1,6 +1,6 @@
 # Bitácora offline-first
 
-Bitácora usa IndexedDB como fuente de lectura y escritura. Convex se usa para preparar el proyecto, descargar cambios y vaciar una cola durable; Clerk continúa siendo la autoridad cuando hay red.
+Bitácora usa IndexedDB como fuente de lectura y escritura. Convex se usa para preparar el proyecto, descargar cambios y vaciar una cola durable; Clerk continúa siendo la autoridad cuando hay red. La interfaz usa el modo conectado sólo mientras el navegador tenga red y el cliente mantenga conexión con Convex. Si la conexión falla al abrir un proyecto ya preparado, tras unos segundos se abre la copia local y se vuelve a cargar la aplicación al reconectar.
 
 ## Despliegue
 
@@ -16,7 +16,7 @@ La autorización offline vence siete días después de la última preparación o
 
 El orden es: renovar sesión, descargar cambios, detectar conflictos, subir originales, aplicar operaciones idempotentes y descargar confirmaciones. Un Web Lock serializa cada proyecto entre pestañas y Dexie propaga los cambios locales entre ellas. Cuando la PWA está abierta se reintenta al recuperar red, volver al primer plano, pulsar `Reintentar` o vencer el backoff.
 
-Los archivos admitidos son JPEG, PNG, PDF, DOC, DOCX, XLS y XLSX, con máximo de 10 MiB. Se avisa al 70% de cuota y se bloquea antes del 80%. Para una foto histórica sólo se prepara una miniatura JPEG de 64 px que la interfaz muestra desenfocada; nunca se usa el URL del original en la tarjeta. El original se guarda en IndexedDB al solicitar la descarga o al visitar la foto en la galería online. Si la solicitud se hace sin red, queda marcada de forma durable y se atiende en la siguiente sincronización. La galería offline filtra los originales que realmente existen en el dispositivo. `cleanupAbandonedUploads` elimina reservas de upload antiguas; debe ejecutarse periódicamente desde una tarea administrativa.
+Los archivos admitidos son JPEG, PNG, PDF, DOC, DOCX, XLS y XLSX, con máximo de 10 MiB. Se avisa al 70% de cuota y se bloquea antes del 80%. Con conexión estable, las fotos históricas se muestran directamente desde su URL original en las tarjetas y galerías, sin descarga manual. Para uso sin conexión se prepara una miniatura JPEG de 64 px como respaldo borroso; el original se guarda en IndexedDB al solicitarlo o al visitar la foto en la galería online. Si la solicitud se hace sin red, queda marcada de forma durable y se atiende en la siguiente sincronización. La galería offline filtra los originales que realmente existen en el dispositivo. `cleanupAbandonedUploads` elimina reservas de upload antiguas; debe ejecutarse periódicamente desde una tarea administrativa.
 
 ## Verificación
 

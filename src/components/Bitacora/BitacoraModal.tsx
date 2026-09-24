@@ -74,7 +74,7 @@ function today() {
 }
 
 function ExistingPhotoPreview({ photo, online, onDownload }: { photo: ManagedPhoto; online: boolean; onDownload: () => void }) {
-  if (photo.availableOffline && photo.url) {
+  if (photo.url && (online || photo.availableOffline)) {
     return <img src={photo.url} alt={photo.description || photo.name} className="h-24 w-24 rounded-md border border-border object-cover md:h-36 md:w-36" />;
   }
   return (
@@ -211,7 +211,7 @@ export default function BitacoraModal() {
     if (!modal.isOpen || modal.mode !== "view" || !repository.isOnline || !currentPhoto || currentPhoto.type !== "existing" || currentPhoto.availableOffline) return;
     if (requestedPhotos.current.has(currentPhoto.id)) return;
     requestedPhotos.current.add(currentPhoto.id);
-    void repository.makeAttachmentAvailableOffline(currentPhoto.id);
+    void repository.makeAttachmentAvailableOffline(currentPhoto.id).catch(() => undefined);
   }, [currentPhoto, modal.isOpen, modal.mode, repository]);
 
   const downloadAttachment = async (attachment: ManagedPhoto | ManagedDocument) => {
@@ -424,10 +424,10 @@ export default function BitacoraModal() {
                     <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-overlay/60 px-3 py-1 text-xs text-on-color">{galleryIndex + 1} / {galleryPhotos.length}</span>
                   </div>
                   <p className="whitespace-pre-wrap text-sm text-muted-foreground">{currentPhoto.description}</p>
-                  {galleryPhotos.length > 1 && <div className="flex gap-2 overflow-x-auto overflow-y-hidden pb-2">{galleryPhotos.map((photo, index) => { const source = photo.availableOffline || photo.type === "new" ? photo.url : photo.thumbnailUrl; return <button key={photo.id} type="button" onClick={() => setGalleryIndex(index)} className={`h-20 w-24 shrink-0 overflow-hidden border-2 ${index === galleryIndex ? "border-foreground" : "border-transparent"}`}>{source ? <img src={source} alt="" className={`h-full w-full object-cover ${!photo.availableOffline && photo.thumbnailUrl ? "blur-sm" : ""}`} /> : <span className="flex h-full items-center justify-center bg-muted"><ImageOff className="h-5 w-5" /></span>}</button>; })}</div>}
+                  {galleryPhotos.length > 1 && <div className="flex gap-2 overflow-x-auto overflow-y-hidden pb-2">{galleryPhotos.map((photo, index) => { const source = photo.url; return <button key={photo.id} type="button" onClick={() => setGalleryIndex(index)} className={`h-20 w-24 shrink-0 overflow-hidden border-2 ${index === galleryIndex ? "border-foreground" : "border-transparent"}`}>{source ? <img src={source} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center bg-muted"><ImageOff className="h-5 w-5" /></span>}</button>; })}</div>}
                 </div>
               )}
-              {modal.mode === "view" && galleryPhotos.length === 0 && <p className="text-sm text-muted-foreground">Sin fotografías descargadas disponibles.</p>}
+              {modal.mode === "view" && galleryPhotos.length === 0 && <p className="text-sm text-muted-foreground">{repository.isOnline ? "Sin fotografías disponibles." : "Sin fotografías disponibles en este dispositivo."}</p>}
 
               {!readOnly && (
                 <div className="space-y-4">

@@ -44,8 +44,8 @@ function photoSource(photo: BitacoraAttachmentView) {
   return photo.local_url || photo.url || "";
 }
 
-function thumbnailSource(photo: BitacoraAttachmentView) {
-  return photo.available_offline ? photo.local_url || photo.url || "" : photo.thumbnail_url || "";
+function thumbnailSource(photo: BitacoraAttachmentView, online: boolean) {
+  return online ? photo.url || photo.local_url || "" : photo.local_url || "";
 }
 
 function OnlinePhotoComments({ photoId, onClose, readOnly }: { photoId: string; onClose: () => void; readOnly: boolean }) {
@@ -187,7 +187,7 @@ export default function BitacoraGalleryModal({
     if (!isOpen || !online || !current || current.available_offline || !onPhotoViewed) return;
     if (requestedDownloads.current.has(current.client_id)) return;
     requestedDownloads.current.add(current.client_id);
-    void onPhotoViewed(current);
+    void onPhotoViewed(current).catch(() => undefined);
   }, [current, isOpen, onPhotoViewed, online]);
 
   useEffect(() => {
@@ -250,10 +250,10 @@ export default function BitacoraGalleryModal({
         <div className="min-w-0 overflow-x-auto overflow-y-hidden border-t border-white/10 bg-[#23231f] p-3">
           <div className="flex h-full min-w-max gap-2">
             {photos.map((photo, photoIndex) => {
-              const source = thumbnailSource(photo);
+              const source = thumbnailSource(photo, online);
               return (
                 <button key={photo.client_id} type="button" onClick={() => setIndex(photoIndex)} className={`h-full w-24 shrink-0 overflow-hidden border-2 transition-colors ${photoIndex === index ? "border-white" : "border-transparent opacity-70 hover:opacity-100"}`} aria-label={`Ver fotografía ${photoIndex + 1}`} aria-current={photoIndex === index ? "true" : undefined}>
-                  {source ? <img src={source} alt="" className={`h-full w-full object-cover ${!photo.available_offline && photo.thumbnail_url ? "scale-110 blur-sm" : ""}`} /> : <span className="flex h-full items-center justify-center bg-white/10"><ImageOff className="h-5 w-5" /></span>}
+                  {source ? <img src={source} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center bg-white/10"><ImageOff className="h-5 w-5" /></span>}
                 </button>
               );
             })}

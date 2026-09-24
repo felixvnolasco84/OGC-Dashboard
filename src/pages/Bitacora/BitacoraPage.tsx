@@ -134,7 +134,8 @@ function PhotoPreview({ file, online, downloading, onDownload, onOpen }: {
   onDownload: () => void;
   onOpen: () => void;
 }) {
-  if (file.available_offline && file.local_url) {
+  const source = online ? file.url || file.local_url : file.local_url;
+  if (source && (online || file.available_offline)) {
     return (
       <button
         type="button"
@@ -142,8 +143,8 @@ function PhotoPreview({ file, online, downloading, onDownload, onOpen }: {
         className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md border-none bg-muted transition-opacity hover:opacity-85"
         title="Abrir en la galería"
       >
-        <img src={file.local_url} alt={file.descripcion || file.nombre} className="h-full w-full object-cover rounded-md" />
-        <span className="absolute bottom-1 right-1 rounded bg-black/65 px-1.5 py-0.5 text-[10px] text-white">Offline</span>
+        <img src={source} alt={file.descripcion || file.nombre} className="h-full w-full object-cover rounded-md" />
+        {!online && <span className="absolute bottom-1 right-1 rounded bg-black/65 px-1.5 py-0.5 text-[10px] text-white">Offline</span>}
       </button>
     );
   }
@@ -239,7 +240,7 @@ export default function BitacoraPage() {
       : entry.fotos.filter((photo) => photo.available_offline && Boolean(photo.local_url));
     if (photos.length === 0) {
       toast.info(repository.isOnline
-        ? "Descarga una imagen para abrirla en la galería."
+        ? "No hay imágenes disponibles para abrir en la galería."
         : "No hay imágenes de este reporte descargadas en el dispositivo.");
       return;
     }

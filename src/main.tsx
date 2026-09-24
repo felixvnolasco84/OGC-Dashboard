@@ -312,12 +312,29 @@ const onlineApplication = (
 );
 
 async function bootstrapApplication() {
+  const match = window.location.pathname.match(/^\/proyecto\/([^/]+)\/bitacora\/?$/);
   if (navigator.onLine) {
     root.render(<>{onlineApplication}<PwaUpdatePrompt /></>);
+    if (match && BITACORA_OFFLINE_ENABLED) {
+      const projectId = decodeURIComponent(match[1]);
+      const profile = await findValidOfflineProfile(projectId);
+      if (profile && !convex.connectionState().isWebSocketConnected) {
+        let unsubscribe = () => {};
+        const timer = window.setTimeout(() => {
+          unsubscribe();
+          if (convex.connectionState().isWebSocketConnected || window.location.pathname.replace(/\/$/, "") !== `/proyecto/${match[1]}/bitacora`) return;
+          root.render(<StrictMode><OfflineBitacoraApp projectId={projectId} profile={profile} client={convex} /><PwaUpdatePrompt /></StrictMode>);
+        }, 7000);
+        unsubscribe = convex.subscribeToConnectionState((state) => {
+          if (!state.isWebSocketConnected) return;
+          window.clearTimeout(timer);
+          unsubscribe();
+        });
+      }
+    }
     return;
   }
 
-  const match = window.location.pathname.match(/^\/proyecto\/([^/]+)\/bitacora\/?$/);
   if (!match || !BITACORA_OFFLINE_ENABLED) {
     root.render(<StrictMode><OfflineAccessBlocked /><PwaUpdatePrompt /></StrictMode>);
     return;
@@ -330,7 +347,7 @@ async function bootstrapApplication() {
     return;
   }
 
-  root.render(<StrictMode><OfflineBitacoraApp projectId={projectId} profile={profile} /><PwaUpdatePrompt /></StrictMode>);
+  root.render(<StrictMode><OfflineBitacoraApp projectId={projectId} profile={profile} client={convex} /><PwaUpdatePrompt /></StrictMode>);
 }
 
 void bootstrapApplication();

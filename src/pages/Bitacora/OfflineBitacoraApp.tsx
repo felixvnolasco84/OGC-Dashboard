@@ -1,6 +1,7 @@
 import { CloudOff, ShieldAlert } from "lucide-react";
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import type { ConvexReactClient } from "convex/react";
 import { Toaster } from "sonner";
 import BitacoraModal from "@/components/Bitacora/BitacoraModal";
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,19 @@ import { OfflineBitacoraRepositoryProvider } from "@/lib/bitacora-offline/contex
 import type { OfflineProfile } from "@/lib/bitacora-offline/types";
 import BitacoraPage from "./BitacoraPage";
 
-export function OfflineBitacoraApp({ projectId, profile }: { projectId: string; profile: OfflineProfile }) {
+export function OfflineBitacoraApp({ projectId, profile, client }: { projectId: string; profile: OfflineProfile; client?: ConvexReactClient }) {
   useEffect(() => {
     const reconnect = () => window.location.reload();
     window.addEventListener("online", reconnect);
-    return () => window.removeEventListener("online", reconnect);
-  }, []);
+    const unsubscribe = client?.subscribeToConnectionState((state) => {
+      if (state.isWebSocketConnected && navigator.onLine) reconnect();
+    });
+    if (client?.connectionState().isWebSocketConnected && navigator.onLine) reconnect();
+    return () => {
+      window.removeEventListener("online", reconnect);
+      unsubscribe?.();
+    };
+  }, [client]);
   return <BrowserRouter>
     <OfflineBitacoraRepositoryProvider projectId={projectId} profile={profile}>
       <Routes>
