@@ -84,108 +84,18 @@ interface ProjectMenuItem {
 type ProjectOption = {
   _id: string;
   nombre: string;
-  organization_id?: string;
   ubicacion?: string;
-};
-
-type UserOption = {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-  organization_id?: string;
-  is_super_admin?: boolean;
-};
-
-type ProjectGroup = {
-  id: string;
-  title: string;
-  subtitle: string;
-  projects: ProjectOption[];
 };
 
 type LocationProjectGroup = {
   id: string;
   title: string;
   projects: ProjectOption[];
-  organizationGroups: ProjectGroup[];
 };
-
-const NO_ORGANIZATION_GROUP_ID = "__sin_organizacion__";
-
-function getAdminLabel(admins: UserOption[]) {
-  if (admins.length === 0) {
-    return {
-      title: "Organización sin administrador",
-      subtitle: "No se encontró un admin asignado",
-    };
-  }
-
-  const [primaryAdmin, ...otherAdmins] = admins;
-  const title = primaryAdmin.name?.trim() || primaryAdmin.email;
-  const subtitle = [
-    primaryAdmin.email,
-    otherAdmins.length > 0 ? `+${otherAdmins.length} admin${otherAdmins.length === 1 ? "" : "s"}` : "",
-  ].filter(Boolean).join(" ");
-
-  return { title, subtitle };
-}
-
-function groupProjectsByOrganization(
-  projects: ProjectOption[],
-  users: UserOption[] = []
-): ProjectGroup[] {
-  const adminsByOrganization = new Map<string, UserOption[]>();
-  for (const user of users) {
-    if (user.role !== "admin" || !user.organization_id || user.is_super_admin) {
-      continue;
-    }
-
-    const existingAdmins = adminsByOrganization.get(user.organization_id) || [];
-    adminsByOrganization.set(user.organization_id, [...existingAdmins, user]);
-  }
-
-  const projectsByOrganization = new Map<string, ProjectOption[]>();
-  for (const project of projects) {
-    const groupId = project.organization_id || NO_ORGANIZATION_GROUP_ID;
-    const existingProjects = projectsByOrganization.get(groupId) || [];
-    projectsByOrganization.set(groupId, [...existingProjects, project]);
-  }
-
-  return Array.from(projectsByOrganization.entries())
-    .map(([organizationId, groupedProjects]) => {
-      const sortedProjects = [...groupedProjects].sort((a, b) =>
-        a.nombre.localeCompare(b.nombre, "es")
-      );
-
-      if (organizationId === NO_ORGANIZATION_GROUP_ID) {
-        return {
-          id: organizationId,
-          title: "Sin organización",
-          subtitle: "Proyectos globales o legacy",
-          projects: sortedProjects,
-        };
-      }
-
-      const adminLabel = getAdminLabel(adminsByOrganization.get(organizationId) || []);
-      return {
-        id: organizationId,
-        title: adminLabel.title,
-        subtitle: adminLabel.subtitle,
-        projects: sortedProjects,
-      };
-    })
-    .sort((a, b) => {
-      if (a.id === NO_ORGANIZATION_GROUP_ID) return 1;
-      if (b.id === NO_ORGANIZATION_GROUP_ID) return -1;
-      return a.title.localeCompare(b.title, "es");
-    });
-}
 
 function groupProjectsByLocation(
   projects: ProjectOption[],
   locations: readonly ProjectLocationOption[],
-  users: UserOption[] = [],
 ): LocationProjectGroup[] {
   const locationOptions: ProjectLocationOption[] = [
     ...locations,
@@ -204,7 +114,6 @@ function groupProjectsByLocation(
         id: location.key,
         title: location.name,
         projects: groupedProjects,
-        organizationGroups: groupProjectsByOrganization(groupedProjects, users),
       };
     })
     .filter((group) => group.projects.length > 0);
@@ -245,74 +154,14 @@ function ProjectMenuItems({
   );
 }
 
-function OrganizationProjectGroups({
-  groups,
-  activeProjectId,
-  onProjectSelect,
-  nested = false,
-}: {
-  groups: ProjectGroup[];
-  activeProjectId?: string;
-  onProjectSelect: (id: string) => void;
-  nested?: boolean;
-}) {
-  return (
-    <SidebarMenu className={cn("gap-0.5 px-1", nested && "ml-3 border-l border-border pl-2")}>
-      {groups.map((group, index) => {
-        const hasActiveProject = group.projects.some((project) => project._id === activeProjectId);
-        const defaultOpen = hasActiveProject || (!activeProjectId && index === 0);
-
-        return (
-          <Collapsible
-            key={group.id}
-            asChild
-            defaultOpen={defaultOpen}
-            className="group/collapsible"
-          >
-            <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton
-                  type="button"
-                  tooltip={group.title}
-                  className="h-auto min-h-10 items-start py-2"
-                >
-                  <Users className="mt-0.5 h-4 w-4 text-subtle-foreground" />
-                  <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-                    <span className="w-full truncate text-sm font-medium text-foreground">
-                      {group.title}
-                    </span>
-                    <span className="w-full truncate text-xs font-normal text-subtle-foreground">
-                      {group.subtitle}
-                    </span>
-                  </span>
-                  <ChevronRight className="ml-auto mt-0.5 h-4 w-4 text-disabled-foreground transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <ProjectMenuItems
-                  projects={group.projects}
-                  activeProjectId={activeProjectId}
-                  onProjectSelect={onProjectSelect}
-                />
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
-        );
-      })}
-    </SidebarMenu>
-  );
-}
-
 function LocationProjectGroups({
   groups,
   activeProjectId,
   onProjectSelect,
-  showOrganizations,
 }: {
   groups: LocationProjectGroup[];
   activeProjectId?: string;
   onProjectSelect: (id: string) => void;
-  showOrganizations: boolean;
 }) {
   return (
     <SidebarMenu className="gap-0.5 px-1">
@@ -346,20 +195,11 @@ function LocationProjectGroups({
                 </SidebarMenuButton>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {showOrganizations ? (
-                  <OrganizationProjectGroups
-                    groups={group.organizationGroups}
-                    activeProjectId={activeProjectId}
-                    onProjectSelect={onProjectSelect}
-                    nested
-                  />
-                ) : (
-                  <ProjectMenuItems
-                    projects={group.projects}
-                    activeProjectId={activeProjectId}
-                    onProjectSelect={onProjectSelect}
-                  />
-                )}
+                <ProjectMenuItems
+                  projects={group.projects}
+                  activeProjectId={activeProjectId}
+                  onProjectSelect={onProjectSelect}
+                />
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
@@ -1023,8 +863,6 @@ export default function SidebarComponent() {
   const desarrollos = useQuery(api.desarrollos.getAll);
   const projectLocations = useQuery(api.project_locations.list);
   const currentUser = useQuery(api.users.getCurrentUser);
-  const isSuperAdmin = currentUser?.is_super_admin === true;
-  const allUsers = useQuery(api.users.getAllUsers, isSuperAdmin ? {} : "skip");
   const documentNavigation = useProjectDocumentNavigation();
   const planNavigation = useProjectPlanNavigation();
 
@@ -1047,9 +885,7 @@ export default function SidebarComponent() {
   const groupedProjectsByLocation = groupProjectsByLocation(
     filteredProjects,
     projectLocations || DEFAULT_PROJECT_LOCATIONS,
-    isSuperAdmin ? allUsers : [],
   );
-  const isOrganizationGroupingLoading = isSuperAdmin && allUsers === undefined;
   const activeProject = currentProject;
   const isCurrentProjectDocuments = Boolean(
     currentProject &&
@@ -1163,10 +999,7 @@ export default function SidebarComponent() {
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className={cn(
-                  "max-h-[72vh] w-[--radix-dropdown-menu-trigger-width] overflow-y-auto",
-                  isSuperAdmin ? "min-w-72" : "min-w-56"
-                )}
+                className="max-h-[72vh] w-[--radix-dropdown-menu-trigger-width] min-w-56 overflow-y-auto"
                 side="bottom"
                 align="start"
                 sideOffset={4}
@@ -1174,18 +1007,11 @@ export default function SidebarComponent() {
                 {filteredProjects.length > 0 && (
                   <>
                     <DropdownMenuLabel>Proyectos</DropdownMenuLabel>
-                    {isOrganizationGroupingLoading ? (
-                      <DropdownMenuItem disabled>
-                        Cargando organizaciones...
-                      </DropdownMenuItem>
-                    ) : (
-                      <LocationProjectGroups
-                        groups={groupedProjectsByLocation}
-                        activeProjectId={proyectoId}
-                        onProjectSelect={handleProjectSelect}
-                        showOrganizations={isSuperAdmin}
-                      />
-                    )}
+                    <LocationProjectGroups
+                      groups={groupedProjectsByLocation}
+                      activeProjectId={proyectoId}
+                      onProjectSelect={handleProjectSelect}
+                    />
                   </>
                 )}
               </DropdownMenuContent>
