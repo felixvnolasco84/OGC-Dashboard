@@ -44,13 +44,13 @@ function MetricRow({
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
         {hint ? (
-          <p className="mt-0.5 text-[11px] text-subtle-foreground">{hint}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
         ) : null}
       </div>
       <p
         className={cn(
           "text-right text-sm tabular-nums",
-          tone === "danger" ? "text-[#802424]" : "text-foreground"
+          tone === "danger" ? "text-danger" : "text-foreground"
         )}
       >
         {value}
@@ -92,9 +92,9 @@ export default function AggregatedDetailsModal() {
         if (!open) onClose();
       }}
     >
-      <SheetContent data-square-modal="" className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
-        <SheetHeader className="space-y-1 border-b px-5 py-4 pr-12 text-left">
-          <SheetTitle className="truncate text-base">
+      <SheetContent data-square-modal="" variant="aggregated">
+        <SheetHeader variant="aggregated">
+          <SheetTitle variant="aggregated">
             {context?.name ?? "Resumen"}
           </SheetTitle>
           <SheetDescription>{context?.levelLabel ?? "Detalle agregado"}</SheetDescription>
@@ -108,7 +108,7 @@ export default function AggregatedDetailsModal() {
                 <span
                   className={cn(
                     "text-2xl tabular-nums leading-none",
-                    avance > 100 ? "text-[#802424]" : "text-foreground"
+                    avance > 100 ? "text-danger" : "text-foreground"
                   )}
                 >
                   {formatPercent(avance)}

@@ -22,6 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { hashFile } from "@/lib/transactionImport";
+import { OGC_INVOICE_FILE_ACCEPT, uploadOgcInvoiceProof, validateOgcInvoiceFile } from "@/lib/ogcInvoiceEvidence";
 import { AlertTriangle, CheckCircle2, Copy, FileSpreadsheet, FileText, Image, Loader2, Paperclip, Plus, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,6 +50,7 @@ type DesarrolloOption = {
 
 type OgcUploadMovement = {
   rowIndex: number;
+  captura_token?: string;
   tipo: OgcMovementType;
   categoria: string;
   monto: number;
@@ -57,6 +59,7 @@ type OgcUploadMovement = {
   descripcion?: string;
   moneda: string;
   tipo_cambio?: number;
+  factura_referencia?: string;
   nota_recepcion_status?: UploadedDeliveryNoteStatus;
   nota_recepcion_storage_id?: Id<"_storage">;
   nota_recepcion_nombre?: string;
@@ -93,6 +96,8 @@ type PreparedMovement = {
   proyecto?: Id<"desarrollos">;
   archivo_origen?: string;
   fila_origen?: number;
+  captura_token?: string;
+  factura_referencia?: string;
   nota_recepcion_status?: UploadedDeliveryNoteStatus;
   nota_recepcion_storage_id?: Id<"_storage">;
   nota_recepcion_nombre?: string;
@@ -176,6 +181,8 @@ type EditableMovementRow = {
   moneda: string;
   tipo_cambio_mode: ExchangeRateMode;
   tipo_cambio: string;
+  factura_referencia: string;
+  factura_file: File | null;
   nota_recepcion_status: DeliveryNoteStatus;
   nota_recepcion_files: DeliveryNoteFile[];
 };
@@ -455,6 +462,8 @@ const createMovementRow = (overrides: Partial<EditableMovementRow> = {}): Editab
   moneda: "MXN",
   tipo_cambio_mode: "pnl",
   tipo_cambio: "",
+  factura_referencia: "",
+  factura_file: null,
   nota_recepcion_status: "none",
   nota_recepcion_files: [],
   ...overrides,
@@ -467,6 +476,8 @@ const rowHasUserInput = (row: EditableMovementRow) => {
     row.proyecto !== "empresa" ||
     row.tipo !== "costo_estructura" ||
     row.categoria !== "OTROS"
+    || row.factura_referencia.trim() !== ""
+    || Boolean(row.factura_file)
   );
 };
 
@@ -508,6 +519,8 @@ export function OgcMovementsUploadModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<OgcUploadResult | null>(null);
   const [excelPreview, setExcelPreview] = useState<ExcelPreviewState | null>(null);
+  const [excelInvoiceEdits, setExcelInvoiceEdits] = useState<Record<number, { referencia: string; file: File | null }>>({});
+  const [partialSave, setPartialSave] = useState(false);
   const proyectos = useQuery(api.desarrollos.getAll) as DesarrolloOption[] | undefined;
   const existingMovements = useQuery(
     api.ogc_movimientos.getAll,
@@ -520,6 +533,7 @@ export function OgcMovementsUploadModal({
   const failOgcImport = useMutation(api.ogc_movimientos.failImport);
   const validateBulkCreateMovements = useMutation(api.ogc_movimientos.validateBulkCreate);
   const bulkCreateMovements = useMutation(api.ogc_movimientos.bulkCreate);
+  const setInvoiceEvidence = useMutation(api.ogc_movimientos.setInvoiceEvidence);
   const pnlPeriod = useMemo<PnlPeriodFilter | undefined>(() => {
     if (!periodYear || !cutoffMonth) return undefined;
     return { year: periodYear, cutoffMonth };
@@ -546,6 +560,8 @@ export function OgcMovementsUploadModal({
     setManualRows([createMovementRow()]);
     setResult(null);
     setExcelPreview(null);
+    setExcelInvoiceEdits({});
+    setPartialSave(false);
   };
 
   const getConfiguredExchangeRate = (currency?: string) => {
@@ -579,6 +595,9 @@ export function OgcMovementsUploadModal({
       if (monto <= 0) rowErrors.push("Monto invalido");
       if (!isValidDate(fecha)) rowErrors.push("Fecha invalida");
       if (moneda !== "MXN" && tipoCambio <= 0) rowErrors.push("Tipo de cambio requerido");
+      if (movement.factura_referencia && movement.factura_referencia.trim().length > 120) {
+        rowErrors.push("Referencia de factura demasiado larga");
+      }
       if (!isCompanyRow && !proyecto) {
         missingProjects.add(movement.proyecto_nombre || "Sin nombre");
         rowErrors.push("Obra no encontrada");
@@ -595,11 +614,13 @@ export function OgcMovementsUploadModal({
         monto,
         fecha,
         descripcion: movement.descripcion || undefined,
+        factura_referencia: movement.tipo === "ingreso" ? movement.factura_referencia?.trim() || undefined : undefined,
         moneda,
         tipo_cambio: moneda === "MXN" ? undefined : tipoCambio,
         proyecto,
         archivo_origen: sourceName,
         fila_origen: movement.rowIndex,
+        captura_token: movement.captura_token,
         nota_recepcion_status: movement.nota_recepcion_status,
         nota_recepcion_storage_id: movement.nota_recepcion_storage_id,
         nota_recepcion_nombre: movement.nota_recepcion_nombre,
@@ -636,12 +657,14 @@ export function OgcMovementsUploadModal({
 
       return [{
         rowIndex: index + 1,
+        captura_token: row.id,
         tipo: row.tipo,
         categoria: row.categoria,
         monto: Math.abs(parseAmount(row.monto)),
         fecha: normalizeDate(row.fecha),
         proyecto_nombre: row.proyecto === "empresa" ? "" : projectNameById.get(row.proyecto) || "",
         descripcion: row.descripcion.trim(),
+        factura_referencia: row.tipo === "ingreso" ? row.factura_referencia.trim() || undefined : undefined,
         moneda: row.moneda,
         tipo_cambio: row.moneda === "MXN"
           ? undefined
@@ -665,7 +688,13 @@ export function OgcMovementsUploadModal({
     value: EditableMovementRow[K]
   ) => {
     setManualRows((currentRows) =>
-      currentRows.map((row) => (row.id === id ? { ...row, [key]: value } : row))
+      currentRows.map((row) => {
+        if (row.id !== id) return row;
+        if (key === "tipo" && value !== "ingreso") {
+          return { ...row, tipo: value as OgcMovementType, factura_referencia: "", factura_file: null };
+        }
+        return { ...row, [key]: value };
+      })
     );
   };
 
@@ -692,6 +721,8 @@ export function OgcMovementsUploadModal({
         id: crypto.randomUUID(),
         nota_recepcion_status: "none",
         nota_recepcion_files: [],
+        factura_referencia: "",
+        factura_file: null,
       });
 
       if (index === -1) return [...currentRows, duplicate];
@@ -787,6 +818,18 @@ export function OgcMovementsUploadModal({
     addManualRowDeliveryNotes(id, filesToAdd);
   };
 
+  const handleManualInvoiceFileChange = (id: string, event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    event.target.value = "";
+    if (!selectedFile) return;
+    const error = validateOgcInvoiceFile(selectedFile);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    updateManualRow(id, "factura_file", selectedFile);
+  };
+
   const uploadManualRowNotes = async (rows: EditableMovementRow[]) => {
     const uploadedNotes = new Map<string, UploadedDeliveryNote>();
 
@@ -853,6 +896,7 @@ export function OgcMovementsUploadModal({
     setFile(selectedFile);
     setResult(null);
     setExcelPreview(null);
+    setExcelInvoiceEdits({});
     event.target.value = "";
   };
 
@@ -910,7 +954,8 @@ export function OgcMovementsUploadModal({
   const saveValidatedMovements = async (
     report: ValidationReport,
     importacionId?: Id<"ogc_movimientos_importaciones">,
-    parserErrorCount = 0
+    parserErrorCount = 0,
+    invoiceFiles = new Map<number, File>()
   ) => {
     if (report.valid.length === 0) {
       throw new Error("No hay movimientos validos para guardar.");
@@ -920,24 +965,61 @@ export function OgcMovementsUploadModal({
     let duplicateCount = 0;
     let resumedCount = 0;
     let rejectedCount = 0;
+    const savedRows = new Map<number, { id: Id<"ogc_movimientos">; has_comprobante: boolean; comprobante_nombre?: string; comprobante_size?: number; factura_referencia?: string }>();
     const chunkSize = 100;
-    for (let index = 0; index < report.valid.length; index += chunkSize) {
-      const chunk = report.valid.slice(index, index + chunkSize);
-      const created = await bulkCreateMovements({
-        movimientos: chunk,
-        importacion_id: importacionId,
-      });
-      createdCount += created.created;
-      duplicateCount += created.skippedDuplicates || 0;
-      resumedCount += created.alreadyImported || 0;
-      rejectedCount += created.rejected || 0;
+    try {
+      const rowsToCreate = report.valid;
+      for (let index = 0; index < rowsToCreate.length; index += chunkSize) {
+        const chunk = rowsToCreate.slice(index, index + chunkSize);
+        const created = await bulkCreateMovements({ movimientos: chunk, importacion_id: importacionId });
+        createdCount += created.created;
+        duplicateCount += created.skippedDuplicates || 0;
+        resumedCount += created.alreadyImported || 0;
+        rejectedCount += created.rejected || 0;
+        for (const item of created.rowResults) {
+          savedRows.set(item.row, { id: item.id, has_comprobante: item.has_comprobante, comprobante_nombre: item.comprobante_nombre, comprobante_size: item.comprobante_size, factura_referencia: item.factura_referencia });
+        }
+      }
+
+      for (const movement of report.valid) {
+        if (movement.tipo !== "ingreso" || movement.fila_origen == null) continue;
+        const saved = savedRows.get(movement.fila_origen);
+        if (!saved || (invoiceFiles.has(movement.fila_origen) && !saved.has_comprobante)) continue;
+        const incomingReference = movement.factura_referencia?.trim().replace(/\s+/g, " ") || "";
+        const storedReference = saved.factura_referencia?.trim().replace(/\s+/g, " ") || "";
+        if (incomingReference !== storedReference) {
+          try {
+            await setInvoiceEvidence({ id: saved.id, referencia: incomingReference });
+          } catch (error) {
+            throw new Error(`Fila ${movement.fila_origen}: ${error instanceof Error ? error.message : "No se pudo actualizar la referencia."}`);
+          }
+          saved.factura_referencia = incomingReference;
+        }
+      }
+
+      for (const [row, invoiceFile] of invoiceFiles) {
+        const saved = savedRows.get(row);
+        if (!saved) continue;
+        if (saved.has_comprobante && saved.comprobante_nombre === invoiceFile.name && saved.comprobante_size === invoiceFile.size) continue;
+        const movement = report.valid.find((item) => item.fila_origen === row);
+        if (!movement?.factura_referencia) throw new Error(`Fila ${row}: falta la referencia de factura.`);
+        try {
+          const comprobante = await uploadOgcInvoiceProof(invoiceFile, generateOgcUploadUrl);
+          await setInvoiceEvidence({ id: saved.id, referencia: movement.factura_referencia, comprobante });
+        } catch (error) {
+          throw new Error(`Fila ${row}: ${error instanceof Error ? error.message : "No se pudo vincular el comprobante."}`);
+        }
+      }
+    } catch (error) {
+      if (savedRows.size > 0) setPartialSave(true);
+      throw error;
     }
 
     const skippedDetails = [
       report.errors.length ? `${report.errors.length} filas omitidas` : "",
       report.missingProjects.length ? `${report.missingProjects.length} obras no encontradas` : "",
       duplicateCount ? `${duplicateCount} duplicadas` : "",
-      resumedCount ? `${resumedCount} ya vinculadas a esta importacion` : "",
+      resumedCount ? `${resumedCount} ya guardadas en este intento` : "",
       rejectedCount ? `${rejectedCount} rechazadas` : "",
       report.valid.length - createdCount - duplicateCount - resumedCount - rejectedCount > 0
         ? `${report.valid.length - createdCount - duplicateCount - resumedCount - rejectedCount} no guardadas`
@@ -945,17 +1027,23 @@ export function OgcMovementsUploadModal({
     ].filter(Boolean).join(", ");
 
     if (importacionId) {
-      await completeOgcImport({
-        id: importacionId,
-        duplicados_omitidos: duplicateCount,
-        rechazados: rejectedCount + report.errors.length + parserErrorCount,
-      });
+      try {
+        await completeOgcImport({
+          id: importacionId,
+          duplicados_omitidos: duplicateCount,
+          rechazados: rejectedCount + report.errors.length + parserErrorCount,
+        });
+      } catch (error) {
+        setPartialSave(true);
+        throw error;
+      }
     }
 
     toast.success("Carga OGC completada", {
       description: `${createdCount} movimientos guardados${skippedDetails ? `, ${skippedDetails}` : ""}.`,
     });
-    handleClose(false);
+    resetState();
+    onOpenChange(false);
   };
 
   const handleValidateExcel = async () => {
@@ -976,6 +1064,10 @@ export function OgcMovementsUploadModal({
       setResult(parsed);
 
       const movements = parsed.movimientos || [];
+      const excelRows = movements.map((movement) => movement.rowIndex);
+      if (excelRows.some((row) => !Number.isInteger(row) || row <= 0) || new Set(excelRows).size !== excelRows.length) {
+        throw new Error("El lector devolvió filas sin número único; no es seguro vincular comprobantes.");
+      }
       const report = validateMovements(movements, file.name);
       const preflight = await runBulkPreflight(report.valid, fileHash);
       const parserErrors = (parsed.errors || []).map((error) => ({
@@ -991,6 +1083,7 @@ export function OgcMovementsUploadModal({
         preflight,
         parserErrors,
       });
+      setExcelInvoiceEdits({});
 
       const createCount = preflight.validRows.length;
       const issueCount = parserErrors.length + report.errors.length + preflight.duplicateRows.length + preflight.rejectedRows.length;
@@ -1020,20 +1113,45 @@ export function OgcMovementsUploadModal({
   const handleConfirmExcel = async () => {
     if (!excelPreview || !file) return;
 
-    if (excelPreview.preflight.validRows.length === 0) {
-      toast.error("No hay movimientos validos para guardar.");
-      return;
-    }
-
     setIsProcessing(true);
     let importacionId: Id<"ogc_movimientos_importaciones"> | undefined;
     try {
+      const report: ValidationReport = {
+        ...excelPreview.report,
+        valid: excelPreview.report.valid.map((movement) => ({
+          ...movement,
+          factura_referencia: movement.tipo === "ingreso"
+            ? (excelInvoiceEdits[movement.fila_origen || 0]?.referencia ?? movement.factura_referencia)?.trim() || undefined
+            : undefined,
+        })),
+      };
+      const invoiceFiles = new Map<number, File>();
+      for (const movement of report.valid) {
+        const row = movement.fila_origen || 0;
+        const edit = excelInvoiceEdits[row];
+        if (!edit || movement.tipo !== "ingreso") continue;
+        if ((movement.factura_referencia?.length || 0) > 120) throw new Error(`Fila ${row}: la referencia excede 120 caracteres.`);
+        if (edit.file) {
+          if (!movement.factura_referencia) throw new Error(`Fila ${row}: el comprobante requiere folio o referencia.`);
+          const fileError = validateOgcInvoiceFile(edit.file);
+          if (fileError) throw new Error(`Fila ${row}: ${fileError}`);
+          invoiceFiles.set(row, edit.file);
+        }
+      }
+      const preflight = await runBulkPreflight(report.valid, excelPreview.fileHash);
+      if (JSON.stringify(preflight) !== JSON.stringify(excelPreview.preflight)) {
+        setExcelPreview({ ...excelPreview, report, preflight });
+        toast.info("La referencia cambió la detección de duplicados. Revisa el nuevo resultado y confirma otra vez.");
+        return;
+      }
+      if (preflight.validRows.length === 0) throw new Error("No hay movimientos válidos para guardar.");
+
       const importStart = await startOgcImport({
         nombre: file.name,
         type: file.type || "application/octet-stream",
         size: file.size,
         file_hash: excelPreview.fileHash,
-        total_filas: excelPreview.report.valid.length,
+        total_filas: report.valid.length,
       });
       if (importStart.already_completed) {
         throw new Error("Este archivo ya fue importado anteriormente.");
@@ -1062,9 +1180,10 @@ export function OgcMovementsUploadModal({
       }
 
       await saveValidatedMovements(
-        excelPreview.report,
+        report,
         importacionId,
-        excelPreview.parserErrors.length
+        excelPreview.parserErrors.length,
+        invoiceFiles
       );
     } catch (error) {
       if (importacionId) {
@@ -1106,13 +1225,23 @@ export function OgcMovementsUploadModal({
     const preliminaryReport = validateMovements(preliminaryMovements, "captura masiva");
     setIsProcessing(true);
     try {
+      const invoiceFiles = new Map<number, File>();
+      manualRows.forEach((row, index) => {
+        const rowNumber = index + 1;
+        if (row.tipo !== "ingreso" || !row.factura_file) return;
+        if (!row.factura_referencia.trim()) throw new Error(`Fila ${rowNumber}: el comprobante requiere folio o referencia.`);
+        const fileError = validateOgcInvoiceFile(row.factura_file);
+        if (fileError) throw new Error(`Fila ${rowNumber}: ${fileError}`);
+        invoiceFiles.set(rowNumber, row.factura_file);
+      });
       const preflight = await validateBulkCreateMovements({ movimientos: preliminaryReport.valid });
       const rowsThatWillCreate = new Set(preflight.validRows);
-      const rowsReadyToSave = manualRows.filter((row, index) => rowHasUserInput(row) && rowsThatWillCreate.has(index + 1));
+      const existingRows = new Set(preflight.existingRows);
+      const rowsReadyToSave = manualRows.filter((row, index) => rowHasUserInput(row) && rowsThatWillCreate.has(index + 1) && !existingRows.has(index + 1));
       const uploadedNotes = await uploadManualRowNotes(rowsReadyToSave);
       const parsed = rowsToMovements(manualRows, uploadedNotes);
       const report = validateMovements(parsed, "captura masiva");
-      await saveValidatedMovements(report);
+      await saveValidatedMovements(report, undefined, 0, invoiceFiles);
     } catch (error) {
       toast.error("Error al guardar movimientos", {
         description: error instanceof Error ? error.message : "Ocurrio un error inesperado.",
@@ -1122,8 +1251,8 @@ export function OgcMovementsUploadModal({
     }
   };
 
-  const manualMovements = useMemo(() => rowsToMovements(manualRows), [manualRows, projectNameById, exchangeRates]);
-  const manualReport = useMemo(() => validateMovements(manualMovements, "captura masiva"), [manualMovements, projectLookup, exchangeRates]);
+  const manualMovements = rowsToMovements(manualRows);
+  const manualReport = validateMovements(manualMovements, "captura masiva");
   const excelImpact = useMemo(() => {
     if (!excelPreview || existingMovements === undefined) return null;
     const rowsToCreate = new Set(excelPreview.preflight.validRows);
@@ -1171,11 +1300,11 @@ export function OgcMovementsUploadModal({
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
                 <Label className="text-sm text-foreground">Movimientos manuales</Label>
-                <p className="mt-1 text-xs text-subtle-foreground">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Agrega filas editables; selecciona una obra solo cuando el movimiento aplique a una obra especifica.
                   TC P&L: USD {exchangeRates.USD.toLocaleString("es-MX", { maximumFractionDigits: 4 })} / EUR {exchangeRates.EUR.toLocaleString("es-MX", { maximumFractionDigits: 4 })}.
                 </p>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-subtle-foreground">
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span
                     className={cn(
                       "h-2.5 w-2.5 rounded-none",
@@ -1193,7 +1322,7 @@ export function OgcMovementsUploadModal({
                   </span>
                 </div>
               </div>
-              <Button type="button" variant="outline" onClick={addManualRow} disabled={isProcessing}>
+              <Button type="button" variant="outline" onClick={addManualRow} disabled={isProcessing || partialSave}>
                 <Plus className="h-4 w-4" />
                 Agregar fila
               </Button>
@@ -1204,14 +1333,17 @@ export function OgcMovementsUploadModal({
               proyectos={proyectos || []}
               exchangeRates={exchangeRates}
               errors={manualReport.errors}
-              disabled={isProcessing}
+              disabled={isProcessing || partialSave}
+              invoiceDisabled={isProcessing}
               onUpdate={updateManualRow}
+              onInvoiceFileChange={handleManualInvoiceFileChange}
               onDeliveryNoteFileChange={handleDeliveryNoteFileChange}
               onRemoveDeliveryNote={removeManualRowDeliveryNote}
               onDuplicate={duplicateManualRow}
               onRemove={removeManualRow}
             />
 
+            {partialSave && <p className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Algunos movimientos ya se guardaron. Reintenta para vincular los comprobantes pendientes; también podrás hacerlo desde el ledger.</p>}
             <MovementPreview report={manualReport} movements={manualMovements} compact />
 
             <div className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:justify-end">
@@ -1222,7 +1354,7 @@ export function OgcMovementsUploadModal({
                 Vista previa
               </Button>
               <Button type="button" onClick={handleSaveManual} disabled={isProcessing || manualReport.valid.length === 0}>
-                {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : "Guardar movimientos"}
+                {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : partialSave ? "Reintentar pendientes" : "Guardar movimientos"}
               </Button>
             </div>
           </TabsContent>
@@ -1237,7 +1369,7 @@ export function OgcMovementsUploadModal({
                       <FileSpreadsheet className="h-8 w-8 text-[#1A5D21]" />
                       <div className="min-w-0">
                         <p className="truncate text-sm text-foreground">{file.name}</p>
-                        <p className="text-xs text-subtle-foreground">{formatFileSize(file.size)}</p>
+                        <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
                       </div>
                     </div>
                     <Button
@@ -1248,7 +1380,7 @@ export function OgcMovementsUploadModal({
                         setResult(null);
                         setExcelPreview(null);
                       }}
-                      disabled={isProcessing}
+                      disabled={isProcessing || partialSave}
                     >
                       Cambiar
                     </Button>
@@ -1258,7 +1390,7 @@ export function OgcMovementsUploadModal({
                     <Upload className="h-10 w-10 text-disabled-foreground" />
                     <div>
                       <p className="text-sm text-foreground">Excel con columnas: tipo, categoria, monto, fecha, obra, descripcion</p>
-                      <p className="mt-1 text-xs text-subtle-foreground">Obra vacia o “Empresa” queda a nivel empresa. Primero se valida el archivo; no se guarda hasta que confirmes.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Obra vacia o “Empresa” queda a nivel empresa. Primero se valida el archivo; no se guarda hasta que confirmes.</p>
                     </div>
                     <Button type="button" variant="outline" onClick={() => document.getElementById(fileInputId)?.click()}>
                       Seleccionar archivo
@@ -1275,11 +1407,19 @@ export function OgcMovementsUploadModal({
               </div>
             </div>
 
+            {partialSave && excelPreview && <p className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Algunas filas ya se guardaron. Reintenta para completar los comprobantes pendientes; los ingresos guardados conservarán su vínculo.</p>}
             {excelPreview && excelImpact ? (
               <ExcelValidationPreview
                 preview={excelPreview}
                 impact={excelImpact}
                 period={pnlPeriod}
+                invoiceEdits={excelInvoiceEdits}
+                onInvoiceEdit={(row, patch) => setExcelInvoiceEdits((current) => ({
+                  ...current,
+                  [row]: { ...(current[row] || { referencia: "", file: null }), ...patch },
+                }))}
+                disabled={isProcessing}
+                referenceDisabled={isProcessing}
               />
             ) : result?.summary && !excelPreview ? (
               <div className="border border-border bg-[#FBFAF2] p-4 text-sm text-foreground">
@@ -1302,18 +1442,18 @@ export function OgcMovementsUploadModal({
                     type="button"
                     variant="outline"
                     onClick={() => setExcelPreview(null)}
-                    disabled={isProcessing}
+                    disabled={isProcessing || partialSave}
                   >
                     Volver
                   </Button>
                   <Button
                     type="button"
                     onClick={handleConfirmExcel}
-                    disabled={isProcessing || excelPreview.preflight.validRows.length === 0}
+                    disabled={isProcessing || (excelPreview.preflight.validRows.length === 0 && !excelPreview.report.valid.some((movement) => movement.tipo === "ingreso"))}
                   >
                     {isProcessing
                       ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</>
-                      : `Confirmar carga (${excelPreview.preflight.validRows.length})`}
+                      : partialSave ? "Reintentar pendientes" : `Confirmar carga (${excelPreview.preflight.validRows.length})`}
                   </Button>
                 </>
               ) : (
@@ -1343,14 +1483,14 @@ export function OgcMovementsUploadModal({
 function SummaryStat({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <p className="text-xs text-subtle-foreground">{label}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-lg text-foreground">{value}</p>
     </div>
   );
 }
 
 function deltaClass(value: number, invert = false) {
-  if (Math.abs(value) < 0.005) return "text-subtle-foreground";
+  if (Math.abs(value) < 0.005) return "text-muted-foreground";
   const positive = invert ? value < 0 : value > 0;
   return positive ? "text-[#1A5D21]" : "text-[#802424]";
 }
@@ -1374,7 +1514,7 @@ function ValueChange({
   return (
     <div className="min-w-0">
       <p className="text-sm text-foreground">
-        <span className="text-subtle-foreground">{formatMxn(current)}</span>
+        <span className="text-muted-foreground">{formatMxn(current)}</span>
         <span className="mx-1.5 text-disabled-foreground">→</span>
         {formatMxn(projected)}
       </p>
@@ -1387,10 +1527,18 @@ function ExcelValidationPreview({
   preview,
   impact,
   period,
+  invoiceEdits,
+  onInvoiceEdit,
+  disabled,
+  referenceDisabled,
 }: {
   preview: ExcelPreviewState;
   impact: ExcelImpactReport;
   period?: PnlPeriodFilter;
+  invoiceEdits: Record<number, { referencia: string; file: File | null }>;
+  onInvoiceEdit: (row: number, patch: Partial<{ referencia: string; file: File | null }>) => void;
+  disabled: boolean;
+  referenceDisabled: boolean;
 }) {
   const createCount = preview.preflight.validRows.length;
   const duplicateCount = preview.preflight.duplicateRows.length;
@@ -1439,19 +1587,19 @@ function ExcelValidationPreview({
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="border border-border bg-[#FBFAF2] p-3">
-          <p className="text-xs text-subtle-foreground">Se crearian</p>
+          <p className="text-xs text-muted-foreground">Se crearian</p>
           <p className="text-lg text-foreground">{createCount}</p>
         </div>
         <div className="border border-border bg-card p-3">
-          <p className="text-xs text-subtle-foreground">Duplicados</p>
+          <p className="text-xs text-muted-foreground">Duplicados</p>
           <p className="text-lg text-foreground">{duplicateCount}</p>
         </div>
         <div className="border border-border bg-card p-3">
-          <p className="text-xs text-subtle-foreground">Con error</p>
+          <p className="text-xs text-muted-foreground">Con error</p>
           <p className="text-lg text-foreground">{validationErrors.length}</p>
         </div>
         <div className="border border-border bg-card p-3">
-          <p className="text-xs text-subtle-foreground">Rechazados</p>
+          <p className="text-xs text-muted-foreground">Rechazados</p>
           <p className="text-lg text-foreground">{rejectedCount}</p>
         </div>
       </div>
@@ -1459,22 +1607,22 @@ function ExcelValidationPreview({
       <div className="space-y-3">
         <div>
           <p className="text-sm text-foreground">Impacto si se confirma la carga</p>
-          <p className="text-xs text-subtle-foreground">
+          <p className="text-xs text-muted-foreground">
             Valores actuales vs proyectados en {formatPeriodLabel(period)}. Montos en MXN.
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="border border-border bg-card p-3">
-            <p className="text-xs text-subtle-foreground">Ingresos</p>
+            <p className="text-xs text-muted-foreground">Ingresos</p>
             <ValueChange current={impact.totals.currentIngresos} projected={impact.totals.projectedIngresos} />
           </div>
           <div className="border border-border bg-card p-3">
-            <p className="text-xs text-subtle-foreground">Costos de estructura</p>
+            <p className="text-xs text-muted-foreground">Costos de estructura</p>
             <ValueChange current={impact.totals.currentCostos} projected={impact.totals.projectedCostos} invert />
           </div>
           <div className="border border-border bg-[#FBFAF2] p-3">
-            <p className="text-xs text-subtle-foreground">Neto (ingresos - costos)</p>
+            <p className="text-xs text-muted-foreground">Neto (ingresos - costos)</p>
             <ValueChange
               current={impact.totals.currentIngresos - impact.totals.currentCostos}
               projected={impact.totals.projectedIngresos - impact.totals.projectedCostos}
@@ -1504,7 +1652,7 @@ function ExcelValidationPreview({
       )}
 
       {createCount > 0 && impact.inPeriodCount === 0 && (
-        <p className="text-xs text-subtle-foreground">
+        <p className="text-xs text-muted-foreground">
           Los movimientos validos no cambian los totales del periodo actual, pero si se confirman se guardarian en el ledger.
         </p>
       )}
@@ -1555,7 +1703,99 @@ function ExcelValidationPreview({
           />
         </div>
       )}
+      <ExcelInvoiceEditor
+        movements={preview.report.valid.filter((movement) => movement.tipo === "ingreso" && !preview.preflight.rejectedRows.includes(movement.fila_origen || 0))}
+        duplicateRows={duplicateRows}
+        edits={invoiceEdits}
+        onEdit={onInvoiceEdit}
+        disabled={disabled}
+        referenceDisabled={referenceDisabled}
+      />
     </div>
+  );
+}
+
+function ExcelInvoiceEditor({
+  movements,
+  duplicateRows,
+  edits,
+  onEdit,
+  disabled,
+  referenceDisabled,
+}: {
+  movements: PreparedMovement[];
+  duplicateRows: Set<number>;
+  edits: Record<number, { referencia: string; file: File | null }>;
+  onEdit: (row: number, patch: Partial<{ referencia: string; file: File | null }>) => void;
+  disabled: boolean;
+  referenceDisabled: boolean;
+}) {
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const filtered = movements.filter((movement) => !search || String(movement.fila_origen || "").includes(search.trim()));
+  const pageSize = 10;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, pageCount - 1);
+  const visible = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  if (movements.length === 0) return null;
+
+  return (
+    <section className="space-y-3 border border-border p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium">Facturas de ingresos ({movements.length})</p>
+          <p className="text-xs text-muted-foreground">Completa el folio y, si lo tienes, adjunta un PDF o imagen a la fila correspondiente. Una referencia distinta puede resolver un duplicado.</p>
+        </div>
+        <Input className="sm:w-36" inputMode="numeric" placeholder="Buscar fila" value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} />
+      </div>
+      <div className="max-h-96 space-y-2 overflow-y-auto">
+        {visible.map((movement) => {
+          const row = movement.fila_origen || 0;
+          const edit = edits[row];
+          return (
+            <div key={row} className="grid gap-2 border border-border bg-card p-3 md:grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)] md:items-center">
+              <div className="text-xs"><span className="font-medium">Fila {row}</span>{duplicateRows.has(row) && <span className="block text-amber-700">Duplicado actual</span>}</div>
+              <Input
+                value={edit?.referencia ?? movement.factura_referencia ?? ""}
+                onChange={(event) => onEdit(row, { referencia: event.target.value })}
+                placeholder="Folio o referencia"
+                maxLength={120}
+                disabled={referenceDisabled}
+                aria-label={`Folio de factura de la fila ${row}`}
+              />
+              <div className="flex min-w-0 items-center gap-2">
+                <Input
+                  type="file"
+                  accept={OGC_INVOICE_FILE_ACCEPT}
+                  disabled={disabled}
+                  className="min-w-0"
+                  aria-label={`Comprobante de la fila ${row}`}
+                  onChange={(event) => {
+                    const selected = event.target.files?.[0];
+                    event.target.value = "";
+                    if (!selected) return;
+                    const error = validateOgcInvoiceFile(selected);
+                    if (error) toast.error(`Fila ${row}: ${error}`);
+                    else onEdit(row, { file: selected });
+                  }}
+                />
+                {edit?.file && <Button type="button" variant="ghost" size="icon" disabled={disabled} title="Quitar comprobante" onClick={() => onEdit(row, { file: null })}><X className="h-4 w-4" /></Button>}
+              </div>
+              {edit?.file && <p className="truncate text-xs text-muted-foreground md:col-start-3" title={edit.file.name}>{edit.file.name}</p>}
+              {edit?.file && !(edit.referencia ?? movement.factura_referencia)?.trim() && <p className="text-xs text-red-700 md:col-start-2 md:col-span-2">Agrega un folio o referencia para este comprobante.</p>}
+            </div>
+          );
+        })}
+        {visible.length === 0 && <p className="text-xs text-muted-foreground">No se encontró esa fila.</p>}
+      </div>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>Página {currentPage + 1} de {pageCount}</span>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Anterior</Button>
+          <Button type="button" variant="outline" size="sm" disabled={currentPage >= pageCount - 1} onClick={() => setPage(currentPage + 1)}>Siguiente</Button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1570,7 +1810,7 @@ function ImpactGroupTable({
     <div className="space-y-2">
       <p className="text-sm text-foreground">{title}</p>
       <div className="max-h-64 min-w-0 overflow-y-auto border border-border text-sm">
-        <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] border-b border-border bg-[#FBFAF2] text-subtle-foreground md:grid">
+        <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] border-b border-border bg-[#FBFAF2] text-muted-foreground md:grid">
           <p className="px-3 py-2">{title === "Obras afectadas" ? "Obra" : "Categoria"}</p>
           <p className="px-3 py-2">Ingresos</p>
           <p className="px-3 py-2">Costos</p>
@@ -1602,7 +1842,9 @@ function EditableMovementsTable({
   exchangeRates,
   errors,
   disabled,
+  invoiceDisabled,
   onUpdate,
+  onInvoiceFileChange,
   onDeliveryNoteFileChange,
   onRemoveDeliveryNote,
   onDuplicate,
@@ -1613,7 +1855,9 @@ function EditableMovementsTable({
   exchangeRates: ExchangeRateSettings;
   errors: ValidationReport["errors"];
   disabled: boolean;
+  invoiceDisabled: boolean;
   onUpdate: <K extends keyof EditableMovementRow>(id: string, key: K, value: EditableMovementRow[K]) => void;
+  onInvoiceFileChange: (id: string, event: ChangeEvent<HTMLInputElement>) => void;
   onDeliveryNoteFileChange: (id: string, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveDeliveryNote: (rowId: string, noteId?: string) => void;
   onDuplicate: (row: EditableMovementRow) => void;
@@ -1803,6 +2047,35 @@ function EditableMovementsTable({
                 </div>
               </div>
 
+              {row.tipo === "ingreso" && (
+                <div className="min-w-0 space-y-2 sm:col-span-2 lg:col-span-10">
+                  <FieldLabel>Factura del ingreso</FieldLabel>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Input
+                      value={row.factura_referencia}
+                      onChange={(event) => onUpdate(row.id, "factura_referencia", event.target.value)}
+                      placeholder="Folio o referencia (opcional)"
+                      maxLength={120}
+                      disabled={invoiceDisabled}
+                      aria-label={`Folio de factura de la fila ${index + 1}`}
+                    />
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Input
+                        type="file"
+                        accept={OGC_INVOICE_FILE_ACCEPT}
+                        onChange={(event) => onInvoiceFileChange(row.id, event)}
+                        disabled={invoiceDisabled}
+                        className="min-w-0"
+                        aria-label={`Comprobante de la fila ${index + 1}`}
+                      />
+                      {row.factura_file && <Button type="button" variant="ghost" size="icon" disabled={invoiceDisabled} title="Quitar comprobante" onClick={() => onUpdate(row.id, "factura_file", null)}><X className="h-4 w-4" /></Button>}
+                    </div>
+                  </div>
+                  {row.factura_file && <p className="truncate text-xs text-muted-foreground">{row.factura_file.name} · {formatFileSize(row.factura_file.size)}</p>}
+                  {row.factura_file && !row.factura_referencia.trim() && <p className="text-xs text-red-700">Agrega un folio o referencia para este comprobante.</p>}
+                </div>
+              )}
+
               <div className="min-w-0 sm:col-span-2 lg:col-span-10">
                 <div
                   className={cn(
@@ -1825,7 +2098,7 @@ function EditableMovementsTable({
                       />
                       <div className="min-w-0">
                         <p className="truncate text-xs font-medium text-foreground">Notas de recepcion</p>
-                        <p className="truncate text-[11px] text-subtle-foreground">
+                        <p className="truncate text-[11px] text-muted-foreground">
                           {hasDeliveryNotes
                             ? `${row.nota_recepcion_files.length} archivo${row.nota_recepcion_files.length === 1 ? "" : "s"} adjunto${row.nota_recepcion_files.length === 1 ? "" : "s"}`
                             : "Fotos o PDFs de notas"}
@@ -1887,7 +2160,7 @@ function EditableMovementsTable({
                           {isDeliveryNoteImageFile(note.file) ? (
                             <Image className="h-3.5 w-3.5 shrink-0 text-[#1A5D21]" />
                           ) : (
-                            <FileText className="h-3.5 w-3.5 shrink-0 text-subtle-foreground" />
+                            <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           )}
                           <span className="max-w-[180px] truncate">{note.file.name}</span>
                           <span className="shrink-0 text-disabled-foreground">{formatFileSize(note.file.size)}</span>
@@ -1948,7 +2221,7 @@ function EditableMovementsTable({
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return (
-    <Label className="mb-1 block text-xs font-normal text-subtle-foreground">
+    <Label className="mb-1 block text-xs font-normal text-muted-foreground">
       {children}
     </Label>
   );
@@ -1980,26 +2253,26 @@ function MovementPreview({
       {showSummary && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="border border-border bg-[#FBFAF2] p-3">
-            <p className="text-xs text-subtle-foreground">Validos</p>
+            <p className="text-xs text-muted-foreground">Validos</p>
             <p className="flex items-center gap-2 text-lg text-foreground"><CheckCircle2 className="h-4 w-4 text-[#1A5D21]" />{report.valid.length}</p>
           </div>
           <div className="border border-border bg-card p-3">
-            <p className="text-xs text-subtle-foreground">Con error</p>
+            <p className="text-xs text-muted-foreground">Con error</p>
             <p className="flex items-center gap-2 text-lg text-foreground"><AlertTriangle className="h-4 w-4 text-[#802424]" />{report.errors.length}</p>
           </div>
           <div className="border border-border bg-card p-3">
-            <p className="text-xs text-subtle-foreground">Ingresos</p>
+            <p className="text-xs text-muted-foreground">Ingresos</p>
             <p className="text-lg text-foreground">{report.ingresos}</p>
           </div>
           <div className="border border-border bg-card p-3">
-            <p className="text-xs text-subtle-foreground">Costos</p>
+            <p className="text-xs text-muted-foreground">Costos</p>
             <p className="text-lg text-foreground">{report.costosEstructura}</p>
           </div>
         </div>
       )}
 
       <div className={compact ? "min-w-0 border border-border text-sm" : "max-h-72 min-w-0 overflow-y-auto border border-border text-sm"}>
-        <div className="hidden grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] border-b border-border bg-[#FBFAF2] text-subtle-foreground md:grid">
+        <div className="hidden grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] border-b border-border bg-[#FBFAF2] text-muted-foreground md:grid">
           <p className="px-3 py-2">Fila</p>
           <p className="px-3 py-2">Tipo</p>
           <p className="px-3 py-2">Categoria</p>
@@ -2009,7 +2282,7 @@ function MovementPreview({
         </div>
 
         {visibleMovements.length === 0 && (
-          <p className="px-3 py-4 text-sm text-subtle-foreground">No hay filas para mostrar.</p>
+          <p className="px-3 py-4 text-sm text-muted-foreground">No hay filas para mostrar.</p>
         )}
 
         {visibleMovements.map((movement) => (
@@ -2033,7 +2306,7 @@ function MovementPreview({
           </div>
         ))}
         {movements.length > visibleMovements.length && (
-          <p className="px-3 py-2 text-xs text-subtle-foreground">
+          <p className="px-3 py-2 text-xs text-muted-foreground">
             Mostrando {visibleMovements.length} de {movements.length} filas.
           </p>
         )}
@@ -2059,7 +2332,7 @@ function PreviewCell({
 }) {
   return (
     <div className="min-w-0 break-words md:px-3 md:py-2">
-      <span className="mr-2 text-xs text-subtle-foreground md:hidden">{label}</span>
+      <span className="mr-2 text-xs text-muted-foreground md:hidden">{label}</span>
       <div className="min-w-0 md:inline">{children}</div>
     </div>
   );

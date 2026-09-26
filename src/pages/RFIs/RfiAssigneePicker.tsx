@@ -2,10 +2,10 @@ import { useMemo, useState } from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Input } from "@/components/ui/input";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
   Bell,
@@ -78,8 +78,8 @@ export function RfiAssigneePicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           disabled={disabled}
@@ -91,7 +91,7 @@ export function RfiAssigneePicker({
         >
           {selectedUsers.length > 0 ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-border bg-disabled text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-border bg-disabled text-xs font-medium text-muted-foreground">
                 {userInitials(selectedUsers[0])}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm text-disabled-foreground">
@@ -100,15 +100,15 @@ export function RfiAssigneePicker({
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-disabled text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-disabled text-xs font-medium text-muted-foreground">
                 -
               </span>
               <span className="text-sm text-disabled-foreground">Sin asignar</span>
             </>
           )}
         </button>
-      </PopoverTrigger>
-      <PopoverContent
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
         align="start"
         sideOffset={6}
         className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl"
@@ -123,7 +123,7 @@ export function RfiAssigneePicker({
                   onClick={() => toggleUser(user._id)}
                   className="inline-flex h-7 items-center gap-1.5 rounded-sm bg-muted px-2 text-xs text-foreground hover:bg-disabled"
                 >
-                  <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-border bg-card text-[10px] font-medium text-subtle-foreground">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-border bg-card text-[10px] font-medium text-muted-foreground">
                     {userInitials(user)}
                   </span>
                   <span className="max-w-36 truncate">
@@ -149,7 +149,7 @@ export function RfiAssigneePicker({
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">
+          <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">
             Personas sugeridas
           </p>
           {!users && (
@@ -158,7 +158,7 @@ export function RfiAssigneePicker({
             </div>
           )}
           {users && filteredUsers.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
+            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
               No hay usuarios con esa búsqueda.
             </div>
           )}
@@ -174,14 +174,14 @@ export function RfiAssigneePicker({
                   selected && "bg-muted",
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border bg-muted text-xs font-medium text-subtle-foreground">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border bg-muted text-xs font-medium text-muted-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-foreground">
                     {user.name || user.email}
                   </span>
-                  <span className="block truncate text-xs text-subtle-foreground">
+                  <span className="block truncate text-xs text-muted-foreground">
                     {user.role}
                   </span>
                 </span>
@@ -196,7 +196,7 @@ export function RfiAssigneePicker({
           <Bell className="h-4 w-4" />
           Se notificará a los responsables
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

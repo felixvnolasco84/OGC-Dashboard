@@ -104,7 +104,7 @@ export default function FamiliaChartConfigModal({ onSave }: FamiliaChartConfigMo
             <Label>Partidas (Nivel 1)</Label>
             <div className="border border-border rounded-none p-4 max-h-48 overflow-y-auto bg-background">
               {availablePartidas.length === 0 ? (
-                <p className="text-sm text-subtle-foreground">No hay partidas disponibles</p>
+                <p className="text-sm text-muted-foreground">No hay partidas disponibles</p>
               ) : (
                 <div className="space-y-2">
                   {availablePartidas.map((partida) => (
@@ -153,7 +153,7 @@ export default function FamiliaChartConfigModal({ onSave }: FamiliaChartConfigMo
             <Label>Familias (Nivel 2)</Label>
             <div className="border border-border rounded-none p-4 max-h-48 overflow-y-auto bg-background">
               {availableFamilias.length === 0 ? (
-                <p className="text-sm text-subtle-foreground">No hay familias disponibles</p>
+                <p className="text-sm text-muted-foreground">No hay familias disponibles</p>
               ) : (
                 <div className="space-y-2">
                   {availableFamilias.map((familia) => (
@@ -202,7 +202,7 @@ export default function FamiliaChartConfigModal({ onSave }: FamiliaChartConfigMo
             <Label>Sub-Partidas (Nivel 3)</Label>
             <div className="border border-border rounded-none p-4 max-h-48 overflow-y-auto bg-background">
               {availableSubPartidas.length === 0 ? (
-                <p className="text-sm text-subtle-foreground">No hay sub-partidas disponibles</p>
+                <p className="text-sm text-muted-foreground">No hay sub-partidas disponibles</p>
               ) : (
                 <div className="space-y-2">
                   {availableSubPartidas.map((subPartida) => (

@@ -55,6 +55,9 @@ export default {
           md: 'calc(var(--radius) - 2px)',
           sm: 'calc(var(--radius) - 4px)'
         },
+        fontSize: {
+          '2xs': '0.625rem'
+        },
         colors: {
           background: 'hsl(var(--background) / <alpha-value>)',
           foreground: 'hsl(var(--foreground) / <alpha-value>)',
@@ -98,6 +101,26 @@ export default {
           destructive: {
             DEFAULT: 'hsl(var(--destructive) / <alpha-value>)',
             foreground: 'hsl(var(--destructive-foreground) / <alpha-value>)'
+          },
+          success: {
+            DEFAULT: 'hsl(var(--status-success) / <alpha-value>)',
+            muted: 'hsl(var(--status-success-muted) / <alpha-value>)',
+            border: 'hsl(var(--status-success-border) / <alpha-value>)'
+          },
+          warning: {
+            DEFAULT: 'hsl(var(--status-warning) / <alpha-value>)',
+            muted: 'hsl(var(--status-warning-muted) / <alpha-value>)',
+            border: 'hsl(var(--status-warning-border) / <alpha-value>)'
+          },
+          info: {
+            DEFAULT: 'hsl(var(--status-info) / <alpha-value>)',
+            muted: 'hsl(var(--status-info-muted) / <alpha-value>)',
+            border: 'hsl(var(--status-info-border) / <alpha-value>)'
+          },
+          danger: {
+            DEFAULT: 'hsl(var(--status-danger) / <alpha-value>)',
+            muted: 'hsl(var(--status-danger-muted) / <alpha-value>)',
+            border: 'hsl(var(--status-danger-border) / <alpha-value>)'
           },
           border: 'hsl(var(--border) / <alpha-value>)',
           'border-strong': 'hsl(var(--border-strong) / <alpha-value>)',

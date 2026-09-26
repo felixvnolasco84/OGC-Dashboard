@@ -7,7 +7,7 @@ test.describe("Bitácora PWA offline", () => {
 
   test("prepara, recarga offline y conserva un reporte con archivo", async ({ page, context }) => {
     await page.goto(bitacoraPath!);
-    await expect(page.getByRole("heading", { name: /Bitácora/ })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await page.evaluate(() => navigator.serviceWorker.ready);
     await page.reload();
     await expect(page.getByText(/Sincronizado|pendiente|Sincronizando/).first()).toBeVisible();
@@ -30,7 +30,7 @@ test.describe("Bitácora PWA offline", () => {
     await page.close();
     const reopened = await context.newPage();
     await reopened.goto(bitacoraPath!);
-    await reopened.locator('article > [role="button"]').first().click();
+    await reopened.getByRole("button", { name: /Expandir reporte del/ }).first().click();
     await expect(reopened.getByText("Reporte E2E creado sin conexión")).toBeVisible();
   });
 });

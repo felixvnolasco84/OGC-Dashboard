@@ -469,7 +469,7 @@ export default function RFIDetailPage({
             <TabsContent value="responses" className="mt-4 space-y-4">
               {detail.responses.length === 0 ? (
                 <ContentCard title="Respuestas" icon={MessageSquareText}>
-                  <p className="text-sm text-subtle-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Todavía no se han agregado respuestas.
                   </p>
                 </ContentCard>
@@ -497,7 +497,7 @@ export default function RFIDetailPage({
                             </Badge>
                           )}
                         </div>
-                        <p className="mt-1 text-xs text-subtle-foreground">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {formatRfiDateTime(response.created_at)}
                         </p>
                       </div>
@@ -906,7 +906,7 @@ function AttachmentList({
               </span>
             </a>
           ) : (
-            <div className="rounded-sm border border-border px-3 py-2 text-sm text-subtle-foreground">
+            <div className="rounded-sm border border-border px-3 py-2 text-sm text-muted-foreground">
               {attachment.nombre}
             </div>
           )}
@@ -933,13 +933,13 @@ function ImpactSummary({
   };
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-subtle-foreground">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <p className="mt-1 text-sm font-medium text-foreground">
         {labelByValue[value] || value}
       </p>
-      {detail && <p className="mt-1 text-xs text-subtle-foreground">{detail}</p>}
+      {detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}
     </div>
   );
 }

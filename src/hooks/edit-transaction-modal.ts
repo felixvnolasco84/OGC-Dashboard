@@ -20,6 +20,8 @@ type TransactionFormData = {
     banco: string;
     tarjeta: string;
     numero_cuenta: string;
+    clabe: string;
+    payment_account_id: Id<"payment_accounts"> | "";
     numero_transferencia: string;
     codigo_referencia: string;
     factura: string;
@@ -54,6 +56,8 @@ const initialFormData: TransactionFormData = {
     banco: "",
     tarjeta: "",
     numero_cuenta: "",
+    clabe: "",
+    payment_account_id: "",
     numero_transferencia: "",
 };
 
@@ -88,6 +92,8 @@ export const useEditTransactionModal = create<EditTransactionModalStore>((set) =
             banco: transaction.banco || "",
             tarjeta: transaction.tarjeta || "",
             numero_cuenta: transaction.numero_cuenta || "",
+            clabe: transaction.clabe || "",
+            payment_account_id: transaction.payment_account_id || "",
             numero_transferencia: transaction.numero_transferencia || "",
             codigo_referencia: transaction.codigo_referencia || "",
             factura: transaction.factura || "",

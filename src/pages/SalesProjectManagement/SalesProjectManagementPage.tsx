@@ -213,13 +213,13 @@ export default function SalesProjectManagementPage() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5">
-                        <Building2 className="h-4 w-4 text-subtle-foreground" />
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">
                           {project.nombre}
                         </p>
-                        <p className="text-xs text-subtle-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           {project.status || "Activo"}
                         </p>
                         {project.comision_porcentaje !== undefined && (
@@ -266,7 +266,7 @@ export default function SalesProjectManagementPage() {
             </CardHeader>
             <CardContent>
               {!currentProject && !isCreating ? (
-                <div className="text-center py-12 text-subtle-foreground">
+                <div className="text-center py-12 text-muted-foreground">
                   Selecciona un proyecto de la lista o crea uno nuevo
                 </div>
               ) : (
@@ -355,7 +355,7 @@ export default function SalesProjectManagementPage() {
                       disabled={!isEditing}
                       placeholder="0.00"
                     />
-                    <p className="text-xs text-subtle-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Porcentaje de comisión aplicado a las ventas del proyecto
                     </p>
                   </div>
@@ -363,7 +363,7 @@ export default function SalesProjectManagementPage() {
                   {/* Metadata (read-only) */}
                   {!isCreating && currentProject && (
                     <div className="pt-4 border-t space-y-2">
-                      <div className="text-xs text-subtle-foreground">
+                      <div className="text-xs text-muted-foreground">
                         <p>
                           <span className="font-medium">Fecha de creación:</span>{" "}
                           {currentProject.fecha_creacion || "N/A"}

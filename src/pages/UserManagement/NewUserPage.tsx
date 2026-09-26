@@ -170,7 +170,7 @@ export default function NewUserPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-subtle-foreground">{roleDescription}</p>
+                <p className="text-xs text-muted-foreground">{roleDescription}</p>
               </div>
 
               {role !== "admin" && (
@@ -178,7 +178,7 @@ export default function NewUserPage() {
                   <Label>Proyectos asignados</Label>
                   <div className="max-h-80 space-y-3 overflow-y-auto rounded-lg border p-4">
                     {desarrollos.length === 0 ? (
-                      <p className="text-sm text-subtle-foreground">No hay proyectos disponibles</p>
+                      <p className="text-sm text-muted-foreground">No hay proyectos disponibles</p>
                     ) : (
                       desarrollos.map((desarrollo) => (
                         <div key={desarrollo._id} className="flex items-center space-x-2">

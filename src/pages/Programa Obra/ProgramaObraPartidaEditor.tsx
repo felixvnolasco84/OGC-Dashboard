@@ -118,7 +118,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
             <h3 className="text-sm font-medium text-foreground">Duración de actividad</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="programa-fecha-inicio" className="text-xs text-subtle-foreground">Fecha inicio</Label>
+                <Label htmlFor="programa-fecha-inicio" className="text-xs text-muted-foreground">Fecha inicio</Label>
                 <Input
                   id="programa-fecha-inicio"
                   type="date"
@@ -128,7 +128,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="programa-fecha-fin" className="text-xs text-subtle-foreground">Fecha fin</Label>
+                <Label htmlFor="programa-fecha-fin" className="text-xs text-muted-foreground">Fecha fin</Label>
                 <Input
                   id="programa-fecha-fin"
                   type="date"
@@ -150,7 +150,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="programa-anticipo-fecha" className="text-xs text-subtle-foreground">Fecha anticipo</Label>
+                <Label htmlFor="programa-anticipo-fecha" className="text-xs text-muted-foreground">Fecha anticipo</Label>
                 <Input
                   id="programa-anticipo-fecha"
                   type="date"
@@ -160,7 +160,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="programa-anticipo-porcentaje" className="text-xs text-subtle-foreground">Porcentaje %</Label>
+                <Label htmlFor="programa-anticipo-porcentaje" className="text-xs text-muted-foreground">Porcentaje %</Label>
                 <Input
                   id="programa-anticipo-porcentaje"
                   type="number"
@@ -174,7 +174,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
                 />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="programa-anticipo-recordatorio" className="text-xs text-subtle-foreground">Recordar con anticipación</Label>
+                <Label htmlFor="programa-anticipo-recordatorio" className="text-xs text-muted-foreground">Recordar con anticipación</Label>
                 <div className="flex items-center gap-2">
                   <Input id="programa-anticipo-recordatorio" type="number" min="0" max="90" value={anticipoRecordatorio} onChange={(e) => setAnticipoRecordatorio(e.target.value)} className="h-9 rounded-none text-sm" />
                   <span className="text-xs text-muted-foreground">días</span>
@@ -192,7 +192,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
               <span className="text-xs text-disabled-foreground ml-2">(solo si aplica)</span>
             </h3>
             <div className="space-y-1.5">
-              <Label htmlFor="programa-suministro-fecha" className="text-xs text-subtle-foreground">Fecha suministro</Label>
+              <Label htmlFor="programa-suministro-fecha" className="text-xs text-muted-foreground">Fecha suministro</Label>
               <Input
                 id="programa-suministro-fecha"
                 type="date"
@@ -202,7 +202,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="programa-suministro-recordatorio" className="text-xs text-subtle-foreground">Recordar con anticipación</Label>
+              <Label htmlFor="programa-suministro-recordatorio" className="text-xs text-muted-foreground">Recordar con anticipación</Label>
               <div className="flex items-center gap-2">
                 <Input id="programa-suministro-recordatorio" type="number" min="0" max="90" value={suministroRecordatorio} onChange={(e) => setSuministroRecordatorio(e.target.value)} className="h-9 rounded-none text-sm" />
                 <span className="text-xs text-muted-foreground">días</span>
@@ -220,7 +220,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="programa-finiquito-fecha" className="text-xs text-subtle-foreground">Fecha finiquito</Label>
+                <Label htmlFor="programa-finiquito-fecha" className="text-xs text-muted-foreground">Fecha finiquito</Label>
                 <Input
                   id="programa-finiquito-fecha"
                   type="date"
@@ -230,7 +230,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="programa-finiquito-porcentaje" className="text-xs text-subtle-foreground">Porcentaje %</Label>
+                <Label htmlFor="programa-finiquito-porcentaje" className="text-xs text-muted-foreground">Porcentaje %</Label>
                 <Input
                   id="programa-finiquito-porcentaje"
                   type="number"
@@ -244,7 +244,7 @@ export default function ProgramaObraPartidaEditor({ item, proyectoId, onClose }:
                 />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="programa-finiquito-recordatorio" className="text-xs text-subtle-foreground">Recordar con anticipación</Label>
+                <Label htmlFor="programa-finiquito-recordatorio" className="text-xs text-muted-foreground">Recordar con anticipación</Label>
                 <div className="flex items-center gap-2">
                   <Input id="programa-finiquito-recordatorio" type="number" min="0" max="90" value={finiquitoRecordatorio} onChange={(e) => setFiniquitoRecordatorio(e.target.value)} className="h-9 rounded-none text-sm" />
                   <span className="text-xs text-muted-foreground">días</span>

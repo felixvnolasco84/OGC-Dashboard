@@ -151,7 +151,7 @@ export default function TransactionCard({
         {/* Line Items Summary */}
         {lineItemsCount > 0 && (
           <div className="mt-4 pt-3 border-t border-border">
-            <p className="text-xs font-medium text-subtle-foreground mb-2">Conceptos incluidos:</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Conceptos incluidos:</p>
             <div className="space-y-1">
               {lineItems.map((item, idx) => (
                 <div key={idx} className="flex justify-between text-sm">

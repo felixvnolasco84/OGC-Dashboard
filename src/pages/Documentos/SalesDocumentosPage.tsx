@@ -128,7 +128,7 @@ export default function SalesDocumentosPage() {
           <div className="mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <h1 className="text-3xl font-normal text-foreground mb-2">Documentos de Ventas</h1>
-              <p className="text-sm text-subtle-foreground">
+              <p className="text-sm text-muted-foreground">
                 Gestiona los documentos asociados a las transacciones de ventas
               </p>
             </div>
@@ -141,7 +141,7 @@ export default function SalesDocumentosPage() {
                 onClick={() => toast.info("Funcionalidad de agregar documento próximamente")}
                 variant="outline"
                 size="lg"
-                className="flex w-full items-center justify-center gap-2 rounded-none py-6 text-subtle-foreground sm:w-auto"
+                className="flex w-full items-center justify-center gap-2 rounded-none py-6 text-muted-foreground sm:w-auto"
               >
                 Agregar Documento
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
@@ -179,7 +179,7 @@ export default function SalesDocumentosPage() {
               <SelectContent>
                 {selectedProyecto && (
                   <SelectItem value="clear">
-                    <span className="text-subtle-foreground">Limpiar filtro</span>
+                    <span className="text-muted-foreground">Limpiar filtro</span>
                   </SelectItem>
                 )}
                 {proyectos?.map((proyecto) => (
@@ -220,13 +220,13 @@ export default function SalesDocumentosPage() {
             <tbody className="block divide-y divide-border md:table-row-group">
               {!documentos ? (
                 <tr className="block md:table-row">
-                  <td colSpan={4} className="block px-6 py-12 text-center text-subtle-foreground md:table-cell">
+                  <td colSpan={4} className="block px-6 py-12 text-center text-muted-foreground md:table-cell">
                     Cargando documentos...
                   </td>
                 </tr>
               ) : filteredDocumentos && filteredDocumentos.length === 0 ? (
                 <tr className="block md:table-row">
-                  <td colSpan={4} className="block px-6 py-12 text-center text-subtle-foreground md:table-cell">
+                  <td colSpan={4} className="block px-6 py-12 text-center text-muted-foreground md:table-cell">
                     No se encontraron documentos
                   </td>
                 </tr>

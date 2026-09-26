@@ -492,7 +492,7 @@ export default function RFINewPage({
             <Label className="text-sm font-medium text-foreground">
               Personas asignadas
             </Label>
-            <p className="mt-1 text-xs text-subtle-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               Marca quién puede responder y cuáles respuestas son obligatorias.
             </p>
             <RfiAssigneePicker
@@ -516,7 +516,7 @@ export default function RFINewPage({
             />
             {selectedAssignees.length > 0 && (
               <div className="mt-3 rounded-sm border border-border bg-background p-3">
-                <p className="text-xs font-medium text-subtle-foreground">
+                <p className="text-xs font-medium text-muted-foreground">
                   Respuestas obligatorias
                 </p>
                 <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -571,7 +571,7 @@ export default function RFINewPage({
                     <span className="block truncate text-sm font-medium text-foreground">
                       {user.name}
                     </span>
-                    <span className="block truncate text-xs text-subtle-foreground">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {user.email}
                     </span>
                   </span>
@@ -800,7 +800,7 @@ export default function RFINewPage({
                 <LockKeyhole className="h-4 w-4" aria-hidden="true" />
                 RFI privada
               </span>
-              <span className="mt-1 block text-xs leading-5 text-subtle-foreground">
+              <span className="mt-1 block text-xs leading-5 text-muted-foreground">
                 Solo creador, responsable, asignados, distribución y
                 administradores podrán verla.
               </span>

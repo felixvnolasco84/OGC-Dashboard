@@ -190,13 +190,13 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                     <Table>
                         <TableHeader>
                             <TableRow className="border-b border-border">
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[180px]">Partida</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[120px]">Monto Total</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[120px]">Fecha</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[140px]">Tipo de Pago</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[180px]">Proveedor</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[200px]">Factura</TableHead>
-                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-subtle-foreground bg-card min-w-[100px]">Acciones</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-muted-foreground bg-card min-w-[180px]">Partida</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-muted-foreground bg-card min-w-[120px]">Monto Total</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-muted-foreground bg-card min-w-[120px]">Fecha</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-muted-foreground bg-card min-w-[140px]">Tipo de Pago</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-muted-foreground bg-card min-w-[180px]">Proveedor</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-muted-foreground bg-card min-w-[200px]">Factura</TableHead>
+                                <TableHead className="px-4 py-3 text-left text-sm font-normal text-muted-foreground bg-card min-w-[100px]">Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -204,7 +204,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                 <TableRow>
                                     <TableCell
                                         colSpan={7}
-                                        className="h-24 text-center text-subtle-foreground"
+                                        className="h-24 text-center text-muted-foreground"
                                     >
                                         No hay transacciones registradas
                                     </TableCell>
@@ -223,7 +223,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                                         <span className="font-medium text-foreground uppercase">
                                                             {transaction.partidaNames[0]?.split(' ')[0] || 'SIN PARTIDA'}
                                                         </span>
-                                                        <span className="text-xs text-subtle-foreground uppercase">
+                                                        <span className="text-xs text-muted-foreground uppercase">
                                                             {transaction.partidaNames[0] || ''}
                                                         </span>
                                                     </>
@@ -313,7 +313,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="h-8 w-8 text-subtle-foreground hover:text-red-600"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-red-600"
                                                             title="Eliminar transacción"
                                                             disabled={deletingId === transaction._id}
                                                         >

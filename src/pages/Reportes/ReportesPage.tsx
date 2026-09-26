@@ -34,10 +34,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -210,7 +210,7 @@ const CONTROL_CLASS =
   "h-11 rounded-sm border-border bg-card px-4 text-sm font-normal text-foreground shadow-none focus:ring-ring";
 
 const OUTLINE_BUTTON_CLASS =
-  "rounded-sm border-border bg-card font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-foreground";
+  "rounded-sm border-border bg-card font-normal text-muted-foreground shadow-none hover:bg-card hover:text-foreground";
 
 function parseIsoDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
@@ -268,8 +268,8 @@ function ReportDatePicker({
   max?: string;
 }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
         <Button
           id={id}
           type="button"
@@ -277,13 +277,13 @@ function ReportDatePicker({
           className={`${CONTROL_CLASS} w-full justify-between text-left`}
         >
           <span className="flex min-w-0 items-center gap-3">
-            <CalendarDays className="h-4 w-4 shrink-0 text-subtle-foreground" />
+            <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="truncate">{formatReportDate(value)}</span>
           </span>
-          <ChevronDown className="h-4 w-4 shrink-0 text-subtle-foreground" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
         align="start"
         className="w-auto border-border bg-card p-0 text-foreground shadow-xl"
       >
@@ -307,8 +307,8 @@ function ReportDatePicker({
           }}
           initialFocus
         />
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -316,7 +316,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <Badge
       variant="outline"
-      className="gap-2 rounded-sm border-border bg-card px-2.5 py-1 font-normal text-subtle-foreground"
+      className="gap-2 rounded-sm border-border bg-card px-2.5 py-1 font-normal text-muted-foreground"
     >
       <span
         className="h-2.5 w-2.5 rounded-sm"
@@ -390,7 +390,7 @@ function SectionSelector({
             <span className="block text-sm font-medium text-foreground">
               {REPORT_SECTION_LABELS[section]}
             </span>
-            <span className="mt-1 block text-xs leading-5 text-subtle-foreground">
+            <span className="mt-1 block text-xs leading-5 text-muted-foreground">
               {SECTION_DESCRIPTIONS[section]}
             </span>
           </span>
@@ -537,7 +537,7 @@ export default function ReportesPage() {
   };
 
   if (!projectId) {
-    return <div className="p-8 text-subtle-foreground">Proyecto no válido.</div>;
+    return <div className="p-8 text-muted-foreground">Proyecto no válido.</div>;
   }
 
   return (
@@ -545,11 +545,11 @@ export default function ReportesPage() {
       <div className="border-b border-border px-6 py-8 lg:px-16">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm text-subtle-foreground">Proyecto</p>
+            <p className="text-sm text-muted-foreground">Proyecto</p>
             <h1 className="mt-1 text-3xl font-normal text-foreground">
               Reportes {project?.nombre || "Proyecto"}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-subtle-foreground">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
               Genera y programa reportes semanales de obra con el nuevo formato ejecutivo,
               cifras verificables y contenido ajustado a los permisos de cada destinatario.
             </p>
@@ -560,7 +560,7 @@ export default function ReportesPage() {
                 <button
                   type="button"
                   aria-label={`Detalles del perfil ${profileDetails.label}`}
-                  className="flex h-14 w-fit cursor-help items-center gap-3 rounded-sm border border-border bg-card px-5 text-base font-normal text-subtle-foreground shadow-none outline-none hover:bg-card focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-14 w-fit cursor-help items-center gap-3 rounded-sm border border-border bg-card px-5 text-base font-normal text-muted-foreground shadow-none outline-none hover:bg-card focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="h-3 w-3 rounded-sm bg-[#50AC66]" />
                   Perfil: {profileDetails.label}
@@ -612,7 +612,7 @@ export default function ReportesPage() {
                 <CardTitle className="text-lg font-normal text-foreground">
                   Periodo y contenido
                 </CardTitle>
-                <p className="max-w-3xl text-sm leading-6 text-subtle-foreground">
+                <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                   Define el rango del análisis y selecciona los apartados del PDF.
                   Cada opción resume debajo las métricas y hallazgos que incorporará.
                 </p>
@@ -654,7 +654,7 @@ export default function ReportesPage() {
               </CardHeader>
               <CardContent>
                 {!preview ? (
-                  <div className="flex items-center gap-2 text-sm text-subtle-foreground">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <LoaderCircle className="h-4 w-4 animate-spin" />
                     Calculando snapshot...
                   </div>
@@ -672,7 +672,7 @@ export default function ReportesPage() {
                       ["Calidad de datos", `${preview.data_quality.score}/100`],
                     ].map(([label, value]) => (
                       <div key={label} className="rounded-sm border border-border bg-card p-4">
-                        <p className="text-xs text-subtle-foreground">{label}</p>
+                        <p className="text-xs text-muted-foreground">{label}</p>
                         <p className="mt-2 break-words text-xl tabular-nums text-foreground">{value}</p>
                       </div>
                     ))}
@@ -698,7 +698,7 @@ export default function ReportesPage() {
                 onClick={() => changeTab("programaciones")}
                 className={`${OUTLINE_BUTTON_CLASS} h-11 px-5`}
               >
-                <CalendarClock className="mr-2 h-4 w-4 text-subtle-foreground" />
+                <CalendarClock className="mr-2 h-4 w-4 text-muted-foreground" />
                 Programar este reporte
               </Button>
             </div>
@@ -710,7 +710,7 @@ export default function ReportesPage() {
                 <CardTitle className="text-lg font-normal text-foreground">
                   Nueva programación
                 </CardTitle>
-                <p className="max-w-3xl text-sm leading-6 text-subtle-foreground">
+                <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                   Configura cuándo se genera el reporte y quién puede recibir
                   la variante correspondiente a sus permisos.
                 </p>
@@ -811,7 +811,7 @@ export default function ReportesPage() {
                               <span className="block text-sm text-foreground">
                                 {option.label}
                               </span>
-                              <span className="mt-0.5 block whitespace-normal text-xs leading-5 text-subtle-foreground">
+                              <span className="mt-0.5 block whitespace-normal text-xs leading-5 text-muted-foreground">
                                 {getTimezoneDetail(option.value, option.detail)}
                               </span>
                             </span>
@@ -819,7 +819,7 @@ export default function ReportesPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs leading-5 text-subtle-foreground">
+                    <p className="text-xs leading-5 text-muted-foreground">
                       El desfase y la hora mostrados se calculan con las reglas
                       vigentes del navegador para evitar errores por cambios estacionales.
                     </p>
@@ -849,7 +849,7 @@ export default function ReportesPage() {
                         />
                         <span className="min-w-0">
                           <span className="block truncate text-sm text-foreground">{recipient.name}</span>
-                          <span className="block truncate text-xs text-subtle-foreground">
+                          <span className="block truncate text-xs text-muted-foreground">
                             {recipient.email} · {recipient.role}
                           </span>
                         </span>
@@ -857,7 +857,7 @@ export default function ReportesPage() {
                     ))}
                   </div>
                   {!canManageAccount ? (
-                    <p className="text-xs text-subtle-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Sólo un administrador puede agregar otros miembros del proyecto.
                     </p>
                   ) : null}
@@ -886,7 +886,7 @@ export default function ReportesPage() {
                         <p className="font-medium capitalize">{subscription.frequency}</p>
                         <Badge
                           variant="outline"
-                          className="gap-2 rounded-sm border-border bg-card font-normal text-subtle-foreground"
+                          className="gap-2 rounded-sm border-border bg-card font-normal text-muted-foreground"
                         >
                           <span
                             className={`h-2.5 w-2.5 rounded-sm ${
@@ -899,7 +899,7 @@ export default function ReportesPage() {
                       <p className="mt-1 text-sm text-muted-foreground">
                         Próxima ejecución: {formatDateTime(subscription.next_run_at, subscription.timezone)}
                       </p>
-                      <p className="mt-1 text-xs text-subtle-foreground">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {subscription.recipients.length} destinatario(s) · {subscription.sections.length} secciones
                       </p>
                     </div>
@@ -939,7 +939,7 @@ export default function ReportesPage() {
               ))}
               {subscriptions?.length === 0 ? (
                 <Card className="rounded-sm border-border border-dashed shadow-none">
-                  <CardContent className="p-8 text-center text-sm text-subtle-foreground">
+                  <CardContent className="p-8 text-center text-sm text-muted-foreground">
                     Aún no hay programaciones para este proyecto.
                   </CardContent>
                 </Card>
@@ -954,14 +954,14 @@ export default function ReportesPage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={run.status} />
-                      <span className="text-xs uppercase tracking-wide text-subtle-foreground">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">
                         {run.source === "scheduled" ? "Programado" : "Manual"}
                       </span>
                     </div>
                     <p className="mt-2 font-medium">
                       {run.period_start} a {run.period_end}
                     </p>
-                    <p className="mt-1 text-xs text-subtle-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Solicitado {formatDateTime(run.created_at)}
                       {" · "}
                       {run.delivery_summary.sent} enviados
@@ -1023,14 +1023,14 @@ export default function ReportesPage() {
               </Card>
             ))}
             {!runs ? (
-              <div className="flex items-center gap-2 py-8 text-sm text-subtle-foreground">
+              <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
                 <LoaderCircle className="h-4 w-4 animate-spin" />
                 Cargando historial...
               </div>
             ) : null}
             {runs?.length === 0 ? (
               <Card className="rounded-sm border-border border-dashed shadow-none">
-                <CardContent className="p-8 text-center text-sm text-subtle-foreground">
+                <CardContent className="p-8 text-center text-sm text-muted-foreground">
                   El historial aparecerá aquí después de solicitar el primer reporte.
                 </CardContent>
               </Card>

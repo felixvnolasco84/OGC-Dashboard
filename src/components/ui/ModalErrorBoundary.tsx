@@ -70,7 +70,7 @@ export class ModalErrorBoundary extends Component<Props, State> {
                 className="p-2 hover:bg-muted rounded-lg transition-colors"
                 aria-label="Cerrar"
               >
-                <X className="h-5 w-5 text-subtle-foreground" />
+                <X className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
             <div className="mt-6 flex justify-end">

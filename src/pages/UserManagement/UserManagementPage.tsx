@@ -182,7 +182,7 @@ export default function UserManagementPage() {
                         <p className="text-sm font-medium text-foreground truncate">
                           {user.name}
                         </p>
-                        <p className="text-xs text-subtle-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {user.email}
                         </p>
                       </div>
@@ -249,14 +249,14 @@ export default function UserManagementPage() {
                 )}
               </div>
               {isSelectedAdminUser && (
-                <p className="text-xs font-normal text-subtle-foreground">
+                <p className="text-xs font-normal text-muted-foreground">
                   No puedes quitar tu propio usuario desde esta pantalla.
                 </p>
               )}
             </CardHeader>
             <CardContent>
               {!selectedUserRecord ? (
-                <div className="text-center py-12 text-subtle-foreground">
+                <div className="text-center py-12 text-muted-foreground">
                   Selecciona un usuario de la lista para editar sus permisos
                 </div>
               ) : (
@@ -302,17 +302,17 @@ export default function UserManagementPage() {
                       </SelectContent>
                     </Select>
                     {selectedRole === "admin" && (
-                      <p className="text-xs text-subtle-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Los administradores gestionan usuarios y proyectos dentro de su organización
                       </p>
                     )}
                     {selectedRole === "contratista" && (
-                      <p className="text-xs text-subtle-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Los contratistas tienen acceso a la bitácora y requisiciones en los proyectos asignados
                       </p>
                     )}
                     {selectedRole === "finance" && (
-                      <p className="text-xs text-subtle-foreground">
+                      <p className="text-xs text-muted-foreground">
                         El rol de finanzas solo puede ver requisiciones y cambiar estados a Pagado o Cancelado
                       </p>
                     )}
@@ -324,7 +324,7 @@ export default function UserManagementPage() {
                       <Label>Proyectos con acceso</Label>
                       <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">
                         {desarrollos.length === 0 ? (
-                          <p className="text-sm text-subtle-foreground">No hay proyectos disponibles</p>
+                          <p className="text-sm text-muted-foreground">No hay proyectos disponibles</p>
                         ) : (
                           desarrollos.map((desarrollo) => (
                             <div key={desarrollo._id} className="flex items-center space-x-2">
@@ -343,7 +343,7 @@ export default function UserManagementPage() {
                           ))
                         )}
                       </div>
-                      <p className="text-xs text-subtle-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Selecciona los proyectos a los que este usuario puede acceder
                       </p>
                     </div>

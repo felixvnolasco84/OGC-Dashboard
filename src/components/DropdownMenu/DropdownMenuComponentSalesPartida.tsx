@@ -4,7 +4,7 @@ import { Doc } from "convex/_generated/dataModel";
 import { MoreHorizontal, Pencil, CreditCard, MoreHorizontalIcon, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { useSeeSalesPaymentDetailsModal } from "@/hooks/see-sales-transactions-details";
 import { useAggregatedDetailsModal } from "@/hooks/aggregated-details-modal";
 import { useNavigate } from "react-router-dom";
@@ -167,49 +167,44 @@ export default function DropdownMenuComponentSalesPartida({
 
   return (
     <Dialog>
-      <Popover>
-        <PopoverTrigger asChild>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
           <Button className="border-none border-transparent" variant="ghost" size={"icon"}>
             <span className="sr-only">Open menu</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-56 p-1 text-wrap">
-          <div className="space-y-1">
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56 p-1 text-wrap">
             {/* Edit option for all levels */}
             <DialogTrigger asChild>
-              <Button
-                variant="ghost"
+              <DropdownMenuItem
                 className="w-full justify-start flex items-center gap-2 text-wrap"
               >
                 <Pencil className="h-4 w-4" />
                 Editar {labels.title.toLowerCase()}
-              </Button>
+              </DropdownMenuItem>
             </DialogTrigger>
 
             {/* View payments option */}
-            <Button
-              variant="ghost"
+            <DropdownMenuItem
               className="w-full justify-start flex items-center gap-2 text-wrap "
-              onClick={handleViewTransactions}
+              onSelect={handleViewTransactions}
             >
               <CreditCard className="h-4 w-4" />
               {level === 2 ? 'Ver pagos' : `Ver transacciones`}
-            </Button>
+            </DropdownMenuItem>
 
             {/* View details option */}
-            <Button
-              variant="ghost"
+            <DropdownMenuItem
               className="w-full justify-start flex items-center gap-2 text-wrap"
-              onClick={handleViewDetails}
+              onSelect={handleViewDetails}
             >
               {/* Show FileText icon for leaf nodes (level 2 or level 1 without sub-partidas) */}
               {(level === 2 || (level === 1 && !hasSubPartidas)) ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}
               {labels.viewDetailsText}
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
+            </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       {/* Edit dialog for all levels */}
       <DialogContent className="max-w-3xl">
         <DialogHeader>

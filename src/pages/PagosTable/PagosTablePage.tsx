@@ -65,7 +65,7 @@ export default function PagosTablePage() {
         <div className="flex flex-col gap-4 px-12">
           <div className="mb-8">
             <h1 className="text-3xl font-normal text-foreground mb-2">Pagos</h1>
-            <p className="text-sm text-subtle-foreground">
+            <p className="text-sm text-muted-foreground">
               Consulta y gestiona todos los pagos registrados en el sistema
             </p>
           </div>
@@ -121,13 +121,13 @@ export default function PagosTablePage() {
             <tbody className="divide-y divide-border">
               {!pagos ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                     Cargando pagos...
                   </td>
                 </tr>
               ) : filteredPagos && filteredPagos.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                     No se encontraron pagos
                   </td>
                 </tr>
@@ -154,7 +154,7 @@ export default function PagosTablePage() {
                     <td className="px-6 py-4 text-sm text-foreground border-r border-border">
                       {formatCurrency(pago.monto)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-subtle-foreground border-r border-border">
+                    <td className="px-6 py-4 text-sm text-muted-foreground border-r border-border">
                       {pago.fecha
                         ? new Date(pago.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
                             day: "2-digit",
@@ -183,7 +183,7 @@ export default function PagosTablePage() {
                         {pago.status || "-"}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 text-sm text-subtle-foreground border-r border-border">
+                    <td className="px-6 py-4 text-sm text-muted-foreground border-r border-border">
                       {pago.codigo_referencia || "-"}
                     </td>
                     <td className="px-6 py-4 border-r border-border">

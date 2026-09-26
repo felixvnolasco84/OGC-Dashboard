@@ -958,7 +958,7 @@ export default function ProgramaObra() {
       <div className="px-4 sm:px-8 lg:px-12">
         <div className="flex flex-col gap-4 border-b border-border py-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col text-left">
-            <p className="text-base text-subtle-foreground mb-1">Programa de Obra</p>
+            <p className="text-base text-muted-foreground mb-1">Programa de Obra</p>
             <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1715,7 +1715,7 @@ export default function ProgramaObra() {
 
             <div className="mt-6 space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="programa-ponderacion" className="text-xs text-subtle-foreground">Peso del elemento</Label>
+                <Label htmlFor="programa-ponderacion" className="text-xs text-muted-foreground">Peso del elemento</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="programa-ponderacion"
@@ -1739,7 +1739,7 @@ export default function ProgramaObra() {
                     }}
                     className="h-9 rounded-none text-sm"
                   />
-                  <span className="text-sm text-subtle-foreground">%</span>
+                  <span className="text-sm text-muted-foreground">%</span>
                 </div>
               </div>
 

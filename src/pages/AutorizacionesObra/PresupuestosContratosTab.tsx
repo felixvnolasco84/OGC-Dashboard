@@ -205,9 +205,9 @@ function FileCell({
           )}
           {showHistory && historial && historial.length > 0 && (
             <div className="mt-2 border border-border rounded p-2 bg-background">
-              <div className="text-xs font-medium text-subtle-foreground mb-1">Historial de archivos</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">Historial de archivos</div>
               {historial.map((h: HistorialEntry) => (
-                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-subtle-foreground">
+                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
                   <FileText className="w-3 h-3 shrink-0" />
                   <a
                     href={h.url || "#"}
@@ -719,7 +719,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                   onSelect={handleUpdateSectionResponsable}
                 />
                 <button
-                  className="flex items-center gap-1.5 text-sm text-subtle-foreground hover:text-foreground border border-border px-2 py-1"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground border border-border px-2 py-1"
                   onClick={(e) => {
                     e.stopPropagation();
                     openAddModal();
@@ -741,7 +741,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
-                <div className="flex justify-between mt-2 text-xs text-subtle-foreground">
+                <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                   <span className="text-disabled-foreground">
                     {assignedSubs} de {totalSubs} contratistas asignados
                   </span>
@@ -811,7 +811,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                         Confirmar
                       </button>
                       <button
-                        className="text-subtle-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground"
                         onClick={() => setConfirmDeleteId(null)}
                       >
                         Cancelar
@@ -895,7 +895,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                   </Select>
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 text-sm text-subtle-foreground hover:text-foreground"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
                     onClick={() => {
                       setShowNewCgInput(true);
                       setModalCgId("");
@@ -915,7 +915,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                   />
                   <button
                     type="button"
-                    className="text-sm text-subtle-foreground hover:text-foreground"
+                    className="text-sm text-muted-foreground hover:text-foreground"
                     onClick={() => {
                       setShowNewCgInput(false);
                       setModalNewCgName("");

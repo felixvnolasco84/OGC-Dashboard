@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import { useQuery, usePaginatedQuery, useMutation } from "convex/react";
@@ -8,12 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -21,8 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   X, Plus,
   ChevronRight,
@@ -83,7 +83,7 @@ function CurrencyMetric({ amount, currency, className, fractionClassName }: Curr
     <span className={cn("inline-flex items-baseline whitespace-nowrap tabular-nums", className)}>
       <span>{whole}</span>
       {fraction ? (
-        <span className={cn("ml-1 text-[0.5em] leading-none", fractionClassName)}>
+        <span className={cn("ml-1 text-xs leading-none", fractionClassName)}>
           {fraction}
         </span>
       ) : null}
@@ -105,12 +105,22 @@ export default function PresupuestoPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [partidaSearchTerm, setPartidaSearchTerm] = useState("");
   const [familiaSearchTerm, setFamiliaSearchTerm] = useState("");
+  const partidaSearchRef = useRef<HTMLInputElement>(null);
+  const familiaSearchRef = useRef<HTMLInputElement>(null);
   const [isPartidaOpen, setIsPartidaOpen] = useState(false);
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+
+  useEffect(() => {
+    if (isPartidaOpen) partidaSearchRef.current?.focus();
+  }, [isPartidaOpen]);
+
+  useEffect(() => {
+    if (isFamiliaOpen) familiaSearchRef.current?.focus();
+  }, [isFamiliaOpen]);
 
   // Modals
   const addPaymentModal = useAddPaymentModal();
@@ -350,7 +360,7 @@ export default function PresupuestoPage() {
     return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
-        <p className="text-subtle-foreground">Cargando datos...</p>
+        <p className="text-muted-foreground">Cargando datos...</p>
       </div>
     </div>;
   }
@@ -362,7 +372,7 @@ export default function PresupuestoPage() {
         <div className="py-6 border-b border-border px-12 pb-12">
           <div className="flex items-end justify-between">
             <div className="flex flex-col text-left">
-              <p className="text-base text-subtle-foreground mb-1">Presupuesto</p>
+              <p className="text-base text-muted-foreground mb-1">Presupuesto</p>
               <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
             </div>
             <div className="flex items-start gap-3">
@@ -374,7 +384,7 @@ export default function PresupuestoPage() {
                 variant={"outline"}
                 size={"lg"}
                 disabled={!selectedDesarrollo}
-                className="flex justify-center items-center gap-2 rounded-none text-subtle-foreground py-6 "
+                className="flex justify-center items-center gap-2 rounded-none text-muted-foreground py-6 "
               >
                 Reporte
                 <Download className="h-6 w-6 rounded-full shadow-none" />
@@ -382,31 +392,34 @@ export default function PresupuestoPage() {
 
 
               {/* Total Ingresos - Based on image reference */}
-              <Card className="bg-transparent shadow-none border-none col-span-1 md:col-span-2 lg:col-span-1 mr-4">
-                <CardContent className="p-0 text-left cursor-pointer rounded-md transition-colors hover:bg-background" onClick={handleOpenIngresos}>
-                  <div className="space-y-1 text-right">
-                    <p className="text-sm text-muted-foreground text-right mr-0.5">Total Ingresos</p>
-                    <div className="flex items-baseline space-x-2">
+              <div className="col-span-1 mr-4 md:col-span-2 lg:col-span-1"><Card variant="metric">
+                <CardContent variant="flush">
+                  <div className="cursor-pointer" onClick={handleOpenIngresos} aria-label="Ver ingresos del proyecto">
+                    <span className="flex flex-col items-end gap-1 text-right">
+                    <span className="text-sm text-muted-foreground text-right mr-0.5">Total Ingresos</span>
+                    <span className="flex items-baseline space-x-2">
                       <CurrencyMetric
                         amount={totalIngresos}
                         currency={moneda}
                         className="text-3xl font-normal text-foreground leading-none"
                       />
-                    </div>
-                    <Badge variant="secondary" className="text-[10px] text-center font-normal py-1.5 leading-none bg-muted text-muted-foreground rounded-xl border-border-strong min-w-24">
-                      <span className="text-center">
+                    </span>
+                    <Badge asChild variant={"secondary"}>
+                      <span className="text-center text-xs">
                         Neto
                         {" "}
                         <CurrencyMetric
                           amount={totalIngresos - (metrics?.gasto_total || 0)}
-                          currency={moneda}
-                          fractionClassName="ml-0.5 text-[0.75em]"
+                            currency={moneda}
+                            className="ml-1"
+                          fractionClassName="ml-0.5 text-xs"
                         />
                       </span>
                     </Badge>
+                    </span>
                   </div>
                 </CardContent>
-              </Card>
+              </Card></div>
 
               <AddTransactionMenu
                 visible={canCreateTransactions}
@@ -417,64 +430,61 @@ export default function PresupuestoPage() {
                 onUploadInvoice={() => setInvoiceOpen(true)}
               />
 
-              <Popover open={isActionsOpen} onOpenChange={setIsActionsOpen}>
-                <PopoverTrigger asChild>
+              <DropdownMenu open={isActionsOpen} onOpenChange={setIsActionsOpen}>
+                <DropdownMenuTrigger asChild>
                   <Button
-                    variant="ghost"
-                    size="icon"
+                    variant="quiet"
+                    size="iconLg"
                     disabled={!proyecto}
-                    className="h-10 w-10 text-subtle-foreground hover:bg-muted hover:text-foreground"
                   >
                     <span className="sr-only">Abrir acciones de presupuesto</span>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" sideOffset={6} className="w-64 overflow-hidden border-border bg-card p-1 text-foreground shadow-xl">
-                  <Command className="bg-card text-foreground">
-                    <CommandList>
-                      <CommandGroup>
-                        {isAdmin ? (
-                          <CommandItem
-                            onSelect={() => {
-                              setIsActionsOpen(false);
-                              navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances`);
-                            }}
-                            className="data-[selected=true]:bg-muted"
-                          >
-                            <FileText className="h-4 w-4" />
-                            Crear reporte financiero
-                          </CommandItem>
-                        ) : null}
-                        <CommandItem
-                          onSelect={handleOpenIngresos}
-                          className="data-[selected=true]:bg-muted"
-                        >
-                          <CreditCard className="h-4 w-4" />
-                          Gestionar ingresos
-                        </CommandItem>
-                        <CommandItem
-                          onSelect={handleOpenAddPartida}
-                          className="data-[selected=true]:bg-muted"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Agregar partida
-                        </CommandItem>
-                      </CommandGroup>
-                      <CommandSeparator className="bg-disabled" />
-                      <CommandGroup>
-                        <CommandItem
-                          onSelect={() => { void handleSync(); }}
-                          disabled={isSyncing}
-                          className="data-[selected=true]:bg-muted"
-                        >
-                          <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
-                          {isSyncing ? "Sincronizando..." : "Sincronizar datos"}
-                        </CommandItem>
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={6}>
+                  <DropdownMenuGroup>
+                    {isAdmin ? (
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          setIsActionsOpen(false);
+                          navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances`);
+                        }}
+                      >
+                        <FileText className="h-4 w-4" />
+                        Crear reporte financiero
+                      </DropdownMenuItem>
+                    ) : null}
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setIsActionsOpen(false);
+                        window.setTimeout(handleOpenIngresos, 100);
+                      }}
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      Gestionar ingresos
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setIsActionsOpen(false);
+                        window.setTimeout(handleOpenAddPartida, 100);
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Agregar partida
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      onSelect={() => { void handleSync(); }}
+                      disabled={isSyncing}
+                    >
+                      <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
+                      {isSyncing ? "Sincronizando..." : "Sincronizar datos"}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -484,10 +494,10 @@ export default function PresupuestoPage() {
 
 
           {/* Presupuesto Original */}
-          <Card className="bg-transparent shadow-none border-none">
-            <CardContent className="p-0 text-left">
+          <Card variant="metric">
+            <CardContent variant="flush">
               <div className="space-y-2">
-                <p className="text-sm text-subtle-foreground">Presupuesto Original</p>
+                <p className="text-sm text-muted-foreground">Presupuesto Original</p>
                 <div className="flex items-baseline space-x-2">
                   <CurrencyMetric
                     amount={metrics?.presupuesto_original || 0}
@@ -500,10 +510,10 @@ export default function PresupuestoPage() {
           </Card>
 
           {/* Presupuesto Aprobado */}
-          <Card className="bg-transparent shadow-none border-none ">
-            <CardContent className="p-0 text-left">
+          <Card variant="metric">
+            <CardContent variant="flush">
               <div className="space-y-2">
-                <p className="text-sm text-subtle-foreground">Presupuesto aprobado</p>
+                <p className="text-sm text-muted-foreground">Presupuesto aprobado</p>
                 <div className="flex items-baseline space-x-2">
                   <CurrencyMetric
                     amount={metrics?.presupuesto_aprobado || 0}
@@ -511,8 +521,8 @@ export default function PresupuestoPage() {
                     className="text-3xl 2xl:text-4xl font-normal text-foreground"
                   />
                 </div>
-                <div className="text-lg text-subtle-foreground">
-                  <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
+                <div className="text-lg text-muted-foreground">
+                  <Badge variant="success">
                     {presupuestoReduction < 0 ? 'Reducción' : 'Aumento'} {Math.abs(presupuestoReduction)}%
                   </Badge>
                 </div>
@@ -521,10 +531,10 @@ export default function PresupuestoPage() {
           </Card>
 
           {/* Gasto Total */}
-          <Card className="bg-transparent shadow-none border-none ">
-            <CardContent className="p-0 text-left">
+          <Card variant="metric">
+            <CardContent variant="flush">
               <div className="space-y-2">
-                <p className="text-sm text-subtle-foreground">
+                <p className="text-sm text-muted-foreground">
                   {dateFilter === "total" ? "Gasto Total" : `Pagado (${dateFilter === "ultima_semana" ? "Últ. 7 días" : dateFilter === "este_mes" ? "Este mes" : dateFilter === "mes_pasado" ? "Mes pasado" : "Rango"})`}
                 </p>
                 <div className="flex items-baseline space-x-2">
@@ -538,7 +548,7 @@ export default function PresupuestoPage() {
                     className="text-3xl 2xl:text-4xl font-normal text-foreground"
                   />
                 </div>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
+                <Badge variant="secondary">
                   Avance {avancePercentage}%
                 </Badge>
               </div>
@@ -546,10 +556,10 @@ export default function PresupuestoPage() {
           </Card>
 
           {/* Por gastar */}
-          <Card className="bg-transparent shadow-none border-none ">
-            <CardContent className="p-0 text-left">
+          <Card variant="metric">
+            <CardContent variant="flush">
               <div className="space-y-2">
-                <p className="text-sm text-subtle-foreground">Por ejercer</p>
+                <p className="text-sm text-muted-foreground">Por ejercer</p>
                 <div className="flex items-baseline space-x-2">
                   <CurrencyMetric
                     amount={metrics?.por_gastar || 0}
@@ -557,7 +567,7 @@ export default function PresupuestoPage() {
                     className="text-3xl 2xl:text-4xl font-normal text-foreground"
                   />
                 </div>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
+                <Badge variant="secondary">
                   Avance {avancePercentage}%
                 </Badge>
               </div>
@@ -571,12 +581,12 @@ export default function PresupuestoPage() {
           <div className="grid grid-cols-3 items-center gap-6">
             {/* Partida Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left border-b border-border">
-              <span className="text-sm text-subtle-foreground">Partida</span>
-              <Popover open={isPartidaOpen} onOpenChange={setIsPartidaOpen}>
-                <PopoverTrigger asChild>
+              <span className="text-sm text-muted-foreground">Partida</span>
+              <DropdownMenu open={isPartidaOpen} onOpenChange={setIsPartidaOpen} modal={false}>
+                <DropdownMenuTrigger asChild>
                   <Button
-                    variant="ghost"
-                    className="border-none shadow-none px-0 h-auto font-normal text-foreground hover:bg-transparent justify-start"
+                    variant="filter"
+                    size="filter"
                   >
                     <span className="flex items-center gap-2">
                       {selectedPartidas.length === 0 ? (
@@ -589,63 +599,61 @@ export default function PresupuestoPage() {
                       {/* <ChevronDown className="h-4 w-4 text-disabled-foreground" /> */}
                     </span>
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="w-80"
+                >
                   <div className="p-3 border-b">
                     <Input
+                      ref={partidaSearchRef}
                       placeholder="Buscar partidas..."
                       value={partidaSearchTerm}
                       onChange={(e) => setPartidaSearchTerm(e.target.value)}
-                      className="h-8 rounded-none focus-visible:border-border-strong focus-visible:ring-0"
+                      onKeyDown={(event) => {
+                        if (event.key !== "Escape") event.stopPropagation();
+                      }}
+                      density="compact"
                     />
                   </div>
                   <div className="max-h-64 overflow-y-auto p-3 space-y-2">
                     {filteredPartidasForSelect.length > 0 ? (
                       filteredPartidasForSelect.map((partida) => (
-                        <div key={partida} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`partida-${partida}`}
-                            checked={selectedPartidas.includes(partida)}
-                            className="border-border-strong"
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedPartidas([...selectedPartidas, partida]);
-                              } else {
-                                setSelectedPartidas(selectedPartidas.filter(p => p !== partida));
-                              }
-                            }}
-                          />
-                          <label
-                            htmlFor={`partida-${partida}`}
-                            className="text-base cursor-pointer flex-1"
-                          >
-                            {partida}
-                          </label>
-                        </div>
+                        <DropdownMenuCheckboxItem
+                          key={partida}
+                          checked={selectedPartidas.includes(partida)}
+                          onCheckedChange={(checked) => {
+                            setSelectedPartidas((current) => checked
+                              ? [...current, partida]
+                              : current.filter((p) => p !== partida));
+                          }}
+                          onSelect={(event) => event.preventDefault()}
+                        >
+                          {partida}
+                        </DropdownMenuCheckboxItem>
                       ))
                     ) : (
-                      <p className="text-base text-subtle-foreground text-center py-2">
+                      <p className="text-base text-muted-foreground text-center py-2">
                         No se encontraron partidas
                       </p>
                     )}
                   </div>
                   {selectedPartidas.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-base text-subtle-foreground">
+                      <span className="text-base text-muted-foreground">
                         {selectedPartidas.length} seleccionada(s)
                       </span>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="compact"
                         onClick={() => setSelectedPartidas([])}
-                        className="h-7 text-base"
                       >
                         Limpiar
                       </Button>
                     </div>
                   )}
-                </PopoverContent>
-              </Popover>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {selectedPartidas.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1 items-center">
                   {selectedPartidas.map((partida) => (
@@ -654,10 +662,7 @@ export default function PresupuestoPage() {
                       variant="secondary"
                     >
                       {partida.length > 15 ? `${partida.slice(0, 15)}...` : partida}
-                      <X
-                        className="h-3 w-3 cursor-pointer ml-1"
-                        onClick={() => setSelectedPartidas(selectedPartidas.filter(p => p !== partida))}
-                      />
+                      <Button type="button" variant="quiet" size="badgeIcon" aria-label={`Quitar partida ${partida}`} onClick={() => setSelectedPartidas(selectedPartidas.filter(p => p !== partida))}><X /></Button>
                     </Badge>
                   ))}
                 </div>
@@ -666,12 +671,12 @@ export default function PresupuestoPage() {
 
             {/* Familia Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left border-b border-border">
-              <span className="text-sm text-subtle-foreground">Familia</span>
-              <Popover open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen}>
-                <PopoverTrigger asChild>
+              <span className="text-sm text-muted-foreground pb-2">Familia</span>
+              <DropdownMenu open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen} modal={false}>
+                <DropdownMenuTrigger asChild>
                   <Button
-                    variant="ghost"
-                    className="border-none shadow-none px-0 h-auto font-normal text-foreground hover:bg-transparent justify-start"
+                    variant="filter"
+                    size={"filter"}
                   >
                     <span className="flex items-center gap-2">
                       {selectedFamilias.length === 0 ? (
@@ -684,76 +689,70 @@ export default function PresupuestoPage() {
                       {/* <ChevronDown className="h-4 w-4 text-disabled-foreground" /> */}
                     </span>
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="w-80"
+                >
                   <div className="p-3 border-b">
                     <Input
+                      ref={familiaSearchRef}
                       placeholder="Buscar familias..."
                       value={familiaSearchTerm}
                       onChange={(e) => setFamiliaSearchTerm(e.target.value)}
-                      className="h-8 rounded-none focus-visible:border-border-strong focus-visible:ring-0"
+                      onKeyDown={(event) => {
+                        if (event.key !== "Escape") event.stopPropagation();
+                      }}
+                      density="compact"
                     />
                   </div>
                   <div className="max-h-64 overflow-y-auto p-3 space-y-2">
                     {filteredFamiliasForSelect.length > 0 ? (
                       filteredFamiliasForSelect.map((familia) => (
-                        <div key={familia} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`familia-${familia}`}
-                            checked={selectedFamilias.includes(familia)}
-                            className="border-border-strong"
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedFamilias([...selectedFamilias, familia]);
-                              } else {
-                                setSelectedFamilias(selectedFamilias.filter(f => f !== familia));
-                              }
-                            }}
-                          />
-                          <label
-                            htmlFor={`familia-${familia}`}
-                            className="text-base cursor-pointer flex-1"
-                          >
-                            {familia}
-                          </label>
-                        </div>
+                        <DropdownMenuCheckboxItem
+                          key={familia}
+                          checked={selectedFamilias.includes(familia)}
+                          onCheckedChange={(checked) => {
+                            setSelectedFamilias((current) => checked
+                              ? [...current, familia]
+                              : current.filter((f) => f !== familia));
+                          }}
+                          onSelect={(event) => event.preventDefault()}
+                        >
+                          {familia}
+                        </DropdownMenuCheckboxItem>
                       ))
                     ) : (
-                      <p className="text-base text-subtle-foreground text-center py-2">
+                      <p className="text-base text-muted-foreground text-center py-2">
                         No se encontraron familias
                       </p>
                     )}
                   </div>
                   {selectedFamilias.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-base text-subtle-foreground">
+                      <span className="text-base text-muted-foreground">
                         {selectedFamilias.length} seleccionada(s)
                       </span>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="compact"
                         onClick={() => setSelectedFamilias([])}
-                        className="h-7 text-base"
                       >
                         Limpiar
                       </Button>
                     </div>
                   )}
-                </PopoverContent>
-              </Popover>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {selectedFamilias.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1 items-center">
                   {selectedFamilias.map((familia) => (
                     <Badge
                       key={familia}
                       variant="secondary"
-                    // className="text-base py-0.5 px-2 gap-1"
                     >
                       {familia.length > 15 ? `${familia.slice(0, 15)}...` : familia}
-                      <X
-                        className="h-3 w-3 cursor-pointer ml-1"
-                        onClick={() => setSelectedFamilias(selectedFamilias.filter(f => f !== familia))}
-                      />
+                      <Button type="button" variant="quiet" size="badgeIcon" aria-label={`Quitar familia ${familia}`} onClick={() => setSelectedFamilias(selectedFamilias.filter(f => f !== familia))}><X /></Button>
                     </Badge>
                   ))}
                 </div>
@@ -762,9 +761,9 @@ export default function PresupuestoPage() {
 
             {/* Fecha Filter */}
             <div className="flex flex-col space-y-1 text-left border-b border-border">
-              <span className="text-sm text-subtle-foreground">Fecha</span>
+              <span className="text-sm text-muted-foreground pb-2">Fecha</span>
               <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as typeof dateFilter)}>
-                <SelectTrigger className="border-none shadow-none px-0 h-auto font-normal text-foreground focus:ring-0">
+                <SelectTrigger variant="filter">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -776,14 +775,11 @@ export default function PresupuestoPage() {
                 </SelectContent>
               </Select>
               {dateFilter === "rango" && (
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
+                <DropdownMenu open={isCalendarOpen} onOpenChange={setIsCalendarOpen} modal={false}>
+                  <DropdownMenuTrigger asChild>
                     <Button
-                      variant="outline"
-                      className={cn(
-                        "mt-1 h-8 justify-start text-left text-sm font-normal rounded-none",
-                        !calendarRange?.from && "text-muted-foreground"
-                      )}
+                      variant="date"
+                      size="sm"
                     >
                       <CalendarIcon className="mr-2 h-3.5 w-3.5 text-disabled-foreground" />
                       {calendarRange?.from ? (
@@ -800,16 +796,21 @@ export default function PresupuestoPage() {
                         <span>Seleccionar rango</span>
                       )}
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="range"
-                      selected={calendarRange}
-                      onSelect={setCalendarRange}
-                      numberOfMonths={2}
-                    />
-                  </PopoverContent>
-                </Popover>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-auto">
+                    <div onKeyDown={(event) => {
+                      if (event.key !== "Escape") event.stopPropagation();
+                    }}>
+                      <Calendar
+                        autoFocus
+                        mode="range"
+                        selected={calendarRange}
+                        onSelect={setCalendarRange}
+                        numberOfMonths={2}
+                      />
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>
@@ -825,17 +826,10 @@ export default function PresupuestoPage() {
 
 
         <div className="flex items-center gap-6 px-4">
-          <div onClick={togglePrecioUnitario} className="flex items-center space-x-2 w-fit text-foreground cursor-pointer">
+          <Button type="button" onClick={togglePrecioUnitario} variant="filter" size="bare" aria-pressed={showPrecioUnitario}>
             <small>Precio unitario</small>
-            <Button
-              className="text-left text-base font-medium text-muted-foreground rounded-full"
-              onClick={togglePrecioUnitario}
-              size={"icon"}
-              variant={"ghost"}
-            >
-              <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPrecioUnitario && "rotate-90")} />
-            </Button>
-          </div>
+            <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPrecioUnitario && "rotate-90")} />
+          </Button>
 
         </div>
 

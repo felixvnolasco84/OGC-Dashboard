@@ -15,6 +15,7 @@ import {
   isOgcImportLeaseActive,
   isValidOgcImportFile,
 } from "./ogcImportRules";
+import { appendOgcInvoiceDuplicateKey, canResumeOgcCapture, normalizeOgcInvoiceReference } from "./ogcInvoiceRules";
 
 type OgcMovement = Doc<"ogc_movimientos">;
 type CurrentUser = Awaited<ReturnType<typeof getCurrentUserOrThrow>>;
@@ -25,6 +26,7 @@ type NormalizedMovement = Pick<
   descripcion?: string;
   tipo_cambio?: number;
   proyecto?: Id<"desarrollos">;
+  factura_referencia?: string;
 };
 
 const ACTIVE_STATUSES = new Set([undefined, "activo"]);
@@ -36,6 +38,15 @@ const deliveryNoteDocumentValidator = v.object({
   size: v.number(),
   uploaded_at: v.number(),
 });
+const invoiceProofValidator = v.object({
+  storage_id: v.id("_storage"),
+  nombre: v.string(),
+  type: v.string(),
+  size: v.number(),
+  uploaded_at: v.number(),
+});
+const MAX_INVOICE_PROOF_SIZE = 20 * 1024 * 1024;
+const acceptedInvoiceProofName = /\.(pdf|jpe?g|png|webp|heic|heif|gif|bmp|tiff?)$/i;
 const ogcMovementInputValidator = v.object({
   tipo: v.string(),
   categoria: v.string(),
@@ -47,6 +58,8 @@ const ogcMovementInputValidator = v.object({
   proyecto: v.optional(v.id("desarrollos")),
   archivo_origen: v.optional(v.string()),
   fila_origen: v.optional(v.number()),
+  captura_token: v.optional(v.string()),
+  factura_referencia: v.optional(v.string()),
   nota_recepcion_status: v.optional(deliveryNoteStatusValidator),
   nota_recepcion_storage_id: v.optional(v.id("_storage")),
   nota_recepcion_nombre: v.optional(v.string()),
@@ -112,7 +125,7 @@ const normalizeLookupText = (value?: string) => {
     .replace(/\s+/g, " ");
 };
 
-const buildDuplicateKey = (movement: NormalizedMovement, organizationId?: string) => {
+const buildFinancialKey = (movement: NormalizedMovement, organizationId?: string) => {
   const projectKey = movement.proyecto ? String(movement.proyecto) : "empresa";
   const amountKey = Math.round(Math.abs(movement.monto) * 100);
   const exchangeRateKey = movement.tipo_cambio ? movement.tipo_cambio.toFixed(6) : "default";
@@ -130,6 +143,9 @@ const buildDuplicateKey = (movement: NormalizedMovement, organizationId?: string
   ].join("|");
 };
 
+const buildDuplicateKey = (movement: NormalizedMovement, organizationId?: string) =>
+  appendOgcInvoiceDuplicateKey(buildFinancialKey(movement, organizationId), movement.tipo, movement.factura_referencia);
+
 const normalizeMovementInput = (item: {
   tipo: string;
   categoria: string;
@@ -139,17 +155,21 @@ const normalizeMovementInput = (item: {
   moneda?: string;
   tipo_cambio?: number;
   proyecto?: Id<"desarrollos">;
+  factura_referencia?: string;
 }) => {
   const fecha = normalizeDate(item.fecha);
   const monto = Math.abs(item.monto);
   const moneda = normalizeCurrency(item.moneda);
+  const tipo = normalizeTipo(item.tipo);
+  const facturaReferencia = normalizeOgcInvoiceReference(item.factura_referencia);
 
-  if (!Number.isFinite(monto) || monto === 0 || !isValidDate(fecha)) {
+  if (!Number.isFinite(monto) || monto === 0 || !isValidDate(fecha) ||
+    (facturaReferencia && (tipo !== "ingreso" || facturaReferencia.length > 120))) {
     return null;
   }
 
   return {
-    tipo: normalizeTipo(item.tipo),
+    tipo,
     categoria: normalizeCategoria(item.categoria),
     monto,
     fecha,
@@ -157,6 +177,7 @@ const normalizeMovementInput = (item: {
     moneda,
     tipo_cambio: moneda === "MXN" ? undefined : normalizeExchangeRate(item.tipo_cambio),
     proyecto: item.proyecto,
+    factura_referencia: facturaReferencia,
   };
 };
 
@@ -305,6 +326,20 @@ const findActiveDuplicate = async (
   return (await findActiveDuplicates(ctx, duplicateKey, exceptId))[0];
 };
 
+const findCapturedMovement = async (ctx: MutationCtx, token: string | undefined, user: CurrentUser) => {
+  if (!token) return null;
+  if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(token)) {
+    throw new Error("Token de captura inválido.");
+  }
+  const movement = await ctx.db.query("ogc_movimientos")
+    .withIndex("by_captura_token", (q) => q.eq("captura_token", token))
+    .first();
+  if (!movement) return null;
+  if (movement.created_by_id !== user._id) throw new Error("Token de captura ya utilizado.");
+  await assertMovementAccess(ctx, movement, user);
+  return movement;
+};
+
 export const getAll = query({
   args: {
     includeInactive: v.optional(v.boolean()),
@@ -423,6 +458,19 @@ export const getIncomeByProyecto = query({
     return movements
       .filter((movement) => movement.tipo === "ingreso" && isActiveMovement(movement))
       .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+  },
+});
+
+export const getInvoiceProofUrl = query({
+  args: { movimiento_id: v.id("ogc_movimientos") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    const movement = await ctx.db.get(args.movimiento_id);
+    if (!movement) return null;
+    await assertMovementAccess(ctx, movement, user);
+    return movement.factura_comprobante
+      ? await ctx.storage.getUrl(movement.factura_comprobante.storage_id)
+      : null;
   },
 });
 
@@ -670,7 +718,9 @@ export const validateBulkCreate = mutation({
     const validRows: number[] = [];
     const duplicateRows: number[] = [];
     const rejectedRows: number[] = [];
+    const existingRows: number[] = [];
     const pendingDuplicateKeys = new Set<string>();
+    const pendingTokens = new Set<string>();
     const fileHash = args.file_hash?.trim().toLowerCase();
     const existingImport = fileHash && /^[a-f0-9]{64}$/.test(fileHash)
       ? await ctx.db
@@ -680,9 +730,19 @@ export const validateBulkCreate = mutation({
         ))
         .first()
       : null;
+    const importedMovements = existingImport && existingImport.status !== "completada"
+      ? await ctx.db.query("ogc_movimientos")
+        .withIndex("by_importacion", (q) => q.eq("importacion_id", existingImport._id))
+        .collect()
+      : [];
+    const importedByRow = new Map(importedMovements.map((movement) => [movement.fila_origen, movement]));
 
     for (const [index, item] of args.movimientos.entries()) {
       const row = item.fila_origen ?? index + 1;
+      if (fileHash && item.captura_token) {
+        rejectedRows.push(row);
+        continue;
+      }
       const normalized = normalizeMovementInput(item);
 
       if (!normalized) {
@@ -698,6 +758,34 @@ export const validateBulkCreate = mutation({
       }
 
       const duplicateKey = buildDuplicateKey(normalized, organizationId);
+      const importedRow = existingImport && item.fila_origen != null ? importedByRow.get(item.fila_origen) : undefined;
+      if (importedRow) {
+        await assertMovementAccess(ctx, importedRow, user);
+        if (isActiveMovement(importedRow)) {
+          validRows.push(row);
+          existingRows.push(row);
+        } else {
+          rejectedRows.push(row);
+        }
+        continue;
+      }
+      if (item.captura_token) {
+        if (pendingTokens.has(item.captura_token)) {
+          rejectedRows.push(row);
+          continue;
+        }
+        pendingTokens.add(item.captura_token);
+        const captured = await findCapturedMovement(ctx, item.captura_token, user);
+        if (captured) {
+          if (canResumeOgcCapture(isActiveMovement(captured), buildFinancialKey(captured, captured.organization_id), buildFinancialKey(normalized, organizationId))) {
+            validRows.push(row);
+            existingRows.push(row);
+          } else {
+            rejectedRows.push(row);
+          }
+          continue;
+        }
+      }
       const duplicates = await findActiveDuplicates(ctx, duplicateKey);
       const duplicateDisposition = classifyOgcImportDuplicate(
         duplicates.map((movement) => ({
@@ -717,7 +805,7 @@ export const validateBulkCreate = mutation({
       }
     }
 
-    return { validRows, duplicateRows, rejectedRows };
+    return { validRows, duplicateRows, rejectedRows, existingRows };
   },
 });
 
@@ -738,12 +826,31 @@ export const bulkCreate = mutation({
       }
     }
     const ids: Id<"ogc_movimientos">[] = [];
+    const rowResults: Array<{ row: number; id: Id<"ogc_movimientos">; disposition: "created" | "already_imported"; has_comprobante: boolean; comprobante_nombre?: string; comprobante_size?: number; factura_referencia?: string }> = [];
+    const existingImportRows = args.importacion_id
+      ? await ctx.db.query("ogc_movimientos")
+        .withIndex("by_importacion", (q) => q.eq("importacion_id", args.importacion_id))
+        .collect()
+      : [];
+    const existingByRow = new Map(existingImportRows.flatMap((movement) => (
+      movement.fila_origen == null
+        ? []
+        : [[movement.fila_origen, { id: movement._id, has_comprobante: Boolean(movement.factura_comprobante), comprobante_nombre: movement.factura_comprobante?.nombre, comprobante_size: movement.factura_comprobante?.size, active: isActiveMovement(movement), factura_referencia: movement.factura_referencia }] as const]
+    )));
+    const pendingTokens = new Set<string>();
     const now = Date.now();
     let skippedDuplicates = 0;
     let alreadyImported = 0;
     let rejected = 0;
 
-    for (const item of args.movimientos) {
+    for (const [index, item] of args.movimientos.entries()) {
+      const row = item.fila_origen ?? index + 1;
+      if ((args.importacion_id && item.captura_token) ||
+        (item.captura_token && pendingTokens.has(item.captura_token))) {
+        rejected += 1;
+        continue;
+      }
+      if (item.captura_token) pendingTokens.add(item.captura_token);
       const normalized = normalizeMovementInput(item);
       if (!normalized) {
         rejected += 1;
@@ -757,7 +864,34 @@ export const bulkCreate = mutation({
         }
       }
 
+      const existingRow = args.importacion_id ? existingByRow.get(row) : undefined;
+      if (existingRow) {
+        const storedMovement = await ctx.db.get(existingRow.id);
+        if (!storedMovement) {
+          rejected += 1;
+          continue;
+        }
+        await assertMovementAccess(ctx, storedMovement, user);
+        if (!existingRow.active) {
+          rejected += 1;
+          continue;
+        }
+        alreadyImported += 1;
+        rowResults.push({ row, id: existingRow.id, disposition: "already_imported", has_comprobante: existingRow.has_comprobante, comprobante_nombre: existingRow.comprobante_nombre, comprobante_size: existingRow.comprobante_size, factura_referencia: existingRow.factura_referencia });
+        continue;
+      }
+
       const duplicateKey = buildDuplicateKey(normalized, organizationId);
+      const captured = await findCapturedMovement(ctx, item.captura_token, user);
+      if (captured) {
+        if (!canResumeOgcCapture(isActiveMovement(captured), buildFinancialKey(captured, captured.organization_id), buildFinancialKey(normalized, organizationId))) {
+          rejected += 1;
+          continue;
+        }
+        alreadyImported += 1;
+        rowResults.push({ row, id: captured._id, disposition: "already_imported", has_comprobante: Boolean(captured.factura_comprobante), comprobante_nombre: captured.factura_comprobante?.nombre, comprobante_size: captured.factura_comprobante?.size, factura_referencia: captured.factura_referencia });
+        continue;
+      }
       const duplicates = await findActiveDuplicates(ctx, duplicateKey);
       const duplicateDisposition = classifyOgcImportDuplicate(
         duplicates.map((movement) => ({
@@ -770,6 +904,10 @@ export const bulkCreate = mutation({
       if (duplicateDisposition !== "create") {
         if (duplicateDisposition === "already_imported") {
           alreadyImported += 1;
+          const resumed = duplicates.find((movement) => (
+            movement.importacion_id === args.importacion_id && movement.fila_origen === item.fila_origen
+          ));
+          if (resumed) rowResults.push({ row, id: resumed._id, disposition: "already_imported", has_comprobante: Boolean(resumed.factura_comprobante), comprobante_nombre: resumed.factura_comprobante?.nombre, comprobante_size: resumed.factura_comprobante?.size, factura_referencia: resumed.factura_referencia });
         } else {
           skippedDuplicates += 1;
         }
@@ -782,6 +920,7 @@ export const bulkCreate = mutation({
         archivo_origen: importRecord?.nombre || item.archivo_origen,
         fila_origen: item.fila_origen,
         importacion_id: args.importacion_id,
+        captura_token: item.captura_token,
         ...deliveryNote,
         status: "activo",
         duplicate_key: duplicateKey,
@@ -804,13 +943,15 @@ export const bulkCreate = mutation({
       }
 
       ids.push(id);
+      rowResults.push({ row, id, disposition: "created", has_comprobante: false, factura_referencia: normalized.factura_referencia });
+      if (args.importacion_id) existingByRow.set(row, { id, has_comprobante: false, comprobante_nombre: undefined, comprobante_size: undefined, active: true, factura_referencia: normalized.factura_referencia });
     }
 
     if (args.importacion_id) {
       await ctx.db.patch(args.importacion_id, { updated_at: Date.now() });
     }
 
-    return { created: ids.length, ids, skippedDuplicates, alreadyImported, rejected };
+    return { created: ids.length, ids, rowResults, skippedDuplicates, alreadyImported, rejected };
   },
 });
 
@@ -854,8 +995,12 @@ export const update = mutation({
       moneda: args.patch.moneda ?? before.moneda,
       tipo_cambio: args.patch.tipo_cambio ?? before.tipo_cambio,
       proyecto: projectPatch,
+      factura_referencia: before.factura_referencia,
     });
     if (!normalized) throw new Error("Movimiento invalido.");
+    if (before.factura_comprobante && normalized.tipo !== "ingreso") {
+      throw new Error("Quita el comprobante de factura antes de cambiar el ingreso a costo.");
+    }
 
     const organizationId = before.organization_id;
     const duplicateKey = buildDuplicateKey(normalized, organizationId);
@@ -885,6 +1030,81 @@ export const update = mutation({
       });
     }
 
+    return { ok: true };
+  },
+});
+
+export const setInvoiceEvidence = mutation({
+  args: {
+    id: v.id("ogc_movimientos"),
+    referencia: v.string(),
+    comprobante: v.optional(invoiceProofValidator),
+    remove_comprobante: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const user = await assertCanWrite(ctx);
+    const before = await ctx.db.get(args.id);
+    if (!before) throw new Error("Movimiento no encontrado.");
+    await assertMovementAccess(ctx, before, user);
+    if (!isActiveMovement(before) || before.tipo !== "ingreso") {
+      throw new Error("Solo se puede vincular una factura a un ingreso OGC activo.");
+    }
+    if (args.comprobante && args.remove_comprobante) {
+      throw new Error("No se puede agregar y quitar el comprobante a la vez.");
+    }
+
+    const referencia = normalizeOgcInvoiceReference(args.referencia);
+    if (referencia && referencia.length > 120) throw new Error("La referencia no puede exceder 120 caracteres.");
+    const currentProof = before.factura_comprobante;
+    const proof = args.remove_comprobante ? undefined : args.comprobante || currentProof;
+    if (proof && !referencia) throw new Error("El comprobante requiere folio o referencia.");
+
+    let verifiedProof: OgcMovement["factura_comprobante"] = proof;
+    if (args.comprobante) {
+      const name = args.comprobante.nombre.trim();
+      const metadata = await ctx.storage.getMetadata(args.comprobante.storage_id);
+      const contentType = metadata?.contentType || args.comprobante.type;
+      const expectedType = name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/";
+      if (!name || !acceptedInvoiceProofName.test(name) || !metadata ||
+        metadata.size <= 0 || metadata.size > MAX_INVOICE_PROOF_SIZE ||
+        metadata.size !== args.comprobante.size ||
+        !(expectedType === "application/pdf" ? contentType === "application/pdf" : contentType.startsWith("image/"))) {
+        throw new Error("El comprobante debe ser PDF o imagen de hasta 20 MB.");
+      }
+      verifiedProof = {
+        storage_id: args.comprobante.storage_id,
+        nombre: name,
+        type: contentType,
+        size: metadata.size,
+        uploaded_at: Date.now(),
+      };
+    }
+
+    const duplicateKey = buildDuplicateKey({ ...before, factura_referencia: referencia }, before.organization_id);
+    if (await findActiveDuplicate(ctx, duplicateKey, args.id)) {
+      throw new Error("Ya existe un ingreso activo con los mismos datos y referencia.");
+    }
+
+    await ctx.db.patch(args.id, {
+      factura_referencia: referencia,
+      factura_comprobante: verifiedProof,
+      duplicate_key: duplicateKey,
+      updated_by_id: user._id,
+      updated_by_name: user.name,
+      updated_at: Date.now(),
+    });
+    if (currentProof && currentProof.storage_id !== verifiedProof?.storage_id) {
+      await ctx.storage.delete(currentProof.storage_id);
+    }
+    const after = await ctx.db.get(args.id);
+    if (after) await auditMovement(ctx, {
+      movimiento_id: args.id,
+      action: "invoice_evidence_updated",
+      user,
+      organization_id: before.organization_id,
+      before,
+      after,
+    });
     return { ok: true };
   },
 });

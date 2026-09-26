@@ -635,7 +635,7 @@ export default function UploadSalesProjectTransactionsModal() {
                     <FileSpreadsheet className="h-8 w-8 text-green-600" />
                     <div className="text-left">
                       <p className="font-medium text-foreground">{file.name}</p>
-                      <p className="text-sm text-subtle-foreground">{formatFileSize(file.size)}</p>
+                      <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 justify-center">
@@ -673,7 +673,7 @@ export default function UploadSalesProjectTransactionsModal() {
                     <p className="text-lg font-medium text-foreground">
                       Arrastra y suelta un archivo Excel aquí
                     </p>
-                    <p className="text-sm text-subtle-foreground mt-1">o</p>
+                    <p className="text-sm text-muted-foreground mt-1">o</p>
                   </div>
                   <div>
                     <Button
@@ -746,7 +746,7 @@ export default function UploadSalesProjectTransactionsModal() {
               <div className="grid grid-cols-4 gap-3">
                 <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-foreground">{validationReport.totalTransactions}</p>
-                  <p className="text-xs text-subtle-foreground">Total</p>
+                  <p className="text-xs text-muted-foreground">Total</p>
                 </div>
                 <div className="bg-green-50 rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-green-600">{validationReport.validTransactions}</p>
@@ -885,7 +885,7 @@ export default function UploadSalesProjectTransactionsModal() {
               <div className="grid grid-cols-4 gap-3">
                 <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-foreground">{uploadReport.totalTransactions}</p>
-                  <p className="text-xs text-subtle-foreground">Total</p>
+                  <p className="text-xs text-muted-foreground">Total</p>
                 </div>
                 <div className="bg-green-50 rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-green-600">{uploadReport.successfulTransactions}</p>

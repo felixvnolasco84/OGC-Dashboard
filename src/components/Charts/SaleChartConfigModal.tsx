@@ -217,7 +217,7 @@ export default function SaleChartConfigModal({
             <Label>Filtrar por Partidas (Nivel 1)</Label>
             <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
               {availablePartidas.length === 0 ? (
-                <p className="text-sm text-subtle-foreground">Cargando...</p>
+                <p className="text-sm text-muted-foreground">Cargando...</p>
               ) : (
                 <div className="space-y-1">
                   {availablePartidas.map((partida) => (
@@ -244,7 +244,7 @@ export default function SaleChartConfigModal({
               )}
             </div>
             {selectedPartidas.length > 0 && (
-              <p className="text-xs text-subtle-foreground">
+              <p className="text-xs text-muted-foreground">
                 {selectedPartidas.length} partida(s) seleccionada(s)
               </p>
             )}
@@ -255,7 +255,7 @@ export default function SaleChartConfigModal({
             <Label>Filtrar por Familias (Nivel 2)</Label>
             <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
               {availableFamilias.length === 0 ? (
-                <p className="text-sm text-subtle-foreground">Cargando...</p>
+                <p className="text-sm text-muted-foreground">Cargando...</p>
               ) : (
                 <div className="space-y-1">
                   {availableFamilias.map((familia) => (
@@ -282,7 +282,7 @@ export default function SaleChartConfigModal({
               )}
             </div>
             {selectedFamilias.length > 0 && (
-              <p className="text-xs text-subtle-foreground">
+              <p className="text-xs text-muted-foreground">
                 {selectedFamilias.length} familia(s) seleccionada(s)
               </p>
             )}
@@ -293,7 +293,7 @@ export default function SaleChartConfigModal({
             <Label>Filtrar por Sub-Partidas (Nivel 3)</Label>
             <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
               {availableSubPartidas.length === 0 ? (
-                <p className="text-sm text-subtle-foreground">Cargando...</p>
+                <p className="text-sm text-muted-foreground">Cargando...</p>
               ) : (
                 <div className="space-y-1">
                   {availableSubPartidas.map((subPartida) => (
@@ -320,7 +320,7 @@ export default function SaleChartConfigModal({
               )}
             </div>
             {selectedSubPartidas.length > 0 && (
-              <p className="text-xs text-subtle-foreground">
+              <p className="text-xs text-muted-foreground">
                 {selectedSubPartidas.length} sub-partida(s) seleccionada(s)
               </p>
             )}

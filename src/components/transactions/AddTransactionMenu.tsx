@@ -7,20 +7,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
 
 export function AddTransactionMenu({
   visible = true,
   onAddPayment,
   onUploadExcel,
   onUploadInvoice,
-  className,
 }: {
   visible?: boolean;
   onAddPayment: () => void;
   onUploadExcel: () => void;
   onUploadInvoice: () => void;
-  className?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -36,8 +33,6 @@ export function AddTransactionMenu({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          size="lg"
-          className={cn("flex items-center gap-2 rounded-none py-6 text-subtle-foreground", className)}
         >
           Agregar
           <Plus className="h-5 w-5" />
@@ -45,11 +40,11 @@ export function AddTransactionMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-80 rounded-none p-1.5"
+        variant="transactionMenu"
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         <DropdownMenuItem
-          className="h-auto items-start gap-3 rounded-none py-2.5"
+          variant="transactionAction"
           onSelect={() => runAfterClose(onAddPayment)}
         >
           <CreditCard className="mt-0.5" />
@@ -61,7 +56,7 @@ export function AddTransactionMenu({
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="h-auto items-start gap-3 rounded-none py-2.5"
+          variant="transactionAction"
           onSelect={() => runAfterClose(onUploadExcel)}
         >
           <FileSpreadsheet className="mt-0.5" />
@@ -73,7 +68,7 @@ export function AddTransactionMenu({
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="h-auto items-start gap-3 rounded-none py-2.5"
+          variant="transactionAction"
           onSelect={() => runAfterClose(onUploadInvoice)}
         >
           <Receipt className="mt-0.5" />

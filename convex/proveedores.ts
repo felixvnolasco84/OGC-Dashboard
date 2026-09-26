@@ -27,6 +27,7 @@ import {
   syncProviderListMetadata,
   updateProviderStatsForTransactionChange,
 } from "./providerStats";
+import { queuePaymentAccountCandidate } from "./paymentAccounts";
 
 const providerTypeValidator = v.union(v.literal("regular"), v.literal("generico"));
 
@@ -558,13 +559,31 @@ export const merge = mutation({
         ...transaction,
         proveedor_id: args.target_id,
       });
-      await ctx.db.patch(transaction._id, { proveedor_id: args.target_id });
+      await ctx.db.patch(transaction._id, {
+        proveedor_id: args.target_id,
+        payment_account_id: undefined,
+      });
     }
     for (const requisition of requisitions) {
       await ctx.db.patch(requisition._id, {
         proveedor_id: args.target_id,
         updated_at: Date.now(),
       });
+    }
+    const sourceAccounts = await ctx.db.query("payment_accounts")
+      .withIndex("by_provider", (q) => q.eq("provider_id", source._id)).collect();
+    for (const account of sourceAccounts) {
+      if (account.status === "archived") continue;
+      await queuePaymentAccountCandidate(ctx, {
+        scopeKey: account.scope_key,
+        sourceKey: `merged-account:${account._id}:${target._id}`,
+        providerId: target._id,
+        banco: account.banco,
+        numeroCuenta: account.numero_cuenta,
+        clabe: account.clabe,
+        reason: account.status === "pending_review" ? "proveedor_fusionado_pendiente" : "proveedor_fusionado",
+      });
+      await ctx.db.patch(account._id, { status: "archived", updated_at: Date.now() });
     }
     await ctx.db.patch(source._id, {
       archived_at: Date.now(),

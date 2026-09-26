@@ -142,7 +142,7 @@ export default function SeeSalesTransactionsDetailsModal() {
                                             <>
                                                 <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
                                                 <h4 className="text-muted-foreground">{paymentContext.relatedPartida.familia}</h4>
-                                                <h5 className="text-subtle-foreground">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
+                                                <h5 className="text-muted-foreground">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
                                             </>}
                                     </div>
                                     <CardDescription className="text-disabled-foreground text-right text-base">
@@ -172,15 +172,15 @@ export default function SeeSalesTransactionsDetailsModal() {
 
                                 <div className="grid grid-cols-3 gap-20 justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-subtle-foreground">Presupuesto aprobado</p>
+                                        <p className="text-sm font-medium text-muted-foreground">Presupuesto aprobado</p>
                                         <p className="text-lg">{formatCurrency(paymentContext.totalAmount)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-subtle-foreground text-left">Pagado</p>
+                                        <p className="text-sm font-medium text-muted-foreground text-left">Pagado</p>
                                         <p className="text-lg text-green-800 text-left">{formatCurrency(getTotalPaidAmount())}</p>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <p className="text-sm font-medium text-subtle-foreground text-right">Por cobrar</p>
+                                        <p className="text-sm font-medium text-muted-foreground text-right">Por cobrar</p>
                                         {getRemainingAmount() > 0 && (
                                             <p className="text-lg text-orange-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
                                         )}
@@ -272,7 +272,7 @@ export default function SeeSalesTransactionsDetailsModal() {
                                                 {/* Line Items Summary */}
                                                 {lineItemsCount > 0 && (
                                                     <div className="mt-4 pt-3 border-t border-border">
-                                                        <p className="text-xs font-medium text-subtle-foreground mb-2">
+                                                        <p className="text-xs font-medium text-muted-foreground mb-2">
                                                             Conceptos incluidos:
                                                         </p>
                                                         <div className="space-y-1">
@@ -311,7 +311,7 @@ export default function SeeSalesTransactionsDetailsModal() {
 
                             {/* Empty State */}
                             {groupedTransactions.length === 0 && (
-                                <div className="text-center py-8 text-subtle-foreground">
+                                <div className="text-center py-8 text-muted-foreground">
                                     <p>No hay transacciones registradas</p>
                                 </div>
                             )}

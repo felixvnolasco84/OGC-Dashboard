@@ -185,7 +185,7 @@ export default function WeeklyAvanceModal() {
           <div className="border rounded-none overflow-hidden">
             <div className="bg-background border-b px-4 py-2 grid grid-cols-2 gap-4 font-medium text-sm">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-subtle-foreground" />
+                <Calendar className="h-4 w-4 text-muted-foreground" />
                 Semana
               </div>
               <div>Avance Real (%)</div>
@@ -215,7 +215,7 @@ export default function WeeklyAvanceModal() {
                       placeholder="0"
                       className="w-24"
                     />
-                    <span className="text-sm text-subtle-foreground">%</span>
+                    <span className="text-sm text-muted-foreground">%</span>
                     {week.avance_real > 0 && (
                       <div className="flex-1 ml-2">
                         <div className="h-2 bg-disabled rounded-none overflow-hidden">
@@ -233,7 +233,7 @@ export default function WeeklyAvanceModal() {
           </div>
 
           {weeklyData.length === 0 && (
-            <div className="text-center py-8 text-subtle-foreground">
+            <div className="text-center py-8 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-2 text-disabled-foreground" />
               <p className="text-sm">
                 No hay semanas proyectadas para este proyecto

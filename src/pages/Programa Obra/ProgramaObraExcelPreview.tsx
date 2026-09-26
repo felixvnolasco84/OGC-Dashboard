@@ -388,7 +388,7 @@ export default function ProgramaObraExcelPreview({
                                 )}
                               </div>
                             </td>
-                            <td className="px-3 py-2 text-subtle-foreground text-xs">
+                            <td className="px-3 py-2 text-muted-foreground text-xs">
                               {formatDateStr(child.fecha_inicio)}
                             </td>
                             <td className={cn(
@@ -396,7 +396,7 @@ export default function ProgramaObraExcelPreview({
                               hasConflict && !resolution && "text-amber-700 font-medium",
                               hasConflict && resolution === "parent" && "text-blue-600 line-through",
                               hasConflict && resolution === "child" && "text-amber-700 font-medium",
-                              !hasConflict && "text-subtle-foreground"
+                              !hasConflict && "text-muted-foreground"
                             )}>
                               {formatDateStr(child.fecha_fin)}
                               {hasConflict && resolution === "parent" && (
@@ -405,13 +405,13 @@ export default function ProgramaObraExcelPreview({
                                 </span>
                               )}
                             </td>
-                            <td className="px-3 py-2 text-subtle-foreground text-xs text-right">
+                            <td className="px-3 py-2 text-muted-foreground text-xs text-right">
                               {child.peso != null ? `${child.peso}%` : "—"}
                             </td>
-                            <td className="px-3 py-2 text-subtle-foreground text-xs">
+                            <td className="px-3 py-2 text-muted-foreground text-xs">
                               {formatDateStr(child.anticipo_fecha)}
                             </td>
-                            <td className="px-3 py-2 text-subtle-foreground text-xs">
+                            <td className="px-3 py-2 text-muted-foreground text-xs">
                               {formatDateStr(child.suministro_fecha)}
                             </td>
                           </tr>
@@ -425,7 +425,7 @@ export default function ProgramaObraExcelPreview({
         </div>
 
         {/* Summary */}
-        <div className="text-xs text-subtle-foreground">
+        <div className="text-xs text-muted-foreground">
           {parsedData.length} partida{parsedData.length !== 1 ? "s" : ""} ·{" "}
           {parsedData.reduce((s, p) => s + (p.children?.length ?? 0), 0)} elementos hijo
         </div>

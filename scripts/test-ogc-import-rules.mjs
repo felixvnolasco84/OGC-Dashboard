@@ -7,6 +7,24 @@ import {
   isOgcImportLeaseActive,
   isValidOgcImportFile,
 } from "../convex/ogcImportRules.ts";
+import { appendOgcInvoiceDuplicateKey, canResumeOgcCapture, normalizeOgcInvoiceReference } from "../convex/ogcInvoiceRules.ts";
+import { validateOgcInvoiceFile } from "../src/lib/ogcInvoiceEvidence.ts";
+
+assert.equal(normalizeOgcInvoiceReference("  FAC   123 "), "FAC 123");
+assert.equal(appendOgcInvoiceDuplicateKey("movement", "ingreso"), "movement");
+assert.equal(appendOgcInvoiceDuplicateKey("movement", "costo_estructura", "FAC-1"), "movement");
+assert.equal(appendOgcInvoiceDuplicateKey("movement", "ingreso", " FÁC  1 "), "movement|factura:fac 1");
+assert.notEqual(
+  appendOgcInvoiceDuplicateKey("movement", "ingreso", "FAC-1"),
+  appendOgcInvoiceDuplicateKey("movement", "ingreso", "FAC-2"),
+);
+assert.equal(canResumeOgcCapture(true, "movement|factura:fac-1", "movement|factura:fac-1"), true);
+assert.equal(canResumeOgcCapture(false, "movement", "movement"), false);
+assert.equal(canResumeOgcCapture(true, "movement", "changed"), false);
+assert.equal(validateOgcInvoiceFile({ name: "factura.pdf", type: "application/octet-stream", size: 1024 }), null);
+assert.equal(validateOgcInvoiceFile({ name: "factura.pdf", type: "image/png", size: 1024 }) !== null, true);
+assert.equal(validateOgcInvoiceFile({ name: "factura.xml", type: "application/xml", size: 1024 }) !== null, true);
+assert.equal(validateOgcInvoiceFile({ name: "factura.pdf", type: "application/pdf", size: 20 * 1024 * 1024 + 1 }) !== null, true);
 
 const hash = "a".repeat(64);
 

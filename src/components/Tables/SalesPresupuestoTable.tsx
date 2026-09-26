@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -350,7 +350,7 @@ export default function SalesPresupuestoTable() {
     return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
-        <p className="text-subtle-foreground">Cargando datos...</p>
+        <p className="text-muted-foreground">Cargando datos...</p>
       </div>
     </div>;
   }
@@ -362,14 +362,14 @@ export default function SalesPresupuestoTable() {
         <div className="py-6 border-b border-border px-12 pb-12">
           <div className="flex items-end justify-between">
             <div className="flex flex-col text-left">
-              <p className="text-base text-subtle-foreground mb-1">Presupuesto</p>
+              <p className="text-base text-muted-foreground mb-1">Presupuesto</p>
               <h1 className="text-2xl text-foreground">{salesProyecto.nombre}</h1>
             </div>
             <div className="flex items-end gap-3">
               <Button
                 variant="outline"
                 size="lg"
-                className="flex justify-center items-center gap-2 rounded-none text-subtle-foreground py-6"
+                className="flex justify-center items-center gap-2 rounded-none text-muted-foreground py-6"
                 onClick={async () => {
                   if (!salesProyectoId) return;
                   setIsSyncing(true);
@@ -397,7 +397,7 @@ export default function SalesPresupuestoTable() {
               <Button
                 variant="outline"
                 size="lg"
-                className="flex justify-center items-center gap-2 rounded-none text-subtle-foreground py-6"
+                className="flex justify-center items-center gap-2 rounded-none text-muted-foreground py-6"
               >
                 Agregar Unidad
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
@@ -412,7 +412,7 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-subtle-foreground">Total Ventas</p>
+                <p className="text-sm text-muted-foreground">Total Ventas</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-foreground">
                     {formatCurrencyCompact(Math.round(metrics.presupuestoOriginal), defaultCurrency)}
@@ -426,13 +426,13 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-subtle-foreground">Vendido</p>
+                <p className="text-sm text-muted-foreground">Vendido</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-foreground">
                     {formatCurrencyCompact(Math.round(metrics.presupuestoAprobado), defaultCurrency)}
                   </p>
                 </div>
-                <div className="text-lg text-subtle-foreground">
+                <div className="text-lg text-muted-foreground">
                   <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
                     {presupuestoReduction < 0 ? 'Avance' : 'Aumento'} {Math.abs(presupuestoReduction)}%
                   </Badge>
@@ -445,7 +445,7 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-subtle-foreground">Pagado</p>
+                <p className="text-sm text-muted-foreground">Pagado</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-foreground">
                     {formatCurrencyCompact(Math.round(metrics.pagado), defaultCurrency)}
@@ -462,7 +462,7 @@ export default function SalesPresupuestoTable() {
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
-                <p className="text-sm text-subtle-foreground">Por Pagar</p>
+                <p className="text-sm text-muted-foreground">Por Pagar</p>
                 <div className="flex items-baseline space-x-2">
                   <p className="text-4xl font-normal text-foreground">
                     {formatCurrencyCompact(Math.round(metrics.porGastar), defaultCurrency)}
@@ -481,9 +481,9 @@ export default function SalesPresupuestoTable() {
           <div className="grid grid-cols-3 items-center gap-6">
             {/* Partida Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left border-b border-border">
-              <span className="text-sm text-subtle-foreground">Unidad</span>
-              <Popover open={isPartidaOpen} onOpenChange={setIsPartidaOpen}>
-                <PopoverTrigger asChild>
+              <span className="text-sm text-muted-foreground">Unidad</span>
+              <DropdownMenu modal={false} open={isPartidaOpen} onOpenChange={setIsPartidaOpen}>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     className="border-none shadow-none px-0 h-auto font-normal text-foreground hover:bg-transparent justify-start"
@@ -498,8 +498,8 @@ export default function SalesPresupuestoTable() {
                       )}
                     </span>
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-80 p-0" align="start">
                   <div className="p-3 border-b">
                     <Input
                       placeholder="Buscar unidades..."
@@ -533,14 +533,14 @@ export default function SalesPresupuestoTable() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-base text-subtle-foreground text-center py-2">
+                      <p className="text-base text-muted-foreground text-center py-2">
                         No se encontraron unidades
                       </p>
                     )}
                   </div>
                   {selectedPartidas.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-base text-subtle-foreground">
+                      <span className="text-base text-muted-foreground">
                         {selectedPartidas.length} seleccionada(s)
                       </span>
                       <Button
@@ -553,8 +553,8 @@ export default function SalesPresupuestoTable() {
                       </Button>
                     </div>
                   )}
-                </PopoverContent>
-              </Popover>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {selectedPartidas.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {selectedPartidas.map((partida) => (
@@ -576,9 +576,9 @@ export default function SalesPresupuestoTable() {
 
             {/* Familia Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left border-b border-border">
-              <span className="text-sm text-subtle-foreground">Familia</span>
-              <Popover open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen}>
-                <PopoverTrigger asChild>
+              <span className="text-sm text-muted-foreground">Familia</span>
+              <DropdownMenu modal={false} open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen}>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     className="border-none shadow-none px-0 h-auto font-normal text-foreground hover:bg-transparent justify-start"
@@ -593,8 +593,8 @@ export default function SalesPresupuestoTable() {
                       )}
                     </span>
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-80 p-0" align="start">
                   <div className="p-3 border-b">
                     <Input
                       placeholder="Buscar familias..."
@@ -628,14 +628,14 @@ export default function SalesPresupuestoTable() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-base text-subtle-foreground text-center py-2">
+                      <p className="text-base text-muted-foreground text-center py-2">
                         No se encontraron familias
                       </p>
                     )}
                   </div>
                   {selectedFamilias.length > 0 && (
                     <div className="p-3 border-t flex justify-between items-center">
-                      <span className="text-base text-subtle-foreground">
+                      <span className="text-base text-muted-foreground">
                         {selectedFamilias.length} seleccionada(s)
                       </span>
                       <Button
@@ -648,8 +648,8 @@ export default function SalesPresupuestoTable() {
                       </Button>
                     </div>
                   )}
-                </PopoverContent>
-              </Popover>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {selectedFamilias.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {selectedFamilias.map((familia) => (
@@ -671,7 +671,7 @@ export default function SalesPresupuestoTable() {
 
             {/* Fecha Filter */}
             <div className="flex flex-col space-y-1 text-left border-b border-border">
-              <span className="text-sm text-subtle-foreground">Fecha</span>
+              <span className="text-sm text-muted-foreground">Fecha</span>
               <Select value={selectedFecha} onValueChange={setSelectedFecha}>
                 <SelectTrigger className="border-none shadow-none px-0 h-auto font-normal text-foreground focus:ring-0">
                   <SelectValue />
@@ -742,9 +742,9 @@ export default function SalesPresupuestoTable() {
                             className="p-0 h-auto hover:bg-transparent"
                           >
                             {item.expanded ? (
-                              <ChevronDown className="h-4 w-4 text-subtle-foreground" />
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
                             ) : (
-                              <ChevronRight className="h-4 w-4 text-subtle-foreground" />
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
                             )}
                           </Button>
                         ) : (
@@ -783,7 +783,7 @@ export default function SalesPresupuestoTable() {
                             className={cn(
                               "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
                               porGastarBadge.isRemaining
-                                ? 'bg-muted text-subtle-foreground hover:bg-muted border border-border-strong'
+                                ? 'bg-muted text-muted-foreground hover:bg-muted border border-border-strong'
                                 : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
                             )}
                           >
@@ -795,13 +795,13 @@ export default function SalesPresupuestoTable() {
                     <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
                       {item.avance}%
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-subtle-foreground text-left border-r border-border last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-muted-foreground text-left border-r border-border last:border-r-0">
                       {item.fechaInicio || '-'}
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-subtle-foreground text-left border-r border-border last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-muted-foreground text-left border-r border-border last:border-r-0">
                       {item.fechaFin || '-'}
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-subtle-foreground text-left border-r border-border last:border-r-0">
+                    <TableCell className="px-4 py-4 text-base text-muted-foreground text-left border-r border-border last:border-r-0">
                       <DropdownMenuComponentSalesPartida
                         partida={item.originalDoc!}
                         level={item.level}

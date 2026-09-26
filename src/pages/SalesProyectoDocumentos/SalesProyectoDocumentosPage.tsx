@@ -125,7 +125,7 @@ export default function SalesProyectoDocumentosPage() {
   if (!salesProyecto) {
     return (
       <div className="bg-card min-h-screen flex items-center justify-center">
-        <p className="text-subtle-foreground">Cargando...</p>
+        <p className="text-muted-foreground">Cargando...</p>
       </div>
     );
   }
@@ -136,7 +136,7 @@ export default function SalesProyectoDocumentosPage() {
         <div className="flex flex-col gap-4 px-12">
           <div className="mb-8 flex items-start justify-between">
             <div>
-              <p className="text-sm text-subtle-foreground mb-1">Documentos</p>
+              <p className="text-sm text-muted-foreground mb-1">Documentos</p>
               <h1 className="text-2xl text-foreground">{salesProyecto.nombre}</h1>
             </div>
             <div className="flex gap-2">
@@ -188,13 +188,13 @@ export default function SalesProyectoDocumentosPage() {
             <tbody className="divide-y divide-border">
               {!documentos ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                     Cargando documentos...
                   </td>
                 </tr>
               ) : filteredDocumentos && filteredDocumentos.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                     No se encontraron documentos en este proyecto
                   </td>
                 </tr>

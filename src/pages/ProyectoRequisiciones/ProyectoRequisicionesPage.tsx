@@ -1023,7 +1023,7 @@ export default function ProyectoRequisicionesPage() {
     if (!proyecto) {
         return (
             <div className="bg-card min-h-screen flex items-center justify-center">
-                <p className="text-subtle-foreground">Cargando...</p>
+                <p className="text-muted-foreground">Cargando...</p>
             </div>
         );
     }
@@ -1034,25 +1034,24 @@ export default function ProyectoRequisicionesPage() {
                 <div className="flex flex-col gap-4 px-12">
                     <div className="mb-8 flex items-start justify-between">
                         <div>
-                            <p className="text-sm text-subtle-foreground mb-1">Requisiciones</p>
+                            <p className="text-sm text-muted-foreground mb-1">Requisiciones</p>
                             <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
-                            <Button
+                            {/*<Button
                                 onClick={() => setEmailDialogOpen(true)}
                                 variant="outline"
                                 size="lg"
-                                className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
+                                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
                             >
                                 <Mail className="h-5 w-5" />
                                 Notificar
-                            </Button>
+                            </Button>*/}
                             {/* History Button */}
                             <Button
                                 onClick={() => historyModal.openAllHistory(proyectoId as Id<"desarrollos">)}
                                 variant="outline"
-                                size="lg"
-                                className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
+                                className="font-normal"
                             >
                                 <Clock className="h-5 w-5" />
                                 Historial
@@ -1062,29 +1061,28 @@ export default function ProyectoRequisicionesPage() {
                                 <Button
                                     onClick={() => requisicionModal.onOpen({ projectId: proyectoId as Id<"desarrollos"> }, "create")}
                                     variant="outline"
-                                    size="lg"
-                                    className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
+                                    className="font-normal"
                                 >
                                     Nueva Requisición
                                     <Plus className="h-5 w-5" />
                                 </Button>
                             )}
-                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
+                            <Button variant="outline" className="cursor-auto">
                                 <span className="text-sm font-normal">
                                     Total: {requisiciones?.length || 0}
                                 </span>
-                            </Badge>
-                            <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
+                            </Button>
+                            <Button variant="outline" >
                                 <span className="text-sm font-normal">
                                     Monto total: ${montoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
-                            </Badge>
+                            </Button>
                         </div>
                     </div>
 
                     {/* Search Bar */}
                     <div className="mb-4 relative">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
                         <Input
                             type="text"
                             placeholder="Buscar por solicitante, descripción, familia, material..."
@@ -1098,7 +1096,7 @@ export default function ProyectoRequisicionesPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={clearFilters}
-                                    className="h-8 px-2 text-subtle-foreground hover:text-foreground"
+                                    className="h-8 px-2 text-muted-foreground hover:text-foreground"
                                 >
                                     <X className="h-4 w-4 mr-1" />
                                     Limpiar
@@ -1179,7 +1177,7 @@ export default function ProyectoRequisicionesPage() {
                                         sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
                                     )}
                                 </Button>
-                                <span className="text-sm text-subtle-foreground ml-auto">
+                                <span className="text-sm text-muted-foreground ml-auto">
                                     {filteredRequisiciones.length} de {requisiciones?.length || 0} requisiciones
                                 </span>
                             </div>
@@ -1193,28 +1191,28 @@ export default function ProyectoRequisicionesPage() {
                         <TabsList className="bg-transparent h-auto p-0 gap-0 border-b border-border w-full justify-start rounded-none">
                             <TabsTrigger
                                 value="por_revisar"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-subtle-foreground data-[state=active]:text-foreground gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2"
                             >
                                 Por revisar
                                 <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.por_revisar}</Badge>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="aprobadas"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-subtle-foreground data-[state=active]:text-foreground gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2"
                             >
                                 Aprobadas
                                 <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.aprobadas}</Badge>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="pagadas"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-subtle-foreground data-[state=active]:text-foreground gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2"
                             >
                                 Pagadas
                                 <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.pagadas}</Badge>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="recibidas"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-subtle-foreground data-[state=active]:text-foreground gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2"
                             >
                                 Recibidas
                                 <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.recibidas}</Badge>
@@ -1226,11 +1224,11 @@ export default function ProyectoRequisicionesPage() {
                 {/* Cards List */}
                 <div className="px-12 space-y-4">
                     {!requisiciones ? (
-                        <div className="py-12 text-center text-subtle-foreground">
+                        <div className="py-12 text-center text-muted-foreground">
                             Cargando requisiciones...
                         </div>
                     ) : filteredRequisiciones.length === 0 ? (
-                        <div className="py-12 text-center text-subtle-foreground">
+                        <div className="py-12 text-center text-muted-foreground">
                             No se encontraron requisiciones
                         </div>
                     ) : (
@@ -1251,7 +1249,7 @@ export default function ProyectoRequisicionesPage() {
                             const pipelineBusy = updatingPipelineReqId === req._id;
 
                             return (
-                                <div key={req._id} className="border border-border rounded-md">
+                                <div key={req._id} className="border border-border">
                                     {/* Card Header - Collapsed View */}
                                     <div
                                         className="flex items-center gap-6 py-6 px-4 cursor-pointer hover:/50 transition-colors border-b"
@@ -1266,7 +1264,7 @@ export default function ProyectoRequisicionesPage() {
                                                 <span className="text-sm text-muted-foreground">
                                                     {req.solicitante_nombre || "-"}
                                                 </span>
-                                                <span className="text-xs text-disabled-foreground">
+                                                <span className="text-xs text-muted-foreground">
                                                     Solicitado el {formatDate(req.fecha_solicitud)}
                                                 </span>
                                             </div>
@@ -1274,10 +1272,10 @@ export default function ProyectoRequisicionesPage() {
 
                                         {/* Category + Materials Count */}
                                         <div className="flex flex-col flex-1 min-w-0">
-                                            <span className="text-sm text-muted-foreground uppercase tracking-wide truncate">
+                                            <span className="text-sm  uppercase tracking-wide truncate">
                                                 {categoryLabel}
                                             </span>
-                                            <Badge variant="outline" className="w-fit h-fit mt-1 text-[9px] font-normal rounded-sm  text-disabled-foreground border-border bg-muted">
+                                            <Badge variant="outline" className="w-fit mt-1">
                                                 {materialsBadgeText}
                                             </Badge>
                                         </div>
@@ -1286,17 +1284,17 @@ export default function ProyectoRequisicionesPage() {
                                         <div className="flex flex-col items-start min-w-[100px]">
                                             {req.fecha_entrega ? (
                                                 <>
-                                                    <span className="text-sm text-muted-foreground">{req.fecha_entrega}</span>
-                                                    <span className="text-xs text-disabled-foreground">Fecha de entrega</span>
+                                                    <span className="text-sm ">{req.fecha_entrega}</span>
+                                                    <span className="text-xs text-muted-foreground">Fecha de entrega</span>
                                                 </>
                                             ) : (
-                                                <span className="text-xs text-disabled-foreground">Sin fecha de entrega</span>
+                                                <span className="text-xs ">Sin fecha de entrega</span>
                                             )}
                                         </div>
 
                                         {/* Monto Total */}
                                         <div className="flex flex-col items-end min-w-[140px]">
-                                            <span className="text-xs text-disabled-foreground">Monto Total</span>
+                                            <span className="text-xs text-muted-foreground">Monto Total</span>
                                             <span className="text-foreground">
                                                 ${reqMontoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
@@ -1325,7 +1323,7 @@ export default function ProyectoRequisicionesPage() {
                                                                         "relative z-10 flex h-4 w-4 items-center justify-center rounded-full border bg-card transition-colors",
                                                                         stage.complete
                                                                             ? "border-[#50AC66] bg-[#50AC66] text-on-color"
-                                                                            : "border-border-strong text-disabled-foreground hover:border-[#7EC18E] hover:text-[#50AC66]",
+                                                                            : "border-border-strong text-muted-foreground hover:border-[#7EC18E] hover:text-[#50AC66]",
                                                                         (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60"
                                                                     )}
                                                                     title={`Cambiar a ${stage.label}`}
@@ -1347,7 +1345,7 @@ export default function ProyectoRequisicionesPage() {
                                                                     onClick={() => openPipelineStatusDialog(req, stage.key)}
                                                                     className={cn(
                                                                         "mt-1 text-[10px] leading-none transition-colors",
-                                                                        stage.complete ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                                                                        stage.complete ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                                                                         (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60"
                                                                     )}
                                                                 >
@@ -1364,44 +1362,44 @@ export default function ProyectoRequisicionesPage() {
                                         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none p-0 hover:bg-muted">
-                                                        <MoreVertical className="h-4 w-4 text-disabled-foreground" />
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8  p-0 hover:bg-muted">
+                                                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-72 rounded-none border-border p-1">
-                                                    <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal uppercase tracking-wide text-disabled-foreground">
+                                                <DropdownMenuContent align="end" className="border-border p-1">
+                                                    <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal uppercase tracking-wide text-muted-foreground">
                                                         Acciones
                                                     </DropdownMenuLabel>
                                                     <DropdownMenuItem
-                                                        className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
+                                                        className="gap-2   focus:bg-muted focus:text-foreground"
                                                         onClick={() => requisicionModal.onOpen({
                                                             projectId: proyectoId as Id<"desarrollos">,
                                                             requisicionId: req._id
                                                         }, "view")}
                                                     >
-                                                        <Eye className="h-4 w-4 text-disabled-foreground" />
+                                                        <Eye className="h-4 w-4 " />
                                                         Ver detalles
                                                     </DropdownMenuItem>
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <DropdownMenuItem
-                                                                className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
+                                                                className="gap-2   focus:bg-muted focus:text-foreground"
                                                                 onClick={() => requisicionModal.onOpen({
                                                                     projectId: proyectoId as Id<"desarrollos">,
                                                                     requisicionId: req._id
                                                                 }, "edit")}
                                                             >
-                                                                <Edit2 className="h-4 w-4 text-disabled-foreground" />
+                                                                <Edit2 className="h-4 w-4 " />
                                                                 Editar
                                                             </DropdownMenuItem>
                                                         )}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <DropdownMenuItem
-                                                                className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
+                                                                className="gap-2   focus:bg-muted focus:text-foreground"
                                                                 onClick={() => openProviderDialog(req._id)}
                                                             >
-                                                                <UserPlus className="h-4 w-4 text-disabled-foreground" />
+                                                                <UserPlus className="h-4 w-4 " />
                                                                 Agregar proveedor
                                                             </DropdownMenuItem>
                                                         )}
@@ -1409,11 +1407,11 @@ export default function ProyectoRequisicionesPage() {
                                                     <DropdownMenuSeparator className="bg-muted" />
 
                                                     <DropdownMenuSub>
-                                                        <DropdownMenuSubTrigger className="gap-2 rounded-none text-muted-foreground focus:bg-muted data-[state=open]:bg-muted">
+                                                        <DropdownMenuSubTrigger className="gap-2  focus:bg-muted data-[state=open]:bg-muted">
                                                             <CheckCircle className="h-4 w-4 text-[#50AC66]" />
                                                             Cambiar etapa
                                                         </DropdownMenuSubTrigger>
-                                                        <DropdownMenuSubContent className="w-56 rounded-none border-border p-1">
+                                                        <DropdownMenuSubContent className="w-56 border-border p-1">
                                                             {pipelineStages.map((stage) => {
                                                                 const StageIcon = stage.icon;
                                                                 const canUpdateStage = canUpdatePipelineStage(req, stage.key);
@@ -1422,13 +1420,13 @@ export default function ProyectoRequisicionesPage() {
                                                                     <DropdownMenuItem
                                                                         key={stage.key}
                                                                         disabled={pipelineBusy || !canUpdateStage}
-                                                                        className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
+                                                                        className="gap-2  focus:bg-muted focus:text-foreground"
                                                                         onClick={() => openPipelineStatusDialog(req, stage.key)}
                                                                     >
                                                                         {pipelineBusy ? (
-                                                                            <Loader2 className="h-4 w-4 animate-spin text-disabled-foreground" />
+                                                                            <Loader2 className="h-4 w-4 animate-spin " />
                                                                         ) : (
-                                                                            <StageIcon className={cn("h-4 w-4", stage.complete ? "text-[#50AC66]" : "text-disabled-foreground")} />
+                                                                            <StageIcon className={cn("h-4 w-4", stage.complete ? "text-[#50AC66]" : "")} />
                                                                         )}
                                                                         <span>Mover a {stage.label}</span>
                                                                         {stage.complete && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
@@ -1440,11 +1438,11 @@ export default function ProyectoRequisicionesPage() {
 
                                                     {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
                                                         <DropdownMenuSub>
-                                                            <DropdownMenuSubTrigger className="gap-2 rounded-none text-muted-foreground focus:bg-muted data-[state=open]:bg-muted">
-                                                                <Receipt className="h-4 w-4 text-disabled-foreground" />
+                                                            <DropdownMenuSubTrigger className="gap-2  focus:bg-muted data-[state=open]:bg-muted">
+                                                                <Receipt className="h-4 w-4 " />
                                                                 Estado de pago
                                                             </DropdownMenuSubTrigger>
-                                                            <DropdownMenuSubContent className="w-52 rounded-none border-border p-1">
+                                                            <DropdownMenuSubContent className="w-52 border-border p-1">
                                                                 {(currentUser?.role === "finance"
                                                                     ? ["Pagado", "Cancelado"]
                                                                     : ["En proceso", "Pagado", "Cancelado"]
@@ -1452,10 +1450,10 @@ export default function ProyectoRequisicionesPage() {
                                                                     <DropdownMenuItem
                                                                         key={s}
                                                                         disabled={s === req.status}
-                                                                        className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
+                                                                        className="gap-2  focus:bg-muted focus:text-foreground"
                                                                         onClick={() => openPaymentStatusDialog(req, s)}
                                                                     >
-                                                                        <CreditCard className={cn("h-4 w-4", s === "Pagado" ? "text-[#50AC66]" : s === "Cancelado" ? "text-red-500" : "text-disabled-foreground")} />
+                                                                        <CreditCard className={cn("h-4 w-4", s === "Pagado" ? "text-[#50AC66]" : s === "Cancelado" ? "text-red-500" : "")} />
                                                                         {s}
                                                                         {s === req.status && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
                                                                     </DropdownMenuItem>
@@ -1467,11 +1465,11 @@ export default function ProyectoRequisicionesPage() {
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <DropdownMenuSub>
-                                                                <DropdownMenuSubTrigger className="gap-2 rounded-none text-muted-foreground focus:bg-muted data-[state=open]:bg-muted">
-                                                                    <Truck className="h-4 w-4 text-disabled-foreground" />
+                                                                <DropdownMenuSubTrigger className="gap-2  focus:bg-muted data-[state=open]:bg-muted">
+                                                                    <Truck className="h-4 w-4 " />
                                                                     Estado de entrega
                                                                 </DropdownMenuSubTrigger>
-                                                                <DropdownMenuSubContent className="w-52 rounded-none border-border p-1">
+                                                                <DropdownMenuSubContent className="w-52 border-border p-1">
                                                                     {["Pendiente", "Parcial", "Completo"].map(s => {
                                                                         const isCurrent = s === (req.status_entrega || "Pendiente");
 
@@ -1479,10 +1477,10 @@ export default function ProyectoRequisicionesPage() {
                                                                             <DropdownMenuItem
                                                                                 key={s}
                                                                                 disabled={isCurrent}
-                                                                                className="gap-2 rounded-none text-muted-foreground focus:bg-muted focus:text-foreground"
+                                                                                className="gap-2  focus:bg-muted focus:text-foreground"
                                                                                 onClick={() => openDeliveryStatusDialog(req, s)}
                                                                             >
-                                                                                <PackageCheck className={cn("h-4 w-4", s === "Completo" ? "text-[#50AC66]" : s === "Parcial" ? "text-yellow-600" : "text-disabled-foreground")} />
+                                                                                <PackageCheck className={cn("h-4 w-4", s === "Completo" ? "text-[#50AC66]" : s === "Parcial" ? "text-yellow-600" : "text-muted-foreground")} />
                                                                                 {s}
                                                                                 {isCurrent && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
                                                                             </DropdownMenuItem>
@@ -1512,9 +1510,9 @@ export default function ProyectoRequisicionesPage() {
                                                 className="p-1 hover:bg-muted rounded transition-colors"
                                             >
                                                 {isExpanded ? (
-                                                    <ChevronUp className="h-4 w-4 text-disabled-foreground" />
+                                                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
                                                 ) : (
-                                                    <ChevronDown className="h-4 w-4 text-disabled-foreground" />
+                                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                                 )}
                                             </button>
                                         </div>
@@ -1528,15 +1526,15 @@ export default function ProyectoRequisicionesPage() {
                                                 <table className="w-full border-separate border-spacing-y-2">
                                                     <thead>
                                                         <tr>
-                                                            <th className="px-4 py-3 text-left text-xs font-normal text-subtle-foreground">Partida / Subpartida</th>
-                                                            <th className="px-4 py-3 text-left text-xs font-normal text-subtle-foreground">Unidad</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-subtle-foreground">Cantidad</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-subtle-foreground">Precio Unitario</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-subtle-foreground">Ejercido</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-subtle-foreground">Solicitado</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-subtle-foreground">Aprobado</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-subtle-foreground">Monto</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-subtle-foreground w-[120px]"></th>
+                                                            <th className="px-4 py-3 text-left text-xs font-normal text-muted-foreground">Partida / Subpartida</th>
+                                                            <th className="px-4 py-3 text-left text-xs font-normal text-muted-foreground">Unidad</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-muted-foreground">Cantidad</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-muted-foreground">Precio Unitario</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-muted-foreground">Ejercido</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-muted-foreground">Solicitado</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-muted-foreground">Aprobado</th>
+                                                            <th className="px-4 py-3 text-right text-xs font-normal text-muted-foreground">Monto</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-normal text-muted-foreground w-[120px]"></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="text-foreground">
@@ -1592,18 +1590,18 @@ export default function ProyectoRequisicionesPage() {
                                                                                     onChange={(e) => updateEditedQty(item._id, Number(e.target.value))}
                                                                                     className="w-16 px-2 py-1 text-sm border border-border-strong text-center rounded-sm bg-card text-foreground"
                                                                                 />
-                                                                                <span className="text-xs text-disabled-foreground">{item.unidad}</span>
+                                                                                <span className="text-xs text-muted-foreground">{item.unidad}</span>
                                                                             </div>
                                                                         ) : qtyModified ? (
                                                                             <div className="flex items-center justify-center gap-1">
-                                                                                <span className="text-sm text-disabled-foreground line-through">{item.cantidad}</span>
+                                                                                <span className="text-sm text-muted-foreground line-through">{item.cantidad}</span>
                                                                                 <span className="text-sm text-foreground font-medium">{item.cantidad_aprobada}</span>
-                                                                                <span className="text-xs text-disabled-foreground">{item.unidad}</span>
+                                                                                <span className="text-xs text-muted-foreground">{item.unidad}</span>
                                                                             </div>
                                                                         ) : (
                                                                             <span className={cn(
                                                                                 "inline-flex items-center px-2.5 py-1 text-sm border rounded-sm",
-                                                                                isItemApproved ? "border-border-strong text-foreground bg-card" : "border-border text-disabled-foreground"
+                                                                                isItemApproved ? "border-border-strong text-foreground bg-card" : "border-border text-muted-foreground"
                                                                             )}>
                                                                                 {item.cantidad_aprobada ?? item.cantidad} {item.unidad}
                                                                             </span>
@@ -1617,19 +1615,19 @@ export default function ProyectoRequisicionesPage() {
                                                                         {showInlineReview ? (
                                                                             <div className="flex items-center justify-center gap-1.5">
                                                                                 {isLoading ? (
-                                                                                    <Loader2 className="w-5 h-5 animate-spin text-disabled-foreground" />
+                                                                                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                                                                                 ) : (
                                                                                     <>
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); handleApproveItem(item._id, editedQuantities[item._id] ?? item.cantidad); }}
-                                                                                            className="text-disabled-foreground hover:text-green-600 transition-colors"
+                                                                                            className="text-muted-foreground hover:text-green-600 transition-colors"
                                                                                             title="Aprobar"
                                                                                         >
                                                                                             <CheckCircle className="w-5 h-5" />
                                                                                         </button>
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); handleRejectItem(item._id); }}
-                                                                                            className="text-disabled-foreground hover:text-red-500 transition-colors"
+                                                                                            className="text-muted-foreground hover:text-red-500 transition-colors"
                                                                                             title="Rechazar"
                                                                                         >
                                                                                             <XCircle className="w-5 h-5" />
@@ -1656,9 +1654,9 @@ export default function ProyectoRequisicionesPage() {
 
                                             {/* Nota General */}
                                             <div className="ml-12 mt-4 border-l-2 border-border pl-4">
-                                                <p className="text-xs text-disabled-foreground mb-1">Nota General:</p>
+                                                <p className="text-xs text-muted-foreground mb-1">Nota General:</p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {req.descripcion || <span className="text-disabled-foreground italic">Sin notas</span>}
+                                                    {req.descripcion || <span className="text-muted-foreground italic">Sin notas</span>}
                                                 </p>
                                             </div>
                                         </div>
@@ -1700,7 +1698,7 @@ export default function ProyectoRequisicionesPage() {
 
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2 text-foreground">
-                                <MessageSquare className="h-4 w-4 text-disabled-foreground" />
+                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
                                 {isMarkingAsPaid ? "Comentario opcional" : "Comentario *"}
                             </Label>
                             <Textarea
@@ -1713,17 +1711,17 @@ export default function ProyectoRequisicionesPage() {
 
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2 text-foreground">
-                                <FileUp className="h-4 w-4 text-disabled-foreground" />
+                                <FileUp className="h-4 w-4 text-muted-foreground" />
                                 Documento opcional
                             </Label>
                             <label className="flex cursor-pointer items-center justify-between gap-3 border border-dashed border-border-strong px-4 py-3 text-sm text-muted-foreground hover:border-[#7EC18E]">
                                 <span className="flex min-w-0 items-center gap-2">
-                                    <Paperclip className="h-4 w-4 flex-shrink-0 text-disabled-foreground" />
+                                    <Paperclip className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                                     <span className="truncate">
                                         {statusHistoryDocument ? statusHistoryDocument.name : "Adjuntar comprobante, factura o evidencia"}
                                     </span>
                                 </span>
-                                <span className="text-xs text-disabled-foreground">Seleccionar</span>
+                                <span className="text-xs text-muted-foreground">Seleccionar</span>
                                 <input
                                     type="file"
                                     className="hidden"
@@ -1772,7 +1770,7 @@ export default function ProyectoRequisicionesPage() {
                         <div className="space-y-5 border-b border-border p-4 sm:space-y-6 sm:p-6 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2 text-xl font-normal text-foreground">
-                                    <Mail className="h-5 w-5 text-subtle-foreground" />
+                                    <Mail className="h-5 w-5 text-muted-foreground" />
                                     Notificaciones por correo
                                 </DialogTitle>
                                 <DialogDescription>
@@ -1799,19 +1797,19 @@ export default function ProyectoRequisicionesPage() {
                             <div className="border border-border bg-card p-4 text-sm">
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                                     <div>
-                                        <p className="text-xs text-disabled-foreground">Audiencia</p>
+                                        <p className="text-xs text-muted-foreground">Audiencia</p>
                                         <p className="mt-1 text-foreground">{selectedNotificationConfig.audienceLabel}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-disabled-foreground">Canal</p>
+                                        <p className="text-xs text-muted-foreground">Canal</p>
                                         <p className="mt-1 text-foreground">{selectedNotificationConfig.channelsLabel}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-disabled-foreground">Prioridad</p>
+                                        <p className="text-xs text-muted-foreground">Prioridad</p>
                                         <p className="mt-1 text-foreground">{selectedNotificationConfig.priorityLabel}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-disabled-foreground">SLA</p>
+                                        <p className="text-xs text-muted-foreground">SLA</p>
                                         <p className="mt-1 text-foreground">{selectedNotificationConfig.slaLabel}</p>
                                     </div>
                                 </div>
@@ -1845,9 +1843,9 @@ export default function ProyectoRequisicionesPage() {
                             </div>
 
                             <div className="border border-border bg-card p-4">
-                                <p className="text-sm text-subtle-foreground">Destinatarios</p>
+                                <p className="text-sm text-muted-foreground">Destinatarios</p>
                                 <p className="mt-1 text-2xl text-foreground">{recipientsToNotifyCount}</p>
-                                <p className="mt-1 text-xs text-subtle-foreground">Usuarios activos que coinciden con la audiencia definida.</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Usuarios activos que coinciden con la audiencia definida.</p>
                                 {notificationRequiresMissingReq && (
                                     <p className="mt-2 text-xs text-red-600">Este tipo requiere seleccionar una requisición.</p>
                                 )}
@@ -1856,18 +1854,18 @@ export default function ProyectoRequisicionesPage() {
                             <div className="border border-border bg-card p-4">
                                 <div className="flex items-center justify-between gap-3">
                                     <p className="text-sm font-medium text-foreground">Eventos recientes</p>
-                                    <Badge variant="outline" className="rounded-none text-[10px]">
+                                    <Badge variant="outline" className="text-[10px]">
                                         notification_events
                                     </Badge>
                                 </div>
                                 <div className="mt-3 space-y-3">
                                     {!notificationEvents ? (
-                                        <div className="flex items-center gap-2 text-xs text-subtle-foreground">
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                             Cargando eventos...
                                         </div>
                                     ) : notificationEvents.length === 0 ? (
-                                        <p className="text-xs text-subtle-foreground">Aun no hay envios registrados para este proyecto.</p>
+                                        <p className="text-xs text-muted-foreground">Aun no hay envios registrados para este proyecto.</p>
                                     ) : (
                                         notificationEvents.map((event) => {
                                             const readCount = event.deliveries.filter((delivery) => Boolean(delivery.read_at)).length;
@@ -1876,7 +1874,7 @@ export default function ProyectoRequisicionesPage() {
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="min-w-0">
                                                             <p className="truncate text-sm font-medium text-foreground">{event.subject}</p>
-                                                            <p className="mt-1 text-xs text-subtle-foreground">
+                                                            <p className="mt-1 text-xs text-muted-foreground">
                                                                 {event.actor_name} · {formatNotificationDate(event.sent_at || event.created_at)}
                                                             </p>
                                                         </div>
@@ -1947,13 +1945,13 @@ export default function ProyectoRequisicionesPage() {
                                                 <span> en </span>
                                                 <span className="font-semibold">{notificationCopy.requisicionTitle}</span>
                                             </p>
-                                            <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-subtle-foreground">
+                                            <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-muted-foreground">
                                                 <span className="h-2 w-2 rounded-full bg-[#50AC66]" />
                                                 <span>{proyecto.nombre}</span>
-                                                <ChevronDown className="h-4 w-4 -rotate-90 text-disabled-foreground" />
+                                                <ChevronDown className="h-4 w-4 -rotate-90 text-muted-foreground" />
                                                 <span>{notificationCopy.statusLabel}</span>
                                             </div>
-                                            <p className="mt-8 text-sm text-subtle-foreground">
+                                            <p className="mt-8 text-sm text-muted-foreground">
                                                 {new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                                             </p>
                                             <p className="mt-6 text-lg leading-relaxed text-foreground">
@@ -2111,48 +2109,48 @@ export default function ProyectoRequisicionesPage() {
                                 <div className="space-y-4 overflow-y-auto flex-1">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-subtle-foreground">Razón Social</Label>
+                                            <Label className="text-xs text-muted-foreground">Razón Social</Label>
                                             <p className="">{viewingProvider.razon_social}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-subtle-foreground">RFC</Label>
+                                            <Label className="text-xs text-muted-foreground">RFC</Label>
                                             <p className="">{viewingProvider.rfc}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label className="text-xs text-subtle-foreground">Dirección</Label>
+                                        <Label className="text-xs text-muted-foreground">Dirección</Label>
                                         <p>{viewingProvider.direccion || "No especificada"}</p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-subtle-foreground">Contacto</Label>
+                                            <Label className="text-xs text-muted-foreground">Contacto</Label>
                                             <p>{viewingProvider.nombre_contacto || "No especificado"}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-subtle-foreground">Teléfono</Label>
+                                            <Label className="text-xs text-muted-foreground">Teléfono</Label>
                                             <p>{viewingProvider.telefono_contacto || "No especificado"}</p>
                                         </div>
                                     </div>
                                     <div className="border-t pt-4">
-                                        <Label className="text-xs text-subtle-foreground block mb-2">Información Bancaria</Label>
+                                        <Label className="text-xs text-muted-foreground block mb-2">Información Bancaria</Label>
                                         <div className="grid grid-cols-3 gap-4">
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-disabled-foreground">Banco</Label>
+                                                <Label className="text-xs text-muted-foreground">Banco</Label>
                                                 <p className="text-sm">{viewingProvider.banco || "-"}</p>
                                             </div>
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-disabled-foreground">Cuenta</Label>
+                                                <Label className="text-xs text-muted-foreground">Cuenta</Label>
                                                 <p className="text-sm">{viewingProvider.cuenta || "-"}</p>
                                             </div>
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-disabled-foreground">CLABE</Label>
+                                                <Label className="text-xs text-muted-foreground">CLABE</Label>
                                                 <p className="text-sm">{viewingProvider.clabe || "-"}</p>
                                             </div>
                                         </div>
                                     </div>
                                     {viewingProvider.creator_name && (
                                         <div className="border-t pt-4">
-                                            <p className="text-xs text-disabled-foreground">
+                                            <p className="text-xs text-muted-foreground">
                                                 Creado por: {viewingProvider.creator_name}
                                             </p>
                                         </div>
@@ -2223,7 +2221,7 @@ export default function ProyectoRequisicionesPage() {
                                 <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
                                     {/* Search */}
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-disabled-foreground" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <Input
                                             placeholder="Buscar por nombre, RFC o contacto..."
                                             value={providerSearchTerm}
@@ -2235,7 +2233,7 @@ export default function ProyectoRequisicionesPage() {
                                     {/* Provider List */}
                                     <div className="flex-1 overflow-y-auto border rounded-lg max-h-[300px]">
                                         {filteredProviders.length === 0 ? (
-                                            <div className="p-8 text-center text-subtle-foreground">
+                                            <div className="p-8 text-center text-muted-foreground">
                                                 {providerSearchTerm ? "No se encontraron proveedores" : "No hay proveedores registrados"}
                                             </div>
                                         ) : (
@@ -2249,9 +2247,9 @@ export default function ProyectoRequisicionesPage() {
                                                     >
                                                         <div className="flex-1 min-w-0">
                                                             <p className=" text-foreground truncate">{proveedor.razon_social}</p>
-                                                            <p className="text-sm text-subtle-foreground">{proveedor.rfc}</p>
+                                                            <p className="text-sm text-muted-foreground">{proveedor.rfc}</p>
                                                             {proveedor.nombre_contacto && (
-                                                                <p className="text-xs text-disabled-foreground">{proveedor.nombre_contacto}</p>
+                                                                <p className="text-xs text-muted-foreground">{proveedor.nombre_contacto}</p>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-1 ml-2">
@@ -2263,7 +2261,7 @@ export default function ProyectoRequisicionesPage() {
                                                                 className="p-1.5 hover:bg-disabled rounded"
                                                                 title="Ver detalles"
                                                             >
-                                                                <Eye className="h-4 w-4 text-subtle-foreground" />
+                                                                <Eye className="h-4 w-4 text-muted-foreground" />
                                                             </button>
                                                             {canEditProvider(proveedor) && (
                                                                 <button
@@ -2275,7 +2273,7 @@ export default function ProyectoRequisicionesPage() {
                                                                     className="p-1.5 hover:bg-disabled rounded"
                                                                     title="Editar"
                                                                 >
-                                                                    <Edit2 className="h-4 w-4 text-subtle-foreground" />
+                                                                    <Edit2 className="h-4 w-4 text-muted-foreground" />
                                                                 </button>
                                                             )}
                                                         </div>

@@ -155,7 +155,7 @@ export default function BarHorizontalChart({ constructionData }: { constructionD
           />
         </div>
 
-        <div className="mt-4 text-xs text-subtle-foreground text-center">
+        <div className="mt-4 text-xs text-muted-foreground text-center">
           Mostrando los {data[0]?.data.length || 0} materiales con mayor valor total
         </div>
       </div>

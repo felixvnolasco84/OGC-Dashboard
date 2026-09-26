@@ -336,9 +336,9 @@ export default function UploadProjectTransactionsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent data-square-modal="" className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent data-square-modal="" variant="upload">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-normal">Subir pagos y fuerza laboral</DialogTitle>
+          <DialogTitle variant="upload">Subir pagos y fuerza laboral</DialogTitle>
           <DialogDescription>
             {proyectoNombre ? `Proyecto: ${proyectoNombre}. ` : ""}
             El archivo se procesa localmente y la carga completa se confirma en una sola operación.
@@ -353,8 +353,8 @@ export default function UploadProjectTransactionsModal() {
                 <Label>Archivo Excel *</Label>
                 <div
                   className={`border-2 border-dashed rounded-none p-8 text-center transition-colors ${
-                    dragActive ? "border-blue-500 bg-blue-50" :
-                    file ? "border-green-500 bg-green-50" : "border-border-strong hover:border-border-strong"
+                    dragActive ? "border-info-border bg-info-muted" :
+                    file ? "border-success-border bg-success-muted" : "border-border-strong hover:border-border-strong"
                   }`}
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
@@ -364,10 +364,10 @@ export default function UploadProjectTransactionsModal() {
                   {file ? (
                     <div className="space-y-4">
                       <div className="flex items-center justify-center gap-3">
-                        <FileSpreadsheet className="h-9 w-9 text-green-600" />
+                        <FileSpreadsheet className="h-9 w-9 text-success" />
                         <div className="text-left">
                           <p className="font-medium">{file.name}</p>
-                          <p className="text-sm text-subtle-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                          <p className="text-sm text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                         </div>
                       </div>
                       <div className="flex justify-center gap-2">
@@ -386,7 +386,7 @@ export default function UploadProjectTransactionsModal() {
                       <Button type="button" variant="outline" onClick={() => document.getElementById("labor-payment-file")?.click()}>
                         Explorar archivos
                       </Button>
-                      <p className="text-xs text-subtle-foreground">.xlsx o .xls · máximo 10 MB y 1,000 filas</p>
+                      <p className="text-xs text-muted-foreground">.xlsx o .xls · máximo 10 MB y 1,000 filas</p>
                     </div>
                   )}
                   <input
@@ -400,11 +400,11 @@ export default function UploadProjectTransactionsModal() {
               </div>
 
               {fileErrors.length > 0 && (
-                <div className="border border-red-200 bg-red-50 rounded-none p-4">
-                  <div className="flex items-center gap-2 text-red-700 font-medium mb-2">
+                <div className="border border-danger-border bg-danger-muted rounded-none p-4">
+                  <div className="flex items-center gap-2 text-danger font-medium mb-2">
                     <XCircle className="h-5 w-5" /> Errores de validación
                   </div>
-                  <ul className="list-disc pl-5 text-sm text-red-700 space-y-1">
+                  <ul className="list-disc pl-5 text-sm text-danger space-y-1">
                     {fileErrors.map((error) => <li key={error}>{error}</li>)}
                   </ul>
                 </div>
@@ -415,7 +415,7 @@ export default function UploadProjectTransactionsModal() {
           {currentStep === "preview" && validationReport && (
             <div className="space-y-5">
               <div className={`flex items-center gap-2 p-3 rounded-none ${
-                hasBlockingErrors ? "text-red-700 bg-red-50" : "text-blue-700 bg-blue-50"
+                hasBlockingErrors ? "text-danger bg-danger-muted" : "text-info bg-info-muted"
               }`}>
                 {hasBlockingErrors ? <XCircle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
                 <span className="text-sm font-medium">
@@ -426,24 +426,24 @@ export default function UploadProjectTransactionsModal() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold">{validationReport.parsed.weeks.length}</p>
-                  <p className="text-xs text-subtle-foreground">Cortes</p>
+                  <p className="text-xs text-muted-foreground">Cortes</p>
                 </div>
                 <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold">{validationReport.transactions.length}</p>
-                  <p className="text-xs text-subtle-foreground">Pagos</p>
+                  <p className="text-xs text-muted-foreground">Pagos</p>
                 </div>
                 <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold">{lastWeek?.total_people || 0}</p>
-                  <p className="text-xs text-subtle-foreground">Personas último corte</p>
+                  <p className="text-xs text-muted-foreground">Personas último corte</p>
                 </div>
                 <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-lg font-semibold">{formatCurrency(validationReport.parsed.amountTotal, validationReport.parsed.currency)}</p>
-                  <p className="text-xs text-subtle-foreground">Monto total</p>
+                  <p className="text-xs text-muted-foreground">Monto total</p>
                 </div>
               </div>
 
               {(validationReport.unchanged || validationReport.replacedDates.length > 0 || validationReport.parsed.projectMatchMode === "alias") && (
-                <div className="border border-amber-200 bg-amber-50 rounded-none p-3 text-sm text-amber-800">
+                <div className="border border-warning-border bg-warning-muted rounded-none p-3 text-sm text-warning">
                   <AlertTriangle className="inline h-4 w-4 mr-2" />
                   {validationReport.parsed.projectMatchMode === "alias" && (
                     <span>
@@ -459,9 +459,9 @@ export default function UploadProjectTransactionsModal() {
               )}
 
               {validationReport.parsed.warnings.length > 0 && (
-                <div className="border border-amber-200 bg-amber-50 rounded-none p-3">
-                  <p className="font-medium text-amber-800 mb-1">Advertencias</p>
-                  <ul className="list-disc pl-5 text-sm text-amber-800">
+                <div className="border border-warning-border bg-warning-muted rounded-none p-3">
+                  <p className="font-medium text-warning mb-1">Advertencias</p>
+                  <ul className="list-disc pl-5 text-sm text-warning">
                     {validationReport.parsed.warnings.map((warning) => <li key={warning}>{warning}</li>)}
                   </ul>
                 </div>
@@ -500,7 +500,7 @@ export default function UploadProjectTransactionsModal() {
                         <td className="p-2 font-mono text-xs">{transaction.factura}</td>
                         <td className="p-2">
                           <span className="block">{transaction.providerName}</span>
-                          <span className="text-xs text-subtle-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {transaction.providerType === "generico" ? "Genérico" :
                               transaction.providerStatus === "matched" ? "Existente" :
                               transaction.providerStatus === "new" ? "Nuevo" :
@@ -512,9 +512,9 @@ export default function UploadProjectTransactionsModal() {
                         <td className="p-2 text-center">{transaction.itemCount}</td>
                         <td className="p-2">
                           {transaction.errors.length ? (
-                            <span className="text-red-700 text-xs">{transaction.errors.join(" ")}</span>
+                            <span className="text-danger text-xs">{transaction.errors.join(" ")}</span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-green-700"><CheckCircle2 className="h-4 w-4" /> Válida</span>
+                            <span className="inline-flex items-center gap-1 text-success"><CheckCircle2 className="h-4 w-4" /> Válida</span>
                           )}
                         </td>
                       </tr>
@@ -527,7 +527,7 @@ export default function UploadProjectTransactionsModal() {
 
           {currentStep === "result" && uploadReport && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-700 bg-green-50 p-4 rounded-none">
+              <div className="flex items-center gap-2 text-success bg-success-muted p-4 rounded-none">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="font-medium">
                   {uploadReport.status === "unchanged" ? "Archivo sin cambios" :
@@ -535,14 +535,14 @@ export default function UploadProjectTransactionsModal() {
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.transactionCount}</strong><p className="text-xs text-subtle-foreground">Pagos</p></div>
-                <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.rowCount}</strong><p className="text-xs text-subtle-foreground">Conceptos</p></div>
-                <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.totalPeople}</strong><p className="text-xs text-subtle-foreground">Personas</p></div>
-                <div className="bg-background p-3 rounded-none text-center"><strong className="text-lg">{formatCurrency(uploadReport.amountTotal, validationReport?.parsed.currency)}</strong><p className="text-xs text-subtle-foreground">Monto</p></div>
+                <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.transactionCount}</strong><p className="text-xs text-muted-foreground">Pagos</p></div>
+                <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.rowCount}</strong><p className="text-xs text-muted-foreground">Conceptos</p></div>
+                <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.totalPeople}</strong><p className="text-xs text-muted-foreground">Personas</p></div>
+                <div className="bg-background p-3 rounded-none text-center"><strong className="text-lg">{formatCurrency(uploadReport.amountTotal, validationReport?.parsed.currency)}</strong><p className="text-xs text-muted-foreground">Monto</p></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-50 p-3 text-center text-blue-800"><strong className="text-xl">{uploadReport.providersCreated}</strong><p className="text-xs">Proveedores creados</p></div>
-                <div className="bg-green-50 p-3 text-center text-green-800"><strong className="text-xl">{uploadReport.providersReused}</strong><p className="text-xs">Proveedores existentes reutilizados</p></div>
+                <div className="bg-info-muted p-3 text-center text-info"><strong className="text-xl">{uploadReport.providersCreated}</strong><p className="text-xs">Proveedores creados</p></div>
+                <div className="bg-success-muted p-3 text-center text-success"><strong className="text-xl">{uploadReport.providersReused}</strong><p className="text-xs">Proveedores existentes reutilizados</p></div>
               </div>
               <p className="text-sm text-muted-foreground">
                 Cortes: {uploadReport.dates.map(formatDate).join(", ")}. Lotes reemplazados: {uploadReport.replacedDates}.

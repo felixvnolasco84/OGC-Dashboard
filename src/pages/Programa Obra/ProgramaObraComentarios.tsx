@@ -173,7 +173,7 @@ export default function ProgramaObraComentarios({ item, proyectoId, onClose }: P
                 // Inline edit form
                 <div key={c._id} className="border border-blue-300 bg-blue-50/30 p-3 space-y-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-subtle-foreground">Comentario</Label>
+                    <Label className="text-xs text-muted-foreground">Comentario</Label>
                     <Textarea
                       value={editComentario}
                       onChange={(e) => setEditComentario(e.target.value)}
@@ -182,7 +182,7 @@ export default function ProgramaObraComentarios({ item, proyectoId, onClose }: P
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-subtle-foreground">Fecha inicio</Label>
+                      <Label className="text-xs text-muted-foreground">Fecha inicio</Label>
                       <Input
                         type="date"
                         value={editFechaInicio}
@@ -191,7 +191,7 @@ export default function ProgramaObraComentarios({ item, proyectoId, onClose }: P
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-subtle-foreground">Fecha fin</Label>
+                      <Label className="text-xs text-muted-foreground">Fecha fin</Label>
                       <Input
                         type="date"
                         value={editFechaFin}
@@ -239,7 +239,7 @@ export default function ProgramaObraComentarios({ item, proyectoId, onClose }: P
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-subtle-foreground">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span>
                       {formatDisplayDate(c.fecha_inicio)} → {formatDisplayDate(c.fecha_fin)}
                     </span>
@@ -260,7 +260,7 @@ export default function ProgramaObraComentarios({ item, proyectoId, onClose }: P
           {showForm ? (
             <div className="space-y-3 border border-dashed border-border-strong p-3">
               <div className="space-y-1.5">
-                <Label className="text-xs text-subtle-foreground">Comentario</Label>
+                <Label className="text-xs text-muted-foreground">Comentario</Label>
                 <Textarea
                   value={comentario}
                   onChange={(e) => setComentario(e.target.value)}
@@ -270,7 +270,7 @@ export default function ProgramaObraComentarios({ item, proyectoId, onClose }: P
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-subtle-foreground">Fecha inicio</Label>
+                  <Label className="text-xs text-muted-foreground">Fecha inicio</Label>
                   <Input
                     type="date"
                     value={fechaInicio}
@@ -279,7 +279,7 @@ export default function ProgramaObraComentarios({ item, proyectoId, onClose }: P
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-subtle-foreground">Fecha fin</Label>
+                  <Label className="text-xs text-muted-foreground">Fecha fin</Label>
                   <Input
                     type="date"
                     value={fechaFin}

@@ -352,7 +352,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               />
               {/* % label on the right */}
               {avanceReal > 0 && (
-                <span className="absolute -right-10 top-0 text-[10px] text-subtle-foreground leading-[10px]">
+                <span className="absolute -right-10 top-0 text-[10px] text-muted-foreground leading-[10px]">
                   {Math.round(avanceReal)}%
                 </span>
               )}

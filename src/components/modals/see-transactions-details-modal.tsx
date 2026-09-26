@@ -98,7 +98,7 @@ export default function SeeTransactionsDetailsModal() {
         });
 
         // Sort by date descending (most recent first)
-        return Array.from(transactionMap.values()).sort((a, b) => 
+        return Array.from(transactionMap.values()).sort((a, b) =>
             parseDateForSort(b.transaction.fecha) - parseDateForSort(a.transaction.fecha)
         );
     };
@@ -113,13 +113,13 @@ export default function SeeTransactionsDetailsModal() {
     // TODO: IMPLEMENT THIS SOLUTION FOR THE REST OF THE MODALS
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto bg-white">
+            <SheetContent data-square-modal="" variant="paymentDetails">
                 {paymentContext && (
                     <>
                         <div className="flex justify-end mt-4 items-end">
-                            <Button size={"default"} variant="secondary" onClick={handleOpenAddPayment}>
+                            <Button size={"default"} variant="outline" onClick={handleOpenAddPayment}>
                                 Nuevo Pago
-                                <Plus className="h-3 w-3 bg-muted-foreground text-on-color p-0.5 rounded-none" />
+                                <Plus />
                             </Button>
                         </div>
                         <SheetHeader>
@@ -130,7 +130,7 @@ export default function SeeTransactionsDetailsModal() {
                         </SheetHeader>
 
                         {/* Payment Summary */}
-                        <Card className="mt-4 rounded-none border-none shadow-none">
+                        <div className="mt-4"><Card variant="flat">
                             <CardHeader>
                                 <div className="flex justify-between items-end">
                                     <div>
@@ -147,10 +147,10 @@ export default function SeeTransactionsDetailsModal() {
                                             <>
                                                 <h3>{paymentContext.relatedPartida.partida_nombre || paymentContext.relatedPartida.nombre}</h3>
                                                 <h4 className="text-muted-foreground">{paymentContext.relatedPartida.familia}</h4>
-                                                <h5 className="text-subtle-foreground">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
+                                                <h5 className="text-muted-foreground">{paymentContext.relatedPartida.sub_partida || paymentContext.relatedPartida.nombre}</h5>
                                             </>}
                                     </div>
-                                    <CardDescription className="text-disabled-foreground text-right text-base">
+                                    <CardDescription variant="prominent">
                                         {paymentContext.relatedPartida?.nivel === 1 && 'Partida'}
                                         {paymentContext.relatedPartida?.nivel === 2 && 'Familia'}
                                         {paymentContext.relatedPartida?.nivel === 3 && 'Sub-partida'}
@@ -160,19 +160,19 @@ export default function SeeTransactionsDetailsModal() {
                                     </span> */}
                                 </div>
                             </CardHeader>
-                            <CardContent className="space-y-8">
+                            <CardContent variant="spacious">
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
                                         {getTotalPaidPercentage() > 100 && (
-                                            <Badge variant="destructive" className="text-xs">
+                                            <Badge variant="destructive">
                                                 Sobrepasado {getTotalPaidPercentage().toFixed(1)}%
                                             </Badge>
                                         )}
                                     </div>
                                     {/* Progress Bar with Over 100% handling */}
-                                    <div className={`w-full h-2 mb-6 ${getTotalPaidPercentage() > 100 ? 'bg-red-200' : 'bg-green-200'}`}>
+                                    <div className={`w-full h-2 mb-6 ${getTotalPaidPercentage() > 100 ? 'bg-danger-border' : 'bg-success-border'}`}>
                                         <div
-                                            className={`h-2 transition-all duration-300 ${getTotalPaidPercentage() > 100 ? 'bg-red-500' : 'bg-green-500'}`}
+                                            className={`h-2 transition-all duration-300 ${getTotalPaidPercentage() > 100 ? 'bg-danger-muted0' : 'bg-success-muted0'}`}
                                             style={{ width: `${Math.min(getTotalPaidPercentage(), 100)}%` }}
                                         ></div>
                                     </div>
@@ -180,31 +180,31 @@ export default function SeeTransactionsDetailsModal() {
 
                                 <div className="grid grid-cols-3 gap-20 justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-subtle-foreground">Presupuesto probado</p>
+                                        <p className="text-sm text-muted-foreground">Presupuesto aprobado</p>
                                         <p className="text-lg">{formatCurrency(paymentContext.totalAmount)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-subtle-foreground text-left">Pagado</p>
-                                        <p className="text-lg text-green-800 text-left">{formatCurrency(getTotalPaidAmount())}</p>
+                                        <p className="text-sm text-muted-foreground text-left">Pagado</p>
+                                        <p className="text-lg text-success text-left">{formatCurrency(getTotalPaidAmount())}</p>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <p className="text-sm font-medium text-subtle-foreground text-right">Por ejercer</p>
+                                        <p className="text-sm text-muted-foreground text-right">Por ejercer</p>
                                         {getRemainingAmount() > 0 && (
-                                            <p className="text-lg text-orange-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
+                                            <p className="text-lg text-warning text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
                                         )}
                                         {getRemainingAmount() <= 0 && getRemainingAmount() > -0.01 && (
-                                            <p className="text-lg text-green-800 text-right mb-1">{formatCurrency(0)}</p>
+                                            <p className="text-lg text-success text-right mb-1">{formatCurrency(0)}</p>
                                         )}
                                         {getRemainingAmount() < -0.01 && (
-                                            <p className="text-lg text-red-800 text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
+                                            <p className="text-lg text-danger text-right mb-1">{formatCurrency(getRemainingAmount())}</p>
                                         )}
-                                        <Badge variant={"outline"} className="w-fit">
+                                        <Badge variant="outline">
                                             {getRemainingAmount() >= 0 ? `Pendiente ${(getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%` : `${(getRemainingAmount() / paymentContext.totalAmount * 100).toFixed(0)}%`}
                                         </Badge>
                                     </div>
                                 </div>
                             </CardContent>
-                        </Card>
+                        </Card></div>
 
 
                         <Separator className="my-4" />

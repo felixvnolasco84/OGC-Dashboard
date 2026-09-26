@@ -318,7 +318,7 @@ function UpdatedFieldDetails({ entry }: { entry: HistoryEntry }) {
 
   return (
     <div className="mt-2 p-3 bg-card border border-border text-xs space-y-2 text-left">
-      <div className="text-subtle-foreground font-medium mb-1">{fieldLabel}</div>
+      <div className="text-muted-foreground font-medium mb-1">{fieldLabel}</div>
       {isItems ? (
         // Items: show as lists
         <div className="space-y-2">
@@ -413,7 +413,7 @@ function ReviewedDetails({ entry }: { entry: HistoryEntry }) {
       {/* Summary counts */}
       {itemsTotal !== undefined && (
         <div className="flex items-center gap-3 text-xs">
-          <span className="text-subtle-foreground">{itemsTotal} items</span>
+          <span className="text-muted-foreground">{itemsTotal} items</span>
           {itemsApproved !== undefined && itemsApproved > 0 && (
             <span className="text-green-600 font-medium">✓ {itemsApproved} aprobado{itemsApproved !== 1 ? "s" : ""}</span>
           )}
@@ -435,7 +435,7 @@ function ReviewedDetails({ entry }: { entry: HistoryEntry }) {
               <span className={cn(
                 "text-[10px] font-medium w-16 flex-shrink-0",
                 item.status_revision === "aprobado" ? "text-green-700" :
-                item.status_revision === "rechazado" ? "text-red-700" : "text-subtle-foreground"
+                item.status_revision === "rechazado" ? "text-red-700" : "text-muted-foreground"
               )}>
                 {item.status_revision === "aprobado" ? "✓ Aprobado" : 
                  item.status_revision === "rechazado" ? "✕ Rechazado" : "Pendiente"}
@@ -443,7 +443,7 @@ function ReviewedDetails({ entry }: { entry: HistoryEntry }) {
               <span className="text-foreground flex-1 truncate">
                 {item.familia}{item.sub_partida ? ` > ${item.sub_partida}` : ""}
               </span>
-              <span className="text-subtle-foreground whitespace-nowrap">
+              <span className="text-muted-foreground whitespace-nowrap">
                 {item.cantidad_solicitada} {item.unidad}
               </span>
               {item.status_revision === "aprobado" && item.cantidad_aprobada !== undefined && 
@@ -500,7 +500,7 @@ function ResubmittedDetails({ entry }: { entry: HistoryEntry }) {
         <span className="px-2 py-0.5 rounded-none bg-amber-50 text-amber-700 font-medium">Pendiente de revisión</span>
       </div>
       {notaRevision && (
-        <p className="text-subtle-foreground italic">Nota anterior: "{notaRevision}"</p>
+        <p className="text-muted-foreground italic">Nota anterior: "{notaRevision}"</p>
       )}
     </div>
   );
@@ -545,7 +545,7 @@ export default function RequisicionHistoryModal() {
             <h2 className="text-lg font-semibold text-foreground">
               {mode === "all" ? "Historial de Requisiciones" : "Historial de Cambios"}
             </h2>
-            <p className="text-sm text-subtle-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {mode === "all" 
                 ? "Todos los cambios realizados en requisiciones" 
                 : "Cambios realizados en esta requisición"}
@@ -555,7 +555,7 @@ export default function RequisicionHistoryModal() {
             onClick={close}
             className="p-2 hover:bg-muted rounded-none transition-colors"
           >
-            <X className="w-5 h-5 text-subtle-foreground" />
+            <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
@@ -566,7 +566,7 @@ export default function RequisicionHistoryModal() {
               <div className="animate-spin rounded-none h-8 w-8 border-b-2 border-foreground" />
             </div>
           ) : history.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-subtle-foreground">
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Clock className="w-12 h-12 mb-4 text-disabled-foreground" />
               <p className="text-sm">No hay cambios registrados</p>
             </div>
@@ -634,7 +634,7 @@ export default function RequisicionHistoryModal() {
                               )}>
                                 {entry.requisicion.tipo}
                               </span>
-                              <span className="text-xs text-subtle-foreground">
+                              <span className="text-xs text-muted-foreground">
                                 {entry.requisicion.solicitante_nombre}
                               </span>
                             </div>
@@ -660,7 +660,7 @@ export default function RequisicionHistoryModal() {
                       {/* User footer */}
                       <p className="text-xs text-disabled-foreground mt-2 flex items-center gap-1">
                         <span>por</span>
-                        <span className="font-medium text-subtle-foreground">{entry.changed_by_name}</span>
+                        <span className="font-medium text-muted-foreground">{entry.changed_by_name}</span>
                       </p>
                     </div>
                   </div>

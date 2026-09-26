@@ -318,7 +318,7 @@ export default function FamiliaChart({
                                 />
                             </svg>
                         </div>
-                        <p className="text-sm text-subtle-foreground font-medium">Sin datos para mostrar</p>
+                        <p className="text-sm text-muted-foreground font-medium">Sin datos para mostrar</p>
                         <p className="text-xs text-disabled-foreground mt-1">
                             Ajusta los filtros para ver información
                         </p>

@@ -466,7 +466,7 @@ export default function AddProyectoModal() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-subtle-foreground">
+              <p className="text-xs text-muted-foreground">
                 Opcional. Se utilizará para filtrar y agrupar el proyecto.
               </p>
             </div>
@@ -485,7 +485,7 @@ export default function AddProyectoModal() {
                 step="0.01"
                 className="rounded-none"
               />
-              <p className="text-xs text-subtle-foreground">Porcentaje que se aplicará sobre el total de transacciones para calcular honorarios</p>
+              <p className="text-xs text-muted-foreground">Porcentaje que se aplicará sobre el total de transacciones para calcular honorarios</p>
             </div>
 
             <Separator />
@@ -508,7 +508,7 @@ export default function AddProyectoModal() {
                     <FileSpreadsheet className="h-8 w-8 text-green-600" />
                     <div className="text-left">
                       <p className="font-medium text-foreground">{file.name}</p>
-                      <p className="text-sm text-subtle-foreground">{formatFileSize(file.size)}</p>
+                      <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 justify-center">
@@ -546,7 +546,7 @@ export default function AddProyectoModal() {
                     <p className="text-lg font-medium text-foreground">
                       Arrastra y suelta un archivo Excel aquí
                     </p>
-                    <p className="text-sm text-subtle-foreground mt-1">o</p>
+                    <p className="text-sm text-muted-foreground mt-1">o</p>
                   </div>
                   <div>
                     <Button

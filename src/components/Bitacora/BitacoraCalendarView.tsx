@@ -32,19 +32,51 @@ export default function BitacoraCalendarView({ proyectoId, logEntries, canCreate
 
   const dateKey = (day: number) => `${String(day).padStart(2, "0")}/${String(month + 1).padStart(2, "0")}/${year}`;
 
-  return <section className="border border-border bg-card p-4 md:p-6">
-    <div className="mb-5 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3"><h2 className="text-xl font-medium">{monthNames[month]} {year}</h2><Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>Hoy</Button></div>
-      <div className="flex"><Button variant="ghost" size="icon" onClick={() => setCurrentDate(new Date(year, month - 1, 1))}><ChevronLeft className="h-5 w-5" /></Button><Button variant="ghost" size="icon" onClick={() => setCurrentDate(new Date(year, month + 1, 1))}><ChevronRight className="h-5 w-5" /></Button></div>
-    </div>
-    <div className="grid grid-cols-7 border-l border-t border-border">
-      {weekDays.map((day) => <div key={day} className="border-b border-r border-border bg-muted/40 p-2 text-center text-xs font-medium md:text-sm">{day}</div>)}
-      {cells.map((day, index) => day === null
-        ? <div key={`empty-${index}`} className="min-h-20 border-b border-r border-border bg-muted/10 md:min-h-32" />
-        : <div key={day} className="group min-h-20 border-b border-r border-border p-1.5 md:min-h-32 md:p-2" onClick={() => canCreate && onOpenModal({ proyectoId, mode: "create", fecha: dateKey(day) })}>
-          <div className="mb-1 flex items-center justify-between text-xs font-medium md:text-sm"><span>{day}</span>{canCreate && <Plus className="h-3 w-3 opacity-0 group-hover:opacity-100" />}</div>
-          <div className="space-y-1">{(byDate[dateKey(day)] ?? []).slice(0, 3).map((entry) => <button key={entry.client_id} type="button" className="flex w-full items-center gap-1 truncate bg-blue-50 px-1.5 py-1 text-left text-[10px] text-blue-800 md:text-xs" onClick={(event) => { event.stopPropagation(); onOpenModal({ proyectoId, mode: "view", logEntry: entry }); }}><Eye className="h-3 w-3 shrink-0" /><span className="truncate">{entry.categoria}</span></button>)}</div>
-        </div>)}
-    </div>
-  </section>;
+  return (
+    <section className="border border-border bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-5 md:px-6">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl text-foreground">{monthNames[month]} {year}</h2>
+          <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>Hoy</Button>
+        </div>
+        <div className="flex items-center">
+          <Button variant="ghost" size="sm" aria-label="Mes anterior" onClick={() => setCurrentDate(new Date(year, month - 1, 1))}><ChevronLeft /></Button>
+          <Button variant="ghost" size="sm" aria-label="Mes siguiente" onClick={() => setCurrentDate(new Date(year, month + 1, 1))}><ChevronRight /></Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-7">
+        {weekDays.map((day) => <div key={day} className="border-b border-r border-border bg-muted p-2 text-center text-xs font-medium text-muted-foreground last:border-r-0 md:text-sm">{day}</div>)}
+        {cells.map((day, index) => day === null
+          ? <div key={`empty-${index}`} className="min-h-20 border-b border-r border-border bg-background md:min-h-32" />
+          : <div key={day} className="min-h-20 min-w-0 border-b border-r border-border p-1.5 md:min-h-32 md:p-2">
+            {canCreate ? (
+              <div className="mb-1">
+              <Button
+                type="button"
+                aria-label={`Agregar reporte para el ${day} de ${monthNames[month]} de ${year}`}
+                variant="calendarDay"
+                size="calendarDay"
+                onClick={() => onOpenModal({ proyectoId, mode: "create", fecha: dateKey(day) })}
+              >
+                <span>{day}</span><Plus className="h-3 w-3 text-muted-foreground" />
+              </Button>
+              </div>
+            ) : <div className="mb-1 text-xs font-medium text-foreground md:text-sm">{day}</div>}
+            <div className="space-y-1">
+              {(byDate[dateKey(day)] ?? []).slice(0, 3).map((entry) => (
+                <Button
+                  key={entry.client_id}
+                  type="button"
+                  variant="calendarEntry"
+                  size="calendarEntry"
+                  onClick={() => onOpenModal({ proyectoId, mode: "view", logEntry: entry })}
+                >
+                  <Eye className="h-3 w-3 shrink-0" /><span className="truncate">{entry.categoria}</span>
+                </Button>
+              ))}
+            </div>
+          </div>)}
+      </div>
+    </section>
+  );
 }

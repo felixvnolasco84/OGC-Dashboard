@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { useEditPaymentModal } from "@/hooks/edit-payment-modal";
 import { EllipsisVerticalIcon, Edit, Trash2, X, Check, Lock, FileText, Download } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
     AlertDialog,
@@ -133,33 +133,33 @@ export default function PartidaDetails() {
                             // Sub-partida (nivel 3)
                             <>
                                 <h1 className="text-xl text-foreground mb-1">{partida.nombre}</h1>
-                                <p className="text-sm text-subtle-foreground mb-3">
+                                <p className="text-sm text-muted-foreground mb-3">
                                     {partida.sub_partida}
                                 </p>
                                 <div className="flex justify-end">
-                                    <span className="text-sm text-subtle-foreground">Sub Partida</span>
+                                    <span className="text-sm text-muted-foreground">Sub Partida</span>
                                 </div>
                             </>
                         ) : partida.nivel === 2 ? (
                             // Familia without sub-partidas (nivel 2)
                             <>
                                 <h1 className="text-xl text-foreground mb-1">{partida.nombre}</h1>
-                                <p className="text-sm text-subtle-foreground mb-3">
+                                <p className="text-sm text-muted-foreground mb-3">
                                     {partida.familia}
                                 </p>
                                 <div className="flex justify-end">
-                                    <span className="text-sm text-subtle-foreground">Familia</span>
+                                    <span className="text-sm text-muted-foreground">Familia</span>
                                 </div>
                             </>
                         ) : (
                             // Fallback for other niveles
                             <>
                                 <h1 className="text-xl text-foreground mb-1">{partida.nombre}</h1>
-                                <p className="text-sm text-subtle-foreground mb-3">
+                                <p className="text-sm text-muted-foreground mb-3">
                                     {partida.familia || partida.sub_partida}
                                 </p>
                                 <div className="flex justify-end">
-                                    <span className="text-sm text-subtle-foreground">Partida</span>
+                                    <span className="text-sm text-muted-foreground">Partida</span>
                                 </div>
                             </>
                         )}
@@ -192,15 +192,15 @@ export default function PartidaDetails() {
                     {/* Summary */}
                     <div className="grid grid-cols-3 gap-4">
                         <div>
-                            <p className="text-xs text-subtle-foreground mb-1">Presupuesto Aprobado</p>
+                            <p className="text-xs text-muted-foreground mb-1">Presupuesto Aprobado</p>
                             <p className="text-base  text-foreground">{formatCurrency(presupuestoAprobado.toString())}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-subtle-foreground mb-1">Total Pagado</p>
+                            <p className="text-xs text-muted-foreground mb-1">Total Pagado</p>
                             <p className="text-base  text-green-600">{formatCurrency(totalPagado.toString())}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-subtle-foreground mb-1">Por Ejercer</p>
+                            <p className="text-xs text-muted-foreground mb-1">Por Ejercer</p>
                             <p className="text-base  text-orange-600">{formatCurrency(porEjercer.toString())}</p>
                         </div>
                     </div>
@@ -232,58 +232,55 @@ export default function PartidaDetails() {
                                             <p className="text-base  text-foreground">
                                                 {pago.status || pago.transaction?.status || (pago.monto > 0 ? 'Aprobado' : 'Pendiente')}
                                             </p>
-                                            <p className="text-left text-sm text-subtle-foreground">Pago #{String(index + 1).padStart(3, '0')}</p>
+                                            <p className="text-left text-sm text-muted-foreground">Pago #{String(index + 1).padStart(3, '0')}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <p className="text-xl text-foreground">
                                             {formatCurrency(pago.monto.toString())} {pago.moneda || pago.transaction?.moneda || 'MXN'}
                                         </p>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <EllipsisVerticalIcon className="h-4 w-4" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-40" align="end">
-                                                <div className="space-y-1">
-                                                    <Button
-                                                        variant="ghost"
+                                        <AlertDialog>
+                                            <DropdownMenu modal={false}>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <EllipsisVerticalIcon className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="w-40" align="end">
+                                                    <DropdownMenuItem
                                                         className="w-full justify-start text-sm"
-                                                        onClick={() => handleEditPayment(pago as Doc<"pagos">)}
+                                                        onSelect={() => handleEditPayment(pago as Doc<"pagos">)}
                                                     >
                                                         <Edit className="h-4 w-4 mr-2" />
                                                         Editar
-                                                    </Button>
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button variant="ghost" className="w-full justify-start text-sm text-red-600 hover:text-red-700">
-                                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                                Eliminar
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Esta acción no puede ser deshecha. El pago será eliminado permanentemente.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => {
-                                                                    if (pago.transaction?._id) {
-                                                                        deleteTransaction({ id: pago.transaction._id });
-                                                                    }
-                                                                }}>
-                                                                    Eliminar
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </div>
-                                            </PopoverContent>
-                                        </Popover>
+                                                    </DropdownMenuItem>
+                                                    <AlertDialogTrigger asChild>
+                                                        <DropdownMenuItem variant="destructive" className="w-full justify-start text-sm">
+                                                            <Trash2 className="h-4 w-4 mr-2" />
+                                                            Eliminar
+                                                        </DropdownMenuItem>
+                                                    </AlertDialogTrigger>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Esta acción no puede ser deshecha. El pago será eliminado permanentemente.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => {
+                                                        if (pago.transaction?._id) {
+                                                            deleteTransaction({ id: pago.transaction._id });
+                                                        }
+                                                    }}>
+                                                        Eliminar
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </div>
                                 </div>
 
@@ -292,41 +289,41 @@ export default function PartidaDetails() {
                                     {/* Show transaction ID if available */}
                                     {pago.transaction?._id && (
                                         <div className="flex justify-between pb-2 mb-2 border-b border-border">
-                                            <span className="text-subtle-foreground text-xs">Transacción</span>
+                                            <span className="text-muted-foreground text-xs">Transacción</span>
                                             <p className="text-foreground text-right text-xs font-mono">
                                                 #{pago.transaction._id.slice(-8)}
                                             </p>
                                         </div>
                                     )}
                                     <div className="flex justify-between">
-                                        <span className="text-subtle-foreground">Fecha</span>
+                                        <span className="text-muted-foreground">Fecha</span>
                                         <p className="text-foreground text-right">{pago.fecha || pago.transaction?.fecha || 'N/A'}</p>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-subtle-foreground">Método de pago</span>
+                                        <span className="text-muted-foreground">Método de pago</span>
                                         <p className="text-foreground text-right">{pago.tipo_pago || pago.transaction?.tipo_pago || 'N/A'}</p>
                                     </div>
                                     {(pago.banco || pago.transaction?.banco) && (
                                         <div className="flex justify-between">
-                                            <span className="text-subtle-foreground">Banco</span>
+                                            <span className="text-muted-foreground">Banco</span>
                                             <p className="text-foreground text-right">{pago.banco || pago.transaction?.banco}</p>
                                         </div>
                                     )}
                                     {(pago.numero_cuenta || pago.transaction?.numero_cuenta) && (
                                         <div className="flex justify-between">
-                                            <span className="text-subtle-foreground">Cuenta cargo</span>
+                                            <span className="text-muted-foreground">Cuenta cargo</span>
                                             <p className="text-foreground text-right">{pago.numero_cuenta || pago.transaction?.numero_cuenta}</p>
                                         </div>
                                     )}
                                     {(pago.numero_transferencia || pago.transaction?.numero_transferencia) && (
                                         <div className="flex justify-between">
-                                            <span className="text-subtle-foreground">Cuenta abono</span>
+                                            <span className="text-muted-foreground">Cuenta abono</span>
                                             <p className="text-foreground text-right">{pago.numero_transferencia || pago.transaction?.numero_transferencia}</p>
                                         </div>
                                     )}
                                     {(pago.codigo_referencia || pago.transaction?.codigo_referencia) && (
                                         <div className="flex justify-between">
-                                            <span className="text-subtle-foreground">Referencia</span>
+                                            <span className="text-muted-foreground">Referencia</span>
                                             <p className="text-foreground text-right font-mono text-xs">{pago.codigo_referencia || pago.transaction?.codigo_referencia}</p>
                                         </div>
                                     )}
@@ -396,7 +393,7 @@ export default function PartidaDetails() {
                                                                             {doc.type}
                                                                         </Badge>
                                                                         {doc.descripcion && (
-                                                                            <p className="text-xs text-subtle-foreground truncate">{doc.descripcion}</p>
+                                                                            <p className="text-xs text-muted-foreground truncate">{doc.descripcion}</p>
                                                                         )}
                                                                     </div>
                                                                 </div>
@@ -436,7 +433,7 @@ export default function PartidaDetails() {
                     </div>
                 ) : (
                     <div className="bg-card shadow-sm p-8 text-center rounded-lg border border-border">
-                        <p className="text-subtle-foreground mb-4">
+                        <p className="text-muted-foreground mb-4">
                             No hay pagos registrados para esta {partida.nivel === 3 ? 'sub-partida' : partida.nivel === 2 ? 'familia' : 'partida'}
                         </p>
                         {partida.pagado > 0 && (

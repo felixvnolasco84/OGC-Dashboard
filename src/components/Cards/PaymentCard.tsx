@@ -1,6 +1,7 @@
 import { Check, Lock, Edit } from "lucide-react";
 import { Doc } from "convex/_generated/dataModel";
 import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import { useEditPaymentModal } from "@/hooks/edit-payment-modal";
 
 // Type for enriched payment with transaction data
@@ -53,14 +54,14 @@ export default function PaymentCard({ payment, index, formatCurrency, relatedPar
             <div className="p-4 border-b border-border-strong">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1">
-                        <div className={`w-12 h-12 rounded-md flex items-center justify-center ${isPagado ? 'bg-[#E0F0E2]' : 'bg-orange-100'
+                        <div className={`w-12 h-12 rounded-md flex items-center justify-center ${isPagado ? 'bg-success-muted' : 'bg-warning-muted'
                             }`}>
                             {isPagado ? (
-                                <div className="w-fit bg-green-800 rounded-full p-0.5">
+                                <div className="w-fit bg-success rounded-full p-0.5">
                                     <Check className="w-4 h-4 text-on-color" />
                                 </div>
                             ) : (
-                                <div className="w-fit bg-orange-800 rounded-full p-0.5">
+                                <div className="w-fit bg-warning rounded-full p-0.5">
                                     <Lock className="w-4 h-4 text-on-color" />
                                 </div>
                             )}
@@ -120,19 +121,19 @@ export default function PaymentCard({ payment, index, formatCurrency, relatedPar
                     {/* Additional Tags */}
                     <div className="space-y-2 pt-2 flex flex-wrap gap-2">
                         {(payment.transaction?.banco || payment.banco) && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-muted text-foreground">
+                            <Badge variant="neutral">
                                 {payment.transaction?.banco || payment.banco}
-                            </span>
+                            </Badge>
                         )}
                         {(payment.transaction?.moneda || payment.moneda) && (payment.transaction?.moneda || payment.moneda) !== 'MXN' && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
+                            <Badge variant="info">
                                 {payment.transaction?.moneda || payment.moneda} {(payment.transaction?.tipo_cambio || payment.tipo_cambio) && `(TC: ${payment.transaction?.tipo_cambio || payment.tipo_cambio})`}
-                            </span>
+                            </Badge>
                         )}
                         {(payment.transaction?.tarjeta || payment.tarjeta) && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700">
+                            <Badge variant="secondary">
                                 {payment.transaction?.tarjeta || payment.tarjeta}
-                            </span>
+                            </Badge>
                         )}
                     </div>
 
@@ -143,18 +144,18 @@ export default function PaymentCard({ payment, index, formatCurrency, relatedPar
                                 <span className="text-sm text-foreground">
                                     {(payment.transaction?.factura || payment.factura)?.includes('http') ? 'Factura' : (payment.transaction?.factura || payment.factura)}
                                 </span>
-                                <div className="w-fit bg-green-800 rounded-full p-0.5">
+                                <div className="w-fit bg-success rounded-full p-0.5">
                                     <Check className="w-4 h-4 text-on-color" />
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
-                <div className="flex justify-end">
+                <div className="mt-2 flex justify-end">
                     <Button
                         onClick={handleEdit}
                         variant="ghost"
-                        className="w-fit justify-end gap-2 font-normal mt-2"
+                        size="sm"
                     >
                         <Edit className="h-4 w-4" />
                         Editar pago

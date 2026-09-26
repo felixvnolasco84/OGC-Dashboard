@@ -80,7 +80,7 @@ export default function BitacoraListView({ logEntries, proyectoId, onOpenModal }
             <MessageSquare className="h-8 w-8 text-disabled-foreground" />
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">No hay entradas</h3>
-          <p className="text-subtle-foreground text-sm">
+          <p className="text-muted-foreground text-sm">
             No se han registrado entradas en la bitácora. Crea la primera entrada para comenzar.
           </p>
         </div>
@@ -125,7 +125,7 @@ export default function BitacoraListView({ logEntries, proyectoId, onOpenModal }
                 onClick={() => setOpenMenuId(openMenuId === entry._id ? null : entry._id)}
                 className="p-2 hover:bg-muted rounded-lg transition-colors"
               >
-                <MoreVertical className="h-5 w-5 text-subtle-foreground" />
+                <MoreVertical className="h-5 w-5 text-muted-foreground" />
               </button>
 
               {openMenuId === entry._id && (

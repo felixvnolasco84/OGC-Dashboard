@@ -182,12 +182,12 @@ function LocationProjectGroups({
                   tooltip={group.title}
                   className="h-auto min-h-10 items-start py-2"
                 >
-                  <MapPin className="mt-0.5 h-4 w-4 text-subtle-foreground" />
+                  <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
                   <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                     <span className="w-full truncate text-sm font-medium text-foreground">
                       {group.title}
                     </span>
-                    <span className="w-full truncate text-xs font-normal text-subtle-foreground">
+                    <span className="w-full truncate text-xs font-normal text-muted-foreground">
                       {group.projects.length} proyecto{group.projects.length === 1 ? "" : "s"}
                     </span>
                   </span>
@@ -784,7 +784,7 @@ function SidebarUserCard({ role }: { role?: string }) {
           </div>
           <div className="flex flex-col gap-0.5 leading-none text-left">
             <span className="font-semibold text-sm truncate">{displayName}</span>
-            <span className="text-xs text-subtle-foreground truncate">{email}</span>
+            <span className="text-xs text-muted-foreground truncate">{email}</span>
           </div>
           {/* <ChevronsUpDown className="ml-auto w-4 h-4 text-disabled-foreground" /> */}
         </SidebarMenuButton>
@@ -809,7 +809,7 @@ function SidebarUserCard({ role }: { role?: string }) {
             </div>
             <div className="flex flex-col gap-0.5 leading-none">
               <span className="font-semibold text-sm">{displayName}</span>
-              <span className="text-xs text-subtle-foreground">{email}</span>
+              <span className="text-xs text-muted-foreground">{email}</span>
             </div>
           </div>
         </DropdownMenuLabel>
@@ -982,14 +982,14 @@ export default function SidebarComponent() {
                     activeProject ? "w-full" : "h-9 w-9 justify-center p-0"
                   )}
                 >
-                  <Folder className="w-4 h-4 text-subtle-foreground flex-shrink-0" />
+                  <Folder className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                   {activeProject && (
                     <>
                       <div className="flex flex-col gap-0.5 leading-none text-left group-data-[collapsible=icon]:hidden">
                         <span className="font-semibold truncate text-sm ">
                           {activeProject.nombre}
                         </span>
-                        <span className="text-xs text-subtle-foreground">
+                        <span className="text-xs text-muted-foreground">
                           Proyecto
                         </span>
                       </div>

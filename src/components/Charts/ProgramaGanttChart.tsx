@@ -94,7 +94,7 @@ export default function ProgramaGanttChart({ data, startYear = 2025 }: ProgramaG
   if (ganttData.data.length === 0) {
     return (
       <div className="w-full bg-card border border-border rounded-lg overflow-hidden p-8 text-center" style={{ height: "600px" }}>
-        <p className="text-subtle-foreground">No hay datos de timeline para mostrar en el diagrama de Gantt.</p>
+        <p className="text-muted-foreground">No hay datos de timeline para mostrar en el diagrama de Gantt.</p>
       </div>
     );
   }

@@ -223,7 +223,8 @@ function Cell({
             value={typeof value === "number" ? (value === 0 ? "" : value) : value}
             onChange={(e) => onChange(e.target.value)}
             required={required}
-            className={`h-8 text-sm ${className}`}
+            density="compact"
+            className={className}
         />
     );
 }
@@ -241,7 +242,7 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
     return (
         <div className="grid grid-cols-12 gap-2 items-end">
             <div className="col-span-2 space-y-1">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Unidad
                 </span>
                 <Cell
@@ -252,7 +253,7 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                 />
             </div>
             <div className="col-span-2 space-y-1">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Cantidad
                 </span>
                 <Cell
@@ -264,7 +265,7 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                 />
             </div>
             <div className="col-span-2 space-y-1">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     P. unitario
                 </span>
                 <Cell
@@ -276,7 +277,7 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                 />
             </div>
             <div className="col-span-2 space-y-1">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Aprobado
                 </span>
                 <Cell
@@ -288,7 +289,7 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                 />
             </div>
             <div className="col-span-2 space-y-1">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Pagado
                 </span>
                 <Cell
@@ -300,10 +301,10 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                 />
             </div>
             <div className="col-span-2 text-right">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Total
                 </span>
-                <p className="text-sm font-semibold text-blue-600">
+                <p className="text-sm font-semibold text-info">
                     {formatCurrency(effectiveAprobado(metrics))}
                 </p>
             </div>
@@ -317,19 +318,19 @@ function RollupSummaryRow({ totals }: { totals: RollupTotals }) {
     const porEjercer = totals.aprobado - totals.pagado;
     return (
         <div className="grid grid-cols-12 gap-2 items-end rounded-none bg-muted/40 px-3 py-2 border border-dashed">
-            <div className="col-span-12 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <div className="col-span-12 text-xs uppercase tracking-wide text-muted-foreground">
                 Totales calculados automáticamente desde los hijos
             </div>
             <div className="col-span-3 space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Aprobado
                 </span>
-                <p className="text-sm font-semibold text-blue-600">
+                <p className="text-sm font-semibold text-info">
                     {formatCurrency(totals.aprobado)}
                 </p>
             </div>
             <div className="col-span-3 space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Pagado
                 </span>
                 <p className="text-sm font-semibold">
@@ -337,19 +338,19 @@ function RollupSummaryRow({ totals }: { totals: RollupTotals }) {
                 </p>
             </div>
             <div className="col-span-3 space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Por ejercer
                 </span>
                 <p
                     className={`text-sm font-semibold ${
-                        porEjercer < 0 ? "text-red-600" : "text-orange-600"
+                        porEjercer < 0 ? "text-danger" : "text-warning"
                     }`}
                 >
                     {formatCurrency(porEjercer)}
                 </p>
             </div>
             <div className="col-span-3 space-y-0.5 text-right">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Presupuesto original
                 </span>
                 <p className="text-sm font-semibold text-muted-foreground">
@@ -724,7 +725,7 @@ export default function AddPartidaModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent data-square-modal="" className="w-full sm:max-w-[min(1100px,95vw)] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-full sm:max-w-[min(800px,95vw)] overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle>Agregar Elementos al Presupuesto</SheetTitle>
                     <SheetDescription>
@@ -900,15 +901,16 @@ function PartidaCard({
             {/* Partida header */}
             <div className="bg-muted/40 px-3 py-2 border-b">
                 <div className="flex items-center gap-2">
-                    <button
+                    <Button
                         type="button"
                         onClick={() => onPatch({ isExpanded: !partida.isExpanded })}
-                        className="p-1 hover:bg-muted rounded-none"
+                        variant="quiet"
+                        size="iconSm"
                         aria-label={partida.isExpanded ? "Colapsar" : "Expandir"}
                     >
                         <Chevron className="h-4 w-4" />
-                    </button>
-                    <Folder className="h-4 w-4 text-amber-600" />
+                    </Button>
+                    <Folder className="h-4 w-4 text-warning" />
                     <Badge variant={partida.isExisting ? "outline" : "default"}>
                         {partida.isExisting ? "Partida existente" : "Partida"}
                     </Badge>
@@ -926,8 +928,7 @@ function PartidaCard({
                     <Button
                         type="button"
                         variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
+                        size="iconSm"
                         onClick={onRemove}
                         aria-label="Eliminar partida"
                     >
@@ -989,7 +990,7 @@ function PartidaCard({
                                     setFamiliaSelectorValue("");
                                 }}
                             >
-                                <SelectTrigger className="h-8 w-[260px] text-xs">
+                                <SelectTrigger variant="compact" className="h-8 w-[260px]">
                                     <SelectValue placeholder="Usar familia existente…" />
                                 </SelectTrigger>
                                 <SelectContent data-square-modal="">
@@ -1037,18 +1038,19 @@ function FamiliaCard({
 }: FamiliaCardProps) {
     const Chevron = familia.isExpanded ? ChevronDown : ChevronRight;
     return (
-        <div className="rounded-none border bg-background ml-4 border-l-4 border-l-blue-300">
-            <div className="px-3 py-2 border-b bg-blue-50/50">
+        <div className="rounded-none border bg-background ml-4 border-l-4 border-l-info-border">
+            <div className="px-3 py-2 border-b bg-info-muted/50">
                 <div className="flex items-center gap-2">
-                    <button
+                    <Button
                         type="button"
                         onClick={() => onPatch({ isExpanded: !familia.isExpanded })}
-                        className="p-1 hover:bg-muted rounded-none"
+                        variant="quiet"
+                        size="iconSm"
                         aria-label={familia.isExpanded ? "Colapsar" : "Expandir"}
                     >
                         <Chevron className="h-4 w-4" />
-                    </button>
-                    <Package className="h-4 w-4 text-blue-600" />
+                    </Button>
+                    <Package className="h-4 w-4 text-info" />
                     <Badge variant={familia.isExisting ? "outline" : "secondary"}>
                         {familia.isExisting ? "Familia existente" : "Familia"}
                     </Badge>
@@ -1068,8 +1070,7 @@ function FamiliaCard({
                     <Button
                         type="button"
                         variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
+                        size="iconSm"
                         onClick={onRemove}
                         aria-label="Eliminar familia"
                     >
@@ -1109,9 +1110,8 @@ function FamiliaCard({
                     <Button
                         type="button"
                         variant="outline"
-                        size="sm"
                         onClick={onAddSubPartida}
-                        className="w-full justify-start"
+                        size="full"
                     >
                         <Plus className="h-3.5 w-3.5 mr-1" /> Agregar Sub-partida
                     </Button>
@@ -1131,9 +1131,9 @@ type SubPartidaRowProps = {
 
 function SubPartidaRow({ sub, onPatch, onRemove }: SubPartidaRowProps) {
     return (
-        <div className="rounded-none border bg-background ml-4 border-l-4 border-l-emerald-300 p-3">
+        <div className="rounded-none border bg-background ml-4 border-l-4 border-l-success-border p-3">
             <div className="flex items-center gap-2 mb-2">
-                <Layers className="h-4 w-4 text-emerald-600" />
+                <Layers className="h-4 w-4 text-success" />
                 <Badge variant="outline">Sub-partida</Badge>
                 <Cell
                     placeholder="Nombre de la sub-partida (ej. COLUMNAS)"
@@ -1145,8 +1145,7 @@ function SubPartidaRow({ sub, onPatch, onRemove }: SubPartidaRowProps) {
                 <Button
                     type="button"
                     variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
+                    size="iconSm"
                     onClick={onRemove}
                     aria-label="Eliminar sub-partida"
                 >

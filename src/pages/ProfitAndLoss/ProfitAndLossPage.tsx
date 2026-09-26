@@ -24,11 +24,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OgcMovementsUploadModal } from "@/components/modals/ogc-movements-upload-modal";
+import { OgcInvoiceEvidenceDialog } from "@/components/modals/ogc-invoice-evidence-dialog";
+import type { OgcInvoiceProof } from "@/lib/ogcInvoiceEvidence";
 import { cn } from "@/lib/utils";
 import { Ban, CalendarDays, Check, Copy, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   ALL_PROJECT_LOCATIONS,
+  DEFAULT_PROJECT_LOCATIONS,
   NO_PROJECT_LOCATION,
   NO_PROJECT_LOCATION_LABEL,
   matchesProjectLocation,
@@ -136,6 +139,8 @@ type OgcLedgerMovement = {
   updated_at?: number;
   archivo_origen?: string;
   fila_origen?: number;
+  factura_referencia?: string;
+  factura_comprobante?: OgcInvoiceProof;
   importacion?: {
     _id: Id<"ogc_movimientos_importaciones">;
     nombre: string;
@@ -533,7 +538,7 @@ function MonthlyPnlTable({
       <div className="overflow-x-auto border border-border bg-card">
         <table className="w-full min-w-[980px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-border text-sm text-subtle-foreground">
+            <tr className="border-b border-border text-sm text-muted-foreground">
               <th className="w-[340px] px-8 py-4 font-normal">Concepto</th>
               {months.map((month) => (
                 <th key={month.key} className="px-8 py-4 text-center font-normal">
@@ -566,7 +571,7 @@ function MonthlyPnlTable({
                   >
                     <div className="flex flex-col gap-1">
                       <span>{row.label}</span>
-                      {isMetric && <span className="text-sm text-subtle-foreground">%</span>}
+                      {isMetric && <span className="text-sm text-muted-foreground">%</span>}
                     </div>
                   </td>
 
@@ -591,7 +596,7 @@ function MonthlyPnlTable({
                               {formatPnlValue(value)}
                             </span>
                             {isMetric && (
-                              <span className="text-sm text-subtle-foreground">{formatPercent(percentage)}</span>
+                              <span className="text-sm text-muted-foreground">{formatPercent(percentage)}</span>
                             )}
                           </div>
                         )}
@@ -623,7 +628,7 @@ function WipMetricCard({
     <div className="space-y-2 text-left">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className={cn("text-4xl text-foreground", valueClassName)}>{value}</p>
-      <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
+      <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
         {badge}
       </Badge>
     </div>
@@ -687,7 +692,7 @@ function WorkInProgressView({
         <div className="overflow-x-auto border border-border bg-card">
           <table className="w-full min-w-[1180px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-border text-sm text-subtle-foreground">
+              <tr className="border-b border-border text-sm text-muted-foreground">
                 <th className="w-[240px] px-8 py-4 font-normal">Obra</th>
                 <th className="px-8 py-4 text-center font-normal">Presupuesto</th>
                 <th className="px-8 py-4 text-center font-normal">Costo real</th>
@@ -880,7 +885,7 @@ function CollectedIncomeBreakdownDialog({
 
         <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <Label htmlFor="income-history-scope" className="text-xs font-normal text-subtle-foreground">
+            <Label htmlFor="income-history-scope" className="text-xs font-normal text-muted-foreground">
               Periodo del desglose
             </Label>
             <p className="mt-1 text-sm text-foreground">{scopeLabel}</p>
@@ -898,15 +903,15 @@ function CollectedIncomeBreakdownDialog({
 
         <section className="grid grid-cols-1 divide-y divide-border border-b border-border bg-muted/40 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <div className="px-6 py-4">
-            <p className="text-xs text-subtle-foreground">Ingresos de Presupuesto</p>
+            <p className="text-xs text-muted-foreground">Ingresos de Presupuesto</p>
             <p className="mt-1 text-lg font-medium tabular-nums">{formatCurrencyWithCode(presupuestoTotal, "MXN")}</p>
           </div>
           <div className="px-6 py-4">
-            <p className="text-xs text-subtle-foreground">Movimientos OGC</p>
+            <p className="text-xs text-muted-foreground">Movimientos OGC</p>
             <p className="mt-1 text-lg font-medium tabular-nums">{formatCurrencyWithCode(ogcTotal, "MXN")}</p>
           </div>
           <div className="px-6 py-4">
-            <p className="text-xs text-subtle-foreground">
+            <p className="text-xs text-muted-foreground">
               {historyScope === "all" ? "Cobrado histórico" : "Cobrado registrado"}
             </p>
             <p className="mt-1 text-lg font-medium tabular-nums text-foreground">
@@ -928,7 +933,7 @@ function CollectedIncomeBreakdownDialog({
             <div className="overflow-x-auto border border-border">
               <table className="w-full min-w-[960px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40 text-xs text-subtle-foreground">
+                  <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
                     <th className="px-3 py-3 font-medium">Fecha</th>
                     <th className="px-3 py-3 font-medium">Origen</th>
                     <th className="px-3 py-3 font-medium">Descripción</th>
@@ -961,7 +966,7 @@ function CollectedIncomeBreakdownDialog({
                       <td className="whitespace-nowrap px-3 py-3 text-right text-sm font-medium tabular-nums text-foreground">
                         {formatCurrencyWithCode(record.montoMxn, "MXN")}
                       </td>
-                      <td className="px-3 py-3 text-sm text-subtle-foreground">{record.agregadoPor || "—"}</td>
+                      <td className="px-3 py-3 text-sm text-muted-foreground">{record.agregadoPor || "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1030,7 +1035,7 @@ function AnnualPnlSummaryTables({
         <div className="overflow-x-auto border border-border bg-card">
           <table className="w-full min-w-[620px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-border text-sm text-subtle-foreground">
+              <tr className="border-b border-border text-sm text-muted-foreground">
                 <th className="px-8 py-4 font-normal">Categoría</th>
                 <th className="px-8 py-4 text-center font-normal">Monto</th>
                 <th className="px-8 py-4 text-center font-normal">% estructura</th>
@@ -1071,7 +1076,7 @@ function AnnualPnlSummaryTables({
         <div className="overflow-x-auto border border-border bg-card">
           <table className="w-full min-w-[620px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-border text-sm text-subtle-foreground">
+              <tr className="border-b border-border text-sm text-muted-foreground">
                 <th className="px-8 py-4 font-normal">Concepto</th>
                 <th className="px-8 py-4 text-center font-normal">Monto</th>
               </tr>
@@ -1105,7 +1110,7 @@ function AnnualPnlSummaryTables({
                 <td className="px-8 py-6 align-middle text-base text-foreground">
                   <div className="flex flex-col gap-1">
                     <span>EBITDA</span>
-                    <span className="text-sm text-subtle-foreground">%</span>
+                    <span className="text-sm text-muted-foreground">%</span>
                   </div>
                 </td>
                 <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
@@ -1113,7 +1118,7 @@ function AnnualPnlSummaryTables({
                     <span className={totals.ebitda >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
                       {formatTableCurrency(totals.ebitda)}
                     </span>
-                    <span className="text-sm text-subtle-foreground">{formatPercent(totals.ebitdaMargin)}</span>
+                    <span className="text-sm text-muted-foreground">{formatPercent(totals.ebitdaMargin)}</span>
                   </div>
                 </td>
               </tr>
@@ -1185,7 +1190,7 @@ function ProjectProfitabilityView({
           <div className="overflow-x-auto border border-border bg-card">
             <table className="w-full min-w-[980px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-border text-sm text-subtle-foreground">
+                <tr className="border-b border-border text-sm text-muted-foreground">
                   <th className="w-[420px] px-8 py-4 font-normal">Obra</th>
                   <th className="px-8 py-4 text-center font-normal">
                     <span className="block">Ingresos OGC</span>
@@ -1264,7 +1269,7 @@ function ProjectProfitabilityView({
             <div className="overflow-x-auto border border-border bg-card">
               <table className="w-full min-w-[620px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-border text-sm text-subtle-foreground">
+                  <tr className="border-b border-border text-sm text-muted-foreground">
                     <th className="px-8 py-4 font-normal">Categoria</th>
                     <th className="px-8 py-4 text-center font-normal">Monto</th>
                     <th className="px-8 py-4 text-center font-normal">% estructura</th>
@@ -1305,7 +1310,7 @@ function ProjectProfitabilityView({
             <div className="overflow-x-auto border border-border bg-card">
               <table className="w-full min-w-[620px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-border text-sm text-subtle-foreground">
+                  <tr className="border-b border-border text-sm text-muted-foreground">
                     <th className="px-8 py-4 font-normal">Concepto</th>
                     <th className="px-8 py-4 text-center font-normal">Monto</th>
                   </tr>
@@ -1339,7 +1344,7 @@ function ProjectProfitabilityView({
                     <td className="px-8 py-6 align-middle text-base text-foreground">
                       <div className="flex flex-col gap-1">
                         <span>EBITDA</span>
-                        <span className="text-sm text-subtle-foreground">%</span>
+                        <span className="text-sm text-muted-foreground">%</span>
                       </div>
                     </td>
                     <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
@@ -1347,7 +1352,7 @@ function ProjectProfitabilityView({
                         <span className={ebitda >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
                           {formatTableCurrency(ebitda)}
                         </span>
-                        <span className="text-sm text-subtle-foreground">{formatPercent(totals.ebitdaMargin)}</span>
+                        <span className="text-sm text-muted-foreground">{formatPercent(totals.ebitdaMargin)}</span>
                       </div>
                     </td>
                   </tr>
@@ -1391,6 +1396,7 @@ function OgcLedgerDialog({
   const [actionReference, setActionReference] = useState("");
   const [actionNote, setActionNote] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [invoiceSearch, setInvoiceSearch] = useState("");
 
   const projectNameById = useMemo(() => {
     const lookup = new Map<string, string>();
@@ -1412,6 +1418,9 @@ function OgcLedgerDialog({
   const activeCount = movements.filter((movement) => !movement.status || movement.status === "activo").length;
   const reconciledCount = movements.filter((movement) => movement.reconciled && (!movement.status || movement.status === "activo")).length;
   const inactiveCount = movements.length - activeCount;
+  const visibleMovements = invoiceSearch.trim()
+    ? movements.filter((movement) => movement.factura_referencia?.toLocaleLowerCase("es-MX").includes(invoiceSearch.trim().toLocaleLowerCase("es-MX")))
+    : movements;
 
   const startEdit = (movement: OgcLedgerMovement) => {
     setEditingId(movement._id);
@@ -1549,17 +1558,22 @@ function OgcLedgerDialog({
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
             <div className="border border-border bg-[#FBFAF2] px-4 py-3">
-              <p className="text-xs text-subtle-foreground">Activos</p>
+              <p className="text-xs text-muted-foreground">Activos</p>
               <p className="text-lg text-foreground">{activeCount}</p>
             </div>
             <div className="border border-border bg-card px-4 py-3">
-              <p className="text-xs text-subtle-foreground">Conciliados</p>
+              <p className="text-xs text-muted-foreground">Conciliados</p>
               <p className="text-lg text-foreground">{reconciledCount}</p>
             </div>
             <div className="border border-border bg-card px-4 py-3">
-              <p className="text-xs text-subtle-foreground">Historicos</p>
+              <p className="text-xs text-muted-foreground">Historicos</p>
               <p className="text-lg text-foreground">{inactiveCount}</p>
             </div>
+          </div>
+
+          <div className="max-w-sm space-y-1.5">
+            <Label htmlFor="ogc-invoice-search">Buscar folio o referencia de factura</Label>
+            <Input id="ogc-invoice-search" value={invoiceSearch} onChange={(event) => setInvoiceSearch(event.target.value)} placeholder="Folio de factura" />
           </div>
 
           <div className="overflow-hidden border border-border bg-card">
@@ -1578,7 +1592,7 @@ function OgcLedgerDialog({
                 <col className="w-[6%]" />
               </colgroup>
               <thead>
-                <tr className="border-b border-border text-subtle-foreground">
+                <tr className="border-b border-border text-muted-foreground">
                   <th className="px-4 py-3 font-normal">Estado</th>
                   <th className="px-4 py-3 font-normal">Fecha</th>
                   <th className="px-4 py-3 font-normal">Tipo</th>
@@ -1593,7 +1607,8 @@ function OgcLedgerDialog({
                 </tr>
               </thead>
               <tbody>
-                {movements.map((movement) => {
+                {visibleMovements.length === 0 && <tr><td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">No hay movimientos con ese folio.</td></tr>}
+                {visibleMovements.map((movement) => {
                   const isEditing = editingId === movement._id && draft;
                   const isActive = !movement.status || movement.status === "activo";
                   const duplicateCount = movement.duplicate_key ? duplicateCounts.get(movement.duplicate_key) || 0 : 0;
@@ -1715,12 +1730,13 @@ function OgcLedgerDialog({
                             className="h-9"
                           />
                         ) : (
-                          <span className="block max-w-[220px] truncate" title={movement.descripcion || ""}>
-                            {movement.descripcion || "-"}
-                          </span>
+                          <div className="space-y-2">
+                            <span className="block max-w-[220px] truncate" title={movement.descripcion || ""}>{movement.descripcion || "-"}</span>
+                            {movement.tipo === "ingreso" && <OgcInvoiceEvidenceDialog movement={movement} compact />}
+                          </div>
                         )}
                       </td>
-                      <td className="px-4 py-4 align-top text-xs text-subtle-foreground">
+                      <td className="px-4 py-4 align-top text-xs text-muted-foreground">
                         <div className="space-y-1">
                           <p>Creado: {formatLedgerTimestamp(movement.created_at)}</p>
                           <p>Por: {movement.created_by_name}</p>
@@ -1876,7 +1892,7 @@ function SettingsGroup({
         </div>
         <div className="min-w-0">
           <p className="text-sm text-foreground">{title}</p>
-          <p className="mt-1 text-xs leading-5 text-subtle-foreground">{description}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
         </div>
       </div>
       {children}
@@ -1893,7 +1909,7 @@ function SettingField({
 }) {
   return (
     <div className="min-w-0 space-y-1.5">
-      <Label className="text-xs font-normal text-subtle-foreground">{label}</Label>
+      <Label className="text-xs font-normal text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -1955,13 +1971,13 @@ function PnlSettingsDialog({
                     <Settings2 className="h-4 w-4" />
                     Supuestos activos
                   </div>
-                  <p className="text-xs leading-5 text-subtle-foreground">
+                  <p className="text-xs leading-5 text-muted-foreground">
                     Los cambios se reflejan inmediatamente en las metricas y tablas.
                   </p>
                 </div>
                 <div className="mt-5 space-y-3">
                   <div>
-                    <p className="text-xs text-subtle-foreground">Periodo activo</p>
+                    <p className="text-xs text-muted-foreground">Periodo activo</p>
                     <p className="text-base text-foreground">{periodLabel}</p>
                   </div>
                   <Button
@@ -2109,7 +2125,7 @@ export default function ProfitAndLossPage() {
   const [usdToMxn, setUsdToMxn] = useState(DEFAULT_USD_TO_MXN);
   const [eurToMxn, setEurToMxn] = useState(DEFAULT_EUR_TO_MXN);
   const [taxSettings, setTaxSettings] = useState<TaxSettings>(DEFAULT_TAX_SETTINGS);
-  const [locationFilter, setLocationFilter] = useState<string>(ALL_PROJECT_LOCATIONS);
+  const [locationFilter, setLocationFilter] = useState<string>(DEFAULT_PROJECT_LOCATIONS[0].key);
 
   const pnlQueryParams = useMemo<PnlQueryParams>(
     () => ({
@@ -2177,7 +2193,7 @@ export default function ProfitAndLossPage() {
     setUsdToMxn(DEFAULT_USD_TO_MXN);
     setEurToMxn(DEFAULT_EUR_TO_MXN);
     setTaxSettings(DEFAULT_TAX_SETTINGS);
-    setLocationFilter(ALL_PROJECT_LOCATIONS);
+    setLocationFilter(DEFAULT_PROJECT_LOCATIONS[0].key);
   };
 
   if (
@@ -2189,7 +2205,7 @@ export default function ProfitAndLossPage() {
   ) {
     return (
       <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
-        <p className="text-subtle-foreground">Cargando datos...</p>
+        <p className="text-muted-foreground">Cargando datos...</p>
       </div>
     );
   }
@@ -2213,7 +2229,7 @@ export default function ProfitAndLossPage() {
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "pb-4 text-base text-subtle-foreground border-b-2 transition-colors",
+                    "pb-4 text-base text-muted-foreground border-b-2 transition-colors",
                     activeTab === tab.id
                       ? "border-foreground text-foreground"
                       : "border-transparent hover:text-foreground"
@@ -2277,7 +2293,7 @@ export default function ProfitAndLossPage() {
               <div className="space-y-2 text-left">
                 <p className="text-sm text-muted-foreground">Ingresos OGC YTD</p>
                 <p className="text-4xl text-foreground">{formatMetricCurrency(ingresosYtd)}</p>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
+                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
                   {periodLabel}
                 </Badge>
               </div>
@@ -2285,7 +2301,7 @@ export default function ProfitAndLossPage() {
               <div className="space-y-2 text-left">
                 <p className="text-sm text-muted-foreground">Estructura YTD</p>
                 <p className="text-4xl text-foreground">{formatMetricCurrency(estructuraYtd)}</p>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
+                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
                   {(pnlSummary.totals.estructuraPercent * 100).toFixed(1)}% de ingresos
                 </Badge>
               </div>
@@ -2295,7 +2311,7 @@ export default function ProfitAndLossPage() {
                 <p className={cn("text-4xl", ebitdaYtd >= 0 ? "text-[#1A5D21]" : "text-[#802424]")}>
                   {formatMetricCurrency(ebitdaYtd)}
                 </p>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
+                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
                   {(pnlSummary.totals.ebitdaMargin * 100).toFixed(1)}% de margen
                 </Badge>
               </div>

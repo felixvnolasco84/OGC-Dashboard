@@ -5,6 +5,7 @@ import { useUser } from "@clerk/clerk-react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
 import { useIngresosModal } from "@/hooks/ingresos-modal";
+import { OgcInvoiceEvidenceDialog } from "@/components/modals/ogc-invoice-evidence-dialog";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -59,7 +60,6 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Calendar } from "../ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,7 +71,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
 import { es } from "date-fns/locale";
 
 // Endpoint of the external Excel reader service (same service used for transactions)
@@ -171,17 +170,17 @@ export default function IngresosModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingOgcMovement, setEditingOgcMovement] = useState<OgcIncomeMovement | null>(null);
-  
+
   // Document attachment state
   const [documentFile, setDocumentFile] = useState<globalThis.File | null>(null);
   const [documentType, setDocumentType] = useState("");
   const [documentName, setDocumentName] = useState("");
   const [documentDescription, setDocumentDescription] = useState("");
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
-  
+
   // Calendar popover state
   const [calendarOpen, setCalendarOpen] = useState(false);
-  
+
   // Replace document state
   const [replaceFile, setReplaceFile] = useState<globalThis.File | null>(null);
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
@@ -512,7 +511,7 @@ export default function IngresosModal() {
       }
 
       let ingresoId: Id<"ingresos">;
-      
+
       if (editingIngreso) {
         // Update existing ingreso
         await updateIngreso({
@@ -544,23 +543,23 @@ export default function IngresosModal() {
       if (documentFile && documentType && documentName) {
         try {
           setIsUploadingDocument(true);
-          
+
           // Step 1: Generate upload URL
           const uploadUrl = await generateUploadUrl();
-          
+
           // Step 2: Upload file to Convex storage
           const uploadResult = await fetch(uploadUrl, {
             method: "POST",
             headers: { "Content-Type": documentFile.type },
             body: documentFile,
           });
-          
+
           if (!uploadResult.ok) {
             throw new Error("Failed to upload file");
           }
-          
+
           const { storageId } = await uploadResult.json();
-          
+
           // Step 3: Create document record linked to the ingreso
           await createIngresoDocument({
             ingreso_id: ingresoId,
@@ -572,7 +571,7 @@ export default function IngresosModal() {
             size: documentFile.size,
             clerk_id: user.id,
           });
-          
+
           documentUploaded = true;
         } catch (docError) {
           console.error("Error uploading document:", docError);
@@ -619,7 +618,7 @@ export default function IngresosModal() {
     }
 
     if (!confirm("¿Estás seguro de eliminar este ingreso y sus documentos?")) return;
-    
+
     try {
       // Delete associated documents first
       await deleteIngresoDocuments({ ingreso_id: row.id });
@@ -676,10 +675,10 @@ export default function IngresosModal() {
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         data-square-modal=""
-        className="max-h-[90vh] max-w-4xl gap-0 overflow-hidden border-border bg-card p-0 shadow-2xl"
+        variant="ledger"
       >
-        <DialogHeader className="border-b border-border px-6 py-5 pr-12">
-          <DialogTitle className="text-lg font-medium">Ingresos</DialogTitle>
+        <DialogHeader variant="ledger">
+          <DialogTitle variant="ledger">Ingresos</DialogTitle>
           <DialogDescription>
             {context?.projectName || "Registro de ingresos del proyecto"}
           </DialogDescription>
@@ -693,7 +692,7 @@ export default function IngresosModal() {
                   <h3 className="text-sm font-medium text-foreground">
                     {isEditingAnyIngreso ? "Editar ingreso" : "Nuevo ingreso"}
                   </h3>
-                  <p className="mt-0.5 text-xs text-subtle-foreground">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     {isEditingOgc
                       ? "Este registro proviene de un movimiento OGC."
                       : "Completa los datos del ingreso."}
@@ -701,9 +700,8 @@ export default function IngresosModal() {
                 </div>
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground"
+                  variant="quiet"
+                  size="iconSm"
                   onClick={handleCancelForm}
                 >
                   <X className="h-4 w-4" />
@@ -712,7 +710,7 @@ export default function IngresosModal() {
               <form onSubmit={handleSubmit} className="space-y-5 px-6 py-5">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="monto" className="text-xs text-subtle-foreground">
+                    <Label htmlFor="monto" variant="caption">
                       Monto
                     </Label>
                     <Input
@@ -727,7 +725,7 @@ export default function IngresosModal() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="moneda" className="text-xs text-subtle-foreground">
+                    <Label htmlFor="moneda" variant="caption">
                       Moneda
                     </Label>
                     <Select
@@ -747,23 +745,20 @@ export default function IngresosModal() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="fecha" className="text-xs text-subtle-foreground">
+                    <Label htmlFor="fecha" variant="caption">
                       Fecha
                     </Label>
-                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen} modal={false}>
-                      <PopoverTrigger asChild>
+                    <DropdownMenu open={calendarOpen} onOpenChange={setCalendarOpen} modal={false}>
+                      <DropdownMenuTrigger asChild>
                         <Button
-                          variant="outline"
-                          className={cn(
-                            "h-9 w-full justify-start px-3 text-left font-normal",
-                            !formData.fecha && "text-muted-foreground"
-                          )}
+                          variant="date"
+                          size="fullField"
                         >
                           <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                           {formData.fecha || "Seleccionar fecha"}
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent data-square-modal="" className="w-auto p-0 z-[9999] pointer-events-auto" align="start" sideOffset={4}>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent data-square-modal="" variant="calendarLayer" align="start" sideOffset={4}>
                         <Calendar
                           mode="single"
                           selected={parseDate(formData.fecha)}
@@ -776,13 +771,13 @@ export default function IngresosModal() {
                           locale={es}
                           initialFocus
                         />
-                      </PopoverContent>
-                    </Popover>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="descripcion" className="text-xs text-subtle-foreground">
+                  <Label htmlFor="descripcion" variant="caption">
                     Descripción
                   </Label>
                   <Input
@@ -795,7 +790,7 @@ export default function IngresosModal() {
 
                 {!isEditingOgc && (
                   <div className="space-y-3 border-t border-border pt-5">
-                    <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-subtle-foreground">
+                    <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                       Documento adjunto
                     </h3>
 
@@ -805,18 +800,19 @@ export default function IngresosModal() {
                           const doc = editingIngresoDocuments[0];
                           return (
                             <div className="flex items-center justify-between gap-3 border border-border bg-muted/40 px-3 py-2.5">
-                              <button
+                              <div className="min-w-0 flex-1"><Button
                                 type="button"
-                                className="flex min-w-0 flex-1 items-center gap-2 text-left hover:text-foreground"
+                                variant="entry"
+                                size="entry"
                                 onClick={() => doc.url && window.open(doc.url, "_blank")}
                               >
                                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                                 <div className="min-w-0">
                                   <p className="truncate text-sm font-medium text-foreground">{doc.nombre}</p>
-                                  <p className="text-xs text-subtle-foreground">{doc.type}</p>
+                                  <p className="text-xs text-muted-foreground">{doc.type}</p>
                                 </div>
                                 <ExternalLink className="h-3.5 w-3.5 shrink-0 text-disabled-foreground" />
-                              </button>
+                              </Button></div>
                               <div className="flex shrink-0 gap-1">
                                 <input
                                   type="file"
@@ -835,8 +831,7 @@ export default function IngresosModal() {
                                 <Button
                                   type="button"
                                   variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
+                                  size="iconSm"
                                   title="Reemplazar documento"
                                   disabled={isReplacingDocument}
                                   onClick={() => {
@@ -860,7 +855,7 @@ export default function IngresosModal() {
                                             <div className="flex items-center gap-2 border border-border bg-muted px-2 py-2">
                                               <File className="h-4 w-4 text-muted-foreground" />
                                               <span className="text-sm font-medium">{replaceFile.name}</span>
-                                              <span className="text-xs text-subtle-foreground">
+                                              <span className="text-xs text-muted-foreground">
                                                 ({(replaceFile.size / 1024).toFixed(2)} KB)
                                               </span>
                                             </div>
@@ -919,8 +914,7 @@ export default function IngresosModal() {
                                     <Button
                                       type="button"
                                       variant="destructive"
-                                      size="sm"
-                                      className="h-8 w-8 p-0"
+                                      size="iconSm"
                                       title="Eliminar documento"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
@@ -936,7 +930,7 @@ export default function IngresosModal() {
                                     <AlertDialogFooter>
                                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                       <AlertDialogAction
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        variant="destructive"
                                         onClick={async () => {
                                           try {
                                             await deleteIngresoDocument({ id: doc._id });
@@ -960,7 +954,7 @@ export default function IngresosModal() {
                     ) : (
                       <div className="space-y-3">
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-subtle-foreground">Tipo de documento</Label>
+                          <Label variant="caption">Tipo de documento</Label>
                           <Select value={documentType} onValueChange={setDocumentType}>
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccionar tipo" />
@@ -977,23 +971,22 @@ export default function IngresosModal() {
                         {documentType && (
                           <div className="space-y-3">
                             <div className="space-y-1.5">
-                              <Label className="text-xs text-subtle-foreground">Archivo</Label>
+                              <Label variant="caption">Archivo</Label>
                               {documentFile ? (
                                 <div className="flex items-center justify-between gap-3 border border-border bg-muted/40 px-3 py-2.5">
                                   <div className="flex min-w-0 items-center gap-2">
                                     <File className="h-4 w-4 shrink-0 text-muted-foreground" />
                                     <div className="min-w-0">
                                       <p className="truncate text-sm font-medium">{documentFile.name}</p>
-                                      <p className="text-xs text-subtle-foreground">
+                                      <p className="text-xs text-muted-foreground">
                                         {(documentFile.size / 1024).toFixed(2)} KB
                                       </p>
                                     </div>
                                   </div>
                                   <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="quiet"
                                     size="sm"
-                                    className="shrink-0 text-muted-foreground"
                                     onClick={() => setDocumentFile(null)}
                                   >
                                     Cambiar
@@ -1022,7 +1015,7 @@ export default function IngresosModal() {
                             </div>
 
                             <div className="space-y-1.5">
-                              <Label className="text-xs text-subtle-foreground">
+                              <Label variant="caption">
                                 Descripción del documento
                               </Label>
                               <Input
@@ -1069,13 +1062,13 @@ export default function IngresosModal() {
           {!showForm && !showBulkUpload && (
             <section className="grid grid-cols-2 divide-x divide-border border-b border-border bg-muted/40">
               <div className="px-6 py-4">
-                <p className="text-xs text-subtle-foreground">Total ingresos</p>
+                <p className="text-xs text-muted-foreground">Total ingresos</p>
                 <p className="mt-1 text-lg font-medium tabular-nums tracking-tight">
                   {formatCurrency(totalIngresos, "MXN")}
                 </p>
               </div>
               <div className="px-6 py-4">
-                <p className="text-xs text-subtle-foreground">Entradas</p>
+                <p className="text-xs text-muted-foreground">Entradas</p>
                 <p className="mt-1 text-lg font-medium tabular-nums">{totalIngresosCount}</p>
               </div>
             </section>
@@ -1084,13 +1077,13 @@ export default function IngresosModal() {
           {!showForm && !showBulkUpload && (
             <div className="flex items-center justify-end gap-1 border-b border-border px-4 py-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => {
                   resetBulkUpload();
                   setShowBulkUpload(true);
                 }}
-                className="gap-2 text-muted-foreground"
+
                 title="Carga masiva desde Excel"
               >
                 <FileSpreadsheet className="h-4 w-4" />
@@ -1098,9 +1091,8 @@ export default function IngresosModal() {
               </Button>
               <Button
                 size="sm"
-                variant="ghost"
+                variant="outline"
                 onClick={handleAddNew}
-                className="gap-2 text-muted-foreground"
               >
                 <Plus className="h-4 w-4" />
                 Nuevo
@@ -1113,9 +1105,8 @@ export default function IngresosModal() {
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-8 w-8 text-muted-foreground"
                     onClick={resetBulkUpload}
                     title="Volver"
                   >
@@ -1123,16 +1114,16 @@ export default function IngresosModal() {
                   </Button>
                   <div>
                     <h3 className="text-sm font-medium">Carga masiva</h3>
-                    <p className="text-xs text-subtle-foreground">Importar ingresos desde Excel</p>
+                    <p className="text-xs text-muted-foreground">Importar ingresos desde Excel</p>
                   </div>
                 </div>
               </div>
 
               {bulkResult ? (
                 <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                  <CheckCircle2 className="h-7 w-7 text-green-500" />
+                  <CheckCircle2 className="h-7 w-7 text-success" />
                   <p className="mt-3 text-sm font-medium text-foreground">Carga completada</p>
-                  <p className="mt-1 text-sm text-subtle-foreground">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {bulkResult.created} ingreso(s) creado(s)
                     {bulkResult.skipped > 0 && `, ${bulkResult.skipped} omitido(s)`}.
                   </p>
@@ -1170,16 +1161,15 @@ export default function IngresosModal() {
                         <File className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{bulkFile.name}</p>
-                          <p className="text-xs text-subtle-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {(bulkFile.size / 1024).toFixed(2)} KB
                           </p>
                         </div>
                       </div>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="quiet"
                         size="sm"
-                        className="shrink-0 text-muted-foreground"
                         disabled={isValidatingBulk || isProcessingBulk}
                         onClick={() => {
                           setBulkFile(null);
@@ -1193,7 +1183,7 @@ export default function IngresosModal() {
                     <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-border px-3 py-8 text-center hover:bg-muted/30">
                       <Upload className="h-5 w-5 text-disabled-foreground" />
                       <p className="text-sm text-muted-foreground">Seleccionar archivo Excel</p>
-                      <p className="text-xs text-subtle-foreground">.xlsx, .xls o .xlsm</p>
+                      <p className="text-xs text-muted-foreground">.xlsx, .xls o .xlsm</p>
                       <input
                         type="file"
                         accept=".xlsx,.xls,.xlsm"
@@ -1227,7 +1217,7 @@ export default function IngresosModal() {
                         const validCount = bulkRows.filter((r) => r.status === "valid").length;
                         const invalidCount = bulkRows.length - validCount;
                         return (
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-subtle-foreground">
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                             <span>{bulkRows.length} filas</span>
                             <span>{validCount} válidas</span>
                             {invalidCount > 0 && (
@@ -1241,7 +1231,7 @@ export default function IngresosModal() {
                         <div className="flex flex-col items-center justify-center py-10 text-center">
                           <AlertCircle className="h-7 w-7 text-disabled-foreground" />
                           <p className="mt-3 text-sm font-medium text-foreground">Sin filas</p>
-                          <p className="mt-1 text-sm text-subtle-foreground">
+                          <p className="mt-1 text-sm text-muted-foreground">
                             No se encontraron filas para cargar.
                           </p>
                         </div>
@@ -1249,44 +1239,41 @@ export default function IngresosModal() {
                         <div className="max-h-[320px] overflow-auto border border-border">
                           <Table>
                             <TableHeader>
-                              <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
-                                <TableHead className="h-10 w-[52px] px-3 text-xs font-medium text-subtle-foreground">#</TableHead>
-                                <TableHead className="h-10 w-[110px] px-3 text-xs font-medium text-subtle-foreground">Fecha</TableHead>
-                                <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Descripción</TableHead>
-                                <TableHead className="h-10 w-[140px] px-3 text-right text-xs font-medium text-subtle-foreground">Monto</TableHead>
-                                <TableHead className="h-10 w-[72px] px-3 text-xs font-medium text-subtle-foreground">Moneda</TableHead>
-                                <TableHead className="h-10 w-[180px] px-3 text-xs font-medium text-subtle-foreground">Estado</TableHead>
+                              <TableRow variant="ledgerHeader">
+                                <TableHead variant="ledger" className="w-[52px]">#</TableHead>
+                                <TableHead variant="ledger" className="w-[110px]">Fecha</TableHead>
+                                <TableHead variant="ledger">Descripción</TableHead>
+                                <TableHead variant="ledger" className="w-[140px] text-right">Monto</TableHead>
+                                <TableHead variant="ledger" className="w-[72px]">Moneda</TableHead>
+                                <TableHead variant="ledger" className="w-[180px]">Estado</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {bulkRows.map((row, idx) => (
                                 <TableRow
                                   key={idx}
-                                  className={cn(
-                                    "border-b border-border hover:bg-muted/30",
-                                    row.status === "invalid" && "bg-red-50"
-                                  )}
+                                  variant={row.status === "invalid" ? "ledgerInvalid" : "ledger"}
                                 >
-                                  <TableCell className="px-3 py-2.5 text-xs tabular-nums text-subtle-foreground">
+                                  <TableCell variant="ledgerCompactSubtle">
                                     {row.rowIndex ?? idx + 1}
                                   </TableCell>
-                                  <TableCell className="px-3 py-2.5 text-sm font-medium">{row.fecha || "—"}</TableCell>
-                                  <TableCell className="px-3 py-2.5 text-sm text-muted-foreground">
+                                  <TableCell variant="ledgerCompactEmphasis">{row.fecha || "—"}</TableCell>
+                                  <TableCell variant="ledgerCompactMuted">
                                     {row.descripcion || "—"}
                                   </TableCell>
-                                  <TableCell className="px-3 py-2.5 text-right text-sm font-medium tabular-nums">
+                                  <TableCell variant="ledgerCompactEmphasis" className="text-right">
                                     {formatCurrency(row.monto, row.moneda)}
                                   </TableCell>
-                                  <TableCell className="px-3 py-2.5 text-sm text-muted-foreground">{row.moneda}</TableCell>
-                                  <TableCell className="px-3 py-2.5">
+                                  <TableCell variant="ledgerCompactMuted">{row.moneda}</TableCell>
+                                  <TableCell variant="ledgerCompact">
                                     {row.status === "valid" ? (
-                                      <span className="inline-flex items-center gap-1.5 text-xs text-green-600">
+                                      <span className="inline-flex items-center gap-1.5 text-xs text-success">
                                         <CheckCircle2 className="h-3.5 w-3.5" />
                                         Válido
                                       </span>
                                     ) : (
                                       <span
-                                        className="inline-flex items-center gap-1.5 text-xs text-red-600"
+                                        className="inline-flex items-center gap-1.5 text-xs text-danger"
                                         title={row.errors.join(", ")}
                                       >
                                         <AlertCircle className="h-3.5 w-3.5" />
@@ -1333,63 +1320,53 @@ export default function IngresosModal() {
             <div>
               {isLoadingList ? (
                 <div className="flex min-h-64 items-center justify-center" aria-label="Cargando ingresos">
-                  <Loader2 className="h-5 w-5 animate-spin text-subtle-foreground" />
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : tableRows.length > 0 ? (
                 <div className="overflow-x-auto px-6 py-5">
                   <div className="min-w-[720px] border border-border">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
-                          <TableHead className="h-10 w-[110px] px-3 text-xs font-medium text-subtle-foreground">Fecha</TableHead>
-                          <TableHead className="h-10 w-[90px] px-3 text-xs font-medium text-subtle-foreground">Origen</TableHead>
-                          <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Descripción</TableHead>
-                          <TableHead className="h-10 px-3 text-right text-xs font-medium text-subtle-foreground">Monto</TableHead>
-                          <TableHead className="h-10 w-[120px] px-3 text-xs font-medium text-subtle-foreground">Agregado por</TableHead>
-                          <TableHead className="h-10 w-[56px] px-3 text-xs font-medium text-subtle-foreground">Doc</TableHead>
-                          <TableHead className="h-10 w-[44px] px-3" />
+                        <TableRow variant="ledgerHeader">
+                          <TableHead variant="ledger" className="w-[110px]">Fecha</TableHead>
+                          <TableHead variant="ledger" className="w-[90px]">Origen</TableHead>
+                          <TableHead variant="ledger">Descripción</TableHead>
+                          <TableHead variant="ledger" className="text-right">Monto</TableHead>
+                          <TableHead variant="ledger" className="w-[120px]">Agregado por</TableHead>
+                          <TableHead variant="ledger" className="w-[56px]">Doc</TableHead>
+                          <TableHead variant="ledger" className="w-[44px]" />
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {tableRows.map((row) => (
-                          <TableRow key={`${row.source}-${row.id}`} className="border-b border-border hover:bg-muted/30">
-                            <TableCell className="px-3 py-3 text-sm font-medium tabular-nums">
+                          <TableRow key={`${row.source}-${row.id}`} variant="ledger">
+                            <TableCell variant="ledgerEmphasis">
                               {row.fecha}
                             </TableCell>
-                            <TableCell className="px-3 py-3">
-                              <Badge
-                                variant="secondary"
-                                className={cn(
-                                  "border text-[10px] font-normal",
-                                  row.source === "ogc"
-                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                    : "border-border bg-muted text-muted-foreground"
-                                )}
-                              >
+                            <TableCell variant="ledger">
+                              <Badge variant={row.source === "ogc" ? "sourceOgc" : "sourceIngreso"}>
                                 {row.source === "ogc" ? "OGC" : "Ingresos"}
                               </Badge>
                             </TableCell>
-                            <TableCell className="max-w-[240px] truncate px-3 py-3 text-sm text-muted-foreground">
+                            <TableCell variant="ledgerTruncate" className="max-w-[240px]">
                               {row.descripcion || "—"}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap px-3 py-3 text-right text-sm font-medium tabular-nums">
+                            <TableCell variant="ledgerEmphasis" className="whitespace-nowrap text-right">
                               {formatCurrency(row.monto, row.moneda)}
                             </TableCell>
-                            <TableCell className="px-3 py-3 text-sm text-subtle-foreground">
+                            <TableCell variant="ledgerSubtle">
                               {row.addedBy || "—"}
                             </TableCell>
-                            <TableCell className="px-3 py-3">
+                            <TableCell variant="ledger">
                               {(() => {
                                 if (row.source === "ogc") {
                                   const documents = row.ogcMovement.nota_recepcion_documentos || [];
-                                  if (documents.length > 0) {
-                                    return (
-                                      <span className="text-xs tabular-nums text-muted-foreground">
-                                        {documents.length}
-                                      </span>
-                                    );
-                                  }
-                                  return <span className="text-disabled-foreground">—</span>;
+                                  return (
+                                    <div className="flex flex-col items-start gap-1">
+                                      <OgcInvoiceEvidenceDialog movement={row.ogcMovement} compact />
+                                      {documents.length > 0 && <span className="text-xs tabular-nums text-muted-foreground">{documents.length} nota{documents.length === 1 ? "" : "s"} de recepción</span>}
+                                    </div>
+                                  );
                                 }
 
                                 const ingreso = row.ingreso;
@@ -1398,10 +1375,9 @@ export default function IngresosModal() {
                                   const doc = docs[0];
                                   return (
                                     <Button
-                                      variant="ghost"
-                                      size="icon"
+                                      variant="quiet"
+                                      size="iconXs"
                                       onClick={() => doc.url && window.open(doc.url, "_blank")}
-                                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                       title={doc.nombre}
                                     >
                                       <FileText className="h-4 w-4" />
@@ -1424,10 +1400,10 @@ export default function IngresosModal() {
                                 return <span className="text-disabled-foreground">—</span>;
                               })()}
                             </TableCell>
-                            <TableCell className="px-3 py-3">
+                            <TableCell variant="ledger">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                  <Button variant="quiet" size="iconXs">
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -1446,7 +1422,7 @@ export default function IngresosModal() {
                                   )}
                                   <DropdownMenuItem
                                     onClick={() => handleDelete(row)}
-                                    className="text-red-600"
+                                    variant="destructive"
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     {row.source === "ogc" ? "Anular" : "Eliminar"}
@@ -1464,17 +1440,12 @@ export default function IngresosModal() {
                 <div className="flex min-h-64 flex-col items-center justify-center px-6 text-center">
                   <FileText className="h-7 w-7 text-disabled-foreground" />
                   <p className="mt-3 text-sm font-medium text-foreground">No hay ingresos registrados</p>
-                  <p className="mt-1 max-w-sm text-sm text-subtle-foreground">
+                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                     Agrega un ingreso o carga un archivo Excel para comenzar.
                   </p>
-                  <Button
-                    variant="outline"
-                    onClick={handleAddNew}
-                    className="mt-4 gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar primer ingreso
-                  </Button>
+                  <div className="mt-4"><Button variant="outline" onClick={handleAddNew}>
+                    <Plus className="h-4 w-4" />Agregar primer ingreso
+                  </Button></div>
                 </div>
               )}
             </div>

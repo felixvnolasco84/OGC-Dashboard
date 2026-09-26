@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import DropdownMenuComponentPartida from "../DropdownMenu/DropdownMenuComponenPartida";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -92,7 +92,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
     return nombre?.toLowerCase().trim() === "honorarios";
   };
 
-  
+
   // Transform flat partidas data into hierarchical structure based on nivel
   const hierarchicalData = useMemo(() => {
 
@@ -303,16 +303,16 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-left">
       <div className="bg-card border border-border overflow-hidden">
         <Table>
-          <TableHeader className="bg-card">
-            <TableRow className="border-b border-border">
+          <TableHeader variant="budget" className="text-muted-foreground">
+            <TableRow variant="budget">
 
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
+              <TableHead variant="budget">
                 Partida - Familia - Subpartida
               </TableHead>
-              {/* <TableHead 
+              {/* <TableHead
                 className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border cursor-pointer hover:bg-background"
                 onClick={togglePrecioUnitario}
               >
@@ -323,30 +323,30 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
               </TableHead> */}
               {showPrecioUnitario && (
                 <>
-                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-border ">
+                  <TableHead variant="budget">
                     Unidad
                   </TableHead>
-                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-border ">
+                  <TableHead variant="budget">
                     Cantidad
                   </TableHead>
-                  <TableHead className="px-6 py-4  text-base font-medium  border-r border-border ">
+                  <TableHead variant="budget">
                     Precio Unitario
                   </TableHead>
                 </>
               )}
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
+              <TableHead variant="budget">
                 Presupuesto original
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
+              <TableHead variant="budget">
                 Presupuesto aprobado
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
+              <TableHead variant="budget">
                 {dateFilterLabel ? `Pagado (${dateFilterLabel})` : "Pagado"}
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
+              <TableHead variant="budget">
                 Avance
               </TableHead>
-              <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
+              <TableHead variant="budget">
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -360,20 +360,17 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
 
               return (
                 <React.Fragment key={item.uniqueId}>
-                  <TableRow
-                    className="border-b border-border hover:bg-background"
-                  >
-                    <TableCell className="px-4 py-4 text-base text-foreground border-r border-border last:border-r-0 text-left">
+                  <TableRow variant="budget">
+                    <TableCell variant="budget">
                       <div
                         className="flex items-center space-x-2"
                         style={{ paddingLeft: `${item.level * 20}px` }}
                       >
                         {item.children && item.children.length > 0 ? (
                           <Button
-                            variant="ghost"
-                            size="sm"
+                            variant="filter"
+                            size="bare"
                             onClick={() => toggleExpanded(item.uniqueId)}
-                            className="p-0 h-auto hover:bg-transparent"
                             data-viewer-readonly-allow="true"
                           >
                             {item.expanded ? (
@@ -385,54 +382,49 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                         ) : (
                           <div className="w-4" />
                         )}
-                        <span className={`${item.level > 0 ? 'text-muted-foreground text-wrap max-w-48' : 'text-foreground font-medium'}`}>
+                        <span className={`${item.level > 0 ? 'text-muted-foreground text-wrap max-w-48' : 'text-foreground font-normal'}`}>
                           {item.displayName}
                         </span>
                       </div>
                     </TableCell>
-                    {/* <TableCell className="px-4 py-4 text-base text-disabled-foreground border-r border-border last:border-r-0 text-center">
+                    {/* <TableCell variant="budgetMuted">
                     </TableCell> */}
                     {showPrecioUnitario && (
                       <>
-                        <TableCell className="px-4 py-4 text-base text-disabled-foreground text-left border-r font-light border-border">
+                        <TableCell variant="budgetMuted">
                           {item.unidad || null}
                         </TableCell>
-                        <TableCell className="px-4 py-4 text-base text-disabled-foreground text-left border-r font-light border-border">
+                        <TableCell variant="budgetMuted">
                           {item.cantidad ? item.cantidad.toLocaleString('es-MX') : null}
                         </TableCell>
-                        <TableCell className="px-4 py-4 text-base text-disabled-foreground text-left border-r font-light border-border">
+                        <TableCell variant="budgetMuted">
                           {item.precioUnitario ? formatCurrency(item.precioUnitario, defaultCurrency) : null}
                         </TableCell>
                       </>
                     )}
-                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
+                    <TableCell variant="budget">
                       {formatCurrency(item.presupuestoOriginal, defaultCurrency)}
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
+                    <TableCell variant="budget">
                       <div className="flex flex-col gap-2 text-left">
                         <span>{formatCurrency(item.presupuestoAprobado, defaultCurrency)}</span>
                         {!approvedDiff.isEqual && (
                           <Badge
-                            className={cn(
-                              "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
-                              approvedDiff.isSavings
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-400'
-                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-400'
-                            )}
+                            variant={approvedDiff.isSavings ? "success" : "warning"}
                           >
                             {approvedDiff.isSavings ? 'Ahorro' : 'Incremento'}: +{formatCurrency(Math.abs(item.presupuestoAprobado - item.presupuestoOriginal), defaultCurrency)}
                           </Badge>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
+                    <TableCell variant="budget">
                       <div className="flex flex-col gap-2 text-left">
                         {/* For Honorarios level 0 items, show honorarios_monto from proyecto in pagado column */}
                         {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_monto !== undefined ? (
                           <>
                             <span>{formatCurrency(filteredPayments ? (filteredHonorarios ?? 0) : proyecto.honorarios_monto, defaultCurrency)}</span>
                             {proyecto.honorarios_modo === "transacciones" && (
-                              <span className="text-xs text-subtle-foreground">Incluye transacciones por pagar</span>
+                              <span className="text-xs text-muted-foreground">Incluye transacciones por pagar</span>
                             )}
                           </>
                         ) : (
@@ -440,19 +432,14 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                         )}
                         {!filteredPayments && !porGastarBadge.isEqual && (
                           <Badge
-                            className={cn(
-                              "text-xs text-left w-fit font-normal py-1.5 leading-none rounded-full",
-                              porGastarBadge.isRemaining
-                                ? 'bg-muted text-disabled-foreground hover:bg-muted border border-border-strong'
-                                : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-400'
-                            )}
+                            variant={porGastarBadge.isRemaining ? "neutral" : "danger"}
                           >
                             {porGastarBadge.isRemaining ? 'Por gastar' : 'Incremento'} - {formatCurrency(Math.abs(item.porGastar), defaultCurrency)}
                           </Badge>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-foreground text-left border-r border-border last:border-r-0">
+                    <TableCell variant="budget">
                       {/* For Honorarios level 0 items, show honorarios_porcentaje from proyecto */}
                       {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_modo !== "transacciones" && proyecto?.honorarios_porcentaje !== undefined ? (
                         <span>{proyecto.honorarios_porcentaje}%</span>
@@ -460,7 +447,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                         <span>{item.avance}%</span>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-base text-disabled-foreground text-left border-r border-border last:border-r-0">
+                    <TableCell variant="budgetMuted">
                       <DropdownMenuComponentPartida
                         partida={item.originalDoc!}
                         level={item.level}

@@ -196,11 +196,11 @@ export default function AssistantComposer({
         {activeMention && (
           <div className="absolute bottom-full left-0 right-0 z-[70] mb-2 max-h-72 overflow-y-auto rounded-xl border border-border bg-card p-1.5 shadow-xl">
             {suggestions === undefined ? (
-              <div className="flex items-center gap-2 px-3 py-4 text-sm text-subtle-foreground">
+              <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Buscando referencias...
               </div>
             ) : visibleSuggestions.length === 0 ? (
-              <p className="px-3 py-4 text-sm text-subtle-foreground">No hay coincidencias accesibles.</p>
+              <p className="px-3 py-4 text-sm text-muted-foreground">No hay coincidencias accesibles.</p>
             ) : visibleSuggestions.map((suggestion, index) => {
               const showGroup = previousType !== suggestion.type;
               previousType = suggestion.type;
@@ -221,7 +221,7 @@ export default function AssistantComposer({
                     )}
                   >
                     <span className="block truncate text-sm font-medium text-foreground">{suggestion.label}</span>
-                    <span className="block truncate text-xs text-subtle-foreground">{suggestion.subtitle}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{suggestion.subtitle}</span>
                   </button>
                 </div>
               );

@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import ProviderFormDialog from "@/components/providers/ProviderFormDialog";
@@ -123,20 +123,20 @@ function BudgetTargetPicker({
   const [open, setOpen] = useState(false);
   const selected = targets.find((target) => target.id === value);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant="combobox"
+          size="combobox"
           role="combobox"
           aria-expanded={open}
-          className={cn("h-auto min-h-10 w-full justify-between whitespace-normal text-left font-normal", !selected && "text-muted-foreground")}
         >
           <span className="line-clamp-2">{selected?.label || "Seleccionar partida / familia / subpartida"}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-[min(38rem,calc(100vw-3rem))] p-0">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" variant="budgetTargets">
         <Command>
           <CommandInput placeholder="Buscar en el presupuesto…" />
           <CommandList className="max-h-72">
@@ -158,15 +158,14 @@ function BudgetTargetPicker({
             </CommandGroup>
           </CommandList>
         </Command>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 export function InvoiceIntakeDialog({
   projectId: fixedProjectId,
   projectName,
-  className,
   open: controlledOpen,
   onOpenChange,
   hideTrigger = false,
@@ -174,7 +173,6 @@ export function InvoiceIntakeDialog({
 }: {
   projectId?: Id<"desarrollos">;
   projectName?: string;
-  className?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   hideTrigger?: boolean;
@@ -434,7 +432,7 @@ export function InvoiceIntakeDialog({
   return (
     <>
       {!hideTrigger && (
-        <Button variant="outline" size="lg" className={cn("flex items-center gap-2 rounded-none py-6 text-subtle-foreground", className)} onClick={() => setOpen(true)}>
+        <Button variant="outline" size="lg" onClick={() => setOpen(true)}>
           Cargar factura
           <Upload className="h-5 w-5" />
         </Button>
@@ -443,8 +441,8 @@ export function InvoiceIntakeDialog({
         setOpen(nextOpen);
         if (!nextOpen && analysis?.invoice.status === "approved") resetDraft();
       }}>
-        <DialogContent data-square-modal="" className="max-h-[94vh] max-w-6xl gap-0 overflow-hidden p-0">
-          <DialogHeader className="border-b border-border px-6 py-5 pr-12">
+        <DialogContent data-square-modal="" variant="invoice">
+          <DialogHeader variant="ledger">
             <DialogTitle>Cargar y clasificar factura</DialogTitle>
             <DialogDescription>
               {selectedProjectName ? `${selectedProjectName} · ` : ""}La transacción se crea únicamente después de la aprobación.
@@ -479,7 +477,7 @@ export function InvoiceIntakeDialog({
                       </div>
                     ))}
                   </div>
-                  <Button className="w-full" onClick={handleUpload} disabled={isUploading || !selectedProjectId || files.length === 0}>
+                  <Button size="full" onClick={handleUpload} disabled={isUploading || !selectedProjectId || files.length === 0}>
                     {isUploading ? <Loader2 className="animate-spin" /> : <Bot />}
                     {isUploading ? "Subiendo…" : "Subir y analizar"}
                   </Button>
@@ -495,10 +493,10 @@ export function InvoiceIntakeDialog({
                   ) : (
                     <div className="mt-3 space-y-2">
                       {queue.map((row) => (
-                        <button key={row._id} type="button" className="w-full border border-border bg-card p-3 text-left hover:bg-muted/40" onClick={() => { initializedRunId.current = null; setInvoiceId(row._id); }}>
+                        <Button key={row._id} type="button" variant="queue" size="queue" onClick={() => { initializedRunId.current = null; setInvoiceId(row._id); }}>
                           <span className="block truncate text-sm font-medium">{row.folio || row.issuer_name || "Factura en análisis"}</span>
                           <span className="mt-1 block text-xs text-muted-foreground">{row.project_name} · {row.status}</span>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   )}
@@ -515,10 +513,10 @@ export function InvoiceIntakeDialog({
             ) : analysis.invoice.status === "failed" ? (
               <div className="p-6">
                 <Alert variant="destructive"><XCircle /><AlertTitle>No se pudo analizar</AlertTitle><AlertDescription>{analysis.run?.error || "Revisa el archivo e intenta nuevamente."}</AlertDescription></Alert>
-                <Button className="mt-4" variant="outline" onClick={resetDraft}>Cargar otra factura</Button>
+                <div className="mt-4"><Button variant="outline" onClick={resetDraft}>Cargar otra factura</Button></div>
               </div>
             ) : analysis.invoice.status === "rejected" ? (
-              <div className="p-6"><Alert><XCircle /><AlertTitle>Factura rechazada</AlertTitle><AlertDescription>Esta carga no se integró al presupuesto.</AlertDescription></Alert><Button className="mt-4" variant="outline" onClick={resetDraft}>Volver</Button></div>
+              <div className="p-6"><Alert><XCircle /><AlertTitle>Factura rechazada</AlertTitle><AlertDescription>Esta carga no se integró al presupuesto.</AlertDescription></Alert><div className="mt-4"><Button variant="outline" onClick={resetDraft}>Volver</Button></div></div>
             ) : (
               <div className="space-y-6 p-6">
                 {analysis.duplicate_invoice && (
@@ -528,7 +526,7 @@ export function InvoiceIntakeDialog({
                     <AlertDescription>
                       El UUID o los archivos ya pertenecen a otra factura. Esta carga no puede integrarse.
                       {analysis.duplicate_invoice.integrated_transaction_id && (
-                        <Button className="ml-2 h-7" variant="outline" size="sm" onClick={() => navigate(`/proyecto/${analysis.project._id}/transacciones?factura=${encodeURIComponent(analysis.duplicate_invoice?.folio || analysis.duplicate_invoice?.uuid || "")}`)}>Abrir existente</Button>
+                        <span className="ml-2"><Button variant="outline" size="compact" onClick={() => navigate(`/proyecto/${analysis.project._id}/transacciones?factura=${encodeURIComponent(analysis.duplicate_invoice?.folio || analysis.duplicate_invoice?.uuid || "")}`)}>Abrir existente</Button></span>
                       )}
                     </AlertDescription>
                   </Alert>
@@ -594,11 +592,11 @@ export function InvoiceIntakeDialog({
 
                     <section className="space-y-3 border border-border p-4">
                       <div className="space-y-2"><Label>Justificación de excepción o rechazo</Label><Textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder={needsReason ? "Obligatoria porque el total o tipo difiere del documento" : "Opcional al aprobar; obligatoria para rechazar"} /></div>
-                      {!allItemsMapped && <p className="text-xs text-amber-700">Selecciona una ruta válida para todos los conceptos.</p>}
-                      {!totalsMatch && <p className="text-xs text-amber-700">La suma de conceptos debe coincidir con el total revisado.</p>}
+                      {!allItemsMapped && <p className="text-xs text-warning">Selecciona una ruta válida para todos los conceptos.</p>}
+                      {!totalsMatch && <p className="text-xs text-warning">La suma de conceptos debe coincidir con el total revisado.</p>}
                       <div className="flex flex-wrap justify-end gap-2">
                         <Button variant="outline" onClick={resetDraft}>Volver a cargas</Button>
-                        <Button variant="outline" className="text-destructive" disabled={isSubmitting || !reason.trim()} onClick={handleReject}><XCircle />Rechazar</Button>
+                        <Button variant="outlineDanger" disabled={isSubmitting || !reason.trim()} onClick={handleReject}><XCircle />Rechazar</Button>
                         <Button disabled={isSubmitting || !canApprove} onClick={handleApprove}>{isSubmitting ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}Aprobar e integrar</Button>
                       </div>
                     </section>

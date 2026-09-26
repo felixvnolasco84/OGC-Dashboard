@@ -80,7 +80,7 @@ export default function ProgramaObraAvanceHistorial({ item, historial, onClose }
                         {formatDateTime(entry.created_at)}
                       </span>
                     </div>
-                    <div className="mt-2 text-xs text-subtle-foreground">
+                    <div className="mt-2 text-xs text-muted-foreground">
                       {entry.changed_by_name ?? "Usuario no identificado"}
                     </div>
                   </div>

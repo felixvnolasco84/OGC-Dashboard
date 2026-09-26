@@ -133,7 +133,7 @@ function FolderTreeItem<TId extends string = string>({
             onClick={() => onFolderSelect(node.id)}
             onContextMenu={(event) => onFolderContextMenu?.(event, node.id)}
           >
-            <Folder className="h-4 w-4 shrink-0 text-subtle-foreground" />
+            <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
             {!collapsed && <span className="truncate">{node.name}</span>}
           </Button>
         </TooltipTrigger>
@@ -156,7 +156,7 @@ function FolderTreeItem<TId extends string = string>({
           className="flex min-w-0 flex-1 items-center gap-1 px-1 py-1 hover:text-foreground"
           onClick={() => onFolderSelect(node.id)}
         >
-          <Folder className="h-4 w-4 shrink-0 text-subtle-foreground" />
+          <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
           {!collapsed && <span className="truncate">{node.name}</span>}
         </button>
         {!collapsed && (
@@ -248,7 +248,7 @@ export function DocumentFolderSidebar<TId extends string = string>({
                 )}
                 onClick={() => onFolderSelect(undefined)}
               >
-                <FolderOpen className="h-4 w-4 shrink-0 text-subtle-foreground" />
+                <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {!collapsed && (
                   <>
                     <span className="truncate">{rootLabel}</span>
@@ -414,7 +414,7 @@ export function MoveLocationDialog<TId extends string = string>({
             <>
             <div className="flex items-center justify-end border-b border-border px-9 py-2">
               <div className="relative w-60">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-subtle-foreground" />
+                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
@@ -426,7 +426,7 @@ export function MoveLocationDialog<TId extends string = string>({
 
             <div className="min-h-[220px] px-5 py-3">
               {suggestedFolders.length === 0 ? (
-                <div className="flex h-64 items-center justify-center text-sm text-subtle-foreground">
+                <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
                   No hay carpetas disponibles para mover.
                 </div>
               ) : (
@@ -517,7 +517,7 @@ export function MoveLocationDialog<TId extends string = string>({
                     />
                     <span className="truncate">{folder.nombre}</span>
                   </button>
-                  <span className={cn("text-subtle-foreground", targetFolderId === folder._id && "text-blue-700")}>
+                  <span className={cn("text-muted-foreground", targetFolderId === folder._id && "text-blue-700")}>
                     {formatDate(folder.updated_at || folder.created_at)}
                   </span>
                   <div className="flex items-center gap-1">
@@ -640,7 +640,7 @@ function MoveFolderRow({
       <Folder className={cn("h-5 w-5 shrink-0 fill-gray-800 text-foreground", active && "fill-blue-600 text-blue-600")} />
       <button className="min-w-0 flex-1 truncate text-left text-base" onClick={onSelect}>
         {name}
-        {subtitle && <span className="ml-2 text-sm text-subtle-foreground">{subtitle}</span>}
+        {subtitle && <span className="ml-2 text-sm text-muted-foreground">{subtitle}</span>}
       </button>
       <div className={cn("flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100", active && "opacity-100")}>
         <Button className="h-9 rounded-full px-5" variant="secondary" onClick={onSelect}>

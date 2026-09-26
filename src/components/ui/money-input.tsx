@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { currencyFractionDigits, parseMoneyInput } from "@/lib/money";
 
 export interface MoneyInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> {
@@ -8,30 +9,23 @@ export interface MoneyInputProps
   onChange?: (value: number) => void;
   currency?: string;
   locale?: string;
+  variant?: "default" | "muted" | "card";
 }
 
 const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
-  ({ className, value = 0, onChange, currency = "MXN", locale = "es-MX", disabled, ...props }, ref) => {
+  ({ className, variant = "default", value = 0, onChange, currency = "MXN", locale = "es-MX", disabled, ...props }, ref) => {
     const [displayValue, setDisplayValue] = React.useState("");
     const [isFocused, setIsFocused] = React.useState(false);
 
-    // Format number to currency display
+    const fractionDigits = currencyFractionDigits(currency, locale);
+
     const formatToCurrency = React.useCallback((val: number): string => {
       if (!val || val === 0) return "";
-      
       return new Intl.NumberFormat(locale, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
       }).format(val);
-    }, [locale]);
-
-    // Parse display value back to number
-    const parseFromDisplay = (val: string): number => {
-      // Remove all non-numeric characters except decimal point
-      const cleaned = val.replace(/[^0-9.]/g, "");
-      const number = parseFloat(cleaned);
-      return isNaN(number) ? 0 : number;
-    };
+    }, [fractionDigits, locale]);
 
     // Update display value when prop value changes (when not focused)
     React.useEffect(() => {
@@ -55,19 +49,17 @@ const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const inputValue = e.target.value;
-      const cleaned = inputValue.replace(/[^0-9.]/g, "");
-      
-      // Validate it's a valid number format
-      if (cleaned === "" || /^\d*\.?\d*$/.test(cleaned)) {
-        setDisplayValue(inputValue);
-        onChange?.(parseFromDisplay(inputValue));
-      }
+      const inputValue = e.target.value.trim();
+      const parsed = parseMoneyInput(inputValue, currency, locale);
+      if (parsed === null) return;
+      setDisplayValue(inputValue);
+      onChange?.(parsed);
     };
 
     return (
       <div className="relative">
         <Input
+          {...props}
           ref={ref}
           type="text"
           inputMode="decimal"
@@ -76,14 +68,12 @@ const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
           onFocus={handleFocus}
           onBlur={handleBlur}
           disabled={disabled}
-          className={cn(className)}
-          {...props}
+          variant={variant}
+          className={cn("pr-14 tabular-nums", className)}
         />
-        {!isFocused && displayValue && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-            {currency}
-          </span>
-        )}
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+          {currency}
+        </span>
       </div>
     );
   }

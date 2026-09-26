@@ -496,7 +496,7 @@ export default function ProyectoDocumentosPage() {
   if (!proyecto) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-card">
-        <p className="text-subtle-foreground">Cargando...</p>
+        <p className="text-muted-foreground">Cargando...</p>
       </div>
     );
   }
@@ -515,7 +515,7 @@ export default function ProyectoDocumentosPage() {
           <div className="max-w-md px-6 text-center">
             <Upload className="mx-auto mb-4 h-12 w-12 text-foreground" />
             <p className="text-xl text-foreground">Suelta los documentos para agregarlos</p>
-            <p className="mt-2 text-sm text-subtle-foreground">
+            <p className="mt-2 text-sm text-muted-foreground">
               Se subirán a {currentFolder?.nombre || "Biblioteca"}.
             </p>
           </div>
@@ -526,7 +526,7 @@ export default function ProyectoDocumentosPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
             <div className="min-w-0">
               {currentFolder && (
-                <div className="mb-2 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 text-sm text-subtle-foreground">
+                <div className="mb-2 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 text-sm text-muted-foreground">
                   <button
                     className="shrink-0 hover:text-foreground"
                     onClick={() => setCurrentFolderId(undefined)}
@@ -555,7 +555,7 @@ export default function ProyectoDocumentosPage() {
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-none py-6 text-subtle-foreground"
+                className="rounded-none py-6 text-muted-foreground"
                 onClick={handleOrganizeDocuments}
                 disabled={isOrganizing}
               >
@@ -569,7 +569,7 @@ export default function ProyectoDocumentosPage() {
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-none py-6 text-subtle-foreground"
+                className="rounded-none py-6 text-muted-foreground"
                 onClick={() => {
                   setDraftName("");
                   setFolderDialogParentId(undefined);
@@ -637,14 +637,14 @@ export default function ProyectoDocumentosPage() {
 
       <main className="min-h-[calc(100vh-225px)] min-w-0 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
           {isLoading ? (
-            <div className="flex min-h-[360px] items-center justify-center text-subtle-foreground">
+            <div className="flex min-h-[360px] items-center justify-center text-muted-foreground">
               Cargando documentos...
             </div>
           ) : visibleFolders.length === 0 && documentos.length === 0 ? (
             <div className="flex min-h-[360px] flex-col items-center justify-center border border-dashed border-border-strong px-6 text-center">
               <FolderOpen className="mb-4 h-10 w-10 text-disabled-foreground" />
               <h3 className="text-lg font-normal text-foreground">Esta ubicación está vacía</h3>
-              <p className="mt-2 max-w-md text-sm text-subtle-foreground">
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">
                 Crea carpetas o sube documentos para organizar los archivos de este proyecto.
               </p>
             </div>
@@ -883,25 +883,25 @@ function DocumentListView({
                   </span>
                 </button>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-sm text-subtle-foreground xl:table-cell xl:px-3 xl:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-sm text-muted-foreground xl:table-cell xl:px-3 xl:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground xl:hidden">
                   Proveedor
                 </span>
                 <span className="min-w-0 break-words text-right xl:text-left">-</span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-sm text-subtle-foreground xl:table-cell xl:px-3 xl:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-sm text-muted-foreground xl:table-cell xl:px-3 xl:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground xl:hidden">
                   Tipo
                 </span>
                 <span className="min-w-0 break-words text-right xl:text-left">Carpeta</span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-sm text-subtle-foreground xl:table-cell xl:px-3 xl:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-sm text-muted-foreground xl:table-cell xl:px-3 xl:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground xl:hidden">
                   Transacción
                 </span>
                 <span className="min-w-0 break-words text-right xl:text-left">-</span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-sm text-subtle-foreground xl:table-cell xl:px-3 xl:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-sm text-muted-foreground xl:table-cell xl:px-3 xl:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground xl:hidden">
                   Fecha
                 </span>
@@ -972,7 +972,7 @@ function DocumentListView({
                     {transaction?.factura || transaction?.codigo_referencia || "-"}
                   </span>
                 </td>
-                <td className="flex items-start justify-between gap-4 py-2 text-sm text-subtle-foreground xl:table-cell xl:px-3 xl:py-4">
+                <td className="flex items-start justify-between gap-4 py-2 text-sm text-muted-foreground xl:table-cell xl:px-3 xl:py-4">
                   <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground xl:hidden">
                     Fecha
                   </span>
@@ -1062,7 +1062,7 @@ function DocumentGridView({
             />
           </div>
           <p className="truncate font-medium text-foreground">{folder.nombre}</p>
-          <p className="mt-1 text-xs text-subtle-foreground">{formatDate(folder.updated_at || folder.created_at)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{formatDate(folder.updated_at || folder.created_at)}</p>
         </button>
       ))}
 
@@ -1123,7 +1123,7 @@ function DocumentGridView({
               </Badge>
             </div>
             {(transaction?.banco || transaction?.factura || transaction?.codigo_referencia) && (
-              <p className="mt-2 truncate text-xs text-subtle-foreground">
+              <p className="mt-2 truncate text-xs text-muted-foreground">
                 {transaction.banco || transaction.factura || transaction.codigo_referencia}
               </p>
             )}
@@ -1152,7 +1152,7 @@ function RowActions({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none">
-          <MoreVertical className="h-4 w-4 text-subtle-foreground" />
+          <MoreVertical className="h-4 w-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="rounded-none">
@@ -1237,7 +1237,7 @@ function PaginationControls({
   const pages = getPaginationPages(page, totalPages);
 
   return (
-    <div className="mt-5 flex flex-col gap-3 border border-border px-4 py-3 text-sm text-subtle-foreground md:flex-row md:items-center md:justify-between">
+    <div className="mt-5 flex flex-col gap-3 border border-border px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
       <span>
         Mostrando {firstItem}-{lastItem} de {total} documentos
       </span>
@@ -1388,5 +1388,5 @@ function getFileIcon(doc: DocumentItem, className = "h-5 w-5 shrink-0") {
     return <FileText className={cn(className, "text-red-600")} />;
   }
 
-  return <File className={cn(className, "text-subtle-foreground")} />;
+  return <File className={cn(className, "text-muted-foreground")} />;
 }

@@ -49,17 +49,19 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+    VariantProps<typeof sheetVariants> {
+  variant?: "default" | "aggregated" | "paymentDetails" | "paymentForm"
+}
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
+>(({ side = "right", variant = "default", className, children, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
-      className={cn(sheetVariants({ side }), className)}
+      className={cn(sheetVariants({ side }), variant === "aggregated" && "flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md", variant === "paymentDetails" && "w-[600px] overflow-y-auto bg-card sm:max-w-[600px]", variant === "paymentForm" && "w-[800px] overflow-y-auto sm:max-w-[800px]", className)}
       {...props}
     >
       <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
@@ -74,11 +76,13 @@ SheetContent.displayName = SheetPrimitive.Content.displayName
 
 const SheetHeader = ({
   className,
+  variant = "default",
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "aggregated" }) => (
   <div
     className={cn(
       "flex flex-col space-y-2 text-center sm:text-left",
+      variant === "aggregated" && "space-y-1 border-b px-5 py-4 pr-12 text-left",
       className
     )}
     {...props}
@@ -102,11 +106,11 @@ SheetFooter.displayName = "SheetFooter"
 
 const SheetTitle = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title> & { variant?: "default" | "aggregated" }
+>(({ className, variant = "default", ...props }, ref) => (
   <SheetPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold text-foreground", className)}
+    className={cn("text-lg font-semibold text-foreground", variant === "aggregated" && "truncate text-base", className)}
     {...props}
   />
 ))

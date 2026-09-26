@@ -12,7 +12,7 @@ import { useUser } from "@clerk/clerk-react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Progress } from "../ui/progress";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
@@ -568,12 +568,12 @@ export default function RequisicionModal() {
   const loadingContent = (
     <div className="flex flex-col items-center justify-center py-12">
       <Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" />
-      <p className="text-subtle-foreground mt-4">Cargando requisición...</p>
+      <p className="text-muted-foreground mt-4">Cargando requisición...</p>
     </div>
   );
 
   // Calculate totals for view mode
-  const totalMonto = items.reduce((acc, item) => 
+  const totalMonto = items.reduce((acc, item) =>
     acc + item.subPartidas.reduce((sum, sp) => sum + ((sp.monto || 0) * 1.16), 0), 0
   );
 
@@ -598,7 +598,7 @@ export default function RequisicionModal() {
                       {mode === "create" ? (user?.fullName || currentUser?.name) : solicitante_nombre}
                     </p>
                     {(mode === "edit" || mode === "view") && fecha_solicitud && (
-                      <p className="text-xs text-subtle-foreground flex items-center gap-1">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {fecha_solicitud}
                       </p>
@@ -647,14 +647,14 @@ export default function RequisicionModal() {
               {/* Type Toggle - compact for view mode */}
               {isViewMode ? (
                 <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-subtle-foreground" />
+                  <Package className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-foreground capitalize">{tipo}</span>
                 </div>
               ) : (
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                     variant={"ghost"}
+                     variant={"outline"}
                     size="sm"
                     onClick={() => setTipo("material")}
                     className={cn("flex-1 items-left rounded-none h-10", tipo === "material" ? "bg-[#f3fdf5] border border-green-300 text-foreground" : "bg-muted text-foreground")}
@@ -708,7 +708,7 @@ export default function RequisicionModal() {
             <div className="space-y-2">
               {isViewMode ? (
                 <div className="flex items-center gap-2 py-2 border-b border-border">
-                  <span className="text-xs text-subtle-foreground uppercase tracking-wide">Partida:</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wide">Partida:</span>
                   <span className=" text-foreground">{selectedPartida.nombre || "-"}</span>
                 </div>
               ) : (
@@ -748,7 +748,7 @@ export default function RequisicionModal() {
                     {isViewMode ? (
                       <div className="flex items-center justify-between">
                         <span className=" text-foreground">{item.familia || "-"}</span>
-                        <span className="text-xs text-subtle-foreground">{item.subPartidas.length} item(s)</span>
+                        <span className="text-xs text-muted-foreground">{item.subPartidas.length} item(s)</span>
                       </div>
                     ) : (
                       <Select
@@ -821,14 +821,14 @@ export default function RequisicionModal() {
                                       );
                                       if (!rawItem?.nota_item) return null;
                                       return (
-                                        <p className="text-xs text-subtle-foreground italic mt-0.5">
+                                        <p className="text-xs text-muted-foreground italic mt-0.5">
                                           Nota: {rawItem.nota_item}
                                         </p>
                                       );
                                     })()}
                                   </div>
                                   <div className="text-right">
-                                    
+
                                     {sp.monto && (
                                       <p className="text-blue-700 whitespace-nowrap">
                                         {formatCurrency(sp.monto * sp.cantidad * 1.16)}
@@ -846,7 +846,7 @@ export default function RequisicionModal() {
                               <>
                                 {/* Sub-partida header with delete button */}
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs text-subtle-foreground">Sub-partida {spIndex + 1}</span>
+                                  <span className="text-xs text-muted-foreground">Sub-partida {spIndex + 1}</span>
                                   {item.subPartidas.length > 1 && (
                                     <Button
                                       type="button"
@@ -886,7 +886,7 @@ export default function RequisicionModal() {
                                               descripcion_otro: "",
                                             })
                                           }
-                                          className="text-subtle-foreground hover:text-foreground h-9 px-2"
+                                          className="text-muted-foreground hover:text-foreground h-9 px-2"
                                           title="Volver a seleccionar sub-partida"
                                         >
                                           Cambiar
@@ -944,7 +944,7 @@ export default function RequisicionModal() {
                                 {sp.sub_partida && (
                                   <div className="grid grid-cols-4 gap-2">
                                     <div>
-                                      <Label className="text-xs text-subtle-foreground mb-1 block">Cantidad</Label>
+                                      <Label className="text-xs text-muted-foreground mb-1 block">Cantidad</Label>
                                       <Input
                                         type="number"
                                         value={sp.cantidad || ""}
@@ -954,7 +954,7 @@ export default function RequisicionModal() {
                                       />
                                     </div>
                                     <div>
-                                      <Label className="text-xs text-subtle-foreground mb-1 block">Unidad</Label>
+                                      <Label className="text-xs text-muted-foreground mb-1 block">Unidad</Label>
                                       <Input
                                         type="text"
                                         value={sp.unidad || ""}
@@ -962,13 +962,13 @@ export default function RequisicionModal() {
                                         disabled={Boolean(sp.partida_id)}
                                         className={cn(
                                           "text-center text-sm",
-                                          sp.partida_id ? "bg-muted text-subtle-foreground" : "bg-card"
+                                          sp.partida_id ? "bg-muted text-muted-foreground" : "bg-card"
                                         )}
                                         placeholder="PZA"
                                       />
                                     </div>
                                     <div>
-                                      <Label className="text-xs text-subtle-foreground mb-1 block">P. Unit.</Label>
+                                      <Label className="text-xs text-muted-foreground mb-1 block">P. Unit.</Label>
                                       <Input
                                         type="number"
                                         value={sp.precio_unitario || ""}
@@ -976,13 +976,13 @@ export default function RequisicionModal() {
                                         disabled={Boolean(sp.partida_id)}
                                         className={cn(
                                           "text-right",
-                                          sp.partida_id ? "bg-muted text-subtle-foreground" : "bg-card"
+                                          sp.partida_id ? "bg-muted text-muted-foreground" : "bg-card"
                                         )}
                                         placeholder="$0.00"
                                       />
                                     </div>
                                     <div>
-                                      <Label className="text-xs text-subtle-foreground mb-1 block">Total</Label>
+                                      <Label className="text-xs text-muted-foreground mb-1 block">Total</Label>
                                       <div className="h-9 px-3 py-2 bg-green-50 border border-green-200 text-right text-sm  text-green-700">
                                         {sp.monto ? formatCurrency(sp.monto * 1.16) : "-"}
                                       </div>
@@ -1020,7 +1020,7 @@ export default function RequisicionModal() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => addSubPartida(item.id)}                            
+                            onClick={() => addSubPartida(item.id)}
                           >
                             <Plus className="h-3 w-3 mr-1" />
                             Agregar Sub-partida
@@ -1031,7 +1031,7 @@ export default function RequisicionModal() {
                         {!isViewMode && (
                           <div className="flex justify-end pt-2 border-t border-border">
                             <div className="text-right">
-                              <span className="text-xs text-subtle-foreground">Total Familia:</span>
+                              <span className="text-xs text-muted-foreground">Total Familia:</span>
                               <div className="text-lg  text-foreground">
                                 {formatCurrency(item.subPartidas.reduce((sum, sp) => sum + ((sp.monto || 0) * 1.16), 0))}
                               </div>
@@ -1102,8 +1102,8 @@ export default function RequisicionModal() {
                   </Select> */}
 
                   {/* Calendar Date Picker */}
-                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen} modal={false}>
-                    <PopoverTrigger asChild>
+                  <DropdownMenu open={calendarOpen} onOpenChange={setCalendarOpen} modal={false}>
+                    <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
@@ -1114,8 +1114,8 @@ export default function RequisicionModal() {
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {fecha_entrega || "Fecha de entrega"}
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent data-square-modal="" className="w-auto p-0 z-[9999] pointer-events-auto" align="start" sideOffset={4}>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent data-square-modal="" className="w-auto p-0 z-[9999] pointer-events-auto" align="start" sideOffset={4}>
                       <Calendar
                         mode="single"
                         selected={parseDate(fecha_entrega)}
@@ -1128,8 +1128,8 @@ export default function RequisicionModal() {
                         locale={es}
                         initialFocus
                       />
-                    </PopoverContent>
-                  </Popover>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               )}
             </div>
@@ -1139,7 +1139,7 @@ export default function RequisicionModal() {
               {isViewMode ? (
                 descripcion && (
                   <div className="text-sm">
-                    <span className="text-xs text-subtle-foreground uppercase tracking-wide block mb-1">Notas</span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide block mb-1">Notas</span>
                     <p className="text-foreground">{descripcion}</p>
                   </div>
                 )
@@ -1161,7 +1161,7 @@ export default function RequisicionModal() {
             {isViewMode && requisicionData?.status_revision && requisicionData.status_revision !== "Pendiente de revisión" && (
               <div className="p-4 border border-border bg-background space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-subtle-foreground uppercase tracking-wide">Revisión</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wide">Revisión</span>
                   <span className={cn(
                     "px-2 py-0.5 text-xs font-medium rounded-none",
                     requisicionData.status_revision === "Aprobada" ? "bg-green-100 text-green-700" :
@@ -1172,7 +1172,7 @@ export default function RequisicionModal() {
                   </span>
                 </div>
                 {requisicionData.revisado_por_nombre && (
-                  <p className="text-xs text-subtle-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Revisado por <span className="font-medium text-foreground">{requisicionData.revisado_por_nombre}</span>
                   </p>
                 )}
@@ -1192,16 +1192,16 @@ export default function RequisicionModal() {
               {(mode === "edit" || mode === "view") && requisicionData?.documentos && requisicionData.documentos.length > 0 && (
                 <div className="mb-3 space-y-2">
                   {isViewMode && (
-                    <span className="text-xs text-subtle-foreground uppercase tracking-wide block mb-1">Documentos</span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide block mb-1">Documentos</span>
                   )}
-                  {!isViewMode && <p className="text-sm text-subtle-foreground">Documentos existentes:</p>}
+                  {!isViewMode && <p className="text-sm text-muted-foreground">Documentos existentes:</p>}
                   {requisicionData.documentos.map((doc) => (
                     <div key={doc._id} className={`flex items-center justify-between ${isViewMode ? 'py-2 border-b border-border' : 'bg-background px-3 py-2 border border-border'}`}>
                       <div
                         className="flex items-center gap-2 cursor-pointer hover:text-blue-600 flex-1"
                         onClick={() => doc.url && window.open(doc.url, '_blank')}
                       >
-                        <FileText className="w-4 h-4 text-subtle-foreground" />
+                        <FileText className="w-4 h-4 text-muted-foreground" />
                         <span className="text-sm text-foreground truncate">{doc.nombre}</span>
                         <ExternalLink className="w-3 h-3 text-disabled-foreground" />
                       </div>
@@ -1247,13 +1247,13 @@ export default function RequisicionModal() {
                   {/* Pending uploads list */}
                   {uploadedFiles.length > 0 && (
                     <div className="mt-3 space-y-2">
-                      <p className="text-sm text-subtle-foreground">Archivos por subir:</p>
+                      <p className="text-sm text-muted-foreground">Archivos por subir:</p>
                       {uploadedFiles.map((file, index) => (
                         <div key={index} className="flex items-center justify-between bg-blue-50 px-3 py-2 border border-blue-200">
                           <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-blue-600" />
                             <span className="text-sm text-foreground truncate">{file.name}</span>
-                            <span className="text-xs text-subtle-foreground">({(file.size / 1024).toFixed(1)} KB)</span>
+                            <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(1)} KB)</span>
                           </div>
                           <Button
                             type="button"
@@ -1262,7 +1262,7 @@ export default function RequisicionModal() {
                             onClick={() => removeFile(index)}
                             className="h-6 w-6 p-0 hover:bg-blue-100"
                           >
-                            <Trash2 className="h-4 w-4 text-subtle-foreground" />
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </div>
                       ))}
@@ -1310,7 +1310,7 @@ export default function RequisicionModal() {
               <div className="flex items-center justify-between w-full">
                 {isViewMode && totalMonto > 0 && (
                   <div className="text-left">
-                    <p className="text-xs text-subtle-foreground">Total</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
                     <p className="text-lg  text-foreground">{formatCurrency(totalMonto)}</p>
                   </div>
                 )}

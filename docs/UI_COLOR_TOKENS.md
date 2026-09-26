@@ -10,7 +10,7 @@ seleccionar el token según la función del elemento.
 | --- | --- | --- | --- |
 | Contenido principal, títulos y valores | `text-foreground` | `bg-background` | `border-foreground` |
 | Texto secundario y descripciones | `text-muted-foreground` | `bg-muted` | `border-border` |
-| Metadatos y ayudas de menor jerarquía | `text-subtle-foreground` | `bg-subtle` | `border-border` |
+| Metadatos y ayudas de menor jerarquía | `text-muted-foreground` | `bg-subtle` | `border-border` |
 | Contenido deshabilitado o placeholder | `text-disabled-foreground` | `bg-disabled` | `border-border-strong` |
 | Tarjetas, paneles y contenedores elevados | `text-card-foreground` | `bg-card` | `border-border` |
 | Contenido sobre una superficie oscura neutral | `text-inverse-foreground` | `bg-inverse` | `border-inverse` |
@@ -25,8 +25,8 @@ Los modificadores de opacidad siguen disponibles, por ejemplo `bg-card/95`,
 
 - `foreground` es el nivel predeterminado para títulos, etiquetas y datos que
   deben leerse primero.
-- `muted-foreground` conserva contraste de lectura para texto explicativo.
-- `subtle-foreground` se limita a metadatos cortos, iconos auxiliares y ayudas.
+- `muted-foreground` conserva contraste de lectura para texto explicativo,
+  metadatos cortos, iconos auxiliares y ayudas.
 - `disabled-foreground` no debe usarse para información necesaria para completar
   una tarea; comunica inactividad o baja disponibilidad.
 - `border` separa estructuras normales; `border-strong` identifica campos,

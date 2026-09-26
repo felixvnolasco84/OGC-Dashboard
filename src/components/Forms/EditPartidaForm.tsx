@@ -118,24 +118,24 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
         <div className="grid gap-2">
           <div className="grid gap-4 max-h-[60vh] overflow-y-auto pr-2">
             {/* Hierarchy Fields */}
-            <div className="space-y-2 mb-2">
+            {/*<div className="space-y-2 mb-2">
               <p className="text-xs text-muted-foreground">
-                Editando: <span className="font-medium">{level === 0 ? 'Partida' : level === 1 ? 'Familia' : 'Sub-partida'}</span>
+                Editando: <span className="">{level === 0 ? 'Partida' : level === 1 ? 'Familia' : 'Sub-partida'}</span>
               </p>
-            </div>
+            </div>*/}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
+
               <FormField
                 control={form.control}
                 name="nombre"
                 defaultValue={partida.nombre}
                 render={({ field }) => (
-                  <FormItem className="space-y-1">
+                  <FormItem>
                     <FormLabel>Partida</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Nombre de partida"
-                        className="bg-muted"
+                        variant="muted"
                         disabled={true}
                         {...field}
                       />
@@ -151,12 +151,12 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                     control={form.control}
                     name="familia"
                     render={({ field }) => (
-                  <FormItem className="space-y-1">
+                  <FormItem>
                     <FormLabel>Familia</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Familia"
-                        className="bg-muted"
+                        variant="muted"
                         disabled={true}
                         {...field}
                       />
@@ -174,12 +174,12 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                 control={form.control}
                 name="sub_partida"
                 render={({ field }) => (
-                  <FormItem className="space-y-1">
+                  <FormItem>
                     <FormLabel>Sub Partida</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Sub partida"
-                        className="bg-card"
+                        variant="card"
                         disabled={isLoading}
                         {...field}
                       />
@@ -195,18 +195,18 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
 
             {/* Quantity and Pricing */}
             <div className="border-t pt-4 mt-2">
-              <h3 className="text-sm font-medium mb-3">Información de costos</h3>
+              <h3 className="text-sm  mb-3">Información de costos</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="unidad"
                   render={({ field }) => (
-                    <FormItem className="space-y-1">
+                    <FormItem>
                       <FormLabel>Unidad</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="m², kg, etc."
-                          className={level < 2 ? "bg-muted" : "bg-card"}
+                          variant={level < 2 ? "muted" : "card"}
                           disabled={level < 2 || isLoading}
                           {...field}
                         />
@@ -220,14 +220,14 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                   control={form.control}
                   name="cantidad"
                   render={({ field }) => (
-                    <FormItem className="space-y-1">
+                    <FormItem>
                       <FormLabel>Cantidad</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="0"
                           type="number"
                           step="0.01"
-                          className={level < 2 ? "bg-muted" : "bg-card"}
+                          variant={level < 2 ? "muted" : "card"}
                           disabled={level < 2 || isLoading}
                           {...field}
                         />
@@ -241,14 +241,14 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                   control={form.control}
                   name="precio_unitario"
                   render={({ field }) => (
-                    <FormItem className="space-y-1">
+                    <FormItem>
                       <FormLabel>Precio Unitario</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="0.00"
                           type="number"
                           step="0.01"
-                          className={level < 2 ? "bg-muted" : "bg-card"}
+                          variant={level < 2 ? "muted" : "card"}
                           disabled={level < 2 || isLoading}
                           {...field}
                         />
@@ -262,18 +262,18 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
 
             {/* Budget Status */}
             <div className="border-t pt-4 mt-2">
-              <h3 className="text-sm font-medium mb-3">Estado presupuestal</h3>
+              <h3 className="text-sm  mb-3">Estado presupuestal</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="presupuesto_original"
                   render={({ field }) => (
-                    <FormItem className="space-y-1">
+                    <FormItem>
                       <FormLabel>Presupuesto Original</FormLabel>
                       <FormControl>
                         <MoneyInput
                           placeholder="0.00"
-                          className="bg-muted"
+                          variant="muted"
                           disabled={true}
                           value={field.value}
                           onChange={field.onChange}
@@ -288,12 +288,12 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                   control={form.control}
                   name="presupuesto_aprobado"
                   render={({ field }) => (
-                    <FormItem className="space-y-1">
+                    <FormItem>
                       <FormLabel>Presupuesto Aprobado</FormLabel>
                       <FormControl>
                         <MoneyInput
                           placeholder="0.00"
-                          className="bg-card"
+                          variant="card"
                           disabled={isLoading}
                           value={field.value}
                           onChange={field.onChange}
@@ -308,12 +308,12 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
                   control={form.control}
                   name="pagado"
                   render={({ field }) => (
-                    <FormItem className="space-y-1">
+                    <FormItem>
                       <FormLabel>Pagado</FormLabel>
                       <FormControl>
                         <MoneyInput
                           placeholder="0.00"
-                          className="bg-muted"
+                          variant="muted"
                           disabled={true}
                           value={field.value}
                           onChange={field.onChange}
@@ -327,7 +327,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
             </div>
 
           </div>
-          <DialogFooter className="flex justify-end gap-2">
+          <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancelar
@@ -336,8 +336,8 @@ export default function EditPartidaForm({ partida, level = 2, onClose }: Request
             {isLoading ? (
               <Loader className="h-4 w-4 animate-spin" />
             ) : (
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isLoading}
               >
                 Actualizar

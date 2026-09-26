@@ -187,7 +187,7 @@ const ExcelUploaderSection = () => {
                   <FileSpreadsheet className="h-8 w-8 text-green-600" />
                   <div className="text-left">
                     <p className="font-medium text-foreground">{file.name}</p>
-                    <p className="text-sm text-subtle-foreground">{formatFileSize(file.size)}</p>
+                    <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
                   </div>
                 </div>
                 <div className="flex gap-2 justify-center">
@@ -218,7 +218,7 @@ const ExcelUploaderSection = () => {
                   <p className="text-lg font-medium text-foreground">
                     Selecciona un archivo Excel
                   </p>
-                  <p className="text-subtle-foreground">Archivos soportados: .xlsx, .xls (máx. 10MB)</p>
+                  <p className="text-muted-foreground">Archivos soportados: .xlsx, .xls (máx. 10MB)</p>
                 </div>
                 <div>
                   <label htmlFor="file-upload">

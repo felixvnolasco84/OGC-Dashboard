@@ -30,6 +30,8 @@ import {
   parseCostDate,
 } from "./costRules";
 import { parseInvoiceIssuedDate } from "./invoiceRules";
+import { resolveAccountForTransaction } from "./paymentAccounts";
+import { normalizePaymentMethod } from "./paymentAccountRules";
 import {
   markInvoicesStaleForTransaction,
   transactionChangeInvalidatesInvoice,
@@ -732,6 +734,8 @@ export const createTransaction = mutation({
     banco: v.optional(v.string()),
     tarjeta: v.optional(v.string()),
     numero_cuenta: v.optional(v.string()),
+    clabe: v.optional(v.string()),
+    payment_account_id: v.optional(v.id("payment_accounts")),
     numero_transferencia: v.optional(v.string()),
     codigo_referencia: v.optional(v.string()),
     factura: v.optional(v.string()),
@@ -751,6 +755,15 @@ export const createTransaction = mutation({
   handler: async (ctx, args) => {
     await validateTransactionWrite(ctx, args.proyecto, args.proveedor_id);
     const { lineItems, allow_duplicate_signature, ...transactionData } = args;
+    if (transactionData.payment_account_id) {
+      const account = await resolveAccountForTransaction(ctx, {
+        projectId: args.proyecto, providerId: args.proveedor_id,
+        method: args.tipo_pago, accountId: transactionData.payment_account_id,
+      });
+      transactionData.banco = account.banco;
+      transactionData.numero_cuenta = account.numero_cuenta;
+      transactionData.clabe = account.clabe;
+    }
 
     if (transactionData.import_batch_id && transactionData.import_source_key) {
       const existing = await ctx.db
@@ -853,6 +866,7 @@ export const createTransactionBulk = baseMutation({
     banco: v.optional(v.string()),
     tarjeta: v.optional(v.string()),
     numero_cuenta: v.optional(v.string()),
+    clabe: v.optional(v.string()),
     numero_transferencia: v.optional(v.string()),
     codigo_referencia: v.optional(v.string()),
     factura: v.optional(v.string()),
@@ -976,6 +990,8 @@ export const updateTransaction = mutation({
     banco: v.optional(v.string()),
     tarjeta: v.optional(v.string()),
     numero_cuenta: v.optional(v.string()),
+    clabe: v.optional(v.string()),
+    payment_account_id: v.optional(v.union(v.id("payment_accounts"), v.null())),
     numero_transferencia: v.optional(v.string()),
     codigo_referencia: v.optional(v.string()),
     factura: v.optional(v.string()),
@@ -1004,6 +1020,24 @@ export const updateTransaction = mutation({
     );
     if (updateData.proveedor_id === null) {
       cleanUpdateData.proveedor_id = undefined;
+    }
+    const effectiveProviderId = updateData.proveedor_id === undefined
+      ? existingTransaction.proveedor_id : updateData.proveedor_id || undefined;
+    const effectiveMethod = updateData.tipo_pago ?? existingTransaction.tipo_pago;
+    const providerChanged = updateData.proveedor_id !== undefined &&
+      String(effectiveProviderId || "") !== String(existingTransaction.proveedor_id || "");
+    const bankDetailsChanged = updateData.banco !== undefined || updateData.numero_cuenta !== undefined || updateData.clabe !== undefined;
+    if (updateData.payment_account_id) {
+      const account = await resolveAccountForTransaction(ctx, {
+        projectId: existingTransaction.proyecto, providerId: effectiveProviderId,
+        method: effectiveMethod, accountId: updateData.payment_account_id,
+      });
+      cleanUpdateData.banco = account.banco;
+      cleanUpdateData.numero_cuenta = account.numero_cuenta;
+      cleanUpdateData.clabe = account.clabe;
+    } else if (updateData.payment_account_id === null || providerChanged ||
+      (existingTransaction.payment_account_id && (bankDetailsChanged || !normalizePaymentMethod(effectiveMethod)))) {
+      cleanUpdateData.payment_account_id = undefined;
     }
 
     if (transactionChangeInvalidatesInvoice(existingTransaction, updateData)) {
@@ -1068,6 +1102,8 @@ export const assignProviderBulk = baseMutation({
       });
       await ctx.db.patch(transaction._id, {
         proveedor_id: args.proveedor_id || undefined,
+        payment_account_id: transaction.proveedor_id === args.proveedor_id
+          ? transaction.payment_account_id : undefined,
       });
     }
     return { updated: transactions.length };
@@ -1130,7 +1166,10 @@ export const syncProvidersPage = baseMutation({
         ...transaction,
         proveedor_id: row.providerId,
       });
-      await ctx.db.patch(transaction._id, { proveedor_id: row.providerId });
+      await ctx.db.patch(transaction._id, {
+        proveedor_id: row.providerId,
+        payment_account_id: transaction.proveedor_id === row.providerId ? transaction.payment_account_id : undefined,
+      });
       counts.updated += 1;
     }
 
@@ -1224,6 +1263,7 @@ export const syncProvidersFromExcel = baseMutation({
         await ctx.db.patch(transaction._id, {
           proveedor: resolution.candidate.provider_name.trim(),
           proveedor_id: providerId,
+          payment_account_id: transaction.proveedor_id === providerId ? transaction.payment_account_id : undefined,
         });
         report.counts.updated += 1;
       }

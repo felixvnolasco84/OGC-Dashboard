@@ -16,6 +16,7 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
+import ProviderPaymentAccountPicker from "@/components/payments/ProviderPaymentAccountPicker";
 
 export default function EditTransactionModal() {
     const transactionContext = useEditTransactionModal((state) => state.transactionContext);
@@ -35,7 +36,11 @@ export default function EditTransactionModal() {
     );
 
     const handleInputChange = (field: string, value: string) => {
-        updateFormData({ [field]: value });
+        updateFormData({ [field]: value,
+            ...(["banco", "numero_cuenta", "clabe"].includes(field) ? { payment_account_id: "" } : {}),
+            ...(field === "tipo_pago" && value !== "transferencia" && value !== "cheque"
+                ? { payment_account_id: "" } : {}),
+        });
     };
 
     const handleLineItemChange = (itemId: string, newAmount: number) => {
@@ -86,6 +91,7 @@ export default function EditTransactionModal() {
             await updateTransaction({
                 id: transactionContext.transaction._id,
                 proveedor_id: formData.proveedor_id || null,
+                payment_account_id: formData.payment_account_id || null,
                 monto_total: newTotalAmount,
                 fecha: convertDateToDDMMYYYY(formData.fecha),
                 tipo_pago: formData.tipo_pago.toUpperCase(),
@@ -96,6 +102,7 @@ export default function EditTransactionModal() {
                 banco: formData.banco,
                 tarjeta: formData.tarjeta,
                 numero_cuenta: formData.numero_cuenta,
+                clabe: formData.clabe,
                 numero_transferencia: formData.numero_transferencia,
                 codigo_referencia: formData.codigo_referencia,
                 factura: formData.factura,
@@ -152,7 +159,7 @@ export default function EditTransactionModal() {
                                 <small className="text-muted-foreground">El monto total de la transacción es {formatCurrency(transactionContext.transaction.monto_total)}</small>
                             )
                         }
-                        <p className="text-xs text-subtle-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             {transactionContext.lineItems.length} concepto{transactionContext.lineItems.length !== 1 ? 's' : ''}
                         </p>
                     </div>
@@ -210,6 +217,10 @@ export default function EditTransactionModal() {
                             value={formData.proveedor_id || "none"}
                             onValueChange={(value) => updateFormData({
                                 proveedor_id: value === "none" ? "" : value as Id<"proveedores">,
+                                payment_account_id: "",
+                                banco: "",
+                                numero_cuenta: "",
+                                clabe: "",
                             })}
                         >
                             <SelectTrigger>
@@ -295,6 +306,22 @@ export default function EditTransactionModal() {
                     {formData.tipo_pago && formData.tipo_pago !== 'efectivo' && (
                         <div className="space-y-3">
                             <h3 className="text-base font-semibold text-foreground">Información bancaria</h3>
+                            {transactionContext && formData.proveedor_id &&
+                                (formData.tipo_pago === "transferencia" || formData.tipo_pago === "cheque") && (
+                                <ProviderPaymentAccountPicker
+                                    projectId={transactionContext.transaction.proyecto}
+                                    providerId={formData.proveedor_id}
+                                    method={formData.tipo_pago}
+                                    selectedId={formData.payment_account_id}
+                                    banco={formData.banco}
+                                    numeroCuenta={formData.numero_cuenta}
+                                    clabe={formData.clabe}
+                                    onSelect={(id) => updateFormData({
+                                        payment_account_id: id, banco: "", numero_cuenta: "", clabe: "",
+                                    })}
+                                />
+                            )}
+                            {!formData.payment_account_id && <>
                             
                             {/* Banco field - shown for all non-cash payments */}
                             <div className="space-y-2">
@@ -338,6 +365,16 @@ export default function EditTransactionModal() {
                                     </div>
                                 )}
                             </div>
+                            {(formData.tipo_pago === "transferencia" || formData.tipo_pago === "cheque") && (
+                                <Input aria-label="CLABE" placeholder="CLABE (opcional)" inputMode="numeric"
+                                    value={formData.clabe} onChange={(e) => handleInputChange("clabe", e.target.value)} />
+                            )}
+                            </>}
+                            {formData.payment_account_id && formData.tipo_pago === "transferencia" && (
+                                <Input aria-label="Número de transferencia" placeholder="Número de transferencia"
+                                    value={formData.numero_transferencia || ""}
+                                    onChange={(e) => handleInputChange("numero_transferencia", e.target.value)} />
+                            )}
                         </div>
                     )}
 
@@ -354,7 +391,7 @@ export default function EditTransactionModal() {
                     {/* Line Items - Editable */}
                     <div className="space-y-3">
                         <h3 className="text-base font-semibold text-foreground">Conceptos de la transacción</h3>
-                        <p className="text-xs text-subtle-foreground">Edita los montos individuales de cada concepto</p>
+                        <p className="text-xs text-muted-foreground">Edita los montos individuales de cada concepto</p>
                         <div className="border rounded-none divide-y">
                             {transactionContext.lineItems.map((item, idx) => (
                                 <div key={item._id || idx} className="p-3 flex justify-between items-center gap-3">
@@ -366,7 +403,7 @@ export default function EditTransactionModal() {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs text-subtle-foreground">$</span>
+                                        <span className="text-xs text-muted-foreground">$</span>
                                         <Input
                                             type="number"
                                             step="0.01"

@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useSearchParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
@@ -35,10 +35,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -121,7 +121,7 @@ const TASK_FIELD_CELL = "min-w-0 space-y-1 min-[1440px]:space-y-0";
 const TASK_ACTION_CELL = "flex min-w-0 justify-end md:col-span-1 min-[1440px]:col-span-1";
 const TASK_MOBILE_LABEL = "block text-xs font-medium text-disabled-foreground min-[1440px]:hidden";
 const TASK_VALUE_TEXT = "text-disabled-foreground";
-const TASK_COLUMN_TEXT = "text-[14px] text-subtle-foreground";
+const TASK_COLUMN_TEXT = "text-[14px] text-muted-foreground";
 const TASK_CHECKBOX_CLASS = "h-[14px] w-[14px] !rounded-[4px] border-border shadow-none [&_svg]:h-3 [&_svg]:w-3 data-[state=checked]:border-[#50AC66] data-[state=checked]:bg-[#50AC66] data-[state=checked]:text-on-color";
 
 const LABEL_COLORS = [
@@ -265,7 +265,7 @@ function isPortaledPickerTarget(target: EventTarget | null) {
   return Boolean(
     target.closest("[data-radix-popper-content-wrapper]") ||
     target.closest("[data-radix-select-content]") ||
-    target.closest("[data-radix-popover-content]") ||
+    target.closest("[data-slot='dropdown-menu-content']") ||
     target.closest("[data-slot='calendar']")
   );
 }
@@ -559,8 +559,8 @@ function InlineDatePicker({
   const displayValue = showRelative ? relativeDueDateLabel(value) || formatDate(value) : formatDate(value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <Button
           type="button"
           variant="ghost"
@@ -572,11 +572,10 @@ function InlineDatePicker({
         >
           {displayValue}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
         align="start"
         className="w-auto border-border bg-card p-0 text-foreground shadow-xl"
-        onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <Calendar
           mode="single"
@@ -614,8 +613,8 @@ function InlineDatePicker({
             Hoy
           </Button>
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -669,21 +668,21 @@ function InlineLabelPicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <Button
           type="button"
           disabled={disabled}
           className={cn(
-            "h-9 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground min-[1440px]:h-8",
-            open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
+            "h-9 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-muted-foreground min-[1440px]:h-8",
+            open && "border-border bg-card text-muted-foreground ring-1 ring-ring"
           )}
         >
           <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: activeLabel.color }} />
           <span className="truncate">{activeLabel.label}</span>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align="center" sideOffset={6} className="w-56 overflow-visible border-border bg-card p-0 text-foreground shadow-xl">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center" sideOffset={6} className="w-56 overflow-visible border-border bg-card p-0 text-foreground shadow-xl">
         <div className="mx-auto -mt-2 h-4 w-4 rotate-45 border-l border-t border-border bg-card" />
         {editing ? (
           <>
@@ -733,13 +732,13 @@ function InlineLabelPicker({
                   </div>
                 ))}
               </div>
-              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-subtle-foreground">
+              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-muted-foreground">
                 <Plus className="h-3.5 w-3.5" />
                 Nueva etiqueta
               </Button>
             </div>
             <div className="border-t border-border p-2">
-              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-subtle-foreground">
+              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-muted-foreground">
                 Aplicar
               </Button>
             </div>
@@ -766,15 +765,15 @@ function InlineLabelPicker({
               </div>
             </div>
             <div className="border-t border-border p-2">
-              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-subtle-foreground">
+              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-muted-foreground">
                 <Pencil className="h-3.5 w-3.5" />
                 Editar etiquetas
               </Button>
             </div>
           </>
         )}
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -838,15 +837,15 @@ function InlinePriorityPicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <Button
           type="button"
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-9 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground min-[1440px]:h-8",
-            open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
+            "h-9 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-muted-foreground min-[1440px]:h-8",
+            open && "border-border bg-card text-muted-foreground ring-1 ring-ring"
           )}
         >
           <span
@@ -855,8 +854,8 @@ function InlinePriorityPicker({
           />
           <span className="truncate">{activeLabel?.label || clearLabel}</span>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align="center" sideOffset={6} className="w-56 overflow-visible border-border bg-card p-0 text-foreground shadow-xl">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center" sideOffset={6} className="w-56 overflow-visible border-border bg-card p-0 text-foreground shadow-xl">
         <div className="mx-auto -mt-2 h-4 w-4 rotate-45 border-l border-t border-border bg-card" />
         {editing ? (
           <>
@@ -909,13 +908,13 @@ function InlinePriorityPicker({
                   </div>
                 ))}
               </div>
-              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-subtle-foreground">
+              <Button type="button" variant="ghost" onClick={addDraftLabel} className="mt-2 h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-muted-foreground">
                 <Plus className="h-3.5 w-3.5" />
                 Nueva prioridad
               </Button>
             </div>
             <div className="border-t border-border p-2">
-              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-subtle-foreground">
+              <Button type="button" variant="ghost" onClick={applyLabels} className="h-8 w-full text-xs text-muted-foreground">
                 Aplicar
               </Button>
             </div>
@@ -953,15 +952,15 @@ function InlinePriorityPicker({
               </div>
             </div>
             <div className="border-t border-border p-2">
-              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-subtle-foreground">
+              <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="h-8 w-full gap-2 text-xs text-disabled-foreground hover:text-muted-foreground">
                 <Pencil className="h-3.5 w-3.5" />
                 Editar etiquetas
               </Button>
             </div>
           </>
         )}
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -989,27 +988,27 @@ function InlineSingleSelectPicker({
   }, [options, searchTerm]);
 
   return (
-    <Popover
+    <DropdownMenu modal={false}
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
         if (!nextOpen) setSearchTerm("");
       }}
     >
-      <PopoverTrigger asChild>
+      <DropdownMenuTrigger asChild>
         <Button
           type="button"
           variant="ghost"
           disabled={disabled}
           className={cn(
-            "h-9 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-subtle-foreground min-[1440px]:h-8",
-            open && "border-border bg-card text-subtle-foreground ring-1 ring-ring"
+            "h-9 w-full min-w-0 justify-start gap-2 rounded-md border border-transparent bg-transparent px-2 text-sm font-normal text-disabled-foreground shadow-none hover:border-border hover:bg-card hover:text-muted-foreground min-[1440px]:h-8",
+            open && "border-border bg-card text-muted-foreground ring-1 ring-ring"
           )}
         >
           <span className="truncate">{displayValue}</span>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-72 overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={6} className="w-72 overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
         <div className="border-b border-border p-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-disabled-foreground" />
@@ -1036,15 +1035,15 @@ function InlineSingleSelectPicker({
               )}
             >
               <span className="truncate">{option.label}</span>
-              {value === option.value && <CheckCircle2 className="h-4 w-4 shrink-0 text-subtle-foreground" />}
+              {value === option.value && <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />}
             </button>
           ))}
           {filteredOptions.length === 0 && (
             <p className="px-3 py-6 text-center text-sm text-disabled-foreground">Sin resultados</p>
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -1089,8 +1088,8 @@ function InlineAssigneePicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           disabled={disabled}
@@ -1101,7 +1100,7 @@ function InlineAssigneePicker({
         >
           {assignedUsers.length ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-disabled text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-disabled text-xs font-medium text-muted-foreground">
                 {userInitials(assignedUsers[0])}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground">
@@ -1110,15 +1109,15 @@ function InlineAssigneePicker({
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-muted-foreground">
                 -
               </span>
               <span className="text-sm text-disabled-foreground">Sin asignar</span>
             </>
           )}
         </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
         <div className="border-b border-border p-3">
           <div className="flex flex-wrap gap-1.5">
             {assignedUsers.length ? assignedUsers.map((user) => (
@@ -1128,7 +1127,7 @@ function InlineAssigneePicker({
                 onClick={() => toggleUser(user._id)}
                 className="inline-flex h-7 items-center gap-1.5 rounded-md bg-muted px-2 text-xs text-foreground hover:bg-disabled"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-medium text-subtle-foreground">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-medium text-muted-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="max-w-36 truncate">{user.name || user.email}</span>
@@ -1150,14 +1149,14 @@ function InlineAssigneePicker({
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">Personas sugeridas</p>
+          <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">Personas sugeridas</p>
           {!assignableUsers && (
             <div className="flex h-24 items-center justify-center text-disabled-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {assignableUsers && filteredUsers.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
+            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
               No hay usuarios con esa búsqueda.
             </div>
           )}
@@ -1174,12 +1173,12 @@ function InlineAssigneePicker({
                   selected && "bg-muted"
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-foreground">{user.name || user.email}</span>
-                  <span className="block truncate text-xs text-subtle-foreground">{user.role}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{user.role}</span>
                 </span>
                 {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
               </button>
@@ -1190,8 +1189,8 @@ function InlineAssigneePicker({
           <Bell className="h-4 w-4" />
           Se notificara a los responsables
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -1235,8 +1234,8 @@ function InlinePartidaPicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           disabled={disabled}
@@ -1247,7 +1246,7 @@ function InlinePartidaPicker({
         >
           {selectedPartidas.length ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground">
                 {selectedPartidas.length}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground">
@@ -1256,15 +1255,15 @@ function InlinePartidaPicker({
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-muted-foreground">
                 -
               </span>
               <span className="text-sm text-disabled-foreground">Sin partidas</span>
             </>
           )}
         </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
         <div className="border-b border-border p-3">
           <div className="flex flex-wrap gap-1.5">
             {selectedPartidas.length ? selectedPartidas.map((partida) => (
@@ -1293,14 +1292,14 @@ function InlinePartidaPicker({
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">Partidas del proyecto</p>
+          <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">Partidas del proyecto</p>
           {!projectPartidas && (
             <div className="flex h-24 items-center justify-center text-disabled-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {projectPartidas && filteredPartidas.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
+            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
               No hay partidas con esa búsqueda.
             </div>
           )}
@@ -1317,12 +1316,12 @@ function InlinePartidaPicker({
                   selected && "bg-muted"
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground">
                   {partida.nivel}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-foreground">{partidaDisplayName(partida)}</span>
-                  <span className="block truncate text-xs text-subtle-foreground">{partidaContext(partida)}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{partidaContext(partida)}</span>
                 </span>
                 {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
               </button>
@@ -1333,8 +1332,8 @@ function InlinePartidaPicker({
           <ListChecks className="h-4 w-4" />
           Se relacionara con la tarea
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -1381,8 +1380,8 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
   }, [value, onChange]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           disabled={disabled}
@@ -1393,7 +1392,7 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
         >
           {assignedUsers.length ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-disabled text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-disabled text-xs font-medium text-muted-foreground">
                 {userInitials(assignedUsers[0])}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground">
@@ -1402,15 +1401,15 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-muted-foreground">
                 -
               </span>
               <span className="text-sm text-disabled-foreground">Sin asignar</span>
             </>
           )}
         </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
         <div className="border-b border-border p-3">
           <div className="flex flex-wrap gap-1.5">
             {assignedUsers.length ? assignedUsers.map((user) => (
@@ -1420,7 +1419,7 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
                 onClick={() => toggleUser(user._id)}
                 className="inline-flex h-7 items-center gap-1.5 rounded-md bg-muted px-2 text-xs text-foreground hover:bg-disabled"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-medium text-subtle-foreground">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-medium text-muted-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="max-w-36 truncate">{user.name || user.email}</span>
@@ -1442,14 +1441,14 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">Personas sugeridas</p>
+          <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">Personas sugeridas</p>
           {!assignableUsers && (
             <div className="flex h-24 items-center justify-center text-disabled-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {assignableUsers && filteredUsers.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
+            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
               No hay usuarios con esa búsqueda.
             </div>
           )}
@@ -1465,12 +1464,12 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
                   selected && "bg-muted"
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground">
                   {userInitials(user)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-foreground">{user.name || user.email}</span>
-                  <span className="block truncate text-xs text-subtle-foreground">{user.role}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{user.role}</span>
                 </span>
                 {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
               </button>
@@ -1481,8 +1480,8 @@ const InlineAssigneePickerForCreate = React.memo(function InlineAssigneePickerFo
           <Bell className="h-4 w-4" />
           Se notificara a los responsables
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 });
 
@@ -1526,8 +1525,8 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
   }, [value, onChange]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           disabled={disabled}
@@ -1538,7 +1537,7 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
         >
           {selectedPartidas.length ? (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground">
                 {selectedPartidas.length}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground">
@@ -1547,15 +1546,15 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
             </>
           ) : (
             <>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-subtle-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-muted-foreground">
                 -
               </span>
               <span className="text-sm text-disabled-foreground">Sin partidas</span>
             </>
           )}
         </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={6} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden border-border bg-card p-0 text-foreground shadow-xl">
         <div className="border-b border-border p-3">
           <div className="flex flex-wrap gap-1.5">
             {selectedPartidas.length ? selectedPartidas.map((partida) => (
@@ -1584,14 +1583,14 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
-          <p className="px-2 pb-1 text-xs font-medium text-subtle-foreground">Partidas del proyecto</p>
+          <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">Partidas del proyecto</p>
           {!projectPartidas && (
             <div className="flex h-24 items-center justify-center text-disabled-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           )}
           {projectPartidas && filteredPartidas.length === 0 && (
-            <div className="px-2 py-6 text-center text-sm text-subtle-foreground">
+            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
               No hay partidas con esa búsqueda.
             </div>
           )}
@@ -1607,12 +1606,12 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
                   selected && "bg-muted"
                 )}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-subtle-foreground">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground">
                   {partida.nivel}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-foreground">{partidaDisplayName(partida)}</span>
-                  <span className="block truncate text-xs text-subtle-foreground">{partidaContext(partida)}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{partidaContext(partida)}</span>
                 </span>
                 {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
               </button>
@@ -1623,8 +1622,8 @@ const InlinePartidaPickerForCreate = React.memo(function InlinePartidaPickerForC
           <ListChecks className="h-4 w-4" />
           Se relacionara con la tarea
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 });
 
@@ -2707,7 +2706,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 }}
                 className={cn(
                   "h-9 border-transparent bg-transparent px-1 text-sm font-normal text-muted-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0 min-[1440px]:h-6",
-                  level > 0 && "text-subtle-foreground"
+                  level > 0 && "text-muted-foreground"
                 )}
               />
               {overdue && <CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-500" />}
@@ -2786,7 +2785,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
           />
         </div>
         <div className={TASK_ACTION_CELL}>
-          <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-9 w-9 text-disabled-foreground hover:text-subtle-foreground min-[1440px]:h-6 min-[1440px]:w-6">
+          <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-9 w-9 text-disabled-foreground hover:text-muted-foreground min-[1440px]:h-6 min-[1440px]:w-6">
             <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -2911,7 +2910,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                       }}
                       className={cn(
                         "h-9 border-transparent bg-transparent px-1 text-sm font-normal text-muted-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0 min-[1440px]:h-6",
-                        task.parent_task && "text-subtle-foreground"
+                        task.parent_task && "text-muted-foreground"
                       )}
                     />
                     {isOverdue(task) && <CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-500" />}
@@ -2990,7 +2989,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 />
               </div>
               <div className={TASK_ACTION_CELL}>
-                <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-9 w-9 text-disabled-foreground hover:text-subtle-foreground min-[1440px]:h-6 min-[1440px]:w-6">
+                <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setContextMenu({ task, x: event.clientX, y: event.clientY }); }} className="h-9 w-9 text-disabled-foreground hover:text-muted-foreground min-[1440px]:h-6 min-[1440px]:w-6">
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -3200,14 +3199,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       <div className="border-b border-border px-4 py-6 sm:px-6 sm:py-8 lg:px-10 min-[1440px]:px-16">
         <div className="flex flex-col gap-5 min-[1200px]:flex-row min-[1200px]:items-end min-[1200px]:justify-between">
           <div>
-            <p className="text-sm text-subtle-foreground">General</p>
+            <p className="text-sm text-muted-foreground">General</p>
             <h1 className="mt-1 text-3xl font-normal text-foreground">Tareas</h1>
           </div>
           <div className="flex w-full flex-wrap gap-2 self-start sm:w-auto min-[1200px]:self-auto">
             <Button
               variant="outline"
               onClick={() => setNotificationsOpen(true)}
-              className="relative h-11 flex-1 gap-2 rounded-sm border-border bg-card px-4 text-sm font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-subtle-foreground sm:h-14 sm:flex-none sm:gap-3 sm:px-5 sm:text-base"
+              className="relative h-11 flex-1 gap-2 rounded-sm border-border bg-card px-4 text-sm font-normal text-muted-foreground shadow-none hover:bg-card hover:text-muted-foreground sm:h-14 sm:flex-none sm:gap-3 sm:px-5 sm:text-base"
             >
               <span className="h-3 w-3 rounded-full bg-[#50AC66]" />
               Notificaciones
@@ -3221,9 +3220,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <Button
                 onClick={openCreateDialog}
                 variant="outline"
-                className="h-11 flex-1 gap-2 rounded-sm border-border bg-card px-4 text-sm font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-subtle-foreground sm:h-14 sm:flex-none sm:gap-3 sm:px-8 sm:text-base"
+                className="h-11 flex-1 gap-2 rounded-sm border-border bg-card px-4 text-sm font-normal text-muted-foreground shadow-none hover:bg-card hover:text-muted-foreground sm:h-14 sm:flex-none sm:gap-3 sm:px-8 sm:text-base"
               >
-                <Plus className="h-5 w-5 text-subtle-foreground" />
+                <Plus className="h-5 w-5 text-muted-foreground" />
                 Nueva tarea
               </Button>
             )}
@@ -3335,9 +3334,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                         style={!isCollapsed ? { borderColor: TASK_UI_COLORS.tableBorder } : undefined}
                         aria-expanded={!isCollapsed}
                       >
-                        <ChevronDown className={cn("h-4 w-4 text-subtle-foreground transition-transform", isCollapsed && "-rotate-90")} />
-                        <span className="min-w-0 flex-1 truncate font-medium text-subtle-foreground">{group.projectName}</span>
-                        <MoreHorizontal className="h-4 w-4 shrink-0 text-subtle-foreground" />
+                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isCollapsed && "-rotate-90")} />
+                        <span className="min-w-0 flex-1 truncate font-medium text-muted-foreground">{group.projectName}</span>
+                        <MoreHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <span className="ml-auto shrink-0 rounded-sm bg-muted px-3 py-2 text-xs text-disabled-foreground sm:px-4 min-[1440px]:px-6">
                           {group.tasks.reduce((count, task) => count + 1 + (projectedChildrenByGroup.get(`${group.projectId}:${task._id}`)?.length || 0), 0)} tareas
                         </span>
@@ -3360,10 +3359,10 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                                     <button
                                       type="button"
                                       onClick={() => toggleStatusCollapse(sectionKey)}
-                                      className="flex min-w-0 items-center gap-2 text-left text-[14px] text-subtle-foreground hover:text-subtle-foreground"
+                                      className="flex min-w-0 items-center gap-2 text-left text-[14px] text-muted-foreground hover:text-muted-foreground"
                                       aria-expanded={!isStatusCollapsed}
                                     >
-                                      <ChevronDown className={cn("h-4 w-4 text-subtle-foreground transition-transform", isStatusCollapsed && "-rotate-90")} />
+                                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isStatusCollapsed && "-rotate-90")} />
                                       <StatusSectionIcon status={section.label.label} color={section.label.color} />
                                       <span>{section.label.label}</span>
                                       <span className="text-xs text-disabled-foreground">{section.tasks.length}</span>
@@ -3547,7 +3546,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 );
               })}
               {groupedTasks.length === 0 && (
-                <div className="flex h-32 items-center justify-center text-subtle-foreground">
+                <div className="flex h-32 items-center justify-center text-muted-foreground">
                     No hay tareas con los filtros actuales.
                 </div>
               )}
@@ -3658,7 +3657,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                 variant="ghost"
                 size="sm"
                 onClick={() => markNotificationsAsRead(proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : {})}
-                className="text-subtle-foreground hover:bg-muted hover:text-foreground"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 Marcar leídas
               </Button>
@@ -3772,7 +3771,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           </p>
                           <span className="shrink-0 text-xs text-disabled-foreground">{relativeTime(item.created_at)}</span>
                         </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-subtle-foreground">
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           {!isProjectScoped && item.proyecto_nombre && <span>{item.proyecto_nombre}</span>}
                           <span>{item.task.status}</span>
                           <span>Prioridad {priorityDisplayName(item.task.prioridad)}</span>
@@ -3783,7 +3782,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     </button>
                   ))
                 ) : (
-                  <div className="rounded-none border border-dashed border-border p-8 text-center text-sm text-subtle-foreground">
+                  <div className="rounded-none border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
                     No hay notificaciones con los filtros actuales.
                   </div>
                 )}
@@ -3840,11 +3839,11 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <div className="space-y-6 p-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="border border-border p-3">
-                    <p className="text-xs text-subtle-foreground">Fecha límite</p>
+                    <p className="text-xs text-muted-foreground">Fecha límite</p>
                     <p className="mt-1 text-sm font-medium text-foreground">{formatDate(selectedTask.fecha_limite)}</p>
                   </div>
                   <div className="border border-border p-3">
-                    <p className="text-xs text-subtle-foreground">Última actualización</p>
+                    <p className="text-xs text-muted-foreground">Última actualización</p>
                     <p className="mt-1 text-sm font-medium text-foreground">{formatDateTime(selectedTask.updated_at || selectedTask.created_at)}</p>
                   </div>
                 </div>
@@ -3909,7 +3908,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <p className="text-sm font-medium text-foreground">{comment.user_name}</p>
-                                <p className="mt-0.5 text-xs text-subtle-foreground">{formatDateTime(comment.created_at)}</p>
+                                <p className="mt-0.5 text-xs text-muted-foreground">{formatDateTime(comment.created_at)}</p>
                               </div>
                               {canDeleteComment && (
                                 <Button
@@ -3926,7 +3925,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                           </div>
                         );
                       }) : (
-                        <div className="border border-dashed border-border p-6 text-center text-sm text-subtle-foreground">
+                        <div className="border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                           Aún no hay comentarios en esta tarea.
                         </div>
                       )}
@@ -3937,18 +3936,18 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
                     <div className="space-y-3">
                       {taskDetail?.history?.length ? taskDetail.history.map((item) => (
                         <div key={item._id} className="flex gap-3 border-b border-border pb-3 last:border-b-0">
-                          <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-subtle-foreground">
+                          <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                             <Clock3 className="h-4 w-4" />
                           </div>
                           <div>
                             <p className="text-sm break-words text-foreground">{historyLabel(item)}</p>
-                            <p className="mt-1 text-xs text-subtle-foreground">
+                            <p className="mt-1 text-xs text-muted-foreground">
                               {item.changed_by_name} · {formatDateTime(item.created_at)}
                             </p>
                           </div>
                         </div>
                       )) : (
-                        <div className="border border-dashed border-border p-6 text-center text-sm text-subtle-foreground">
+                        <div className="border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                           Aún no hay historial registrado.
                         </div>
                       )}

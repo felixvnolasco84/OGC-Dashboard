@@ -53,7 +53,7 @@ export default function ProtectedRoute({
       <div className="min-h-screen flex items-center justify-center bg-card">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
-          <p className="text-subtle-foreground">Verificando permisos...</p>
+          <p className="text-muted-foreground">Verificando permisos...</p>
         </div>
       </div>
     );

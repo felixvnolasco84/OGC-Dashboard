@@ -39,7 +39,7 @@ export default function ProyectoProveedoresTablePage() {
   if (!proyecto) {
     return (
       <div className="bg-card min-h-screen flex items-center justify-center">
-        <p className="text-subtle-foreground">Cargando...</p>
+        <p className="text-muted-foreground">Cargando...</p>
       </div>
     );
   }
@@ -50,7 +50,7 @@ export default function ProyectoProveedoresTablePage() {
         <div className="flex flex-col gap-4 px-12">
           <div className="mb-8 flex items-start justify-between">
             <div>
-              <p className="text-sm text-subtle-foreground mb-1">Proveedores</p>
+              <p className="text-sm text-muted-foreground mb-1">Proveedores</p>
               <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
             </div>
             <div className="flex gap-2">
@@ -115,13 +115,13 @@ export default function ProyectoProveedoresTablePage() {
             <tbody className="divide-y divide-border">
               {!proyectoProveedoresData ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                     Cargando proveedores...
                   </td>
                 </tr>
               ) : filteredProveedores.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                     No se encontraron proveedores en este proyecto
                   </td>
                 </tr>

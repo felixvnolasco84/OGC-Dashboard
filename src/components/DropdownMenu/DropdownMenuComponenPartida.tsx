@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { Doc } from "convex/_generated/dataModel";
-import { MoreHorizontal, Pencil, CreditCard, MoreHorizontalIcon, FileText, Loader2, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, CreditCard, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import {
   AlertDialog,
@@ -22,10 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { useSeePaymentDetailsModal } from "@/hooks/see-transactions-details";
-import { useAggregatedDetailsModal } from "@/hooks/aggregated-details-modal";
-import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import EditPartidaForm from "../Forms/EditPartidaForm";
@@ -53,13 +51,11 @@ export default function DropdownMenuComponentPartida({
   currency = "MXN",
 }: DropdownMenuComponentPartidaProps) {
   const seePaymentDetailsModal = useSeePaymentDetailsModal();
-  const aggregatedDetailsModal = useAggregatedDetailsModal();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const navigate = useNavigate();
   const currentUser = useQuery(api.users.getCurrentUser);
   const isViewer = currentUser?.role === "viewer";
   const canEdit = currentUser !== undefined && currentUser !== null && !isViewer;
@@ -114,7 +110,6 @@ export default function DropdownMenuComponentPartida({
     isRealPartida;
   const isLoadingPayments = shouldPrimePayments && shouldLoadPayments && payments === undefined;
 
-  const hasSubPartidas = level === 1 && rowData.hasChildren;
 
   // Get context-aware labels based on level
   const getContextualLabels = () => {
@@ -123,26 +118,22 @@ export default function DropdownMenuComponentPartida({
         return {
           title: "Partida",
           editTitle: `Editar Partida: ${rowData.displayName}`,
-          viewDetailsText: "Ver resumen de partida",
         };
       case 1:
         // If familia has no sub-partidas, treat it like a leaf node (show detailed view)
         return {
           title: "Familia",
           editTitle: `Editar Familia: ${rowData.displayName}`,
-          viewDetailsText: hasSubPartidas ? "Ver resumen de familia" : "Ver detalles completos",
         };
       case 2:
         return {
           title: "Sub-partida",
           editTitle: `Editar Sub-partida: ${rowData.displayName}`,
-          viewDetailsText: "Ver detalles completos",
         };
       default:
         return {
           title: "Item",
           editTitle: "Editar",
-          viewDetailsText: "Ver detalles",
         };
     }
   };
@@ -151,12 +142,12 @@ export default function DropdownMenuComponentPartida({
 
   const handleOpenEdit = () => {
     setIsMenuOpen(false);
-    setIsEditOpen(true);
+    window.setTimeout(() => setIsEditOpen(true), 100);
   };
 
   const handleOpenDelete = () => {
     setIsMenuOpen(false);
-    setIsDeleteOpen(true);
+    window.setTimeout(() => setIsDeleteOpen(true), 100);
   };
 
   const handleDelete = async () => {
@@ -174,32 +165,6 @@ export default function DropdownMenuComponentPartida({
     } finally {
       setIsDeleting(false);
     }
-  };
-
-  //Navigate to cost details with react router
-  const handleViewDetails = () => {
-    // Navigate to detail page for:
-    // 1. Level 2 (sub-partidas) with real IDs
-    // 2. Level 1 (familias) with no sub-partidas and real IDs
-    const shouldNavigateToDetails = 
-      (level === 2 && partida._id) || 
-      (level === 1 && !hasSubPartidas && partida._id);
-
-    if (shouldNavigateToDetails) {
-      navigate(`/dashboard/partidas/${partida._id}`);
-    } else {
-      // For aggregated rows or familias with sub-partidas, show summary modal
-      aggregatedDetailsModal.onOpen({
-        name: rowData.displayName,
-        level: level,
-        levelLabel: labels.title,
-        presupuestoOriginal: rowData.presupuestoOriginal,
-        presupuestoAprobado: rowData.presupuestoAprobado,
-        pagado: rowData.pagado,
-        avance: rowData.avance,
-      });
-    }
-    setIsMenuOpen(false);
   };
 
   const handleViewTransactions = () => {
@@ -223,79 +188,59 @@ export default function DropdownMenuComponentPartida({
       totalAmount: baseAmount,
     };
 
-    seePaymentDetailsModal.onOpen(paymentContext);
     setIsMenuOpen(false);
+    window.setTimeout(() => seePaymentDetailsModal.onOpen(paymentContext), 100);
   };
 
   return (
     <>
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-          <PopoverTrigger asChild>
+        <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+          <DropdownMenuTrigger asChild>
             <Button
-              className="h-8 w-8 border-none border-transparent text-subtle-foreground hover:bg-muted hover:text-foreground"
-              variant="ghost"
-              size={"icon"}
+              variant="quiet"
+              size="iconSm"
               data-viewer-readonly-allow="true"
             >
               <span className="sr-only">Abrir menú</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" sideOffset={6} className="w-64 overflow-hidden border-border bg-card p-1 text-foreground shadow-xl">
-            <Command className="bg-card text-foreground">
-              <CommandList>
-                {canEdit && (
-                  <>
-                    <CommandGroup>
-                      <CommandItem
-                        onSelect={handleOpenEdit}
-                        className="data-[selected=true]:bg-muted"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Editar {labels.title.toLowerCase()}
-                      </CommandItem>
-                      {level === 2 && (
-                        <CommandItem
-                          onSelect={handleOpenDelete}
-                          className="text-red-600 data-[selected=true]:bg-red-50 data-[selected=true]:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Eliminar subpartida
-                        </CommandItem>
-                      )}
-                    </CommandGroup>
-                    <CommandSeparator className="bg-disabled" />
-                  </>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={6}>
+            {canEdit && (
+              <>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onSelect={handleOpenEdit}>
+                    <Pencil className="h-4 w-4" />
+                    Editar {labels.title.toLowerCase()}
+                  </DropdownMenuItem>
+                  {level === 2 && (
+                    <DropdownMenuItem onSelect={handleOpenDelete} variant="destructive">
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar subpartida
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onSelect={handleViewTransactions}
+                disabled={isLoadingPayments}
+                aria-busy={isLoadingPayments}
+                data-viewer-readonly-allow="true"
+              >
+                {isLoadingPayments ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="h-4 w-4" />
                 )}
-                <CommandGroup>
-                  <CommandItem
-                    onSelect={handleViewTransactions}
-                    disabled={isLoadingPayments}
-                    aria-busy={isLoadingPayments}
-                    data-viewer-readonly-allow="true"
-                    className="data-[selected=true]:bg-muted"
-                  >
-                    {isLoadingPayments ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <CreditCard className="h-4 w-4" />
-                    )}
-                    {isLoadingPayments ? "Cargando..." : level === 2 ? "Ver pagos" : "Ver transacciones"}
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={handleViewDetails}
-                    data-viewer-readonly-allow="true"
-                    className="data-[selected=true]:bg-muted"
-                  >
-                    {(level === 2 || (level === 1 && !hasSubPartidas)) ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />}
-                    {labels.viewDetailsText}
-                  </CommandItem>
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+                {isLoadingPayments ? "Cargando..." : level === 2 ? "Ver pagos" : "Ver transacciones"}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{labels.editTitle}</DialogTitle>
@@ -327,7 +272,7 @@ export default function DropdownMenuComponentPartida({
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>
-                  <span className="font-medium text-foreground">{rowData.displayName}</span>
+                  <span className=" text-foreground">{rowData.displayName}</span>
                   {" · "}
                   Presupuesto aprobado: {formatCurrency(rowData.presupuestoAprobado, currency)}
                 </p>
@@ -358,7 +303,7 @@ export default function DropdownMenuComponentPartida({
             {deletionImpact?.canDelete && (
               <AlertDialogAction
                 disabled={isDeleting}
-                className="bg-red-600 text-white hover:bg-red-700"
+                variant="destructive"
                 onClick={(event) => {
                   event.preventDefault();
                   void handleDelete();

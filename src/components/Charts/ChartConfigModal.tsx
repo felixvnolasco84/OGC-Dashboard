@@ -86,7 +86,7 @@ function FilterList({
 
   if (items.length === 0) {
     return (
-      <p className="px-3 py-8 text-center text-sm text-subtle-foreground">
+      <p className="px-3 py-8 text-center text-sm text-muted-foreground">
         No hay elementos en este nivel
       </p>
     );
@@ -94,7 +94,7 @@ function FilterList({
 
   if (filtered.length === 0) {
     return (
-      <p className="px-3 py-8 text-center text-sm text-subtle-foreground">
+      <p className="px-3 py-8 text-center text-sm text-muted-foreground">
         Sin coincidencias
       </p>
     );
@@ -314,7 +314,7 @@ export default function ChartConfigModal({
                   className={cn(
                     "relative flex h-6 w-6 cursor-pointer items-center justify-center border",
                     isPresetColor
-                      ? "border-dashed border-border-strong text-subtle-foreground hover:border-foreground hover:text-foreground"
+                      ? "border-dashed border-border-strong text-muted-foreground hover:border-foreground hover:text-foreground"
                       : "border-foreground ring-1 ring-foreground ring-offset-1 ring-offset-background"
                   )}
                   style={isPresetColor ? undefined : { backgroundColor: pickerColor }}
@@ -351,7 +351,7 @@ export default function ChartConfigModal({
                   onChange={(e) => setHeight(e.target.value)}
                   className="pr-8"
                 />
-                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-subtle-foreground">
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                   px
                 </span>
               </div>
@@ -361,7 +361,7 @@ export default function ChartConfigModal({
           <div className="space-y-2.5">
             <div className="flex items-baseline justify-between gap-3">
               <Label className="text-xs text-muted-foreground">Filtros</Label>
-              <p className="text-[11px] text-subtle-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 {totalSelected === 0
                   ? "Sin filtro se incluyen todas"
                   : `${totalSelected} seleccionada${totalSelected === 1 ? "" : "s"}`}
@@ -393,7 +393,7 @@ export default function ChartConfigModal({
                       <span
                         className={cn(
                           "min-w-4 px-1 text-[10px] tabular-nums",
-                          isActive ? "text-background/80" : "text-subtle-foreground"
+                          isActive ? "text-background/80" : "text-muted-foreground"
                         )}
                       >
                         {count}
@@ -406,7 +406,7 @@ export default function ChartConfigModal({
 
             <div className="border border-border">
               <div className="flex items-center gap-2 border-b px-2.5">
-                <Search className="h-3.5 w-3.5 shrink-0 text-subtle-foreground" />
+                <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

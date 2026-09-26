@@ -97,18 +97,18 @@ export default function EditPaymentModal() {
                     <div className="bg-background p-4 rounded-none border">
                         <p className="text-sm text-muted-foreground mb-1">Monto del pago</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-lg text-subtle-foreground">$</span>
+                            <span className="text-lg text-muted-foreground">$</span>
                             <Input
                                 type="number"
                                 step="0.01"
                                 min="0"
                                 value={getCurrentAmount()}
                                 onChange={(e) => handleAmountChange(parseFloat(e.target.value) || 0)}
-                                className="text-2xl font-semibold border-none bg-transparent p-0 h-auto focus-visible:ring-0"
+                                variant="display"
                                 required
                             />
                         </div>
-                        <p className="text-xs text-subtle-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             Pago individual
                         </p>
                     </div>
@@ -122,17 +122,17 @@ export default function EditPaymentModal() {
                                     className={cn(
                                         "flex items-center gap-2 p-4 rounded-none border-2",
                                         transaction.status === 'Pagado'
-                                            ? "border-green-500 bg-green-50"
+                                            ? "border-success-border bg-success-muted"
                                             : "border-border bg-background"
                                     )}
                                 >
                                     <Check className={cn(
                                         "h-5 w-5",
-                                        transaction.status === 'Pagado' ? "text-green-600" : "text-disabled-foreground"
+                                        transaction.status === 'Pagado' ? "text-success" : "text-disabled-foreground"
                                     )} />
                                     <span className={cn(
                                         "font-medium",
-                                        transaction.status === 'Pagado' ? "text-green-700" : "text-muted-foreground"
+                                        transaction.status === 'Pagado' ? "text-success" : "text-muted-foreground"
                                     )}>Pagado</span>
                                 </div>
                                 <div
@@ -199,7 +199,7 @@ export default function EditPaymentModal() {
                         <Button
                             type="submit"
                             disabled={!isFormValid() || isSubmitting}
-                            className="bg-inverse hover:bg-inverse text-on-color"
+                            variant="inverse"
                         >
                             {isSubmitting ? 'Actualizando...' : 'Actualizar pago'}
                         </Button>

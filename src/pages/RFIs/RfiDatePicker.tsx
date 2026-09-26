@@ -3,10 +3,10 @@ import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { formatRfiDate } from "./rfiUi";
 
@@ -42,8 +42,8 @@ export function RfiDatePicker({
   const selectedDate = parseDateString(value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <Button
           id={id}
           type="button"
@@ -57,8 +57,8 @@ export function RfiDatePicker({
         >
           {value ? formatRfiDate(value) : placeholder}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
         align="start"
         className="w-auto border-border bg-card p-0 text-foreground shadow-xl"
       >
@@ -98,7 +98,7 @@ export function RfiDatePicker({
             Hoy
           </Button>
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -336,7 +336,7 @@ export default function UploadProyectoDocumentsModal() {
                             <SelectContent data-square-modal="">
                                 <SelectItem value="none">Sin transacción</SelectItem>
                                 {formattedTransactions.length === 0 ? (
-                                    <div className="px-2 py-4 text-sm text-subtle-foreground text-center">
+                                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
                                         No hay transacciones disponibles
                                     </div>
                                 ) : (
@@ -404,7 +404,7 @@ export default function UploadProyectoDocumentsModal() {
                                     Archivos ({files.length})
                                 </h3>
                                 {pendingCount > 0 && (
-                                    <span className="text-sm text-subtle-foreground">
+                                    <span className="text-sm text-muted-foreground">
                                         {pendingCount} pendiente(s)
                                     </span>
                                 )}
@@ -428,7 +428,7 @@ export default function UploadProyectoDocumentsModal() {
                                                     <p className="text-sm font-medium truncate">
                                                         {fileUpload.file.name}
                                                     </p>
-                                                    <p className="text-xs text-subtle-foreground">
+                                                    <p className="text-xs text-muted-foreground">
                                                         {formatFileSize(fileUpload.file.size)}
                                                     </p>
                                                 </div>

@@ -26,7 +26,7 @@ export default function AdminPage() {
         {/* Header */}
         <div className="rounded-lg py-6">
           <h1 className="text-2xl text-foreground mb-2">Administración</h1>
-          <p className="text-sm text-subtle-foreground">
+          <p className="text-sm text-muted-foreground">
             Herramientas para cargar y gestionar datos del proyecto
           </p>
         </div>

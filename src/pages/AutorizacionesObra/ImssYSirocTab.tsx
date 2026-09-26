@@ -5,10 +5,11 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Input } from "@/components/ui/input";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -514,8 +515,8 @@ function SubPagoCuotaRow({
         }}
         placeholder="$0.00"
       />
-      <Popover>
-        <PopoverTrigger asChild>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
           <button
             className="text-disabled-foreground hover:text-muted-foreground p-1"
             type="button"
@@ -523,18 +524,14 @@ function SubPagoCuotaRow({
           >
             <MoreHorizontal className="w-4 h-4" />
           </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-44 p-1" align="end">
-          <button
-            className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded w-full text-left"
-            onClick={onDelete}
-            type="button"
-          >
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-44 p-1" align="end">
+          <DropdownMenuItem variant="destructive" onSelect={onDelete}>
             <Trash2 className="w-3.5 h-3.5" />
             Eliminar pago
-          </button>
-        </PopoverContent>
-      </Popover>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -1256,27 +1253,28 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                   parentId={cg._id}
                 />
                 <span className="text-sm text-foreground text-right">{formatCurrencyMXN(cgTotal)}</span>
-                <Popover>
-                  <PopoverTrigger asChild>
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
                     <button className="text-disabled-foreground hover:text-muted-foreground p-1">
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48 p-1" align="end">
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-48 p-1" align="end">
                     {cg.contrato_url && (
-                      <a
+                      <DropdownMenuItem asChild>
+                        <a
                         href={cg.contrato_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded w-full"
                       >
                         <FileText className="w-3.5 h-3.5" />
                         Descargar contrato
                       </a>
+                      </DropdownMenuItem>
                     )}
-                    <button
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded w-full text-left"
-                      onClick={() =>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onSelect={() =>
                         setCgToDelete({
                           id: cg._id,
                           nombre: cg.nombre,
@@ -1285,13 +1283,12 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                           linkedSubsCount,
                         })
                       }
-                      type="button"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       Eliminar contratista
-                    </button>
-                  </PopoverContent>
-                </Popover>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             );
           })}

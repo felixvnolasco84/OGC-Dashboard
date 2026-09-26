@@ -70,7 +70,7 @@ export default function SaleTransactionDocumentosModal() {
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-normal">Documentos de Transacción de Venta</DialogTitle>
                     {transaction?.factura && (
-                        <p className="text-sm text-subtle-foreground">Factura: {transaction.factura}</p>
+                        <p className="text-sm text-muted-foreground">Factura: {transaction.factura}</p>
                     )}
                 </DialogHeader>
 
@@ -84,13 +84,13 @@ export default function SaleTransactionDocumentosModal() {
                         <div className="bg-background rounded-none p-6">
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <p className="text-sm text-subtle-foreground">Total Documentos</p>
+                                    <p className="text-sm text-muted-foreground">Total Documentos</p>
                                     <p className="text-2xl font-semibold text-foreground">
                                         {transaction.documents?.length || 0}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-subtle-foreground">Fecha de Transacción</p>
+                                    <p className="text-sm text-muted-foreground">Fecha de Transacción</p>
                                     <p className="text-sm text-foreground">
                                         {transaction.fecha
                                             ? new Date(transaction.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
@@ -108,7 +108,7 @@ export default function SaleTransactionDocumentosModal() {
                         {!transaction.documents || transaction.documents.length === 0 ? (
                             <div className="text-center py-12">
                                 <FileText className="h-12 w-12 text-disabled-foreground mx-auto mb-4" />
-                                <p className="text-subtle-foreground">No hay documentos registrados para esta transacción</p>
+                                <p className="text-muted-foreground">No hay documentos registrados para esta transacción</p>
                             </div>
                         ) : (
                             <div className="space-y-4">

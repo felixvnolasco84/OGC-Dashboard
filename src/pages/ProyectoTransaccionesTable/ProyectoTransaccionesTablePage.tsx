@@ -36,8 +36,7 @@ import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
-import { Popover } from "@radix-ui/react-popover";
-import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -103,7 +102,7 @@ function pendingHeaderCountClass(active: boolean) {
         "ml-2 inline-flex min-w-6 items-center justify-center rounded-none border px-1.5 py-0.5 text-xs font-medium transition-colors",
         active
             ? "border-foreground bg-foreground text-background"
-            : "border-border bg-muted text-subtle-foreground hover:bg-background hover:text-foreground",
+            : "border-border bg-muted text-muted-foreground hover:bg-background hover:text-foreground",
     );
 }
 
@@ -513,7 +512,7 @@ export default function ProyectoTransaccionesTablePage() {
     if (!proyecto) {
         return (
             <div className="bg-card min-h-screen flex items-center justify-center">
-                <p className="text-subtle-foreground">Cargando...</p>
+                <p className="text-muted-foreground">Cargando...</p>
             </div>
         );
     }
@@ -527,7 +526,7 @@ export default function ProyectoTransaccionesTablePage() {
                 <div className="flex shrink-0 flex-col gap-4 px-4 pt-6 sm:px-6 lg:px-8">
                     <div className="mb-2 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                         <div className="min-w-0">
-                            <p className="text-sm text-subtle-foreground mb-1">Transacciones</p>
+                            <p className="text-sm text-muted-foreground mb-1">Transacciones</p>
                             <h1 className="break-words text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -543,7 +542,7 @@ export default function ProyectoTransaccionesTablePage() {
                                 disabled={isSyncing}
                                 variant="outline"
                                 size="lg"
-                                className="flex items-center gap-2 rounded-none py-6  text-subtle-foreground"
+                                className="flex items-center gap-2 rounded-none py-6  text-muted-foreground"
                             >
                                 {isSyncing ? "Sincronizando..." : "Sincronizar Docs"}
                                 <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
@@ -562,7 +561,7 @@ export default function ProyectoTransaccionesTablePage() {
                     </div>
 
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-subtle-foreground">Pendientes</span>
+                        <span className="text-sm text-muted-foreground">Pendientes</span>
                         <button
                             type="button"
                             aria-pressed={missingProviderActive}
@@ -604,7 +603,7 @@ export default function ProyectoTransaccionesTablePage() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={clearFilters}
-                                        className="h-8 px-2 text-subtle-foreground hover:text-foreground"
+                                        className="h-8 px-2 text-muted-foreground hover:text-foreground"
                                     >
                                         <X className="h-4 w-4 mr-1" />
                                         Limpiar
@@ -658,8 +657,8 @@ export default function ProyectoTransaccionesTablePage() {
                                 {/* Date Range */}
                                 <div className="space-y-2 sm:col-span-2">
                                     <label className="text-sm font-medium text-foreground">Rango de fechas</label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
+                                    <DropdownMenu modal={false}>
+                                        <DropdownMenuTrigger asChild>
                                             <Button
                                                 variant="outline"
                                                 className="w-full justify-start text-left font-normal rounded-none h-10"
@@ -679,8 +678,8 @@ export default function ProyectoTransaccionesTablePage() {
                                                     "Seleccionar rango"
                                                 )}
                                             </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="w-auto p-0" align="start">
                                             <Calendar
                                                 mode="range"
                                                 defaultMonth={dateRange?.from}
@@ -688,8 +687,8 @@ export default function ProyectoTransaccionesTablePage() {
                                                 onSelect={setDateRange}
                                                 numberOfMonths={2}
                                             />
-                                        </PopoverContent>
-                                    </Popover>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             </div>
                             
@@ -830,7 +829,7 @@ export default function ProyectoTransaccionesTablePage() {
                                         sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
                                     )}
                                 </Button>
-                                <span className="text-sm text-subtle-foreground ml-auto">
+                                <span className="text-sm text-muted-foreground ml-auto">
                                     {matchedCount} de {transactionTotals?.count ?? 0} transacciones
                                     {hasActiveFilters && transaccionesPage ? ` · ${formatCurrency(transaccionesPage.matchedAmount)}` : ""}
                                 </span>
@@ -849,7 +848,7 @@ export default function ProyectoTransaccionesTablePage() {
                                         : ""}
                                 </span>
                                 {hiddenSelectedCount > 0 && (
-                                    <span className="text-xs text-subtle-foreground">
+                                    <span className="text-xs text-muted-foreground">
                                         {hiddenSelectedCount === 1
                                             ? "No está visible en esta página. Al asignar proveedor también se incluirá ese registro."
                                             : "No están visibles en esta página. Al asignar proveedor también se incluirán esos registros."}
@@ -904,10 +903,10 @@ export default function ProyectoTransaccionesTablePage() {
                                         onCheckedChange={(checked) => toggleAllVisible(checked === true)}
                                     />
                                 </th>
-                                <th className="sticky left-12 z-30 min-w-56 w-56 bg-card px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                <th className="sticky left-12 z-30 min-w-56 w-56 bg-card px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Factura
                                 </th>
-                                <th className="min-w-44 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                <th className="min-w-44 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     <span className="inline-flex items-center">
                                         Proveedor
                                         {withoutProviderCount > 0 && (
@@ -923,27 +922,27 @@ export default function ProyectoTransaccionesTablePage() {
                                         )}
                                     </span>
                                 </th>
-                                <th className="min-w-32 whitespace-nowrap px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                <th className="min-w-32 whitespace-nowrap px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Monto Total
                                 </th>
-                                <th className="min-w-28 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                <th className="min-w-28 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Fecha
                                 </th>
                                 {extraColumns.isVisible("tipoPago") && (
-                                    <th className="min-w-32 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                    <th className="min-w-32 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                         Tipo de Pago
                                     </th>
                                 )}
-                                <th className="min-w-28 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                <th className="min-w-28 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Status
                                 </th>
                                 {extraColumns.isVisible("moneda") && (
-                                    <th className="min-w-24 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                    <th className="min-w-24 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                         Moneda
                                     </th>
                                 )}
                                 {extraColumns.isVisible("documentos") && (
-                                    <th className="min-w-32 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-r border-border">
+                                    <th className="min-w-32 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                         <span className="inline-flex items-center">
                                             Documentos
                                             {withoutDocumentsCount > 0 && (
@@ -960,19 +959,19 @@ export default function ProyectoTransaccionesTablePage() {
                                         </span>
                                     </th>
                                 )}
-                                <th className="w-14 min-w-14 px-6 py-4 text-left text-sm font-normal text-subtle-foreground border-b border-border"></th>
+                                <th className="w-14 min-w-14 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-border"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {!transaccionesPage ? (
                                 <tr>
-                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-muted-foreground">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : transacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-muted-foreground">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -1058,7 +1057,7 @@ export default function ProyectoTransaccionesTablePage() {
                                                 {(transaccion.documentsCount ?? 0) > 0 ? (
                                                     transaccion.documentsCount
                                                 ) : (
-                                                    <span className="text-subtle-foreground">Sin docs</span>
+                                                    <span className="text-muted-foreground">Sin docs</span>
                                                 )}
                                             </td>
                                         )}
@@ -1071,7 +1070,7 @@ export default function ProyectoTransaccionesTablePage() {
                                                         className="h-8 w-8 rounded-none"
                                                         aria-label={`Acciones para ${transaccion.factura || "la transacción"}`}
                                                     >
-                                                        <MoreVertical className="h-4 w-4 text-subtle-foreground" />
+                                                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-64 rounded-none">
@@ -1097,7 +1096,7 @@ export default function ProyectoTransaccionesTablePage() {
                     </table>
                 </div>
                 {transaccionesPage && (
-                    <div className="flex shrink-0 flex-col gap-3 px-4 py-4 text-sm text-subtle-foreground sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+                    <div className="flex shrink-0 flex-col gap-3 px-4 py-4 text-sm text-muted-foreground sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
                         <div className="flex flex-wrap items-center gap-3">
                             <span>
                                 {matchedCount === 0

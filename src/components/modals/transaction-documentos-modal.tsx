@@ -66,7 +66,7 @@ export default function TransactionDocumentosModal() {
 
         {!transaction ? (
           <div className="flex min-h-64 items-center justify-center" aria-label="Cargando documentos">
-            <Loader2 className="h-5 w-5 animate-spin text-subtle-foreground" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <div className="max-h-[calc(90vh-81px)] overflow-y-auto">
@@ -84,7 +84,7 @@ export default function TransactionDocumentosModal() {
               <div className="flex min-h-64 flex-col items-center justify-center px-6 text-center">
                 <FileText className="h-7 w-7 text-disabled-foreground" />
                 <p className="mt-3 text-sm font-medium text-foreground">Sin documentos</p>
-                <p className="mt-1 max-w-sm text-sm text-subtle-foreground">
+                <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                   No hay archivos vinculados a esta transacción.
                 </p>
               </div>
@@ -108,7 +108,7 @@ export default function TransactionDocumentosModal() {
                             </Badge>
                           </div>
                           {doc.descripcion && (
-                            <p className="mt-1 line-clamp-2 text-sm text-subtle-foreground">{doc.descripcion}</p>
+                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{doc.descripcion}</p>
                           )}
                           {fileSize && <p className="mt-1 text-xs text-disabled-foreground">{fileSize}</p>}
                         </div>
@@ -122,7 +122,7 @@ export default function TransactionDocumentosModal() {
                               Abrir
                             </a>
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-subtle-foreground hover:text-foreground" asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
                             <a
                               href={documentUrl}
                               download={doc.nombre}

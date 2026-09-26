@@ -128,7 +128,7 @@ export default function SalesUserManagementPage() {
                         <p className="text-sm font-medium text-foreground truncate">
                           {user.name}
                         </p>
-                        <p className="text-xs text-subtle-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {user.email}
                         </p>
                       </div>
@@ -156,7 +156,7 @@ export default function SalesUserManagementPage() {
             </CardHeader>
             <CardContent>
               {!currentUser ? (
-                <div className="text-center py-12 text-subtle-foreground">
+                <div className="text-center py-12 text-muted-foreground">
                   Selecciona un usuario de la lista para editar sus permisos de ventas
                 </div>
               ) : (
@@ -190,7 +190,7 @@ export default function SalesUserManagementPage() {
                       </SelectContent>
                     </Select>
                     {selectedRole === "admin" && (
-                      <p className="text-xs text-subtle-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Los administradores tienen acceso a los proyectos de ventas de su organización
                       </p>
                     )}
@@ -202,7 +202,7 @@ export default function SalesUserManagementPage() {
                       <Label>Proyectos de Ventas con acceso</Label>
                       <div className="border rounded-lg p-4 max-h-80 overflow-y-auto space-y-3">
                         {salesProjects.length === 0 ? (
-                          <p className="text-sm text-subtle-foreground">No hay proyectos de ventas disponibles</p>
+                          <p className="text-sm text-muted-foreground">No hay proyectos de ventas disponibles</p>
                         ) : (
                           salesProjects.map((project) => (
                             <div key={project._id} className="flex items-center space-x-2">
@@ -221,7 +221,7 @@ export default function SalesUserManagementPage() {
                           ))
                         )}
                       </div>
-                      <p className="text-xs text-subtle-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Selecciona los proyectos de ventas a los que este usuario puede acceder
                       </p>
                     </div>

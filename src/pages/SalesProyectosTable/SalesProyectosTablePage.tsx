@@ -18,7 +18,7 @@ import {
 import { useAddSalesProjectModal } from "@/hooks/add-sales-project-modal";
 import { useEditSalesProjectModal } from "@/hooks/edit-sales-project-modal";
 import { Id } from "../../../convex/_generated/dataModel";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function SalesProyectosTablePage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,7 +80,7 @@ export default function SalesProyectosTablePage() {
           <div className="mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-normal text-foreground mb-2">Proyectos de Ventas</h1>
-              <p className="text-sm text-subtle-foreground">
+              <p className="text-sm text-muted-foreground">
                 Gestiona y consulta todos tus proyectos de ventas
               </p>
             </div>
@@ -89,7 +89,7 @@ export default function SalesProyectosTablePage() {
                 onClick={() => addSalesProjectModal.onOpen()}
                 variant="outline"
                 size="lg"
-                className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
+                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
               >
                 Agregar Proyecto de Ventas
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
@@ -137,13 +137,13 @@ export default function SalesProyectosTablePage() {
             <tbody className="divide-y divide-border">
               {!projects ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                     Cargando proyectos de ventas...
                   </td>
                 </tr>
               ) : filteredProjects && filteredProjects.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                     No se encontraron proyectos de ventas
                   </td>
                 </tr>
@@ -183,21 +183,21 @@ export default function SalesProyectosTablePage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 border-r border-border">
-                      <Popover>
-                        <PopoverTrigger asChild>
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <MoreVertical className="h-4 w-4 text-disabled-foreground" />
                           </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-48 space-y-2">
-                          <Button onClick={() => editSalesProjectModal.onOpen(project._id)} variant="outline" className="w-full text-xs">
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-48">
+                          <DropdownMenuItem onSelect={() => editSalesProjectModal.onOpen(project._id)}>
                             Editar
-                          </Button>
-                          <Button onClick={() => openDeleteDialog(project._id)} variant="outline" className="w-full text-xs">
+                          </DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onSelect={() => openDeleteDialog(project._id)}>
                             Eliminar
-                          </Button>
-                        </PopoverContent>
-                      </Popover>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))

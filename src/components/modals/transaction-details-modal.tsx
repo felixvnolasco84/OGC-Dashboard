@@ -72,7 +72,7 @@ type Document = {
 function DetailItem({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0 py-3">
-      <dt className="text-xs text-subtle-foreground">{label}</dt>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="mt-1 break-words text-sm font-medium text-foreground">{children || "—"}</dd>
     </div>
   );
@@ -182,10 +182,10 @@ export default function TransactionDetailsModal() {
 
         {transaction === undefined ? (
           <div className="flex min-h-64 items-center justify-center" aria-label="Cargando transacción">
-            <Loader2 className="h-5 w-5 animate-spin text-subtle-foreground" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : transaction === null ? (
-          <div className="flex min-h-64 items-center justify-center px-6 text-sm text-subtle-foreground">
+          <div className="flex min-h-64 items-center justify-center px-6 text-sm text-muted-foreground">
             No se encontró la transacción.
           </div>
         ) : (
@@ -193,7 +193,7 @@ export default function TransactionDetailsModal() {
             <section className="px-6 py-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-xs text-subtle-foreground">Monto total</p>
+                  <p className="text-xs text-muted-foreground">Monto total</p>
                   <p className="mt-1 text-3xl font-medium tracking-tight text-foreground tabular-nums">
                     {formatCurrency(transaction.monto_total, transaction.moneda)}
                   </p>
@@ -219,7 +219,7 @@ export default function TransactionDetailsModal() {
             </section>
 
             <section className="border-t border-border px-6 py-2">
-              <h3 className="pt-4 text-xs font-medium uppercase tracking-[0.12em] text-subtle-foreground">
+              <h3 className="pt-4 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Información del pago
               </h3>
               <dl className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:gap-x-8 sm:[&>*:nth-child(2)]:border-t-0 lg:grid-cols-3 lg:[&>*:nth-child(3)]:border-t-0">
@@ -255,7 +255,7 @@ export default function TransactionDetailsModal() {
               </div>
               <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
                 <div className="min-w-0 flex-1">
-                  <label className="mb-1.5 block text-xs text-subtle-foreground" htmlFor="transaction-provider">
+                  <label className="mb-1.5 block text-xs text-muted-foreground" htmlFor="transaction-provider">
                     Proveedor asignado
                   </label>
                   <Select
@@ -309,13 +309,13 @@ export default function TransactionDetailsModal() {
 
               {conceptsTransaction === undefined ? (
                 <div className="flex min-h-40 items-center justify-center border-t border-border">
-                  <Loader2 className="h-5 w-5 animate-spin text-subtle-foreground" />
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : lineItems.length === 0 ? (
                 <div className="flex min-h-40 flex-col items-center justify-center border-t border-border px-6 text-center">
                   <ListChecks className="h-6 w-6 text-disabled-foreground" />
                   <p className="mt-3 text-sm font-medium text-foreground">Sin conceptos</p>
-                  <p className="mt-1 text-sm text-subtle-foreground">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Esta transacción todavía no tiene conceptos registrados.
                   </p>
                 </div>
@@ -325,17 +325,17 @@ export default function TransactionDetailsModal() {
                     <Table>
                       <TableHeader>
                         <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
-                          <TableHead className="h-10 w-12 px-3 text-xs font-medium text-subtle-foreground">#</TableHead>
-                          <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Partida</TableHead>
-                          <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Familia</TableHead>
-                          <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Subpartida</TableHead>
-                          <TableHead className="h-10 px-3 text-right text-xs font-medium text-subtle-foreground">Monto</TableHead>
+                          <TableHead className="h-10 w-12 px-3 text-xs font-medium text-muted-foreground">#</TableHead>
+                          <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Partida</TableHead>
+                          <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Familia</TableHead>
+                          <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Subpartida</TableHead>
+                          <TableHead className="h-10 px-3 text-right text-xs font-medium text-muted-foreground">Monto</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {lineItems.map((item: LineItem, index: number) => (
                           <TableRow key={item._id} className="border-b border-border hover:bg-muted/30">
-                            <TableCell className="px-3 py-3 text-xs tabular-nums text-subtle-foreground">
+                            <TableCell className="px-3 py-3 text-xs tabular-nums text-muted-foreground">
                               {index + 1}
                             </TableCell>
                             <TableCell className="max-w-64 px-3 py-3 text-sm font-medium text-foreground">
@@ -355,7 +355,7 @@ export default function TransactionDetailsModal() {
                       </TableBody>
                       <TableFooter>
                         <TableRow className="border-t border-border bg-card hover:bg-card">
-                          <TableCell colSpan={4} className="px-3 py-3 text-right text-xs font-medium text-subtle-foreground">
+                          <TableCell colSpan={4} className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
                             Total de conceptos
                           </TableCell>
                           <TableCell className="whitespace-nowrap px-3 py-3 text-right text-sm font-medium tabular-nums">
@@ -388,13 +388,13 @@ export default function TransactionDetailsModal() {
 
               {documentsTransaction === undefined ? (
                 <div className="flex min-h-40 items-center justify-center border-t border-border">
-                  <Loader2 className="h-5 w-5 animate-spin text-subtle-foreground" />
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : documents.length === 0 ? (
                 <div className="flex min-h-40 flex-col items-center justify-center border-t border-border px-6 text-center">
                   <FileText className="h-6 w-6 text-disabled-foreground" />
                   <p className="mt-3 text-sm font-medium text-foreground">Sin documentos</p>
-                  <p className="mt-1 text-sm text-subtle-foreground">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     No hay archivos vinculados a esta transacción.
                   </p>
                 </div>
@@ -421,7 +421,7 @@ export default function TransactionDetailsModal() {
                               </Badge>
                             </div>
                             {doc.descripcion && (
-                              <p className="mt-1 line-clamp-2 text-sm text-subtle-foreground">{doc.descripcion}</p>
+                              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{doc.descripcion}</p>
                             )}
                             {fileSize && <p className="mt-1 text-xs text-disabled-foreground">{fileSize}</p>}
                           </div>
@@ -435,7 +435,7 @@ export default function TransactionDetailsModal() {
                                 Abrir
                               </a>
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-subtle-foreground hover:text-foreground" asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
                               <a
                                 href={documentUrl}
                                 download={doc.nombre}

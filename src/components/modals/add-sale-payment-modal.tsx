@@ -728,7 +728,7 @@ export default function AddSalePaymentModal() {
                                                 <div className="space-y-2">
                                                     <File className="h-8 w-8 mx-auto text-green-600" />
                                                     <p className="text-sm font-medium">{documentFile.name}</p>
-                                                    <p className="text-xs text-subtle-foreground">
+                                                    <p className="text-xs text-muted-foreground">
                                                         {(documentFile.size / 1024).toFixed(2)} KB
                                                     </p>
                                                     <Button

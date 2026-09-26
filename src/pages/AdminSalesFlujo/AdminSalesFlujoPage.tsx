@@ -184,7 +184,7 @@ export default function AdminSalesFlujoPage() {
         {/* Header */}
         <div className="rounded-lg py-6">
           <h1 className="text-2xl text-foreground mb-2">Flujo de Caja Proyectado - Ventas</h1>
-          <p className="text-sm text-subtle-foreground">
+          <p className="text-sm text-muted-foreground">
             Carga un archivo Excel con las proyecciones de flujo de caja semanal para proyectos de ventas
           </p>
         </div>
@@ -251,7 +251,7 @@ export default function AdminSalesFlujoPage() {
                 <p className="text-sm text-muted-foreground mb-1">
                   {isProcessing ? 'Procesando...' : 'Haz clic para seleccionar un archivo'}
                 </p>
-                <p className="text-xs text-subtle-foreground">
+                <p className="text-xs text-muted-foreground">
                   Archivos Excel (.xlsx, .xls)
                 </p>
               </label>
@@ -298,21 +298,21 @@ export default function AdminSalesFlujoPage() {
               {/* Summary Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-background p-4 rounded-lg">
-                  <p className="text-xs text-subtle-foreground mb-1">Archivo</p>
+                  <p className="text-xs text-muted-foreground mb-1">Archivo</p>
                   <p className="text-sm font-medium truncate" title={apiResponse.fileName}>
                     {apiResponse.fileName}
                   </p>
                 </div>
                 <div className="bg-background p-4 rounded-lg">
-                  <p className="text-xs text-subtle-foreground mb-1">Total Flujos</p>
+                  <p className="text-xs text-muted-foreground mb-1">Total Flujos</p>
                   <p className="text-2xl font-semibold">{apiResponse.summary.totalFlujos}</p>
                 </div>
                 <div className="bg-background p-4 rounded-lg">
-                  <p className="text-xs text-subtle-foreground mb-1">Períodos</p>
+                  <p className="text-xs text-muted-foreground mb-1">Períodos</p>
                   <p className="text-2xl font-semibold">{apiResponse.summary.totalPeriods}</p>
                 </div>
                 <div className="bg-background p-4 rounded-lg">
-                  <p className="text-xs text-subtle-foreground mb-1">Total Proyectado</p>
+                  <p className="text-xs text-muted-foreground mb-1">Total Proyectado</p>
                   <p className="text-lg font-semibold">
                     ${new Intl.NumberFormat('es-MX').format(Math.round(apiResponse.summary.grandTotal))}
                   </p>
@@ -334,7 +334,7 @@ export default function AdminSalesFlujoPage() {
                     <div key={idx} className="bg-background p-3 rounded-lg flex justify-between items-center">
                       <div>
                         <p className="text-sm font-medium">{flujo.label}</p>
-                        <p className="text-xs text-subtle-foreground">{flujo.periodCount} períodos</p>
+                        <p className="text-xs text-muted-foreground">{flujo.periodCount} períodos</p>
                       </div>
                       <p className="text-sm font-semibold">
                         ${new Intl.NumberFormat('es-MX').format(Math.round(flujo.total))}

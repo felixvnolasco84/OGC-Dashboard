@@ -297,7 +297,7 @@ export default function TransaccionesTablePage() {
                     <div className="mb-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
                             <h1 className="mb-2 break-words text-3xl font-normal text-foreground">Transacciones</h1>
-                            <p className="text-sm text-subtle-foreground">
+                            <p className="text-sm text-muted-foreground">
                                 Consulta y gestiona todas las transacciones registradas en el sistema
                             </p>
                         </div>
@@ -353,7 +353,7 @@ export default function TransaccionesTablePage() {
                             <SelectContent>
                                 {selectedProyecto && (
                                     <SelectItem value="clear">
-                                        <span className="text-subtle-foreground">Limpiar filtro</span>
+                                        <span className="text-muted-foreground">Limpiar filtro</span>
                                     </SelectItem>
                                 )}
                                 {proyectos?.map((proyecto) => (
@@ -473,13 +473,13 @@ export default function TransaccionesTablePage() {
                         <tbody>
                             {isLoadingFirstPage ? (
                                 <tr>
-                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-muted-foreground">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : filteredTransacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={tableColSpan} className="px-6 py-12 text-center text-muted-foreground">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -509,7 +509,7 @@ export default function TransaccionesTablePage() {
                                                     {transaccion.proveedor?.razon_social || "Sin proveedor"}
                                                 </span>
                                                 {transaccion.proveedor && (
-                                                    <span className="block text-xs text-subtle-foreground">
+                                                    <span className="block text-xs text-muted-foreground">
                                                         {transaccion.proveedor.is_archived
                                                             ? "Archivado"
                                                             : transaccion.proveedor.tipo === "generico"
@@ -539,7 +539,7 @@ export default function TransaccionesTablePage() {
                                         <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-foreground border-b border-r border-border">
                                             {formatCurrency(transaccion.monto_total)}
                                         </td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-subtle-foreground border-b border-r border-border">
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground border-b border-r border-border">
                                             {transaccion.fecha
                                                 ? new Date(transaccion.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
                                                     day: "2-digit",
@@ -618,7 +618,7 @@ export default function TransaccionesTablePage() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-8 w-8 text-subtle-foreground hover:text-foreground"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                                         aria-label={`Acciones para ${transaccion.factura || "la transacción"}`}
                                                     >
                                                         <MoreVertical className="h-4 w-4" />

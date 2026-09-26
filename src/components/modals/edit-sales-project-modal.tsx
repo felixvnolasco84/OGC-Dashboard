@@ -181,7 +181,7 @@ export default function EditSalesProjectModal() {
               step="0.01"
               className="rounded-none"
             />
-            <p className="text-xs text-subtle-foreground">Porcentaje de comisión sobre las ventas totales</p>
+            <p className="text-xs text-muted-foreground">Porcentaje de comisión sobre las ventas totales</p>
           </div>
 
           {/* Form Actions */}

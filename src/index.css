@@ -228,6 +228,18 @@
     --accent-foreground: var(--neutral-900);
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+    --status-success: 143 60% 30%;
+    --status-success-muted: 141 65% 93%;
+    --status-success-border: 141 40% 75%;
+    --status-warning: 30 75% 32%;
+    --status-warning-muted: 40 90% 93%;
+    --status-warning-border: 39 72% 76%;
+    --status-info: 215 70% 38%;
+    --status-info-muted: 213 90% 94%;
+    --status-info-border: 213 67% 77%;
+    --status-danger: 0 67% 40%;
+    --status-danger-muted: 0 90% 95%;
+    --status-danger-border: 0 67% 79%;
     --border: var(--neutral-300);
     --border-strong: var(--neutral-400);
     --input: var(--neutral-400);
@@ -274,6 +286,18 @@
     --accent-foreground: var(--neutral-50);
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
+    --status-success: 141 52% 66%;
+    --status-success-muted: 143 35% 17%;
+    --status-success-border: 143 35% 37%;
+    --status-warning: 40 78% 70%;
+    --status-warning-muted: 32 40% 18%;
+    --status-warning-border: 36 46% 39%;
+    --status-info: 211 85% 73%;
+    --status-info-muted: 214 38% 19%;
+    --status-info-border: 213 45% 41%;
+    --status-danger: 0 83% 73%;
+    --status-danger-muted: 0 40% 18%;
+    --status-danger-border: 0 48% 40%;
     --border: var(--neutral-800);
     --border-strong: var(--neutral-700);
     --input: var(--neutral-700);
@@ -312,16 +336,4 @@
     overflow: hidden;
   }
 
-  :where(button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"]) {
-    border-radius: 0 !important;
-  }
-
-  [data-square-modal],
-  [data-square-modal] *,
-  [data-square-modal]::before,
-  [data-square-modal]::after,
-  [data-square-modal] *::before,
-  [data-square-modal] *::after {
-    border-radius: 0 !important;
-  }
 }

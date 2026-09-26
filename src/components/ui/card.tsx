@@ -4,12 +4,14 @@ import { cn } from "@/lib/utils"
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "metric" | "flat" }
+>(({ className, variant = "default", ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
       "rounded-xl border bg-card text-card-foreground shadow",
+      variant === "metric" && "border-0 bg-transparent shadow-none",
+      variant === "flat" && "rounded-none border-0 shadow-none",
       className
     )}
     {...props}
@@ -43,11 +45,11 @@ CardTitle.displayName = "CardTitle"
 
 const CardDescription = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "prominent" }
+>(({ className, variant = "default", ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-muted-foreground", variant === "prominent" && "text-right text-base text-disabled-foreground", className)}
     {...props}
   />
 ))
@@ -55,9 +57,9 @@ CardDescription.displayName = "CardDescription"
 
 const CardContent = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "flush" | "spacious" }
+>(({ className, variant = "default", ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", variant === "flush" && "p-0 text-left", variant === "spacious" && "space-y-8", className)} {...props} />
 ))
 CardContent.displayName = "CardContent"
 

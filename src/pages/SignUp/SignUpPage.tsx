@@ -38,7 +38,7 @@ export default function SignUpPage() {
       </div>
 
       {/* Footer */}
-      <div className="mt-8 text-center text-sm text-subtle-foreground">
+      <div className="mt-8 text-center text-sm text-muted-foreground">
         <p>© 2024 OGC Dashboard. Todos los derechos reservados.</p>
       </div>
     </div>

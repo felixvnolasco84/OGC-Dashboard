@@ -86,8 +86,8 @@ test("galería desktop y modal de detalle no crean scroll exterior", async ({ pa
   await context.setOffline(true);
   await page.goto("/proyecto/layout-project/bitacora");
 
-  await expect(page.getByRole("heading", { name: "Bitácora Larena - Acceso" })).toBeVisible();
-  await page.locator('article > [role="button"]').click();
+  await expect(page.getByRole("heading", { name: "Larena - Acceso" })).toBeVisible();
+  await page.getByRole("button", { name: /Expandir reporte del/ }).first().click();
   await page.getByTitle("Abrir en la galería").first().click();
 
   const gallery = page.getByRole("dialog");
@@ -104,7 +104,7 @@ test("galería desktop y modal de detalle no crean scroll exterior", async ({ pa
   expect(gallerySize.scrollWidth).toBe(gallerySize.width);
   expect(gallerySize.scrollHeight).toBe(gallerySize.height);
   await gallery.getByRole("button", { name: "Cerrar galería" }).click();
-  await page.getByRole("button", { name: "Acciones del reporte", exact: true }).click();
+  await page.getByRole("button", { name: /Acciones del reporte del/ }).click();
   await page.getByRole("menuitem", { name: "Ver detalles" }).click();
   const details = page.getByRole("dialog");
   await expect(details.getByRole("heading", { name: "Detalle de Entrada" })).toBeVisible();

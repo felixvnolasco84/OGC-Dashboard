@@ -445,7 +445,7 @@ export default function DocumentosPage() {
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
               <div className="min-w-0">
-                <p className="mb-1 text-base text-subtle-foreground">Gestion documental</p>
+                <p className="mb-1 text-base text-muted-foreground">Gestion documental</p>
                 <h1 className="text-2xl font-normal text-foreground">Documentos</h1>
               </div>
 
@@ -453,7 +453,7 @@ export default function DocumentosPage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full rounded-none py-6 text-subtle-foreground"
+                  className="w-full rounded-none py-6 text-muted-foreground"
                   onClick={handleOrganizeDocuments}
                   disabled={isOrganizing}
                 >
@@ -467,7 +467,7 @@ export default function DocumentosPage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full rounded-none py-6 text-subtle-foreground"
+                  className="w-full rounded-none py-6 text-muted-foreground"
                   onClick={() => {
                     setDraftName("");
                     setFolderDialogParentId(undefined);
@@ -589,7 +589,7 @@ export default function DocumentosPage() {
           <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-12 lg:py-8">
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <div className="mb-2 flex items-center gap-2 text-sm text-subtle-foreground">
+                <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
                   <button
                     className="hover:text-foreground"
                     onClick={() => setCurrentFolderId(undefined)}
@@ -616,7 +616,7 @@ export default function DocumentosPage() {
               {(searchTerm || selectedProject !== ROOT_VALUE || selectedType !== ROOT_VALUE) && (
                 <Button
                   variant="ghost"
-                  className="rounded-none text-subtle-foreground"
+                  className="rounded-none text-muted-foreground"
                   onClick={() => {
                     setSearchTerm("");
                     setSelectedProject(ROOT_VALUE);
@@ -630,7 +630,7 @@ export default function DocumentosPage() {
             </div>
 
             {isLoading ? (
-              <div className="flex min-h-[360px] items-center justify-center text-subtle-foreground">
+              <div className="flex min-h-[360px] items-center justify-center text-muted-foreground">
                 Cargando documentos...
               </div>
             ) : visibleFolders.length === 0 && visibleDocuments.length === 0 ? (
@@ -844,11 +844,11 @@ function DocumentList({
         </colgroup>
         <thead className="hidden border-b border-border lg:table-header-group">
           <tr className="hover:bg-transparent">
-            <th className="h-12 px-4 text-left font-normal text-subtle-foreground lg:px-6">Nombre</th>
-            <th className="h-12 px-3 text-left font-normal text-subtle-foreground">Proyecto</th>
-            <th className="h-12 px-3 text-left font-normal text-subtle-foreground">Tipo</th>
-            <th className="h-12 px-3 text-left font-normal text-subtle-foreground">Modificado</th>
-            <th className="h-12 px-3 text-left font-normal text-subtle-foreground">Tamano</th>
+            <th className="h-12 px-4 text-left font-normal text-muted-foreground lg:px-6">Nombre</th>
+            <th className="h-12 px-3 text-left font-normal text-muted-foreground">Proyecto</th>
+            <th className="h-12 px-3 text-left font-normal text-muted-foreground">Tipo</th>
+            <th className="h-12 px-3 text-left font-normal text-muted-foreground">Modificado</th>
+            <th className="h-12 px-3 text-left font-normal text-muted-foreground">Tamano</th>
             <th className="h-12 px-2" />
           </tr>
         </thead>
@@ -871,19 +871,19 @@ function DocumentList({
                   </span>
                 </button>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-muted-foreground lg:table-cell lg:px-3 lg:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Proyecto
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">Biblioteca</span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-muted-foreground lg:table-cell lg:px-3 lg:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Tipo
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">Carpeta</span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-muted-foreground lg:table-cell lg:px-3 lg:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Modificado
                 </span>
@@ -891,7 +891,7 @@ function DocumentList({
                   {formatDate(folder.updated_at || folder.created_at)}
                 </span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-muted-foreground lg:table-cell lg:px-3 lg:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Tamano
                 </span>
@@ -936,13 +936,13 @@ function DocumentList({
                   {projectById.get(doc.proyecto || doc.sales_proyecto || "") || "--"}
                 </span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-muted-foreground lg:table-cell lg:px-3 lg:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Tipo
                 </span>
                 <span className="min-w-0 break-words text-right lg:text-left">{doc.type || "--"}</span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-muted-foreground lg:table-cell lg:px-3 lg:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Modificado
                 </span>
@@ -950,7 +950,7 @@ function DocumentList({
                   {formatDate(doc.uploaded_at || doc._creationTime)}
                 </span>
               </td>
-              <td className="flex items-start justify-between gap-4 py-2 text-subtle-foreground lg:table-cell lg:px-3 lg:py-4">
+              <td className="flex items-start justify-between gap-4 py-2 text-muted-foreground lg:table-cell lg:px-3 lg:py-4">
                 <span className="flex-none text-xs font-medium uppercase tracking-wide text-disabled-foreground lg:hidden">
                   Tamano
                 </span>
@@ -992,7 +992,7 @@ function PaginationControls({
   const pages = getPaginationPages(page, totalPages);
 
   return (
-    <div className="mt-5 flex flex-col gap-3 border border-border px-4 py-3 text-sm text-subtle-foreground md:flex-row md:items-center md:justify-between">
+    <div className="mt-5 flex flex-col gap-3 border border-border px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
       <span>
         Mostrando {firstItem}-{lastItem} de {total} documentos
       </span>
@@ -1078,7 +1078,7 @@ function DocumentGrid({
             />
           </div>
           <p className="truncate font-medium text-foreground">{folder.nombre}</p>
-          <p className="mt-1 text-xs text-subtle-foreground">{formatDate(folder.updated_at || folder.created_at)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{formatDate(folder.updated_at || folder.created_at)}</p>
         </button>
       ))}
 
@@ -1107,9 +1107,9 @@ function DocumentGrid({
             <Badge variant="outline" className="rounded-xl font-normal">
               {doc.type}
             </Badge>
-            <span className="text-xs text-subtle-foreground">{formatBytes(doc.size)}</span>
+            <span className="text-xs text-muted-foreground">{formatBytes(doc.size)}</span>
           </div>
-          <p className="mt-3 truncate text-xs text-subtle-foreground">
+          <p className="mt-3 truncate text-xs text-muted-foreground">
             {projectById.get(doc.proyecto || doc.sales_proyecto || "") || "Sin proyecto"}
           </p>
         </div>
@@ -1177,7 +1177,7 @@ function InlineActions({
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onRename(target)}>
-            <Edit3 className="h-4 w-4 text-subtle-foreground" />
+            <Edit3 className="h-4 w-4 text-muted-foreground" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Renombrar</TooltipContent>
@@ -1185,7 +1185,7 @@ function InlineActions({
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onMove(target)}>
-            <FolderInput className="h-4 w-4 text-subtle-foreground" />
+            <FolderInput className="h-4 w-4 text-muted-foreground" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Mover</TooltipContent>
@@ -1195,7 +1195,7 @@ function InlineActions({
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none">
-                <MoreVertical className="h-4 w-4 text-subtle-foreground" />
+                <MoreVertical className="h-4 w-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
@@ -1237,7 +1237,7 @@ function EmptyState({
       <h3 className="text-lg font-normal text-foreground">
         {hasFilters ? "No hay resultados" : "Esta ubicacion esta vacia"}
       </h3>
-      <p className="mt-2 max-w-md text-sm text-subtle-foreground">
+      <p className="mt-2 max-w-md text-sm text-muted-foreground">
         {hasFilters
           ? "Ajusta la busqueda o limpia los filtros para ver mas documentos."
           : "Crea carpetas para organizar contratos, facturas, comprobantes y soportes por flujo de trabajo."}
@@ -1324,7 +1324,7 @@ function getFileIcon(doc: DocumentItem, className = fileIconClass) {
     return <FileText className={cn(className, "text-red-600")} />;
   }
 
-  return <File className={cn(className, "text-subtle-foreground")} />;
+  return <File className={cn(className, "text-muted-foreground")} />;
 }
 
 function formatDate(timestamp?: number) {

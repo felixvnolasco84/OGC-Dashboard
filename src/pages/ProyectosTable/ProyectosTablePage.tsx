@@ -20,7 +20,7 @@ import { useEditProyectoModal } from "@/hooks/edit-proyecto-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useUploadTransactionsModal } from "@/hooks/upload-transactions-modal";
 import { useUploadProjectionsModal } from "@/hooks/upload-projections-modal";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -108,7 +108,7 @@ export default function ProyectosTablePage() {
           <div className="mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-normal text-foreground mb-2">Proyectos</h1>
-              <p className="text-sm text-subtle-foreground">
+              <p className="text-sm text-muted-foreground">
                 Gestiona y consulta todos tus proyectos de construcción
               </p>
             </div>
@@ -117,7 +117,7 @@ export default function ProyectosTablePage() {
                 onClick={() => addProyectoModal.onOpen()}
                 variant="outline"
                 size="lg"
-                className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
+                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
               >
                 Agregar Proyecto
                 <Plus className="h-6 w-6 rounded-full shadow-none" />
@@ -126,7 +126,7 @@ export default function ProyectosTablePage() {
                 onClick={() => uploadTransactionsModal.onOpen()}
                 variant="outline"
                 size="lg"
-                className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
+                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
               >
                 Subir Transacciones
                 <Upload className="h-6 w-6 rounded-full shadow-none" />
@@ -218,13 +218,13 @@ export default function ProyectosTablePage() {
             <tbody className="divide-y divide-border">
               {!projects ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                     Cargando proyectos...
                   </td>
                 </tr>
               ) : filteredProjects && filteredProjects.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                  <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                     No se encontraron proyectos
                   </td>
                 </tr>
@@ -278,29 +278,25 @@ export default function ProyectosTablePage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 border-r border-border">
-                      <Popover>
-                        <PopoverTrigger asChild>
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <MoreVertical className="h-4 w-4 text-disabled-foreground" />
                           </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-48 space-y-2">
-                          <Button onClick={() => editProyectoModal.onOpen(project._id)} variant="outline" className="w-full text-xs">
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-48">
+                          <DropdownMenuItem onSelect={() => editProyectoModal.onOpen(project._id)}>
                             Editar
-                          </Button>
-                          <Button
-                            onClick={() => uploadProjectionsModal.onOpen(project._id)}
-                            variant="outline"
-                            className="w-full text-xs flex items-center gap-2"
-                          >
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => uploadProjectionsModal.onOpen(project._id)}>
                             <Upload className="h-3 w-3" />
                             Subir Proyecciones
-                          </Button>
-                          <Button onClick={() => openDeleteDialog(project._id)} variant="outline" className="w-full text-xs">
+                          </DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onSelect={() => openDeleteDialog(project._id)}>
                             Eliminar
-                          </Button>
-                        </PopoverContent>
-                      </Popover>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))

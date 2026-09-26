@@ -86,21 +86,21 @@ export default function TransactionConceptosModal() {
 
         {!transaction ? (
           <div className="flex min-h-64 items-center justify-center" aria-label="Cargando conceptos">
-            <Loader2 className="h-5 w-5 animate-spin text-subtle-foreground" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <div className="max-h-[calc(90vh-81px)] overflow-y-auto">
             <section className="grid grid-cols-3 divide-x divide-border border-b border-border bg-muted/40">
               <div className="px-6 py-4">
-                <p className="text-xs text-subtle-foreground">Conceptos</p>
+                <p className="text-xs text-muted-foreground">Conceptos</p>
                 <p className="mt-1 text-lg font-medium tabular-nums">{transaction.lineItems?.length || 0}</p>
               </div>
               <div className="px-6 py-4">
-                <p className="text-xs text-subtle-foreground">Monto total</p>
+                <p className="text-xs text-muted-foreground">Monto total</p>
                 <p className="mt-1 text-lg font-medium tabular-nums">{formatCurrency(transaction.monto_total)}</p>
               </div>
               <div className="px-6 py-4">
-                <p className="text-xs text-subtle-foreground">Fecha</p>
+                <p className="text-xs text-muted-foreground">Fecha</p>
                 <p className="mt-1 text-sm font-medium">{formatDate(transaction.fecha)}</p>
               </div>
             </section>
@@ -109,7 +109,7 @@ export default function TransactionConceptosModal() {
               <div className="flex min-h-64 flex-col items-center justify-center px-6 text-center">
                 <ListChecks className="h-7 w-7 text-disabled-foreground" />
                 <p className="mt-3 text-sm font-medium text-foreground">Sin conceptos</p>
-                <p className="mt-1 max-w-sm text-sm text-subtle-foreground">
+                <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                   Esta transacción todavía no tiene conceptos registrados.
                 </p>
               </div>
@@ -119,17 +119,17 @@ export default function TransactionConceptosModal() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
-                        <TableHead className="h-10 w-12 px-3 text-xs font-medium text-subtle-foreground">#</TableHead>
-                        <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Partida</TableHead>
-                        <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Familia</TableHead>
-                        <TableHead className="h-10 px-3 text-xs font-medium text-subtle-foreground">Subpartida</TableHead>
-                        <TableHead className="h-10 px-3 text-right text-xs font-medium text-subtle-foreground">Monto</TableHead>
+                        <TableHead className="h-10 w-12 px-3 text-xs font-medium text-muted-foreground">#</TableHead>
+                        <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Partida</TableHead>
+                        <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Familia</TableHead>
+                        <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Subpartida</TableHead>
+                        <TableHead className="h-10 px-3 text-right text-xs font-medium text-muted-foreground">Monto</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {transaction.lineItems.map((item, index: number) => (
                         <TableRow key={item._id} className="border-b border-border hover:bg-muted/30">
-                          <TableCell className="px-3 py-3 text-xs tabular-nums text-subtle-foreground">
+                          <TableCell className="px-3 py-3 text-xs tabular-nums text-muted-foreground">
                             {index + 1}
                           </TableCell>
                           <TableCell className="max-w-64 px-3 py-3 text-sm font-medium text-foreground">
@@ -149,7 +149,7 @@ export default function TransactionConceptosModal() {
                     </TableBody>
                     <TableFooter>
                       <TableRow className="border-t border-border bg-card hover:bg-card">
-                        <TableCell colSpan={4} className="px-3 py-3 text-right text-xs font-medium text-subtle-foreground">
+                        <TableCell colSpan={4} className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
                           Total de conceptos
                         </TableCell>
                         <TableCell className="whitespace-nowrap px-3 py-3 text-right text-sm font-medium tabular-nums">

@@ -128,7 +128,7 @@ const AnswerView = memo(function AnswerView({
           <div className="grid grid-cols-2 gap-2">
             {answer.metrics.map((metric, index) => (
               <div key={`${metric.label}-${index}`} className="rounded-xl border border-border bg-background p-3">
-                <p className="text-xs text-subtle-foreground">{metric.label}<EvidenceCitations ids={metric.evidence_ids} evidence={evidence} /></p>
+                <p className="text-xs text-muted-foreground">{metric.label}<EvidenceCitations ids={metric.evidence_ids} evidence={evidence} /></p>
                 <p className="mt-1 text-sm font-semibold text-foreground">{metric.value}</p>
               </div>
             ))}
@@ -189,7 +189,7 @@ const AnswerView = memo(function AnswerView({
       )}
 
       {answer.limitations.length > 0 && (
-        <div className="rounded-xl bg-background p-3 text-xs leading-5 text-subtle-foreground">
+        <div className="rounded-xl bg-background p-3 text-xs leading-5 text-muted-foreground">
           {answer.limitations.map((limitation, index) => <p key={`${limitation}-${index}`}>{limitation}</p>)}
         </div>
       )}
@@ -355,7 +355,7 @@ export default function ProjectAssistantPanel({
                 <Plus className="h-4 w-4" />
               </Button>
               {activeConversationId && !showHistory && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-subtle-foreground" onClick={archiveCurrent} aria-label="Archivar conversación">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={archiveCurrent} aria-label="Archivar conversación">
                   <Archive className="h-4 w-4" />
                 </Button>
               )}
@@ -371,7 +371,7 @@ export default function ProjectAssistantPanel({
             {conversations === undefined ? (
               <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-disabled-foreground" /></div>
             ) : conversations.length === 0 ? (
-              <p className="py-12 text-center text-sm text-subtle-foreground">Todavía no tienes conversaciones.</p>
+              <p className="py-12 text-center text-sm text-muted-foreground">Todavía no tienes conversaciones.</p>
             ) : (
               <div className="space-y-2">
                 {conversations.map((conversation) => (
@@ -405,7 +405,7 @@ export default function ProjectAssistantPanel({
                       <Bot className="h-6 w-6" />
                     </span>
                     <h3 className="text-lg font-medium text-foreground">¿Qué quieres revisar?</h3>
-                    <p className="mt-2 text-sm leading-6 text-subtle-foreground">Puedo sintetizar el estado, comparar hasta tres proyectos y localizar pendientes respaldados por datos.</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">Puedo sintetizar el estado, comparar hasta tres proyectos y localizar pendientes respaldados por datos.</p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {STARTER_PROMPTS.map((prompt) => (
@@ -429,7 +429,7 @@ export default function ProjectAssistantPanel({
                       ) : (
                         <div className="w-full rounded-2xl rounded-bl-md border border-border bg-card p-4 shadow-sm">
                           {message.status === "pending" ? (
-                            <div className="flex items-center gap-3 py-2 text-sm text-subtle-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Consultando datos del proyecto...</div>
+                            <div className="flex items-center gap-3 py-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Consultando datos del proyecto...</div>
                           ) : message.status === "failed" ? (
                             <div className="space-y-3">
                               <p className="text-sm text-red-700">{message.error || "No fue posible generar la respuesta."}</p>
@@ -466,7 +466,7 @@ export default function ProjectAssistantPanel({
                             </Button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-3 py-2 text-sm text-subtle-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Consultando datos del proyecto...</div>
+                          <div className="flex items-center gap-3 py-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Consultando datos del proyecto...</div>
                         )}
                       </div>
                     </>

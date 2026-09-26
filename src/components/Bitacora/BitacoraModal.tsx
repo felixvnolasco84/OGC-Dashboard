@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useBitacoraModal } from "../../hooks/use-bitacora-modal";
 import { useBitacoraRepository } from "@/lib/bitacora-offline/context";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -29,10 +30,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 
 interface ManagedPhoto {
   id: string;
@@ -75,15 +75,15 @@ function today() {
 
 function ExistingPhotoPreview({ photo, online, onDownload }: { photo: ManagedPhoto; online: boolean; onDownload: () => void }) {
   if (photo.url && (online || photo.availableOffline)) {
-    return <img src={photo.url} alt={photo.description || photo.name} className="h-24 w-24 rounded-md border border-border object-cover md:h-36 md:w-36" />;
+    return <img src={photo.url} alt={photo.description || photo.name} className="h-24 w-24 border border-border object-cover md:h-36 md:w-36" />;
   }
   return (
-    <div className="relative h-24 w-24 overflow-hidden rounded-md border border-border bg-muted md:h-36 md:w-36">
+    <div className="relative h-24 w-24 overflow-hidden border border-border bg-muted md:h-36 md:w-36">
       {photo.thumbnailUrl ? <img src={photo.thumbnailUrl} alt="Vista previa borrosa" className="h-full w-full scale-110 object-cover blur-sm" /> : <div className="flex h-full items-center justify-center"><ImageOff className="h-5 w-5 text-muted-foreground" /></div>}
-      <button type="button" onClick={onDownload} className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/25 text-[10px] font-medium text-white hover:bg-black/40">
+      <div className="absolute inset-0"><Button type="button" onClick={onDownload} variant="mediaDownload" size="overlayFill">
         {photo.downloadRequested || online ? <Download className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
         {photo.downloadRequested ? "En espera" : online ? "Descargar" : "Al reconectar"}
-      </button>
+      </Button></div>
     </div>
   );
 }
@@ -339,22 +339,22 @@ export default function BitacoraModal() {
       <DialogContent
         data-bitacora-surface="true"
         translate="no"
-        className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-6xl flex-col gap-0 overflow-hidden rounded-lg border-0 bg-card p-0 shadow-xl sm:rounded-lg [&>button]:hidden"
+        variant="bitacora"
       >
         <header className="flex shrink-0 items-center justify-between border-b border-border px-5 py-5 md:px-9 md:py-8">
           <div>
-            <DialogTitle className="text-2xl font-bold text-foreground md:text-3xl">{modalTitle}</DialogTitle>
-            <DialogDescription className="mt-1 text-sm text-subtle-foreground md:mt-2 md:text-lg">{modal.mode === "view" ? "Visualización de registro" : "Registro diario de avance"}</DialogDescription>
+            <DialogTitle variant="bitacora">{modalTitle}</DialogTitle>
+            <DialogDescription variant="bitacora">{modal.mode === "view" ? "Visualización de registro" : "Registro diario de avance"}</DialogDescription>
           </div>
-          <button type="button" onClick={close} className="p-2 text-subtle-foreground hover:bg-muted" aria-label="Cerrar modal"><X className="h-5 w-5" /></button>
+          <Button type="button" size="sm" variant="ghost" onClick={close} aria-label="Cerrar modal"><X /></Button>
         </header>
 
         <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-5 text-left md:p-9">
-            {!repository.isOnline && <div className="flex items-center gap-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"><WifiOff className="h-4 w-4" />Los cambios y archivos se guardarán en este dispositivo.</div>}
+            {!repository.isOnline && <div className="flex items-center gap-2 border border-border-strong bg-subtle px-3 py-2 text-xs text-muted-foreground"><WifiOff className="h-4 w-4" />Los cambios y archivos se guardarán en este dispositivo.</div>}
 
             <div className="space-y-2">
-              <Label>Categoría <span className="text-red-500">*</span></Label>
+              <Label>Categoría <span className="text-destructive">*</span></Label>
               <Select value={categoria} onValueChange={setCategoria} disabled={readOnly}>
                 <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                 <SelectContent>{categoryOptions.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent>
@@ -362,7 +362,7 @@ export default function BitacoraModal() {
             </div>
 
             <div className="space-y-2">
-              <Label>Partida (Nivel 1) <span className="text-red-500">*</span></Label>
+              <Label>Partida (Nivel 1) <span className="text-destructive">*</span></Label>
               {modal.mode === "view" ? <Input value={levelOne.find((item) => item.id === partidaId)?.name || existing?.departamento || "N/A"} disabled /> : (
                 <Select value={partidaId} onValueChange={(value) => { setPartidaId(value); setFamilias([]); }} disabled={readOnly}>
                   <SelectTrigger id="bitacora-partida"><SelectValue placeholder="Selecciona una partida" /></SelectTrigger>
@@ -374,8 +374,8 @@ export default function BitacoraModal() {
             {partidaId && (readOnly ? familias.length > 0 : familyOptions.length > 0) && (
               <div className="space-y-2">
                 <Label>Familias (Tags)</Label>
-                {readOnly ? <div className="flex flex-wrap gap-2">{familias.map((tag) => <span key={tag} className="rounded-full border border-border px-3 py-1 text-xs font-medium">{tag}</span>)}</div> : (
-                  <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-border-strong p-3">
+                {readOnly ? <div className="flex flex-wrap gap-2">{familias.map((tag) => <Badge key={tag} variant="neutral">{tag}</Badge>)}</div> : (
+                  <div className="max-h-40 space-y-2 overflow-y-auto border border-border-strong p-3">
                     {familyOptions.map((family) => <label key={family} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={familias.includes(family)} onCheckedChange={() => setFamilias((current) => current.includes(family) ? current.filter((item) => item !== family) : [...current, family])} />{family}</label>)}
                   </div>
                 )}
@@ -384,16 +384,18 @@ export default function BitacoraModal() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Fecha <span className="text-red-500">*</span></Label>
+                <Label>Fecha <span className="text-destructive">*</span></Label>
                 {modal.mode === "view" ? <Input value={fecha} disabled /> : (
-                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                    <PopoverTrigger asChild><Button type="button" variant="outline" className={cn("w-full justify-start text-left font-normal", !fecha && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{fecha || "Selecciona una fecha"}</Button></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={parseDate(fecha)} onSelect={(value) => { if (value) { setFecha(formatDate(value)); setCalendarOpen(false); } }} locale={es} initialFocus /></PopoverContent>
-                  </Popover>
+                  <div className="grid">
+                    <DropdownMenu modal={false} open={calendarOpen} onOpenChange={setCalendarOpen}>
+                      <DropdownMenuTrigger asChild><Button type="button" size="sm" variant="outline"><CalendarIcon />{fecha || "Selecciona una fecha"}</Button></DropdownMenuTrigger>
+                      <DropdownMenuContent variant="calendar" align="start"><Calendar mode="single" selected={parseDate(fecha)} onSelect={(value) => { if (value) { setFecha(formatDate(value)); setCalendarOpen(false); } }} locale={es} initialFocus /></DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Responsable <span className="text-red-500">*</span></Label>
+                <Label>Responsable <span className="text-destructive">*</span></Label>
                 {repository.canEdit && modal.mode === "edit" && responsibleOptions.length > 0 ? (
                   <Select value={responsable} onValueChange={setResponsable}><SelectTrigger><SelectValue placeholder="Selecciona un responsable" /></SelectTrigger><SelectContent>{responsibleOptions.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>
                 ) : <Input value={responsable} onChange={(event) => setResponsable(event.target.value)} disabled={modal.mode === "view" || modal.mode === "edit"} />}
@@ -401,46 +403,46 @@ export default function BitacoraModal() {
             </div>
 
             <div className="space-y-2">
-              <Label>Estado <span className="text-red-500">*</span></Label>
+              <Label>Estado <span className="text-destructive">*</span></Label>
               <Select value={status} onValueChange={setStatus} disabled={readOnly}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from(new Set(["Sin problemas", "Con retrasos", "Problemas críticos", status].filter(Boolean))).map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select>
             </div>
 
-            {(status !== "Sin problemas" || comentarios) && <div className="space-y-2"><Label>Retos / Incidencias</Label><Textarea value={comentarios} onChange={(event) => setComentarios(event.target.value)} disabled={readOnly} rows={3} className="resize-none" placeholder="Describe los retos o incidencias del día…" /></div>}
+            {(status !== "Sin problemas" || comentarios) && <div className="space-y-2"><Label>Retos / Incidencias</Label><Textarea value={comentarios} onChange={(event) => setComentarios(event.target.value)} disabled={readOnly} rows={3} variant="plain" placeholder="Describe los retos o incidencias del día…" /></div>}
 
             <div className="space-y-2">
-              <Label>Avance del día <span className="text-red-500">*</span></Label>
-              <Textarea id="bitacora-avance" value={avance} onChange={(event) => setAvance(event.target.value)} disabled={readOnly} rows={8} className="resize-none font-mono text-sm" placeholder={"TORRE I\nINSTALACIÓN DE ACCESORIOS 80%"} />
-              <p className="text-xs text-subtle-foreground">Describe el avance detallado del día. Puedes usar líneas separadas para cada actividad.</p>
+              <Label>Avance del día <span className="text-destructive">*</span></Label>
+              <Textarea id="bitacora-avance" value={avance} onChange={(event) => setAvance(event.target.value)} disabled={readOnly} rows={8} variant="code" placeholder={"TORRE I\nINSTALACIÓN DE ACCESORIOS 80%"} />
+              <p className="text-xs text-muted-foreground">Describe el avance detallado del día. Puedes usar líneas separadas para cada actividad.</p>
             </div>
 
             <section className="space-y-3">
-              <Label className="block text-sm font-medium">Fotografías {photos.length > 0 && `(${photos.length})`}</Label>
+              <Label variant="section">Fotografías {photos.length > 0 && `(${photos.length})`}</Label>
               {modal.mode === "view" && galleryPhotos.length > 0 && currentPhoto && (
                 <div className="space-y-3">
-                  <div ref={imageContainerRef} className={`relative flex h-[min(42vh,24rem)] items-center justify-center overflow-hidden rounded-lg bg-muted ${isFullscreen ? "h-screen bg-inverse" : ""}`}>
+                  <div ref={imageContainerRef} className={`relative flex h-[min(42vh,24rem)] items-center justify-center overflow-hidden bg-muted ${isFullscreen ? "h-screen bg-overlay" : ""}`}>
                     {currentPhoto.url ? <img src={currentPhoto.url} alt={currentPhoto.description || currentPhoto.name} className="h-full w-full object-contain" /> : <ImageOff className="h-8 w-8 text-muted-foreground" />}
-                    <button type="button" onClick={() => void toggleFullscreen()} className="absolute right-3 top-3 bg-overlay/50 p-2 text-on-color hover:bg-overlay/70" aria-label={isFullscreen ? "Salir de pantalla completa" : "Ver en pantalla completa"}>{isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</button>
-                    {galleryPhotos.length > 1 && <><button type="button" onClick={() => setGalleryIndex((value) => (value - 1 + galleryPhotos.length) % galleryPhotos.length)} className="absolute left-3 top-1/2 -translate-y-1/2 bg-overlay/45 p-3 text-on-color" aria-label="Foto anterior"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={() => setGalleryIndex((value) => (value + 1) % galleryPhotos.length)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-overlay/45 p-3 text-on-color" aria-label="Foto siguiente"><ChevronRight className="h-5 w-5" /></button></>}
-                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-overlay/60 px-3 py-1 text-xs text-on-color">{galleryIndex + 1} / {galleryPhotos.length}</span>
+                    <span className="absolute right-3 top-3"><Button type="button" onClick={() => void toggleFullscreen()} variant="overlay" size="iconSm" aria-label={isFullscreen ? "Salir de pantalla completa" : "Ver en pantalla completa"}>{isFullscreen ? <Minimize2 /> : <Maximize2 />}</Button></span>
+                    {galleryPhotos.length > 1 && <><span className="absolute left-3 top-1/2 -translate-y-1/2"><Button type="button" onClick={() => setGalleryIndex((value) => (value - 1 + galleryPhotos.length) % galleryPhotos.length)} variant="overlay" size="iconLg" aria-label="Foto anterior"><ChevronLeft /></Button></span><span className="absolute right-3 top-1/2 -translate-y-1/2"><Button type="button" onClick={() => setGalleryIndex((value) => (value + 1) % galleryPhotos.length)} variant="overlay" size="iconLg" aria-label="Foto siguiente"><ChevronRight /></Button></span></>}
+                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-overlay/60 px-3 py-1 text-xs text-on-color">{galleryIndex + 1} / {galleryPhotos.length}</span>
                   </div>
                   <p className="whitespace-pre-wrap text-sm text-muted-foreground">{currentPhoto.description}</p>
-                  {galleryPhotos.length > 1 && <div className="flex gap-2 overflow-x-auto overflow-y-hidden pb-2">{galleryPhotos.map((photo, index) => { const source = photo.url; return <button key={photo.id} type="button" onClick={() => setGalleryIndex(index)} className={`h-20 w-24 shrink-0 overflow-hidden border-2 ${index === galleryIndex ? "border-foreground" : "border-transparent"}`}>{source ? <img src={source} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center bg-muted"><ImageOff className="h-5 w-5" /></span>}</button>; })}</div>}
+                  {galleryPhotos.length > 1 && <div className="flex gap-2 overflow-x-auto overflow-y-hidden pb-2">{galleryPhotos.map((photo, index) => { const source = photo.url; return <Button key={photo.id} type="button" onClick={() => setGalleryIndex(index)} variant={index === galleryIndex ? "mediaSelectedLight" : "mediaUnselectedLight"} size="filmstripShort" aria-label={`Ver fotografía ${index + 1}`}>{source ? <img src={source} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center bg-muted"><ImageOff className="h-5 w-5" /></span>}</Button>; })}</div>}
                 </div>
               )}
               {modal.mode === "view" && galleryPhotos.length === 0 && <p className="text-sm text-muted-foreground">{repository.isOnline ? "Sin fotografías disponibles." : "Sin fotografías disponibles en este dispositivo."}</p>}
 
               {!readOnly && (
                 <div className="space-y-4">
-                  <button type="button" onClick={() => photoInputRef.current?.click()} className="w-full rounded-lg border-2 border-dashed border-border-strong px-6 py-8 text-center hover:bg-muted/30"><Upload className="mx-auto mb-2 h-7 w-7 text-disabled-foreground" /><span className="block text-sm text-muted-foreground md:text-base">Haz clic para agregar fotos</span><span className="mt-1 block text-xs text-subtle-foreground md:text-sm">PNG, JPG, JPEG hasta 10MB</span></button>
+                  <Button type="button" onClick={() => photoInputRef.current?.click()} variant="dropzone" size="dropzonePhoto"><Upload className="h-7 w-7 text-disabled-foreground" /><span className="block text-sm text-muted-foreground md:text-base">Haz clic para agregar fotos</span><span className="block text-xs text-muted-foreground md:text-sm">PNG, JPG, JPEG hasta 10MB</span></Button>
                   <input ref={photoInputRef} type="file" multiple accept="image/jpeg,image/png" className="hidden" onChange={(event) => addPhotos(event.target.files)} />
                   {photos.map((photo, index) => (
-                    <div key={photo.id} className="rounded-lg border border-border p-4">
+                    <div key={photo.id} className="border border-border p-4">
                       <div className="flex flex-col gap-4 sm:flex-row">
-                        <div className="shrink-0">{photo.type === "new" && photo.url ? <img src={photo.url} alt="" className="h-24 w-24 rounded-md border border-border object-cover md:h-36 md:w-36" /> : <ExistingPhotoPreview photo={photo} online={repository.isOnline} onDownload={() => void downloadAttachment(photo)} />}</div>
+                        <div className="shrink-0">{photo.type === "new" && photo.url ? <img src={photo.url} alt="" className="h-24 w-24 border border-border object-cover md:h-36 md:w-36" /> : <ExistingPhotoPreview photo={photo} online={repository.isOnline} onDownload={() => void downloadAttachment(photo)} />}</div>
                         <div className="min-w-0 flex-1 space-y-2">
-                          <div className="flex items-center justify-between gap-3"><Label>Descripción de foto {index + 1} <span className="text-red-500">*</span></Label><button type="button" onClick={() => removePhoto(photo)} className="p-1.5 text-red-500 hover:bg-red-50" aria-label="Eliminar fotografía"><Trash2 className="h-4 w-4" /></button></div>
-                          <Textarea value={photo.description} onChange={(event) => setPhotos((current) => current.map((item) => item.id === photo.id ? { ...item, description: event.target.value } : item))} rows={4} className={cn("resize-none text-sm", !photo.description.trim() && "border-red-300")} placeholder="Describe qué muestra esta fotografía…" />
-                          {!photo.description.trim() && <p className="text-xs text-red-500">La descripción es requerida.</p>}
+                          <div className="flex items-center justify-between gap-3"><Label>Descripción de foto {index + 1} <span className="text-destructive">*</span></Label><Button type="button" size="sm" variant="destructive" onClick={() => removePhoto(photo)} aria-label="Eliminar fotografía"><Trash2 /></Button></div>
+                          <Textarea value={photo.description} onChange={(event) => setPhotos((current) => current.map((item) => item.id === photo.id ? { ...item, description: event.target.value } : item))} rows={4} variant={photo.description.trim() ? "description" : "descriptionError"} placeholder="Describe qué muestra esta fotografía…" />
+                          {!photo.description.trim() && <p className="text-xs text-destructive">La descripción es requerida.</p>}
                         </div>
                       </div>
                     </div>
@@ -450,24 +452,24 @@ export default function BitacoraModal() {
             </section>
 
             <section className="space-y-3">
-              <Label className="block text-sm font-medium">Documentos {documents.length > 0 && `(${documents.length})`}</Label>
+              <Label variant="section">Documentos {documents.length > 0 && `(${documents.length})`}</Label>
               {modal.mode === "view" && documents.map((document) => {
                 const canOpen = document.availableOffline || repository.isOnline;
-                return <div key={document.id} className="flex items-center gap-2 border border-border p-3 text-sm"><FileText className="h-5 w-5 shrink-0 text-subtle-foreground" />{canOpen && document.url ? <a href={document.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate hover:underline">{document.name}</a> : <span className="min-w-0 flex-1 truncate text-muted-foreground">{document.name}</span>}{!document.availableOffline && <Button type="button" size="icon" variant="ghost" onClick={() => void downloadAttachment(document)} aria-label="Guardar documento offline"><Download className="h-4 w-4" /></Button>}</div>;
+                return <div key={document.id} className="flex items-center gap-2 border border-border p-3 text-sm"><FileText className="h-5 w-5 shrink-0 text-muted-foreground" />{canOpen && document.url ? <a href={document.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate hover:underline">{document.name}</a> : <span className="min-w-0 flex-1 truncate text-muted-foreground">{document.name}</span>}{!document.availableOffline && <Button type="button" size="sm" variant="ghost" onClick={() => void downloadAttachment(document)} aria-label="Guardar documento offline"><Download /></Button>}</div>;
               })}
               {modal.mode === "view" && documents.length === 0 && <p className="text-sm text-muted-foreground">Sin documentos.</p>}
               {!readOnly && (
                 <div className="space-y-3">
-                  <button type="button" onClick={() => documentInputRef.current?.click()} className="w-full rounded-lg border-2 border-dashed border-border-strong p-6 text-center hover:bg-muted/30"><FileText className="mx-auto mb-2 h-6 w-6 text-disabled-foreground" /><span className="block text-sm text-muted-foreground">Haz clic para agregar documentos</span><span className="mt-1 block text-xs text-subtle-foreground">PDF, DOC, DOCX, XLS, XLSX hasta 10MB</span></button>
+                  <Button type="button" onClick={() => documentInputRef.current?.click()} variant="dropzone" size="dropzoneDocument"><FileText className="h-6 w-6 text-disabled-foreground" /><span className="block text-sm text-muted-foreground">Haz clic para agregar documentos</span><span className="block text-xs text-muted-foreground">PDF, DOC, DOCX, XLS, XLSX hasta 10MB</span></Button>
                   <input ref={documentInputRef} type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx" className="hidden" onChange={(event) => addDocuments(event.target.files)} />
-                  {documents.map((document) => <div key={document.id} className="flex items-center gap-3 rounded-lg border border-border p-3"><FileText className="h-5 w-5 shrink-0 text-subtle-foreground" /><span className="min-w-0 flex-1 truncate text-sm">{document.name}</span>{document.type === "new" && <span className="bg-green-50 px-2 py-1 text-[10px] text-green-700">Nuevo</span>}<button type="button" onClick={() => removeDocument(document)} className="p-1.5 text-red-500 hover:bg-red-50" aria-label="Eliminar documento"><Trash2 className="h-4 w-4" /></button></div>)}
+                  {documents.map((document) => <div key={document.id} className="flex items-center gap-3 border border-border p-3"><FileText className="h-5 w-5 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate text-sm">{document.name}</span>{document.type === "new" && <Badge variant="success">Nuevo</Badge>}<Button type="button" size="sm" variant="destructive" onClick={() => removeDocument(document)} aria-label="Eliminar documento"><Trash2 /></Button></div>)}
                 </div>
               )}
             </section>
           </div>
 
           <footer className="flex shrink-0 items-center justify-end gap-3 border-t border-border bg-background p-4 md:px-6">
-            {modal.mode === "view" ? <Button type="button" onClick={close}>Cerrar</Button> : <><Button type="button" variant="outline" onClick={close} disabled={submitting}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{modal.mode === "create" ? "Crear Entrada" : "Guardar Cambios"}</Button></>}
+            {modal.mode === "view" ? <Button type="button" size="sm" variant="default" onClick={close}>Cerrar</Button> : <><Button type="button" size="sm" variant="outline" onClick={close} disabled={submitting}>Cancelar</Button><Button type="submit" size="sm" variant="default" disabled={submitting}>{submitting && <Loader2 className="animate-spin" />}{modal.mode === "create" ? "Crear Entrada" : "Guardar Cambios"}</Button></>}
           </footer>
         </form>
       </DialogContent>

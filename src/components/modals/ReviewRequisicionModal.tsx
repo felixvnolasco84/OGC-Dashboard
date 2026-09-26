@@ -180,7 +180,7 @@ export default function ReviewRequisicionModal() {
                 >
                   {requisicion.tipo}
                 </span>
-                <span className="text-sm text-subtle-foreground">
+                <span className="text-sm text-muted-foreground">
                   Solicitado por <span className="font-medium">{requisicion.solicitante_nombre}</span>
                 </span>
                 <span className="text-sm text-disabled-foreground">{requisicion.fecha_solicitud}</span>
@@ -188,7 +188,7 @@ export default function ReviewRequisicionModal() {
             )}
           </div>
           <button onClick={close} className="p-2 hover:bg-muted transition-colors">
-            <X className="w-5 h-5 text-subtle-foreground" />
+            <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
@@ -203,7 +203,7 @@ export default function ReviewRequisicionModal() {
               {/* Summary bar */}
               <div className="flex items-center justify-between p-3 bg-background border border-border">
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="text-subtle-foreground">
+                  <span className="text-muted-foreground">
                     {totalCount} item{totalCount !== 1 ? "s" : ""}
                   </span>
                   <span className="text-green-600 font-medium">
@@ -278,7 +278,7 @@ export default function ReviewRequisicionModal() {
                           <div className="text-left">
                             <p className="text-sm font-medium text-foreground">{decision.familia}</p>
                             {decision.sub_partida && (
-                              <p className="text-xs text-subtle-foreground">{decision.sub_partida}</p>
+                              <p className="text-xs text-muted-foreground">{decision.sub_partida}</p>
                             )}
                           </div>
                           <span
@@ -295,7 +295,7 @@ export default function ReviewRequisicionModal() {
 
                         {/* Quantities */}
                         <div className="mt-2 flex items-center gap-4 text-sm">
-                          <div className="text-subtle-foreground">
+                          <div className="text-muted-foreground">
                             Solicitado:{" "}
                             <span className="font-medium text-foreground">
                               {decision.cantidad_original} {decision.unidad}
@@ -303,7 +303,7 @@ export default function ReviewRequisicionModal() {
                           </div>
                           {decision.status_revision === "aprobado" && (
                             <div className="flex items-center gap-2">
-                              <span className="text-subtle-foreground">Aprobado:</span>
+                              <span className="text-muted-foreground">Aprobado:</span>
                               <input
                                 type="number"
                                 min={1}
@@ -316,7 +316,7 @@ export default function ReviewRequisicionModal() {
                                     : "border-border-strong text-foreground"
                                 )}
                               />
-                              <span className="text-subtle-foreground text-xs">{decision.unidad}</span>
+                              <span className="text-muted-foreground text-xs">{decision.unidad}</span>
                               {decision.cantidad_aprobada !== decision.cantidad_original && (
                                 <span className="text-yellow-600 text-xs font-medium">
                                   (modificado)

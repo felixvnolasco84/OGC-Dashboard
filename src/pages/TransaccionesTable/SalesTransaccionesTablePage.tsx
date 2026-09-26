@@ -28,8 +28,8 @@ import { useSaleTransactionDetailsModal } from "@/hooks/sale-transaction-details
 // import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
-import { Popover } from "@radix-ui/react-popover";
-import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function SalesTransaccionesTablePage() {
     const [searchTerm, setSearchTerm] = useState("");
@@ -143,7 +143,7 @@ export default function SalesTransaccionesTablePage() {
                     <div className="mb-8 flex items-start justify-between">
                         <div>
                             <h1 className="text-3xl font-normal text-foreground mb-2">Transacciones</h1>
-                            <p className="text-sm text-subtle-foreground">
+                            <p className="text-sm text-muted-foreground">
                                 Consulta y gestiona todas las transacciones registradas en el sistema
                             </p>
                         </div>
@@ -193,7 +193,7 @@ export default function SalesTransaccionesTablePage() {
                             <SelectContent>
                                 {selectedProyecto && (
                                     <SelectItem value="clear">
-                                        <span className="text-subtle-foreground">Limpiar filtro</span>
+                                        <span className="text-muted-foreground">Limpiar filtro</span>
                                     </SelectItem>
                                 )}
                                 {proyectos?.map((proyecto) => (
@@ -247,13 +247,13 @@ export default function SalesTransaccionesTablePage() {
                         <tbody className="divide-y divide-border">
                             {!transacciones ? (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={11} className="px-6 py-12 text-center text-muted-foreground">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={11} className="px-6 py-12 text-center text-muted-foreground">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -281,7 +281,7 @@ export default function SalesTransaccionesTablePage() {
                                         <td className="px-6 py-4 text-sm font-semibold text-foreground border-r border-border">
                                             {formatCurrency(transaccion.monto_total)}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-subtle-foreground border-r border-border">
+                                        <td className="px-6 py-4 text-sm text-muted-foreground border-r border-border">
                                             {transaccion.fecha
                                                 ? new Date(transaccion.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
                                                     day: "2-digit",
@@ -345,27 +345,27 @@ export default function SalesTransaccionesTablePage() {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 border-r border-border">
-                                            <Popover>
-                                                <PopoverTrigger asChild>
+                                            <DropdownMenu modal={false}>
+                                                <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                                         <MoreVertical className="h-4 w-4 text-disabled-foreground" />
                                                     </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="flex flex-col space-y-1" align="end">
-                                                    <Button variant={"ghost"} onClick={() => detailsModal.onOpen(transaccion._id)}>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onSelect={() => detailsModal.onOpen(transaccion._id)}>
                                                         Ver detalles
-                                                    </Button>
+                                                    </DropdownMenuItem>
                                                     {/* <Button variant={"ghost"} onClick={() => conceptosModal.onOpen(transaccion._id)}>
                                                         Ver conceptos
                                                     </Button>
                                                     <Button variant={"ghost"} onClick={() => documentosModal.onOpen(transaccion._id)}>
                                                         Ver documentos
                                                     </Button> */}
-                                                    <Button variant={"ghost"} className="text-red-600" onClick={() => openDeleteDialog(transaccion._id)}>
+                                                    <DropdownMenuItem variant="destructive" onSelect={() => openDeleteDialog(transaccion._id)}>
                                                         Eliminar
-                                                    </Button>
-                                                </PopoverContent>
-                                            </Popover>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </td>
                                     </tr>
                                 ))

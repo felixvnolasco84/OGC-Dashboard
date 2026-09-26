@@ -244,7 +244,7 @@ export default function RFIListPage() {
       <header className="border-b border-border px-6 py-8 lg:px-16">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm text-subtle-foreground">Proyecto</p>
+            <p className="text-sm text-muted-foreground">Proyecto</p>
             <h1 className="mt-1 text-3xl font-normal text-foreground">
               RFIs {project.nombre}
             </h1>
@@ -255,9 +255,9 @@ export default function RFIListPage() {
               variant="outline"
               onClick={startQuickCreate}
               disabled={isQuickCreateOpen}
-              className="h-14 gap-3 rounded-sm border-border bg-card px-8 text-base font-normal text-subtle-foreground shadow-none hover:bg-card hover:text-subtle-foreground"
+              className="h-14 gap-3 rounded-sm border-border bg-card px-8 text-base font-normal text-muted-foreground shadow-none hover:bg-card hover:text-muted-foreground"
             >
-              <Plus className="h-5 w-5 text-subtle-foreground" />
+              <Plus className="h-5 w-5 text-muted-foreground" />
               Nueva RFI
             </Button>
           )}
@@ -404,7 +404,7 @@ export default function RFIListPage() {
                     size="icon"
                     onClick={resetQuickCreate}
                     disabled={isCreating}
-                    className="h-7 w-7 text-disabled-foreground hover:bg-muted hover:text-subtle-foreground"
+                    className="h-7 w-7 text-disabled-foreground hover:bg-muted hover:text-muted-foreground"
                     aria-label="Cancelar nueva RFI"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -415,7 +415,7 @@ export default function RFIListPage() {
                     size="icon"
                     onClick={() => void handleQuickCreate()}
                     disabled={isCreating}
-                    className="h-7 w-7 text-disabled-foreground hover:bg-muted hover:text-subtle-foreground"
+                    className="h-7 w-7 text-disabled-foreground hover:bg-muted hover:text-muted-foreground"
                     aria-label="Crear borrador y continuar"
                   >
                     {isCreating ? (
@@ -546,7 +546,7 @@ export default function RFIListPage() {
           </div>
 
           {filteredRfis.length === 0 && !isQuickCreateOpen && (
-            <div className="flex min-h-32 items-center justify-center px-6 text-sm text-subtle-foreground">
+            <div className="flex min-h-32 items-center justify-center px-6 text-sm text-muted-foreground">
               No hay RFIs con los filtros actuales.
             </div>
           )}
@@ -556,7 +556,7 @@ export default function RFIListPage() {
               <button
                 type="button"
                 onClick={startQuickCreate}
-                className="flex h-6 items-center gap-2 text-xs text-subtle-foreground hover:text-foreground"
+                className="flex h-6 items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Agregar RFI

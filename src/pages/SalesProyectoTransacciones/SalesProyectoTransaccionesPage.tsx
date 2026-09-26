@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
-import { Popover } from "@radix-ui/react-popover";
-import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useUploadSalesProjectTransactionsModal } from "@/hooks/upload-sales-project-transactions-modal";
 import { useSaleTransactionDetailsModal } from "@/hooks/sale-transaction-details-modal";
 import { useSaleTransactionConceptosModal } from "@/hooks/sale-transaction-conceptos-modal";
@@ -188,7 +188,7 @@ export default function SalesProyectoTransaccionesPage() {
     if (!salesProyecto) {
         return (
             <div className="bg-card min-h-screen flex items-center justify-center">
-                <p className="text-subtle-foreground">Cargando...</p>
+                <p className="text-muted-foreground">Cargando...</p>
             </div>
         );
     }
@@ -199,7 +199,7 @@ export default function SalesProyectoTransaccionesPage() {
                 <div className="flex flex-col gap-4 px-12">
                     <div className="mb-8 flex items-start justify-between">
                         <div>
-                            <p className="text-sm text-subtle-foreground mb-1">Transacciones</p>
+                            <p className="text-sm text-muted-foreground mb-1">Transacciones</p>
                             <h1 className="text-2xl text-foreground">{salesProyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
@@ -207,7 +207,7 @@ export default function SalesProyectoTransaccionesPage() {
                                 onClick={() => uploadSalesProjectTransactionsModal.onOpen(salesProyectoId as Id<"sales_projects">, salesProyecto.nombre)}
                                 variant="outline"
                                 size="lg"
-                                className="flex items-center gap-2 rounded-none text-subtle-foreground py-6"
+                                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
                             >
                                 Subir Transacciones
                                 <Upload className="h-6 w-6 rounded-full shadow-none" />
@@ -217,7 +217,7 @@ export default function SalesProyectoTransaccionesPage() {
                                 disabled={isSyncing}
                                 variant="outline"
                                 size="lg"
-                                className="flex items-center gap-2 rounded-none py-6 text-subtle-foreground"
+                                className="flex items-center gap-2 rounded-none py-6 text-muted-foreground"
                             >
                                 {isSyncing ? "Sincronizando..." : "Sincronizar Docs"}
                                 <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
@@ -291,13 +291,13 @@ export default function SalesProyectoTransaccionesPage() {
                         <tbody className="divide-y divide-border">
                             {!transacciones ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                                         Cargando transacciones...
                                     </td>
                                 </tr>
                             ) : filteredTransacciones && filteredTransacciones.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-12 text-center text-subtle-foreground">
+                                    <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                                         No se encontraron transacciones
                                     </td>
                                 </tr>
@@ -320,7 +320,7 @@ export default function SalesProyectoTransaccionesPage() {
                                         <td className="px-6 py-4 text-sm font-semibold text-foreground border-r border-border">
                                             {formatCurrency(transaccion.monto_total)}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-subtle-foreground border-r border-border">
+                                        <td className="px-6 py-4 text-sm text-muted-foreground border-r border-border">
                                             {transaccion.fecha
                                                 ? new Date(transaccion.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
                                                     day: "2-digit",
@@ -389,28 +389,28 @@ export default function SalesProyectoTransaccionesPage() {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 border-r border-border">
-                                            <Popover>
-                                                <PopoverTrigger asChild>
+                                            <DropdownMenu modal={false}>
+                                                <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                                         <MoreVertical className="h-4 w-4 text-disabled-foreground" />
                                                     </Button>
-                                                </PopoverTrigger>
+                                                </DropdownMenuTrigger>
                                                 {/* button actions */}
-                                                <PopoverContent className="flex flex-col space-y-1" align="end">
-                                                    <Button variant={"ghost"} onClick={() => detailsModal.onOpen(transaccion._id)}>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onSelect={() => detailsModal.onOpen(transaccion._id)}>
                                                         Ver detalles
-                                                    </Button>
-                                                    <Button variant={"ghost"} onClick={() => conceptosModal.onOpen(transaccion._id)}>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onSelect={() => conceptosModal.onOpen(transaccion._id)}>
                                                         Ver conceptos
-                                                    </Button>
-                                                    <Button variant={"ghost"} onClick={() => documentosModal.onOpen(transaccion._id)}>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onSelect={() => documentosModal.onOpen(transaccion._id)}>
                                                         Ver documentos
-                                                    </Button>
-                                                    <Button variant={"ghost"} className="text-red-600" onClick={() => openDeleteDialog(transaccion._id)}>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem variant="destructive" onSelect={() => openDeleteDialog(transaccion._id)}>
                                                         Eliminar
-                                                    </Button>
-                                                </PopoverContent>
-                                            </Popover>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </td>
                                     </tr>
                                 ))

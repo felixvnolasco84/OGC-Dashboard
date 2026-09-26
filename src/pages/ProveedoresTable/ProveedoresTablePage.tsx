@@ -207,7 +207,7 @@ export default function ProveedoresTablePage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="text-left">
             <h1 className="mb-2 text-3xl font-normal text-foreground">Proveedores</h1>
-            <p className="text-sm text-subtle-foreground">Catálogo global vinculado directamente a transacciones y requisiciones.</p>
+            <p className="text-sm text-muted-foreground">Catálogo global vinculado directamente a transacciones y requisiciones.</p>
           </div>
           <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end">
             <Badge variant="outline" className="rounded-none px-4 py-2">
@@ -283,9 +283,9 @@ export default function ProveedoresTablePage() {
 
       <div className="border-y border-border md:hidden">
         {isLoadingFirstPage ? (
-          <p className="px-4 py-12 text-left text-sm text-subtle-foreground">Cargando proveedores...</p>
+          <p className="px-4 py-12 text-left text-sm text-muted-foreground">Cargando proveedores...</p>
         ) : providers.length === 0 ? (
-          <p className="px-4 py-12 text-left text-sm text-subtle-foreground">No se encontraron proveedores</p>
+          <p className="px-4 py-12 text-left text-sm text-muted-foreground">No se encontraron proveedores</p>
         ) : (
           <div className="divide-y divide-border">
             {providers.map((provider) => (
@@ -293,7 +293,7 @@ export default function ProveedoresTablePage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="break-words text-sm font-medium text-foreground">{provider.razon_social}</h2>
-                    {provider.rfc && <p className="mt-1 text-xs text-subtle-foreground">RFC: {provider.rfc}</p>}
+                    {provider.rfc && <p className="mt-1 text-xs text-muted-foreground">RFC: {provider.rfc}</p>}
                   </div>
                   <div className="shrink-0">{renderProviderActions(provider)}</div>
                 </div>
@@ -367,9 +367,9 @@ export default function ProveedoresTablePage() {
           </thead>
           <tbody className="divide-y divide-border">
             {isLoadingFirstPage ? (
-              <tr><td colSpan={9} className="px-6 py-12 text-left text-subtle-foreground">Cargando proveedores...</td></tr>
+              <tr><td colSpan={9} className="px-6 py-12 text-left text-muted-foreground">Cargando proveedores...</td></tr>
             ) : providers.length === 0 ? (
-              <tr><td colSpan={9} className="px-6 py-12 text-left text-subtle-foreground">No se encontraron proveedores</td></tr>
+              <tr><td colSpan={9} className="px-6 py-12 text-left text-muted-foreground">No se encontraron proveedores</td></tr>
             ) : providers.map((provider) => (
               <tr key={provider._id} className="group hover:bg-background">
                 <td className="sticky left-0 z-10 w-72 min-w-72 max-w-72 break-words border-r bg-card px-5 py-4 text-left text-sm font-medium group-hover:bg-background">{provider.razon_social}</td>

@@ -229,7 +229,7 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
             <h3 className="text-sm font-medium text-foreground">Duración de actividad</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="familia-fecha-inicio" className="text-xs text-subtle-foreground">Fecha inicio</Label>
+                <Label htmlFor="familia-fecha-inicio" className="text-xs text-muted-foreground">Fecha inicio</Label>
                 <Input
                   id="familia-fecha-inicio"
                   type="date"
@@ -241,7 +241,7 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="familia-fecha-fin" className="text-xs text-subtle-foreground">Fecha fin</Label>
+                <Label htmlFor="familia-fecha-fin" className="text-xs text-muted-foreground">Fecha fin</Label>
                 <Input
                   id="familia-fecha-fin"
                   type="date"
@@ -280,7 +280,7 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
               <div className="space-y-3">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="familia-tiempo-cantidad" className="text-xs text-subtle-foreground">Cantidad</Label>
+                    <Label htmlFor="familia-tiempo-cantidad" className="text-xs text-muted-foreground">Cantidad</Label>
                     <Input
                       id="familia-tiempo-cantidad"
                       type="number"
@@ -292,7 +292,7 @@ export default function ProgramaObraFamiliaEditor({ item, parentSchedule, onClos
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="familia-tiempo-unidad" className="text-xs text-subtle-foreground">Unidad</Label>
+                    <Label htmlFor="familia-tiempo-unidad" className="text-xs text-muted-foreground">Unidad</Label>
                     <Select value={extraUnidad} onValueChange={setExtraUnidad}>
                       <SelectTrigger id="familia-tiempo-unidad" className="h-9 rounded-none text-sm">
                         <SelectValue />

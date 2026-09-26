@@ -253,7 +253,7 @@ export function RfiHistoryTimeline({
     return (
       <div className="rounded-sm border border-dashed border-border p-8 text-center">
         <Clock3 className="mx-auto h-5 w-5 text-disabled-foreground" />
-        <p className="mt-3 text-sm text-subtle-foreground">
+        <p className="mt-3 text-sm text-muted-foreground">
           Aún no hay movimientos registrados.
         </p>
       </div>
@@ -294,7 +294,7 @@ export function RfiHistoryTimeline({
 
         return (
           <li key={item._id} className="flex gap-3 py-4 first:pt-0 last:pb-0">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-muted text-subtle-foreground">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-muted text-muted-foreground">
               <Icon className="h-4 w-4" />
             </span>
             <div className="min-w-0 flex-1">
@@ -306,7 +306,7 @@ export function RfiHistoryTimeline({
                   {formatRfiDateTime(item.created_at)}
                 </time>
               </div>
-              <p className="mt-1 text-xs text-subtle-foreground">{actor}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{actor}</p>
 
               {showValueChange && (
                 <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_16px_minmax(0,1fr)] sm:items-start">
@@ -351,7 +351,7 @@ export function RfiHistoryTimeline({
                     ) : (
                       <div
                         key={attachment._id}
-                        className="rounded-sm border border-border px-3 py-2 text-xs text-subtle-foreground"
+                        className="rounded-sm border border-border px-3 py-2 text-xs text-muted-foreground"
                       >
                         {attachment.nombre}
                       </div>

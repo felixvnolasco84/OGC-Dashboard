@@ -9,17 +9,29 @@ import {
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Loader2 } from "lucide-react";
+import { CalendarDays, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Circle, Plus, X, Upload, File, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import ProviderFormDialog from "@/components/providers/ProviderFormDialog";
+import { es } from "date-fns/locale";
+import { formatMoney, sumMoney } from "@/lib/money";
+import { buildPaymentDraft } from "@/lib/payment-draft";
+import ProviderPaymentAccountPicker from "@/components/payments/ProviderPaymentAccountPicker";
+
+const todayString = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+};
 
 export default function AddPaymentModal() {
     // Store hooks
@@ -39,22 +51,23 @@ export default function AddPaymentModal() {
     const addSubPartida = useAddPaymentModal((state) => state.addSubPartida);
     const removeSubPartida = useAddPaymentModal((state) => state.removeSubPartida);
     const updateSubPartida = useAddPaymentModal((state) => state.updateSubPartida);
-    const toggleFamiliaDirect = useAddPaymentModal((state) => state.toggleFamiliaDirect);
     const updateFamiliaDirectPayment = useAddPaymentModal((state) => state.updateFamiliaDirectPayment);
 
     // Local state
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const submitLock = useRef(false);
     const [status, setStatus] = useState<"Pagado" | "Por pagar">("Pagado");
     const [categoria, setCategoria] = useState("");
     const [tipoPago, setTipoPago] = useState("");
     const [moneda, setMoneda] = useState("MXN");
-    const [fecha, setFecha] = useState(() => {
-        const now = new Date();
-        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    });
+    const [fecha, setFecha] = useState(todayString);
     const [banco, setBanco] = useState("");
+    const [clabe, setClabe] = useState("");
+    const [paymentAccountId, setPaymentAccountId] = useState<Id<"payment_accounts"> | "">("");
     const [proveedorId, setProveedorId] = useState<Id<"proveedores"> | "">("");
     const [providerFormOpen, setProviderFormOpen] = useState(false);
+    const [providerSearchOpen, setProviderSearchOpen] = useState(false);
+    const [calendarOpen, setCalendarOpen] = useState(false);
     const [numeroCuenta, setNumeroCuenta] = useState("");
     const [codigoReferencia, setCodigoReferencia] = useState("");
     const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -63,9 +76,46 @@ export default function AddPaymentModal() {
     const [documentDescription, setDocumentDescription] = useState("");
     const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
+    const closeModal = () => {
+        setStatus("Pagado");
+        setCategoria("");
+        setTipoPago("");
+        setMoneda("MXN");
+        setFecha(todayString());
+        setBanco("");
+        setClabe("");
+        setPaymentAccountId("");
+        setProveedorId("");
+        setProviderFormOpen(false);
+        setProviderSearchOpen(false);
+        setCalendarOpen(false);
+        setNumeroCuenta("");
+        setCodigoReferencia("");
+        setDocumentFile(null);
+        setDocumentType("");
+        setDocumentName("");
+        setDocumentDescription("");
+        onClose();
+    };
+
     const createTransaction = useMutation(api.transacciones.createTransaction);
     const generateUploadUrl = useMutation(api.documentos.generateUploadUrl);
     const createDocumentWithStorage = useMutation(api.documentos.createWithStorage);
+
+    const selectProvider = (id: Id<"proveedores"> | "") => {
+        setProveedorId(id);
+        setPaymentAccountId("");
+        setBanco("");
+        setNumeroCuenta("");
+        setClabe("");
+    };
+
+    const selectPaymentAccount = (id: Id<"payment_accounts"> | "") => {
+        setPaymentAccountId(id);
+        setBanco("");
+        setNumeroCuenta("");
+        setClabe("");
+    };
     const providers = useQuery(
         api.proveedores.getAll,
         isOpen && isAuthenticated ? {} : "skip"
@@ -153,71 +203,17 @@ export default function AddPaymentModal() {
         }
     };
 
-    // Calculate total amount from all partidas
-    const calculateTotalAmount = () => {
-        return partidas.reduce((partidaSum, partida) => {
-            return partidaSum + partida.familias.reduce((familiaSum, familia) => {
-                const hasSubPartidas = familiaHasSubPartidas(partida.partida, familia.familia);
-
-                // If familia is direct payment AND has no sub-partidas, add its monto
-                if (familia.isDirect && !hasSubPartidas) {
-                    return familiaSum + (familia.monto || 0);
-                }
-                // Otherwise, sum sub-partidas
-                return familiaSum + familia.subPartidas.reduce((subSum, sub) => {
-                    return subSum + (sub.monto || 0);
-                }, 0);
-            }, 0);
-        }, 0);
-    };
+    const draft = buildPaymentDraft(partidas, familiaHasSubPartidas);
+    const totalAmount = sumMoney(draft.lineItems.map(item => item.monto), moneda);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!paymentContext) return;
+        if (!paymentContext || !isFormValid() || submitLock.current) return;
 
+        submitLock.current = true;
         setIsSubmitting(true);
         try {
-            // Build line items array from the hierarchical structure
-            const lineItems: Array<{
-                partida_id: Id<"partidas">;
-                partida: string;
-                familia: string;
-                sub_partida: string;
-                monto: number;
-            }> = [];
-
-            // Iterate through all partidas, familias, and subPartidas to build line items
-            for (const partida of partidas) {
-                for (const familia of partida.familias) {
-                    // Check if this familia is a direct payment AND has no sub-partidas available
-                    const hasSubPartidas = familiaHasSubPartidas(partida.partida, familia.familia);
-
-                    if (familia.isDirect && !hasSubPartidas) {
-                        if (familia.partida_id && familia.partida_id !== "" && familia.monto && familia.monto > 0) {
-                            lineItems.push({
-                                partida_id: familia.partida_id as Id<"partidas">,
-                                partida: partida.partida,
-                                familia: familia.familia,
-                                sub_partida: "", // Direct familia payment has no sub-partida
-                                monto: familia.monto,
-                            });
-                        }
-                    } else {
-                        // Regular payment with sub-partidas
-                        for (const subPartida of familia.subPartidas) {
-                            if (subPartida.partida_id && subPartida.partida_id !== "" && subPartida.monto > 0) {
-                                lineItems.push({
-                                    partida_id: subPartida.partida_id as Id<"partidas">,
-                                    partida: partida.partida,
-                                    familia: familia.familia,
-                                    sub_partida: subPartida.sub_partida,
-                                    monto: subPartida.monto,
-                                });
-                            }
-                        }
-                    }
-                }
-            }
+            const lineItems = draft.lineItems;
 
             // Determine factura/comprobante based on document type
             const isFactura = documentType === "factura" && documentName;
@@ -227,7 +223,8 @@ export default function AddPaymentModal() {
             const result = await createTransaction({
                 proyecto: paymentContext.projectId,
                 proveedor_id: proveedorId || undefined,
-                monto_total: calculateTotalAmount(),
+                payment_account_id: paymentAccountId || undefined,
+                monto_total: sumMoney(lineItems.map(item => item.monto), moneda),
                 fecha,
                 tipo_pago: tipoPago,
                 moneda,
@@ -235,6 +232,7 @@ export default function AddPaymentModal() {
                 status,
                 categoria,
                 banco: tipoPago !== 'efectivo' ? banco : undefined,
+                clabe: tipoPago !== 'efectivo' ? clabe : undefined,
                 tarjeta: undefined,
                 numero_cuenta: tipoPago !== 'efectivo' ? numeroCuenta : undefined,
                 numero_transferencia: undefined,
@@ -248,28 +246,28 @@ export default function AddPaymentModal() {
             // Upload document if provided using Convex storage
             let documentUploaded = false;
             let uploadedDocumentName = "";
-            
+
             if (documentFile && result.transaccionId && documentType && documentName) {
                 try {
                     setIsUploadingDocument(true);
                     uploadedDocumentName = documentName; // Store before reset
-                    
+
                     // Step 1: Generate upload URL
                     const uploadUrl = await generateUploadUrl();
-                    
+
                     // Step 2: Upload file to Convex storage
                     const uploadResult = await fetch(uploadUrl, {
                         method: "POST",
                         headers: { "Content-Type": documentFile.type },
                         body: documentFile,
                     });
-                    
+
                     if (!uploadResult.ok) {
                         throw new Error("Failed to upload file");
                     }
-                    
+
                     const { storageId } = await uploadResult.json();
-                    
+
                     // Step 3: Create document record linked to the transaction
                     await createDocumentWithStorage({
                         nombre: documentName,
@@ -281,7 +279,7 @@ export default function AddPaymentModal() {
                         proyecto: paymentContext.projectId,
                         transaccion_id: result.transaccionId,
                     });
-                    
+
                     documentUploaded = true;
                 } catch (docError) {
                     console.error("Error uploading document:", docError);
@@ -293,83 +291,38 @@ export default function AddPaymentModal() {
                 }
             }
 
-            // Reset form
-            setStatus("Pagado");
-            setCategoria("");
-            setTipoPago("");
-            setMoneda("MXN");
-            {
-                const now = new Date();
-                setFecha(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
-            }
-            setBanco("");
-            setProveedorId("");
-            setNumeroCuenta("");
-            setCodigoReferencia("");
-            setDocumentFile(null);
-            setDocumentType("");
-            setDocumentName("");
-            setDocumentDescription("");
-
             // Show success toast with document info if applicable
             const conceptosText = `${result.pagoIds.length} concepto(s)`;
             const documentText = documentUploaded ? ` y documento "${uploadedDocumentName}" adjuntado` : "";
             toast.success("Transacción registrada", {
                 description: `Se creó la transacción con ${conceptosText}${documentText}.`,
             });
-            onClose();
+            closeModal();
         } catch (error) {
             console.error("Error creating payments:", error);
             toast.error("Error al crear el pago");
         } finally {
+            submitLock.current = false;
             setIsSubmitting(false);
         }
     };
 
     const isFormValid = () => {
-        // Check if at least one payment is valid (either direct familia or sub-partida)
-        const hasValidPayment = partidas.some(partida =>
-            partida.familias.some(familia => {
-                const hasSubPartidas = familiaHasSubPartidas(partida.partida, familia.familia);
-
-                // Check direct familia payment - only valid if familia has NO sub-partidas
-                if (familia.isDirect && !hasSubPartidas) {
-                    return familia.partida_id &&
-                        familia.partida_id !== "" &&
-                        familia.familia &&
-                        familia.monto &&
-                        familia.monto > 0;
-                }
-                // Check sub-partida payment
-                return familia.subPartidas.some(sub =>
-                    sub.partida_id &&
-                    sub.partida_id !== "" &&
-                    sub.sub_partida &&
-                    sub.monto > 0
-                );
-            })
-        );
-
-        return hasValidPayment && tipoPago && fecha && status && categoria;
+        return allPartidas !== undefined && draft.lineItems.length > 0 && draft.incompleteCount === 0 && tipoPago && fecha && status && categoria;
     };
 
     if (!paymentContext) return null;
 
-    const totalAmount = calculateTotalAmount();
-    const totalPayments = partidas.reduce((sum, p) => sum + p.familias.reduce((f, fam) => {
-        const hasSubPartidas = familiaHasSubPartidas(p.partida, fam.familia);
-        // If direct familia AND has no sub-partidas, count as 1 payment, otherwise count sub-partidas
-        return f + (fam.isDirect && !hasSubPartidas ? 1 : fam.subPartidas.length);
-    }, 0), 0);
+    const totalPayments = draft.lineItems.length;
 
     return (
         <>
-        <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent data-square-modal="" className="w-[800px] sm:max-w-[800px] overflow-y-auto">
+        <Sheet open={isOpen} onOpenChange={(open) => { if (!open && !isSubmitting) closeModal(); }}>
+            <SheetContent data-square-modal="" variant="paymentForm">
                 <SheetHeader>
-                    <SheetTitle className="text-xl font-medium text-foreground">Pagos Múltiples</SheetTitle>
-                    <SheetDescription className="text-sm text-muted-foreground">
-                        Registra pagos para múltiples partidas, familias y sub-partidas
+                    <SheetTitle>Registrar pagos</SheetTitle>
+                    <SheetDescription>
+                        Agrega conceptos por partida y completa los datos del pago.
                     </SheetDescription>
                 </SheetHeader>
 
@@ -377,34 +330,28 @@ export default function AddPaymentModal() {
                     {/* Status Selection */}
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-3">
-                            <button
+                            <Button
                                 type="button"
                                 onClick={() => setStatus('Pagado')}
-                                className={cn(
-                                    "flex items-center gap-3 p-4 rounded-none border transition-all",
-                                    status === 'Pagado'
-                                        ? "border-green-600 bg-card"
-                                        : "border-border-strong bg-card hover:border-border-strong"
-                                )}
+                                aria-pressed={status === 'Pagado'}
+                                variant={status === 'Pagado' ? 'choiceSelected' : 'choice'}
+                                size="choice"
                             >
                                 <Check className={cn(
                                     "h-5 w-5",
-                                    status === 'Pagado' ? "text-green-600" : "text-disabled-foreground"
+                                    status === 'Pagado' ? "text-success" : "text-disabled-foreground"
                                 )} />
                                 <span className={cn(
                                     "text-base",
                                     status === 'Pagado' ? "text-foreground font-medium" : "text-muted-foreground"
                                 )}>Pagado</span>
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="button"
                                 onClick={() => setStatus('Por pagar')}
-                                className={cn(
-                                    "flex items-center gap-3 p-4 rounded-none border transition-all",
-                                    status === 'Por pagar'
-                                        ? "border-border-strong bg-card"
-                                        : "border-border-strong bg-card hover:border-border-strong"
-                                )}
+                                aria-pressed={status === 'Por pagar'}
+                                variant={status === 'Por pagar' ? 'choiceSelected' : 'choice'}
+                                size="choice"
                             >
                                 <Circle className={cn(
                                     "h-5 w-5",
@@ -414,7 +361,7 @@ export default function AddPaymentModal() {
                                     "text-base",
                                     status === 'Por pagar' ? "text-foreground font-medium" : "text-muted-foreground"
                                 )}>Por pagar</span>
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
@@ -422,38 +369,50 @@ export default function AddPaymentModal() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="font-medium text-foreground">Proveedor</h3>
-                                <p className="text-xs text-subtle-foreground">Opcional; puede asignarse o modificarse después.</p>
+                                <p className="text-xs text-muted-foreground">Opcional; puede asignarse o modificarse después.</p>
                             </div>
                             <Button type="button" variant="outline" size="sm" onClick={() => setProviderFormOpen(true)}>
                                 <Plus className="mr-2 h-4 w-4" /> Nuevo
                             </Button>
                         </div>
-                        <Select
-                            value={proveedorId || "none"}
-                            onValueChange={(value) => setProveedorId(value === "none" ? "" : value as Id<"proveedores">)}
-                        >
-                            <SelectTrigger><SelectValue placeholder="Sin proveedor" /></SelectTrigger>
-                            <SelectContent data-square-modal="">
-                                <SelectItem value="none">Sin proveedor</SelectItem>
-                                {providers?.map((provider) => (
-                                    <SelectItem key={provider._id} value={provider._id}>
-                                        {provider.razon_social}{provider.rfc ? ` · ${provider.rfc}` : " · RFC pendiente"}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Popover open={providerSearchOpen} onOpenChange={setProviderSearchOpen}>
+                            <PopoverTrigger asChild>
+                                <Button type="button" variant="combobox" role="combobox" aria-expanded={providerSearchOpen}
+                                    aria-label="Buscar proveedor">
+                                    <span className="truncate">{providers?.find(provider => provider._id === proveedorId)?.razon_social || "Sin proveedor"}</span>
+                                    <Search className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent variant="filter" align="start" className="z-[100] w-[var(--radix-popover-trigger-width)]">
+                                <Command>
+                                    <CommandInput placeholder="Buscar por nombre o RFC..." />
+                                    <CommandList>
+                                        <CommandEmpty>{providers === undefined ? "Cargando proveedores..." : "No se encontraron proveedores"}</CommandEmpty>
+                                        <CommandGroup>
+                                            <CommandItem value="sin proveedor" onSelect={() => { selectProvider(""); setProviderSearchOpen(false); }}>
+                                                <Check className={cn("mr-2 h-4 w-4", proveedorId ? "opacity-0" : "opacity-100")} />
+                                                Sin proveedor
+                                            </CommandItem>
+                                            {providers?.map(provider => (
+                                                <CommandItem key={provider._id} value={`${provider.razon_social} ${provider.rfc || ""} ${provider._id}`}
+                                                    onSelect={() => { selectProvider(provider._id); setProviderSearchOpen(false); }}>
+                                                    <Check className={cn("mr-2 h-4 w-4 shrink-0", proveedorId === provider._id ? "opacity-100" : "opacity-0")} />
+                                                    <span className="min-w-0 truncate">{provider.razon_social}</span>
+                                                    {provider.rfc && <span className="ml-auto pl-2 text-xs text-muted-foreground">{provider.rfc}</span>}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
                     {/* Hierarchical Partida/Familia/SubPartida Selection */}
                     <div className="space-y-4 border p-4 rounded-none bg-background">
                         <div className="flex items-center justify-between">
                             <h3 className="font-medium text-foreground">Partidas</h3>
-                            <span className="text-sm text-muted-foreground">
-                                Total: {new Intl.NumberFormat('es-MX', {
-                                    style: 'currency',
-                                    currency: moneda
-                                }).format(totalAmount)}
-                            </span>
+                            <span className="text-sm text-muted-foreground tabular-nums">Total: {formatMoney(totalAmount, moneda)}</span>
                         </div>
 
                         {/* Partidas List */}
@@ -462,17 +421,18 @@ export default function AddPaymentModal() {
                                 <div key={partida.id} className="bg-card border rounded-none">
                                     {/* Partida Header */}
                                     <div className="flex items-center gap-2 p-3 bg-muted">
-                                        <button
+                                        <Button
                                             type="button"
                                             onClick={() => togglePartidaExpanded(partida.id)}
-                                            className="text-muted-foreground hover:text-foreground"
+                                            variant="quiet"
+                                            size="iconSm"
                                         >
                                             {partida.isExpanded ? (
                                                 <ChevronDown className="h-4 w-4" />
                                             ) : (
                                                 <ChevronRight className="h-4 w-4" />
                                             )}
-                                        </button>
+                                        </Button>
                                         <Select
                                             value={partida.partida}
                                             onValueChange={(value) => updatePartida(partida.id, value)}
@@ -491,12 +451,11 @@ export default function AddPaymentModal() {
                                         {partidas.length > 1 && (
                                             <Button
                                                 type="button"
-                                                variant="ghost"
-                                                size="sm"
+                                                variant="quiet"
+                                                size="iconSm"
                                                 onClick={() => removePartida(partida.id)}
-                                                className="h-8 w-8 p-0"
                                             >
-                                                <Trash2 className="h-4 w-4 text-red-600" />
+                                                <Trash2 className="h-4 w-4 text-danger" />
                                             </Button>
                                         )}
                                     </div>
@@ -508,17 +467,18 @@ export default function AddPaymentModal() {
                                                 <div key={familia.id} className="border-l-2 border-border-strong pl-4 space-y-2">
                                                     {/* Familia Header */}
                                                     <div className="flex items-center gap-2">
-                                                        <button
+                                                        <Button
                                                             type="button"
                                                             onClick={() => toggleFamiliaExpanded(partida.id, familia.id)}
-                                                            className="text-muted-foreground hover:text-foreground"
+                                                            variant="quiet"
+                                                            size="iconXs"
                                                         >
                                                             {familia.isExpanded ? (
                                                                 <ChevronDown className="h-3 w-3" />
                                                             ) : (
                                                                 <ChevronRight className="h-3 w-3" />
                                                             )}
-                                                        </button>
+                                                        </Button>
                                                         <Select
                                                             value={familia.familia}
                                                             onValueChange={(value) => handleFamiliaSelectWithId(partida.id, familia.id, partida.partida, value)}
@@ -537,52 +497,35 @@ export default function AddPaymentModal() {
                                                         {partida.familias.length > 1 && (
                                                             <Button
                                                                 type="button"
-                                                                variant="ghost"
-                                                                size="sm"
+                                                                variant="quiet"
+                                                                size="iconXs"
                                                                 onClick={() => removeFamilia(partida.id, familia.id)}
-                                                                className="h-7 w-7 p-0"
                                                             >
-                                                                <X className="h-3 w-3 text-red-600" />
+                                                                <X className="h-3 w-3 text-danger" />
                                                             </Button>
                                                         )}
                                                     </div>
 
-                                                    {/* Toggle for direct payment - only show if familia has NO sub-partidas */}
-                                                    {familia.familia && !familiaHasSubPartidas(partida.partida, familia.familia) && (
-                                                        <div className="ml-4 flex items-center gap-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`direct-${familia.id}`}
-                                                                checked={familia.isDirect}
-                                                                onChange={() => toggleFamiliaDirect(partida.id, familia.id)}
-                                                                className="h-4 w-4 rounded-none border-border-strong"
-                                                            />
-                                                            <label htmlFor={`direct-${familia.id}`} className="text-xs text-muted-foreground cursor-pointer">
-                                                                Pago directo (sin sub-partidas)
-                                                            </label>
-                                                        </div>
-                                                    )}
-
                                                     {/* Direct Payment Input OR SubPartidas List */}
                                                     {familia.isExpanded && familia.familia && (
                                                         <>
-                                                            {familia.isDirect && !familiaHasSubPartidas(partida.partida, familia.familia) ? (
-                                                                /* Direct Payment Mode - only if familia has NO sub-partidas */
-                                                                <div className="ml-4 flex items-center gap-2">
+                                                            {!familiaHasSubPartidas(partida.partida, familia.familia) ? (
+                                                                <div className="ml-4 space-y-1">
+                                                                    <label htmlFor={`familia-monto-${familia.id}`} className="text-xs text-muted-foreground">Monto de la familia</label>
                                                                     <div className="flex-1">
                                                                         <MoneyInput
+                                                                            id={`familia-monto-${familia.id}`}
                                                                             placeholder="Monto"
                                                                             value={familia.monto || 0}
                                                                             onChange={(value) =>
                                                                                 updateFamiliaDirectPayment(partida.id, familia.id, { monto: value })
                                                                             }
                                                                             currency={moneda}
-                                                                            className="text-left h-9 text-sm"
                                                                         />
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                /* Normal Mode with SubPartidas - shown when familia has sub-partidas OR isDirect is false */
+                                                                /* Family with sub-items */
                                                                 <div className="space-y-2 ml-4">
                                                                     {familia.subPartidas.map((subPartida) => (
                                                                         <div key={subPartida.id} className="flex items-center gap-2">
@@ -599,7 +542,7 @@ export default function AddPaymentModal() {
                                                                                     )
                                                                                 }
                                                                             >
-                                                                                <SelectTrigger className="flex-1 h-9 text-sm">
+                                                            <SelectTrigger className="flex-1 h-9">
                                                                                     <SelectValue placeholder="Sub-partida" />
                                                                                 </SelectTrigger>
                                                                                 <SelectContent data-square-modal="">
@@ -612,22 +555,21 @@ export default function AddPaymentModal() {
                                                                             </Select>
                                                                             <div className="w-32">
                                                                                 <MoneyInput
+                                                                                    aria-label={`Monto de ${subPartida.sub_partida || "sub-partida"}`}
                                                                                     placeholder="Monto"
                                                                                     value={subPartida.monto || 0}
                                                                                     onChange={(value) =>
                                                                                         updateSubPartida(partida.id, familia.id, subPartida.id, { monto: value })
                                                                                     }
                                                                                     currency={moneda}
-                                                                                    className="text-left h-9 text-sm"
                                                                                 />
                                                                             </div>
                                                                             {familia.subPartidas.length > 1 && (
                                                                                 <Button
                                                                                     type="button"
-                                                                                    variant="ghost"
-                                                                                    size="sm"
+                                                                                    variant="quiet"
+                                                                                    size="iconXs"
                                                                                     onClick={() => removeSubPartida(partida.id, familia.id, subPartida.id)}
-                                                                                    className="h-7 w-7 p-0"
                                                                                 >
                                                                                     <X className="h-3 w-3 text-disabled-foreground" />
                                                                                 </Button>
@@ -637,9 +579,8 @@ export default function AddPaymentModal() {
                                                                     <Button
                                                                         type="button"
                                                                         variant="outline"
-                                                                        size="sm"
+                                                                        size="fullSm"
                                                                         onClick={() => addSubPartida(partida.id, familia.id)}
-                                                                        className="w-full text-xs h-8"
                                                                     >
                                                                         <Plus className="h-3 w-3 mr-1" />
                                                                         Agregar Sub-partida
@@ -653,9 +594,7 @@ export default function AddPaymentModal() {
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                size="sm"
                                                 onClick={() => addFamilia(partida.id)}
-                                                className="w-full text-sm h-9"
                                             >
                                                 <Plus className="h-4 w-4 mr-1" />
                                                 Agregar Familia
@@ -670,7 +609,7 @@ export default function AddPaymentModal() {
                             type="button"
                             variant="outline"
                             onClick={addPartida}
-                            className="w-full"
+
                         >
                             <Plus className="h-4 w-4 mr-2" />
                             Agregar Partida
@@ -679,21 +618,27 @@ export default function AddPaymentModal() {
 
                     {/* Payment Details */}
                     <div className="space-y-3 pt-2">
-                        {/* Categoría */}
-                        <Select value={categoria} onValueChange={setCategoria}>
-                            <SelectTrigger className="h-12">
-                                <SelectValue placeholder="Categoría (anticipo, material, estimación)" />
-                            </SelectTrigger>
-                            <SelectContent data-square-modal="">
-                                <SelectItem value="anticipo">Anticipo</SelectItem>
-                                <SelectItem value="material">Material</SelectItem>
-                                <SelectItem value="estimacion">Estimación</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <h3 className="font-medium text-foreground">Datos del pago</h3>
+                        <div className="space-y-1">
+                            <span className="block text-xs text-muted-foreground">Categoría</span>
+                            <Select value={categoria} onValueChange={setCategoria}>
+                                <SelectTrigger className="h-12" aria-label="Categoría"><SelectValue placeholder="Seleccionar categoría" /></SelectTrigger>
+                                <SelectContent data-square-modal="">
+                                    <SelectItem value="anticipo">Anticipo</SelectItem>
+                                    <SelectItem value="material">Material</SelectItem>
+                                    <SelectItem value="estimacion">Estimación</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <Select value={tipoPago} onValueChange={setTipoPago}>
-                                <SelectTrigger className="h-12">
+                            <div className="space-y-1">
+                            <span className="block text-xs text-muted-foreground">Método de pago</span>
+                            <Select value={tipoPago} onValueChange={(value) => {
+                                setTipoPago(value);
+                                if (value !== "transferencia" && value !== "cheque") setPaymentAccountId("");
+                            }}>
+                                <SelectTrigger className="h-12" aria-label="Método de pago">
                                     <SelectValue placeholder="Tipo de pago" />
                                 </SelectTrigger>
                                 <SelectContent data-square-modal="">
@@ -703,8 +648,11 @@ export default function AddPaymentModal() {
                                     <SelectItem value="cheque">Cheque</SelectItem>
                                 </SelectContent>
                             </Select>
+                            </div>
+                            <div className="space-y-1">
+                            <span className="block text-xs text-muted-foreground">Moneda</span>
                             <Select value={moneda} onValueChange={setMoneda}>
-                                <SelectTrigger className="h-12">
+                                <SelectTrigger className="h-12" aria-label="Moneda">
                                     <SelectValue placeholder="Moneda" />
                                 </SelectTrigger>
                                 <SelectContent data-square-modal="">
@@ -713,31 +661,60 @@ export default function AddPaymentModal() {
                                     <SelectItem value="EUR">EUR</SelectItem>
                                 </SelectContent>
                             </Select>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="relative">
-                                <MoneyInput
-                                    placeholder="Monto total"
-                                    value={totalAmount}
-                                    onChange={() => { }}
-                                    currency={moneda}
-                                    disabled
-                                    className="h-12 bg-muted"
-                                />
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">Total calculado</span>
+                                <div className="flex h-12 items-center border border-border bg-muted px-3 font-medium tabular-nums" aria-live="polite">
+                                    {formatMoney(totalAmount, moneda)}
+                                </div>
                             </div>
-                            <Input
-                                type="date"
-                                value={fecha}
-                                onChange={(e) => setFecha(e.target.value)}
-                                className="h-12"
-                                required
-                            />
+                            <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">Fecha del pago</span>
+                                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button type="button" variant="combobox" size="combobox" aria-label="Fecha del pago">
+                                            <span className="flex items-center gap-2">
+                                                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                                {fecha ? new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long", year: "numeric" })
+                                                    .format(new Date(Number(fecha.slice(0, 4)), Number(fecha.slice(5, 7)) - 1, Number(fecha.slice(8, 10)))) : "Elegir fecha"}
+                                            </span>
+                                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent variant="calendarLayer" align="start">
+                                        <Calendar mode="single" locale={es}
+                                            selected={fecha ? new Date(Number(fecha.slice(0, 4)), Number(fecha.slice(5, 7)) - 1, Number(fecha.slice(8, 10))) : undefined}
+                                            onSelect={(date) => {
+                                                if (!date) return;
+                                                setFecha(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`);
+                                                setCalendarOpen(false);
+                                            }}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
 
                         {/* Bank Details (conditional) */}
                         {tipoPago && tipoPago !== 'efectivo' && (
                             <div className="space-y-3 pt-2">
+                                {paymentContext && (tipoPago === "transferencia" || tipoPago === "cheque") && proveedorId && (
+                                    <ProviderPaymentAccountPicker
+                                        projectId={paymentContext.projectId}
+                                        providerId={proveedorId}
+                                        method={tipoPago}
+                                        selectedId={paymentAccountId}
+                                        banco={banco}
+                                        numeroCuenta={numeroCuenta}
+                                        clabe={clabe}
+                                        onSelect={selectPaymentAccount}
+                                    />
+                                )}
+                                {!paymentAccountId && <>
                                 <Input
                                     placeholder="Banco"
                                     value={banco}
@@ -750,6 +727,15 @@ export default function AddPaymentModal() {
                                     onChange={(e) => setNumeroCuenta(e.target.value)}
                                     className="h-12"
                                 />
+                                {(tipoPago === "transferencia" || tipoPago === "cheque") && <Input
+                                    placeholder="CLABE (opcional)"
+                                    aria-label="CLABE"
+                                    inputMode="numeric"
+                                    value={clabe}
+                                    onChange={(e) => setClabe(e.target.value)}
+                                    className="h-12"
+                                />}
+                                </>}
                             </div>
                         )}
 
@@ -795,9 +781,9 @@ export default function AddPaymentModal() {
                                         <div className="border-2 border-dashed rounded-none p-4 text-center">
                                             {documentFile ? (
                                                 <div className="space-y-2">
-                                                    <File className="h-8 w-8 mx-auto text-green-600" />
+                                                    <File className="h-8 w-8 mx-auto text-success" />
                                                     <p className="text-sm font-medium">{documentFile.name}</p>
-                                                    <p className="text-xs text-subtle-foreground">
+                                                    <p className="text-xs text-muted-foreground">
                                                         {(documentFile.size / 1024).toFixed(2)} KB
                                                     </p>
                                                     <Button
@@ -843,21 +829,26 @@ export default function AddPaymentModal() {
                                         />
                                     </div>
 
-         
+
                                 </>
                             )}
                         </div>
                     </div>
 
                     {/* Form Actions */}
+                    {draft.incompleteCount > 0 && (
+                        <p role="alert" className="text-sm text-danger">
+                            Completa {draft.incompleteCount} concepto{draft.incompleteCount === 1 ? "" : "s"} antes de guardar.
+                        </p>
+                    )}
                     <div className="flex justify-end space-x-2 pt-4 border-t">
-                        <Button type="button" variant="outline" onClick={onClose} className="h-11">
+                        <Button type="button" variant="outline" onClick={closeModal} disabled={isSubmitting || isUploadingDocument}>
                             Cancelar
                         </Button>
                         <Button
                             type="submit"
                             disabled={!isFormValid() || isSubmitting || isUploadingDocument}
-                            className="bg-inverse hover:bg-inverse text-on-color h-11"
+                            variant="inverse"
                         >
                             {isSubmitting || isUploadingDocument ? (
                                 <>
@@ -872,7 +863,7 @@ export default function AddPaymentModal() {
                 </form>
             </SheetContent>
         </Sheet>
-        <ProviderFormDialog open={providerFormOpen} onOpenChange={setProviderFormOpen} />
+        <ProviderFormDialog open={providerFormOpen} onOpenChange={setProviderFormOpen} onSaved={selectProvider} />
         </>
     )
 }

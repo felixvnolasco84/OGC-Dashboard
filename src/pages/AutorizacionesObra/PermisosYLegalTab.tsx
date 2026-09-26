@@ -6,10 +6,11 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import {
   ChevronUp,
@@ -159,8 +160,8 @@ export function ResponsableSelector({
   const current = users.find((u) => u._id === currentId);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
         {current ? (
           <button className="flex items-center gap-2 text-sm text-foreground hover:text-foreground">
             <span>{current.name}</span>
@@ -173,38 +174,38 @@ export function ResponsableSelector({
             Asignar responsable
           </button>
         )}
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-2" align="end">
-        <div className="text-xs font-medium text-subtle-foreground px-2 py-1 mb-1">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-64 p-2" align="end">
+        <div className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">
           Seleccionar responsable
         </div>
         <div className="max-h-48 overflow-y-auto">
           {current && (
-            <button
+            <DropdownMenuItem
               className="w-full text-left px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 rounded"
-              onClick={() => onSelect(undefined)}
+              onSelect={() => onSelect(undefined)}
             >
               Quitar responsable
-            </button>
+            </DropdownMenuItem>
           )}
           {users.map((u) => (
-            <button
+            <DropdownMenuItem
               key={u._id}
               className={cn(
                 "w-full text-left px-2 py-1.5 text-sm hover:bg-muted rounded flex items-center gap-2",
                 u._id === currentId && "bg-muted font-medium"
               )}
-              onClick={() => onSelect(u._id)}
+              onSelect={() => onSelect(u._id)}
             >
               <span className="w-6 h-6 rounded-full bg-disabled flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
                 {u.name.charAt(0).toUpperCase()}
               </span>
               <span className="truncate">{u.name}</span>
-            </button>
+            </DropdownMenuItem>
           ))}
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -222,17 +223,17 @@ function DatePickerField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs text-subtle-foreground">{label}</span>
-      <Popover>
-        <PopoverTrigger asChild>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
           <button className="flex items-center h-9 w-full border border-border px-3 text-sm text-left hover:border-border-strong">
             <span className={cn("flex-1", !value && "text-disabled-foreground")}>
               {value ? formatDateDisplay(value) : "Fecha"}
             </span>
             <ChevronDown className="w-4 h-4 text-disabled-foreground ml-2" />
           </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
             selected={dateObj}
@@ -241,8 +242,8 @@ function DatePickerField({
             }}
             locale={es}
           />
-        </PopoverContent>
-      </Popover>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -354,9 +355,9 @@ function DocumentAttachment({
       )}
       {showHistory && historial && historial.length > 0 && (
         <div className="mt-2 border border-border rounded p-2 bg-background">
-          <div className="text-xs font-medium text-subtle-foreground mb-1">Historial de archivos</div>
+          <div className="text-xs font-medium text-muted-foreground mb-1">Historial de archivos</div>
           {historial.map((h: HistorialEntry) => (
-            <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-subtle-foreground">
+            <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
               <FileText className="w-3 h-3 shrink-0" />
               <a
                 href={h.url || "#"}
@@ -439,7 +440,7 @@ function LicenciaSection({
         <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
           {/* Número de Licencia + Document */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-subtle-foreground">Número de Licencia</span>
+            <span className="text-xs text-muted-foreground">Número de Licencia</span>
             <DocumentAttachment
               nombre={section?.documento_nombre}
               uploadedAt={section?.documento_uploaded_at}
@@ -533,7 +534,7 @@ function PolizaSection({
         <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
           {/* Póliza de seguro */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-subtle-foreground">Póliza de seguro</span>
+            <span className="text-xs text-muted-foreground">Póliza de seguro</span>
             <DocumentAttachment
               nombre={section?.documento_nombre}
               uploadedAt={section?.documento_uploaded_at}
@@ -548,7 +549,7 @@ function PolizaSection({
 
           {/* Suma asegurada */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-subtle-foreground">Suma asegurada</span>
+            <span className="text-xs text-muted-foreground">Suma asegurada</span>
             <div className="flex items-center gap-2">
               <Input
                 placeholder="$0.00"
@@ -558,7 +559,7 @@ function PolizaSection({
                 onChange={(e) => setSumaInput(e.target.value)}
                 onBlur={handleSumaBlur}
               />
-              <span className="text-sm text-subtle-foreground shrink-0">MXN</span>
+              <span className="text-sm text-muted-foreground shrink-0">MXN</span>
             </div>
           </div>
 
@@ -640,7 +641,7 @@ function TramitesSection({
       {expanded && (
         <div className="px-6 pb-6 pt-6">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 text-xs text-subtle-foreground font-medium pb-2 border-b border-border">
+          <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 text-xs text-muted-foreground font-medium pb-2 border-b border-border">
             <span>Servicio</span>
             <span>Trámite</span>
             <span>Estado</span>
@@ -738,7 +739,7 @@ function TramiteRow({
       <span
         className={cn(
           "text-sm",
-          tramite.estado === "Activo" ? "text-foreground" : "text-subtle-foreground"
+          tramite.estado === "Activo" ? "text-foreground" : "text-muted-foreground"
         )}
       >
         {tramite.estado}
@@ -864,7 +865,7 @@ function PlanSeguridadSection({
         <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
           {/* Plan de seguridad */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-subtle-foreground">Plan de seguridad</span>
+            <span className="text-xs text-muted-foreground">Plan de seguridad</span>
             <DocumentAttachment
               nombre={section?.documento_nombre}
               uploadedAt={section?.documento_uploaded_at}

@@ -427,13 +427,13 @@ export default function FolderPlanUploadDialog({
               <>
                 <Loader2 className="mb-4 h-12 w-12 animate-spin text-foreground" />
                 <p className="text-xl text-foreground">Revisando archivos</p>
-                <p className="mt-2 text-sm text-subtle-foreground">Validando el contenido de cada PDF.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Validando el contenido de cada PDF.</p>
               </>
             ) : (
               <>
                 <FolderOpen className="mb-4 h-12 w-12 text-foreground" />
                 <p className="text-xl text-foreground">Suelta aquí la carpeta de planos</p>
-                <p className="mt-2 text-sm text-subtle-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                   También puedes seleccionarla desde tu equipo. Se mostrarán todos los archivos antes de subir.
                 </p>
                 <Button type="button" className="mt-6 rounded-sm" onClick={() => folderInputRef.current?.click()}>

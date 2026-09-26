@@ -72,7 +72,7 @@ export default function SaleTransactionConceptosModal() {
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Conceptos de Transacción de Venta</DialogTitle>
           {transaction?.factura && (
-            <p className="text-sm text-subtle-foreground">Factura: {transaction.factura}</p>
+            <p className="text-sm text-muted-foreground">Factura: {transaction.factura}</p>
           )}
         </DialogHeader>
 
@@ -86,19 +86,19 @@ export default function SaleTransactionConceptosModal() {
             <div className="bg-background rounded-none p-6">
               <div className="grid grid-cols-3 gap-6">
                 <div>
-                  <p className="text-sm text-subtle-foreground">Total Conceptos</p>
+                  <p className="text-sm text-muted-foreground">Total Conceptos</p>
                   <p className="text-2xl font-semibold text-foreground">
                     {transaction.lineItems?.length || 0}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-subtle-foreground">Monto Total</p>
+                  <p className="text-sm text-muted-foreground">Monto Total</p>
                   <p className="text-2xl font-semibold text-foreground">
                     {formatCurrency(transaction.monto_total)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-subtle-foreground">Fecha</p>
+                  <p className="text-sm text-muted-foreground">Fecha</p>
                   <p className="text-sm text-foreground">
                     {transaction.fecha
                       ? new Date(transaction.fecha.split("/").reverse().join("-")).toLocaleDateString("es-MX", {
@@ -114,7 +114,7 @@ export default function SaleTransactionConceptosModal() {
 
             {/* Line Items Table */}
             {!transaction.lineItems || transaction.lineItems.length === 0 ? (
-              <div className="text-center py-12 text-subtle-foreground">
+              <div className="text-center py-12 text-muted-foreground">
                 No hay conceptos registrados para esta transacción
               </div>
             ) : (
@@ -142,7 +142,7 @@ export default function SaleTransactionConceptosModal() {
                   <tbody className="divide-y divide-border">
                     {transaction.lineItems.map((item, index: number) => (
                       <tr key={item._id} className="hover:bg-background transition-colors">
-                        <td className="px-6 py-4 text-sm text-subtle-foreground">
+                        <td className="px-6 py-4 text-sm text-muted-foreground">
                           {index + 1}
                         </td>
                         <td className="px-6 py-4">
@@ -193,7 +193,7 @@ export default function SaleTransactionConceptosModal() {
                   {Object.values(groupedItems).map((group: GroupedItem, index: number) => (
                     <div key={index} className="border border-border rounded-none p-4">
                       <p className="text-sm font-medium text-foreground">{group.partida}</p>
-                      <p className="text-xs text-subtle-foreground">{group.familia}</p>
+                      <p className="text-xs text-muted-foreground">{group.familia}</p>
                       <div className="mt-2 flex items-center justify-between">
                         <Badge variant="outline" className="rounded-none text-xs">
                           {group.items.length} {group.items.length === 1 ? 'concepto' : 'conceptos'}

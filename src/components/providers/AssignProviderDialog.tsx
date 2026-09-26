@@ -124,21 +124,21 @@ export default function AssignProviderDialog({
                 aria-pressed={selected === ""}
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-border bg-card">
-                  <UserRoundX className="h-4 w-4 text-subtle-foreground" />
+                  <UserRoundX className="h-4 w-4 text-muted-foreground" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium">Sin proveedor</span>
-                  <span className="block text-xs text-subtle-foreground">Desvincular la transacción</span>
+                  <span className="block text-xs text-muted-foreground">Desvincular la transacción</span>
                 </span>
                 {selected === "" && <Check className="h-4 w-4 shrink-0" />}
               </button>
 
               {providers === undefined ? (
                 <div className="flex h-24 items-center justify-center">
-                  <Loader2 className="h-4 w-4 animate-spin text-subtle-foreground" />
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="flex h-24 items-center justify-center px-4 text-center text-sm text-subtle-foreground">
+                <div className="flex h-24 items-center justify-center px-4 text-center text-sm text-muted-foreground">
                   No se encontraron proveedores
                 </div>
               ) : filtered.map((provider) => {
@@ -157,7 +157,7 @@ export default function AssignProviderDialog({
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{provider.razon_social}</span>
-                      <span className="mt-0.5 flex items-center gap-2 text-xs text-subtle-foreground">
+                      <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{provider.rfc || "Sin RFC"}</span>
                         <span aria-hidden="true">·</span>
                         <span>{providerStatus}</span>

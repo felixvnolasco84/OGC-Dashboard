@@ -19,7 +19,6 @@ export type FamiliaItem = {
     familia: string;
     subPartidas: SubPartidaItem[];
     isExpanded: boolean;
-    isDirect: boolean; // True if familia has no sub-partidas and is a direct payment
     monto?: number; // For direct payments
     partida_id?: Id<"partidas"> | ""; // For direct payments
 };
@@ -49,7 +48,6 @@ type AddPaymentModalStore = {
     removeFamilia: (partidaId: string, familiaId: string) => void;
     updateFamilia: (partidaId: string, familiaId: string, familia: string) => void;
     toggleFamiliaExpanded: (partidaId: string, familiaId: string) => void;
-    toggleFamiliaDirect: (partidaId: string, familiaId: string) => void;
     updateFamiliaDirectPayment: (partidaId: string, familiaId: string, data: { monto?: number; partida_id?: Id<"partidas"> | "" }) => void;
     
     // SubPartida operations
@@ -72,7 +70,6 @@ const createEmptyFamilia = (): FamiliaItem => ({
     familia: "",
     subPartidas: [createEmptySubPartida()],
     isExpanded: true,
-    isDirect: false,
     monto: 0,
     partida_id: "",
 });
@@ -111,7 +108,7 @@ export const useAddPaymentModal = create<AddPaymentModalStore>((set) => ({
     
     updatePartida: (partidaId: string, partida: string) => set((state) => ({
         partidas: state.partidas.map(p => 
-            p.id === partidaId ? { ...p, partida } : p
+            p.id === partidaId ? { ...p, partida, familias: [createEmptyFamilia()] } : p
         )
     })),
     
@@ -144,7 +141,13 @@ export const useAddPaymentModal = create<AddPaymentModalStore>((set) => ({
                 ? {
                     ...p,
                     familias: p.familias.map(f => 
-                        f.id === familiaId ? { ...f, familia } : f
+                        f.id === familiaId ? {
+                            ...f,
+                            familia,
+                            monto: 0,
+                            partida_id: "",
+                            subPartidas: [createEmptySubPartida()],
+                        } : f
                     )
                 }
                 : p
@@ -158,19 +161,6 @@ export const useAddPaymentModal = create<AddPaymentModalStore>((set) => ({
                     ...p,
                     familias: p.familias.map(f => 
                         f.id === familiaId ? { ...f, isExpanded: !f.isExpanded } : f
-                    )
-                }
-                : p
-        )
-    })),
-    
-    toggleFamiliaDirect: (partidaId: string, familiaId: string) => set((state) => ({
-        partidas: state.partidas.map(p => 
-            p.id === partidaId 
-                ? {
-                    ...p,
-                    familias: p.familias.map(f => 
-                        f.id === familiaId ? { ...f, isDirect: !f.isDirect } : f
                     )
                 }
                 : p

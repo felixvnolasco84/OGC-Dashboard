@@ -130,13 +130,13 @@ export default function ProjectLocationsModal({
 
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <Globe2 className="h-4 w-4 text-subtle-foreground" />
+              <Globe2 className="h-4 w-4 text-muted-foreground" />
               Ubicaciones disponibles
             </div>
 
             <div className="divide-y border">
               {locations === undefined ? (
-                <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-subtle-foreground">
+                <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Cargando ubicaciones...
                 </div>

@@ -99,15 +99,15 @@ export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyT
         {/* Statistics */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-background p-4 rounded-lg">
-            <p className="text-xs text-subtle-foreground mb-1">Total Semanas</p>
+            <p className="text-xs text-muted-foreground mb-1">Total Semanas</p>
             <p className="text-2xl font-semibold">{weeklyTotalsData.length}</p>
           </div>
           <div className="bg-background p-4 rounded-lg">
-            <p className="text-xs text-subtle-foreground mb-1">Semanas con Datos</p>
+            <p className="text-xs text-muted-foreground mb-1">Semanas con Datos</p>
             <p className="text-2xl font-semibold">{nonZeroEntries.length}</p>
           </div>
           <div className="bg-background p-4 rounded-lg">
-            <p className="text-xs text-subtle-foreground mb-1">Total Proyectado</p>
+            <p className="text-xs text-muted-foreground mb-1">Total Proyectado</p>
             <p className="text-lg font-semibold">
               ${new Intl.NumberFormat('es-MX').format(Math.round(totalAmount))}
             </p>
@@ -142,7 +142,7 @@ export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyT
                   <span>{item.amount}</span>
                 </div>
               ))}
-              <p className="text-center text-subtle-foreground pt-2">
+              <p className="text-center text-muted-foreground pt-2">
                 ... y {weeklyTotalsData.length - 5} semanas más
               </p>
             </div>

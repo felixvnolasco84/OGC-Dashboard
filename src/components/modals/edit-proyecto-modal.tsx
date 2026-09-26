@@ -205,7 +205,7 @@ export default function EditProyectoModal() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-subtle-foreground">
+            <p className="text-xs text-muted-foreground">
               Opcional. Los proyectos sin asignación aparecen en Sin ubicación.
             </p>
           </div>
@@ -221,7 +221,7 @@ export default function EditProyectoModal() {
                 <SelectItem value="transacciones">Por transacciones de HONORARIOS</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-subtle-foreground">
+            <p className="text-xs text-muted-foreground">
               {honorariosModo === "transacciones"
                 ? "Suma los conceptos vinculados a la partida HONORARIOS, incluidas transacciones por pagar."
                 : "Calcula honorarios con el porcentaje y las partidas excluidas configuradas abajo."}
@@ -244,7 +244,7 @@ export default function EditProyectoModal() {
               step="0.01"
               className="rounded-none"
             />
-            <p className="text-xs text-subtle-foreground">
+            <p className="text-xs text-muted-foreground">
               {honorariosModo === "automatico"
                 ? "Porcentaje aplicado a la base de transacciones para calcular honorarios."
                 : "Se conserva para cuando vuelvas al modo automático."}
@@ -253,7 +253,7 @@ export default function EditProyectoModal() {
 
           {/* Partidas Exclusion Section */}
           {partidas === undefined ? (
-            <div className="flex items-center gap-2 border-t pt-4 text-sm text-subtle-foreground">
+            <div className="flex items-center gap-2 border-t pt-4 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Cargando partidas...
             </div>
@@ -265,7 +265,7 @@ export default function EditProyectoModal() {
                   <Label className="text-sm font-medium">
                     Excluir Partidas del Cálculo de Honorarios (Nivel 1)
                   </Label>
-                  <p className="text-xs text-subtle-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {honorariosModo === "automatico"
                       ? "Selecciona las partidas de nivel 1 que no se incluirán en el cálculo automático."
                       : "Las exclusiones se conservan para cuando vuelvas al modo automático."}
@@ -300,7 +300,7 @@ export default function EditProyectoModal() {
                         <span className="min-w-0 flex-1 truncate text-sm font-medium">
                           {partida.nombre}
                         </span>
-                        <span className="shrink-0 text-xs tabular-nums text-subtle-foreground">
+                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                           {new Intl.NumberFormat("es-MX", {
                             style: "currency",
                             currency: "MXN",
@@ -310,14 +310,14 @@ export default function EditProyectoModal() {
                       </label>
                     ))
                   ) : (
-                    <p className="px-4 py-6 text-center text-sm text-subtle-foreground">
+                    <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                       No se encontraron partidas
                     </p>
                   )}
                 </div>
               </div>
 
-              <p className="text-xs text-subtle-foreground">
+              <p className="text-xs text-muted-foreground">
                 {excludedPartidas.length > 0
                   ? `${excludedPartidas.length} partida${excludedPartidas.length > 1 ? 's' : ''} excluida${excludedPartidas.length > 1 ? 's' : ''} del cálculo`
                   : 'Ninguna partida excluida'}

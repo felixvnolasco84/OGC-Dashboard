@@ -4,7 +4,6 @@ import { useState } from "react"
 import { ChevronRight, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-// import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 // import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import {
     Id,
@@ -136,7 +135,7 @@ export function CollapsibleTable({ data }: { data: PartidaItem }) {
                                                         <div></div>
                                                         <div className="text-foreground">
                                                             <div className="font-medium">{subpartida.description}</div>
-                                                            <div className="text-sm text-subtle-foreground">{subpartida.specification}</div>
+                                                            <div className="text-sm text-muted-foreground">{subpartida.specification}</div>
                                                         </div>
                                                         <div className="flex justify-end">
                                                         </div>

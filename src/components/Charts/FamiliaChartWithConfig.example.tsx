@@ -62,7 +62,7 @@ export default function FamiliaChartWithConfig({
   if (isLoading) {
     return (
       <div className="w-full h-64 flex items-center justify-center bg-background rounded-lg">
-        <p className="text-subtle-foreground">Cargando configuración...</p>
+        <p className="text-muted-foreground">Cargando configuración...</p>
       </div>
     );
   }

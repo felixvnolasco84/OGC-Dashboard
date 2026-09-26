@@ -168,7 +168,7 @@ export default function ControlSalePage() {
 
     if (!proyecto || !budgetMetrics) {
         return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
-            <p className="text-subtle-foreground">Cargando datos...</p>
+            <p className="text-muted-foreground">Cargando datos...</p>
         </div>;
     }
 
@@ -179,7 +179,7 @@ export default function ControlSalePage() {
                 <div className="rounded-lg py-6">
                     <div className="flex items-start justify-between">
                         <div className="flex flex-col text-left">
-                            <p className="text-sm text-subtle-foreground mb-1">Proyecto</p>
+                            <p className="text-sm text-muted-foreground mb-1">Proyecto</p>
                             <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         {/* {selectedDesarrollo && (
@@ -210,7 +210,7 @@ export default function ControlSalePage() {
                                     </span>
                                 </div>
 
-                                {/* <div className="text-lg text-subtle-foreground">
+                                {/* <div className="text-lg text-muted-foreground">
                                     <span className="text-sm text-disabled-foreground">Total partidas: {metrics.totalPartidas}</span>
                                 </div> */}
                             </div>
@@ -227,7 +227,7 @@ export default function ControlSalePage() {
                                         ${formatNumber(Math.round(budgetMetrics.gasto_total || 0))}
                                     </span>
                                 </div>
-                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
                                     Avance {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.gasto_total / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
                                 </Badge>
                             </div>
@@ -244,7 +244,7 @@ export default function ControlSalePage() {
                                         ${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}
                                     </span>
                                 </div>
-                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-subtle-foreground rounded-xl border-border-strong">
+                                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
                                     Pendiente {budgetMetrics.presupuesto_aprobado > 0 ? Math.round((budgetMetrics.por_gastar / budgetMetrics.presupuesto_aprobado) * 100) : 0}%
                                 </Badge>
                             </div>
@@ -256,12 +256,12 @@ export default function ControlSalePage() {
                 <div className="bg-card">
                     <div className="grid grid-cols-3 items-center space-x-12">
                         <div className="flex flex-col items-start space-y-1 text-left border-b border-border-strong py-2 h-full">
-                            <span className="text-xs text-subtle-foreground">Proyecto</span>
+                            <span className="text-xs text-muted-foreground">Proyecto</span>
                             <div className="text-foreground">{proyecto.nombre}</div>
                         </div>
 
                         <div className="flex flex-col space-y-1 text-left border-b border-border-strong py-2">
-                            <span className="text-xs text-subtle-foreground">Rango de fecha</span>
+                            <span className="text-xs text-muted-foreground">Rango de fecha</span>
                             <Select value={selectedRangoFecha} onValueChange={setSelectedRangoFecha}>
                                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-foreground focus:ring-0">
                                     <SelectValue />
@@ -277,7 +277,7 @@ export default function ControlSalePage() {
                         </div>
 
                         <div className="flex flex-col space-y-1 text-left border-b border-border-strong py-2">
-                            <span className="text-xs text-subtle-foreground">Periodo</span>
+                            <span className="text-xs text-muted-foreground">Periodo</span>
                             <Select value={selectedPeriodo} onValueChange={setSelectedPeriodo}>
                                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-normal text-foreground focus:ring-0">
                                     <SelectValue />
@@ -363,7 +363,7 @@ export default function ControlSalePage() {
                         {/* Chart 1 - Ventas por Categoria */}
                         {chart1Config.isLoading ? (
                             <div className="flex items-center justify-center h-64 bg-background rounded-lg">
-                                <p className="text-subtle-foreground">Cargando configuración...</p>
+                                <p className="text-muted-foreground">Cargando configuración...</p>
                             </div>
                         ) : (
                             <FamiliaChart
@@ -383,7 +383,7 @@ export default function ControlSalePage() {
                         {/* Chart 2 - Pagos Recibidos */}
                         {chart2Config.isLoading ? (
                             <div className="flex items-center justify-center h-64 bg-background rounded-lg">
-                                <p className="text-subtle-foreground">Cargando configuración...</p>
+                                <p className="text-muted-foreground">Cargando configuración...</p>
                             </div>
                         ) : (
                             <FamiliaChart

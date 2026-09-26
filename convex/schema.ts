@@ -123,6 +123,8 @@ export default defineSchema({
     banco: v.optional(v.string()),
     tarjeta: v.optional(v.string()),
     numero_cuenta: v.optional(v.string()),
+    clabe: v.optional(v.string()),
+    payment_account_id: v.optional(v.id("payment_accounts")),
     numero_transferencia: v.optional(v.string()),
     // Reference and documents
     codigo_referencia: v.optional(v.string()),
@@ -498,6 +500,39 @@ export default defineSchema({
       filterFields: ["list_is_complete", "list_is_archived", "list_is_generic"],
     }),
 
+  payment_accounts: defineTable({
+    scope_key: v.string(),
+    provider_id: v.id("proveedores"),
+    alias: v.string(),
+    banco: v.string(),
+    numero_cuenta: v.optional(v.string()),
+    clabe: v.optional(v.string()),
+    identity_key: v.string(),
+    status: v.union(v.literal("active"), v.literal("pending_review"), v.literal("archived")),
+    source: v.union(v.literal("manual"), v.literal("transaction"), v.literal("provider")),
+    created_by: v.optional(v.id("users")),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_scope_provider", { fields: ["scope_key", "provider_id"] })
+    .index("by_scope_provider_key", { fields: ["scope_key", "provider_id", "identity_key"] })
+    .index("by_provider", { fields: ["provider_id"] }),
+
+  payment_account_candidates: defineTable({
+    scope_key: v.string(),
+    source_key: v.string(),
+    provider_id: v.optional(v.id("proveedores")),
+    source_transaction_id: v.optional(v.id("transacciones")),
+    banco: v.optional(v.string()),
+    numero_cuenta: v.optional(v.string()),
+    clabe: v.optional(v.string()),
+    reason: v.string(),
+    status: v.union(v.literal("pending"), v.literal("resolved"), v.literal("rejected")),
+    resolved_account_id: v.optional(v.id("payment_accounts")),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_source_key", { fields: ["source_key"] })
+    .index("by_scope_status", { fields: ["scope_key", "status"] }),
+
   provider_project_stats: defineTable({
     provider_id: v.id("proveedores"),
     proyecto_id: v.id("desarrollos"),
@@ -801,6 +836,15 @@ export default defineSchema({
     archivo_origen: v.optional(v.string()),
     fila_origen: v.optional(v.number()),
     importacion_id: v.optional(v.id("ogc_movimientos_importaciones")),
+    captura_token: v.optional(v.string()),
+    factura_referencia: v.optional(v.string()),
+    factura_comprobante: v.optional(v.object({
+      storage_id: v.id("_storage"),
+      nombre: v.string(),
+      type: v.string(),
+      size: v.number(),
+      uploaded_at: v.number(),
+    })),
     nota_recepcion_status: v.optional(v.union(v.literal("parcial"), v.literal("completa"))),
     nota_recepcion_storage_id: v.optional(v.id("_storage")),
     nota_recepcion_nombre: v.optional(v.string()),
@@ -839,6 +883,7 @@ export default defineSchema({
     .index("by_fecha", { fields: ["fecha"] })
     .index("by_organization", { fields: ["organization_id"] })
     .index("by_importacion", { fields: ["importacion_id"] })
+    .index("by_captura_token", { fields: ["captura_token"] })
     .index("by_duplicate_key", { fields: ["duplicate_key"] })
     .index("by_status", { fields: ["status"] }),
 

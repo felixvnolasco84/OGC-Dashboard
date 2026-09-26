@@ -70,7 +70,7 @@ export default function SaleTransactionDetailsModal() {
             <div className="bg-background rounded-none p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-subtle-foreground">Monto Total</p>
+                  <p className="text-sm text-muted-foreground">Monto Total</p>
                   <p className="text-3xl font-semibold text-foreground">
                     {formatCurrency(transaction.monto_total, transaction.moneda)}
                   </p>

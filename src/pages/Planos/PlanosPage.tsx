@@ -644,7 +644,7 @@ export default function PlanosPage() {
   };
 
   if (!projectId || project === null) {
-    return <div className="flex min-h-screen items-center justify-center bg-card text-sm text-subtle-foreground">Proyecto no encontrado o sin acceso.</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-card text-sm text-muted-foreground">Proyecto no encontrado o sin acceso.</div>;
   }
   if (project === undefined || plans === undefined || planFolders === undefined || currentUser === undefined || (selectedPlanId && !planDetail)) {
     return <div className="flex min-h-screen items-center justify-center bg-card"><Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" /></div>;
@@ -737,7 +737,7 @@ export default function PlanosPage() {
               <button type="button" onClick={() => navigate(`/proyecto/${projectId}/planos`)} className="mb-3 inline-flex items-center gap-2 text-sm" style={{ color: UI_COLORS.textSoft }}>
                 <ArrowLeft className="h-4 w-4" />Biblioteca de planos
               </button>
-              <p className="text-sm text-subtle-foreground">{project?.nombre} · Plano</p>
+              <p className="text-sm text-muted-foreground">{project?.nombre} · Plano</p>
               <div className="mt-1 flex flex-wrap items-center gap-3">
                 <h1 className="truncate text-3xl font-normal text-foreground">{planDetail.titulo}</h1>
                 <span className="inline-flex items-center gap-2 rounded-sm px-2.5 py-1 text-xs" style={{ backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>
@@ -898,7 +898,7 @@ export default function PlanosPage() {
     <div className="relative min-h-screen bg-card text-left" onDragEnter={handleFolderDragEnter} onDragLeave={handleFolderDragLeave} onDragOver={handleFolderDragOver} onDrop={(event) => void handleFolderDrop(event)}>
       {isDraggingFolder && (
         <div className="pointer-events-none absolute inset-3 z-40 flex items-center justify-center border-2 border-dashed border-foreground bg-card/95">
-          <div className="max-w-md px-6 text-center"><Upload className="mx-auto mb-4 h-12 w-12 text-foreground" /><p className="text-xl text-foreground">Suelta la carpeta de planos para agregarla</p><p className="mt-2 text-sm text-subtle-foreground">Podrás revisar nombres, formatos, Disciplina y Estado antes de subir.</p></div>
+          <div className="max-w-md px-6 text-center"><Upload className="mx-auto mb-4 h-12 w-12 text-foreground" /><p className="text-xl text-foreground">Suelta la carpeta de planos para agregarla</p><p className="mt-2 text-sm text-muted-foreground">Podrás revisar nombres, formatos, Disciplina y Estado antes de subir.</p></div>
         </div>
       )}
       <div className="border-b border-border px-6 py-8 lg:px-16">
@@ -948,7 +948,7 @@ export default function PlanosPage() {
                 ))}
               </div>
             )}
-            {!currentFolder && <p className="text-sm text-subtle-foreground">Proyecto</p>}
+            {!currentFolder && <p className="text-sm text-muted-foreground">Proyecto</p>}
             <h1 className="mt-1 break-words text-3xl font-normal text-foreground">{currentLocationName}</h1>
             <p className="mt-2 text-sm" style={{ color: UI_COLORS.muted }}>
               {currentFolder

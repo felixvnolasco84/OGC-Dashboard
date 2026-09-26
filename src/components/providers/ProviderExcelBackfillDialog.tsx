@@ -397,7 +397,7 @@ export default function ProviderExcelBackfillDialog({
               {file ? (
                 <div className="space-y-3">
                   <FileSpreadsheet className="mx-auto h-10 w-10 text-green-600" />
-                  <div><p className="font-medium">{file.name}</p><p className="text-xs text-subtle-foreground">{(file.size / 1024).toFixed(1)} KB</p></div>
+                  <div><p className="font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p></div>
                   <Button type="button" variant="outline" onClick={() => document.getElementById("provider-backfill-file")?.click()} disabled={busy}>Cambiar archivo</Button>
                 </div>
               ) : (
@@ -417,7 +417,7 @@ export default function ProviderExcelBackfillDialog({
                   event.target.value = "";
                 }}
               />
-              <p className="mt-4 text-xs text-subtle-foreground">Columnas requeridas: ADMINISTRACIÓN, MONTO, FECHA, PROVEEDOR, FACTURA, TIPO DE PAGO y MONEDA.</p>
+              <p className="mt-4 text-xs text-muted-foreground">Columnas requeridas: ADMINISTRACIÓN, MONTO, FECHA, PROVEEDOR, FACTURA, TIPO DE PAGO y MONEDA.</p>
             </div>
           )}
 
@@ -441,8 +441,8 @@ export default function ProviderExcelBackfillDialog({
           {parsed && preview && !result && (
             <>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                <div className="bg-background p-3 text-center"><strong className="text-2xl">{parsed.rowCount}</strong><p className="text-xs text-subtle-foreground">Filas</p></div>
-                <div className="bg-background p-3 text-center"><strong className="text-2xl">{preview.counts.scanned}</strong><p className="text-xs text-subtle-foreground">Transacciones</p></div>
+                <div className="bg-background p-3 text-center"><strong className="text-2xl">{parsed.rowCount}</strong><p className="text-xs text-muted-foreground">Filas</p></div>
+                <div className="bg-background p-3 text-center"><strong className="text-2xl">{preview.counts.scanned}</strong><p className="text-xs text-muted-foreground">Transacciones</p></div>
                 <div className="bg-blue-50 p-3 text-center"><strong className="text-2xl text-blue-700">{newProviderCount}</strong><p className="text-xs text-blue-700">Proveedores nuevos</p></div>
                 <div className="bg-green-50 p-3 text-center"><strong className="text-2xl text-green-700">{readyTransactionCount(preview)}</strong><p className="text-xs text-green-700">Se actualizarán</p></div>
                 <div className="bg-amber-50 p-3 text-center"><strong className="text-2xl text-amber-800">{pendingCount(preview.counts)}</strong><p className="text-xs text-amber-800">Pendientes</p></div>
@@ -455,12 +455,12 @@ export default function ProviderExcelBackfillDialog({
                     <div key={row.source_key} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b px-4 py-3 last:border-0">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{row.invoice} · {row.provider_name}</p>
-                        <p className="text-xs text-subtle-foreground">{row.project_name} · {row.date} · {formatCurrency(row.amount_total, row.currency)} · filas {formatSourceRows(row.source_rows)}</p>
+                        <p className="text-xs text-muted-foreground">{row.project_name} · {row.date} · {formatCurrency(row.amount_total, row.currency)} · filas {formatSourceRows(row.source_rows)}</p>
                         {row.project_match_mode === "alias" && row.matched_project_name && (
                           <p className="text-xs text-blue-700">Proyecto detectado: {row.matched_project_name}</p>
                         )}
                         {row.matched_provider_name && row.matched_provider_name !== row.provider_name && (
-                          <p className="text-xs text-subtle-foreground">Catálogo: {row.matched_provider_name}</p>
+                          <p className="text-xs text-muted-foreground">Catálogo: {row.matched_provider_name}</p>
                         )}
                         {row.match_mode === "historical_tolerance" && row.matched_transaction_date && (
                           <p className="text-xs text-blue-700">Coincidencia histórica: guardada el {row.matched_transaction_date} por {formatCurrency(row.matched_transaction_amount ?? row.amount_total, row.currency)}.</p>
@@ -498,7 +498,7 @@ export default function ProviderExcelBackfillDialog({
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-blue-50 p-3 text-center"><strong className="text-2xl text-blue-700">{result.counts.providers_created}</strong><p className="text-xs text-blue-700">Proveedores creados</p></div>
                 <div className="bg-green-50 p-3 text-center"><strong className="text-2xl text-green-700">{result.counts.updated}</strong><p className="text-xs text-green-700">Transacciones vinculadas</p></div>
-                <div className="bg-background p-3 text-center"><strong className="text-2xl">{result.counts.already_assigned}</strong><p className="text-xs text-subtle-foreground">Ya asignadas</p></div>
+                <div className="bg-background p-3 text-center"><strong className="text-2xl">{result.counts.already_assigned}</strong><p className="text-xs text-muted-foreground">Ya asignadas</p></div>
               </div>
             </div>
           )}
