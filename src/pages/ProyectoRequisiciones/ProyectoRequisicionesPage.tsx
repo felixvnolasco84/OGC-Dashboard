@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
     getRequisicionNotificationConfig,
+    isValidRemissionPhoto,
     REQUISICION_NOTIFICATION_MATRIX,
     type RequisicionNotificationType,
 } from "@/lib/requisicionNotificationMatrix";
@@ -82,6 +83,10 @@ export default function ProyectoRequisicionesPage() {
     const [notificationMessage, setNotificationMessage] = useState("");
     const [isSendingNotification, setIsSendingNotification] = useState(false);
     const [statusHistoryDialogOpen, setStatusHistoryDialogOpen] = useState(false);
+    const [onsitePaymentReqId, setOnsitePaymentReqId] = useState<Id<"requisiciones"> | null>(null);
+    const [onsitePaymentAmount, setOnsitePaymentAmount] = useState("");
+    const [onsitePaymentReason, setOnsitePaymentReason] = useState("");
+    const [isRequestingOnsitePayment, setIsRequestingOnsitePayment] = useState(false);
     const [pendingStatusChange, setPendingStatusChange] = useState<{
         requisicionId: Id<"requisiciones">;
         targetStage?: PipelineStageKey;
@@ -95,6 +100,9 @@ export default function ProyectoRequisicionesPage() {
     const [isSubmittingStatusHistory, setIsSubmittingStatusHistory] = useState(false);
     const isMarkingAsPaid = pendingStatusChange?.targetStage === "pagadas"
         || pendingStatusChange?.paymentStatus === "Pagado";
+    const isReceivingMaterials = pendingStatusChange?.targetStage === "recibidas"
+        || pendingStatusChange?.deliveryStatus === "Parcial"
+        || pendingStatusChange?.deliveryStatus === "Completo";
 
     // Inline review state
     const [editedQuantities, setEditedQuantities] = useState<Record<string, number>>({});
@@ -114,6 +122,7 @@ export default function ProyectoRequisicionesPage() {
     const reviewRequisicionMutation = useMutation(api.requisiciones.reviewRequisicion);
     const reviewSingleItemMutation = useMutation(api.requisiciones.reviewSingleItem);
     const generateRequisicionUploadUrl = useMutation(api.requisiciones.generateUploadUrl);
+    const requestOnsitePayment = useMutation(api.requisiciones.requestOnsitePayment);
     const createProveedor = useMutation(api.proveedores.create);
 
     // Fetch all proveedores
@@ -156,7 +165,7 @@ export default function ProyectoRequisicionesPage() {
     // Get current user info for permission check
     const currentUser = useQuery(api.users.getCurrentUser);
     const updateProveedor = useMutation(api.proveedores.update);
-    const markAsRead = useMutation(api.requisicion_history.markAsRead);
+    const unreadRequisiciones = useQuery(api.requisicion_history.getUnreadRequisiciones, proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip");
     const sendEmailNotification = useAction(api.requisiciones.sendEmailNotification);
 
     const requisicionModal = useRequisicionModal();
@@ -173,16 +182,6 @@ export default function ProyectoRequisicionesPage() {
             requisicionId: requisicion._id,
         }, "view");
     }, [proyectoId, requisicionModal, requisiciones, searchParams]);
-
-    // Mark requisiciones as read when page loads
-    useEffect(() => {
-        if (currentUser?._id && proyectoId) {
-            markAsRead({
-                user_id: currentUser._id,
-                proyecto: proyectoId as Id<"desarrollos">
-            });
-        }
-    }, [currentUser?._id, proyectoId, markAsRead]);
 
     // Parse date from DD/MM/YYYY format to comparable value
     const parseDateForSort = (dateStr: string): number => {
@@ -310,7 +309,7 @@ export default function ProyectoRequisicionesPage() {
     const selectedNotificationConfig = getRequisicionNotificationConfig(notificationType);
     const emailRecipients = useQuery(
         api.requisiciones.getEmailRecipients,
-        proyectoId && currentUser
+        proyectoId && (currentUser?.role === "admin" || currentUser?.role === "finance")
             ? {
                 proyecto: proyectoId as Id<"desarrollos">,
                 notification_type: notificationType,
@@ -321,7 +320,7 @@ export default function ProyectoRequisicionesPage() {
     );
     const notificationEvents = useQuery(
         api.requisiciones.getNotificationEventsByProyecto,
-        proyectoId
+        proyectoId && (currentUser?.role === "admin" || currentUser?.role === "finance")
             ? {
                 proyecto: proyectoId as Id<"desarrollos">,
                 limit: 5,
@@ -395,6 +394,27 @@ export default function ProyectoRequisicionesPage() {
             });
         } finally {
             setIsSendingNotification(false);
+        }
+    };
+
+    const handleRequestOnsitePayment = async () => {
+        if (!onsitePaymentReqId || isRequestingOnsitePayment) return;
+        const importe = Number(onsitePaymentAmount);
+        if (!Number.isFinite(importe) || importe <= 0 || !onsitePaymentReason.trim()) {
+            toast.error("Ingresa un importe y motivo válidos");
+            return;
+        }
+        setIsRequestingOnsitePayment(true);
+        try {
+            await requestOnsitePayment({ id: onsitePaymentReqId, importe, motivo: onsitePaymentReason.trim() });
+            toast.success("Solicitud de pago en obra enviada");
+            setOnsitePaymentReqId(null);
+            setOnsitePaymentAmount("");
+            setOnsitePaymentReason("");
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "No se pudo solicitar el pago");
+        } finally {
+            setIsRequestingOnsitePayment(false);
         }
     };
 
@@ -564,10 +584,7 @@ export default function ProyectoRequisicionesPage() {
 
             toast.success("Pipeline actualizado");
         } catch (error) {
-            console.error("Error updating requisicion pipeline:", error);
-            toast.error("Error al actualizar", {
-                description: error instanceof Error ? error.message : "No se pudo actualizar el pipeline.",
-            });
+            throw error;
         } finally {
             setUpdatingPipelineReqId(null);
         }
@@ -693,10 +710,7 @@ export default function ProyectoRequisicionesPage() {
                 description: `La requisición ahora está "${newStatus}".`,
             });
         } catch (error) {
-            console.error("Error updating status:", error);
-            toast.error("Error al actualizar", {
-                description: "No se pudo actualizar el estado de pago.",
-            });
+            throw error;
         }
     };
 
@@ -720,10 +734,7 @@ export default function ProyectoRequisicionesPage() {
                 description: `La entrega ahora está "${newStatus}".`,
             });
         } catch (error) {
-            console.error("Error updating delivery status:", error);
-            toast.error("Error al actualizar", {
-                description: "No se pudo actualizar el estado de entrega.",
-            });
+            throw error;
         }
     };
 
@@ -748,7 +759,9 @@ export default function ProyectoRequisicionesPage() {
             requisicionId: req._id,
             targetStage,
             title: `Cambiar a ${stageLabel}`,
-            description: "Registra el motivo del cambio. Puedes adjuntar un comprobante, factura, evidencia de entrega u otro soporte.",
+            description: targetStage === "recibidas"
+                ? "Registra la recepción de materiales. Puedes tomar o elegir una foto de la nota de remisión."
+                : "Registra el motivo del cambio. Puedes adjuntar un comprobante, factura u otro soporte.",
         });
         setStatusHistoryComment("");
         setStatusHistoryDocument(null);
@@ -778,7 +791,9 @@ export default function ProyectoRequisicionesPage() {
             requisicionId: req._id,
             deliveryStatus,
             title: `Cambiar entrega a ${deliveryStatus}`,
-            description: "Agrega un comentario para el historial. El documento es opcional y puede ser evidencia de entrega o remisión.",
+            description: deliveryStatus === "Parcial" || deliveryStatus === "Completo"
+                ? "Agrega un comentario para el historial. Puedes tomar o elegir una foto de la nota de remisión."
+                : "Agrega un comentario para el historial del cambio.",
         });
         setStatusHistoryComment("");
         setStatusHistoryDocument(null);
@@ -787,6 +802,9 @@ export default function ProyectoRequisicionesPage() {
 
     const uploadStatusHistoryDocument = async (): Promise<StatusHistoryDocument[] | undefined> => {
         if (!statusHistoryDocument) return undefined;
+        if (isReceivingMaterials && !isValidRemissionPhoto(statusHistoryDocument)) {
+            throw new Error("Selecciona una foto de la remisión menor a 10 MB.");
+        }
 
         const uploadUrl = await generateRequisicionUploadUrl();
         const uploadResult = await fetch(uploadUrl, {
@@ -811,8 +829,8 @@ export default function ProyectoRequisicionesPage() {
     const handleConfirmStatusHistory = async () => {
         if (!pendingStatusChange) return;
         const comment = statusHistoryComment.trim() || undefined;
-        if (!comment && !isMarkingAsPaid) {
-            toast.error("Agrega un comentario para registrar el cambio.");
+        if (!comment && !isMarkingAsPaid && !(isReceivingMaterials && statusHistoryDocument)) {
+            toast.error(isReceivingMaterials ? "Agrega un comentario o una foto de la remisión." : "Agrega un comentario para registrar el cambio.");
             return;
         }
 
@@ -1038,6 +1056,9 @@ export default function ProyectoRequisicionesPage() {
                             <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex gap-2">
+                            {(currentUser?.role === "admin" || currentUser?.role === "finance") && <Button onClick={() => setEmailDialogOpen(true)} variant="outline" className="font-normal">
+                                <Mail className="h-4 w-4 mr-2" /> Notificaciones
+                            </Button>}
                             {/*<Button
                                 onClick={() => setEmailDialogOpen(true)}
                                 variant="outline"
@@ -1278,6 +1299,8 @@ export default function ProyectoRequisicionesPage() {
                                             <Badge variant="outline" className="w-fit mt-1">
                                                 {materialsBadgeText}
                                             </Badge>
+                                            {!!unreadRequisiciones?.[req._id] && <Badge className="mt-1 w-fit bg-blue-600 text-white">{unreadRequisiciones[req._id]} sin leer</Badge>}
+                                            {req.pago_obra?.estado === "pendiente" && <Badge variant="outline" className="mt-1 w-fit border-amber-500 text-amber-700">Pago en obra pendiente · ${req.pago_obra.importe.toLocaleString("es-MX")}</Badge>}
                                         </div>
 
                                         {/* Fecha Entrega */}
@@ -1380,6 +1403,16 @@ export default function ProyectoRequisicionesPage() {
                                                         <Eye className="h-4 w-4 " />
                                                         Ver detalles
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem className="gap-2" onClick={() => historyModal.openSingleHistory(proyectoId as Id<"desarrollos">, req._id)}>
+                                                        <Clock className="h-4 w-4" /> Historial
+                                                    </DropdownMenuItem>
+                                                    {(currentUser?.role === "admin" || currentUser?.role === "user" || (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) &&
+                                                        (req.status_revision === "Aprobada" || req.status_revision === "Parcialmente Aprobada") &&
+                                                        req.status !== "Pagado" && req.status !== "Cancelado" && req.pago_obra?.estado !== "pendiente" && (
+                                                        <DropdownMenuItem className="gap-2" onClick={() => { setOnsitePaymentReqId(req._id); setOnsitePaymentAmount(""); setOnsitePaymentReason(""); }}>
+                                                            <CreditCard className="h-4 w-4" /> Solicitar pago en obra
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" ||
                                                         (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
                                                             <DropdownMenuItem
@@ -1668,6 +1701,37 @@ export default function ProyectoRequisicionesPage() {
                 </div>
             </div>
 
+            <Dialog
+                open={!!onsitePaymentReqId}
+                onOpenChange={(open) => {
+                    if (!open && !isRequestingOnsitePayment) setOnsitePaymentReqId(null);
+                }}
+            >
+                <DialogContent className="max-w-lg rounded-none">
+                    <DialogHeader>
+                        <DialogTitle>Solicitar pago en obra</DialogTitle>
+                        <DialogDescription>Finanzas y Administración recibirán un aviso vinculado a esta requisición.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="onsite-payment-amount">Importe solicitado (MXN)</Label>
+                            <Input id="onsite-payment-amount" type="number" min="0.01" step="0.01" value={onsitePaymentAmount} onChange={(e) => setOnsitePaymentAmount(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="onsite-payment-reason">Motivo</Label>
+                            <Textarea id="onsite-payment-reason" maxLength={500} value={onsitePaymentReason} onChange={(e) => setOnsitePaymentReason(e.target.value)} placeholder="Describe el pago que debe hacerse en obra" />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setOnsitePaymentReqId(null)} disabled={isRequestingOnsitePayment}>Cancelar</Button>
+                            <Button onClick={handleRequestOnsitePayment} disabled={isRequestingOnsitePayment || !onsitePaymentReason.trim() || !(Number(onsitePaymentAmount) > 0)}>
+                                {isRequestingOnsitePayment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Enviar solicitud
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={statusHistoryDialogOpen} onOpenChange={(open) => {
                 if (!open && !isSubmittingStatusHistory) resetStatusHistoryDialog();
                 else setStatusHistoryDialogOpen(open);
@@ -1691,7 +1755,9 @@ export default function ProyectoRequisicionesPage() {
                                 <p>
                                     {isMarkingAsPaid
                                         ? "El cambio queda guardado en el historial. El comentario y el comprobante de pago son opcionales."
-                                        : "El comentario queda guardado en el historial del cambio. El documento es opcional para respaldar la aprobacion, pago o entrega."}
+                                        : isReceivingMaterials
+                                            ? "La recepción queda en el historial. La foto de la nota de remisión es opcional."
+                                            : "El comentario queda guardado en el historial del cambio. El documento es opcional para respaldar la aprobación o el pago."}
                                 </p>
                             </div>
                         </div>
@@ -1699,7 +1765,7 @@ export default function ProyectoRequisicionesPage() {
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2 text-foreground">
                                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                {isMarkingAsPaid ? "Comentario opcional" : "Comentario *"}
+                                {isMarkingAsPaid ? "Comentario opcional" : isReceivingMaterials ? "Comentario (opcional con foto)" : "Comentario *"}
                             </Label>
                             <Textarea
                                 value={statusHistoryComment}
@@ -1712,9 +1778,18 @@ export default function ProyectoRequisicionesPage() {
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2 text-foreground">
                                 <FileUp className="h-4 w-4 text-muted-foreground" />
-                                Documento opcional
+                                {isReceivingMaterials ? "Foto de nota de remisión (opcional)" : "Documento opcional"}
                             </Label>
-                            <label className="flex cursor-pointer items-center justify-between gap-3 border border-dashed border-border-strong px-4 py-3 text-sm text-muted-foreground hover:border-[#7EC18E]">
+                            {isReceivingMaterials ? <div className="flex flex-wrap gap-2">
+                                <label className="cursor-pointer border border-dashed border-border-strong px-4 py-3 text-sm text-muted-foreground hover:border-[#7EC18E]">
+                                    Tomar foto
+                                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { setStatusHistoryDocument(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+                                </label>
+                                <label className="cursor-pointer border border-dashed border-border-strong px-4 py-3 text-sm text-muted-foreground hover:border-[#7EC18E]">
+                                    Elegir foto
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { setStatusHistoryDocument(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+                                </label>
+                            </div> : <label className="flex cursor-pointer items-center justify-between gap-3 border border-dashed border-border-strong px-4 py-3 text-sm text-muted-foreground hover:border-[#7EC18E]">
                                 <span className="flex min-w-0 items-center gap-2">
                                     <Paperclip className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                                     <span className="truncate">
@@ -1727,7 +1802,8 @@ export default function ProyectoRequisicionesPage() {
                                     className="hidden"
                                     onChange={(e) => setStatusHistoryDocument(e.target.files?.[0] ?? null)}
                                 />
-                            </label>
+                            </label>}
+                            {statusHistoryDocument && <p className="text-xs text-muted-foreground">Archivo seleccionado: {statusHistoryDocument.name}</p>}
                             {statusHistoryDocument && (
                                 <button
                                     type="button"
@@ -1753,7 +1829,7 @@ export default function ProyectoRequisicionesPage() {
                                 type="button"
                                 className="rounded-none bg-[#50AC66] hover:bg-[#499b5c]"
                                 onClick={handleConfirmStatusHistory}
-                                disabled={isSubmittingStatusHistory || (!isMarkingAsPaid && !statusHistoryComment.trim())}
+                                disabled={isSubmittingStatusHistory || (!isMarkingAsPaid && !statusHistoryComment.trim() && !(isReceivingMaterials && statusHistoryDocument))}
                             >
                                 {isSubmittingStatusHistory && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Guardar cambio
@@ -1785,7 +1861,7 @@ export default function ProyectoRequisicionesPage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {REQUISICION_NOTIFICATION_MATRIX.map((item) => (
+                                        {REQUISICION_NOTIFICATION_MATRIX.filter(item => item.type !== "onsite_payment_requested").map((item) => (
                                             <SelectItem key={item.type} value={item.type}>
                                                 {item.label}
                                             </SelectItem>
@@ -1879,14 +1955,17 @@ export default function ProyectoRequisicionesPage() {
                                                             </p>
                                                         </div>
                                                         <Badge variant="secondary" className="shrink-0 rounded-none text-[10px] uppercase">
-                                                            {event.status}
+                                                            {({ pending: "En proceso", sent: "Enviado", partial: "Parcial", failed: "Fallido", no_recipients: "Sin destinatarios" } as Record<string, string>)[event.status] || event.status}
                                                         </Badge>
                                                     </div>
                                                     <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                                                        <span>Enviados: {event.sent_count}</span>
-                                                        <span>Fallidos: {event.failed_count}</span>
-                                                        <span>Leidos: {readCount}</span>
+                                                        <span>Correos enviados: {event.sent_count}</span>
+                                                        <span>Correos fallidos: {event.failed_count}</span>
+                                                        <span>Leídos en app: {readCount}</span>
                                                     </div>
+                                                    {event.deliveries.filter(delivery => delivery.channel === "email" && delivery.status === "failed").map(delivery => (
+                                                        <p key={delivery._id} className="mt-2 text-xs text-red-700">{delivery.recipient_email}: {delivery.error || "No se pudo enviar el correo"}</p>
+                                                    ))}
                                                 </div>
                                             );
                                         })

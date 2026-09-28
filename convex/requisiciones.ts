@@ -1,65 +1,15 @@
-import { action, mutation, query, type MutationCtx } from "./_generated/server";
+import { action, internalAction, internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import { api, internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { canUserAccessDesarrollo, getCurrentUserOrThrow } from "./permissions";
+import { renderRequisicionEmail } from "./requisicionEmailTemplates";
+import { getRequisicionNotificationConfig, isValidRemissionPhoto, notificationForStatusTransition, requisitionDetailUrl, shouldNotifyRequisitionUser, validateOnsitePaymentRequest, type RequisicionNotificationType } from "../src/lib/requisicionNotificationMatrix";
 
-const OGC_LOGO_URL = "https://www.ogc.mx/_next/static/media/Logo.a1dfe6e3.svg";
 // Convex self-references in actions can create circular inference without this narrowed escape hatch.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const convexApi = api as any;
 
-const REQUISICION_NOTIFICATION_MATRIX = [
-    {
-        type: "created",
-        actionLabel: "creo una requisicion",
-        subject: "Nueva requisicion",
-        defaultMessage: "Hay una nueva requisicion pendiente de revision en el proyecto.",
-        audience: ["project_admins", "finance_team"],
-        requiresRequisition: true,
-    },
-    {
-        type: "updated",
-        actionLabel: "actualizo una requisicion",
-        subject: "Requisicion actualizada",
-        defaultMessage: "Hay una actualizacion en una requisicion del proyecto.",
-        audience: ["project_admins", "finance_team", "requester"],
-        requiresRequisition: true,
-    },
-    {
-        type: "reviewed",
-        actionLabel: "reviso una requisicion",
-        subject: "Requisicion revisada",
-        defaultMessage: "La requisicion fue revisada. Consulta el resultado y los comentarios.",
-        audience: ["requester", "project_admins", "finance_team"],
-        requiresRequisition: true,
-    },
-    {
-        type: "assigned",
-        actionLabel: "asigno proveedor",
-        subject: "Proveedor asignado",
-        defaultMessage: "Se asigno un proveedor a la requisicion.",
-        audience: ["requester", "project_admins", "finance_team"],
-        requiresRequisition: true,
-    },
-    {
-        type: "payment",
-        actionLabel: "actualizo pago",
-        subject: "Pago actualizado",
-        defaultMessage: "El estado de pago de la requisicion fue actualizado.",
-        audience: ["requester", "project_admins", "finance_team"],
-        requiresRequisition: true,
-    },
-    {
-        type: "delivery",
-        actionLabel: "actualizo entrega",
-        subject: "Entrega actualizada",
-        defaultMessage: "El estado de entrega de la requisicion fue actualizado.",
-        audience: ["requester", "project_admins", "finance_team"],
-        requiresRequisition: true,
-    },
-] as const;
-
-type RequisicionNotificationAudience = typeof REQUISICION_NOTIFICATION_MATRIX[number]["audience"][number];
 type RequisicionEmailUser = {
     _id: Id<"users">;
     name: string;
@@ -67,12 +17,7 @@ type RequisicionEmailUser = {
     role: string;
     allowed_desarrollos: Id<"desarrollos">[];
     invitation_status?: string;
-};
-type RequisicionNotificationContext = {
-    proyecto: Id<"desarrollos">;
-    requisicion?: {
-        solicitante_id: Id<"users">;
-    } | null;
+    organization_id?: string;
 };
 type RequisicionEmailRecipient = {
     _id: Id<"users">;
@@ -81,31 +26,75 @@ type RequisicionEmailRecipient = {
     role: string;
 };
 
-function getRequisicionNotificationConfig(type: string) {
-    const config = REQUISICION_NOTIFICATION_MATRIX.find((item) => item.type === type);
-    if (!config) {
-        throw new Error("Tipo de notificacion no soportado");
-    }
-    return config;
-}
-
-function canReceiveProjectNotification(user: RequisicionEmailUser, proyecto: Id<"desarrollos">) {
+function canReceiveProjectNotification(user: RequisicionEmailUser, proyecto: Doc<"desarrollos">) {
     if (!user.email?.trim()) return false;
     if (user.invitation_status === "pending") return false;
-    return user.allowed_desarrollos.includes(proyecto) || user.role === "admin" || user.role === "finance";
+    return canUserAccessDesarrollo(user, proyecto);
 }
 
-function matchesNotificationAudience(
-    audience: readonly RequisicionNotificationAudience[],
-    user: RequisicionEmailUser,
-    context: RequisicionNotificationContext
-) {
-    return audience.some((audienceKey) => {
-        if (audienceKey === "project_admins") return user.role === "admin";
-        if (audienceKey === "finance_team") return user.role === "finance";
-        if (audienceKey === "requester") return context.requisicion?.solicitante_id === user._id;
-        return false;
+async function recordAutomaticNotification(ctx: MutationCtx, args: {
+    requisicion: Doc<"requisiciones">;
+    type: RequisicionNotificationType;
+    actor: Doc<"users">;
+    historyId: Id<"requisicion_history">;
+    message?: string;
+}) {
+    const config = getRequisicionNotificationConfig(args.type);
+    const project = await ctx.db.get(args.requisicion.proyecto);
+    if (!project) return;
+    const users = await ctx.db.query("users").collect();
+    const actorEmail = args.actor.email.trim().toLowerCase();
+    const recipientsByEmail = new Map<string, Doc<"users">>();
+    for (const user of users) {
+        const email = user.email.trim().toLowerCase();
+        if (email === actorEmail || !shouldNotifyRequisitionUser({
+            type: args.type,
+            userId: String(user._id),
+            actorId: String(args.actor._id),
+            requesterId: String(args.requisicion.solicitante_id),
+            role: user.role,
+            email,
+            invitationStatus: user.invitation_status,
+            hasProjectAccess: canUserAccessDesarrollo(user, project),
+        })) continue;
+        if (!recipientsByEmail.has(email)) recipientsByEmail.set(email, user);
+    }
+    const recipients = [...recipientsByEmail.values()];
+    if (recipients.length === 0) return;
+    const now = Date.now();
+    const eventId = await ctx.db.insert("notification_events", {
+        proyecto: args.requisicion.proyecto,
+        requisicion_id: args.requisicion._id,
+        source_history_id: args.historyId,
+        type: args.type,
+        subject: `${config.subject} - ${project.nombre}`,
+        message: args.message || config.defaultMessage,
+        actor_id: args.actor._id,
+        actor_name: args.actor.name || args.actor.email,
+        channel: "app_email",
+        status: "pending",
+        recipient_count: recipients.length,
+        sent_count: 0,
+        failed_count: 0,
+        created_at: now,
     });
+    for (const user of recipients) {
+        for (const channel of ["in_app", "email"] as const) {
+            await ctx.db.insert("notification_deliveries", {
+                notification_event_id: eventId,
+                proyecto: args.requisicion.proyecto,
+                requisicion_id: args.requisicion._id,
+                recipient_user_id: user._id,
+                recipient_name: user.name || user.email,
+                recipient_email: user.email.trim().toLowerCase(),
+                channel,
+                status: channel === "in_app" ? "sent" : "pending",
+                created_at: now,
+                sent_at: channel === "in_app" ? now : undefined,
+            });
+        }
+    }
+    await ctx.scheduler.runAfter(0, internal.requisiciones.dispatchAutomaticEmail, { event_id: eventId });
 }
 
 const requisicionStatusDocumentValidator = v.object({
@@ -126,6 +115,7 @@ async function createRequisicionHistoryDocuments(
             type: string;
             size: number;
         }>;
+        categoria?: string;
         uploaded_by_id: Id<"users">;
         uploaded_by_name: string;
     }
@@ -136,6 +126,7 @@ async function createRequisicionHistoryDocuments(
         const documentoId = await ctx.db.insert("requisicion_documentos", {
             requisicion_id: args.requisicion_id,
             proyecto: args.proyecto,
+            categoria: args.categoria,
             storage_id: documento.storage_id,
             nombre: documento.nombre,
             type: documento.type,
@@ -150,96 +141,102 @@ async function createRequisicionHistoryDocuments(
     return documentoIds;
 }
 
-function escapeHtml(value: string) {
-    return value
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+export const claimAutomaticEmailPayload = internalMutation({
+    args: { event_id: v.id("notification_events") },
+    handler: async (ctx, args) => {
+        const event = await ctx.db.get(args.event_id);
+        if (!event || event.channel !== "app_email") return null;
+        const project = await ctx.db.get(event.proyecto);
+        const requisicion = event.requisicion_id ? await ctx.db.get(event.requisicion_id) : null;
+        const deliveries = await ctx.db.query("notification_deliveries")
+            .withIndex("by_event", q => q.eq("notification_event_id", args.event_id)).collect();
+        const pending = [];
+        for (const delivery of deliveries) {
+            if (delivery.channel !== "email" || delivery.status !== "pending") continue;
+            await ctx.db.patch(delivery._id, { status: "sending" });
+            const recipient = delivery.recipient_user_id ? await ctx.db.get(delivery.recipient_user_id) : null;
+            pending.push({ ...delivery, canSend: Boolean(requisicion && project && recipient && recipient.invitation_status !== "pending" && canUserAccessDesarrollo(recipient, project)) });
+        }
+        return { event, projectName: project?.nombre || "Proyecto", requisicion, deliveries: pending };
+    },
+});
 
-function renderRequisicionEmail(args: {
-    actorName: string;
-    actionLabel: string;
-    projectName: string;
-    requisicionTitle: string;
-    statusLabel: string;
-    message: string;
-    ctaUrl: string;
-}) {
-    const actorName = escapeHtml(args.actorName);
-    const actionLabel = escapeHtml(args.actionLabel);
-    const projectName = escapeHtml(args.projectName);
-    const requisicionTitle = escapeHtml(args.requisicionTitle);
-    const statusLabel = escapeHtml(args.statusLabel);
-    const message = escapeHtml(args.message);
-    const ctaUrl = escapeHtml(args.ctaUrl);
-    const initials = actorName
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join("") || "OG";
+export const finishAutomaticEmail = internalMutation({
+    args: {
+        event_id: v.id("notification_events"),
+        outcomes: v.array(v.object({
+            delivery_id: v.id("notification_deliveries"),
+            status: v.union(v.literal("sent"), v.literal("failed")),
+            provider_message_id: v.optional(v.string()),
+            error: v.optional(v.string()),
+        })),
+    },
+    handler: async (ctx, args) => {
+        let sent = 0;
+        let failed = 0;
+        for (const outcome of args.outcomes) {
+            const delivery = await ctx.db.get(outcome.delivery_id);
+            if (!delivery || delivery.notification_event_id !== args.event_id || delivery.status !== "sending") continue;
+            await ctx.db.patch(delivery._id, {
+                status: outcome.status,
+                provider_message_id: outcome.provider_message_id,
+                error: outcome.error,
+                sent_at: outcome.status === "sent" ? Date.now() : undefined,
+            });
+            if (outcome.status === "sent") sent++;
+            else failed++;
+        }
+        await ctx.db.patch(args.event_id, {
+            status: failed ? sent ? "partial" : "failed" : "sent",
+            sent_count: sent,
+            failed_count: failed,
+            sent_at: Date.now(),
+        });
+    },
+});
 
-    return `<!doctype html>
-<html>
-  <body style="margin:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#202124;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f4f6;padding:28px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:672px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #ececec;">
-            <tr>
-              <td align="center" style="padding:34px 32px 28px;">
-                <img src="${OGC_LOGO_URL}" alt="OGC" style="display:block;height:54px;max-width:190px;width:auto;" />
-              </td>
-            </tr>
-            <tr>
-              <td style="height:4px;background:#20243d;font-size:0;line-height:0;">&nbsp;</td>
-            </tr>
-            <tr>
-              <td style="padding:72px 56px 52px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td valign="top" width="58">
-                      <div style="width:48px;height:48px;border-radius:8px;background:#eef3f1;color:#20243d;font-size:16px;font-weight:700;line-height:48px;text-align:center;">${initials}</div>
-                    </td>
-                    <td style="padding-left:18px;">
-                      <div style="font-size:28px;line-height:1.45;color:#292b33;font-weight:400;">
-                        <strong style="font-weight:400;">${actorName}</strong>
-                        <span style="color:#0073ea;"> ${actionLabel}</span>
-                        <span> en </span>
-                        <strong style="font-weight:700;color:#202124;">${requisicionTitle}</strong>
-                      </div>
-                      <div style="padding-top:12px;font-size:18px;line-height:1.4;color:#5b6170;">
-                        <span style="color:#50AC66;">●</span>
-                        <span> ${projectName}</span>
-                        <span style="padding:0 8px;color:#8b9099;">›</span>
-                        <span>${statusLabel}</span>
-                      </div>
-                      <div style="padding-top:34px;font-size:16px;line-height:1.5;color:#5b6170;">
-                        ${new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}
-                      </div>
-                      <p style="margin:24px 0 42px;font-size:20px;line-height:1.55;color:#202124;">${message}</p>
-                      <table role="presentation" cellspacing="0" cellpadding="0" align="center" style="margin:0 auto;">
-                        <tr>
-                          <td bgcolor="#0073ea" style="border-radius:5px;">
-                            <a href="${ctaUrl}" style="display:inline-block;padding:15px 32px;color:#ffffff;text-decoration:none;font-size:18px;font-weight:700;">Ver requisiciones</a>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
-}
+export const dispatchAutomaticEmail = internalAction({
+    args: { event_id: v.id("notification_events") },
+    handler: async (ctx, args) => {
+        const payload = await ctx.runMutation(internal.requisiciones.claimAutomaticEmailPayload, args);
+        if (!payload || payload.deliveries.length === 0) return;
+        const resendApiKey = process.env.RESEND_API_KEY;
+        const from = process.env.RESEND_FROM_EMAIL;
+        const appUrl = (process.env.APP_URL || process.env.SITE_URL || "").replace(/\/$/, "");
+        const config = getRequisicionNotificationConfig(payload.event.type);
+        const ctaUrl = requisitionDetailUrl(appUrl, payload.event.proyecto, payload.event.requisicion_id);
+        const html = renderRequisicionEmail({
+            actorName: payload.event.actor_name,
+            actionLabel: config.actionLabel,
+            projectName: payload.projectName,
+            requisicionTitle: payload.requisicion?.descripcion || "Requisición",
+            statusLabel: config.label,
+            message: payload.event.message || config.defaultMessage,
+            ctaUrl,
+            logoUrl: `${appUrl}/OGC-LOGO.svg`,
+            occurredAt: payload.event.created_at,
+        });
+        const outcomes = await Promise.all(payload.deliveries.map(async (delivery) => {
+            if (!delivery.canSend) return { delivery_id: delivery._id, status: "failed" as const, error: "Destinatario sin acceso vigente al proyecto" };
+            if (!resendApiKey || !from || !appUrl) {
+                return { delivery_id: delivery._id, status: "failed" as const, error: "Falta configurar Resend o APP_URL" };
+            }
+            try {
+                const response = await fetch("https://api.resend.com/emails", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ from, to: [delivery.recipient_email], subject: payload.event.subject, html }),
+                });
+                const result = await response.json().catch(() => null);
+                if (!response.ok) throw new Error(result?.message || `Resend: ${response.status}`);
+                return { delivery_id: delivery._id, status: "sent" as const, provider_message_id: result?.id as string | undefined };
+            } catch (error) {
+                return { delivery_id: delivery._id, status: "failed" as const, error: error instanceof Error ? error.message : "Error al enviar" };
+            }
+        }));
+        await ctx.runMutation(internal.requisiciones.finishAutomaticEmail, { event_id: args.event_id, outcomes });
+    },
+});
 
 export const getEmailRecipients = query({
     args: {
@@ -262,13 +259,10 @@ export const getEmailRecipients = query({
         if (!currentUser) {
             throw new Error("Unauthorized");
         }
+        if (!["admin", "finance"].includes(currentUser.role)) throw new Error("Sin permisos para enviar avisos manuales");
 
-        const canAccessProject =
-            currentUser.allowed_desarrollos.includes(args.proyecto) ||
-            currentUser.role === "admin" ||
-            currentUser.role === "finance";
-
-        if (!canAccessProject) {
+        const project = await ctx.db.get(args.proyecto);
+        if (!project || !canUserAccessDesarrollo(currentUser, project)) {
             throw new Error("Unauthorized");
         }
 
@@ -285,15 +279,17 @@ export const getEmailRecipients = query({
 
         const users = (await ctx.db.query("users").collect()) as RequisicionEmailUser[];
         const recipients = users
-            .filter((user) => canReceiveProjectNotification(user, args.proyecto))
-            .filter((user) =>
-                config
-                    ? matchesNotificationAudience(config.audience as readonly RequisicionNotificationAudience[], user, {
-                        proyecto: args.proyecto,
-                        requisicion,
-                    })
-                    : true
-            );
+            .filter((user) => canReceiveProjectNotification(user, project))
+            .filter((user) => config ? shouldNotifyRequisitionUser({
+                type: config.type,
+                userId: String(user._id),
+                actorId: args.exclude_current_user ? String(currentUser._id) : "",
+                requesterId: String(requisicion?.solicitante_id || ""),
+                role: user.role,
+                email: user.email,
+                invitationStatus: user.invitation_status,
+                hasProjectAccess: canReceiveProjectNotification(user, project),
+            }) : true);
 
         const recipientsByEmail = new Map<string, {
             _id: Id<"users">;
@@ -322,7 +318,7 @@ export const getEmailRecipients = query({
     },
 });
 
-export const createNotificationEvent = mutation({
+export const createNotificationEvent = internalMutation({
     args: {
         proyecto: v.id("desarrollos"),
         requisicion_id: v.optional(v.id("requisiciones")),
@@ -382,7 +378,7 @@ export const createNotificationEvent = mutation({
     },
 });
 
-export const finalizeNotificationEvent = mutation({
+export const finalizeNotificationEvent = internalMutation({
     args: {
         event_id: v.id("notification_events"),
         deliveries: v.array(v.object({
@@ -437,6 +433,10 @@ export const getNotificationEventsByProyecto = query({
         limit: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        if (!["admin", "finance"].includes(actor.role)) throw new Error("Sin permisos para consultar los envíos");
+        const project = await ctx.db.get(args.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
         const events = await ctx.db
             .query("notification_events")
             .withIndex("by_proyecto_created", (q) => q.eq("proyecto", args.proyecto))
@@ -464,12 +464,14 @@ export const sendEmailNotification = action({
         message: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
+        if (args.notification_type === "onsite_payment_requested") throw new Error("El pago en obra se solicita desde la requisición");
         const config = getRequisicionNotificationConfig(args.notification_type);
 
         const currentUser = await ctx.runQuery(convexApi.users.getCurrentUser);
         if (!currentUser) {
             throw new Error("Not authenticated");
         }
+        if (!["admin", "finance"].includes(currentUser.role)) throw new Error("Sin permisos para enviar avisos manuales");
 
         const proyecto = await ctx.runQuery(convexApi.desarrollos.getById, { id: args.proyecto });
         if (!proyecto) {
@@ -510,7 +512,7 @@ export const sendEmailNotification = action({
                 delivery_id: Id<"notification_deliveries">;
                 recipient_email: string;
             }>;
-        } = await ctx.runMutation(convexApi.requisiciones.createNotificationEvent, {
+        } = await ctx.runMutation(internal.requisiciones.createNotificationEvent, {
             proyecto: args.proyecto,
             requisicion_id: args.requisicion_id,
             type: args.notification_type,
@@ -528,7 +530,7 @@ export const sendEmailNotification = action({
         });
 
         if (recipientsToNotify.length === 0) {
-            await ctx.runMutation(convexApi.requisiciones.finalizeNotificationEvent, {
+            await ctx.runMutation(internal.requisiciones.finalizeNotificationEvent, {
                 event_id: notificationEvent.eventId,
                 deliveries: [],
             });
@@ -545,7 +547,7 @@ export const sendEmailNotification = action({
                 : null;
 
         if (configurationError) {
-            await ctx.runMutation(convexApi.requisiciones.finalizeNotificationEvent, {
+            await ctx.runMutation(internal.requisiciones.finalizeNotificationEvent, {
                 event_id: notificationEvent.eventId,
                 deliveries: notificationEvent.deliveries.map((delivery) => ({
                     delivery_id: delivery.delivery_id,
@@ -556,7 +558,7 @@ export const sendEmailNotification = action({
             throw new Error(configurationError);
         }
 
-        const ctaUrl = `${appUrl}/proyecto/${args.proyecto}/requisiciones`;
+        const ctaUrl = requisitionDetailUrl(appUrl, args.proyecto, args.requisicion_id);
         const html = renderRequisicionEmail({
             actorName: currentUser.name || currentUser.email,
             actionLabel: config.actionLabel,
@@ -565,6 +567,8 @@ export const sendEmailNotification = action({
             statusLabel,
             message,
             ctaUrl,
+            logoUrl: `${appUrl}/OGC-LOGO.svg`,
+            occurredAt: Date.now(),
         });
 
         const emailResults = await Promise.allSettled(
@@ -600,7 +604,7 @@ export const sendEmailNotification = action({
         const failedResults = emailResults.filter((result) => result.status === "rejected");
         const sentAt = Date.now();
 
-        await ctx.runMutation(convexApi.requisiciones.finalizeNotificationEvent, {
+        await ctx.runMutation(internal.requisiciones.finalizeNotificationEvent, {
             event_id: notificationEvent.eventId,
             deliveries: emailResults.map((result, index) => {
                 const delivery = notificationEvent.deliveries[index];
@@ -640,6 +644,7 @@ export const sendEmailNotification = action({
 
 // Generate upload URL for requisicion documents
 export const generateUploadUrl = mutation(async (ctx) => {
+    await getCurrentUserOrThrow(ctx);
     return await ctx.storage.generateUploadUrl();
 });
 
@@ -647,6 +652,13 @@ export const generateUploadUrl = mutation(async (ctx) => {
 export const getDocumentUrl = query({
     args: { storageId: v.id("_storage") },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        const document = await ctx.db.query("requisicion_documentos")
+            .withIndex("by_storage_id", q => q.eq("storage_id", args.storageId)).first();
+        if (!document) return null;
+        const requisicion = await ctx.db.get(document.requisicion_id);
+        const project = await ctx.db.get(document.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project) || (actor.role === "contratista" && requisicion?.solicitante_id !== actor._id)) throw new Error("Sin acceso al documento");
         return await ctx.storage.getUrl(args.storageId);
     },
 });
@@ -655,8 +667,15 @@ export const getDocumentUrl = query({
 export const deleteDocument = mutation({
     args: { id: v.id("requisicion_documentos") },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
         const doc = await ctx.db.get(args.id);
         if (doc) {
+            const requisicion = await ctx.db.get(doc.requisicion_id);
+            const project = await ctx.db.get(doc.proyecto);
+            if (!requisicion || !project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || actor.role === "user" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para eliminar el documento");
+            const history = await ctx.db.query("requisicion_history")
+                .withIndex("by_requisicion", q => q.eq("requisicion_id", doc.requisicion_id)).collect();
+            if (history.some(item => item.documento_ids?.includes(doc._id))) throw new Error("La evidencia del historial no se puede eliminar");
             // Delete from storage
             await ctx.storage.delete(doc.storage_id);
             // Delete record
@@ -672,14 +691,18 @@ export const getByProyecto = query({
         proyecto: v.id("desarrollos"),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        const project = await ctx.db.get(args.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
         const requisiciones = await ctx.db
             .query("requisiciones")
             .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
             .collect();
+        const visibleRequisiciones = actor.role === "contratista" ? requisiciones.filter(req => req.solicitante_id === actor._id) : requisiciones;
         
         // Enrich with items, proveedor, and documents data
         const enriched = await Promise.all(
-            requisiciones.map(async (req) => {
+            visibleRequisiciones.map(async (req) => {
                 const rawItems = await ctx.db
                     .query("requisicion_items")
                     .withIndex("by_requisicion", (q) => q.eq("requisicion_id", req._id))
@@ -763,8 +786,11 @@ export const getById = query({
         id: v.id("requisiciones"),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
         const requisicion = await ctx.db.get(args.id);
         if (!requisicion) return null;
+        const project = await ctx.db.get(requisicion.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project) || (actor.role === "contratista" && requisicion.solicitante_id !== actor._id)) throw new Error("Sin acceso a la requisición");
         
         const items = await ctx.db
             .query("requisicion_items")
@@ -775,12 +801,15 @@ export const getById = query({
             .query("requisicion_documentos")
             .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.id))
             .collect();
+        const history = await ctx.db.query("requisicion_history")
+            .withIndex("by_requisicion", q => q.eq("requisicion_id", args.id)).collect();
+        const lockedDocumentIds = new Set(history.flatMap(item => item.documento_ids || []).map(String));
         
         // Enrich documents with URLs
         const enrichedDocuments = await Promise.all(
             documentos.map(async (doc) => {
                 const url = await ctx.storage.getUrl(doc.storage_id);
-                return { ...doc, url };
+                return { ...doc, url, locked: lockedDocumentIds.has(String(doc._id)) };
             })
         );
         
@@ -826,6 +855,9 @@ export const create = mutation({
         })),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        const project = await ctx.db.get(args.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project) || actor._id !== args.solicitante_id || !["admin", "user", "contratista"].includes(actor.role)) throw new Error("Sin permisos para crear la requisición");
         const { items, ...requisicionData } = args;
         
         // Create requisicion with default statuses
@@ -854,7 +886,7 @@ export const create = mutation({
         // Log history with detailed info
         const familias = [...new Set(items.map(i => i.familia))];
         const totalMonto = items.reduce((sum, i) => sum + (i.monto || 0), 0);
-        await ctx.db.insert("requisicion_history", {
+        const historyId = await ctx.db.insert("requisicion_history", {
             proyecto: args.proyecto,
             requisicion_id: requisicionId,
             action: "created",
@@ -872,6 +904,8 @@ export const create = mutation({
             changed_by_name: args.solicitante_nombre,
             created_at: Date.now(),
         });
+        const created = await ctx.db.get(requisicionId);
+        if (created) await recordAutomaticNotification(ctx, { requisicion: created, type: "created", actor, historyId });
         
         return requisicionId;
     },
@@ -888,14 +922,24 @@ export const updateStatus = mutation({
         changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        if (actor._id !== args.changed_by_id || !["admin", "finance"].includes(actor.role)) throw new Error("Sin permisos para actualizar el pago");
         const requisicion = await ctx.db.get(args.id);
         if (!requisicion) throw new Error("Requisicion not found");
+        const project = await ctx.db.get(requisicion.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
+        if (requisicion.status === args.status) return { success: true };
         
         const oldStatus = requisicion.status;
         const now = Date.now();
         
         await ctx.db.patch(args.id, {
             status: args.status,
+            pago_obra: args.status === "Pagado" && requisicion.pago_obra?.estado === "pendiente"
+                ? { ...requisicion.pago_obra, estado: "pagado" as const }
+                : args.status === "Cancelado" && requisicion.pago_obra?.estado === "pendiente"
+                    ? { ...requisicion.pago_obra, estado: "cancelada" as const }
+                : requisicion.pago_obra,
             updated_at: now,
         });
 
@@ -908,7 +952,7 @@ export const updateStatus = mutation({
         });
         
         // Log history with requisicion context
-        await ctx.db.insert("requisicion_history", {
+        const historyId = await ctx.db.insert("requisicion_history", {
             proyecto: requisicion.proyecto,
             requisicion_id: args.id,
             action: "status_changed",
@@ -935,7 +979,41 @@ export const updateStatus = mutation({
             changed_by_name: args.changed_by_name,
             created_at: now,
         });
+        if (notificationForStatusTransition("payment", oldStatus, args.status)) await recordAutomaticNotification(ctx, {
+            requisicion, type: "payment", actor, historyId,
+            message: args.comentario || "La requisición se marcó como pagada.",
+        });
         
+        return { success: true };
+    },
+});
+
+// Update requisicion delivery status
+export const requestOnsitePayment = mutation({
+    args: { id: v.id("requisiciones"), importe: v.number(), motivo: v.string() },
+    handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        const requisicion = await ctx.db.get(args.id);
+        if (!requisicion) throw new Error("Requisición no encontrada");
+        const project = await ctx.db.get(requisicion.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || actor.role === "user" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para solicitar el pago");
+        const motivo = validateOnsitePaymentRequest({ statusRevision: requisicion.status_revision, status: requisicion.status, paymentState: requisicion.pago_obra?.estado, amount: args.importe, reason: args.motivo });
+        const now = Date.now();
+        await ctx.db.patch(args.id, {
+            pago_obra: { importe: args.importe, motivo, solicitado_por_id: actor._id, solicitado_por_nombre: actor.name || actor.email, solicitado_at: now, estado: "pendiente" },
+            updated_at: now,
+        });
+        const historyId = await ctx.db.insert("requisicion_history", {
+            proyecto: requisicion.proyecto,
+            requisicion_id: args.id,
+            action: "onsite_payment_requested",
+            new_value: JSON.stringify({ importe: args.importe, motivo, moneda: "MXN" }),
+            comentario: motivo,
+            changed_by_id: actor._id,
+            changed_by_name: actor.name || actor.email,
+            created_at: now,
+        });
+        await recordAutomaticNotification(ctx, { requisicion, type: "onsite_payment_requested", actor, historyId, message: `Pago en obra por $${args.importe.toLocaleString("es-MX")} MXN. ${motivo}` });
         return { success: true };
     },
 });
@@ -951,8 +1029,19 @@ export const updateStatusEntrega = mutation({
         changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        if (actor._id !== args.changed_by_id) throw new Error("Usuario no autorizado");
         const requisicion = await ctx.db.get(args.id);
         if (!requisicion) throw new Error("Requisicion not found");
+        const project = await ctx.db.get(requisicion.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || actor.role === "user" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para registrar la entrega");
+        if (requisicion.status_entrega === args.status_entrega) return { success: true };
+        if (args.status_entrega === "Parcial" || args.status_entrega === "Completo") {
+            for (const doc of args.documentos ?? []) {
+                const metadata = await ctx.storage.getMetadata(doc.storage_id);
+                if (!metadata || !isValidRemissionPhoto({ type: metadata.contentType || "", size: metadata.size })) throw new Error("La foto de remisión debe ser una imagen menor a 10 MB");
+            }
+        }
         
         const oldStatusEntrega = requisicion.status_entrega;
         const now = Date.now();
@@ -966,12 +1055,13 @@ export const updateStatusEntrega = mutation({
             requisicion_id: args.id,
             proyecto: requisicion.proyecto,
             documentos: args.documentos,
+            categoria: args.status_entrega === "Parcial" || args.status_entrega === "Completo" ? "nota_remision" : undefined,
             uploaded_by_id: args.changed_by_id,
             uploaded_by_name: args.changed_by_name,
         });
         
         // Log history with requisicion context
-        await ctx.db.insert("requisicion_history", {
+        const historyId = await ctx.db.insert("requisicion_history", {
             proyecto: requisicion.proyecto,
             requisicion_id: args.id,
             action: "status_entrega_changed",
@@ -998,6 +1088,10 @@ export const updateStatusEntrega = mutation({
             changed_by_name: args.changed_by_name,
             created_at: now,
         });
+        if (notificationForStatusTransition("delivery", oldStatusEntrega, args.status_entrega)) await recordAutomaticNotification(ctx, {
+            requisicion, type: "delivery", actor, historyId,
+            message: `Entrega ${args.status_entrega.toLowerCase()} registrada${args.documentos?.length ? " con nota de remisión" : ""}.`,
+        });
         
         return { success: true };
     },
@@ -1011,13 +1105,19 @@ export const cancel = mutation({
         changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        if (actor._id !== args.changed_by_id) throw new Error("Usuario no autorizado");
         const requisicion = await ctx.db.get(args.id);
         if (!requisicion) throw new Error("Requisicion not found");
+        const project = await ctx.db.get(requisicion.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || requisicion.solicitante_id === actor._id)) throw new Error("Sin permisos para cancelar la requisición");
+        if (requisicion.status === "Cancelado") return { success: true };
         
         const oldStatus = requisicion.status;
         
         await ctx.db.patch(args.id, {
             status: "Cancelado",
+            pago_obra: requisicion.pago_obra?.estado === "pendiente" ? { ...requisicion.pago_obra, estado: "cancelada" as const } : requisicion.pago_obra,
             updated_at: Date.now(),
         });
         
@@ -1051,6 +1151,10 @@ export const addDocument = mutation({
         uploaded_by_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        const requisicion = await ctx.db.get(args.requisicion_id);
+        const project = await ctx.db.get(args.proyecto);
+        if (actor._id !== args.uploaded_by_id || !requisicion || requisicion.proyecto !== args.proyecto || !project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || actor.role === "user" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para adjuntar el documento");
         const docId = await ctx.db.insert("requisicion_documentos", {
             requisicion_id: args.requisicion_id,
             proyecto: args.proyecto,
@@ -1099,9 +1203,13 @@ export const update = mutation({
     },
     handler: async (ctx, args) => {
         const { id, items, changed_by_id, changed_by_name, ...updateData } = args;
+        const actor = await getCurrentUserOrThrow(ctx);
+        if (actor._id !== changed_by_id) throw new Error("Usuario no autorizado");
         
         const requisicion = await ctx.db.get(id);
         if (!requisicion) throw new Error("Requisicion not found");
+        const project = await ctx.db.get(requisicion.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || actor.role === "user" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para editar la requisición");
         
         // Fetch old items for comparison
         const oldItems = await ctx.db
@@ -1197,7 +1305,7 @@ export const update = mutation({
         // Log one history entry per changed field
         if (fieldDiffs.length > 0) {
             for (const diff of fieldDiffs) {
-                await ctx.db.insert("requisicion_history", {
+                const historyId = await ctx.db.insert("requisicion_history", {
                     proyecto: requisicion.proyecto,
                     requisicion_id: id,
                     action: "updated",
@@ -1207,6 +1315,10 @@ export const update = mutation({
                     changed_by_id: changed_by_id,
                     changed_by_name: changed_by_name,
                     created_at: Date.now(),
+                });
+                if (diff.field === "proveedor") await recordAutomaticNotification(ctx, {
+                    requisicion, type: "assigned", actor, historyId,
+                    message: `Se asignó el proveedor ${diff.new_val}.`,
                 });
             }
         }
@@ -1246,8 +1358,12 @@ export const deleteRequisicion = mutation({
         changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        if (actor._id !== args.changed_by_id) throw new Error("Usuario no autorizado");
         const requisicion = await ctx.db.get(args.id);
         if (!requisicion) throw new Error("Requisicion not found");
+        const project = await ctx.db.get(requisicion.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para eliminar la requisición");
 
         const items = await ctx.db
             .query("requisicion_items")
@@ -1295,6 +1411,11 @@ export const deleteRequisicion = mutation({
         }
         
         // Delete the requisicion
+        const notificationDeliveries = await ctx.db.query("notification_deliveries")
+            .withIndex("by_requisicion", q => q.eq("requisicion_id", args.id)).collect();
+        for (const delivery of notificationDeliveries) {
+            if (delivery.channel === "in_app" && !delivery.read_at) await ctx.db.patch(delivery._id, { status: "read", read_at: Date.now() });
+        }
         await ctx.db.delete(args.id);
         
         return {
@@ -1322,8 +1443,12 @@ export const reviewRequisicion = mutation({
         })),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        if (actor._id !== args.reviewer_id || !["admin", "finance"].includes(actor.role)) throw new Error("Sin permisos para revisar la requisición");
         const requisicion = await ctx.db.get(args.id);
         if (!requisicion) throw new Error("Requisicion not found");
+        const project = await ctx.db.get(requisicion.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
         
         // Patch each item with review decision
         for (const itemDecision of args.items) {
@@ -1403,7 +1528,7 @@ export const reviewRequisicion = mutation({
             };
         });
         
-        await ctx.db.insert("requisicion_history", {
+        const historyId = await ctx.db.insert("requisicion_history", {
             proyecto: requisicion.proyecto,
             requisicion_id: args.id,
             action: "reviewed",
@@ -1434,6 +1559,10 @@ export const reviewRequisicion = mutation({
             changed_by_name: args.reviewer_name,
             created_at: Date.now(),
         });
+        if (notificationForStatusTransition("review", requisicion.status_revision, overallStatus)) await recordAutomaticNotification(ctx, {
+            requisicion, type: "reviewed", actor, historyId,
+            message: `La requisición fue ${overallStatus.toLowerCase()}. ${args.nota_revision || args.comentario || "Consulta el detalle de la revisión."}`,
+        });
         
         return { success: true, status_revision: overallStatus };
     },
@@ -1449,8 +1578,13 @@ export const reviewSingleItem = mutation({
         reviewer_name: v.string(),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        if (actor._id !== args.reviewer_id || !["admin", "finance"].includes(actor.role)) throw new Error("Sin permisos para revisar la requisición");
         const item = await ctx.db.get(args.item_id);
         if (!item) throw new Error("Item not found");
+        const target = await ctx.db.get(item.requisicion_id);
+        const project = target ? await ctx.db.get(target.proyecto) : null;
+        if (!target || !project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
         
         // Update this item
         await ctx.db.patch(args.item_id, {
@@ -1481,8 +1615,7 @@ export const reviewSingleItem = mutation({
         ).length;
         const totalCount = allItems.length;
         
-        // If at least one item approved → "Aprobada", all rejected → "Rechazada"
-        const overallStatus = approvedCount > 0 ? "Aprobada" : "Rechazada";
+        const overallStatus = approvedCount === totalCount ? "Aprobada" : approvedCount === 0 ? "Rechazada" : "Parcialmente Aprobada";
         
         const requisicion = await ctx.db.get(item.requisicion_id);
         
@@ -1508,7 +1641,7 @@ export const reviewSingleItem = mutation({
                 status_revision: i._id === args.item_id ? args.status_revision : i.status_revision,
             }));
             
-            await ctx.db.insert("requisicion_history", {
+            const historyId = await ctx.db.insert("requisicion_history", {
                 proyecto: requisicion.proyecto,
                 requisicion_id: item.requisicion_id,
                 action: "reviewed",
@@ -1527,6 +1660,10 @@ export const reviewSingleItem = mutation({
                 changed_by_id: args.reviewer_id,
                 changed_by_name: args.reviewer_name,
                 created_at: Date.now(),
+            });
+            if (notificationForStatusTransition("review", requisicion.status_revision, overallStatus)) await recordAutomaticNotification(ctx, {
+                requisicion, type: "reviewed", actor, historyId,
+                message: `La requisición fue ${overallStatus.toLowerCase()}. Consulta el resultado de la revisión.`,
             });
         }
         

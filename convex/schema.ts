@@ -959,6 +959,14 @@ export default defineSchema({
     revisado_por_id: v.optional(v.id("users")),
     revisado_por_nombre: v.optional(v.string()),
     revisado_at: v.optional(v.number()),
+    pago_obra: v.optional(v.object({
+      importe: v.number(),
+      motivo: v.string(),
+      solicitado_por_id: v.id("users"),
+      solicitado_por_nombre: v.string(),
+      solicitado_at: v.number(),
+      estado: v.union(v.literal("pendiente"), v.literal("pagado"), v.literal("cancelada")),
+    })),
     // Metadata
     created_at: v.number(),
     updated_at: v.optional(v.number()),
@@ -990,6 +998,7 @@ export default defineSchema({
   requisicion_documentos: defineTable({
     requisicion_id: v.id("requisiciones"),
     proyecto: v.id("desarrollos"),
+    categoria: v.optional(v.string()),
     storage_id: v.id("_storage"),
     nombre: v.string(),
     type: v.string(),
@@ -998,7 +1007,8 @@ export default defineSchema({
     uploaded_by_id: v.id("users"),
     uploaded_by_name: v.string(),
   }).index("by_requisicion", { fields: ["requisicion_id"] })
-    .index("by_proyecto", { fields: ["proyecto"] }),
+    .index("by_proyecto", { fields: ["proyecto"] })
+    .index("by_storage_id", { fields: ["storage_id"] }),
   
   // Requisicion history - Tracks all changes to requisiciones
   requisicion_history: defineTable({
@@ -1041,6 +1051,7 @@ export default defineSchema({
     failed_count: v.number(),
     created_at: v.number(),
     sent_at: v.optional(v.number()),
+    source_history_id: v.optional(v.id("requisicion_history")),
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_requisicion", { fields: ["requisicion_id"] })
     .index("by_proyecto_created", { fields: ["proyecto", "created_at"] })

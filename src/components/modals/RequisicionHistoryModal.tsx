@@ -16,6 +16,7 @@ interface HistoryEntry {
   new_value?: string;
   comentario?: string;
   documento_ids?: Id<"requisicion_documentos">[];
+  documentos?: Array<{ nombre: string; type: string; size: number; categoria?: string; url: string | null }>;
   changed_by_id: Id<"users">;
   changed_by_name: string;
   created_at: number;
@@ -33,11 +34,12 @@ interface HistoryDocumentDetail {
   nombre: string;
   type?: string;
   size?: number;
+  categoria?: string;
 }
 
 function HistoryCommentAndDocuments({ entry, data }: { entry: HistoryEntry; data: Record<string, unknown> | null }) {
   const comentario = entry.comentario || (data?.comentario as string | undefined);
-  const documentos = data?.documentos as HistoryDocumentDetail[] | undefined;
+  const documentos = entry.documentos?.length ? entry.documentos : data?.documentos as HistoryDocumentDetail[] | undefined;
 
   if (!comentario && (!documentos || documentos.length === 0)) return null;
 
@@ -55,7 +57,7 @@ function HistoryCommentAndDocuments({ entry, data }: { entry: HistoryEntry; data
           {documentos.map((doc, index) => (
             <div key={`${doc.nombre}-${index}`} className="flex items-center gap-2 text-foreground">
               <FileText className="h-3 w-3 text-cyan-600" />
-              <span>{doc.nombre}</span>
+              {"url" in doc && typeof doc.url === "string" ? <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{doc.categoria === "nota_remision" ? "Nota de remisión · " : ""}{doc.nombre}</a> : <span>{doc.nombre}</span>}
             </div>
           ))}
         </div>
@@ -86,6 +88,7 @@ const actionIcons: Record<string, { icon: React.ElementType; color: string; labe
   document_added: { icon: FileText, color: "text-cyan-600 bg-cyan-100", label: "Documento Adjuntado" },
   document_removed: { icon: FileText, color: "text-orange-600 bg-orange-100", label: "Documento Eliminado" },
   reviewed: { icon: ClipboardCheck, color: "text-amber-600 bg-amber-100", label: "Revisión Realizada" },
+  onsite_payment_requested: { icon: Clock, color: "text-amber-600 bg-amber-100", label: "Pago en obra solicitado" },
   resubmitted: { icon: RotateCcw, color: "text-cyan-600 bg-cyan-100", label: "Re-enviada para Revisión" },
 };
 
@@ -619,6 +622,10 @@ export default function RequisicionHistoryModal() {
                         </div>
                       )}
                       {entry.action === "reviewed" && <ReviewedDetails entry={entry} />}
+                      {entry.action === "onsite_payment_requested" && (() => {
+                        const payment = tryParseJSON(entry.new_value);
+                        return payment ? <div className="mt-2 border border-border bg-card p-3 text-sm">Importe: <strong>${Number(payment.importe).toLocaleString("es-MX")} MXN</strong><p>Motivo: {String(payment.motivo || "")}</p></div> : null;
+                      })()}
                       {entry.action === "resubmitted" && <ResubmittedDetails entry={entry} />}
 
                       {/* Requisicion info card (for all history mode) */}

@@ -72,6 +72,7 @@ export default function RequisicionModal() {
   const addDocument = useMutation(api.requisiciones.addDocument);
   const deleteDocument = useMutation(api.requisiciones.deleteDocument);
   const generateUploadUrl = useMutation(api.requisiciones.generateUploadUrl);
+  const markNotificationsRead = useMutation(api.requisicion_history.markRequisicionNotificationsRead);
   const currentUser = useQuery(api.users.getCurrentUser);
 
   // Fetch requisicion data for edit/view modes
@@ -79,6 +80,14 @@ export default function RequisicionModal() {
     api.requisiciones.getById,
     context?.requisicionId ? { id: context.requisicionId } : "skip"
   );
+  const lastReadId = useRef<string | null>(null);
+  useEffect(() => {
+    const id = isOpen && (mode === "view" || mode === "edit") ? requisicionData?._id : undefined;
+    if (!id || lastReadId.current === id) return;
+    lastReadId.current = id;
+    void markNotificationsRead({ requisicion_id: id }).catch(() => { lastReadId.current = null; });
+  }, [isOpen, mode, requisicionData?._id, markNotificationsRead]);
+  useEffect(() => { if (!isOpen) lastReadId.current = null; }, [isOpen]);
 
   // Fetch partidas (nivel 1) for the project
   const partidas = useQuery(
@@ -1158,6 +1167,13 @@ export default function RequisicionModal() {
             </div>
 
             {/* Review Info - View mode only */}
+            {isViewMode && requisicionData?.pago_obra && (
+              <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-foreground">
+                <p className="font-medium">Pago en obra {requisicionData.pago_obra.estado}</p>
+                <p>${requisicionData.pago_obra.importe.toLocaleString("es-MX")} MXN · {requisicionData.pago_obra.motivo}</p>
+                <p className="text-xs text-muted-foreground">Solicitado por {requisicionData.pago_obra.solicitado_por_nombre}</p>
+              </div>
+            )}
             {isViewMode && requisicionData?.status_revision && requisicionData.status_revision !== "Pendiente de revisión" && (
               <div className="p-4 border border-border bg-background space-y-2">
                 <div className="flex items-center justify-between">
@@ -1202,10 +1218,10 @@ export default function RequisicionModal() {
                         onClick={() => doc.url && window.open(doc.url, '_blank')}
                       >
                         <FileText className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-foreground truncate">{doc.nombre}</span>
+                        <span className="text-sm text-foreground truncate">{doc.categoria === "nota_remision" ? "Nota de remisión · " : ""}{doc.nombre}</span>
                         <ExternalLink className="w-3 h-3 text-disabled-foreground" />
                       </div>
-                      {!isViewMode && (
+                      {!isViewMode && !doc.locked && (
                         <Button
                           type="button"
                           variant="ghost"

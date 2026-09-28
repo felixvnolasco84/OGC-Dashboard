@@ -67,6 +67,7 @@ import type * as reportSnapshot from "../reportSnapshot.js";
 import type * as reportTypes from "../reportTypes.js";
 import type * as reportes from "../reportes.js";
 import type * as reportingUtils from "../reportingUtils.js";
+import type * as requisicionEmailTemplates from "../requisicionEmailTemplates.js";
 import type * as requisicion_history from "../requisicion_history.js";
 import type * as requisiciones from "../requisiciones.js";
 import type * as rfiRules from "../rfiRules.js";
@@ -158,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   reportTypes: typeof reportTypes;
   reportes: typeof reportes;
   reportingUtils: typeof reportingUtils;
+  requisicionEmailTemplates: typeof requisicionEmailTemplates;
   requisicion_history: typeof requisicion_history;
   requisiciones: typeof requisiciones;
   rfiRules: typeof rfiRules;

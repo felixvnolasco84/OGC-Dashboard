@@ -1,6 +1,8 @@
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
+import { canUserAccessDesarrollo, getCurrentUserOrThrow } from "./permissions";
+import { countUnreadRequisitionNotifications } from "../src/lib/requisicionNotificationMatrix";
 
 type HistoryVisibilityEntry = {
   requisicion_id: Id<"requisiciones">;
@@ -65,6 +67,14 @@ async function filterVisibleHistory<T extends HistoryVisibilityEntry>(
   return visibleEntries.filter((item) => item.visible).map((item) => item.entry);
 }
 
+async function withDocumentUrls(ctx: QueryCtx, entry: Doc<"requisicion_history">) {
+  const documentos = await Promise.all((entry.documento_ids || []).map(async id => {
+    const doc = await ctx.db.get(id);
+    return doc ? { nombre: doc.nombre, type: doc.type, size: doc.size, categoria: doc.categoria, url: await ctx.storage.getUrl(doc.storage_id) } : null;
+  }));
+  return { ...entry, documentos: documentos.filter((doc): doc is NonNullable<typeof doc> => doc !== null) };
+}
+
 // Log a history entry for a requisicion change
 export const logChange = mutation({
   args: {
@@ -78,6 +88,10 @@ export const logChange = mutation({
     changed_by_name: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    const requisicion = await ctx.db.get(args.requisicion_id);
+    const project = await ctx.db.get(args.proyecto);
+    if (user._id !== args.changed_by_id || !requisicion || requisicion.proyecto !== args.proyecto || !project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin permisos para registrar el cambio");
     return await ctx.db.insert("requisicion_history", {
       proyecto: args.proyecto,
       requisicion_id: args.requisicion_id,
@@ -101,6 +115,10 @@ export const getByProyecto = query({
     user_role: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    if (args.user_id && args.user_id !== user._id) throw new Error("Usuario no autorizado");
+    const project = await ctx.db.get(args.proyecto);
+    if (!project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin acceso al proyecto");
     const limit = args.limit ?? 50;
     const history = await ctx.db
       .query("requisicion_history")
@@ -108,7 +126,7 @@ export const getByProyecto = query({
       .order("desc")
       .take(limit * 4);
     
-    const visibleHistory = await filterVisibleHistory(ctx, history, args.user_id, args.user_role);
+    const visibleHistory = await filterVisibleHistory(ctx, history, user._id, user.role);
     return visibleHistory.slice(0, limit);
   },
 });
@@ -121,13 +139,20 @@ export const getByRequisicion = query({
     user_role: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    if (args.user_id && args.user_id !== user._id) throw new Error("Usuario no autorizado");
     const history = await ctx.db
       .query("requisicion_history")
       .withIndex("by_requisicion", (q) => q.eq("requisicion_id", args.requisicion_id))
       .order("desc")
       .collect();
     
-    return await filterVisibleHistory(ctx, history, args.user_id, args.user_role);
+    const requisicion = await ctx.db.get(args.requisicion_id);
+    const projectId = requisicion?.proyecto || history[0]?.proyecto;
+    const project = projectId ? await ctx.db.get(projectId) : null;
+    if (!project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin acceso al proyecto");
+    const visible = await filterVisibleHistory(ctx, history, user._id, user.role);
+    return await Promise.all(visible.map(entry => withDocumentUrls(ctx, entry)));
   },
 });
 
@@ -139,6 +164,10 @@ export const getUnreadCount = query({
     user_role: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    if (user._id !== args.user_id) throw new Error("Usuario no autorizado");
+    const project = await ctx.db.get(args.proyecto);
+    if (!project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin acceso al proyecto");
     // Get user's last read timestamp
     const readStatus = await ctx.db
       .query("requisicion_read_status")
@@ -170,36 +199,53 @@ export const getUnreadSummary = query({
     user_role: v.optional(v.string()), // "admin", "contratista", etc.
   },
   handler: async (ctx, args) => {
-    // Get user's last read timestamp
-    const readStatus = await ctx.db
-      .query("requisicion_read_status")
-      .withIndex("by_user_proyecto", (q) => 
-        q.eq("user_id", args.user_id).eq("proyecto", args.proyecto)
-      )
-      .first();
-    
-    const lastReadAt = readStatus?.last_read_at ?? 0;
-    
-    // Get history entries since last read
-    const unreadHistory = await ctx.db
-      .query("requisicion_history")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
-      .filter((q) => q.gt(q.field("created_at"), lastReadAt))
+    const user = await getCurrentUserOrThrow(ctx);
+    if (user._id !== args.user_id) throw new Error("Usuario no autorizado");
+    const project = await ctx.db.get(args.proyecto);
+    if (!project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin acceso al proyecto");
+    const deliveries = await ctx.db.query("notification_deliveries")
+      .withIndex("by_recipient_proyecto", q => q.eq("recipient_user_id", user._id).eq("proyecto", args.proyecto))
       .collect();
-    
-    const visibleUnreadHistory = await filterVisibleHistory(ctx, unreadHistory, args.user_id, args.user_role);
-    
-    // Check for new vs updated
-    const hasNew = visibleUnreadHistory.some(h => h.action === "created");
-    const hasUpdated = visibleUnreadHistory.some(h =>
-      h.action !== "created" && h.action !== "deleted"
-    );
-    
+    const unread = deliveries.filter(d => d.channel === "in_app" && !d.read_at);
+    const events = await Promise.all(unread.map(d => ctx.db.get(d.notification_event_id)));
     return {
-      hasNew,
-      hasUpdated,
-      total: visibleUnreadHistory.length,
+      hasNew: events.some(e => e?.type === "created"),
+      hasUpdated: events.some(e => Boolean(e && e.type !== "created")),
+      total: unread.length,
     };
+  },
+});
+
+export const getUnreadRequisiciones = query({
+  args: { proyecto: v.id("desarrollos") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    const project = await ctx.db.get(args.proyecto);
+    if (!project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin acceso al proyecto");
+    const deliveries = await ctx.db.query("notification_deliveries")
+      .withIndex("by_recipient_proyecto", q => q.eq("recipient_user_id", user._id).eq("proyecto", args.proyecto))
+      .collect();
+    return countUnreadRequisitionNotifications(deliveries);
+  },
+});
+
+export const markRequisicionNotificationsRead = mutation({
+  args: { requisicion_id: v.id("requisiciones") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    const requisicion = await ctx.db.get(args.requisicion_id);
+    if (!requisicion) throw new Error("Requisición no encontrada");
+    const project = await ctx.db.get(requisicion.proyecto);
+    if (!project || !canUserAccessDesarrollo(user, project) || (user.role === "contratista" && requisicion.solicitante_id !== user._id)) throw new Error("Sin acceso a la requisición");
+    const deliveries = await ctx.db.query("notification_deliveries")
+      .withIndex("by_recipient_proyecto", q => q.eq("recipient_user_id", user._id).eq("proyecto", requisicion.proyecto))
+      .collect();
+    const now = Date.now();
+    for (const delivery of deliveries) {
+      if (delivery.channel === "in_app" && delivery.requisicion_id === requisicion._id && !delivery.read_at) {
+        await ctx.db.patch(delivery._id, { status: "read", read_at: now });
+      }
+    }
   },
 });
 
@@ -210,6 +256,10 @@ export const markAsRead = mutation({
     proyecto: v.id("desarrollos"),
   },
   handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    if (user._id !== args.user_id) throw new Error("Usuario no autorizado");
+    const project = await ctx.db.get(args.proyecto);
+    if (!project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin acceso al proyecto");
     const now = Date.now();
     // Check if read status exists
     const existing = await ctx.db
@@ -266,6 +316,10 @@ export const getRecentWithDetails = query({
     user_role: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    if (args.user_id && args.user_id !== user._id) throw new Error("Usuario no autorizado");
+    const project = await ctx.db.get(args.proyecto);
+    if (!project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin acceso al proyecto");
     const limit = args.limit ?? 50;
     
     const history = await ctx.db
@@ -274,7 +328,7 @@ export const getRecentWithDetails = query({
       .order("desc")
       .take(limit * 4); // Get more to account for filtering
     
-    const visibleHistory = await filterVisibleHistory(ctx, history, args.user_id, args.user_role);
+    const visibleHistory = await filterVisibleHistory(ctx, history, user._id, user.role);
     
     // Limit after filtering
     const limitedHistory = visibleHistory.slice(0, limit);
@@ -284,7 +338,7 @@ export const getRecentWithDetails = query({
       limitedHistory.map(async (h) => {
         const requisicion = await ctx.db.get(h.requisicion_id);
         return {
-          ...h,
+          ...await withDocumentUrls(ctx, h),
           requisicion: requisicion ? {
             _id: requisicion._id,
             tipo: requisicion.tipo,
