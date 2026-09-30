@@ -46,6 +46,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+    canAddRemissionPhotos,
     getRequisicionNotificationConfig,
     isValidRemissionPhoto,
     REQUISICION_NOTIFICATION_MATRIX,
@@ -1454,7 +1455,7 @@ export default function ProyectoRequisicionesPage() {
                                                     <DropdownMenuItem className="gap-2" onClick={() => historyModal.openSingleHistory(proyectoId as Id<"desarrollos">, req._id)}>
                                                         <Clock className="h-4 w-4" /> Historial
                                                     </DropdownMenuItem>
-                                                    {currentUser?.role === "almacenista" && req.status === "Pagado" && (
+                                                    {currentUser && canAddRemissionPhotos({ role: currentUser.role, status: req.status, hasProjectAccess: true }) && (
                                                         <DropdownMenuItem className="gap-2" onClick={() => { setRemissionReqId(req._id); setRemissionPhotos([]); }}>
                                                             <FileUp className="h-4 w-4" /> Agregar nota de remisión
                                                         </DropdownMenuItem>

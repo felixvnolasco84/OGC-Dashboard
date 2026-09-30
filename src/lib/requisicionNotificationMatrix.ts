@@ -59,7 +59,7 @@ export function isValidRemissionPhoto(file: { type: string; size: number }): boo
 }
 
 export function canAddRemissionPhotos(args: { role: string; status: string; hasProjectAccess: boolean }): boolean {
-  return args.role === "almacenista" && args.status === "Pagado" && args.hasProjectAccess;
+  return (args.role === "almacenista" || args.role === "admin") && args.status === "Pagado" && args.hasProjectAccess;
 }
 
 export function countUnreadRequisitionNotifications(deliveries: ReadonlyArray<{
