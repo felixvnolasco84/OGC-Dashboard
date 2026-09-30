@@ -91,7 +91,7 @@ export const logChange = mutation({
     const user = await getCurrentUserOrThrow(ctx);
     const requisicion = await ctx.db.get(args.requisicion_id);
     const project = await ctx.db.get(args.proyecto);
-    if (user._id !== args.changed_by_id || !requisicion || requisicion.proyecto !== args.proyecto || !project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin permisos para registrar el cambio");
+    if (user.role === "almacenista" || user._id !== args.changed_by_id || !requisicion || requisicion.proyecto !== args.proyecto || !project || !canUserAccessDesarrollo(user, project)) throw new Error("Sin permisos para registrar el cambio");
     return await ctx.db.insert("requisicion_history", {
       proyecto: args.proyecto,
       requisicion_id: args.requisicion_id,

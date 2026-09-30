@@ -17,6 +17,7 @@ const convexApi = api as any;
 const DEFAULT_PROJECT_SECTION_BY_ROLE: Record<string, string> = {
   contratista: "tareas",
   finance: "requisiciones",
+  almacenista: "requisiciones",
 };
 
 // Get or create user from Clerk
@@ -314,7 +315,11 @@ export const inviteUser = action({
       invitation_url: invitationUrl,
     });
 
-    const html = args.role === "viewer" ? renderWelcomeViewerEmail({
+    const html = args.role === "almacenista" ? renderWelcomeAlmacenistaEmail({
+      name: args.name || normalizedEmail,
+      loginUrl: invitationUrl,
+      projectCount: args.allowed_desarrollos.length,
+    }) : args.role === "viewer" ? renderWelcomeViewerEmail({
       name: args.name || normalizedEmail,
       loginUrl: invitationUrl,
       projectCount: args.allowed_desarrollos.length,
@@ -654,6 +659,19 @@ function getInvitationRedirectPath(role: string, allowedDesarrollos: Id<"desarro
 
   const section = DEFAULT_PROJECT_SECTION_BY_ROLE[role] || "presupuesto";
   return `/proyecto/${firstProjectId}/${section}`;
+}
+
+function renderWelcomeAlmacenistaEmail({ name, loginUrl, projectCount }: { name: string; loginUrl: string; projectCount: number }) {
+  const safeName = escapeHtml(name);
+  const safeUrl = escapeHtml(loginUrl);
+  return `<!doctype html><html><head><meta charset="utf-8" /><title>Tu acceso a OGC Dashboard</title></head>
+  <body style="font-family:Arial,Helvetica,sans-serif;color:#242424;line-height:1.5;padding:32px;">
+    <h1>Tu acceso a OGC Dashboard ya está listo</h1>
+    <p>Hola ${safeName}, tienes acceso a Requisiciones en ${projectCount} proyecto(s) asignado(s).</p>
+    <p>Recibirás avisos cuando se confirme un pago y podrás agregar fotos de notas de remisión a las requisiciones pagadas.</p>
+    <p><a href="${safeUrl}" style="color:#1D2436;font-weight:700;">Iniciar sesión y ver requisiciones</a></p>
+    <p>Si el enlace no funciona, copia esta dirección: ${safeUrl}</p>
+  </body></html>`;
 }
 
 function buildAcceptInvitationUrl(appUrl: string, redirectPath: string) {

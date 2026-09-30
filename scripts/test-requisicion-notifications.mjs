@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { renderRequisicionEmail } from "../convex/requisicionEmailTemplates.ts";
 import {
   REQUISICION_NOTIFICATION_MATRIX,
+  canAddRemissionPhotos,
   countUnreadRequisitionNotifications,
   isValidRemissionPhoto,
   notificationForStatusTransition,
@@ -31,6 +32,10 @@ assert(receives("onsite_payment_requested", "finance", "finance"));
 assert(receives("onsite_payment_requested", "admin", "admin"));
 assert(!receives("onsite_payment_requested", "user", "requester"));
 assert(receives("payment", "user", "requester"));
+assert(receives("payment", "almacenista", "warehouse"));
+assert(!receives("onsite_payment_requested", "almacenista", "warehouse"));
+assert(!receives("payment", "almacenista", "warehouse", { hasProjectAccess: false }));
+assert(!receives("payment", "almacenista", "warehouse", { invitationStatus: "pending" }));
 assert(!receives("payment", "finance", "finance"));
 assert(receives("delivery", "finance", "finance"));
 assert(receives("delivery", "user", "requester"));
@@ -50,6 +55,10 @@ assert.throws(() => validateOnsitePaymentRequest({ ...validRequest, reason: " " 
 assert(isValidRemissionPhoto({ type: "image/jpeg", size: 2_000_000 }));
 assert(!isValidRemissionPhoto({ type: "application/pdf", size: 2_000_000 }));
 assert(!isValidRemissionPhoto({ type: "image/png", size: 11_000_000 }));
+assert(canAddRemissionPhotos({ role: "almacenista", status: "Pagado", hasProjectAccess: true }));
+assert(!canAddRemissionPhotos({ role: "almacenista", status: "En proceso", hasProjectAccess: true }));
+assert(!canAddRemissionPhotos({ role: "almacenista", status: "Pagado", hasProjectAccess: false }));
+assert(!canAddRemissionPhotos({ role: "viewer", status: "Pagado", hasProjectAccess: true }));
 assert.deepEqual(countUnreadRequisitionNotifications([
   { requisicion_id: "req-a", channel: "in_app" },
   { requisicion_id: "req-a", channel: "in_app", read_at: 100 },

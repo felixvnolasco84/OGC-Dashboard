@@ -98,6 +98,9 @@ export default function ProyectoRequisicionesPage() {
     const [statusHistoryComment, setStatusHistoryComment] = useState("");
     const [statusHistoryDocument, setStatusHistoryDocument] = useState<File | null>(null);
     const [isSubmittingStatusHistory, setIsSubmittingStatusHistory] = useState(false);
+    const [remissionReqId, setRemissionReqId] = useState<Id<"requisiciones"> | null>(null);
+    const [remissionPhotos, setRemissionPhotos] = useState<File[]>([]);
+    const [isUploadingRemission, setIsUploadingRemission] = useState(false);
     const isMarkingAsPaid = pendingStatusChange?.targetStage === "pagadas"
         || pendingStatusChange?.paymentStatus === "Pagado";
     const isReceivingMaterials = pendingStatusChange?.targetStage === "recibidas"
@@ -122,6 +125,8 @@ export default function ProyectoRequisicionesPage() {
     const reviewRequisicionMutation = useMutation(api.requisiciones.reviewRequisicion);
     const reviewSingleItemMutation = useMutation(api.requisiciones.reviewSingleItem);
     const generateRequisicionUploadUrl = useMutation(api.requisiciones.generateUploadUrl);
+    const generateRemissionUploadUrl = useMutation(api.requisiciones.generateRemissionUploadUrl);
+    const addRemissionPhotos = useMutation(api.requisiciones.addRemissionPhotos);
     const requestOnsitePayment = useMutation(api.requisiciones.requestOnsitePayment);
     const createProveedor = useMutation(api.proveedores.create);
 
@@ -164,6 +169,9 @@ export default function ProyectoRequisicionesPage() {
 
     // Get current user info for permission check
     const currentUser = useQuery(api.users.getCurrentUser);
+    useEffect(() => {
+        if (currentUser?.role === "almacenista") setActiveTab("pagadas");
+    }, [currentUser?.role]);
     const updateProveedor = useMutation(api.proveedores.update);
     const unreadRequisiciones = useQuery(api.requisicion_history.getUnreadRequisiciones, proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip");
     const sendEmailNotification = useAction(api.requisiciones.sendEmailNotification);
@@ -826,6 +834,46 @@ export default function ProyectoRequisicionesPage() {
         }];
     };
 
+    const closeRemissionDialog = () => {
+        setRemissionReqId(null);
+        setRemissionPhotos([]);
+    };
+
+    const addSelectedRemissionPhotos = (files: FileList | null) => {
+        if (!files) return;
+        setRemissionPhotos((current) => [...current, ...Array.from(files)]);
+    };
+
+    const handleUploadRemissionPhotos = async () => {
+        if (!remissionReqId || remissionPhotos.length === 0) return;
+        if (remissionPhotos.some((file) => !isValidRemissionPhoto(file))) {
+            toast.error("Cada nota de remisión debe ser una imagen menor a 10 MB.");
+            return;
+        }
+        setIsUploadingRemission(true);
+        try {
+            const documentos: StatusHistoryDocument[] = [];
+            for (const file of remissionPhotos) {
+                const uploadUrl = await generateRemissionUploadUrl({ id: remissionReqId });
+                const response = await fetch(uploadUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": file.type },
+                    body: file,
+                });
+                if (!response.ok) throw new Error("No se pudo subir una de las fotos.");
+                const { storageId } = await response.json();
+                documentos.push({ storage_id: storageId as Id<"_storage">, nombre: file.name, type: file.type, size: file.size });
+            }
+            await addRemissionPhotos({ id: remissionReqId, documentos });
+            toast.success("Notas de remisión agregadas");
+            closeRemissionDialog();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "No se pudieron agregar las notas de remisión.");
+        } finally {
+            setIsUploadingRemission(false);
+        }
+    };
+
     const handleConfirmStatusHistory = async () => {
         if (!pendingStatusChange) return;
         const comment = statusHistoryComment.trim() || undefined;
@@ -1406,6 +1454,11 @@ export default function ProyectoRequisicionesPage() {
                                                     <DropdownMenuItem className="gap-2" onClick={() => historyModal.openSingleHistory(proyectoId as Id<"desarrollos">, req._id)}>
                                                         <Clock className="h-4 w-4" /> Historial
                                                     </DropdownMenuItem>
+                                                    {currentUser?.role === "almacenista" && req.status === "Pagado" && (
+                                                        <DropdownMenuItem className="gap-2" onClick={() => { setRemissionReqId(req._id); setRemissionPhotos([]); }}>
+                                                            <FileUp className="h-4 w-4" /> Agregar nota de remisión
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     {(currentUser?.role === "admin" || currentUser?.role === "user" || (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) &&
                                                         (req.status_revision === "Aprobada" || req.status_revision === "Parcialmente Aprobada") &&
                                                         req.status !== "Pagado" && req.status !== "Cancelado" && req.pago_obra?.estado !== "pendiente" && (
@@ -1700,6 +1753,49 @@ export default function ProyectoRequisicionesPage() {
                     )}
                 </div>
             </div>
+
+            <Dialog open={remissionReqId !== null} onOpenChange={(open) => { if (!open && !isUploadingRemission) closeRemissionDialog(); }}>
+                <DialogContent className="max-w-lg rounded-none">
+                    <DialogHeader>
+                        <DialogTitle>Agregar nota de remisión</DialogTitle>
+                        <DialogDescription>
+                            Agrega fotos a esta requisición pagada. El estado de entrega no cambiará.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                            <label className="cursor-pointer border border-dashed border-border-strong px-4 py-3 text-sm text-muted-foreground hover:border-[#7EC18E]">
+                                Tomar foto
+                                <input type="file" accept="image/*" capture="environment" className="hidden" disabled={isUploadingRemission} onChange={(event) => { addSelectedRemissionPhotos(event.target.files); event.target.value = ""; }} />
+                            </label>
+                            <label className="cursor-pointer border border-dashed border-border-strong px-4 py-3 text-sm text-muted-foreground hover:border-[#7EC18E]">
+                                Elegir fotos
+                                <input type="file" accept="image/*" multiple className="hidden" disabled={isUploadingRemission} onChange={(event) => { addSelectedRemissionPhotos(event.target.files); event.target.value = ""; }} />
+                            </label>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Solo imágenes de hasta 10 MB por foto.</p>
+                        {remissionPhotos.length > 0 && (
+                            <ul className="max-h-44 space-y-2 overflow-y-auto text-sm">
+                                {remissionPhotos.map((file, index) => (
+                                    <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-3 border border-border px-3 py-2">
+                                        <span className="min-w-0 truncate">{file.name}</span>
+                                        <button type="button" className="text-red-600 hover:text-red-700" disabled={isUploadingRemission} onClick={() => setRemissionPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Quitar ${file.name}`}>
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        <div className="flex justify-end gap-2 border-t border-border pt-4">
+                            <Button type="button" variant="outline" onClick={closeRemissionDialog} disabled={isUploadingRemission}>Cancelar</Button>
+                            <Button type="button" onClick={handleUploadRemissionPhotos} disabled={isUploadingRemission || remissionPhotos.length === 0}>
+                                {isUploadingRemission && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Guardar fotos
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <Dialog
                 open={!!onsitePaymentReqId}

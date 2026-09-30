@@ -9,12 +9,14 @@ import { Id } from "../../../convex/_generated/dataModel";
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: "admin" | "user" | "viewer" | "contratista" | "finance";
+  allowedRoles?: string[];
   redirectTo?: string;
 }
 
 export default function ProtectedRoute({ 
   children, 
   requiredRole = "viewer",
+  allowedRoles,
   redirectTo = "/sign-in" 
 }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -65,7 +67,7 @@ export default function ProtectedRoute({
   }
 
   // Redirect if user doesn't have required role
-  if (currentUser && !hasRequiredRole(currentUser.role, requiredRole)) {
+  if (currentUser && !allowedRoles?.includes(currentUser.role) && !hasRequiredRole(currentUser.role, requiredRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-card">
         <div className="text-center max-w-md px-4">

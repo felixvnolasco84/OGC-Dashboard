@@ -665,6 +665,10 @@ const financeMenuItems: ProjectMenuItem[] = [
   { id: "planos", label: "Planos", path: "planos", disabled: false, icon: PanelsTopLeft },
 ];
 
+const almacenistaMenuItems: ProjectMenuItem[] = [
+  { id: "requisiciones", label: "Requisiciones", path: "requisiciones", disabled: false, icon: Bookmark },
+];
+
 const viewerMenuItems: ProjectMenuItem[] = [
   { id: "presupuesto", label: "Presupuesto", path: "presupuesto", disabled: false, icon: ChartBar },
   { id: "control", label: "Control", path: "control", disabled: false, icon: ChartArea },
@@ -871,7 +875,7 @@ export default function SidebarComponent() {
   // Filter projects based on user access
   const filteredProjects = (desarrollos || []).filter((proyecto) => {
     if (currentUser?.role === "admin") return true;
-    if (currentUser?.role === "user" || currentUser?.role === "contratista" || currentUser?.role === "finance") {
+    if (currentUser?.role === "user" || currentUser?.role === "contratista" || currentUser?.role === "finance" || currentUser?.role === "almacenista") {
       return (currentUser?.allowed_desarrollos || []).includes(proyecto._id);
     }
     if (currentUser?.role === "viewer") {
@@ -931,6 +935,8 @@ export default function SidebarComponent() {
     ? contratistaMenuItems
     : currentUser?.role === "finance"
       ? financeMenuItems
+      : currentUser?.role === "almacenista"
+        ? almacenistaMenuItems
       : currentUser?.role === "viewer"
         ? viewerMenuItems
         : currentUser?.role === "admin"
@@ -940,6 +946,7 @@ export default function SidebarComponent() {
   const getFirstMenuItem = () => {
     if (currentUser?.role === "contratista") return "bitacora";
     if (currentUser?.role === "finance") return "requisiciones";
+    if (currentUser?.role === "almacenista") return "requisiciones";
     return "presupuesto";
   };
 

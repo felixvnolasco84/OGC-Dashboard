@@ -86,6 +86,7 @@ const actionIcons: Record<string, { icon: React.ElementType; color: string; labe
   cancelled: { icon: AlertCircle, color: "text-red-600 bg-red-100", label: "Requisición Cancelada" },
   deleted: { icon: Trash2, color: "text-red-600 bg-red-100", label: "Requisición Eliminada" },
   document_added: { icon: FileText, color: "text-cyan-600 bg-cyan-100", label: "Documento Adjuntado" },
+  remission_photos_added: { icon: FileText, color: "text-cyan-600 bg-cyan-100", label: "Notas de remisión agregadas" },
   document_removed: { icon: FileText, color: "text-orange-600 bg-orange-100", label: "Documento Eliminado" },
   reviewed: { icon: ClipboardCheck, color: "text-amber-600 bg-amber-100", label: "Revisión Realizada" },
   onsite_payment_requested: { icon: Clock, color: "text-amber-600 bg-amber-100", label: "Pago en obra solicitado" },
@@ -619,6 +620,12 @@ export default function RequisicionHistoryModal() {
                         <div className="mt-2 p-2 bg-card border border-border text-xs flex items-center gap-2 text-left">
                           <FileText className="w-3 h-3 text-cyan-500" />
                           <span className="text-foreground">{entry.new_value}</span>
+                        </div>
+                      )}
+                      {entry.action === "remission_photos_added" && (
+                        <div className="mt-2 space-y-2 text-xs">
+                          <p className="text-muted-foreground">{entry.new_value}</p>
+                          <HistoryCommentAndDocuments entry={entry} data={null} />
                         </div>
                       )}
                       {entry.action === "reviewed" && <ReviewedDetails entry={entry} />}

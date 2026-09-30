@@ -4,7 +4,7 @@ import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { canUserAccessDesarrollo, getCurrentUserOrThrow } from "./permissions";
 import { renderRequisicionEmail } from "./requisicionEmailTemplates";
-import { getRequisicionNotificationConfig, isValidRemissionPhoto, notificationForStatusTransition, requisitionDetailUrl, shouldNotifyRequisitionUser, validateOnsitePaymentRequest, type RequisicionNotificationType } from "../src/lib/requisicionNotificationMatrix";
+import { canAddRemissionPhotos, getRequisicionNotificationConfig, isValidRemissionPhoto, notificationForStatusTransition, requisitionDetailUrl, shouldNotifyRequisitionUser, validateOnsitePaymentRequest, type RequisicionNotificationType } from "../src/lib/requisicionNotificationMatrix";
 
 // Convex self-references in actions can create circular inference without this narrowed escape hatch.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -644,8 +644,24 @@ export const sendEmailNotification = action({
 
 // Generate upload URL for requisicion documents
 export const generateUploadUrl = mutation(async (ctx) => {
-    await getCurrentUserOrThrow(ctx);
+    const actor = await getCurrentUserOrThrow(ctx);
+    if (actor.role === "almacenista") throw new Error("Usa la carga de notas de remisión");
     return await ctx.storage.generateUploadUrl();
+});
+
+export const generateRemissionUploadUrl = mutation({
+    args: { id: v.id("requisiciones") },
+    handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        const requisicion = await ctx.db.get(args.id);
+        const project = requisicion ? await ctx.db.get(requisicion.proyecto) : null;
+        if (!requisicion || !canAddRemissionPhotos({
+            role: actor.role,
+            status: requisicion.status,
+            hasProjectAccess: Boolean(project && canUserAccessDesarrollo(actor, project)),
+        })) throw new Error("Sin permisos para agregar notas de remisión a esta requisición pagada");
+        return await ctx.storage.generateUploadUrl();
+    },
 });
 
 // Get document URL by storage ID
@@ -758,6 +774,9 @@ export const getByStatus = query({
         status: v.string(),
     },
     handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        const project = await ctx.db.get(args.proyecto);
+        if (!project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
         const requisiciones = await ctx.db
             .query("requisiciones")
             .withIndex("by_proyecto_status", (q) => 
@@ -765,8 +784,9 @@ export const getByStatus = query({
             )
             .collect();
         
+        const visibleRequisiciones = actor.role === "contratista" ? requisiciones.filter(req => req.solicitante_id === actor._id) : requisiciones;
         const enriched = await Promise.all(
-            requisiciones.map(async (req) => {
+            visibleRequisiciones.map(async (req) => {
                 const items = await ctx.db
                     .query("requisicion_items")
                     .withIndex("by_requisicion", (q) => q.eq("requisicion_id", req._id))
@@ -1179,6 +1199,61 @@ export const addDocument = mutation({
         });
         
         return docId;
+    },
+});
+
+// Add delivery evidence without changing the delivery status.
+export const addRemissionPhotos = mutation({
+    args: {
+        id: v.id("requisiciones"),
+        documentos: v.array(requisicionStatusDocumentValidator),
+    },
+    handler: async (ctx, args) => {
+        const actor = await getCurrentUserOrThrow(ctx);
+        const requisicion = await ctx.db.get(args.id);
+        if (!requisicion) throw new Error("Requisición no encontrada");
+        const project = await ctx.db.get(requisicion.proyecto);
+        if (!canAddRemissionPhotos({
+            role: actor.role,
+            status: requisicion.status,
+            hasProjectAccess: Boolean(project && canUserAccessDesarrollo(actor, project)),
+        })) throw new Error("Sin permisos para agregar notas de remisión a esta requisición pagada");
+        if (args.documentos.length === 0) throw new Error("Selecciona al menos una foto de la nota de remisión");
+
+        const documentos = [];
+        for (const documento of args.documentos) {
+            const metadata = await ctx.storage.getMetadata(documento.storage_id);
+            if (!metadata || !isValidRemissionPhoto({ type: metadata.contentType || "", size: metadata.size })) {
+                throw new Error("Cada nota de remisión debe ser una imagen menor a 10 MB");
+            }
+            documentos.push({
+                storage_id: documento.storage_id,
+                nombre: documento.nombre,
+                type: metadata.contentType || "",
+                size: metadata.size,
+            });
+        }
+
+        const uploadedByName = actor.name || actor.email;
+        const documentoIds = await createRequisicionHistoryDocuments(ctx, {
+            requisicion_id: requisicion._id,
+            proyecto: requisicion.proyecto,
+            documentos,
+            categoria: "nota_remision",
+            uploaded_by_id: actor._id,
+            uploaded_by_name: uploadedByName,
+        });
+        await ctx.db.insert("requisicion_history", {
+            proyecto: requisicion.proyecto,
+            requisicion_id: requisicion._id,
+            action: "remission_photos_added",
+            new_value: `${documentos.length} foto(s) de nota de remisión`,
+            documento_ids: documentoIds,
+            changed_by_id: actor._id,
+            changed_by_name: uploadedByName,
+            created_at: Date.now(),
+        });
+        return { success: true, uploaded: documentoIds.length };
     },
 });
 

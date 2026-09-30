@@ -39,6 +39,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -953,15 +954,48 @@ export default function ProgramaObra() {
   }
 
   return (
-    <div className={cn("space-y-5 bg-card pt-4", focusMode && "fixed inset-0 z-40 overflow-auto pt-3")}>
+    <div className={cn(
+      "flex flex-col bg-card min-[850px]:min-h-[calc(100svh-2.5rem)]",
+      focusMode && "fixed inset-0 z-40 min-h-0 overflow-auto",
+    )}>
       {/* Header */}
-      <div className="px-4 sm:px-8 lg:px-12">
-        <div className="flex flex-col gap-4 border-b border-border py-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-col text-left">
-            <p className="text-base text-muted-foreground mb-1">Programa de Obra</p>
-            <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
+      <div className="shrink-0 border-b border-border px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 py-2.5">
+          <div className="flex min-w-0 flex-1 basis-[220px] flex-wrap items-baseline gap-x-2 text-left">
+            <p className="shrink-0 text-xs text-muted-foreground">Programa de Obra</p>
+            <h1 className="min-w-0 truncate text-lg font-medium text-foreground" title={proyecto.nombre}>{proyecto.nombre}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          {programaDataWithComentarios.length > 0 && (
+            <div className="order-3 flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-xs lg:order-none lg:w-auto" aria-label="Resumen del programa">
+              <div className="flex min-h-8 items-center gap-1.5 whitespace-nowrap">
+                <span className="text-muted-foreground">Avance físico</span>
+                <strong className="text-sm font-semibold text-foreground">{overallProgress.toFixed(1)}%</strong>
+              </div>
+              <button
+                type="button"
+                data-viewer-readonly-allow="true"
+                aria-pressed={statusFilter === "delayed"}
+                onClick={() => setStatusFilter(statusFilter === "delayed" ? "all" : "delayed")}
+                className={cn("flex min-h-8 items-center gap-1.5 whitespace-nowrap px-1.5 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", statusFilter === "delayed" && "bg-muted ring-1 ring-inset ring-border")}
+              >
+                <span className="text-muted-foreground">Retrasadas</span>
+                <strong className={cn("text-sm font-semibold", delayedCount > 0 ? "text-red-700" : "text-foreground")}>{delayedCount}</strong>
+              </button>
+              <button
+                type="button"
+                data-viewer-readonly-allow="true"
+                onClick={() => setAlertsOpen(true)}
+                aria-label={`Ver alertas: ${actionableMilestones.length} pendientes, ${upcomingMilestones} hitos próximos`}
+                className="flex min-h-8 items-center gap-1.5 whitespace-nowrap px-1.5 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Bell className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                <span className="text-muted-foreground">Alertas</span>
+                <strong className={cn("text-sm font-semibold", actionableMilestones.length > 0 ? "text-amber-800" : "text-foreground")}>{actionableMilestones.length}</strong>
+                {upcomingMilestones > 0 && <span className="text-muted-foreground">· {upcomingMilestones} próximas</span>}
+              </button>
+            </div>
+          )}
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
@@ -974,14 +1008,14 @@ export default function ProgramaObra() {
               }}
             />
             {focusMode && (
-              <Button variant="outline" className="rounded-none gap-2" onClick={toggleFocusMode} data-viewer-readonly-allow="true">
+              <Button variant="outline" size="sm" className="rounded-none gap-2" onClick={toggleFocusMode} data-viewer-readonly-allow="true">
                 <Minimize2 className="h-4 w-4" /> Salir de enfoque
               </Button>
             )}
             {programaDataWithComentarios.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="rounded-none gap-2" data-viewer-readonly-allow="true" disabled={exporting || parsing || uploading}>
+                  <Button variant="outline" size="sm" className="rounded-none gap-2" data-viewer-readonly-allow="true" disabled={exporting || parsing || uploading}>
                     {(exporting || parsing || uploading) && <Loader2 className="h-4 w-4 animate-spin" />}
                     {exporting ? "Exportando..." : parsing ? "Leyendo archivo..." : uploading ? "Cargando..." : "Archivo"}
                     <ChevronDown className="h-4 w-4" />
@@ -1085,28 +1119,9 @@ export default function ProgramaObra() {
 
       {programaDataWithComentarios.length > 0 && (
       <>
-      <div className="grid grid-cols-2 gap-px border-y border-border bg-border sm:grid-cols-3">
-        <div className="bg-card px-4 py-3 sm:px-6 lg:px-12">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avance físico</p>
-          <p className="mt-1 text-xl font-semibold text-foreground">{overallProgress.toFixed(1)}%</p>
-        </div>
-        <button type="button" data-viewer-readonly-allow="true" aria-pressed={statusFilter === "delayed"} onClick={() => setStatusFilter(statusFilter === "delayed" ? "all" : "delayed")} className={cn("bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6", statusFilter === "delayed" && "bg-muted ring-1 ring-inset ring-border")}>
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Partidas retrasadas</p>
-          <p className={cn("mt-1 text-xl font-semibold", delayedCount > 0 ? "text-red-700" : "text-foreground")}>{delayedCount}</p>
-        </button>
-        <button type="button" data-viewer-readonly-allow="true" onClick={() => setAlertsOpen(true)} aria-label={`Ver alertas: ${actionableMilestones.length} pendientes, ${upcomingMilestones} hitos próximos`} className="col-span-2 flex items-center justify-between gap-3 bg-card px-4 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:col-span-1 sm:px-6 lg:pr-12">
-          <div>
-            <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground"><Bell className="h-3.5 w-3.5" /> Alertas pendientes</p>
-            <p className={cn("mt-1 text-xl font-semibold", actionableMilestones.length > 0 ? "text-amber-800" : "text-foreground")}>{actionableMilestones.length}</p>
-            {upcomingMilestones > 0 && <p className="mt-1 text-xs text-muted-foreground">{upcomingMilestones} hitos próximos</p>}
-          </div>
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-        </button>
-      </div>
-
       {/* Search and timeline controls */}
-      <div className="flex flex-col gap-3 px-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-12" data-viewer-readonly-allow="true">
-        <div className="flex h-9 min-w-0 flex-1 items-center gap-2 border-b border-border text-left lg:max-w-sm">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-2 sm:px-6 lg:px-8" data-viewer-readonly-allow="true">
+        <div className="flex h-8 min-w-[190px] flex-1 items-center gap-2 border-b border-border text-left lg:max-w-xs">
           <Search className="h-4 w-4 shrink-0 text-disabled-foreground" />
           <Input
             aria-label="Buscar partida o familia"
@@ -1116,9 +1131,9 @@ export default function ProgramaObra() {
             className="h-auto border-none p-0 font-normal text-foreground shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[170px] rounded-none" aria-label="Filtrar programa por estado">
+            <SelectTrigger className="h-8 w-[170px] rounded-none" aria-label="Filtrar programa por estado">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1158,25 +1173,31 @@ export default function ProgramaObra() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="hidden rounded-none min-[850px]:inline-flex" aria-label="Guía de colores del programa">
+                Leyenda
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 rounded-none p-3 text-xs" aria-label="Guía de colores del programa">
+              <p className="mb-2 font-medium text-foreground">Guía de colores del programa</p>
+              <div className="space-y-2 text-muted-foreground">
+                <span className="flex items-center gap-2"><span className="h-2 w-6 bg-green-700" /> Avance físico</span>
+                <span className="flex items-center gap-2"><span className="h-2 w-6 bg-green-300" /> Avance financiero</span>
+                <span className="flex items-center gap-2"><span className="h-2 w-6 bg-[#B17C7C]" /> Retraso o extensión</span>
+                <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full border border-blue-700 bg-blue-50" /> Hito programado</span>
+                <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full border border-red-700 bg-red-50" /> Hito requiere atención</span>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
-
-      <details className="hidden px-4 text-xs text-muted-foreground min-[850px]:block sm:px-8 lg:px-12" data-viewer-readonly-allow="true">
-        <summary className="w-fit cursor-pointer py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Guía de colores del programa</summary>
-        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2" aria-label="Leyenda del programa">
-        <span className="flex items-center gap-1.5"><span className="h-2 w-6 bg-green-700" /> Avance físico</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-6 bg-green-300" /> Avance financiero</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-6 bg-[#B17C7C]" /> Retraso o extensión</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border border-blue-700 bg-blue-50" /> Hito programado</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border border-red-700 bg-red-50" /> Hito requiere atención</span>
-        </div>
-      </details>
       </>
       )}
 
-      <div>
+      <div className="flex min-h-0 flex-1 flex-col">
         {programaDataWithComentarios.length === 0 && (
-          <div className="mx-4 border border-dashed border-border px-6 py-14 text-center sm:mx-8 lg:mx-12">
+          <div className="mx-4 mt-6 border border-dashed border-border px-6 py-14 text-center sm:mx-6 lg:mx-8">
             <CalendarDays className="mx-auto h-9 w-9 text-disabled-foreground" />
             <h2 className="mt-4 text-base font-semibold text-foreground">Aún no hay un programa cargado</h2>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
@@ -1189,7 +1210,7 @@ export default function ProgramaObra() {
         )}
 
         {programaDataWithComentarios.length > 0 && filteredData.length === 0 && (
-          <div className="mx-4 border border-dashed border-border px-6 py-12 text-center sm:mx-8 lg:mx-12">
+          <div className="mx-4 mt-6 border border-dashed border-border px-6 py-12 text-center sm:mx-6 lg:mx-8">
             <Search className="mx-auto h-8 w-8 text-disabled-foreground" />
             <h2 className="mt-3 text-sm font-semibold text-foreground">No hay resultados</h2>
             <p className="mt-1 text-xs text-muted-foreground">Prueba otra búsqueda o restablece los filtros.</p>
@@ -1205,7 +1226,7 @@ export default function ProgramaObra() {
           El resumen y las alertas están disponibles en móvil. Abre esta vista en una pantalla de al menos 850 px para operar el Gantt.
         </div>
         {/* Gantt Chart */}
-        <div className={cn("hidden min-[850px]:flex bg-card min-h-[440px] h-[58dvh]", focusMode && "h-[calc(100dvh-13rem)]")}>
+        <div className="hidden min-h-[440px] flex-1 bg-card min-[850px]:flex">
           {/* Fixed left columns — separate scroll container, only vertical */}
           <div
             className="z-30 w-[320px] shrink-0 overflow-x-hidden overflow-y-auto bg-card shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:w-[400px]"

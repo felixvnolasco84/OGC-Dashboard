@@ -216,8 +216,8 @@ export async function assertAdmin(ctx: QueryCtx | MutationCtx | ActionCtx) {
 export async function assertCanWrite(ctx: MutationCtx) {
   const user = await getCurrentUserOrThrow(ctx);
 
-  if (user.role === "viewer") {
-    throw new Error("Unauthorized: Viewer role is read-only");
+  if (user.role === "viewer" || user.role === "almacenista") {
+    throw new Error("Unauthorized: Role is read-only outside permitted actions");
   }
 
   return user;

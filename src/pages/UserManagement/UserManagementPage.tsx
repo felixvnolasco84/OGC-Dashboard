@@ -25,7 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, Shield, User, Eye, DollarSign, UserPlus, Trash2 } from "lucide-react";
+import { Loader2, Shield, User, Eye, DollarSign, UserPlus, Trash2, Package } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
 
 export default function UserManagementPage() {
@@ -125,6 +125,8 @@ export default function UserManagementPage() {
         return <User className="h-4 w-4 text-orange-600" />;
       case "finance":
         return <DollarSign className="h-4 w-4 text-green-600" />;
+      case "almacenista":
+        return <Package className="h-4 w-4 text-amber-600" />;
       default:
         return null;
     }
@@ -293,6 +295,12 @@ export default function UserManagementPage() {
                             Finanzas (solo requisiciones)
                           </div>
                         </SelectItem>
+                        <SelectItem value="almacenista">
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-amber-600" />
+                            Almacenista (requisiciones y notas de remisión)
+                          </div>
+                        </SelectItem>
                         <SelectItem value="viewer">
                           <div className="flex items-center gap-2">
                             <Eye className="h-4 w-4 text-muted-foreground" />
@@ -314,6 +322,11 @@ export default function UserManagementPage() {
                     {selectedRole === "finance" && (
                       <p className="text-xs text-muted-foreground">
                         El rol de finanzas solo puede ver requisiciones y cambiar estados a Pagado o Cancelado
+                      </p>
+                    )}
+                    {selectedRole === "almacenista" && (
+                      <p className="text-xs text-muted-foreground">
+                        Recibe avisos de pago y puede agregar fotos de notas de remisión a requisiciones pagadas de sus proyectos.
                       </p>
                     )}
                   </div>

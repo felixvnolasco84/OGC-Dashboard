@@ -1,7 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, MailPlus, Shield, User, Eye } from "lucide-react";
+import { ArrowLeft, Loader2, MailPlus, Shield, User, Eye, Package } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -36,6 +36,7 @@ export default function NewUserPage() {
   const roleDescription = useMemo(() => {
     if (role === "admin") return "Puede administrar usuarios y proyectos dentro de su organización.";
     if (role === "user") return "Puede trabajar en los proyectos asignados.";
+    if (role === "almacenista") return "Recibe avisos de pago y agrega fotos de notas de remisión a requisiciones pagadas de sus proyectos.";
     return "Solo puede consultar Presupuesto, Control, Programa y Bitácora.";
   }, [role]);
 
@@ -160,6 +161,12 @@ export default function NewUserPage() {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-blue-600" />
                         Usuario
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="almacenista">
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-amber-600" />
+                        Almacenista
                       </div>
                     </SelectItem>
                     <SelectItem value="admin">

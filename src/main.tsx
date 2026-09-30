@@ -30,6 +30,7 @@ import ProyectoFlujoPage from "./pages/ProyectoFlujo/ProyectoFlujoPage.tsx";
 import UserManagementPage from "./pages/UserManagement/UserManagementPage.tsx";
 import NewUserPage from "./pages/UserManagement/NewUserPage.tsx";
 import ProtectedRoute from "./components/Auth/ProtectedRoute.tsx";
+import RoleHomePage from "./components/Auth/RoleHomePage.tsx";
 import ReportesPage from "./pages/Reportes/ReportesPage.tsx";
 import SalesProyectosTablePage from "./pages/SalesProyectosTable/SalesProyectosTablePage.tsx";
 import SalesProyectoDocumentosPage from "./pages/SalesProyectoDocumentos/SalesProyectoDocumentosPage.tsx";
@@ -85,8 +86,8 @@ const onlineApplication = (
               
               {/* Protected Routes with Sidebar */}
               <Route element={<WebsiteLayout />}>
-                <Route index element={<ProtectedRoute requiredRole="admin">
-                  <ProyectosTablePage />
+                <Route index element={<ProtectedRoute requiredRole="admin" allowedRoles={["almacenista"]}>
+                  <RoleHomePage />
                 </ProtectedRoute>} />
                 <Route path="/proyectos" element={
                   <ProtectedRoute requiredRole="admin">
@@ -202,7 +203,7 @@ const onlineApplication = (
                   </ProtectedRoute>
                 } />
                 <Route path="/proyecto/:proyectoId/requisiciones" element={
-                  <ProtectedRoute requiredRole="contratista">
+                  <ProtectedRoute requiredRole="contratista" allowedRoles={["almacenista"]}>
                     <ProyectoRequisicionesPage />
                   </ProtectedRoute>
                 } />

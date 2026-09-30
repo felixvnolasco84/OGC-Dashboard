@@ -10,7 +10,7 @@ export default defineSchema({
     clerkId: v.string(), // Clerk user ID
     email: v.string(),
     name: v.string(),
-    role: v.string(), // "admin", "user", "viewer", "contratista", "finance"
+    role: v.string(), // "admin", "user", "viewer", "contratista", "finance", "almacenista"
     organization_id: v.optional(v.string()),
     allowed_desarrollos: v.array(v.id("desarrollos")), // Projects user can access
     allowed_sales_projects: v.optional(v.array(v.id("sales_projects"))), // Sales projects user can access

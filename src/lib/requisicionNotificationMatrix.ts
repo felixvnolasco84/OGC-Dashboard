@@ -4,13 +4,13 @@ export const REQUISICION_NOTIFICATION_MATRIX = [
   { type: "reviewed", label: "Revisión", actionLabel: "revisó una requisición", subject: "Requisición revisada", audienceLabel: "Solicitante", audience: ["requester"], channelsLabel: "App y correo", priorityLabel: "Alta", slaLabel: "Mismo día", requiresRequisition: true, defaultMessage: "Consulta el resultado de la revisión y sus comentarios." },
   { type: "assigned", label: "Proveedor asignado", actionLabel: "asignó proveedor", subject: "Proveedor asignado", audienceLabel: "Solicitante y Finanzas", audience: ["requester", "finance_team"], channelsLabel: "App y correo", priorityLabel: "Media", slaLabel: "24 horas", requiresRequisition: true, defaultMessage: "Se asignó un proveedor a la requisición." },
   { type: "onsite_payment_requested", label: "Pago en obra solicitado", actionLabel: "solicitó un pago en obra", subject: "Pago en obra solicitado", audienceLabel: "Finanzas y Administración", audience: ["finance_team", "project_admins"], channelsLabel: "App y correo", priorityLabel: "Alta", slaLabel: "Mismo día", requiresRequisition: true, defaultMessage: "Hay una solicitud de pago en obra pendiente." },
-  { type: "payment", label: "Pago confirmado", actionLabel: "confirmó un pago", subject: "Pago confirmado", audienceLabel: "Solicitante y Administración", audience: ["requester", "project_admins"], channelsLabel: "App y correo", priorityLabel: "Alta", slaLabel: "Mismo día", requiresRequisition: true, defaultMessage: "La requisición se marcó como pagada." },
+  { type: "payment", label: "Pago confirmado", actionLabel: "confirmó un pago", subject: "Pago confirmado", audienceLabel: "Solicitante, Administración y Almacén", audience: ["requester", "project_admins", "warehouse_team"], channelsLabel: "App y correo", priorityLabel: "Alta", slaLabel: "Mismo día", requiresRequisition: true, defaultMessage: "La requisición se marcó como pagada." },
   { type: "delivery", label: "Entrega", actionLabel: "registró una entrega", subject: "Entrega actualizada", audienceLabel: "Solicitante, Finanzas y Administración", audience: ["requester", "finance_team", "project_admins"], channelsLabel: "App y correo", priorityLabel: "Media", slaLabel: "24 horas", requiresRequisition: true, defaultMessage: "Se actualizó la recepción de materiales." },
 ] as const;
 
 export type RequisicionNotificationType = typeof REQUISICION_NOTIFICATION_MATRIX[number]["type"];
 export type RequisicionNotificationConfig = typeof REQUISICION_NOTIFICATION_MATRIX[number];
-export type RequisicionNotificationAudience = "project_admins" | "finance_team" | "requester";
+export type RequisicionNotificationAudience = "project_admins" | "finance_team" | "requester" | "warehouse_team";
 
 export function getRequisicionNotificationConfig(type: string): RequisicionNotificationConfig {
   const config = REQUISICION_NOTIFICATION_MATRIX.find((item) => item.type === type);
@@ -33,6 +33,7 @@ export function shouldNotifyRequisitionUser(args: {
   return audience.some(key =>
     key === "requester" ? args.userId === args.requesterId :
     key === "project_admins" ? args.role === "admin" :
+    key === "warehouse_team" ? args.role === "almacenista" :
     args.role === "finance"
   );
 }
@@ -55,6 +56,10 @@ export function validateOnsitePaymentRequest(args: {
 
 export function isValidRemissionPhoto(file: { type: string; size: number }): boolean {
   return file.type.startsWith("image/") && file.size > 0 && file.size <= 10 * 1024 * 1024;
+}
+
+export function canAddRemissionPhotos(args: { role: string; status: string; hasProjectAccess: boolean }): boolean {
+  return args.role === "almacenista" && args.status === "Pagado" && args.hasProjectAccess;
 }
 
 export function countUnreadRequisitionNotifications(deliveries: ReadonlyArray<{
