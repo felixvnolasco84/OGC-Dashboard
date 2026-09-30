@@ -1412,6 +1412,59 @@ export default defineSchema({
     .index("by_plano", { fields: ["plano_id"] }),
   
   // Programa de Obra - Scheduling data per nivel 1 partida
+  programa_obra_config: defineTable({
+    proyecto: v.id("desarrollos"), enabled: v.boolean(), version: v.number(),
+    weekdays: v.array(v.number()), holidays: v.array(v.string()),
+  }).index("by_proyecto", ["proyecto"]),
+  programa_obra_fronts: defineTable({
+    proyecto: v.id("desarrollos"), name: v.string(), archived: v.boolean(),
+  }).index("by_proyecto", ["proyecto"]),
+  programa_obra_permissions: defineTable({
+    proyecto: v.id("desarrollos"), user_id: v.id("users"),
+    plan: v.boolean(), accept: v.boolean(), exceptions: v.boolean(),
+  }).index("by_proyecto", ["proyecto"]).index("by_proyecto_user", ["proyecto", "user_id"]),
+  programa_obra_activities: defineTable({
+    proyecto: v.id("desarrollos"), detalle_id: v.id("programa_obra_detalle"),
+    front_id: v.id("programa_obra_fronts"), name: v.string(),
+    progress: v.number(), share: v.number(), mandatory: v.boolean(), archived: v.boolean(),
+    responsible_id: v.optional(v.id("users")),
+    current_start: v.optional(v.string()), current_finish: v.optional(v.string()),
+    actual_start: v.optional(v.string()), actual_finish: v.optional(v.string()),
+    forecast_finish: v.optional(v.string()), requires_review: v.boolean(),
+    accepted_at: v.optional(v.number()), accepted_by: v.optional(v.id("users")),
+    review_incident: v.optional(v.string()), dates_need_review: v.optional(v.boolean()),
+  }).index("by_proyecto", ["proyecto"]).index("by_detalle", ["detalle_id"]),
+  programa_obra_dependencies: defineTable({
+    proyecto: v.id("desarrollos"), predecessor_id: v.id("programa_obra_activities"),
+    successor_id: v.id("programa_obra_activities"),
+    kind: v.union(v.literal("FS"), v.literal("SS"), v.literal("FF")),
+    lag_days: v.number(), lag_unit: v.union(v.literal("working"), v.literal("natural")),
+  }).index("by_proyecto", ["proyecto"]).index("by_successor", ["successor_id"]),
+  programa_obra_requirements: defineTable({
+    proyecto: v.id("desarrollos"), activity_id: v.id("programa_obra_activities"),
+    description: v.string(), category: v.union(v.literal("materials"), v.literal("plans"), v.literal("permits"), v.literal("equipment"), v.literal("crew"), v.literal("technical")),
+    stage: v.union(v.literal("start"), v.literal("finish")), blocking: v.boolean(), resolved: v.boolean(),
+    responsible_id: v.id("users"), due_date: v.string(), evidence: v.optional(v.string()),
+    source_type: v.optional(v.union(v.literal("requisicion"), v.literal("rfi"), v.literal("plano"), v.literal("documento"))),
+    source_id: v.optional(v.string()), resolved_by: v.optional(v.id("users")), resolved_at: v.optional(v.number()),
+  }).index("by_proyecto", ["proyecto"]).index("by_activity", ["activity_id"]),
+  programa_obra_exceptions: defineTable({
+    proyecto: v.id("desarrollos"), activity_id: v.id("programa_obra_activities"),
+    old_progress: v.number(), progress: v.number(), execution_date: v.string(),
+    reason: v.string(), blockers_json: v.string(), version: v.number(),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
+    requested_by: v.id("users"), requested_at: v.number(),
+    decided_by: v.optional(v.id("users")), decided_at: v.optional(v.number()), decision_reason: v.optional(v.string()),
+  }).index("by_proyecto", ["proyecto"]),
+  programa_obra_events: defineTable({
+    proyecto: v.id("desarrollos"), activity_id: v.optional(v.id("programa_obra_activities")),
+    type: v.string(), actor_id: v.id("users"), actor_name: v.string(),
+    created_at: v.number(), execution_date: v.optional(v.string()), reason: v.string(), payload_json: v.string(),
+  }).index("by_proyecto", ["proyecto"]).index("by_activity", ["activity_id"]),
+  programa_obra_revisions: defineTable({
+    proyecto: v.id("desarrollos"), kind: v.union(v.literal("baseline"), v.literal("reschedule"), v.literal("import")),
+    actor_id: v.id("users"), created_at: v.number(), reason: v.string(), version: v.number(), snapshot_json: v.string(),
+  }).index("by_proyecto", ["proyecto"]),
   programa_obra: defineTable({
     proyecto: v.id("desarrollos"),
     partida_id: v.id("partidas"), // Nivel 1 partida reference
@@ -1427,6 +1480,7 @@ export default defineSchema({
     finiquito_recordatorio_dias: v.optional(v.number()),
     peso: v.optional(v.number()), // Weight (0-100%)
     orden: v.optional(v.number()), // Row order from Excel upload
+    archived: v.optional(v.boolean()),
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_partida_id", { fields: ["partida_id"] })
     .index("by_proyecto_partida", { fields: ["proyecto", "partida_id"] }),
@@ -1484,6 +1538,7 @@ export default defineSchema({
     orden: v.optional(v.number()), // Row order from Excel upload
     tiempo_extra_cantidad: v.optional(v.number()), // Extension amount
     tiempo_extra_unidad: v.optional(v.string()), // "dias" | "semanas" | "meses"
+    archived: v.optional(v.boolean()),
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_programa_obra", { fields: ["programa_obra_id"] })
     .index("by_proyecto_partida_familia", { fields: ["proyecto", "partida", "familia"] }),
@@ -1499,6 +1554,8 @@ export default defineSchema({
     changed_by_id: v.optional(v.id("users")),
     changed_by_name: v.optional(v.string()),
     created_at: v.number(),
+    execution_date: v.optional(v.string()),
+    reason: v.optional(v.string()),
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_detalle", { fields: ["detalle_id"] })
     .index("by_proyecto_created", { fields: ["proyecto", "created_at"] }),

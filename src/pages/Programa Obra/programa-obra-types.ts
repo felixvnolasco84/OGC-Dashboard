@@ -59,6 +59,7 @@ export type ProgramaItem = {
   ponderacion?: number; // weight %
   avanceReal?: number; // avance real % (computed for 0/1, user-entered for 2)
   isComplete?: boolean; // exact completion state, independent of display rounding
+  executionManaged?: boolean; // progress is recorded in a concrete activity/front
   financiero?: number; // pagado/presupuesto % (only nivel 0)
   hasReportedProgress?: boolean; // whether a positive progress value has ever been recorded
   progressStartedAt?: number; // timestamp of the first known positive progress entry

@@ -12,12 +12,6 @@ export interface ComentarioForPdf {
   createdByName?: string;
 }
 
-export type ProgramaObraExportViewState = {
-  expandedIds: Set<string>;
-  searchTerm: string;
-  statusFilter: string;
-};
-
 export interface PdfExportOptions {
   /** Ref to the fixed left-columns container (shrink-0 div) */
   leftColumnsEl: HTMLElement;
@@ -25,10 +19,6 @@ export interface PdfExportOptions {
   timelineEl: HTMLElement;
   /** Project name for the PDF header & filename */
   projectName: string;
-  /** Expand every partida/familia so the PDF includes the full breakdown */
-  expandAll: () => ProgramaObraExportViewState;
-  /** Restore the on-screen expand/filter state after capture */
-  restoreView: (state: ProgramaObraExportViewState) => void;
   /** Level-0 items with comentarios attached (for the comments pages) */
   programaData: ProgramaItem[];
 }
@@ -50,13 +40,13 @@ const PDF_EXPORT_CSS = `
     text-overflow: unset !important;
     white-space: nowrap !important;
   }
-  [data-pdf-export-active] .min-h-\\[44px\\] {
-    min-height: 44px !important;
-    height: 44px !important;
+  [data-pdf-export-active] .min-h-\\[56px\\] {
+    min-height: 56px !important;
+    height: 56px !important;
   }
-  [data-pdf-export-active] .max-h-\\[44px\\] {
-    max-height: 44px !important;
-    height: 44px !important;
+  [data-pdf-export-active] .max-h-\\[56px\\] {
+    max-height: 56px !important;
+    height: 56px !important;
   }
   [data-pdf-export-active] .overflow-hidden,
   [data-pdf-export-active] .overflow-auto,
@@ -163,18 +153,18 @@ function headerCssHeight(el: HTMLElement): number {
 }
 
 /** Inject temporary style overrides for PDF capture */
-function injectPdfStyles(): void {
+function injectPdfStyles(roots: HTMLElement[]): void {
   const style = document.createElement("style");
   style.id = PDF_EXPORT_STYLE_ID;
   style.textContent = PDF_EXPORT_CSS;
   document.head.appendChild(style);
-  document.body.setAttribute("data-pdf-export-active", "true");
+  roots.forEach((root) => root.setAttribute("data-pdf-export-active", "true"));
 }
 
 /** Remove temporary style overrides */
-function removePdfStyles(): void {
+function removePdfStyles(roots: HTMLElement[]): void {
   document.getElementById(PDF_EXPORT_STYLE_ID)?.remove();
-  document.body.removeAttribute("data-pdf-export-active");
+  roots.forEach((root) => root.removeAttribute("data-pdf-export-active"));
 }
 
 /** Collect comments from partidas and their desglose (familias). */
@@ -327,17 +317,18 @@ export async function exportProgramaObraPdf({
   leftColumnsEl,
   timelineEl,
   projectName,
-  expandAll,
-  restoreView,
   programaData,
 }: PdfExportOptions): Promise<void> {
-  const previousView = expandAll();
   await waitForLayout(350);
 
   let restoreClip: (() => void) | null = null;
+  const captureRoots = [leftColumnsEl, timelineEl];
+  const scrollPositions = captureRoots.flatMap((root) => root.parentElement
+    ? [{ el: root.parentElement, top: root.parentElement.scrollTop, left: root.parentElement.scrollLeft }]
+    : []);
 
   try {
-    injectPdfStyles();
+    injectPdfStyles(captureRoots);
     restoreClip = unclipAncestors([leftColumnsEl, timelineEl]);
     if (leftColumnsEl.parentElement) leftColumnsEl.parentElement.scrollTop = 0;
     if (timelineEl.parentElement) timelineEl.parentElement.scrollTop = 0;
@@ -378,7 +369,7 @@ export async function exportProgramaObraPdf({
 
     restoreClip();
     restoreClip = null;
-    removePdfStyles();
+    removePdfStyles(captureRoots);
 
     const leftImgW = leftCanvas.width;
     const tlImgW = timelineCanvas.width;
@@ -404,6 +395,7 @@ export async function exportProgramaObraPdf({
       orientation: "landscape",
       unit: "mm",
       format: "a3",
+      compress: true,
     });
 
     const contentY = MARGIN_MM + HEADER_H_MM;
@@ -424,7 +416,7 @@ export async function exportProgramaObraPdf({
         const bodyMmH = bodySrcH * scaleToFitH;
 
         const leftHeader = sliceCanvas(leftCanvas, 0, 0, leftImgW, headerCanvasH);
-        pdf.addImage(leftHeader.toDataURL("image/png"), "PNG", MARGIN_MM, contentY, leftMmW, headerMmH);
+        pdf.addImage(leftHeader.toDataURL("image/png"), "PNG", MARGIN_MM, contentY, leftMmW, headerMmH, undefined, "FAST");
         if (bodySrcH > 0) {
           const leftBody = sliceCanvas(leftCanvas, 0, bodySrcY, leftImgW, bodySrcH);
           pdf.addImage(
@@ -434,6 +426,8 @@ export async function exportProgramaObraPdf({
             contentY + headerMmH,
             leftMmW,
             bodyMmH,
+            undefined,
+            "FAST",
           );
         }
 
@@ -445,6 +439,8 @@ export async function exportProgramaObraPdf({
           contentY,
           srcW * scaleToFitH,
           headerMmH,
+          undefined,
+          "FAST",
         );
         if (bodySrcH > 0) {
           const tlBody = sliceCanvas(timelineCanvas, srcX, bodySrcY, srcW, bodySrcH);
@@ -455,6 +451,8 @@ export async function exportProgramaObraPdf({
             contentY + headerMmH,
             srcW * scaleToFitH,
             bodyMmH,
+            undefined,
+            "FAST",
           );
         }
       }
@@ -467,7 +465,10 @@ export async function exportProgramaObraPdf({
     pdf.save(`Programa de Obra - ${projectName}.pdf`);
   } finally {
     restoreClip?.();
-    removePdfStyles();
-    restoreView(previousView);
+    removePdfStyles(captureRoots);
+    scrollPositions.forEach(({ el, top, left }) => {
+      el.scrollTop = top;
+      el.scrollLeft = left;
+    });
   }
 }

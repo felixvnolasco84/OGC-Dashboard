@@ -18,6 +18,10 @@ import {
   selectWorkforceCaptures,
 } from "./reportingUtils";
 
+import { executionContext } from "./programaObraExecution";
+import type { Id } from "./_generated/dataModel";
+import { projectProgramDates, summarizeProgram } from "../src/lib/programa-obra-rules";
+
 const numberValue = (value: unknown) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -38,18 +42,6 @@ const isLaborLabel = (value: unknown) => {
   return ["mano de obra", "albanil", "carpinter", "fierrer", "ayudante", "cuadrilla"]
     .some((token) => normalized.includes(token));
 };
-
-function plannedProgress(startValue: unknown, endValue: unknown, asOf: string) {
-  const start = parseProjectDate(startValue);
-  const end = parseProjectDate(endValue);
-  if (!start || !end || end < start) return null;
-  if (asOf < start) return 0;
-  if (asOf >= end) return 100;
-  const startMs = Date.parse(`${start}T00:00:00Z`);
-  const endMs = Date.parse(`${end}T00:00:00Z`);
-  const asOfMs = Date.parse(`${asOf}T00:00:00Z`);
-  return ((asOfMs - startMs) / Math.max(86_400_000, endMs - startMs)) * 100;
-}
 
 function addScheduleExtension(
   endValue: unknown,
@@ -261,8 +253,8 @@ export async function buildReportSnapshot(
     incomes,
     ogcMovements,
     requisitions,
-    schedules,
-    details,
+    sourceSchedules,
+    sourceDetails,
     projections,
     weeklyProgress,
     logs,
@@ -307,6 +299,10 @@ export async function buildReportSnapshot(
     ]);
 
   if (!project) throw new Error("Project not found");
+  const execution = await executionContext(ctx, args.proyecto as Id<"desarrollos">);
+  const { schedules, details } = projectProgramDates(sourceSchedules, sourceDetails, execution.activities);
+  const programSummary = summarizeProgram(sourceSchedules, sourceDetails, execution.activities, args.periodEnd, execution.calendar);
+
 
   const requisitionItems = (
     await Promise.all(
@@ -437,10 +433,7 @@ export async function buildReportSnapshot(
     })),
   );
 
-  const scheduleRows = details.length ? details : schedules;
-  let weightTotal = 0;
-  let physicalWeighted = 0;
-  let plannedWeighted = 0;
+  const scheduleRows = details.filter((d: any) => d.nivel === 2 && !d.archived && (d.orden != null || execution.activities.some((a) => a.detalle_id === d._id)));
   let delayedActivities = 0;
   let invalidScheduleDates = 0;
   for (const row of scheduleRows) {
@@ -449,16 +442,11 @@ export async function buildReportSnapshot(
     if ((row.fecha_inicio && !start) || (row.fecha_fin && !end) || (start && end && end < start)) {
       invalidScheduleDates += 1;
     }
-    const weight = Math.max(0, numberValue(row.peso));
     const actual = Math.min(100, Math.max(0, numberValue(row.avance_porcentaje)));
-    const planned = plannedProgress(row.fecha_inicio, row.fecha_fin, args.periodEnd);
-    weightTotal += weight;
-    physicalWeighted += weight * actual;
-    plannedWeighted += weight * (planned || 0);
-    if (end && end < args.periodEnd && actual < 100) delayedActivities += 1;
+    if (end && end < args.periodEnd && !(programSummary.details.find((d) => d.id === row._id)?.released ?? actual === 100)) delayedActivities += 1;
   }
-  const physicalProgressPercent = weightTotal > 0 ? physicalWeighted / weightTotal : 0;
-  const plannedProgressPercent = weightTotal > 0 ? plannedWeighted / weightTotal : 0;
+  const physicalProgressPercent = programSummary.overall.progress;
+  const plannedProgressPercent = programSummary.overall.planned;
   const earnedValue = calculateEarnedValue({
     approvedBudget,
     actualCost: accumulatedCost,
@@ -468,25 +456,10 @@ export async function buildReportSnapshot(
 
   const partidaById = new Map<string, any>(partidas.map((row: any) => [String(row._id), row]));
   const scheduleById = new Map<string, any>(schedules.map((row: any) => [String(row._id), row]));
-  const detailsBySchedule = new Map<string, any[]>();
-  for (const detail of details) {
-    const key = String(detail.programa_obra_id);
-    const values = detailsBySchedule.get(key) || [];
-    values.push(detail);
-    detailsBySchedule.set(key, values);
-  }
-
   const programProgressByPartida = new Map<string, number>();
-  const parentActivities = schedules.map((schedule: any) => {
-    const children = detailsBySchedule.get(String(schedule._id)) || [];
-    const progressRows = children.filter((row: any) => Number.isFinite(row.avance_porcentaje));
-    const childWeight = progressRows.reduce((sum: number, row: any) => sum + Math.max(0, numberValue(row.peso)), 0);
-    const actual = progressRows.length
-      ? childWeight > 0
-        ? progressRows.reduce((sum: number, row: any) =>
-          sum + Math.min(100, Math.max(0, numberValue(row.avance_porcentaje))) * Math.max(0, numberValue(row.peso)), 0) / childWeight
-        : progressRows.reduce((sum: number, row: any) => sum + Math.min(100, Math.max(0, numberValue(row.avance_porcentaje))), 0) / progressRows.length
-      : 0;
+  const parentActivities = schedules.filter((s: any) => programSummary.schedules.some((row) => row.id === s._id)).map((schedule: any) => {
+    const summary = programSummary.schedules.find((row) => row.id === schedule._id);
+    const actual = summary?.progress ?? 0;
     const partida = partidaById.get(String(schedule.partida_id));
     const name = sanitizeReportText(partida?.nombre || "Partida", 90) || "Partida";
     programProgressByPartida.set(normalizeLabel(name), actual);
@@ -515,18 +488,19 @@ export async function buildReportSnapshot(
       group: name,
       level: 1,
       approved_budget: numberValue(partida?.presupuesto_aprobado),
+      parent_start: null, parent_end: null, extension_end: null,
       start: parseProjectDate(schedule.fecha_inicio),
       end,
       actual_progress_percent: actual,
-      planned_progress_percent: plannedProgress(schedule.fecha_inicio, schedule.fecha_fin, args.periodEnd),
+      planned_progress_percent: summary?.planned ?? null,
       financial_progress_percent: percent(numberValue(partida?.pagado), numberValue(partida?.presupuesto_aprobado)),
-      delayed: Boolean(end && end < args.periodEnd && actual < 100),
+      delayed: Boolean(end && end < args.periodEnd && !summary?.released),
       milestones,
       order: numberValue(schedule.orden),
       group_order: numberValue(schedule.orden),
     };
   });
-  const detailActivities = details.map((detail: any) => {
+  const detailActivities = details.filter((d: any) => programSummary.details.some((row) => row.id === d._id)).map((detail: any) => {
     const parent = scheduleById.get(String(detail.programa_obra_id));
     const parentPartida = parent ? partidaById.get(String(parent.partida_id)) : null;
     const group = sanitizeReportText(detail.partida || parentPartida?.nombre || "Partida", 90) || "Partida";
@@ -534,7 +508,8 @@ export async function buildReportSnapshot(
       detail.nivel === 3 && detail.subpartida ? detail.subpartida : detail.familia,
       90,
     ) || group;
-    const actual = Math.min(100, Math.max(0, numberValue(detail.avance_porcentaje)));
+    const summary = programSummary.details.find((row) => row.id === detail._id);
+    const actual = summary?.progress ?? 0;
     const end = parseProjectDate(detail.fecha_fin);
     return {
       id: String(detail._id),
@@ -542,6 +517,7 @@ export async function buildReportSnapshot(
       group,
       level: numberValue(detail.nivel) || 2,
       approved_budget: null,
+      financial_progress_percent: null, milestones: [],
       start: parseProjectDate(detail.fecha_inicio),
       end,
       parent_start: parseProjectDate(parent?.fecha_inicio),
@@ -552,8 +528,8 @@ export async function buildReportSnapshot(
         detail.tiempo_extra_unidad,
       ),
       actual_progress_percent: actual,
-      planned_progress_percent: plannedProgress(detail.fecha_inicio, detail.fecha_fin, args.periodEnd),
-      delayed: Boolean(end && end < args.periodEnd && actual < 100),
+      planned_progress_percent: summary?.planned ?? null,
+      delayed: Boolean(end && end < args.periodEnd && !summary?.released),
       order: numberValue(detail.orden),
       group_order: numberValue(parent?.orden),
     };
@@ -732,8 +708,8 @@ export async function buildReportSnapshot(
     ),
     metricIssue(
       "incomplete_weights",
-      scheduleRows.length > 0 && Math.abs(weightTotal - 100) > 0.5 ? 1 : 0,
-      `La ponderación del programa suma ${weightTotal.toFixed(2)}%, no 100%.`,
+      scheduleRows.length > 0 && programSummary.overall.provisional ? 1 : 0,
+      "Avance provisional: faltan ponderaciones o su suma es cero; se usa promedio simple en los grupos afectados.",
     ),
     metricIssue(
       "missing_budgets",

@@ -18,6 +18,8 @@ import { parseDate } from "./programa-obra-types";
 // ============================================================
 
 export type ExcelRow = {
+  programa_obra_id?: import("../../../convex/_generated/dataModel").Id<"programa_obra">;
+  detalle_id?: import("../../../convex/_generated/dataModel").Id<"programa_obra_detalle">;
   nivel: number;
   partida: string;
   familia?: string;

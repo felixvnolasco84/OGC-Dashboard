@@ -11,7 +11,29 @@ import {
   validateMilestonePercentage,
   validateReminderDays,
 } from "../convex/programaObraMilestoneRules.ts";
-import { collectExpandableIds, computeGanttPagination } from "../src/pages/Programa Obra/programa-obra-pdf-layout.ts";
+import { collectExpandableIds, computeGanttPagination, ROW_CSS_PX } from "../src/pages/Programa Obra/programa-obra-pdf-layout.ts";
+import { countDelayedProgramaItems, isProgramaItemDelayed } from "../src/pages/Programa Obra/programa-obra-status.ts";
+
+const delayNow = new Date(2026, 8, 29, 12).getTime();
+const activity = (id, finish, level = 0, extra = {}) => ({
+  id, level, avanceReal: 25, children: [],
+  ...(level === 0 ? { schedule: { fecha_fin: finish } } : { detalleSchedule: { fecha_fin: finish } }),
+  ...extra,
+});
+const lateFamily = activity("family-late", "28/09/2026", 1);
+const contextParent = activity("parent-context", "30/09/2026", 0, { children: [lateFamily] });
+const lateParent = activity("parent-late", "2026-09-28");
+const completeFamily = activity("family-complete", "28/09/2026", 1, { isComplete: true });
+assert.equal(isProgramaItemDelayed(contextParent, delayNow), false, "context parents must not inflate the count");
+assert.equal(isProgramaItemDelayed(lateFamily, delayNow), true);
+assert.equal(countDelayedProgramaItems([contextParent, lateParent, completeFamily], delayNow), 2);
+assert.equal(countDelayedProgramaItems([contextParent, lateFamily], delayNow), 1, "count a matching activity once");
+assert.equal(isProgramaItemDelayed(activity("due-today", "29/09/2026"), Date.parse("2026-09-30T05:59:59Z")), false, "finish remains valid until the end of the Mexico City day");
+assert.equal(isProgramaItemDelayed(activity("due-today", "29/09/2026"), Date.parse("2026-09-30T06:00:00Z")), true);
+assert.equal(isProgramaItemDelayed(activity("no-date", undefined), delayNow), false);
+assert.equal(isProgramaItemDelayed(activity("invalid-date", "31/02/2026"), delayNow), false);
+assert.equal(isProgramaItemDelayed(activity("complete", "28/09/2026", 0, { avanceReal: 100 }), delayNow), false);
+assert.equal(isProgramaItemDelayed(activity("exact", "28/09/2026", 0, { avanceReal: 99.99, isComplete: false }), delayNow), true);
 
 assert.equal(getReminderDays("anticipo"), 7);
 assert.equal(getReminderDays("suministro"), 14);
@@ -84,5 +106,6 @@ const tallGantt = computeGanttPagination({
   usableHMm: 265,
 });
 assert.ok(tallGantt.vPages > 1, "expanded programs must paginate vertically instead of shrinking unreadably");
+assert.equal(tallGantt.bodyCanvasPerPage % (ROW_CSS_PX * 2), 0, "PDF page boundaries must land between full rows");
 
 console.log("Programa de Obra milestone rules: OK");

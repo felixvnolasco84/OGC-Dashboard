@@ -2,6 +2,17 @@ import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
+import { assertProgramCapability, bumpProgramVersion, executionContext, updateLegacyExecutionProgress, event } from "./programaObraExecution";
+import { programDate, projectProgramDates } from "../src/lib/programa-obra-rules";
+import { previewProgramImport } from "./programaObraImport";
+export {
+  getExecutionProgram, initializeExecutionProgram, configureExecutionProgram, setExecutionPermission,
+  createExecutionFront, configureExecutionActivity, splitExecutionActivity,
+  upsertExecutionDependency, removeExecutionDependency, upsertExecutionRequirement, resolveExecutionRequirement,
+  removeExecutionRequirement, getExecutionSources, getExecutionHistory,
+  updateExecutionProgress, requestExecutionException, decideExecutionException, acceptExecutionActivity,
+  previewExecutionReschedule, applyExecutionReschedule, archiveExecutionActivity,
+} from "./programaObraExecution";
 import {
   assertAdmin,
   assertCanWrite,
@@ -60,10 +71,12 @@ export const getSchedulesByProyecto = query({
   },
   handler: async (ctx, args) => {
     await assertProjectAccess(ctx, args.proyecto_id);
-    return await ctx.db
-      .query("programa_obra")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
-      .collect();
+    const [schedules, details, context] = await Promise.all([
+      ctx.db.query("programa_obra").withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id)).collect(),
+      ctx.db.query("programa_obra_detalle").withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id)).collect(),
+      executionContext(ctx, args.proyecto_id),
+    ]);
+    return projectProgramDates(schedules, details, context.activities).schedules;
   },
 });
 
@@ -102,6 +115,10 @@ export const upsertSchedule = mutation({
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
     await assertProjectAccess(ctx, args.proyecto);
+    const execution = await executionContext(ctx, args.proyecto);
+    if (execution.config) await assertProgramCapability(ctx, args.proyecto, "plan");
+    for (const value of [args.fecha_inicio, args.fecha_fin]) if (value && !programDate(value)) throw new Error("La fecha no es válida.");
+    if (args.fecha_inicio && args.fecha_fin && programDate(args.fecha_inicio)! > programDate(args.fecha_fin)!) throw new Error("El fin no puede ser anterior al inicio.");
     await assertPartidaInProject(ctx, args.partida_id, args.proyecto);
     validateMilestonePercentage(args.anticipo_porcentaje);
     validateMilestonePercentage(args.finiquito_porcentaje);
@@ -116,6 +133,8 @@ export const upsertSchedule = mutation({
       )
       .first();
 
+    if (execution.config?.enabled && (programDate(existing?.fecha_inicio) !== programDate(args.fecha_inicio) || programDate(existing?.fecha_fin) !== programDate(args.fecha_fin))) throw new Error("Revisa y aprueba las fechas desde las actividades por frente.");
+    await bumpProgramVersion(ctx, args.proyecto);
     if (existing) {
       await ctx.db.patch(existing._id, {
         fecha_inicio: args.fecha_inicio,
@@ -161,6 +180,10 @@ export const upsertFamiliaSchedule = mutation({
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
     await assertProjectAccess(ctx, args.proyecto);
+    const execution = await executionContext(ctx, args.proyecto);
+    if (execution.config) await assertProgramCapability(ctx, args.proyecto, "plan");
+    for (const value of [args.fecha_inicio, args.fecha_fin]) if (value && !programDate(value)) throw new Error("La fecha no es válida.");
+    if (args.fecha_inicio && args.fecha_fin && programDate(args.fecha_inicio)! > programDate(args.fecha_fin)!) throw new Error("El fin no puede ser anterior al inicio.");
     const partida = await assertPartidaInProject(ctx, args.partida_id, args.proyecto);
     const parentPartida = await assertPartidaInProject(ctx, args.parent_partida_id, args.proyecto);
     if (
@@ -216,6 +239,8 @@ export const upsertFamiliaSchedule = mutation({
       )
       .first();
 
+    if (execution.config?.enabled && (programDate(existing?.fecha_inicio) !== programDate(args.fecha_inicio) || programDate(existing?.fecha_fin) !== programDate(args.fecha_fin))) throw new Error("Revisa y aprueba las fechas desde las actividades por frente.");
+    await bumpProgramVersion(ctx, args.proyecto);
     if (existing) {
       await ctx.db.patch(existing._id, {
         fecha_inicio: args.fecha_inicio,
@@ -348,6 +373,8 @@ export const upsertAvanceReal = mutation({
     await assertProjectAccess(ctx, args.proyecto);
     await assertPartidaInProject(ctx, args.partida_id, args.proyecto);
     validateMilestonePercentage(args.porcentaje);
+    const execution = await executionContext(ctx, args.proyecto);
+    if (execution.config?.enabled) throw new Error("Registra el avance por actividad y frente en el programa activo.");
 
     const existing = await ctx.db
       .query("avance_real")
@@ -470,6 +497,8 @@ export const updateDetalleAvance = mutation({
   args: {
     detalle_id: v.id("programa_obra_detalle"),
     avance_porcentaje: v.number(),
+    execution_date: v.optional(v.string()),
+    reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
@@ -480,6 +509,8 @@ export const updateDetalleAvance = mutation({
     }
     await assertProjectAccess(ctx, detalle.proyecto);
     validateMilestonePercentage(args.avance_porcentaje);
+    if (await updateLegacyExecutionProgress(ctx, detalle, args.avance_porcentaje, args.execution_date, args.reason)) return { success: true };
+    if (args.avance_porcentaje < (detalle.avance_porcentaje ?? 0) && !args.reason?.trim()) throw new Error("Explica el motivo de la reducción o reapertura.");
 
     const previousValue = detalle.avance_porcentaje;
     if (previousValue === args.avance_porcentaje) {
@@ -540,12 +571,16 @@ export const updateSchedulePeso = mutation({
     peso: v.number(),
   },
   handler: async (ctx, args) => {
-    await assertAdmin(ctx);
+    await assertCanWrite(ctx);
     const schedule = await ctx.db.get(args.schedule_id);
     if (!schedule) throw new Error("Programa de obra no encontrado.");
     await assertProjectAccess(ctx, schedule.proyecto);
+    const execution = await executionContext(ctx, schedule.proyecto);
+    if (execution.config) await assertProgramCapability(ctx, schedule.proyecto, "plan"); else await assertAdmin(ctx);
     validateMilestonePercentage(args.peso);
     await ctx.db.patch(args.schedule_id, { peso: args.peso });
+    await bumpProgramVersion(ctx, schedule.proyecto);
+    await event(ctx, schedule.proyecto, "weight_changed", "Ponderación del programa actualizada", { id: schedule._id, old_weight: schedule.peso ?? null, weight: args.peso });
     return { success: true };
   },
 });
@@ -557,12 +592,16 @@ export const updateDetallePeso = mutation({
     peso: v.number(),
   },
   handler: async (ctx, args) => {
-    await assertAdmin(ctx);
+    await assertCanWrite(ctx);
     const detalle = await ctx.db.get(args.detalle_id);
     if (!detalle) throw new Error("Detalle de programa de obra no encontrado.");
     await assertProjectAccess(ctx, detalle.proyecto);
+    const execution = await executionContext(ctx, detalle.proyecto);
+    if (execution.config) await assertProgramCapability(ctx, detalle.proyecto, "plan"); else await assertAdmin(ctx);
     validateMilestonePercentage(args.peso);
     await ctx.db.patch(args.detalle_id, { peso: args.peso });
+    await bumpProgramVersion(ctx, detalle.proyecto);
+    await event(ctx, detalle.proyecto, "weight_changed", "Ponderación del programa actualizada", { id: detalle._id, old_weight: detalle.peso ?? null, weight: args.peso });
     return { success: true };
   },
 });
@@ -581,12 +620,17 @@ export const updateDetalleSchedule = mutation({
     const detalle = await ctx.db.get(args.detalle_id);
     if (!detalle) throw new Error("Detalle de programa de obra no encontrado.");
     await assertProjectAccess(ctx, detalle.proyecto);
+    const execution = await executionContext(ctx, detalle.proyecto);
+    if (execution.config) throw new Error("Revisa y aprueba una propuesta de reprogramación en Actividades.");
+    if (args.fecha_inicio && !programDate(args.fecha_inicio) || args.fecha_fin && !programDate(args.fecha_fin)) throw new Error("Las fechas no son válidas.");
+    if (args.fecha_inicio && args.fecha_fin && programDate(args.fecha_inicio)! > programDate(args.fecha_fin)!) throw new Error("El fin no puede ser anterior al inicio.");
     await ctx.db.patch(args.detalle_id, {
       fecha_inicio: args.fecha_inicio,
       fecha_fin: args.fecha_fin,
       tiempo_extra_cantidad: args.tiempo_extra_cantidad,
       tiempo_extra_unidad: args.tiempo_extra_unidad,
     });
+    await bumpProgramVersion(ctx, detalle.proyecto);
     return { success: true };
   },
 });
@@ -602,10 +646,12 @@ export const getDetallesByProyecto = query({
   },
   handler: async (ctx, args) => {
     await assertProjectAccess(ctx, args.proyecto_id);
-    return await ctx.db
-      .query("programa_obra_detalle")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
-      .collect();
+    const [schedules, details, context] = await Promise.all([
+      ctx.db.query("programa_obra").withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id)).collect(),
+      ctx.db.query("programa_obra_detalle").withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id)).collect(),
+      executionContext(ctx, args.proyecto_id),
+    ]);
+    return projectProgramDates(schedules, details, context.activities).details;
   },
 });
 
@@ -632,6 +678,8 @@ export const getDetallesByProgramaObra = query({
 // ============================================================
 
 const excelRowValidator = v.object({
+  programa_obra_id: v.optional(v.id("programa_obra")),
+  detalle_id: v.optional(v.id("programa_obra_detalle")),
   nivel: v.number(),
   partida: v.string(),
   familia: v.optional(v.string()),
@@ -646,14 +694,25 @@ const excelRowValidator = v.object({
   peso: v.optional(v.number()),
 });
 
+export const previewExcelImport = query({
+  args: { proyecto: v.id("desarrollos"), rows: v.array(excelRowValidator) },
+  handler: async (ctx, args) => { await assertProjectAccess(ctx, args.proyecto); return previewProgramImport(ctx, args.proyecto, args.rows); },
+});
+
 export const bulkUpsertFromExcel = mutation({
   args: {
     proyecto: v.id("desarrollos"),
     rows: v.array(excelRowValidator),
+    expected_fingerprint: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
     await assertProjectAccess(ctx, args.proyecto);
+    const execution = await executionContext(ctx, args.proyecto);
+    if (execution.config) await assertProgramCapability(ctx, args.proyecto, "plan");
+    const preview = await previewProgramImport(ctx, args.proyecto, args.rows);
+    if (!preview.canApply) throw new Error("Resuelve las filas inválidas y los pendientes de reprogramación antes de importar.");
+    if ((execution.config && !args.expected_fingerprint) || (args.expected_fingerprint && preview.fingerprint !== args.expected_fingerprint)) throw new Error("El programa cambió; vuelve a revisar la previsualización del Excel.");
 
     let created = 0;
     let updated = 0;
@@ -677,22 +736,7 @@ export const bulkUpsertFromExcel = mutation({
     const nivel1Rows = args.rows.filter((r) => r.nivel === 1);
     const childRows = args.rows.filter((r) => r.nivel === 2 || r.nivel === 3);
 
-    // Reset orden on all existing records so only items in this upload are shown
-    const existingSchedules = await ctx.db
-      .query("programa_obra")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
-      .collect();
-    for (const s of existingSchedules) {
-      await ctx.db.patch(s._id, { orden: undefined });
-    }
-
-    const existingDetalles = await ctx.db
-      .query("programa_obra_detalle")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
-      .collect();
-    for (const d of existingDetalles) {
-      await ctx.db.patch(d._id, { orden: undefined });
-    }
+    // Import merges into the programme. Absent rows retain identity and visibility.
 
     // Cache: partida name → programa_obra _id
     const programaObraCache = new Map<string, string>();
@@ -717,10 +761,11 @@ export const bulkUpsertFromExcel = mutation({
       const trimmedName = row.partida.trim();
 
       // 1. Try exact index match first (fast path)
+      const resolvedName = preview.rows.find((m) => m.index === args.rows.indexOf(row))!.canonicalName;
       let partida = await ctx.db
         .query("partidas")
         .withIndex("by_proyecto_nivel_nombre", (q) =>
-          q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", trimmedName)
+          q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", resolvedName)
         )
         .first();
 
@@ -784,7 +829,9 @@ export const bulkUpsertFromExcel = mutation({
       const row = childRows[i];
       const trimmedChildPartida = row.partida.trim();
       // Resolve canonical name, then look up in cache
-      const canonicalPartida = nameToCanonical.get(row.partida) ?? nameToCanonical.get(trimmedChildPartida);
+      const rowMatch = preview.rows.find((m) => m.index === args.rows.indexOf(row))!;
+      const canonicalPartida = rowMatch.canonicalName;
+      nameToCanonical.set(row.partida, canonicalPartida);
       let parentId = canonicalPartida ? programaObraCache.get(canonicalPartida) : undefined;
 
       if (!parentId) {
@@ -792,7 +839,7 @@ export const bulkUpsertFromExcel = mutation({
         let partida = await ctx.db
           .query("partidas")
           .withIndex("by_proyecto_nivel_nombre", (q) =>
-            q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", trimmedChildPartida)
+            q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", canonicalPartida)
           )
           .first();
 
@@ -857,7 +904,8 @@ export const bulkUpsertFromExcel = mutation({
           .collect();
       }
 
-      const existingDetalle = existingDetalles.find(
+      const mappedDetail = rowMatch.existingId ? await ctx.db.get(rowMatch.existingId as Id<"programa_obra_detalle">) : null;
+      const existingDetalle = mappedDetail ?? existingDetalles.find(
         (d) =>
           d.nivel === row.nivel &&
           (d.subpartida || "") === (row.subpartida || "")
@@ -876,10 +924,14 @@ export const bulkUpsertFromExcel = mutation({
       };
 
       if (existingDetalle) {
+        for (const activity of execution.activities.filter((a) => a.detalle_id === existingDetalle._id && !a.archived && a.name === existingDetalle.familia)) {
+          await ctx.db.patch(activity._id, { name: row.familia?.trim() || existingDetalle.familia });
+        }
         await ctx.db.patch(existingDetalle._id, {
           ...detalleData,
           partida: resolvedPartida,
           familia: row.familia?.trim() || "",
+          subpartida: row.subpartida?.trim(),
         });
         updated++;
         familiasUpdated++;
@@ -898,6 +950,21 @@ export const bulkUpsertFromExcel = mutation({
       }
     }
 
+    if (preview.proposal) {
+      for (const change of preview.proposal.changes) await ctx.db.patch(change.activity_id as Id<"programa_obra_activities">, { current_start: change.start, current_finish: change.finish, forecast_finish: change.forecast_finish });
+    }
+    if (execution.config) {
+      const front = execution.fronts.find((f) => f.name === "General" && !f.archived);
+      if (!front) throw new Error("El frente General no está disponible.");
+      const allDetails = await ctx.db.query("programa_obra_detalle").withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto)).collect();
+      for (const d of allDetails.filter((d) => d.nivel === 2 && d.orden != null && !d.archived)) {
+        if (execution.activities.some((a) => a.detalle_id === d._id)) continue;
+        await ctx.db.insert("programa_obra_activities", { proyecto: args.proyecto, detalle_id: d._id, front_id: front._id, name: d.familia, progress: d.avance_porcentaje ?? 0, share: 100, mandatory: true, archived: false, requires_review: false, current_start: programDate(d.fecha_inicio), current_finish: programDate(d.fecha_fin), dates_need_review: (d.tiempo_extra_cantidad ?? 0) > 0 });
+      }
+      const user = await getCurrentUserOrThrow(ctx);
+      await ctx.db.insert("programa_obra_revisions", { proyecto: args.proyecto, kind: "import", actor_id: user._id, created_at: Date.now(), reason: "Importación revisada de Excel; las filas ausentes se conservan", version: execution.config.version, snapshot_json: JSON.stringify({ rows: args.rows, proposal: preview.proposal, absent: preview.absent }) });
+    }
+    await bumpProgramVersion(ctx, args.proyecto);
     return {
       created,
       updated,

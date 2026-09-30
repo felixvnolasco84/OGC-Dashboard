@@ -51,6 +51,8 @@ import type * as paymentAccountRules from "../paymentAccountRules.js";
 import type * as paymentAccounts from "../paymentAccounts.js";
 import type * as permissions from "../permissions.js";
 import type * as planos from "../planos.js";
+import type * as programaObraExecution from "../programaObraExecution.js";
+import type * as programaObraImport from "../programaObraImport.js";
 import type * as programaObraMilestoneRules from "../programaObraMilestoneRules.js";
 import type * as programa_obra from "../programa_obra.js";
 import type * as projectMatchUtils from "../projectMatchUtils.js";
@@ -143,6 +145,8 @@ declare const fullApi: ApiFromModules<{
   paymentAccounts: typeof paymentAccounts;
   permissions: typeof permissions;
   planos: typeof planos;
+  programaObraExecution: typeof programaObraExecution;
+  programaObraImport: typeof programaObraImport;
   programaObraMilestoneRules: typeof programaObraMilestoneRules;
   programa_obra: typeof programa_obra;
   projectMatchUtils: typeof projectMatchUtils;

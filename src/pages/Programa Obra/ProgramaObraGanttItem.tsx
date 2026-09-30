@@ -1,3 +1,4 @@
+import { isProgramaItemDelayed } from "./programa-obra-status";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -86,7 +87,7 @@ function MilestoneMarker({
             type="button"
             data-viewer-readonly-allow="true"
             className={cn(
-              "flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+              "flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
               markerClasses(milestone.status),
             )}
             onClick={(event) => {
@@ -236,7 +237,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
   // Once the planned end has passed, keep extending an incomplete activity to
   // today. If it later reaches 100%, retain its known actual completion date.
   let automaticDelayEndDate: Date | null = null;
-  if (!isComplete && now > endDate) {
+  if (!isComplete && isProgramaItemDelayed(item, currentTime)) {
     automaticDelayEndDate = now;
   } else if (
     isComplete &&
@@ -370,7 +371,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               )}
             </div>
             {/* Label */}
-            <span className="text-[11px] text-foreground px-2.5 py-1.5 block mt-0 text-left flex-1 whitespace-nowrap">
+            <span className="text-xs text-foreground px-2.5 py-1.5 block mt-0 text-left flex-1 whitespace-nowrap">
               {item.partida}
             </span>
           </div>
@@ -434,7 +435,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
             </div>
 
 
-            <span className="text-[10px] text-muted-foreground px-1 block text-left font-light whitespace-nowrap">
+            <span className="text-[11px] text-muted-foreground px-1 block text-left font-light whitespace-nowrap">
               {item.partida}
             </span>
 
@@ -479,7 +480,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="absolute inset-y-0 z-[15] w-2 -translate-x-1/2 cursor-help border-0 bg-transparent p-0"
+                className="absolute inset-y-0 z-[15] w-8 -translate-x-1/2 cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border-0 bg-transparent p-0"
                 style={{ left: `${recordedStartOffset}px` }}
                 aria-label={`Inicio registrado: ${recordedStartLabel} · primer avance`}
                 onClick={(event) => event.stopPropagation()}
@@ -506,7 +507,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               />
             </div>
 
-            <span className="text-[9px] text-disabled-foreground px-1 block whitespace-nowrap">
+            <span className="text-[10px] text-muted-foreground px-1 block whitespace-nowrap">
               {item.partida}
             </span>
 

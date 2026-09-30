@@ -52,7 +52,8 @@ import {
   type ProgramaMilestoneSummary,
   parseDate,
 } from "./programa-obra-types";
-import { collectExpandableIds } from "./programa-obra-pdf-layout";
+import ProgramaObraMobileList from "./ProgramaObraMobileList";
+import { countDelayedProgramaItems, isProgramaItemDelayed } from "./programa-obra-status";
 import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
 import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 import ProgramaObraComentarios from "./ProgramaObraComentarios";
@@ -65,6 +66,9 @@ import {
 } from "./ProgramaObraMilestones";
 import { useSidebar } from "@/components/ui/Sidebar";
 import { toast } from "sonner";
+import ProgramaObraExecution from "./ProgramaObraExecution";
+import ProgramaObraImportReview from "./ProgramaObraImportReview";
+import { aggregateProgramProgress, programToday } from "@/lib/programa-obra-rules";
 
 // ============================================================
 // Helpers
@@ -220,15 +224,25 @@ export default function ProgramaObra() {
   const [savingPonderacion, setSavingPonderacion] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const [executionView, setExecutionView] = useState(false);
+  const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
+  const [importRows, setImportRows] = useState<ExcelRow[] | null>(null);
+  const execution = useQuery(api.programa_obra.getExecutionProgram, proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, refresh_day: programToday(currentTime) } : "skip");
+  const openExecution = useCallback((item?: ProgramaItem) => {
+    const leaves = execution?.activities.filter((a) => a.detalle_id === item?.detalleSchedule?._id) ?? [];
+    setSelectedExecutionId(leaves.length === 1 ? leaves[0]._id : null);
+    setExecutionView(true);
+  }, [execution]);
 
   // Refresh time-based delay bars while the page remains open.
   useEffect(() => {
-    const intervalId = window.setInterval(() => setCurrentTime(Date.now()), 60 * 60 * 1000);
+    const intervalId = window.setInterval(() => setCurrentTime(Date.now()), 60 * 1000);
     return () => window.clearInterval(intervalId);
   }, []);
 
   const currentUser = useQuery(api.users.getCurrentUser);
-  const canEditPesos = currentUser?.role === "admin";
+  const canEditPesos = currentUser?.role === "admin" || !!execution?.capabilities.plan;
+  const canEditActivities = Boolean(currentUser && currentUser.role !== "viewer");
 
   const toggleFocusMode = useCallback(() => {
     setFocusMode((enabled) => {
@@ -326,9 +340,9 @@ export default function ProgramaObra() {
   const detallesByPartida = useMemo(() => {
     const map = new Map<string, NonNullable<typeof detalles>>();
     detalles?.forEach((detalle) => {
-      const group = map.get(detalle.partida) ?? [];
+      const group = map.get(detalle.programa_obra_id) ?? [];
       group.push(detalle);
-      map.set(detalle.partida, group);
+      map.set(detalle.programa_obra_id, group);
     });
     return map;
   }, [detalles]);
@@ -364,7 +378,7 @@ export default function ProgramaObra() {
     const matched = nivel1Partidas
       .filter((p) => {
         const s = scheduleMap.get(p._id);
-        return s != null && s.orden != null;
+        return s != null && !s.archived && (s.orden != null || execution?.summaries.schedules.some((row) => row.id === s._id));
       })
       .sort((a, b) => {
         const oa = scheduleMap.get(a._id)!.orden!;
@@ -376,15 +390,24 @@ export default function ProgramaObra() {
       const schedule = scheduleMap.get(p1._id) || null;
 
       // Get nivel 2 detalles for this partida (familia items only, with orden set from Excel), sorted by Excel order
-      const familiaDetalles = (detallesByPartida.get(p1.nombre)?.filter((d) => d.nivel === 2 && d.orden != null) || [])
+      const familiaDetalles = (detallesByPartida.get(schedule?._id ?? "")?.filter((d) => d.nivel === 2 && !d.archived && (d.orden != null || execution?.activities.some((a) => a.detalle_id === d._id))) || [])
         .sort((a, b) => (a.orden ?? Infinity) - (b.orden ?? Infinity));
 
       // Build familia (level 1) items from nivel 2 detalles
       const familiaItems: ProgramaItem[] = familiaDetalles.map((fam) => {
-        const avanceReal = fam.avance_porcentaje ?? 0;
-        const timing = getProgressTiming(avanceReal, avanceHistorialMap.get(fam._id) ?? []);
+        const summary = execution?.summaries.details.find((d) => d.id === fam._id);
+        const leaves = execution?.activities.filter((a) => a.detalle_id === fam._id) ?? [];
+        const avanceReal = summary?.progress ?? fam.avance_porcentaje ?? 0;
+        const started = leaves.filter((a) => a.progress > 0);
+        const timing = leaves.length ? {
+          hasReportedProgress: started.length > 0,
+          progressStartKnown: started.every((a) => !!a.actual_start),
+          progressStartedAt: started.length && started.every((a) => !!a.actual_start) ? Math.min(...started.map((a) => parseDate(a.actual_start)!.getTime())) : undefined,
+          completionKnown: leaves.every((a) => a.released && !!a.actual_finish),
+          completedAt: leaves.every((a) => a.released && !!a.actual_finish) ? Math.max(...leaves.map((a) => parseDate(a.actual_finish)!.getTime())) : undefined,
+        } : getProgressTiming(avanceReal, avanceHistorialMap.get(fam._id) ?? []);
         return {
-          id: `fam-${p1.nombre}-${fam.familia}`,
+          id: `fam-${fam._id}`,
           partida: fam.familia,
           presupuesto: 0,
           pagado: 0,
@@ -397,7 +420,8 @@ export default function ProgramaObra() {
           detalleSchedule: fam,
           ponderacion: fam.peso,
           avanceReal,
-          isComplete: avanceReal >= 100,
+          isComplete: summary?.released ?? avanceReal >= 100,
+          executionManaged: leaves.length > 0,
           ...timing,
           children: [],
         } as ProgramaItem;
@@ -410,18 +434,8 @@ export default function ProgramaObra() {
           : 0;
 
       // Compute partida-level avance as weighted average of familias
-      let partidaAvance = 0;
-      const totalWeight = familiaItems.reduce((s, c) => s + (c.ponderacion || 0), 0);
-      if (familiaItems.length > 0) {
-        if (totalWeight > 0) {
-          partidaAvance = familiaItems.reduce(
-            (s, c) => s + (c.avanceReal ?? 0) * (c.ponderacion || 0),
-            0
-          ) / totalWeight;
-        } else {
-          partidaAvance = familiaItems.reduce((s, c) => s + (c.avanceReal ?? 0), 0) / familiaItems.length;
-        }
-      }
+      const partidaSummary = execution?.summaries.schedules.find((row) => row.id === schedule?._id) ?? aggregateProgramProgress(familiaItems.map((c) => ({ progress: c.avanceReal ?? 0, weight: c.ponderacion, released: c.isComplete })));
+      const partidaAvance = partidaSummary.progress;
 
       // A parent activity starts with the first positive child progress entry.
       // Its completion is the last relevant child to reach 100%.
@@ -434,15 +448,8 @@ export default function ProgramaObra() {
         ? Math.min(...startedFamilias.map((item) => item.progressStartedAt!))
         : undefined;
 
-      const relevantFamilias = totalWeight > 0
-        ? familiaItems.filter((item) => (item.ponderacion ?? 0) > 0)
-        : familiaItems;
-      // Determine completion from the underlying families instead of the
-      // weighted average. Decimal weights can produce 99.99999999999999 even
-      // when every relevant family is exactly at 100%.
-      const isPartidaComplete =
-        relevantFamilias.length > 0 &&
-        relevantFamilias.every((item) => (item.avanceReal ?? 0) >= 100);
+      const relevantFamilias = familiaItems;
+      const isPartidaComplete = partidaSummary.released;
       const completionKnown =
         !isPartidaComplete ||
         relevantFamilias.every(
@@ -512,7 +519,7 @@ export default function ProgramaObra() {
         children: familiaItems,
       } as ProgramaItem;
     });
-  }, [nivel1Partidas, scheduleMap, detallesByPartida, avanceHistorialMap, milestonesBySchedule]);
+  }, [nivel1Partidas, scheduleMap, detallesByPartida, avanceHistorialMap, milestonesBySchedule, execution]);
 
   // Attach comentarios to items
   const programaDataWithComentarios = useMemo(() => {
@@ -559,26 +566,12 @@ export default function ProgramaObra() {
     setSavingPonderacion(false);
   }, []);
 
-  const overallProgress = useMemo(() => {
-    if (programaDataWithComentarios.length === 0) return 0;
-    const totalWeight = programaDataWithComentarios.reduce((sum, item) => sum + (item.ponderacion || 0), 0);
-    const progress = totalWeight > 0
-      ? programaDataWithComentarios.reduce(
-          (sum, item) => sum + (item.avanceReal ?? 0) * (item.ponderacion || 0),
-          0,
-        ) / totalWeight
-      : programaDataWithComentarios.reduce((sum, item) => sum + (item.avanceReal ?? 0), 0) /
-        programaDataWithComentarios.length;
-    return Math.round(progress * 100) / 100;
-  }, [programaDataWithComentarios]);
+  const overallProgress = useMemo(() => execution?.summaries.overall.progress ?? aggregateProgramProgress(programaDataWithComentarios.map((item) => ({ progress: item.avanceReal ?? 0, weight: item.ponderacion }))).progress, [execution, programaDataWithComentarios]);
 
-  const delayedCount = useMemo(() => {
-    const today = new Date(currentTime);
-    return programaDataWithComentarios.filter((item) => {
-      const end = parseDate(item.schedule?.fecha_fin);
-      return end && today > end && !(item.isComplete ?? false);
-    }).length;
-  }, [currentTime, programaDataWithComentarios]);
+  const delayedCount = useMemo(
+    () => countDelayedProgramaItems(programaDataWithComentarios, currentTime),
+    [currentTime, programaDataWithComentarios],
+  );
 
   const actionableMilestones = useMemo(
     () => (milestoneDashboard ?? []).filter((milestone) => milestone.actionable) as ProgramaMilestoneSummary[],
@@ -621,6 +614,7 @@ export default function ProgramaObra() {
       const item = editingItemRef.current;
       const rawValue = editingAvanceValueRef.current;
       const detalleId = item?.detalleSchedule?._id;
+      if (execution?.activities.some((a) => a.detalle_id === detalleId)) { setEditingAvanceId(null); openExecution(item ?? undefined); return; }
       if (!detalleId) {
         editingItemRef.current = null;
         setEditingAvanceId(null);
@@ -648,7 +642,7 @@ export default function ProgramaObra() {
       setEditingAvanceId(null);
       setEditingAvanceValue("");
     },
-    [updateDetalleAvance]
+    [updateDetalleAvance, execution, openExecution]
   );
 
   const filteredData = useMemo(() => {
@@ -657,13 +651,9 @@ export default function ProgramaObra() {
     const filtersActive = normalizedSearch.length > 0 || statusFilter !== "all";
     const matchesSearch = (item: ProgramaItem) =>
       !normalizedSearch || item.partida.toLocaleLowerCase("es-MX").includes(normalizedSearch);
-    const isDelayed = (item: ProgramaItem) => {
-      const end = parseDate(item.level === 1 ? item.detalleSchedule?.fecha_fin : item.schedule?.fecha_fin);
-      return Boolean(end && new Date(currentTime) > end && !(item.isComplete ?? false));
-    };
     const matchesStatus = (item: ProgramaItem) => {
       if (statusFilter === "all") return true;
-      if (statusFilter === "delayed") return isDelayed(item);
+      if (statusFilter === "delayed") return isProgramaItemDelayed(item, currentTime);
       if (statusFilter === "milestones") return item.level === 0 && Boolean(item.milestones?.some((milestone) => milestone.actionable));
       if (statusFilter === "in_progress") return (item.avanceReal ?? 0) > 0 && (item.avanceReal ?? 0) < 100;
       if (statusFilter === "completed") return item.isComplete ?? (item.avanceReal ?? 0) >= 100;
@@ -692,6 +682,25 @@ export default function ProgramaObra() {
     }
     return result;
   }, [currentTime, expandedIds, programaDataWithComentarios, searchTerm, statusFilter]);
+
+  // Capture every row without changing the visible mobile list or its filters.
+  const ganttData = useMemo(
+    () => exporting ? programaDataWithComentarios.flatMap((item) => [item, ...item.children]) : filteredData,
+    [exporting, filteredData, programaDataWithComentarios],
+  );
+
+  const handleSaveMobileAvance = useCallback(async (item: ProgramaItem, value: number) => {
+    if (!canEditActivities || !item.detalleSchedule) return false;
+    if (execution?.activities.some((a) => a.detalle_id === item.detalleSchedule?._id)) { openExecution(item); return false; }
+    try {
+      await updateDetalleAvance({ detalle_id: item.detalleSchedule._id, avance_porcentaje: value });
+      toast.success("Avance actualizado");
+      return true;
+    } catch (error) {
+      toast.error("No se pudo guardar el avance", { description: error instanceof Error ? error.message : undefined });
+      return false;
+    }
+  }, [canEditActivities, updateDetalleAvance, execution, openExecution]);
 
   // Compute date range (year + month) from all data dates
   const yearRange = useMemo(() => {
@@ -816,6 +825,7 @@ export default function ProgramaObra() {
         }
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";
+        toast.error("No se pudo aplicar el Excel", { description: msg });
         setUploadResult({ created: 0, updated: 0, errors: [msg], partidas: { created: 0, updated: 0, skipped: 0, total: 0 }, familias: { created: 0, updated: 0, skipped: 0, total: 0 } });
       } finally {
         setParsing(false);
@@ -826,8 +836,9 @@ export default function ProgramaObra() {
   );
 
   // Step 2: User confirmed preview — upload rows to Convex
-  const handlePreviewConfirm = useCallback(
-    async (rows: ExcelRow[]) => {
+  const handlePreviewConfirm = useCallback(async (rows: ExcelRow[]) => { setImportRows(rows); setPreviewOpen(false); }, []);
+  const handleImportApply = useCallback(
+    async (rows: ExcelRow[], fingerprint: string) => {
       if (!proyectoId) return;
       setUploading(true);
 
@@ -835,11 +846,13 @@ export default function ProgramaObra() {
         const result = await bulkUpsertFromExcel({
           proyecto: proyectoId as Id<"desarrollos">,
           rows,
+          expected_fingerprint: fingerprint,
         });
 
         setUploadResult(result);
         setPreviewOpen(false);
         setPreviewData([]);
+        setImportRows(null);
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";
         setUploadResult({ created: 0, updated: 0, errors: [msg], partidas: { created: 0, updated: 0, skipped: 0, total: 0 }, familias: { created: 0, updated: 0, skipped: 0, total: 0 } });
@@ -857,39 +870,23 @@ export default function ProgramaObra() {
 
   // PDF Export handler
   const handleExportPdf = useCallback(async () => {
-    if (!leftColumnsRef.current || !scrollContainerRef.current || !proyecto) return;
+    if (!proyecto || programaDataWithComentarios.length === 0) return;
     flushSync(() => setExporting(true));
     try {
+      if (!leftColumnsRef.current || !scrollContainerRef.current) throw new Error("No se pudo preparar el programa para exportar.");
       await exportProgramaObraPdf({
         leftColumnsEl: leftColumnsRef.current,
         timelineEl: scrollContainerRef.current,
         projectName: proyecto.nombre,
-        expandAll: () => {
-          const prev = {
-            expandedIds: new Set(expandedIds),
-            searchTerm,
-            statusFilter,
-          };
-          flushSync(() => {
-            setExpandedIds(collectExpandableIds(programaDataWithComentarios));
-            setSearchTerm("");
-            setStatusFilter("all");
-          });
-          return prev;
-        },
-        restoreView: (prev) => {
-          setExpandedIds(prev.expandedIds);
-          setSearchTerm(prev.searchTerm);
-          setStatusFilter(prev.statusFilter);
-        },
         programaData: programaDataWithComentarios,
       });
     } catch (err) {
       console.error("PDF export failed:", err);
+      toast.error("No se pudo exportar el programa", { description: err instanceof Error ? err.message : undefined });
     } finally {
       setExporting(false);
     }
-  }, [proyecto, expandedIds, searchTerm, statusFilter, programaDataWithComentarios]);
+  }, [proyecto, programaDataWithComentarios]);
 
   // Synchronized vertical scroll between left columns and timeline
   const handleLeftScroll = useCallback(() => {
@@ -926,6 +923,32 @@ export default function ProgramaObra() {
     }
   }, [todayPosition]);
 
+  const renderItemActions = (item: ProgramaItem) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-[850px]:h-8 min-[850px]:w-8" aria-label={`Opciones de ${item.partida}`}>
+          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => execution?.activities.some((a) => a.detalle_id === item.detalleSchedule?._id) ? openExecution(item) : item.level === 0 ? setEditingPartida(item) : setEditingFamilia(item)}>
+          <CalendarDays className="h-4 w-4" /> Editar programa
+        </DropdownMenuItem>
+        {canEditPesos && <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => openPonderacionEditor(item)}>
+          <Percent className="h-4 w-4" /> Ponderación
+          <span className="ml-auto text-xs text-muted-foreground">{item.ponderacion != null ? `${item.ponderacion.toFixed(2)}%` : "Sin definir"}</span>
+        </DropdownMenuItem>}
+        {item.level === 1 && <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => setHistorialItem(item)}>
+          <History className="h-4 w-4" /> Historial avance
+        </DropdownMenuItem>}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => setComentariosItem(item)}>
+          <MessageSquare className="h-4 w-4" /> Comentarios
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   // Loading state
   if (
     proyecto === undefined ||
@@ -953,10 +976,12 @@ export default function ProgramaObra() {
     return <div className="p-12 text-sm text-muted-foreground">No se encontró el proyecto.</div>;
   }
 
+  if (executionView && execution && proyectoId) return <div className="bg-card"><h1 className="px-4 pt-5 text-lg sm:px-6">Programa de obra · {proyecto.nombre}</h1><ProgramaObraExecution model={execution} proyecto={proyectoId as Id<"desarrollos">} selectedId={selectedExecutionId} onSelect={setSelectedExecutionId} onClose={() => { setExecutionView(false); setSelectedExecutionId(null); }} /></div>;
+
   return (
     <div className={cn(
-      "flex flex-col bg-card min-[850px]:min-h-[calc(100svh-2.5rem)]",
-      focusMode && "fixed inset-0 z-40 min-h-0 overflow-auto",
+      "flex flex-col bg-card min-[850px]:h-[calc(100dvh-2.5rem)] min-[850px]:min-h-[calc(100svh-2.5rem)]",
+      focusMode && "fixed inset-0 z-40 min-h-0 overflow-auto min-[850px]:h-dvh min-[850px]:min-h-0",
     )}>
       {/* Header */}
       <div className="shrink-0 border-b border-border px-4 sm:px-6 lg:px-8">
@@ -969,12 +994,13 @@ export default function ProgramaObra() {
             <div className="order-3 flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-xs lg:order-none lg:w-auto" aria-label="Resumen del programa">
               <div className="flex min-h-8 items-center gap-1.5 whitespace-nowrap">
                 <span className="text-muted-foreground">Avance físico</span>
-                <strong className="text-sm font-semibold text-foreground">{overallProgress.toFixed(1)}%</strong>
+                <strong className="text-sm font-semibold text-foreground">{overallProgress.toFixed(1)}%</strong>{execution?.summaries.overall.provisional && <span>· Provisional</span>}
               </div>
               <button
                 type="button"
                 data-viewer-readonly-allow="true"
                 aria-pressed={statusFilter === "delayed"}
+                aria-label={`Filtrar ${delayedCount} partidas y familias con retraso`}
                 onClick={() => setStatusFilter(statusFilter === "delayed" ? "all" : "delayed")}
                 className={cn("flex min-h-8 items-center gap-1.5 whitespace-nowrap px-1.5 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", statusFilter === "delayed" && "bg-muted ring-1 ring-inset ring-border")}
               >
@@ -996,6 +1022,7 @@ export default function ProgramaObra() {
             </div>
           )}
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            <Button size="sm" variant="outline" data-viewer-readonly-allow="true" disabled={!execution} onClick={() => openExecution()}>Actividades por frente</Button>
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
@@ -1220,13 +1247,22 @@ export default function ProgramaObra() {
           </div>
         )}
 
-        {programaDataWithComentarios.length > 0 && filteredData.length > 0 && (
+        {programaDataWithComentarios.length > 0 && (filteredData.length > 0 || exporting) && (
         <>
-        <div className="mx-4 border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground min-[850px]:hidden">
-          El resumen y las alertas están disponibles en móvil. Abre esta vista en una pantalla de al menos 850 px para operar el Gantt.
-        </div>
+        <ProgramaObraMobileList
+          items={filteredData}
+          expandedIds={expandedIds}
+          filtersActive={Boolean(searchTerm.trim()) || statusFilter !== "all"}
+          currentTime={currentTime}
+          canEdit={canEditActivities}
+          renderActions={renderItemActions}
+          onToggle={toggleExpanded}
+          onMilestoneSelect={setSelectedMilestone}
+          onSaveProgress={handleSaveMobileAvance}
+            onOpenActivity={openExecution}
+        />
         {/* Gantt Chart */}
-        <div className="hidden min-h-[440px] flex-1 bg-card min-[850px]:flex">
+        <div className={cn("hidden min-h-[440px] flex-1 bg-card min-[850px]:flex", exporting && "fixed left-[-10000px] top-0 flex w-[1280px] min-[850px]:static min-[850px]:w-auto")}>
           {/* Fixed left columns — separate scroll container, only vertical */}
           <div
             className="z-30 w-[320px] shrink-0 overflow-x-hidden overflow-y-auto bg-card shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:w-[400px]"
@@ -1237,12 +1273,12 @@ export default function ProgramaObra() {
               {/* Header — pt-[8px] accounts for year label that overflows above the border */}
               <div className="sticky top-0 z-40 bg-card pt-[8px]">
                 <div className="flex border-b border-t border-border bg-card">
-                  <div className="flex h-[36px] w-[216px] shrink-0 items-center border-r border-border px-3 text-left xl:w-72 xl:px-4">
+                  <div className="flex h-[40px] w-[216px] shrink-0 items-center border-r border-border px-3 text-left xl:w-72 xl:px-4">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Partida · Familia
                     </span>
                   </div>
-                  <div className="flex h-[36px] w-[104px] shrink-0 items-center justify-end border-r border-border px-2 text-right xl:w-28 xl:px-3">
+                  <div className="flex h-[40px] w-[104px] shrink-0 items-center justify-end border-r border-border px-2 text-right xl:w-28 xl:px-3">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Presupuesto
                     </span>
@@ -1251,20 +1287,20 @@ export default function ProgramaObra() {
               </div>
 
               {/* Rows */}
-              {filteredData.map((item) => {
-                const isExpanded = expandedIds.has(item.id);
+              {ganttData.map((item) => {
+                const isExpanded = exporting || Boolean(searchTerm.trim()) || statusFilter !== "all" || expandedIds.has(item.id);
                 return (
                   <div
                     key={item.id}
                     className={cn(
-                      "flex border-b border-border min-h-[44px] max-h-[44px] bg-card",
+                      "flex border-b border-border min-h-[56px] max-h-[56px] bg-card",
                       // item.level === 0 && "bg-card",
                       // item.level === 1 && "bg-background/50",
                       // item.level === 2 && "bg-background/30"
                     )}
                   >
                     {/* Name */}
-                    <div className="flex w-[216px] shrink-0 items-center border-r border-border px-2 py-3 text-left xl:w-72">
+                    <div className="flex w-[216px] shrink-0 items-center border-r border-border px-2 py-1 text-left xl:w-72">
                       <div
                         className="flex items-center gap-1.5 flex-1 min-w-0"
                         style={{ paddingLeft: `${item.level * 16}px` }}
@@ -1274,7 +1310,7 @@ export default function ProgramaObra() {
                             type="button"
                             data-viewer-readonly-allow="true"
                             onClick={() => toggleExpanded(item.id)}
-                            className="p-0.5 hover:bg-muted rounded shrink-0"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             aria-label={`${isExpanded ? "Contraer" : "Expandir"} ${item.partida}`}
                             aria-expanded={isExpanded}
                           >
@@ -1285,11 +1321,11 @@ export default function ProgramaObra() {
                             )}
                           </button>
                         ) : (
-                          <div className="w-4.5 shrink-0" />
+                          <div className="w-8 shrink-0" />
                         )}
                         <span
                           className={cn(
-                            "text-sm truncate",
+                            "min-w-0 flex-1 break-words line-clamp-2 text-sm leading-4",
                             item.level === 0 && "font-medium text-foreground",
                             item.level === 1 && "text-muted-foreground"
                           )}
@@ -1298,88 +1334,13 @@ export default function ProgramaObra() {
                           {item.partida}
                         </span>
 
-                        {/* Menu for nivel 0 */}
-                        {item.level === 0 && (
-                          <div className="ml-auto flex items-center gap-0.5 shrink-0">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="p-1 hover:bg-muted rounded opacity-60 hover:opacity-100"
-                                  aria-label={`Opciones de ${item.partida}`}
-                                >
-                                  <MoreHorizontal className="h-3.5 w-3.5 text-disabled-foreground" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-52">
-                                <DropdownMenuItem onClick={() => setEditingPartida(item)}>
-                                  <CalendarDays className="h-4 w-4" />
-                                  Editar programa
-                                </DropdownMenuItem>
-                                {canEditPesos && (
-                                  <DropdownMenuItem onClick={() => openPonderacionEditor(item)}>
-                                    <Percent className="h-4 w-4" />
-                                    Ponderación
-                                    <span className="ml-auto text-xs text-disabled-foreground">
-                                      {item.ponderacion != null ? `${item.ponderacion.toFixed(2)}%` : "Sin definir"}
-                                    </span>
-                                  </DropdownMenuItem>
-                                )}
-                                {canEditPesos && <DropdownMenuSeparator />}
-                                <DropdownMenuItem onClick={() => setComentariosItem(item)}>
-                                  <MessageSquare className="h-4 w-4" />
-                                  Comentarios
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        )}
+                        <div className="ml-auto shrink-0">{renderItemActions(item)}</div>
 
-                        {/* Menu for nivel 1 (familia) */}
-                        {item.level === 1 && (
-                          <div className="ml-auto flex items-center gap-0.5 shrink-0">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="p-1 hover:bg-muted rounded opacity-60 hover:opacity-100"
-                                  aria-label={`Opciones de ${item.partida}`}
-                                >
-                                  <MoreHorizontal className="h-3.5 w-3.5 text-disabled-foreground" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuItem onClick={() => setEditingFamilia(item)}>
-                                  <CalendarDays className="h-4 w-4" />
-                                  Editar programa
-                                </DropdownMenuItem>
-                                {canEditPesos && (
-                                  <DropdownMenuItem onClick={() => openPonderacionEditor(item)}>
-                                    <Percent className="h-4 w-4" />
-                                    Ponderación
-                                    <span className="ml-auto text-xs text-disabled-foreground">
-                                      {item.ponderacion != null ? `${item.ponderacion.toFixed(2)}%` : "Sin definir"}
-                                    </span>
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem onClick={() => setHistorialItem(item)}>
-                                  <History className="h-4 w-4" />
-                                  Historial avance
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setComentariosItem(item)}>
-                                  <MessageSquare className="h-4 w-4" />
-                                  Comentarios
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        )}
                       </div>
                     </div>
 
                     {/* Presupuesto / Peso / Avance */}
-                    <div className="flex w-[104px] shrink-0 items-center justify-end border-r border-border px-2 py-3 xl:w-28 xl:px-3">
+                    <div className="flex w-[104px] shrink-0 items-center justify-end border-r border-border px-2 py-1 xl:w-28 xl:px-3">
                       {item.level === 0 ? (
                         <div className="flex flex-col items-end gap-0.5">
                           <span className="text-sm text-foreground font-medium">
@@ -1458,23 +1419,24 @@ export default function ProgramaObra() {
                                     setEditingAvanceValue("");
                                   }
                                 }}
-                                className="w-16 h-5 text-[10px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-card"
+                                className="w-16 h-8 text-xs text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-card"
                               />
                               <span className="text-[10px] text-disabled-foreground">%</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-0.5">
-                              <span className="text-[10px] text-foreground">Avance: </span>
+                              <span className="text-xs text-foreground">Avance: </span>
                               <button
                                 type="button"
                                 onClick={() => {
+                                  if (item.executionManaged) { openExecution(item); return; }
                                   editingItemRef.current = item;
                                   editingAvanceValueRef.current = String(item.avanceReal ?? 0);
                                   setEditingAvanceId(item.id);
                                   setEditingAvanceValue(String(item.avanceReal ?? 0));
                                 }}
                                 className={cn(
-                                  "text-[10px] rounded-sm border-none transition-colors",
+                                  "min-h-8 min-w-10 text-xs rounded-sm border-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                   (item.avanceReal ?? 0) > 0
                                     ? ""
                                     : "text-disabled-foreground bg-background border-border hover:bg-muted"
@@ -1573,7 +1535,7 @@ export default function ProgramaObra() {
                   {timelineMonths.map((m, i) => {
                     const mw = getMonthWidth(m.weeks);
                     return (
-                      <div key={i} className="border-r border-border shrink-0 h-[36px]" style={{ width: mw }}>
+                      <div key={i} className="border-r border-border shrink-0 h-[40px]" style={{ width: mw }}>
                         <div className="text-center py-1 text-[11px] font-medium text-muted-foreground tracking-wider">
                           {m.label}
                         </div>
@@ -1582,7 +1544,7 @@ export default function ProgramaObra() {
                             <div
                               key={wi}
                               className={cn(
-                                "text-center text-[8px] text-disabled-foreground py-0.5",
+                                "text-center text-[10px] text-muted-foreground py-0.5",
                                 wi < m.weeks - 1 && "border-r border-dashed border-border"
                               )}
                               style={{ width: WEEK_WIDTH }}
@@ -1599,11 +1561,11 @@ export default function ProgramaObra() {
               </div>
 
               {/* Timeline rows */}
-              {filteredData.map((item) => (
+              {ganttData.map((item) => (
                 <div
                   key={item.id}
                   className={cn(
-                    "relative border-b border-border min-h-[44px] max-h-[44px] bg-card",
+                    "relative border-b border-border min-h-[56px] max-h-[56px] bg-card",
                     // item.level === 0 && "bg-card",
                     // item.level === 1 && "bg-background/80",
                     // item.level === 2 && "bg-background/80"
@@ -1788,6 +1750,7 @@ export default function ProgramaObra() {
       )}
 
       {/* Excel Preview Dialog */}
+      {importRows && proyectoId && execution && <ProgramaObraImportReview proyecto={proyectoId as Id<"desarrollos">} rows={importRows} schedules={schedules ?? []} details={detalles ?? []} onCancel={() => setImportRows(null)} onApply={handleImportApply} busy={uploading} />}
       {previewOpen && (
         <ProgramaObraExcelPreview
           open={previewOpen}

@@ -1,4 +1,4 @@
-export const ROW_CSS_PX = 44;
+export const ROW_CSS_PX = 56;
 export const MIN_ROW_HEIGHT_MM = 5.2;
 
 export type ExpandableNode = {
