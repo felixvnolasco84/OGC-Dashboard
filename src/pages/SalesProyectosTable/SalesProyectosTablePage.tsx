@@ -1,3 +1,6 @@
+import { Table } from "@/components/ui/table";
+import { ResponsiveCurrency } from "@/components/ui/responsive-currency";
+import { Link } from "react-router";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -35,12 +38,13 @@ export default function SalesProyectosTablePage() {
   );
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-MX", {
+    const compact = new Intl.NumberFormat("es-MX", {
       style: "currency",
       currency: "MXN",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+    return <ResponsiveCurrency amount={amount} compact={compact} />;
   };
 
   const getStatusColor = (status?: string) => {
@@ -76,15 +80,15 @@ export default function SalesProyectosTablePage() {
     <div className="bg-card min-h-screen">
       <div className="max-w-full mx-auto py-8 text-left">
 
-        <div className="flex flex-col gap-4 px-12">
-          <div className="mb-8 flex items-start justify-between">
+        <div className="flex flex-col gap-4 px-4 sm:px-6 xl:px-12">
+          <div className="mb-8 responsive-header">
             <div>
               <h1 className="text-3xl font-normal text-foreground mb-2">Proyectos de Ventas</h1>
               <p className="text-sm text-muted-foreground">
                 Gestiona y consulta todos tus proyectos de ventas
               </p>
             </div>
-            <div className="flex space-x-4">
+            <div className="flex flex-wrap gap-3">
               <Button
                 onClick={() => addSalesProjectModal.onOpen()}
                 variant="outline"
@@ -113,7 +117,7 @@ export default function SalesProyectosTablePage() {
 
         {/* Table */}
         <div className="border border-border rounded-none">
-          <table className="w-full">
+          <Table mobileSummary={[0, 1, 2, 4, 5]} className="w-full">
             <thead className=" border-b border-border">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
@@ -154,9 +158,9 @@ export default function SalesProyectosTablePage() {
                     className="hover: transition-colors"
                   >
                     <td className="px-6 py-4 border-r border-border">
-                      <div className="text-sm font-normal text-foreground">
+                      <Link to={`/sales-proyecto/${project._id}/presupuesto`} className="inline-flex min-h-11 items-center text-sm font-normal text-foreground hover:underline focus-visible:outline focus-visible:outline-ring lg:min-h-0">
                         {project.nombre}
-                      </div>
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-sm text-foreground border-r border-border">
                       {formatCurrency(project.total_ventas)}
@@ -185,7 +189,7 @@ export default function SalesProyectosTablePage() {
                     <td className="px-6 py-4 border-r border-border">
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Acciones de ${project.nombre}`}>
                             <MoreVertical className="h-4 w-4 text-disabled-foreground" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -203,7 +207,7 @@ export default function SalesProyectosTablePage() {
                 ))
               )}
             </tbody>
-          </table>
+          </Table>
         </div>
       </div>
       {/* Delete Confirmation Dialog */}

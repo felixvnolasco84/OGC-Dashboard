@@ -167,17 +167,17 @@ export default function ControlSalePage() {
     console.log("budgetMetrics", budgetMetrics)
 
     if (!proyecto || !budgetMetrics) {
-        return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
+        return <div className="bg-card px-4 sm:px-6 xl:px-12 py-6 min-h-screen flex items-center justify-center">
             <p className="text-muted-foreground">Cargando datos...</p>
         </div>;
     }
 
     return (
-        <div className="bg-card px-12 py-6">
+        <div className="bg-card px-4 sm:px-6 xl:px-12 py-6">
             <div className="max-w-full mx-auto space-y-6">
                 {/* Header */}
                 <div className="rounded-lg py-6">
-                    <div className="flex items-start justify-between">
+                    <div className="responsive-header">
                         <div className="flex flex-col text-left">
                             <p className="text-sm text-muted-foreground mb-1">Proyecto</p>
                             <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
@@ -198,14 +198,14 @@ export default function ControlSalePage() {
                 </div>
 
                 {/* Main Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-0 w-full xl:w-3/4">
+                <div className="responsive-metrics">
                     {/* Presupuesto Aprobado */}
                     <Card className="bg-transparent shadow-none border-none">
                         <CardContent className="pl-0 text-left">
                             <div className="space-y-2">
                                 <p className="text-xs text-muted-foreground">Presupuesto aprobado</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl text-foreground">
+                                    <span className="text-2xl sm:text-3xl xl:text-4xl text-foreground">
                                         ${formatNumber(Math.round(budgetMetrics.presupuesto_aprobado || 0))}
                                     </span>
                                 </div>
@@ -223,7 +223,7 @@ export default function ControlSalePage() {
                             <div className="space-y-2">
                                 <p className="text-xs text-muted-foreground">Gasto total</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl text-[#802424]">
+                                    <span className="text-2xl sm:text-3xl xl:text-4xl text-[#802424]">
                                         ${formatNumber(Math.round(budgetMetrics.gasto_total || 0))}
                                     </span>
                                 </div>
@@ -240,7 +240,7 @@ export default function ControlSalePage() {
                             <div className="space-y-2">
                                 <p className="text-xs text-muted-foreground">Por gastar</p>
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl text-[#1A5D21]">
+                                    <span className="text-2xl sm:text-3xl xl:text-4xl text-[#1A5D21]">
                                         ${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}
                                     </span>
                                 </div>
@@ -254,7 +254,7 @@ export default function ControlSalePage() {
 
                 {/* Filters */}
                 <div className="bg-card">
-                    <div className="grid grid-cols-3 items-center space-x-12">
+                    <div className="responsive-filters">
                         <div className="flex flex-col items-start space-y-1 text-left border-b border-border-strong py-2 h-full">
                             <span className="text-xs text-muted-foreground">Proyecto</span>
                             <div className="text-foreground">{proyecto.nombre}</div>
@@ -300,26 +300,26 @@ export default function ControlSalePage() {
                 {/* Secondary Metrics and Chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Chart Area with integrated metrics */}
-                    <div className="lg:col-span-4 py-8 px-10 border rounded-md bg-card">
+                    <div className="lg:col-span-4 min-w-0 py-6 px-4 sm:px-6 border rounded-md bg-card">
 
                         {/* New Progress Chart Section */}
 
                         <Card className="bg-transparent border-none shadow-none">
                             <CardContent className="p-0">
                                 {/* Metrics Row */}
-                                <div className="flex items-start justify-between mb-8 gap-4">
-                                    <div className="flex items-center space-x-12">
+                                <div className="responsive-chart-heading mb-8">
+                                    <div className="responsive-metrics flex-1">
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-muted-foreground">Gasto</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.gasto))}</p>
+                                            <p className="text-2xl xl:text-3xl">${formatNumber(Math.round(secondaryMetrics.gasto))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-muted-foreground">Por ejercer</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}</p>
+                                            <p className="text-2xl xl:text-3xl">${formatNumber(Math.round(secondaryMetrics.porVencer))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-muted-foreground">Comisión</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(secondaryMetrics.comision))}</p>
+                                            <p className="text-2xl xl:text-3xl">${formatNumber(Math.round(secondaryMetrics.comision))}</p>
                                         </div>
                                     </div>
 
@@ -359,7 +359,7 @@ export default function ControlSalePage() {
                     </div>
 
                     {/* Familia Charts - Configurable charts with persistent user settings */}
-                    <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                    <div className="lg:col-span-4 grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
                         {/* Chart 1 - Ventas por Categoria */}
                         {chart1Config.isLoading ? (
                             <div className="flex items-center justify-center h-64 bg-background rounded-lg">
@@ -408,7 +408,7 @@ export default function ControlSalePage() {
                         />
                     </div>
 
-                    <div className="col-span-4 py-12">
+                    <div className="min-w-0 lg:col-span-4 py-12">
                         <DashboardTable proyectoId={proyectoId as Id<"sales_projects">} isSalesProject={true} />
                     </div>
                 </div>

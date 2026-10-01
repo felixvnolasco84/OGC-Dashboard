@@ -1,3 +1,4 @@
+import { Table } from "@/components/ui/table";
 import { useParams } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -110,7 +111,7 @@ export default function ProyectoFlujoPage() {
 
   if (projections.length === 0) {
     return (
-      <div className="bg-card px-12 py-6 min-h-screen">
+      <div className="bg-card px-4 sm:px-6 xl:px-12 py-6 min-h-screen">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="rounded-lg py-6 mb-6">
@@ -136,7 +137,7 @@ export default function ProyectoFlujoPage() {
   }
 
   return (
-    <div className="bg-card px-12 py-6 min-h-screen">
+    <div className="bg-card px-4 sm:px-6 xl:px-12 py-6 min-h-screen">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="rounded-lg py-6">
@@ -148,13 +149,13 @@ export default function ProyectoFlujoPage() {
         {uploadMetadata && (
           <Card>
             <CardContent className="py-4">
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">Archivo:</span>
-                  <span className="text-muted-foreground">{uploadMetadata.file_name}</span>
+                  <span className="min-w-0 break-all text-muted-foreground">{uploadMetadata.file_name}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">Cargado:</span>
                   <span className="text-muted-foreground">
@@ -171,10 +172,10 @@ export default function ProyectoFlujoPage() {
         )}
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="responsive-metrics">
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Total Proyectado</p>
                   <p className="text-2xl font-semibold">
@@ -188,7 +189,7 @@ export default function ProyectoFlujoPage() {
 
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Semanas</p>
                   <p className="text-2xl font-semibold">{stats.weeks}</p>
@@ -200,7 +201,7 @@ export default function ProyectoFlujoPage() {
 
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Partidas</p>
                   <p className="text-2xl font-semibold">{stats.partidas}</p>
@@ -212,7 +213,7 @@ export default function ProyectoFlujoPage() {
 
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Promedio Semanal</p>
                   <p className="text-2xl font-semibold">
@@ -264,7 +265,7 @@ export default function ProyectoFlujoPage() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <Table mobileSummary={selectedPartida === "all" ? [0, 2] : [0, 1]} className="w-full">
                 <thead className="bg-background border-b">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -296,12 +297,12 @@ export default function ProyectoFlujoPage() {
                         <>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
                             <div className="flex flex-wrap gap-1">
-                              {Array.from(week.partidas.entries()).map(([partida]) => (
+                              {Array.from(week.partidas.entries()).map(([partida, amount]) => (
                                 <span
                                   key={partida}
                                   className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
                                 >
-                                  {partida}
+                                  {partida}<span className="ml-2 lg:hidden">${new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(amount)}</span>
                                 </span>
                               ))}
                             </div>
@@ -333,7 +334,7 @@ export default function ProyectoFlujoPage() {
                     </td>
                   </tr>
                 </tfoot>
-              </table>
+              </Table>
             </div>
           </CardContent>
         </Card>

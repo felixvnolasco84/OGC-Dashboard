@@ -72,7 +72,7 @@ export default function EditPaymentModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-full sm:w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle>Editar pago</SheetTitle>
                     <SheetDescription className="sr-only">
@@ -117,7 +117,7 @@ export default function EditPaymentModal() {
                     {transaction && (
                         <div className="space-y-3">
                             <h3 className="text-base font-semibold text-foreground">Estado de la transacción</h3>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div
                                     className={cn(
                                         "flex items-center gap-2 p-4 rounded-none border-2",
@@ -192,7 +192,7 @@ export default function EditPaymentModal() {
                     )}
 
                     {/* Form Actions */}
-                    <div className="flex justify-end space-x-2 pt-4">
+                    <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4">
                         <Button type="button" variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>

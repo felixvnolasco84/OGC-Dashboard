@@ -18,7 +18,6 @@ import {
   FolderOpen,
   Grid2X2,
   List,
-  Loader2,
   MoreVertical,
   Plus,
   Search,
@@ -83,6 +82,8 @@ import {
   MoveLocationDialog,
 } from "@/components/documents/DocumentFolderNavigation";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useUploadDocumentsModal } from "@/hooks/upload-documents-modal";
 
 type FolderId = Id<"document_folders">;
@@ -124,21 +125,15 @@ type ContextMenuState = {
 
 const ROOT_VALUE = "root";
 const PAGE_SIZE = 25;
-const ORGANIZE_BATCH_SIZE = 100;
 
-type OrganizeDocumentsResult = {
-  createdFolders: number;
-  isDone: boolean;
-  movedDocuments: number;
-  processedDocuments: number;
-  continueCursor: string | null;
-};
 
 const fileIconClass = "h-5 w-5 shrink-0";
 
 export default function DocumentosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentFolderId, setCurrentFolderId] = useState<FolderId | undefined>();
+  const [foldersOpen, setFoldersOpen] = useState(false);
+  const isCompact = useIsMobile();
   const [selectedProject, setSelectedProject] = useState<string>(ROOT_VALUE);
   const [selectedType, setSelectedType] = useState<string>(ROOT_VALUE);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
@@ -152,7 +147,6 @@ export default function DocumentosPage() {
   const [folderDialogParentId, setFolderDialogParentId] = useState<FolderId | undefined>();
   const [targetFolderId, setTargetFolderId] = useState<string>(ROOT_VALUE);
   const [page, setPage] = useState(1);
-  const [isOrganizing, setIsOrganizing] = useState(false);
 
   const uploadModal = useUploadDocumentsModal();
   const metadata = useQuery(api.documentos.getFileManagerMetadata);
@@ -184,7 +178,6 @@ export default function DocumentosPage() {
   const moveDocument = useMutation(api.documentos.moveDocument);
   const deleteFolder = useMutation(api.documentos.deleteFolder);
   const deleteDocument = useMutation(api.documentos.deleteDocument);
-  const organizeDocuments = useMutation(api.documentos.organizeDocumentsByProjectAndType);
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null);
@@ -392,43 +385,6 @@ export default function DocumentosPage() {
     }
   };
 
-  const handleOrganizeDocuments = async () => {
-    setIsOrganizing(true);
-
-    try {
-      let cursor: string | null = null;
-      let createdFolders = 0;
-      let movedDocuments = 0;
-      let processedDocuments = 0;
-      let isDone = false;
-
-      while (!isDone) {
-        const result: OrganizeDocumentsResult = await organizeDocuments({
-          paginationOpts: {
-            cursor,
-            numItems: ORGANIZE_BATCH_SIZE,
-          },
-        });
-
-        createdFolders += result.createdFolders;
-        movedDocuments += result.movedDocuments;
-        processedDocuments += result.processedDocuments;
-        cursor = result.continueCursor;
-        isDone = result.isDone;
-      }
-
-      setCurrentFolderId(undefined);
-      toast.success("Documentos organizados", {
-        description: `${movedDocuments} de ${processedDocuments} archivo(s) movido(s) y ${createdFolders} carpeta(s) creada(s).`,
-      });
-    } catch (error) {
-      toast.error("No se pudieron organizar los documentos", {
-        description: getErrorMessage(error),
-      });
-    } finally {
-      setIsOrganizing(false);
-    }
-  };
 
   const availableMoveFolders = useMemo(() => {
     if (selectedTarget?.kind !== "folder") return folderOptions;
@@ -449,21 +405,7 @@ export default function DocumentosPage() {
                 <h1 className="text-2xl font-normal text-foreground">Documentos</h1>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex lg:items-center lg:gap-3">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full rounded-none py-6 text-muted-foreground"
-                  onClick={handleOrganizeDocuments}
-                  disabled={isOrganizing}
-                >
-                  Organizar
-                  {isOrganizing ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <FolderInput className="h-5 w-5" />
-                  )}
-                </Button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:items-center lg:gap-3">
                 <Button
                   variant="outline"
                   size="lg"
@@ -488,7 +430,7 @@ export default function DocumentosPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(160px,220px)_minmax(140px,220px)_auto]">
+            <div className="responsive-filters">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-disabled-foreground" />
                 <Input
@@ -568,7 +510,7 @@ export default function DocumentosPage() {
         </div>
 
         <div className="flex min-h-[calc(100vh-225px)]">
-          <DocumentFolderSidebar
+          {!isCompact && <DocumentFolderSidebar
             activeFolderId={currentFolderId}
             folderOptions={folderOptions}
             folderItemCount={folderItemCount}
@@ -584,9 +526,29 @@ export default function DocumentosPage() {
               if (item) openContextMenu(event, { kind: "folder", item });
             }}
             visibleLimit={12}
-          />
+          />}
+
+          <Sheet open={foldersOpen && isCompact} onOpenChange={setFoldersOpen}>
+            <SheetContent side="left" className="flex w-full flex-col p-0 sm:max-w-sm">
+              <SheetHeader className="px-4 py-5"><SheetTitle>Carpetas</SheetTitle></SheetHeader>
+              <DocumentFolderSidebar
+                activeFolderId={currentFolderId}
+                folderOptions={folderOptions}
+                folderItemCount={folderItemCount}
+                foldersCount={folders.length}
+                metrics={[]}
+                onFolderSelect={(id) => { setCurrentFolderId(id); setFoldersOpen(false); }}
+                onFolderContextMenu={(event, id) => {
+                  const item = folderById.get(id);
+                  if (item) openContextMenu(event, { kind: "folder", item });
+                }}
+                visibleLimit={folders.length}
+              />
+            </SheetContent>
+          </Sheet>
 
           <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-12 lg:py-8">
+            <Button variant="outline" className="mb-4 min-h-11 lg:hidden" onClick={() => setFoldersOpen(true)}><FolderOpen className="mr-2 h-4 w-4" />Carpetas</Button>
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">

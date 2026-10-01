@@ -110,7 +110,7 @@ export default function EditSalesProjectModal() {
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+      <SheetContent data-square-modal="" className="w-full sm:w-[600px] sm:max-w-[600px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Edit className="h-5 w-5" />
@@ -185,7 +185,7 @@ export default function EditSalesProjectModal() {
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end space-x-2 pt-4 border-t">
+          <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4 border-t">
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>

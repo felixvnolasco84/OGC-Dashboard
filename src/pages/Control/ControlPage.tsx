@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { ResponsiveCurrency } from "@/components/ui/responsive-currency";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import {
@@ -44,15 +45,12 @@ const formatCurrencyCompact = (amount: number) => {
     const sign = safeAmount < 0 ? "-" : "";
     const absoluteAmount = Math.abs(safeAmount);
 
-    if (absoluteAmount >= 1_000_000) {
-        return `${sign}$${trimTrailingZero(absoluteAmount / 1_000_000)}M`;
-    }
-
-    if (absoluteAmount >= 1_000) {
-        return `${sign}$${trimTrailingZero(absoluteAmount / 1_000)}K`;
-    }
-
-    return `${sign}$${formatNumber(Math.round(absoluteAmount))}`;
+    const compact = absoluteAmount >= 1_000_000
+        ? `${sign}$${trimTrailingZero(absoluteAmount / 1_000_000)}M`
+        : absoluteAmount >= 1_000
+            ? `${sign}$${trimTrailingZero(absoluteAmount / 1_000)}K`
+            : `${sign}$${formatNumber(Math.round(absoluteAmount))}`;
+    return <ResponsiveCurrency amount={safeAmount} compact={compact} />;
 };
 
 type CurrencyMetricProps = {
@@ -108,7 +106,7 @@ const formatDecimalMetric = (value: number | null) => {
 
 type ControlMetricCardProps = {
     label: string;
-    value: string;
+    value: ReactNode;
     tone?: "default" | "danger" | "success";
 };
 
@@ -123,7 +121,7 @@ function ControlMetricCard({ label, value, tone = "default" }: ControlMetricCard
         <Card className="bg-card shadow-none border border-border rounded-md min-w-0">
             <CardContent className="px-8 py-7 text-left min-h-[116px] flex flex-col justify-center bg-card rounded-md">
                 <p className="text-sm text-muted-foreground mb-2">{label}</p>
-                <p className={`text-3xl 2xl:text-4xl leading-tight break-words tabular-nums ${toneClass}`}>
+                <p className={`text-2xl xl:text-3xl 2xl:text-2xl sm:text-3xl xl:text-4xl leading-tight break-words tabular-nums ${toneClass}`}>
                     {value}
                 </p>
             </CardContent>
@@ -296,13 +294,13 @@ export default function ControlPage() {
     }, [budgetMetrics, programaObraSchedules, programaObraDetalles]);
 
     if (!proyecto || !budgetMetrics || !programaObraSchedules || !programaObraDetalles) {
-        return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
+        return <div className="bg-card px-4 sm:px-6 xl:px-12 py-6 min-h-screen flex items-center justify-center">
             <p className="text-muted-foreground">Cargando datos...</p>
         </div>;
     }
 
     return (
-        <div className="bg-card px-12 py-6">
+        <div className="bg-card px-4 sm:px-6 xl:px-12 py-6">
             <div className="max-w-full mx-auto space-y-6">
                 {/* Header */}
                 <div className="rounded-lg py-6">
@@ -336,7 +334,7 @@ export default function ControlPage() {
                 </div>
 
                 {/* Main Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-0 w-full xl:w-3/4">
+                <div className="responsive-metrics">
                     {/* Presupuesto Aprobado */}
                     <Card className="bg-transparent shadow-none border-none">
                         <CardContent className="pl-0 text-left">
@@ -346,7 +344,7 @@ export default function ControlPage() {
                                     <CurrencyMetric
                                         amount={budgetMetrics.presupuesto_aprobado || 0}
                                         currency={moneda}
-                                        className="text-4xl text-foreground"
+                                        className="text-2xl sm:text-3xl xl:text-4xl text-foreground"
                                     />
                                 </div>
 
@@ -366,7 +364,7 @@ export default function ControlPage() {
                                     <CurrencyMetric
                                         amount={budgetMetrics.gasto_total || 0}
                                         currency={moneda}
-                                        className="text-4xl text-[#802424]"
+                                        className="text-2xl sm:text-3xl xl:text-4xl text-[#802424]"
                                     />
                                 </div>
                                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
@@ -385,7 +383,7 @@ export default function ControlPage() {
                                     <CurrencyMetric
                                         amount={budgetMetrics.por_gastar || 0}
                                         currency={moneda}
-                                        className="text-4xl text-[#1A5D21]"
+                                        className="text-2xl sm:text-3xl xl:text-4xl text-[#1A5D21]"
                                     />
                                 </div>
                                 <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
@@ -435,26 +433,26 @@ export default function ControlPage() {
                 {/* Secondary Metrics and Chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Chart Area with integrated metrics */}
-                    <div className="lg:col-span-4 py-8 px-10 border rounded-md bg-card">
+                    <div className="lg:col-span-4 min-w-0 py-6 px-4 sm:px-6 border rounded-md bg-card">
 
                         {/* New Progress Chart Section */}
 
                         <Card className="bg-transparent border-none shadow-none">
                             <CardContent className="p-0">
                                 {/* Metrics Row */}
-                                <div className="flex items-start justify-between mb-8 gap-4">
-                                    <div className="flex items-center space-x-12">
+                                <div className="responsive-chart-heading mb-8">
+                                    <div className="responsive-metrics flex-1">
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-muted-foreground">Gasto</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(budgetMetrics.gasto_total || 0))}</p>
+                                            <p className="text-2xl xl:text-3xl">${formatNumber(Math.round(budgetMetrics.gasto_total || 0))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-muted-foreground">Por ejercer</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}</p>
+                                            <p className="text-2xl xl:text-3xl">${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
                                             <p className="text-xs text-muted-foreground">Honorarios</p>
-                                            <p className="text-3xl">${formatNumber(Math.round(budgetMetrics.honorarios_monto || 0))}</p>
+                                            <p className="text-2xl xl:text-3xl">${formatNumber(Math.round(budgetMetrics.honorarios_monto || 0))}</p>
                                         </div>
                                     </div>
 
@@ -493,7 +491,7 @@ export default function ControlPage() {
                     </div>
 
                     {/* Familia Charts - Configurable charts with persistent user settings */}
-                    <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                    <div className="lg:col-span-4 grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
                         {/* Chart 1 - Mano de Obra */}
                         {chart1Config.isLoading ? (
                             <div className="flex items-center justify-center h-64 bg-background rounded-lg">
@@ -544,7 +542,7 @@ export default function ControlPage() {
                     </div>
 
                     {/* Tabs Section */}
-                    <div className="col-span-4">
+                    <div className="min-w-0 lg:col-span-4">
 
                         {/* Tab Content */}
                         <div className="">

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Table } from "@/components/ui/table";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,10 @@ export default function SalesTransaccionesTablePage() {
     const [transactionToDelete, setTransactionToDelete] = useState<Id<"sales_transacciones"> | null>(null);
     const [selectedProyecto, setSelectedProyecto] = useState<Id<"sales_projects"> | "">("");
 
+    const [page, setPage] = useState(1);
+    const pageSize = 50;
+    useEffect(() => setPage(1), [searchTerm, selectedProyecto]);
+
     // Queries
     const proyectos = useQuery(api.sales_projects.getAll);
     const transacciones = useQuery(api.sales_transacciones.getAllWithDetails);
@@ -56,6 +61,10 @@ export default function SalesTransaccionesTablePage() {
         
         return matchesSearch && matchesProyecto;
     });
+
+    const totalPages = Math.max(1, Math.ceil((filteredTransacciones?.length || 0) / pageSize));
+    const currentPage = Math.min(page, totalPages);
+    const visibleTransacciones = filteredTransacciones?.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("es-MX", {
@@ -139,15 +148,15 @@ export default function SalesTransaccionesTablePage() {
     return (
         <div className="bg-card min-h-screen">
             <div className="max-w-full mx-auto py-8 text-left">
-                <div className="flex flex-col gap-4 px-12">
-                    <div className="mb-8 flex items-start justify-between">
+                <div className="flex flex-col gap-4 px-4 sm:px-6 xl:px-12">
+                    <div className="responsive-header mb-8">
                         <div>
                             <h1 className="text-3xl font-normal text-foreground mb-2">Transacciones</h1>
                             <p className="text-sm text-muted-foreground">
                                 Consulta y gestiona todas las transacciones registradas en el sistema
                             </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex min-w-0 flex-wrap gap-2">
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
                                     Total: {transacciones?.length || 0}
@@ -164,7 +173,7 @@ export default function SalesTransaccionesTablePage() {
                     </div>
 
                     {/* Search and Filter */}
-                    <div className="mb-8 grid grid-cols-2 gap-4">
+                    <div className="responsive-filters mb-8 gap-4">
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
                             <Input
@@ -208,7 +217,7 @@ export default function SalesTransaccionesTablePage() {
 
                 {/* Table */}
                 <div className="border border-border rounded-none">
-                    <table className="w-full">
+                    <Table mobileSummary={[]} className="w-full">
                         <thead className="border-b border-border">
                             <tr>
                                 <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
@@ -258,7 +267,7 @@ export default function SalesTransaccionesTablePage() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredTransacciones?.map((transaccion) => (
+                                visibleTransacciones?.map((transaccion) => (
                                     <tr
                                         key={transaccion._id}
                                         className="hover:bg-background transition-colors"
@@ -371,10 +380,19 @@ export default function SalesTransaccionesTablePage() {
                                 ))
                             )}
                         </tbody>
-                    </table>
+                    </Table>
                 </div>
             </div>
 
+
+            {filteredTransacciones && filteredTransacciones.length > 0 && <nav aria-label="Paginación de transacciones de ventas" className="flex flex-wrap items-center justify-between gap-3 px-4 pb-8 sm:px-6 xl:px-12">
+                <p className="text-sm text-muted-foreground">Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredTransacciones.length)} de {filteredTransacciones.length}</p>
+                <div className="flex flex-wrap items-center gap-3">
+                    <Button variant="outline" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Anterior</Button>
+                    <span className="text-sm">Página {currentPage} de {totalPages}</span>
+                    <Button variant="outline" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>Siguiente</Button>
+                </div>
+            </nav>}
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

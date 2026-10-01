@@ -107,7 +107,7 @@ export default function SeeSalesTransactionsDetailsModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-full sm:w-[600px] sm:max-w-[600px] overflow-y-auto">
                 {paymentContext && (
                     <>
 
@@ -170,7 +170,7 @@ export default function SeeSalesTransactionsDetailsModal() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-20 justify-between">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 justify-between">
                                     <div>
                                         <p className="text-sm font-medium text-muted-foreground">Presupuesto aprobado</p>
                                         <p className="text-lg">{formatCurrency(paymentContext.totalAmount)}</p>
@@ -294,7 +294,7 @@ export default function SeeSalesTransactionsDetailsModal() {
                                                     </div>
                                                 )}
 
-                                                <div className="grid grid-cols-2">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2">
                                                     {/* Additional Tags */}
                                                     <div className="space-y-2 pt-2 flex flex-wrap gap-2">
                                                         {group.transaction.moneda && group.transaction.moneda !== 'MXN' && (

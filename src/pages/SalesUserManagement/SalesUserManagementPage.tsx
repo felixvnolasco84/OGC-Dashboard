@@ -21,6 +21,7 @@ export default function SalesUserManagementPage() {
   const salesProjects = useQuery(api.sales_projects.getAll);
   const updatePermissions = useMutation(api.users.updateUserPermissions);
 
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("viewer");
   const [selectedSalesProjects, setSelectedSalesProjects] = useState<Set<string>>(new Set());
@@ -30,6 +31,7 @@ export default function SalesUserManagementPage() {
 
   // Update form when user selection changes
   const handleUserSelect = (userId: string) => {
+    setMobileDetailOpen(true);
     setSelectedUser(userId);
     const user = users?.find((u) => u._id === userId);
     if (user) {
@@ -107,7 +109,7 @@ export default function SalesUserManagementPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* User List */}
-          <Card className="lg:col-span-1">
+          <Card className={mobileDetailOpen ? "hidden lg:block lg:col-span-1" : "lg:col-span-1"}>
             <CardHeader>
               <CardTitle>Usuarios ({users.length})</CardTitle>
             </CardHeader>
@@ -148,7 +150,8 @@ export default function SalesUserManagementPage() {
           </Card>
 
           {/* Permission Editor */}
-          <Card className="lg:col-span-2">
+          <Card className={mobileDetailOpen ? "lg:col-span-2" : "hidden lg:block lg:col-span-2"}>
+            <Button type="button" variant="ghost" className="m-4 min-h-11 lg:hidden" onClick={() => setMobileDetailOpen(false)}>Volver a usuarios</Button>
             <CardHeader>
               <CardTitle>
                 {currentUser ? `Editar: ${currentUser.name}` : "Selecciona un usuario"}

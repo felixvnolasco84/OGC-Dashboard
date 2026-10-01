@@ -1,0 +1,1483 @@
+[
+  {
+    "key": "04-control-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 922
+      }
+    ],
+    "overflow": [
+      {
+        "cls": "inline-flex items-center text-muted-foreground bg-transparent border-b border-border rounded-none w-full justify-start p-0 h-auto",
+        "rect": {
+          "w": 874,
+          "x": 48
+        },
+        "tag": "DIV",
+        "text": "Permisos y legalPresupuestos y contratosIMSS y SIROC"
+      },
+      {
+        "cls": "inline-flex items-center justify-center whitespace-nowrap py-1 ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3 pt-1 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground",
+        "rect": {
+          "w": 125,
+          "x": 384
+        },
+        "tag": "BUTTON",
+        "text": "IMSS y SIROC"
+      },
+      {
+        "cls": "text-sm text-muted-foreground hover:text-muted-foreground",
+        "rect": {
+          "w": 128,
+          "x": 737
+        },
+        "tag": "BUTTON",
+        "text": "Asignar responsable"
+      },
+      {
+        "cls": "text-disabled-foreground hover:text-muted-foreground",
+        "rect": {
+          "w": 20,
+          "x": 877
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "text-sm text-muted-foreground hover:text-muted-foreground",
+        "rect": {
+          "w": 128,
+          "x": 737
+        },
+        "tag": "BUTTON",
+        "text": "Asignar responsable"
+      },
+      {
+        "cls": "text-disabled-foreground hover:text-muted-foreground",
+        "rect": {
+          "w": 20,
+          "x": 877
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "text-sm text-muted-foreground hover:text-muted-foreground",
+        "rect": {
+          "w": 128,
+          "x": 694
+        },
+        "tag": "BUTTON",
+        "text": "Asignar responsable"
+      },
+      {
+        "cls": "flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground border border-border bg-disabled px-2 py-2 rounded-full",
+        "rect": {
+          "w": 32,
+          "x": 833
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "text-disabled-foreground hover:text-muted-foreground",
+        "rect": {
+          "w": 20,
+          "x": 877
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "text-sm text-muted-foreground hover:text-muted-foreground",
+        "rect": {
+          "w": 128,
+          "x": 737
+        },
+        "tag": "BUTTON",
+        "text": "Asignar responsable"
+      },
+      {
+        "cls": "text-disabled-foreground hover:text-muted-foreground",
+        "rect": {
+          "w": 20,
+          "x": 877
+        },
+        "tag": "BUTTON",
+        "text": ""
+      }
+    ],
+    "title": [
+      "Larena - Torre I",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Proyecto\n  - heading \"Larena - Torre I\" [level=1]\n  - button \"Reporte\":\n    - text: Reporte\n  - paragraph: Presupuesto aprobado\n  - generic: $101,517,413\n  - generic: \".99\"\n  - paragraph: Gasto total\n  - generic: $83,419,867\n  - generic: \".77\"\n  - generic: Avance 82%\n  - paragraph: Por gastar\n  - generic: $18,097,546\n  - generic: \".23\"\n  - generic: Pendiente 18%\n  - paragraph: Avance físico real\n  - paragraph: 79%\n  - paragraph: Valor ganado (EV)\n  - paragraph: $80.2M\n  - paragraph: Costo real acum. (AC)\n  - paragraph: $83.4M\n  - paragraph: CPI\n  - paragraph: \"0.96\"\n  - paragraph: EAC (Costo al cierre)\n  - paragraph: $105.5M\n  - paragraph: Gasto\n  - paragraph: $83,419,868\n  - paragraph: Por ejercer\n  - paragraph: $18,097,546\n  - pa"
+  },
+  {
+    "key": "05-transacciones-mobile",
+    "path": "/transacciones",
+    "height": 844,
+    "main": [
+      {
+        "client": 390,
+        "scroll": 390
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Transacciones"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Transacciones\" [level=1]\n  - paragraph: Consulta y gestiona todas las transacciones registradas en el sistema\n  - button \"Agregar\":\n    - text: Agregar\n  - generic: \"Cargadas: 0\"\n  - generic: \"Monto cargado: $0.00\"\n  - textbox \"Buscar...\"\n  - combobox:\n    - generic: Todos los proyectos\n  - combobox:\n    - generic: Todos los proveedores\n  - button \"Columnas\":\n    - text: Columnas\n  - table:\n    - rowgroup:\n      - row \"Seleccionar transacciones visibles Proyecto Proveedor Factura Monto Total Fecha Status\":\n        - columnheader \"Seleccionar transacciones visibles\":\n          - checkbox \"Seleccionar transacciones visibles\"\n        - columnheader \"Proyecto\"\n        - columnheader \"Proveedor\"\n        - columnheader \"Factura\"\n        - "
+  },
+  {
+    "key": "06-pnl-mobile",
+    "path": "/pnl",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Cargando datos...\n- region \"Notifications alt+T\""
+  },
+  {
+    "key": "07-proveedores-mobile",
+    "path": "/proveedores",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Proveedores",
+      "0",
+      "ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV",
+      "ACEROS CABOS SA DE CV"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Proveedores\" [level=1]\n  - paragraph: Catálogo global vinculado directamente a transacciones y requisiciones.\n  - generic: \"Mostrando: 0\"\n  - button \"Actualizar desde Excel\":\n    - text: Actualizar desde Excel\n  - button \"Sincronizar transacciones\":\n    - text: Sincronizar transacciones\n  - button \"Nuevo proveedor\":\n    - text: Nuevo proveedor\n  - textbox \"Buscar proveedor\"\n  - combobox:\n    - generic: Todos los proyectos\n  - combobox:\n    - generic: Activos\n  - combobox \"Ordenar proveedores\":\n    - generic: \"Razón social: A–Z\"\n  - paragraph: Cargando proveedores...\n- region \"Notifications alt+T\""
+  },
+  {
+    "key": "08-documentos-mobile",
+    "path": "/documentos",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 464
+      },
+      {
+        "client": 102,
+        "scroll": 184
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Documentos",
+      "Biblioteca de documentos"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Gestion documental\n  - heading \"Documentos\" [level=1]\n  - button \"Organizar\":\n    - text: Organizar\n  - button \"Nueva carpeta\":\n    - text: Nueva carpeta\n  - button \"Subir documentos\":\n    - text: Subir documentos\n  - textbox \"Buscar por nombre, tipo o descripcion\"\n  - combobox:\n    - generic: Todos los proyectos\n  - combobox:\n    - generic: Todos los tipos\n  - button:\n  - button:\n  - complementary:\n    - button \"Colapsar carpetas\":\n      - generic: Colapsar carpetas\n    - button \"Biblioteca 0\":\n      - generic: Biblioteca\n      - gene"
+  },
+  {
+    "key": "09-tareas-mobile",
+    "path": "/tareas",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Tareas"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: General\n  - heading \"Tareas\" [level=1]\n  - button \"Notificaciones 9+\":\n    - text: Notificaciones\n    - generic: 9+\n  - button \"Nueva tarea\":\n    - text: Nueva tarea\n  - button \"Total 61\":\n    - generic: Total\n    - generic: \"61\"\n  - button \"Abiertas 37\":\n    - generic: Abiertas\n    - generic: \"37\"\n  - button \"Vencidas 29\":\n    - generic: Vencidas\n    - generic: \"29\"\n  - button \"Completas 24\":\n    - generic: Completas\n    - generic: \"24\"\n  - textbox \"Buscar por título, descripción o asignado\"\n  - combobox:\n    - generic: Todos los esta"
+  },
+  {
+    "key": "10-autorizaciones-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/autorizaciones",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 509
+      }
+    ],
+    "overflow": [
+      {
+        "cls": "inline-flex items-center justify-center whitespace-nowrap py-1 ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3 pt-1 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground",
+        "rect": {
+          "w": 125,
+          "x": 384
+        },
+        "tag": "BUTTON",
+        "text": "IMSS y SIROC"
+      }
+    ],
+    "title": [],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - tablist:\n    - tab \"Permisos y legal\" [selected]\n    - tab \"Presupuestos y contratos\"\n    - tab \"IMSS y SIROC\"\n  - tabpanel \"Permisos y legal\":\n    - paragraph: Autorizaciones municipales, estatales y obligaciones legales de la obra\n    - button \"Activo — clic para desactivar\":\n    - heading \"Licencia de construcción vigente\" [level=3]\n    - button \"Zurisadai Montiel Perdomo Z\":\n      - generic: Zurisadai Montiel Perdomo\n      - generic: Z\n    - button:\n    - button \"Inactivo — clic para activar\"\n    - heading \"Poliza de seguro de obra activa\" [l"
+  },
+  {
+    "key": "13-bitacora-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/bitacora",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Preparando Bitácora offline"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Preparando Bitácora offline\" [level=1]\n  - paragraph: La primera preparación necesita una conexión y una sesión válida.\n  - button \"Reintentar\":\n    - text: Reintentar\n- region \"Notifications alt+T\""
+  },
+  {
+    "key": "14-programa-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/programa",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n- region \"Notifications alt+T\""
+  },
+  {
+    "key": "15-planos-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/planos",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [
+      {
+        "cls": "flex min-w-max items-center gap-4 px-4 py-4 text-sm text-muted-foreground",
+        "rect": {
+          "w": 182,
+          "x": 366
+        },
+        "tag": "BUTTON",
+        "text": "Planos revisados0"
+      }
+    ],
+    "title": [
+      "Planos Larena - Torre I"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Proyecto\n  - heading \"Planos Larena - Torre I\" [level=1]\n  - paragraph: Revisa documentos, marca observaciones y concentra la conversación técnica.\n  - button \"Menciones\":\n    - text: Menciones\n  - button \"Cargar plano\":\n    - text: Cargar plano\n  - button \"Cargar carpeta\":\n    - text: Cargar carpeta\n  - button \"Planos 0\":\n    - generic: Planos\n    - generic: \"0\"\n  - button \"Observaciones abiertas 0\":\n    - generic: Observaciones abiertas\n    - generic: \"0\"\n  - button \"Planos revisados 0\":\n    - generic: Planos revisados\n    - generic:"
+  },
+  {
+    "key": "16-rfis-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/rfis",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      },
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [
+      {
+        "cls": "flex min-w-36 items-center gap-4 whitespace-nowrap px-1 py-4 text-sm text-muted-foreground",
+        "rect": {
+          "w": 144,
+          "x": 312
+        },
+        "tag": "BUTTON",
+        "text": "Mi responsabilidad0"
+      },
+      {
+        "cls": "flex min-w-36 items-center gap-4 whitespace-nowrap px-1 py-4 text-sm text-muted-foreground",
+        "rect": {
+          "w": 144,
+          "x": 456
+        },
+        "tag": "BUTTON",
+        "text": "Vencidas0"
+      },
+      {
+        "cls": "flex min-w-36 items-center gap-4 whitespace-nowrap px-1 py-4 text-sm text-muted-foreground",
+        "rect": {
+          "w": 144,
+          "x": 600
+        },
+        "tag": "BUTTON",
+        "text": "Borradores1"
+      },
+      {
+        "cls": "flex min-w-36 items-center gap-4 whitespace-nowrap px-1 py-4 text-sm text-muted-foreground",
+        "rect": {
+          "w": 144,
+          "x": 744
+        },
+        "tag": "BUTTON",
+        "text": "Cerradas0"
+      }
+    ],
+    "title": [
+      "RFIs Larena - Torre I"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - main:\n    - paragraph: Proyecto\n    - heading \"RFIs Larena - Torre I\" [level=1]\n    - button \"Nueva RFI\":\n      - text: Nueva RFI\n    - navigation \"Vistas del registro RFI\":\n      - button \"Total 1\":\n        - generic: Total\n        - generic: \"1\"\n      - button \"Abiertas 0\":\n        - generic: Abiertas\n        - generic: \"0\"\n      - button \"Mi responsabilidad 0\":\n        - generic: Mi responsabilidad\n        - generic: \"0\"\n      - button \"Vencidas 0\":\n        - generic: Vencidas\n        - generic: \"0\"\n      - button \"Borradores 1\":\n        - gen"
+  },
+  {
+    "key": "17-rfi-nueva-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/rfis/nueva",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Nueva RFI",
+      "Pregunta",
+      "Flujo",
+      "Referencias"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - link \"Volver al registro\":\n    - /url: /proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/rfis\n    - text: Volver al registro\n  - paragraph: Registro de información\n  - heading \"Nueva RFI\" [level=1]\n  - paragraph: Larena - Torre I · Completa la pregunta, el flujo y sus referencias.\n  - generic: \"1\"\n  - heading \"Pregunta\" [level=2]\n  - paragraph: Define con precisión qué información falta y por qué es necesaria.\n  - generic: Asunto*\n  - textbox \"Asunto*\":\n    - /placeholder: Ej. Confirmar especificación de impermeabilización\n  - generic: Antecedentes\n  - "
+  },
+  {
+    "key": "18-requisiciones-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/requisiciones",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [
+      {
+        "cls": "inline-flex items-center justify-center whitespace-nowrap ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none min-h-11 px-3 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2 md:px-6",
+        "rect": {
+          "w": 121,
+          "x": 376
+        },
+        "tag": "BUTTON",
+        "text": "Recibidas23"
+      }
+    ],
+    "title": [
+      "Larena - Torre I"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Requisiciones\n  - heading \"Larena - Torre I\" [level=1]\n  - button \"Notificaciones\":\n    - text: Notificaciones\n  - button \"Historial\":\n    - text: Historial\n  - button \"Nueva Requisición\":\n    - text: Nueva Requisición\n  - term: \"Total:\"\n  - definition: \"85\"\n  - term: \"Monto total:\"\n  - definition: $1,240,766.40\n  - textbox \"Buscar requisiciones\":\n    - /placeholder: Buscar por solicitante, descripción, familia, material...\n  - button \"Filtros\":\n    - text: Filtros\n  - tablist \"Estado de las requisiciones\":\n    - tab \"Por revisar 0\" [s"
+  },
+  {
+    "key": "19-documentos-proyecto-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/documentos",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      },
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Biblioteca"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Biblioteca\" [level=1]\n  - button \"Organizar\":\n    - text: Organizar\n  - button \"Nueva carpeta\":\n    - text: Nueva carpeta\n  - button \"Subir documentos\":\n    - text: Subir documentos\n  - generic: \"Total: 1683\"\n  - textbox \"Buscar por nombre, tipo o descripción\"\n  - button:\n  - button:\n  - main:\n    - table:\n      - rowgroup:\n        - row \"Larena - Torre I 4 elementos Proveedor - Tipo Carpeta Transacción - Fecha 28 may 2026\":\n          - cell \"Larena - Torre I 4 elementos\":\n            - button \"Larena - Torre I 4 elementos\":\n            "
+  },
+  {
+    "key": "20-transacciones-proyecto-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/transacciones",
+    "height": 844,
+    "main": [
+      {
+        "client": 390,
+        "scroll": 390
+      }
+    ],
+    "overflow": [
+      {
+        "cls": "ml-2 inline-flex min-w-6 items-center justify-center rounded-none border px-1.5 py-0.5 text-xs font-medium transition-colors border-border bg-muted text-muted-foreground hover:bg-background hover:text-foreground",
+        "rect": {
+          "w": 34,
+          "x": 432
+        },
+        "tag": "BUTTON",
+        "text": "751"
+      },
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-8 w-8 rounded-none",
+        "rect": {
+          "w": 32,
+          "x": 1303
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-8 w-8 rounded-none",
+        "rect": {
+          "w": 32,
+          "x": 1303
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-8 w-8 rounded-none",
+        "rect": {
+          "w": 32,
+          "x": 1303
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-8 w-8 rounded-none",
+        "rect": {
+          "w": 32,
+          "x": 1303
+        },
+        "tag": "BUTTON",
+        "text": ""
+      }
+    ],
+    "title": [
+      "Larena - Torre I"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Transacciones\n  - heading \"Larena - Torre I\" [level=1]\n  - button \"Agregar\":\n    - text: Agregar\n  - button \"Facturas IA\":\n    - text: Facturas IA\n  - button \"Sincronizar Docs\":\n    - text: Sincronizar Docs\n  - generic: \"Total: 806\"\n  - generic: \"Monto total: $72,352,661.19\"\n  - generic: Pendientes\n  - button \"751 sin proveedor\":\n    - generic: \"751\"\n    - text: sin proveedor\n  - button \"604 sin documentos\":\n    - generic: \"604\"\n    - text: sin documentos\n  - textbox \"Buscar por factura, código, tipo de pago, categoría, banco...\"\n  - b"
+  },
+  {
+    "key": "21-proveedores-proyecto-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/proveedores",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 1094
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Larena - Torre I"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Proveedores\n  - heading \"Larena - Torre I\" [level=1]\n  - generic: \"Total: 18\"\n  - textbox \"Buscar por razón social, RFC, contacto o banco...\"\n  - table:\n    - rowgroup:\n      - row \"Razón Social RFC Dirección Nombre Contacto Teléfono Contacto Cuenta CLABE Banco Transacciones Monto Total\":\n        - columnheader \"Razón Social\"\n        - columnheader \"RFC\"\n        - columnheader \"Dirección\"\n        - columnheader \"Nombre Contacto\"\n        - columnheader \"Teléfono Contacto\"\n        - columnheader \"Cuenta\"\n        - columnheader \"CLABE\"\n  "
+  },
+  {
+    "key": "22-flujo-proyecto-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/flujo",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 619
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Flujo de Caja Proyectado"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Flujo de Caja Proyectado\" [level=1]\n  - paragraph: Larena - Torre I\n  - generic: \"Archivo:\"\n  - generic: PROGRAMA_FLUJO_SEMANAL_TORREI.xlsx\n  - generic: \"Cargado:\"\n  - generic: 27 de noviembre de 2025\n  - paragraph: Total Proyectado\n  - paragraph: $105,162,935\n  - paragraph: Semanas\n  - paragraph: \"95\"\n  - paragraph: Partidas\n  - paragraph: \"35\"\n  - paragraph: Promedio Semanal\n  - paragraph: $1,106,978\n  - generic: Filtros\n  - generic: Filtra las proyecciones por partida\n  - combobox:\n    - generic: Todas las partidas\n  - text: Desglose "
+  },
+  {
+    "key": "23-reportes-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/reportes",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [
+      {
+        "cls": "inline-flex items-center justify-center whitespace-nowrap ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-36 rounded-none border-b-2 border-transparent px-1 py-4 text-sm font-normal text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-none",
+        "rect": {
+          "w": 144,
+          "x": 312
+        },
+        "tag": "BUTTON",
+        "text": "Historial"
+      }
+    ],
+    "title": [
+      "Reportes Proyecto"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Proyecto\n  - heading \"Reportes Proyecto\" [level=1]\n  - paragraph: Genera y programa reportes semanales de obra con el nuevo formato ejecutivo, cifras verificables y contenido ajustado a los permisos de cada destinatario.\n  - button \"Detalles del perfil Completo\":\n    - text: \"Perfil: Completo\"\n  - tablist:\n    - tab \"Generar ahora\" [selected]\n    - tab \"Programaciones\"\n    - tab \"Historial\"\n  - tabpanel \"Generar ahora\":\n    - generic: Periodo y contenido\n    - paragraph: Define el rango del análisis y selecciona los apartados del PDF. "
+  },
+  {
+    "key": "24-sales-proyectos-mobile",
+    "path": "/sales-proyectos",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 595
+      }
+    ],
+    "overflow": [
+      {
+        "cls": "justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-[#F0F0EE] shadow-sm hover:bg-accent hover:text-accent-foreground h-10 px-8 flex items-center gap-2 rounded-none text-muted-foreground py-6",
+        "rect": {
+          "w": 270,
+          "x": 183
+        },
+        "tag": "BUTTON",
+        "text": "Agregar Proyecto de Ventas"
+      },
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-xs h-8 w-8 p-0",
+        "rect": {
+          "w": 32,
+          "x": 538
+        },
+        "tag": "BUTTON",
+        "text": ""
+      }
+    ],
+    "title": [
+      "Proyectos de Ventas"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Proyectos de Ventas\" [level=1]\n  - paragraph: Gestiona y consulta todos tus proyectos de ventas\n  - button \"Agregar Proyecto de Ventas\":\n    - text: Agregar Proyecto de Ventas\n  - textbox \"Buscar...\"\n  - table:\n    - rowgroup:\n      - row \"Proyecto Total Ventas Comisión Fecha creación Status\":\n        - columnheader \"Proyecto\"\n        - columnheader \"Total Ventas\"\n        - columnheader \"Comisión\"\n        - columnheader \"Fecha creación\"\n        - columnheader \"Status\"\n        - columnheader\n    - rowgroup:\n      - row \"Larena Ventas $0 $"
+  },
+  {
+    "key": "25-sales-transacciones-mobile",
+    "path": "/sales-transacciones",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 1275
+      }
+    ],
+    "overflow": [
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-xs h-8 w-8 p-0",
+        "rect": {
+          "w": 32,
+          "x": 1219
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-xs h-8 w-8 p-0",
+        "rect": {
+          "w": 32,
+          "x": 1219
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-xs h-8 w-8 p-0",
+        "rect": {
+          "w": 32,
+          "x": 1219
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-xs h-8 w-8 p-0",
+        "rect": {
+          "w": 32,
+          "x": 1219
+        },
+        "tag": "BUTTON",
+        "text": ""
+      },
+      {
+        "cls": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-xs h-8 w-8 p-0",
+        "rect": {
+          "w": 32,
+          "x": 1219
+        },
+        "tag": "BUTTON",
+        "text": ""
+      }
+    ],
+    "title": [
+      "Transacciones"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Transacciones\" [level=1]\n  - paragraph: Consulta y gestiona todas las transacciones registradas en el sistema\n  - generic: \"Total: 878\"\n  - generic: \"Monto total: $60,432,889.70\"\n  - textbox \"Buscar...\"\n  - combobox:\n    - generic: Todos los proyectos\n  - table:\n    - rowgroup:\n      - row \"Proyecto Factura Monto Total Fecha Tipo de pago Categoría Status Moneda Conceptos Docs\":\n        - columnheader \"Proyecto\"\n        - columnheader \"Factura\"\n        - columnheader \"Monto Total\"\n        - columnheader \"Fecha\"\n        - columnheader \"Tip"
+  },
+  {
+    "key": "26-sales-documentos-mobile",
+    "path": "/sales-documentos",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Documentos de Ventas"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Documentos de Ventas\" [level=1]\n  - paragraph: Gestiona los documentos asociados a las transacciones de ventas\n  - button \"Subir Documentos\":\n    - text: Subir Documentos\n  - button \"Agregar Documento\":\n    - text: Agregar Documento\n  - textbox \"Buscar...\"\n  - combobox:\n    - generic: Todos los proyectos de ventas\n  - table:\n    - rowgroup:\n      - row \"Cargando documentos...\":\n        - cell \"Cargando documentos...\"\n- region \"Notifications alt+T\""
+  },
+  {
+    "key": "27-sales-gestion-mobile",
+    "path": "/sales-gestion",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Gestión de Proyectos de Ventas"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Gestión de Proyectos de Ventas\" [level=1]\n  - paragraph: Administra los proyectos de ventas y sus configuraciones\n  - button \"Nuevo Proyecto\":\n    - text: Nuevo Proyecto\n  - generic: Proyectos (1)\n  - 'button \"Larena Ventas Activo Comisión: 0%\"':\n    - paragraph: Larena Ventas\n    - paragraph: Activo\n    - paragraph: \"Comisión: 0%\"\n  - generic: Selecciona un proyecto\n  - generic: Selecciona un proyecto de la lista o crea uno nuevo\n- region \"Notifications alt+T\""
+  },
+  {
+    "key": "28-usuarios-mobile",
+    "path": "/usuarios",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Gestión de Usuarios"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Gestión de Usuarios\" [level=1]\n  - paragraph: Administra roles y permisos de acceso a proyectos\n  - link \"Agregar Usuario\":\n    - /url: /usuarios/nuevo\n    - text: Agregar Usuario\n  - generic: Usuarios (34)\n  - button \"FELIX TEST felix@polygonag.com 2 proyecto(s)\":\n    - paragraph: FELIX TEST\n    - paragraph: felix@polygonag.com\n    - generic: 2 proyecto(s)\n  - button \"Rodrigo Ogarrio rodrigo@ogc.mx 2 proyecto(s)\":\n    - paragraph: Rodrigo Ogarrio\n    - paragraph: rodrigo@ogc.mx\n    - generic: 2 proyecto(s)\n  - button \"Jose Ogarrio jose@"
+  },
+  {
+    "key": "29-usuarios-nuevo-mobile",
+    "path": "/usuarios/nuevo",
+    "height": 844,
+    "main": [
+      {
+        "client": 375,
+        "scroll": 375
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Agregar Usuario"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - link \"Usuarios\":\n    - /url: /usuarios\n    - text: Usuarios\n  - heading \"Agregar Usuario\" [level=1]\n  - paragraph: Crea el acceso, asigna proyectos y envía el correo de bienvenida.\n  - text: Invitación\n  - text: Nombre\n  - textbox \"Nombre\":\n    - /placeholder: Nombre del usuario\n  - text: Correo\n  - textbox \"Correo\":\n    - /placeholder: usuario@empresa.com\n  - text: Rol\n  - combobox \"Rol\":\n    - text: Viewer (solo lectura)\n  - combobox\n  - paragraph: Solo puede consultar Presupuesto, Control, Programa y Bitácora.\n  - text: Proyectos asignados\n  -"
+  },
+  {
+    "key": "30-sales-usuarios-mobile",
+    "path": "/sales-usuarios",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Gestión de Acceso a Proyectos de Ventas"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Gestión de Acceso a Proyectos de Ventas\" [level=1]\n  - paragraph: Administra permisos de acceso a proyectos de ventas para cada usuario\n  - generic: Usuarios (34)\n  - button \"FELIX TEST felix@polygonag.com Sin acceso a ventas\":\n    - paragraph: FELIX TEST\n    - paragraph: felix@polygonag.com\n    - generic: Sin acceso a ventas\n  - button \"Rodrigo Ogarrio rodrigo@ogc.mx Sin acceso a ventas\":\n    - paragraph: Rodrigo Ogarrio\n    - paragraph: rodrigo@ogc.mx\n    - generic: Sin acceso a ventas\n  - button \"Jose Ogarrio jose@ogc.mx 1 proyecto(s)"
+  },
+  {
+    "key": "31-admin-mobile",
+    "path": "/admin",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Administración"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Administración\" [level=1]\n  - paragraph: Herramientas para cargar y gestionar datos del proyecto\n  - text: Seleccionar Proyecto\n  - combobox:\n    - generic: Selecciona un proyecto\n  - text: Cargar Totales Semanales Proyectados\n  - generic: Carga los totales semanales agregados de las proyecciones de tu Excel\n  - paragraph: Total Semanas\n  - paragraph: \"57\"\n  - paragraph: Semanas con Datos\n  - paragraph: \"57\"\n  - paragraph: Total Proyectado\n  - paragraph: $31,338,304\n  - paragraph:\n    - strong: \"Proyecto seleccionado:\"\n    - text: Ningun"
+  },
+  {
+    "key": "32-admin-flujo-mobile",
+    "path": "/admin/flujo",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Flujo de Caja Proyectado"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Flujo de Caja Proyectado\" [level=1]\n  - paragraph: Carga un archivo Excel con las proyecciones de flujo de caja semanal\n  - generic: Seleccionar Proyecto\n  - generic: Elige el proyecto para el cual deseas cargar las proyecciones\n  - combobox:\n    - generic: Selecciona un proyecto\n  - text: Cargar Archivo Excel\n  - generic: El archivo debe contener las proyecciones semanales de flujo de caja\n  - paragraph: Haz clic para seleccionar un archivo\n  - paragraph: Archivos Excel (.xlsx, .xls)\n  - alert:\n    - generic: Por favor selecciona un pro"
+  },
+  {
+    "key": "33-admin-sales-flujo-mobile",
+    "path": "/admin/sales-flujo",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Flujo de Caja Proyectado - Ventas"
+    ],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Flujo de Caja Proyectado - Ventas\" [level=1]\n  - paragraph: Carga un archivo Excel con las proyecciones de flujo de caja semanal para proyectos de ventas\n  - generic: Seleccionar Proyecto de Ventas\n  - generic: Elige el proyecto de ventas para el cual deseas cargar las proyecciones\n  - combobox:\n    - generic: Selecciona un proyecto de ventas\n  - text: Cargar Archivo Excel\n  - generic: El archivo debe contener las proyecciones semanales de flujo de caja de ventas\n  - paragraph: Haz clic para seleccionar un archivo\n  - paragraph: Archivos"
+  },
+  {
+    "key": "34-pnl-mobile",
+    "path": "/pnl",
+    "height": 844,
+    "main": [
+      {
+        "client": 382,
+        "scroll": 382
+      }
+    ],
+    "overflow": [],
+    "title": [],
+    "width": 390,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Cargando datos...\n- region \"Notifications alt+T\""
+  },
+  {
+    "key": "26-sales-documentos-mobile",
+    "path": "/sales-documentos",
+    "height": 1097,
+    "main": [
+      {
+        "client": 497,
+        "scroll": 497
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Documentos de Ventas"
+    ],
+    "width": 507,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - heading \"Documentos de Ventas\" [level=1]\n  - paragraph: Gestiona los documentos asociados a las transacciones de ventas\n  - button \"Subir Documentos\":\n    - text: Subir Documentos\n  - button \"Agregar Documento\":\n    - text: Agregar Documento\n  - textbox \"Buscar...\"\n  - combobox:\n    - generic: Todos los proyectos de ventas\n  - table:\n    - rowgroup:\n      - row \"1.pdf Subido el 13 de noviembre de 2025 Cliente JORGE MONTAÑO VALDES Tipo Comprobante Transacción 1\":\n        - cell \"1.pdf Subido el 13 de noviembre de 2025\":\n          - generic: 1.pdf\n"
+  },
+  {
+    "key": "14-programa-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/programa",
+    "height": 1097,
+    "main": [
+      {
+        "client": 497,
+        "scroll": 497
+      }
+    ],
+    "overflow": [],
+    "title": [
+      "Larena - Torre I"
+    ],
+    "width": 507,
+    "dom": "- main:\n  - button \"Toggle Sidebar\":\n    - generic: Toggle Sidebar\n  - button \"Abrir asistente de proyectos\":\n  - button \"Menciones en planos\":\n  - paragraph: Programa de Obra\n  - heading \"Larena - Torre I\" [level=1]\n  - generic \"Resumen del programa\":\n    - generic: Avance físico\n    - strong: 74.5%\n    - generic: · Provisional\n    - button \"Filtrar 64 partidas y familias con retraso\":\n      - generic: Retrasadas\n      - strong: \"64\"\n    - 'button \"Ver alertas: 23 pendientes, 0 hitos próximos\"':\n      - generic: Alertas\n      - strong: \"23\"\n  - button \"Actividades por frente\"\n  - button \"Archivo\":\n    - text: Archivo\n  - textbox \"Buscar partida o familia\":\n    - /placeholder: Buscar partida"
+  },
+  {
+    "key": "14-programa-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/programa",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "30-sales-usuarios-mobile",
+    "path": "/sales-usuarios",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Gestión de Acceso a Proyectos de Ventas"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "35-sales-presupuesto-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/presupuesto",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena Ventas"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "36-sales-control-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/control",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena Ventas",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "main": [
+      {
+        "scroll": 922,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "37-sales-transacciones-proyecto-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/transacciones",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena Ventas"
+    ],
+    "main": [
+      {
+        "scroll": 1303,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "38-sales-documentos-proyecto-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/documentos",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena Ventas"
+    ],
+    "main": [
+      {
+        "scroll": 523,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "39-sales-flujo-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/flujo",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Flujo de Caja Proyectado"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "01-proyectos-mobile",
+    "path": "/proyectos",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Proyectos"
+    ],
+    "main": [
+      {
+        "scroll": 623,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "03-presupuesto-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "main": [
+      {
+        "scroll": 531,
+        "w": 370
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "04-control-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena - Torre I",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "main": [
+      {
+        "scroll": 922,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "08-documentos-mobile",
+    "path": "/documentos",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Documentos",
+      "Biblioteca de documentos"
+    ],
+    "main": [
+      {
+        "scroll": 464,
+        "w": 380
+      },
+      {
+        "scroll": 184,
+        "w": 100
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "10-autorizaciones-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/autorizaciones",
+    "dpr": 1,
+    "h": 844,
+    "headings": [],
+    "main": [
+      {
+        "scroll": 509,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "13-bitacora-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/bitacora",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Preparando Bitácora offline"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "05-transacciones-mobile",
+    "path": "/transacciones",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Transacciones"
+    ],
+    "main": [
+      {
+        "scroll": 390,
+        "w": 390
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "07-proveedores-mobile",
+    "path": "/proveedores",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Proveedores",
+      "0",
+      "ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV",
+      "ACEROS CABOS SA DE CV"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "26-sales-documentos-mobile",
+    "path": "/sales-documentos",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Documentos de Ventas"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "24-sales-proyectos-mobile",
+    "path": "/sales-proyectos",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Proyectos de Ventas"
+    ],
+    "main": [
+      {
+        "scroll": 597,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "25-sales-transacciones-mobile",
+    "path": "/sales-transacciones",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Transacciones"
+    ],
+    "main": [
+      {
+        "scroll": 1280,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "40-proyectos-tablet",
+    "path": "/proyectos",
+    "dpr": 1,
+    "h": 1024,
+    "headings": [
+      "Proyectos"
+    ],
+    "main": [
+      {
+        "scroll": 623,
+        "w": 502
+      }
+    ],
+    "w": 768
+  },
+  {
+    "key": "41-presupuesto-tablet",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "dpr": 1,
+    "h": 1024,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "main": [
+      {
+        "scroll": 531,
+        "w": 502
+      }
+    ],
+    "w": 768
+  },
+  {
+    "key": "42-control-tablet",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "dpr": 1,
+    "h": 1024,
+    "headings": [
+      "Larena - Torre I",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "main": [
+      {
+        "scroll": 946,
+        "w": 502
+      }
+    ],
+    "w": 768
+  },
+  {
+    "key": "43-documentos-tablet",
+    "path": "/documentos",
+    "dpr": 1,
+    "h": 1024,
+    "headings": [
+      "Documentos",
+      "Biblioteca de documentos"
+    ],
+    "main": [
+      {
+        "scroll": 667,
+        "w": 502
+      },
+      {
+        "scroll": 359,
+        "w": 222
+      }
+    ],
+    "w": 768
+  },
+  {
+    "key": "44-sales-control-tablet",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/control",
+    "dpr": 1,
+    "h": 1024,
+    "headings": [
+      "Larena Ventas",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "main": [
+      {
+        "scroll": 946,
+        "w": 502
+      }
+    ],
+    "w": 768
+  },
+  {
+    "key": "45-proyectos-desktop",
+    "path": "/proyectos",
+    "dpr": 1,
+    "h": 900,
+    "headings": [
+      "Proyectos"
+    ],
+    "main": [
+      {
+        "scroll": 1174,
+        "w": 1174
+      }
+    ],
+    "w": 1440
+  },
+  {
+    "key": "46-presupuesto-desktop",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "dpr": 1,
+    "h": 900,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "main": [
+      {
+        "scroll": 1174,
+        "w": 1174
+      }
+    ],
+    "w": 1440
+  },
+  {
+    "key": "47-control-desktop",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "dpr": 1,
+    "h": 900,
+    "headings": [
+      "Larena - Torre I",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "main": [
+      {
+        "scroll": 1174,
+        "w": 1174
+      }
+    ],
+    "w": 1440
+  },
+  {
+    "key": "48-documentos-desktop",
+    "path": "/documentos",
+    "dpr": 1,
+    "h": 900,
+    "headings": [
+      "Documentos",
+      "Biblioteca de documentos"
+    ],
+    "main": [
+      {
+        "scroll": 1174,
+        "w": 1174
+      },
+      {
+        "scroll": 894,
+        "w": 894
+      }
+    ],
+    "w": 1440
+  },
+  {
+    "key": "49-sales-control-desktop",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/control",
+    "dpr": 1,
+    "h": 900,
+    "headings": [
+      "Larena Ventas",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "main": [
+      {
+        "scroll": 1174,
+        "w": 1174
+      }
+    ],
+    "w": 1440
+  },
+  {
+    "key": "50-rfi-registro-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/rfis",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "RFIs Larena - Torre I"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      },
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "53-planos-desktop",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/planos",
+    "dpr": 1,
+    "h": 900,
+    "headings": [
+      "Planos Larena - Torre I"
+    ],
+    "main": [
+      {
+        "scroll": 1174,
+        "w": 1174
+      }
+    ],
+    "w": 1440
+  },
+  {
+    "key": "54-dashboard-mobile",
+    "path": "/dashboard",
+    "dpr": 1,
+    "h": 844,
+    "headings": [],
+    "main": [],
+    "w": 390
+  },
+  {
+    "key": "55-upload-mobile",
+    "path": "/upload",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Subir Archivo Excel"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      },
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "21-proveedores-proyecto-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/proveedores",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "main": [
+      {
+        "scroll": 1097,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "22-flujo-proyecto-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/flujo",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Flujo de Caja Proyectado"
+    ],
+    "main": [
+      {
+        "scroll": 620,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "27-sales-gestion-mobile",
+    "path": "/sales-gestion",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Gestión de Proyectos de Ventas"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "31-admin-mobile",
+    "path": "/admin",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Administración"
+    ],
+    "main": [
+      {
+        "scroll": 383,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "23-reportes-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/reportes",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Reportes Proyecto"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "18-requisiciones-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/requisiciones",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "main": [
+      {
+        "scroll": 380,
+        "w": 380
+      }
+    ],
+    "w": 390
+  },
+  {
+    "key": "59-bitacora-mobile-loaded",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/bitacora",
+    "dpr": 1,
+    "h": 844,
+    "headings": [
+      "Larena - Torre I",
+      "Acabados",
+      "Instalaciones",
+      "Estructura"
+    ],
+    "main": [
+      {
+        "scroll": 370,
+        "w": 370
+      },
+      {
+        "scroll": 370,
+        "w": 370
+      }
+    ],
+    "w": 390
+  }
+]

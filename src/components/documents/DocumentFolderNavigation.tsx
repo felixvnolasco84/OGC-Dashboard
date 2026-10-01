@@ -235,7 +235,7 @@ export function DocumentFolderSidebar<TId extends string = string>({
         <TooltipContent side="right">{collapsed ? "Expandir carpetas" : "Colapsar carpetas"}</TooltipContent>
       </Tooltip>
 
-      <div className={cn("py-8", collapsed ? "px-2" : "px-8")}>
+      <div className={cn("py-8", collapsed ? "px-2" : "px-4 sm:px-8")}>
         {!hideRoot && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -444,7 +444,7 @@ export function MoveLocationDialog<TId extends string = string>({
             </>
           ) : (
             <>
-            <div className="px-8 pb-4">
+            <div className="px-4 sm:px-8 pb-4">
               <Button
                 variant="ghost"
                 className="h-10 rounded-none px-0 text-base font-medium text-foreground"
@@ -455,7 +455,7 @@ export function MoveLocationDialog<TId extends string = string>({
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 border-b border-border-strong px-8 pb-3 text-base text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 border-b border-border-strong px-4 sm:px-8 pb-3 text-base text-muted-foreground">
               <button className="hover:text-foreground" onClick={() => setBrowseFolderId(undefined)}>
                 {rootLabel}
               </button>
@@ -475,7 +475,7 @@ export function MoveLocationDialog<TId extends string = string>({
               ))}
             </div>
 
-            <div className="grid grid-cols-[1fr_220px] border-b border-border px-8 py-3 text-sm font-medium text-muted-foreground">
+            <div className="hidden sm:grid sm:grid-cols-[minmax(0,1fr)_auto] border-b border-border px-4 sm:px-8 py-3 text-sm font-medium text-muted-foreground">
               <button
                 className="flex items-center gap-2 text-left"
                 onClick={() => onTargetFolderChange(browsedFolderTargetId)}
@@ -498,7 +498,7 @@ export function MoveLocationDialog<TId extends string = string>({
                 <div
                   key={folder._id}
                   className={cn(
-                    "grid grid-cols-[1fr_220px_auto] items-center gap-4 rounded-full border px-3 py-1.5 text-foreground hover:bg-muted",
+                    "grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-full border px-3 py-1.5 text-foreground hover:bg-muted",
                     targetFolderId === folder._id
                       ? "border-blue-600 bg-blue-100 text-blue-700"
                       : "border-transparent"
@@ -550,7 +550,7 @@ export function MoveLocationDialog<TId extends string = string>({
             </>
           )}
 
-          <div className="flex items-center gap-2 px-8 py-2 text-sm font-medium text-foreground">
+          <div className="flex items-center gap-2 px-4 sm:px-8 py-2 text-sm font-medium text-foreground">
             <TriangleAlert className="h-5 w-5" />
             Selecciona una ubicacion para ver la ruta de la carpeta
           </div>

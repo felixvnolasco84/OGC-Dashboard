@@ -1423,7 +1423,7 @@ export function OgcMovementsUploadModal({
               />
             ) : result?.summary && !excelPreview ? (
               <div className="border border-border bg-[#FBFAF2] p-4 text-sm text-foreground">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:grid-cols-4">
                   <SummaryStat label="Filas validas" value={result.summary.validRows} />
                   <SummaryStat label="Ingresos" value={result.summary.ingresos} />
                   <SummaryStat label="Costos" value={result.summary.costosEstructura} />
@@ -1585,7 +1585,7 @@ function ExcelValidationPreview({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:grid-cols-4">
         <div className="border border-border bg-[#FBFAF2] p-3">
           <p className="text-xs text-muted-foreground">Se crearian</p>
           <p className="text-lg text-foreground">{createCount}</p>
@@ -2251,7 +2251,7 @@ function MovementPreview({
   return (
     <div className="space-y-3">
       {showSummary && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:grid-cols-4">
           <div className="border border-border bg-[#FBFAF2] p-3">
             <p className="text-xs text-muted-foreground">Validos</p>
             <p className="flex items-center gap-2 text-lg text-foreground"><CheckCircle2 className="h-4 w-4 text-[#1A5D21]" />{report.valid.length}</p>

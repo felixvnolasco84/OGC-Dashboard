@@ -42,12 +42,15 @@ const DialogContent = React.forwardRef<
         variant === "gallery" && "left-0 top-0 h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 grid-rows-[4rem_minmax(0,1fr)_auto_6.5rem] gap-0 overflow-hidden border-0 bg-overlay p-0 text-on-color shadow-none sm:rounded-none [&>button]:hidden",
         variant === "bitacora" && "flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-6xl flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 shadow-xl sm:rounded-none [&>button]:hidden",
         variant === "upload" && "max-h-[90vh] max-w-4xl overflow-y-auto",
+        variant === "default" && "overflow-y-auto",
+        variant !== "gallery" && variant !== "bitacora" && "responsive-dialog",
         className
       )}
       {...props}
+      style={{ ...props.style, ...(variant !== "gallery" && variant !== "bitacora" ? { maxHeight: "calc(100dvh - 2rem)" } : {}) }}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+      <DialogPrimitive.Close className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -63,7 +66,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "ledger" }) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
+      "flex flex-col space-y-1.5 pr-10 text-left",
       variant === "ledger" && "border-b border-border px-6 py-5 pr-12",
       className
     )}

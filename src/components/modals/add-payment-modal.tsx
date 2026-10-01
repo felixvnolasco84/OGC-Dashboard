@@ -329,7 +329,7 @@ export default function AddPaymentModal() {
                 <form onSubmit={handleSubmit} className="mt-6 space-y-6">
                     {/* Status Selection */}
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <Button
                                 type="button"
                                 onClick={() => setStatus('Pagado')}
@@ -631,7 +631,7 @@ export default function AddPaymentModal() {
                             </Select>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1">
                             <span className="block text-xs text-muted-foreground">Método de pago</span>
                             <Select value={tipoPago} onValueChange={(value) => {
@@ -841,7 +841,7 @@ export default function AddPaymentModal() {
                             Completa {draft.incompleteCount} concepto{draft.incompleteCount === 1 ? "" : "s"} antes de guardar.
                         </p>
                     )}
-                    <div className="flex justify-end space-x-2 pt-4 border-t">
+                    <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4 border-t">
                         <Button type="button" variant="outline" onClick={closeModal} disabled={isSubmitting || isUploadingDocument}>
                             Cancelar
                         </Button>

@@ -338,7 +338,7 @@ export default function UploadProjectionsModal() {
                 <CheckCircle2 className="h-5 w-5 text-blue-600" />
                 <h4 className="font-medium text-blue-900">Archivo procesado correctamente</h4>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm text-blue-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-blue-800">
                 <div>
                   <p className="font-medium">Total de Partidas:</p>
                   <p className="text-lg font-bold">{result.summary.totalPartidas}</p>

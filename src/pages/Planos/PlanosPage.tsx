@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { ResponsiveAside } from "@/components/ui/responsive-aside";
 import {
   ArrowLeft,
   Check,
@@ -770,28 +771,28 @@ export default function PlanosPage() {
                 {TOOL_OPTIONS.map((option) => {
                   const Icon = option.icon;
                   return (
-                    <Button key={option.id} type="button" variant="ghost" size="sm" disabled={!canWrite && option.id !== "select"} onClick={() => setTool(option.id)} className={cn("h-9 gap-2 rounded-sm px-3 text-sm font-normal", tool === option.id && "font-medium")} style={{ backgroundColor: tool === option.id ? UI_COLORS.itemBg : "white", color: tool === option.id ? UI_COLORS.text : UI_COLORS.textSoft }} title={option.label}>
+                    <Button key={option.id} type="button" variant="ghost" size="sm" disabled={!canWrite && option.id !== "select"} onClick={() => setTool(option.id)} className={cn("h-11 min-w-11 gap-2 rounded-sm px-3 text-sm font-normal lg:h-9", tool === option.id && "font-medium")} style={{ backgroundColor: tool === option.id ? UI_COLORS.itemBg : "white", color: tool === option.id ? UI_COLORS.text : UI_COLORS.textSoft }} title={option.label}>
                       <Icon className="h-4 w-4" /><span className="hidden 2xl:inline">{option.label}</span>
                     </Button>
                   );
                 })}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex h-9 items-center rounded-sm border bg-card" style={{ borderColor: UI_COLORS.itemBorder }}>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setZoom((value) => Math.max(0.5, value - 0.25))} disabled={zoom <= 0.5} aria-label="Alejar"><ZoomOut className="h-4 w-4" /></Button>
-                  <button type="button" onClick={() => setZoom(1)} className="min-w-14 px-1 text-xs tabular-nums" style={{ color: UI_COLORS.textSoft }}>{Math.round(zoom * 100)}%</button>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setZoom((value) => Math.min(3, value + 0.25))} disabled={zoom >= 3} aria-label="Acercar"><ZoomIn className="h-4 w-4" /></Button>
+                <div className="flex min-h-11 items-center rounded-sm border bg-card lg:min-h-9" style={{ borderColor: UI_COLORS.itemBorder }}>
+                  <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-sm lg:h-8 lg:w-8" onClick={() => setZoom((value) => Math.max(0.5, value - 0.25))} disabled={zoom <= 0.5} aria-label="Alejar"><ZoomOut className="h-4 w-4" /></Button>
+                  <button type="button" onClick={() => setZoom(1)} className="min-h-11 min-w-14 px-1 text-xs tabular-nums lg:min-h-8" style={{ color: UI_COLORS.textSoft }}>{Math.round(zoom * 100)}%</button>
+                  <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-sm lg:h-8 lg:w-8" onClick={() => setZoom((value) => Math.min(3, value + 0.25))} disabled={zoom >= 3} aria-label="Acercar"><ZoomIn className="h-4 w-4" /></Button>
                 </div>
-                <div className="flex h-9 items-center rounded-sm border bg-card" style={{ borderColor: UI_COLORS.itemBorder }}>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page <= 1} aria-label="Página anterior"><ChevronLeft className="h-4 w-4" /></Button>
+                <div className="flex min-h-11 items-center rounded-sm border bg-card lg:min-h-9" style={{ borderColor: UI_COLORS.itemBorder }}>
+                  <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-sm lg:h-8 lg:w-8" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page <= 1} aria-label="Página anterior"><ChevronLeft className="h-4 w-4" /></Button>
                   <span className="min-w-20 text-center text-xs tabular-nums" style={{ color: UI_COLORS.textSoft }}>{page} / {pageCount ?? "…"}</span>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setPage((value) => Math.min(pageCount ?? value + 1, value + 1))} disabled={pageCount === undefined || page >= pageCount} aria-label="Página siguiente"><ChevronRight className="h-4 w-4" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-sm lg:h-8 lg:w-8" onClick={() => setPage((value) => Math.min(pageCount ?? value + 1, value + 1))} disabled={pageCount === undefined || page >= pageCount} aria-label="Página siguiente"><ChevronRight className="h-4 w-4" /></Button>
                 </div>
               </div>
             </div>
-            <div className="h-[calc(100vh-17.5rem)] min-h-[36rem] overflow-auto p-4 lg:p-6" style={{ backgroundColor: UI_COLORS.itemBg }}>
+            <div className="h-[max(16rem,calc(100dvh-20rem))] min-h-0 overflow-auto overscroll-contain p-4 lg:p-6" style={{ backgroundColor: UI_COLORS.itemBg }}>
               {planDetail.url ? (
-                <Suspense fallback={<div className="flex min-h-[36rem] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" style={{ color: UI_COLORS.muted }} /></div>}>
+                <Suspense fallback={<div className="flex min-h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" style={{ color: UI_COLORS.muted }} /></div>}>
                   <PlanCanvas
                     url={planDetail.url}
                     mimeType={planDetail.type}
@@ -814,7 +815,7 @@ export default function PlanosPage() {
             </div>
           </section>
 
-          <aside className="min-w-0 bg-card">
+          <ResponsiveAside title="Anotaciones y comentarios">
             <Tabs value={detailTab} onValueChange={(value) => {
               setDetailTab(value as "annotations" | "comments");
               setCommentText("");
@@ -826,7 +827,7 @@ export default function PlanosPage() {
                 <TabsTrigger value="comments" className="h-14 gap-2 rounded-none border-b-2 border-transparent bg-card data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:shadow-none"><MessageSquare className="h-4 w-4" />Comentarios<span className="rounded-sm px-2 py-0.5 text-xs" style={{ backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{generalComments.length}</span></TabsTrigger>
               </TabsList>
               <TabsContent value="annotations" className="m-0">
-                <div className="max-h-[calc(100vh-17.5rem)] min-h-[36rem] overflow-y-auto p-4">
+                <div className="max-h-[calc(100dvh-12rem)] min-h-0 overflow-y-auto p-4">
                   {selectedAnnotation ? (
                     <div className="space-y-5">
                       <button type="button" onClick={() => {
@@ -875,13 +876,13 @@ export default function PlanosPage() {
                 </div>
               </TabsContent>
               <TabsContent value="comments" className="m-0">
-                <div className="max-h-[calc(100vh-17.5rem)] min-h-[36rem] overflow-y-auto p-4">
+                <div className="max-h-[calc(100dvh-12rem)] min-h-0 overflow-y-auto p-4">
                   {canWrite && <div className="mb-5"><MentionCommentComposer value={commentText} mentions={commentMentions} mentionableUsers={composerUsers} submitting={commentSubmitting} onChange={(value, mentions) => { setCommentText(value); setCommentMentions(mentions); }} onSubmit={handleAddComment} /></div>}
                   <CommentList comments={generalComments} currentUserId={currentUser?._id} isAdmin={currentUser?.role === "admin"} onDelete={handleRemoveComment} />
                 </div>
               </TabsContent>
             </Tabs>
-          </aside>
+          </ResponsiveAside>
         </div>
         {sharedDialogs}
       </div>

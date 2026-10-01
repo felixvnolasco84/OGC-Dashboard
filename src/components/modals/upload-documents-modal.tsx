@@ -47,6 +47,7 @@ const DOCUMENT_TYPES = [
     "Contrato",
     "Recibo",
     "Orden de Compra",
+    "Minuta",
     "Otro"
 ];
 
@@ -252,7 +253,7 @@ export default function UploadDocumentsModal() {
 
                 <div className="space-y-6">
                     {/* Project and Transaction Selection */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Project Selection */}
                         <div className="space-y-2">
                             <Label htmlFor="project-select">
@@ -394,7 +395,7 @@ export default function UploadDocumentsModal() {
 
                                         {/* Edit Fields (only for pending files) */}
                                         {fileUpload.status === "pending" && (
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <div className="space-y-1">
                                                     <Label htmlFor={`nombre-${index}`} className="text-xs">
                                                         Nombre

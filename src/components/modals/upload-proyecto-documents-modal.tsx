@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useUploadProyectoDocumentsModal } from "@/hooks/upload-proyecto-documents-modal";
 import {
@@ -56,10 +56,12 @@ const DOCUMENT_TYPES = [
     "Contrato",
     "Recibo",
     "Orden de Compra",
+    "Minuta",
     "Otro"
 ];
 
 export default function UploadProyectoDocumentsModal() {
+    const { isAuthenticated } = useConvexAuth();
     const {
         folderId,
         initialFiles,
@@ -78,17 +80,17 @@ export default function UploadProyectoDocumentsModal() {
     // Queries - Only fetch transactions for the specific project
     const transactions = useQuery(
         api.transacciones.getByProyecto,
-        proyectoId ? { proyecto_id: proyectoId } : "skip"
+        isOpen && isAuthenticated && proyectoId ? { proyecto_id: proyectoId } : "skip"
     );
 
     const proyecto = useQuery(
         api.desarrollos.getById,
-        proyectoId ? { id: proyectoId } : "skip"
+        isOpen && isAuthenticated && proyectoId ? { id: proyectoId } : "skip"
     );
 
     const documentMetadata = useQuery(
         api.documentos.getProjectFileManagerMetadata,
-        proyectoId ? { proyecto: proyectoId } : "skip"
+        isOpen && isAuthenticated && proyectoId ? { proyecto: proyectoId } : "skip"
     );
 
     // Mutations
@@ -120,7 +122,7 @@ export default function UploadProyectoDocumentsModal() {
         : undefined;
     const destinationLabel = folderId
         ? destinationFolder?.nombre || "Carpeta seleccionada"
-        : "Biblioteca";
+        : "Documentos (organización automática por tipo)";
 
     const addFiles = (selectedFiles: File[]) => {
         const validFiles = selectedFiles.filter((file) => file.size > 0);
@@ -453,7 +455,7 @@ export default function UploadProyectoDocumentsModal() {
 
                                         {/* Edit Fields (only for pending files) */}
                                         {fileUpload.status === "pending" && (
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <div className="space-y-1">
                                                     <Label htmlFor={`nombre-${index}`} className="text-xs">
                                                         Nombre

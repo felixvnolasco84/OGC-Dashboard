@@ -140,7 +140,7 @@ export default function EditTransactionModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent data-square-modal="" className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-full sm:w-[600px] sm:max-w-[600px] overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle>Editar transacción</SheetTitle>
                     <SheetDescription className="sr-only">
@@ -167,7 +167,7 @@ export default function EditTransactionModal() {
                     {/* Status Selection */}
                     <div className="space-y-3">
                         <h3 className="text-base font-semibold text-foreground">Estado</h3>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <button
                                 type="button"
                                 onClick={() => handleInputChange('status', 'Pagado')}
@@ -236,7 +236,7 @@ export default function EditTransactionModal() {
                             </SelectContent>
                         </Select>
                         
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-2">
                                 <Select value={formData.tipo_pago} onValueChange={(value) => handleInputChange('tipo_pago', value)}>
                                     <SelectTrigger>
@@ -264,7 +264,7 @@ export default function EditTransactionModal() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-2">
                                 <Input
                                     type="date"
@@ -345,7 +345,7 @@ export default function EditTransactionModal() {
                             )}
 
                             {/* Account details - for transferencia, tarjeta, and cheque */}
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-2">
                                     <Input
                                         placeholder="Número de cuenta"
@@ -419,7 +419,7 @@ export default function EditTransactionModal() {
                     </div>
 
                     {/* Form Actions */}
-                    <div className="flex justify-end space-x-2 pt-4">
+                    <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4">
                         <Button type="button" variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>

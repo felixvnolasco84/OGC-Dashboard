@@ -423,7 +423,7 @@ export default function UploadProjectTransactionsModal() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold">{validationReport.parsed.weeks.length}</p>
                   <p className="text-xs text-muted-foreground">Cortes</p>
@@ -534,13 +534,13 @@ export default function UploadProjectTransactionsModal() {
                     uploadReport.status === "replaced" ? "Carga reemplazada correctamente" : "Carga completada correctamente"}
                 </span>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.transactionCount}</strong><p className="text-xs text-muted-foreground">Pagos</p></div>
                 <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.rowCount}</strong><p className="text-xs text-muted-foreground">Conceptos</p></div>
                 <div className="bg-background p-3 rounded-none text-center"><strong className="text-xl">{uploadReport.totalPeople}</strong><p className="text-xs text-muted-foreground">Personas</p></div>
                 <div className="bg-background p-3 rounded-none text-center"><strong className="text-lg">{formatCurrency(uploadReport.amountTotal, validationReport?.parsed.currency)}</strong><p className="text-xs text-muted-foreground">Monto</p></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-info-muted p-3 text-center text-info"><strong className="text-xl">{uploadReport.providersCreated}</strong><p className="text-xs">Proveedores creados</p></div>
                 <div className="bg-success-muted p-3 text-center text-success"><strong className="text-xl">{uploadReport.providersReused}</strong><p className="text-xs">Proveedores existentes reutilizados</p></div>
               </div>

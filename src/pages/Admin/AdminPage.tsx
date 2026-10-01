@@ -21,7 +21,7 @@ export default function AdminPage() {
   const selectedProyecto = proyectos?.find(p => p._id === selectedProyectoId);
 
   return (
-    <div className="bg-card px-12 py-6 min-h-screen">
+    <div className="bg-card px-4 sm:px-6 xl:px-12 py-6 min-h-screen">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="rounded-lg py-6">

@@ -178,7 +178,7 @@ export default function SeeTransactionsDetailsModal() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-20 justify-between">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 justify-between">
                                     <div>
                                         <p className="text-sm text-muted-foreground">Presupuesto aprobado</p>
                                         <p className="text-lg">{formatCurrency(paymentContext.totalAmount)}</p>

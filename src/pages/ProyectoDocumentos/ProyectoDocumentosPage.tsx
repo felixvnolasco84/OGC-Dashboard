@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -18,7 +18,6 @@ import {
   Folder,
   FolderInput,
   FolderOpen,
-  Loader2,
   Grid2X2,
   List,
   MoreVertical,
@@ -75,6 +74,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MoveLocationDialog } from "@/components/documents/DocumentFolderNavigation";
 import { useUploadProyectoDocumentsModal } from "@/hooks/upload-proyecto-documents-modal";
+import { projectDocumentFolders, projectDocumentCounts } from "@/lib/project-document-folders";
 import { useProjectDocumentNavigation } from "@/hooks/project-document-navigation";
 
 type FolderId = Id<"document_folders">;
@@ -122,17 +122,9 @@ type ContextMenuState = {
 
 const ROOT_VALUE = "root";
 const PAGE_SIZE = 25;
-const ORGANIZE_BATCH_SIZE = 100;
-
-type OrganizeDocumentsResult = {
-  createdFolders: number;
-  isDone: boolean;
-  movedDocuments: number;
-  processedDocuments: number;
-  continueCursor: string | null;
-};
 
 export default function ProyectoDocumentosPage() {
+  const { isAuthenticated } = useConvexAuth();
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const projectId = proyectoId as Id<"desarrollos"> | undefined;
   const uploadModal = useUploadProyectoDocumentsModal();
@@ -158,17 +150,16 @@ export default function ProyectoDocumentosPage() {
   const [folderDialogParentId, setFolderDialogParentId] = useState<FolderId | undefined>();
   const [targetFolderId, setTargetFolderId] = useState<string>(ROOT_VALUE);
   const [page, setPage] = useState(1);
-  const [isOrganizing, setIsOrganizing] = useState(false);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
 
   const proyecto = useQuery(api.desarrollos.getById, projectId ? { id: projectId } : "skip");
   const metadata = useQuery(
     api.documentos.getProjectFileManagerMetadata,
-    projectId ? { proyecto: projectId } : "skip"
+    isAuthenticated && projectId ? { proyecto: projectId } : "skip"
   );
   const documentosPage = useQuery(
     api.documentos.listFileManagerDocuments,
-    projectId
+    isAuthenticated && projectId
       ? {
           folder_id: currentFolderId,
           proyecto: projectId,
@@ -179,6 +170,13 @@ export default function ProyectoDocumentosPage() {
       : "skip"
   );
 
+  useEffect(() => {
+    if (projectId && currentFolderId && metadata &&
+        (currentFolderId === metadata.projectRootFolderId || !metadata.folders.some(folder => folder?._id === currentFolderId))) {
+      documentNavigation.setCurrentFolder(projectId, undefined);
+    }
+  }, [currentFolderId, documentNavigation, metadata, projectId]);
+
   const createFolder = useMutation(api.documentos.createFolder);
   const renameFolder = useMutation(api.documentos.renameFolder);
   const renameDocument = useMutation(api.documentos.renameDocument);
@@ -186,7 +184,6 @@ export default function ProyectoDocumentosPage() {
   const moveDocument = useMutation(api.documentos.moveDocument);
   const deleteFolder = useMutation(api.documentos.deleteFolder);
   const deleteDocument = useMutation(api.documentos.deleteDocument);
-  const organizeDocuments = useMutation(api.documentos.organizeDocumentsByProjectAndType);
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null);
@@ -209,8 +206,8 @@ export default function ProyectoDocumentosPage() {
   }, [documentosPage, page]);
 
   const folders = useMemo(
-    () => (metadata?.folders || []) as FolderItem[],
-    [metadata?.folders],
+    () => projectDocumentFolders((metadata?.folders || []) as FolderItem[], metadata?.projectRootFolderId),
+    [metadata?.folders, metadata?.projectRootFolderId],
   );
   const documentos = (documentosPage?.documents || []) as DocumentItem[];
 
@@ -236,12 +233,12 @@ export default function ProyectoDocumentosPage() {
       counts.set(key, (counts.get(key) || 0) + 1);
     });
 
-    Object.entries((metadata?.documentCountsByFolder || {}) as Record<string, number>).forEach(([folderId, count]) => {
+    Object.entries(projectDocumentCounts(metadata?.documentCountsByFolder || {}, metadata?.projectRootFolderId)).forEach(([folderId, count]) => {
       counts.set(folderId, (counts.get(folderId) || 0) + count);
     });
 
     return counts;
-  }, [folders, metadata?.documentCountsByFolder]);
+  }, [folders, metadata?.documentCountsByFolder, metadata?.projectRootFolderId]);
 
   const folderOptions = useMemo(() => flattenFolders(folders), [folders]);
   const visibleFolders = useMemo(() => {
@@ -376,7 +373,7 @@ export default function ProyectoDocumentosPage() {
   const startMove = (target: MenuTarget) => {
     setSelectedTarget(target);
     const folderId = target.kind === "document" ? target.item.folder_id : target.item.parent_folder_id;
-    setTargetFolderId(folderId || ROOT_VALUE);
+    setTargetFolderId(folderId === metadata?.projectRootFolderId ? ROOT_VALUE : folderId || ROOT_VALUE);
     setMoveDialogOpen(true);
   };
 
@@ -431,44 +428,6 @@ export default function ProyectoDocumentosPage() {
     }
   };
 
-  const handleOrganizeDocuments = async () => {
-    setIsOrganizing(true);
-
-    try {
-      let cursor: string | null = null;
-      let createdFolders = 0;
-      let movedDocuments = 0;
-      let processedDocuments = 0;
-      let isDone = false;
-
-      while (!isDone) {
-        const result: OrganizeDocumentsResult = await organizeDocuments({
-          paginationOpts: {
-            cursor,
-            numItems: ORGANIZE_BATCH_SIZE,
-          },
-        });
-
-        createdFolders += result.createdFolders;
-        movedDocuments += result.movedDocuments;
-        processedDocuments += result.processedDocuments;
-        cursor = result.continueCursor;
-        isDone = result.isDone;
-      }
-
-      setCurrentFolderId(undefined);
-      toast.success("Documentos organizados", {
-        description: `${movedDocuments} de ${processedDocuments} archivo(s) movido(s) y ${createdFolders} carpeta(s) creada(s).`,
-      });
-    } catch (error) {
-      toast.error("No se pudieron organizar los documentos", {
-        description: getErrorMessage(error),
-      });
-    } finally {
-      setIsOrganizing(false);
-    }
-  };
-
   const handleDownload = async (fileUrl: string, fileName: string) => {
     try {
       toast.loading("Descargando documento...", { id: "download" });
@@ -516,7 +475,7 @@ export default function ProyectoDocumentosPage() {
             <Upload className="mx-auto mb-4 h-12 w-12 text-foreground" />
             <p className="text-xl text-foreground">Suelta los documentos para agregarlos</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Se subirán a {currentFolder?.nombre || "Biblioteca"}.
+              {currentFolder ? `Se subirán a ${currentFolder.nombre}.` : "Se organizarán automáticamente por tipo de documento."}
             </p>
           </div>
         </div>
@@ -531,7 +490,7 @@ export default function ProyectoDocumentosPage() {
                     className="shrink-0 hover:text-foreground"
                     onClick={() => setCurrentFolderId(undefined)}
                   >
-                    Biblioteca
+                    Documentos
                   </button>
                   {breadcrumbs.slice(0, -1).map((folder) => (
                     <span key={folder._id} className="flex min-w-0 items-center gap-2">
@@ -547,25 +506,11 @@ export default function ProyectoDocumentosPage() {
                 </div>
               )}
               <h1 className="break-words text-2xl font-normal text-foreground sm:text-3xl">
-                {currentFolder?.nombre || "Biblioteca"}
+                {currentFolder?.nombre || "Documentos"}
               </h1>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button
-                variant="outline"
-                size="lg"
-                className="rounded-none py-6 text-muted-foreground"
-                onClick={handleOrganizeDocuments}
-                disabled={isOrganizing}
-              >
-                Organizar
-                {isOrganizing ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <FolderInput className="h-5 w-5" />
-                )}
-              </Button>
               <Button
                 variant="outline"
                 size="lg"
@@ -720,7 +665,7 @@ export default function ProyectoDocumentosPage() {
             <DialogDescription>
               Crea una carpeta dentro de{" "}
               {(folderDialogParentId ? folderById.get(folderDialogParentId)?.nombre : currentFolder?.nombre) ||
-                "Biblioteca"}.
+                "Documentos"}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -772,12 +717,13 @@ export default function ProyectoDocumentosPage() {
       </Dialog>
 
       <MoveLocationDialog
+        rootLabel="Documentos"
         open={moveDialogOpen}
         onOpenChange={setMoveDialogOpen}
         itemName={selectedTargetLabel}
         currentLocationId={
           selectedTarget?.kind === "document"
-            ? selectedTarget.item.folder_id
+            ? (selectedTarget.item.folder_id === metadata?.projectRootFolderId ? undefined : selectedTarget.item.folder_id)
             : selectedTarget?.item.parent_folder_id
         }
         folders={folders}

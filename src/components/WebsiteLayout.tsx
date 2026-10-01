@@ -52,10 +52,10 @@ function WebsiteLayout() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <StoreUserEffect />
-        <SidebarProvider className="bg-card overflow-x-hidden">
+        <SidebarProvider className="bg-card">
           <AppSidebar />
           <main ref={mainScrollRef} data-dashboard-scroll="true" className="h-svh min-w-0 flex-1 overflow-auto overscroll-contain">
-            <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b border-border bg-card px-2">
+            <div className="responsive-navigation sticky top-0 z-10 flex h-11 lg:h-10 items-center justify-between border-b border-border bg-card px-2">
               <SidebarTrigger />
               <div className="flex items-center gap-1">
                 {isAdmin && (

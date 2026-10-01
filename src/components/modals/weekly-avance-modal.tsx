@@ -155,7 +155,7 @@ export default function WeeklyAvanceModal() {
         </DialogHeader>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div className="bg-blue-50 border border-blue-200 rounded-none p-3">
             <div className="text-xs text-blue-600 font-medium">Total Semanas</div>
             <div className="text-2xl font-bold text-blue-700">
@@ -183,7 +183,7 @@ export default function WeeklyAvanceModal() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Weekly Data Grid */}
           <div className="border rounded-none overflow-hidden">
-            <div className="bg-background border-b px-4 py-2 grid grid-cols-2 gap-4 font-medium text-sm">
+            <div className="bg-background border-b px-4 py-2 grid grid-cols-1 sm:grid-cols-2 gap-4 font-medium text-sm">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 Semana
@@ -195,7 +195,7 @@ export default function WeeklyAvanceModal() {
               {weeklyData.map((week, index) => (
                 <div
                   key={week.week_date}
-                  className={`px-4 py-3 grid grid-cols-2 gap-4 items-center hover:bg-background ${
+                  className={`px-4 py-3 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center hover:bg-background ${
                     index % 2 === 0 ? "bg-card" : "bg-background/50"
                   }`}
                 >

@@ -217,6 +217,7 @@ export default defineSchema({
     sales_proyecto: v.optional(v.id("sales_projects")), // Sales project
     uploaded_at: v.optional(v.number()), // Timestamp
     folder_id: v.optional(v.id("document_folders")), // Optional folder location in the document library
+    folder_assignment: v.optional(v.union(v.literal("automatic"), v.literal("manual"))),
     partida_id: v.optional(v.id("partidas")), // Linked Level 1 Partida for bitacora
     bitacora_id: v.optional(v.union(v.id("documentos"), v.id("bitacora"))), // Parent bitacora entry ID for photos
     comment: v.optional(v.string()), // Comment for bitacora photos
@@ -434,8 +435,28 @@ export default defineSchema({
     })),
     created_at: v.number(),
   }).index("by_invoice_created", { fields: ["invoice_id", "created_at"] }),
+  document_folder_migration_runs: defineTable({
+    dry_run: v.boolean(),
+    phase: v.string(),
+    cursor: v.union(v.string(), v.null()),
+    processed: v.number(),
+    changed: v.number(),
+    ambiguous: v.number(),
+    created_at: v.number(),
+    merge_source: v.optional(v.id("document_folders")),
+    merge_target: v.optional(v.id("document_folders")),
+    merge_phase: v.optional(v.string()),
+    merge_cursor: v.optional(v.union(v.string(), v.null())),
+  }),
+  document_folder_migration_claims: defineTable({
+    run_id: v.id("document_folder_migration_runs"),
+    folder_id: v.id("document_folders"),
+    owners: v.array(v.string()),
+  }).index("by_run_folder", { fields: ["run_id", "folder_id"] }),
   document_folders: defineTable({
     nombre: v.string(),
+    system_kind: v.optional(v.union(v.literal("project_root"), v.literal("document_type"))),
+    type_key: v.optional(v.string()),
     parent_folder_id: v.optional(v.id("document_folders")),
     proyecto: v.optional(v.id("desarrollos")),
     sales_proyecto: v.optional(v.id("sales_projects")),

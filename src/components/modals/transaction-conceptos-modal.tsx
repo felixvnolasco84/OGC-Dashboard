@@ -90,7 +90,7 @@ export default function TransactionConceptosModal() {
           </div>
         ) : (
           <div className="max-h-[calc(90vh-81px)] overflow-y-auto">
-            <section className="grid grid-cols-3 divide-x divide-border border-b border-border bg-muted/40">
+            <section className="grid grid-cols-1 sm:grid-cols-3 divide-x divide-border border-b border-border bg-muted/40">
               <div className="px-6 py-4">
                 <p className="text-xs text-muted-foreground">Conceptos</p>
                 <p className="mt-1 text-lg font-medium tabular-nums">{transaction.lineItems?.length || 0}</p>

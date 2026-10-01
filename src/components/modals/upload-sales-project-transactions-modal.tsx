@@ -743,7 +743,7 @@ export default function UploadSalesProjectTransactionsModal() {
               </div>
 
               {/* Summary Cards */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-foreground">{validationReport.totalTransactions}</p>
                   <p className="text-xs text-muted-foreground">Total</p>
@@ -882,7 +882,7 @@ export default function UploadSalesProjectTransactionsModal() {
               </div>
 
               {/* Summary Cards */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 <div className="bg-background rounded-none p-3 text-center">
                   <p className="text-2xl font-semibold text-foreground">{uploadReport.totalTransactions}</p>
                   <p className="text-xs text-muted-foreground">Total</p>

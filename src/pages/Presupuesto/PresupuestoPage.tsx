@@ -357,7 +357,7 @@ export default function PresupuestoPage() {
 
   // Loading state
   if (!proyecto || partidasStatus === "LoadingFirstPage") {
-    return <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
+    return <div className="bg-card px-4 sm:px-6 xl:px-12 py-6 min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
         <p className="text-muted-foreground">Cargando datos...</p>
@@ -369,13 +369,13 @@ export default function PresupuestoPage() {
     <div className="bg-card py-6 space-y-12">
       <div className="max-w-full mx-auto space-y-12">
         {/* Header */}
-        <div className="py-6 border-b border-border px-12 pb-12">
-          <div className="flex items-end justify-between">
+        <div className="py-6 border-b border-border px-4 sm:px-6 xl:px-12 pb-12">
+          <div className="responsive-header">
             <div className="flex flex-col text-left">
               <p className="text-base text-muted-foreground mb-1">Presupuesto</p>
               <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
             </div>
-            <div className="flex items-start gap-3">
+            <div className="flex flex-wrap items-start gap-3">
               {/* <Button
                 onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
                   proyecto: selectedDesarrollo._id,
@@ -392,10 +392,10 @@ export default function PresupuestoPage() {
 
 
               {/* Total Ingresos - Based on image reference */}
-              <div className="col-span-1 mr-4 md:col-span-2 lg:col-span-1"><Card variant="metric">
+              <div className="min-w-0 w-full sm:w-auto"><Card variant="metric">
                 <CardContent variant="flush">
                   <div className="cursor-pointer" onClick={handleOpenIngresos} aria-label="Ver ingresos del proyecto">
-                    <span className="flex flex-col items-end gap-1 text-right">
+                    <span className="flex flex-col items-start gap-1 text-left">
                     <span className="text-sm text-muted-foreground text-right mr-0.5">Total Ingresos</span>
                     <span className="flex items-baseline space-x-2">
                       <CurrencyMetric
@@ -490,7 +490,7 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Main Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-12 mb-8 px-12">
+        <div className="responsive-metrics mb-8 px-4 sm:px-6 xl:px-12">
 
 
           {/* Presupuesto Original */}
@@ -502,7 +502,7 @@ export default function PresupuestoPage() {
                   <CurrencyMetric
                     amount={metrics?.presupuesto_original || 0}
                     currency={moneda}
-                    className="text-3xl 2xl:text-4xl font-normal text-foreground"
+                    className="text-2xl sm:text-3xl xl:text-4xl font-normal text-foreground"
                   />
                 </div>
               </div>
@@ -518,7 +518,7 @@ export default function PresupuestoPage() {
                   <CurrencyMetric
                     amount={metrics?.presupuesto_aprobado || 0}
                     currency={moneda}
-                    className="text-3xl 2xl:text-4xl font-normal text-foreground"
+                    className="text-2xl sm:text-3xl xl:text-4xl font-normal text-foreground"
                   />
                 </div>
                 <div className="text-lg text-muted-foreground">
@@ -545,7 +545,7 @@ export default function PresupuestoPage() {
                         : (filteredPayments?.total || 0)
                     }
                     currency={moneda}
-                    className="text-3xl 2xl:text-4xl font-normal text-foreground"
+                    className="text-2xl sm:text-3xl xl:text-4xl font-normal text-foreground"
                   />
                 </div>
                 <Badge variant="secondary">
@@ -564,7 +564,7 @@ export default function PresupuestoPage() {
                   <CurrencyMetric
                     amount={metrics?.por_gastar || 0}
                     currency={moneda}
-                    className="text-3xl 2xl:text-4xl font-normal text-foreground"
+                    className="text-2xl sm:text-3xl xl:text-4xl font-normal text-foreground"
                   />
                 </div>
                 <Badge variant="secondary">
@@ -577,8 +577,8 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-card  pb-4 px-12">
-          <div className="grid grid-cols-3 items-center gap-6">
+        <div className="bg-card  pb-4 px-4 sm:px-6 xl:px-12">
+          <div className="responsive-filters">
             {/* Partida Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left border-b border-border">
               <span className="text-sm text-muted-foreground">Partida</span>

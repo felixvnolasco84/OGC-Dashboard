@@ -179,7 +179,7 @@ export default function AdminSalesFlujoPage() {
   };
 
   return (
-    <div className="bg-card px-12 py-6 min-h-screen">
+    <div className="bg-card px-4 sm:px-6 xl:px-12 py-6 min-h-screen">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="rounded-lg py-6">
@@ -296,7 +296,7 @@ export default function AdminSalesFlujoPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Summary Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="responsive-metrics">
                 <div className="bg-background p-4 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Archivo</p>
                   <p className="text-sm font-medium truncate" title={apiResponse.fileName}>

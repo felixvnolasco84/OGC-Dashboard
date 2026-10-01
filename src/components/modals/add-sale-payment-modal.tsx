@@ -299,7 +299,7 @@ export default function AddSalePaymentModal() {
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent data-square-modal="" className="w-[800px] sm:max-w-[800px] overflow-y-auto">
+            <SheetContent data-square-modal="" className="w-full sm:w-[800px] sm:max-w-[800px] overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle className="text-xl font-medium text-foreground">Pagos Múltiples</SheetTitle>
                     <SheetDescription className="text-sm text-muted-foreground">
@@ -310,7 +310,7 @@ export default function AddSalePaymentModal() {
                 <form onSubmit={handleSubmit} className="mt-6 space-y-6">
                     {/* Status Selection */}
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <button
                                 type="button"
                                 onClick={() => setStatus('Pagado')}
@@ -611,7 +611,7 @@ export default function AddSalePaymentModal() {
                             </SelectContent>
                         </Select>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <Select value={tipoPago} onValueChange={setTipoPago}>
                                 <SelectTrigger className="h-12">
                                     <SelectValue placeholder="Tipo de pago" />
@@ -635,7 +635,7 @@ export default function AddSalePaymentModal() {
                             </Select>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="relative">
                                 <MoneyInput
                                     placeholder="Monto total"
@@ -763,7 +763,7 @@ export default function AddSalePaymentModal() {
                     </div>
 
                     {/* Form Actions */}
-                    <div className="flex justify-end space-x-2 pt-4 border-t">
+                    <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4 border-t">
                         <Button type="button" variant="outline" onClick={onClose} className="h-11">
                             Cancelar
                         </Button>

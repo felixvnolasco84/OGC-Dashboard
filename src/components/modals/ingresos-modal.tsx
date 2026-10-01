@@ -1060,7 +1060,7 @@ export default function IngresosModal() {
           )}
 
           {!showForm && !showBulkUpload && (
-            <section className="grid grid-cols-2 divide-x divide-border border-b border-border bg-muted/40">
+            <section className="grid grid-cols-1 sm:grid-cols-2 divide-x divide-border border-b border-border bg-muted/40">
               <div className="px-6 py-4">
                 <p className="text-xs text-muted-foreground">Total ingresos</p>
                 <p className="mt-1 text-lg font-medium tabular-nums tracking-tight">

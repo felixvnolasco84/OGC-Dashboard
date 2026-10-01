@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Link } from "react-router";
 import { Doc } from "convex/_generated/dataModel";
 import { MoreHorizontal, Pencil, CreditCard, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -225,6 +226,9 @@ export default function DropdownMenuComponentPartida({
               </>
             )}
             <DropdownMenuGroup>
+              {isRealPartida && <DropdownMenuItem asChild data-viewer-readonly-allow="true">
+                <Link to={`/proyecto/${partida.proyecto}/partidas/${partida._id}`}>Detalle de partida</Link>
+              </DropdownMenuItem>}
               <DropdownMenuItem
                 onSelect={handleViewTransactions}
                 disabled={isLoadingPayments}

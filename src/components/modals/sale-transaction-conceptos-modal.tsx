@@ -84,7 +84,7 @@ export default function SaleTransactionConceptosModal() {
           <div className="space-y-6">
             {/* Summary */}
             <div className="bg-background rounded-none p-6">
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Conceptos</p>
                   <p className="text-2xl font-semibold text-foreground">
@@ -189,7 +189,7 @@ export default function SaleTransactionConceptosModal() {
             {groupedItems && Object.keys(groupedItems).length > 1 && (
               <div className="space-y-3">
                 <h3 className="text-lg font-medium text-foreground">Resumen por Partida</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {Object.values(groupedItems).map((group: GroupedItem, index: number) => (
                     <div key={index} className="border border-border rounded-none p-4">
                       <p className="text-sm font-medium text-foreground">{group.partida}</p>

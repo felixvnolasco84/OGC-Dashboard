@@ -1,3 +1,4 @@
+import { projectDocumentFolders, projectDocumentCounts } from "@/lib/project-document-folders";
 import { Link, useLocation, useParams, useNavigate } from "react-router";
 import { Unauthenticated, useQuery, useConvexAuth } from "convex/react";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -295,44 +296,7 @@ function ProjectDocumentFolderNavigation({
         !isVisible && "hidden"
       )}
     >
-      <SidebarMenuSubItem>
-        <SidebarMenuSubButton asChild size="sm" isActive={!activeFolderId}>
-          <div className="gap-0 px-1">
-            {childFolderCounts.has("root") ? (
-              <button
-                type="button"
-                className="flex size-6 shrink-0 items-center justify-center rounded-sm text-disabled-foreground hover:bg-disabled hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-                onClick={() => toggleFolder("root")}
-                aria-expanded={!collapsedFolderIds.has("root")}
-                aria-label={`${collapsedFolderIds.has("root") ? "Expandir" : "Colapsar"} Biblioteca`}
-              >
-                <ChevronRight
-                  className={cn(
-                    "size-3.5 transition-transform",
-                    !collapsedFolderIds.has("root") && "rotate-90"
-                  )}
-                />
-              </button>
-            ) : (
-              <span className="size-6 shrink-0" aria-hidden="true" />
-            )}
-
-            <button
-              type="button"
-              className="flex h-full min-w-0 flex-1 items-center gap-2 px-1 text-left text-xs"
-              onClick={() => onFolderSelect(undefined)}
-            >
-              <FolderOpen className="size-4 shrink-0" />
-              <span className="truncate">Biblioteca</span>
-              <span className="ml-auto text-[10px] tabular-nums text-disabled-foreground">
-                {getItemCount("root")}
-              </span>
-            </button>
-          </div>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
-
-      {!collapsedFolderIds.has("root") && (isLoading ? (
+      {isLoading ? (
         <SidebarMenuSubItem className="px-2 py-1 text-xs text-disabled-foreground">
           Cargando carpetas...
         </SidebarMenuSubItem>
@@ -392,7 +356,7 @@ function ProjectDocumentFolderNavigation({
             </SidebarMenuSubItem>
           );
         })
-      ))}
+      )}
     </SidebarMenuSub>
   );
 }
@@ -895,9 +859,15 @@ export default function SidebarComponent() {
     currentProject &&
       location.pathname.startsWith(`/proyecto/${currentProject._id}/documentos`),
   );
+  const canReadProjectDocuments = useQuery(
+    api.users.hasAccessToDesarrollo,
+    isAuthenticated && !authLoading && isCurrentProjectDocuments && currentProject
+      ? { desarrolloId: currentProject._id }
+      : "skip",
+  );
   const documentMetadata = useQuery(
     api.documentos.getProjectFileManagerMetadata,
-    isCurrentProjectDocuments && currentProject
+    isAuthenticated && !authLoading && canReadProjectDocuments === true && currentProject
       ? { proyecto: currentProject._id }
       : "skip",
   );
@@ -1068,6 +1038,9 @@ export default function SidebarComponent() {
                             <Link
                               className="flex h-full min-w-0 flex-1 items-center gap-2 text-sm"
                               to={`/proyecto/${currentProject._id}/${item.path}`}
+                              onClick={() => {
+                                if (isExpandableDocumentsItem) documentNavigation.setCurrentFolder(currentProject._id, undefined);
+                              }}
                             >
                               <item.icon className="size-4 shrink-0" />
                               <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -1094,7 +1067,11 @@ export default function SidebarComponent() {
                             </button>
                           </div>
                         ) : (
-                          <Link to={`/proyecto/${currentProject._id}/${item.path}`}>
+                          <Link to={`/proyecto/${currentProject._id}/${item.path}`}
+                            onClick={() => {
+                              if (item.id === "documentos") documentNavigation.setCurrentFolder(currentProject._id, undefined);
+                            }}
+                          >
                             <item.icon className="w-4 h-4" />
                             <span className="flex items-center justify-between w-full">
                               {item.label}
@@ -1113,9 +1090,9 @@ export default function SidebarComponent() {
                         <ProjectDocumentFolderNavigation
                           activeFolderId={activeDocumentFolderId}
                           documentCountsByFolder={
-                            (documentMetadata?.documentCountsByFolder || {}) as Record<string, number>
+                            projectDocumentCounts(documentMetadata?.documentCountsByFolder || {}, documentMetadata?.projectRootFolderId)
                           }
-                          folders={(documentMetadata?.folders || []) as ProjectDocumentFolder[]}
+                          folders={projectDocumentFolders((documentMetadata?.folders || []) as ProjectDocumentFolder[], documentMetadata?.projectRootFolderId)}
                           isLoading={documentMetadata === undefined}
                           isVisible={isDocumentsNavigationExpanded}
                           onFolderSelect={(folderId) =>

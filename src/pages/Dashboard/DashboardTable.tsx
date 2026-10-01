@@ -187,7 +187,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                     </div>
                 </div>
                 <div className="bg-card border border-border overflow-hidden overflow-x-auto">
-                    <Table>
+                    <Table mobileSummary={[0, 1, 2, 4, 6]}>
                         <TableHeader>
                             <TableRow className="border-b border-border">
                                 <TableHead className="px-4 py-3 text-left text-sm font-normal text-muted-foreground bg-card min-w-[180px]">Partida</TableHead>
@@ -348,7 +348,7 @@ export function DashboardTable({ proyectoId, isSalesProject = false }: { proyect
                     </Table>
                 </div>
 
-                <div className="flex items-center justify-between py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 py-4">
                     <div className="text-muted-foreground text-sm">
                         Mostrando {filteredTransactions.length} de {transactions?.length || 0} transacciones
                     </div>

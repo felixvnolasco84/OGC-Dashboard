@@ -305,7 +305,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
   return (
     <div className="space-y-4 text-left">
       <div className="bg-card border border-border overflow-hidden">
-        <Table>
+        <Table mobileSummary={showPrecioUnitario ? [0, 4, 5, 6, 7, 8] : [0, 1, 2, 3, 4, 5]}>
           <TableHeader variant="budget" className="text-muted-foreground">
             <TableRow variant="budget">
 
@@ -371,6 +371,8 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                             variant="filter"
                             size="bare"
                             onClick={() => toggleExpanded(item.uniqueId)}
+                            aria-label={`${item.expanded ? "Contraer" : "Expandir"} ${item.displayName}`}
+                            aria-expanded={item.expanded}
                             data-viewer-readonly-allow="true"
                           >
                             {item.expanded ? (

@@ -55,6 +55,8 @@ import type * as programaObraExecution from "../programaObraExecution.js";
 import type * as programaObraImport from "../programaObraImport.js";
 import type * as programaObraMilestoneRules from "../programaObraMilestoneRules.js";
 import type * as programa_obra from "../programa_obra.js";
+import type * as projectDocumentFolders from "../projectDocumentFolders.js";
+import type * as projectDocumentMigration from "../projectDocumentMigration.js";
 import type * as projectMatchUtils from "../projectMatchUtils.js";
 import type * as project_locations from "../project_locations.js";
 import type * as projected_transactions from "../projected_transactions.js";
@@ -149,6 +151,8 @@ declare const fullApi: ApiFromModules<{
   programaObraImport: typeof programaObraImport;
   programaObraMilestoneRules: typeof programaObraMilestoneRules;
   programa_obra: typeof programa_obra;
+  projectDocumentFolders: typeof projectDocumentFolders;
+  projectDocumentMigration: typeof projectDocumentMigration;
   projectMatchUtils: typeof projectMatchUtils;
   project_locations: typeof project_locations;
   projected_transactions: typeof projected_transactions;

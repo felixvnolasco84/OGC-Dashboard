@@ -1,3 +1,4 @@
+import { ResponsiveFields } from "@/components/ui/responsive-fields";
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useUser } from "@clerk/clerk-react";
@@ -409,7 +410,7 @@ function LicenciaSection({
     <div className="border border-border rounded-sm bg-card">
       {/* Header */}
       <div
-        className="flex items-center justify-between px-6 py-6 cursor-pointer border-b"
+        className="flex flex-wrap items-center justify-between gap-3 px-6 py-6 cursor-pointer border-b"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -437,7 +438,7 @@ function LicenciaSection({
 
       {/* Content */}
       {expanded && (
-        <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
+        <div className="px-6 pb-6 pt-6 responsive-metrics gap-6 text-left">
           {/* Número de Licencia + Document */}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">Número de Licencia</span>
@@ -506,7 +507,7 @@ function PolizaSection({
   return (
     <div className="border border-border rounded-sm bg-card">
       <div
-        className="flex items-center justify-between px-6 py-6 cursor-pointer border-b"
+        className="flex flex-wrap items-center justify-between gap-3 px-6 py-6 cursor-pointer border-b"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -531,7 +532,7 @@ function PolizaSection({
       </div>
 
       {expanded && (
-        <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
+        <div className="px-6 pb-6 pt-6 responsive-metrics gap-6 text-left">
           {/* Póliza de seguro */}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">Póliza de seguro</span>
@@ -605,7 +606,7 @@ function TramitesSection({
   return (
     <div className="border border-border rounded-sm bg-card">
       <div
-        className="flex items-center justify-between px-6 py-6 border-b cursor-pointer"
+        className="flex flex-wrap items-center justify-between gap-3 px-6 py-6 border-b cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -641,7 +642,7 @@ function TramitesSection({
       {expanded && (
         <div className="px-6 pb-6 pt-6">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 text-xs text-muted-foreground font-medium pb-2 border-b border-border">
+          <div className="hidden lg:grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 text-xs text-muted-foreground font-medium pb-2 border-b border-border">
             <span>Servicio</span>
             <span>Trámite</span>
             <span>Estado</span>
@@ -700,7 +701,7 @@ function TramiteRow({
   const [editTramite, setEditTramite] = useState(tramite.tramite);
 
   return (
-    <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 items-center py-3 border-b border-border">
+    <ResponsiveFields labels={["Servicio","Trámite","Estado","Comprobante","Acciones"]} summary={[0,1,2,4]} className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr_1.5fr_auto] gap-4 items-center py-3 border-b border-border">
       {/* Servicio */}
       <div className="flex items-center gap-2">
         <StatusDot
@@ -810,7 +811,7 @@ function TramiteRow({
       >
         <Trash2 className="w-4 h-4" />
       </button>
-    </div>
+    </ResponsiveFields>
   );
 }
 
@@ -837,7 +838,7 @@ function PlanSeguridadSection({
   return (
     <div className="border border-border rounded-sm bg-card">
       <div
-        className="flex items-center justify-between px-6 py-6 border-b cursor-pointer"
+        className="flex flex-wrap items-center justify-between gap-3 px-6 py-6 border-b cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -862,7 +863,7 @@ function PlanSeguridadSection({
       </div>
 
       {expanded && (
-        <div className="px-6 pb-6 pt-6 grid grid-cols-3 gap-6 text-left">
+        <div className="px-6 pb-6 pt-6 responsive-metrics gap-6 text-left">
           {/* Plan de seguridad */}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">Plan de seguridad</span>

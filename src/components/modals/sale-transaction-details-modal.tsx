@@ -91,7 +91,7 @@ export default function SaleTransactionDetailsModal() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
                   <span>
@@ -117,7 +117,7 @@ export default function SaleTransactionDetailsModal() {
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-foreground">Información de Pago</h3>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Factura */}
                 {transaction.factura && (
                   <div className="space-y-1">
@@ -197,7 +197,7 @@ export default function SaleTransactionDetailsModal() {
             </div>
 
             {/* Line Items & Documents Summary */}
-            <div className="border-t pt-4 grid grid-cols-2 gap-4">
+            <div className="border-t pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">Conceptos (Line Items)</label>
                 <p className="text-2xl font-semibold text-foreground">

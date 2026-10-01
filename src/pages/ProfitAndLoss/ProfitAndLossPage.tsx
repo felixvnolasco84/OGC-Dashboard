@@ -1,3 +1,5 @@
+import { Table } from "@/components/ui/table";
+import { ResponsiveCurrency } from "@/components/ui/responsive-currency";
 import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -353,16 +355,12 @@ const formatPercent = (value?: number) => {
 const formatMetricCurrency = (amount: number) => {
   const absolute = Math.abs(safeNumber(amount));
   const sign = amount < 0 ? "-" : "";
-
-  if (absolute >= 1_000_000) {
-    return `${sign}$${(absolute / 1_000_000).toFixed(1)}M`;
-  }
-
-  if (absolute >= 1_000) {
-    return `${sign}$${(absolute / 1_000).toFixed(1)}k`;
-  }
-
-  return `${sign}$${formatNumber(absolute)}`;
+  const compact = absolute >= 1_000_000
+    ? `${sign}$${(absolute / 1_000_000).toFixed(1)}M`
+    : absolute >= 1_000
+      ? `${sign}$${(absolute / 1_000).toFixed(1)}k`
+      : `${sign}$${formatNumber(absolute)}`;
+  return <ResponsiveCurrency amount={safeNumber(amount)} compact={compact} />;
 };
 
 const formatTableCurrency = (amount?: number) => {
@@ -403,7 +401,7 @@ const parseIncomeDate = (value?: string) => {
 
 const formatAccountingCurrency = (amount?: number) => {
   if (amount === undefined || !Number.isFinite(amount)) return "-";
-  if (amount < 0) return `(${formatMetricCurrency(Math.abs(amount))})`;
+  if (amount < 0) return <>({formatMetricCurrency(Math.abs(amount))})</>;
   return formatMetricCurrency(amount);
 };
 
@@ -525,6 +523,10 @@ function MonthlyPnlTable({
   periodLabel: string;
   dataQualityNote?: string;
 }) {
+  const [mobileMonthKey, setMobileMonthKey] = useState("");
+  const [showComparison, setShowComparison] = useState(false);
+  const foundMonth = months.findIndex((month) => month.key === mobileMonthKey);
+  const mobileMonthIndex = foundMonth >= 0 ? foundMonth : Math.max(0, months.length - 1);
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -535,7 +537,26 @@ function MonthlyPnlTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto border border-border bg-card">
+      <div className="space-y-4 lg:hidden">
+        <Label htmlFor="mobile-pnl-month">Periodo</Label>
+        <Select value={months[mobileMonthIndex]?.key} onValueChange={setMobileMonthKey}>
+          <SelectTrigger id="mobile-pnl-month"><SelectValue placeholder="Seleccionar periodo" /></SelectTrigger>
+          <SelectContent>{months.map((month) => <SelectItem key={month.key} value={month.key}>{month.label}</SelectItem>)}</SelectContent>
+        </Select>
+        {rows.map((row, index) => row.type === "section" ? <h3 key={`${row.label}-${index}`} className="pt-4 font-medium">{row.label}</h3> : (
+          <article key={`${row.label}-${index}`} className={cn("min-w-0 border border-border p-4", (row.type === "subtotal" || row.type === "metric") && SOFT_HIGHLIGHT_CLASS)}>
+            <h3 className="break-words text-sm text-muted-foreground">{row.label}</h3>
+            <p className="mt-2 break-words text-xl tabular-nums">{formatPnlValue(row.values?.[mobileMonthIndex])}</p>
+            {row.type === "metric" && <p className="mt-1 text-sm">{formatPercent(row.percentages?.[mobileMonthIndex])}</p>}
+            <details className="mt-3 border-t border-border pt-2">
+              <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">Ver detalle completo</summary>
+              <dl className="space-y-3">{months.map((month, monthIndex) => <div key={month.key} className="flex flex-wrap justify-between gap-2 text-sm"><dt>{month.label}</dt><dd className="tabular-nums">{formatPnlValue(row.values?.[monthIndex])}{row.type === "metric" && ` · ${formatPercent(row.percentages?.[monthIndex])}`}</dd></div>)}</dl>
+            </details>
+          </article>
+        ))}
+        <Button variant="outline" onClick={() => setShowComparison((value) => !value)} aria-expanded={showComparison}>{showComparison ? "Ocultar matriz comparativa" : "Mostrar matriz comparativa"}</Button>
+      </div>
+      <div className={cn("max-w-full overflow-x-auto border border-border bg-card", !showComparison && "hidden lg:block")}>
         <table className="w-full min-w-[980px] border-collapse text-left">
           <thead>
             <tr className="border-b border-border text-sm text-muted-foreground">
@@ -620,7 +641,7 @@ function WipMetricCard({
   valueClassName,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   badge: string;
   valueClassName?: string;
 }) {
@@ -654,7 +675,7 @@ function WorkInProgressView({
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-10 w-full xl:w-3/4 py-8">
+      <div className="responsive-metrics gap-10 w-full xl:w-3/4 py-8">
         <WipMetricCard
           label="Backlog total contratado"
           value={formatMetricCurrency(totals.wip.presupuesto)}
@@ -690,7 +711,7 @@ function WorkInProgressView({
         </div>
 
         <div className="overflow-x-auto border border-border bg-card">
-          <table className="w-full min-w-[1180px] border-collapse text-left">
+          <Table mobileSummary={[0, 1, 2, 3]} className="w-full min-w-[1180px] border-collapse text-left">
             <thead>
               <tr className="border-b border-border text-sm text-muted-foreground">
                 <th className="w-[240px] px-8 py-4 font-normal">Obra</th>
@@ -758,7 +779,7 @@ function WorkInProgressView({
                 </tr>
               )}
             </tbody>
-          </table>
+          </Table>
         </div>
       </div>
 
@@ -931,7 +952,7 @@ function CollectedIncomeBreakdownDialog({
             </div>
           ) : records.length > 0 ? (
             <div className="overflow-x-auto border border-border">
-              <table className="w-full min-w-[960px] border-collapse text-left">
+              <Table mobileSummary={[0, 1, 2, 3]} className="w-full min-w-[960px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
                     <th className="px-3 py-3 font-medium">Fecha</th>
@@ -981,7 +1002,7 @@ function CollectedIncomeBreakdownDialog({
                     <td />
                   </tr>
                 </tfoot>
-              </table>
+              </Table>
             </div>
           ) : (
             <div className="border border-border px-6 py-10 text-center text-sm text-muted-foreground">
@@ -1033,7 +1054,7 @@ function AnnualPnlSummaryTables({
         </div>
 
         <div className="overflow-x-auto border border-border bg-card">
-          <table className="w-full min-w-[620px] border-collapse text-left">
+          <Table mobileSummary={[0, 1, 2, 3]} className="w-full min-w-[620px] border-collapse text-left">
             <thead>
               <tr className="border-b border-border text-sm text-muted-foreground">
                 <th className="px-8 py-4 font-normal">Categoría</th>
@@ -1063,7 +1084,7 @@ function AnnualPnlSummaryTables({
                 </td>
               </tr>
             </tbody>
-          </table>
+          </Table>
         </div>
       </div>
 
@@ -1074,7 +1095,7 @@ function AnnualPnlSummaryTables({
         </div>
 
         <div className="overflow-x-auto border border-border bg-card">
-          <table className="w-full min-w-[620px] border-collapse text-left">
+          <Table mobileSummary={[0, 1, 2, 3]} className="w-full min-w-[620px] border-collapse text-left">
             <thead>
               <tr className="border-b border-border text-sm text-muted-foreground">
                 <th className="px-8 py-4 font-normal">Concepto</th>
@@ -1123,7 +1144,7 @@ function AnnualPnlSummaryTables({
                 </td>
               </tr>
             </tbody>
-          </table>
+          </Table>
         </div>
       </div>
     </div>
@@ -1151,7 +1172,7 @@ function ProjectProfitabilityView({
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-10 w-full xl:w-3/4 py-8">
+      <div className="responsive-metrics gap-10 w-full xl:w-3/4 py-8">
         <WipMetricCard
           label="Margen bruto total OGC"
           value={formatMetricCurrency(totals.margen)}
@@ -1188,7 +1209,7 @@ function ProjectProfitabilityView({
           </div>
 
           <div className="overflow-x-auto border border-border bg-card">
-            <table className="w-full min-w-[980px] border-collapse text-left">
+            <Table mobileSummary={[0, 1, 2, 3]} className="w-full min-w-[980px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-border text-sm text-muted-foreground">
                   <th className="w-[420px] px-8 py-4 font-normal">Obra</th>
@@ -1252,7 +1273,7 @@ function ProjectProfitabilityView({
                   </td>
                 </tr>
               </tbody>
-            </table>
+            </Table>
           </div>
         </div>
 
@@ -1267,7 +1288,7 @@ function ProjectProfitabilityView({
             </div>
 
             <div className="overflow-x-auto border border-border bg-card">
-              <table className="w-full min-w-[620px] border-collapse text-left">
+              <Table mobileSummary={[0, 1, 2, 3]} className="w-full min-w-[620px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-border text-sm text-muted-foreground">
                     <th className="px-8 py-4 font-normal">Categoria</th>
@@ -1297,7 +1318,7 @@ function ProjectProfitabilityView({
                     </td>
                   </tr>
                 </tbody>
-              </table>
+              </Table>
             </div>
           </div>
 
@@ -1308,7 +1329,7 @@ function ProjectProfitabilityView({
             </div>
 
             <div className="overflow-x-auto border border-border bg-card">
-              <table className="w-full min-w-[620px] border-collapse text-left">
+              <Table mobileSummary={[0, 1, 2, 3]} className="w-full min-w-[620px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-border text-sm text-muted-foreground">
                     <th className="px-8 py-4 font-normal">Concepto</th>
@@ -1357,7 +1378,7 @@ function ProjectProfitabilityView({
                     </td>
                   </tr>
                 </tbody>
-              </table>
+              </Table>
             </div>
           </div>
         </div>
@@ -1577,7 +1598,7 @@ function OgcLedgerDialog({
           </div>
 
           <div className="overflow-hidden border border-border bg-card">
-            <table className="w-full table-fixed border-collapse text-left text-xs xl:text-sm">
+            <Table mobileSummary={[0, 1, 4, 5, 7, 8, 10]} className="w-full table-fixed border-collapse text-left text-xs xl:text-sm">
               <colgroup>
                 <col className="w-[8%]" />
                 <col className="w-[8%]" />
@@ -1812,7 +1833,7 @@ function OgcLedgerDialog({
                   </tr>
                 )}
               </tbody>
-            </table>
+            </Table>
           </div>
         </div>
       </DialogContent>
@@ -2204,14 +2225,14 @@ export default function ProfitAndLossPage() {
     projectLocations === undefined
   ) {
     return (
-      <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
+      <div className="bg-card px-4 sm:px-6 xl:px-12 py-6 min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Cargando datos...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-card px-12 py-6">
+    <div className="bg-card px-4 sm:px-6 xl:px-12 py-6">
       <OgcMovementsUploadModal
         open={isOgcUploadOpen}
         onOpenChange={setIsOgcUploadOpen}
@@ -2289,7 +2310,7 @@ export default function ProfitAndLossPage() {
 
         {activeTab === "pnl" ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 w-full xl:w-3/4 py-8">
+            <div className="responsive-metrics gap-10 w-full xl:w-3/4 py-8">
               <div className="space-y-2 text-left">
                 <p className="text-sm text-muted-foreground">Ingresos OGC YTD</p>
                 <p className="text-4xl text-foreground">{formatMetricCurrency(ingresosYtd)}</p>

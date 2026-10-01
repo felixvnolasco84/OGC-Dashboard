@@ -1,4 +1,5 @@
-import { useQuery } from "convex/react";
+import { useQuery, useQueries } from "convex/react";
+import { useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
 import { Doc, Id } from "convex/_generated/dataModel";
 import { useParams, useNavigate } from "react-router-dom";
@@ -45,11 +46,14 @@ export default function PartidaDetails() {
     const id = params.id;
     const partida = useQuery(api.partida.getById, { id: id as Id<"partidas"> });
 
-    // Query documents by proyecto to filter by transaccion_id
-    const allDocuments = useQuery(
-        api.documentos.getByProyecto,
-        partida?.proyecto ? { proyecto_id: partida.proyecto } : "skip"
-    );
+    // Scope document reads to the displayed payments, using the existing indexed query.
+    const documentRequests = useMemo(() => Object.fromEntries(
+        [...new Set(partida?.pagos?.flatMap((pago) => pago.transaction?._id ? [pago.transaction._id] : []) || [])]
+            .map((transactionId) => [transactionId, { query: api.documentos.getByTransaccion, args: { transaccion_id: transactionId } }]),
+    ), [partida]);
+    const documentResults = useQueries(documentRequests);
+    const allDocuments = Object.values(documentResults).filter(Array.isArray).flat();
+    const hasDocumentError = Object.values(documentResults).some((result) => result instanceof Error);
 
     const deleteTransaction = useMutation(api.transacciones.deleteTransaction);
 
@@ -114,7 +118,7 @@ export default function PartidaDetails() {
     };
 
     return (
-        <div className="min-h-screen  p-6">
+        <div className="responsive-partida-detail min-h-screen min-w-0 [overflow-wrap:anywhere] p-4 sm:p-6">
             <div className="max-w-2xl mx-auto">
                 {/* Header */}
                 <div className="bg-card  shadow-sm -6 mb-4 relative">
@@ -190,7 +194,7 @@ export default function PartidaDetails() {
                     </div>
 
                     {/* Summary */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="responsive-metrics">
                         <div>
                             <p className="text-xs text-muted-foreground mb-1">Presupuesto Aprobado</p>
                             <p className="text-base  text-foreground">{formatCurrency(presupuestoAprobado.toString())}</p>
@@ -206,13 +210,14 @@ export default function PartidaDetails() {
                     </div>
                 </div>
 
+                {hasDocumentError && <p role="alert" className="mb-4 text-sm text-destructive">No se pudieron cargar algunos documentos adjuntos. Los pagos siguen disponibles.</p>}
                 {/* Payment Cards */}
                 {partida.pagos && partida.pagos.length > 0 ? (
                     <div className="space-y-8">
                         {partida.pagos.map((pago, index) => (
                             <div key={index} className="bg-card">
                                 {/* Header */}
-                                <div className="flex items-start justify-between mb-4 border-b border-border-strong pb-4">
+                                <div className="responsive-header mb-4 border-b border-border-strong pb-4">
                                     <div className="flex items-center gap-3">
                                         {(() => {
                                             const status = pago.status || pago.transaction?.status;
@@ -288,41 +293,41 @@ export default function PartidaDetails() {
                                 <div className="flex flex-col space-y-2 text-sm mb-4 p-4">
                                     {/* Show transaction ID if available */}
                                     {pago.transaction?._id && (
-                                        <div className="flex justify-between pb-2 mb-2 border-b border-border">
+                                        <div className="flex min-w-0 flex-wrap justify-between gap-2 pb-2 mb-2 border-b border-border">
                                             <span className="text-muted-foreground text-xs">Transacción</span>
                                             <p className="text-foreground text-right text-xs font-mono">
                                                 #{pago.transaction._id.slice(-8)}
                                             </p>
                                         </div>
                                     )}
-                                    <div className="flex justify-between">
+                                    <div className="flex min-w-0 flex-wrap justify-between gap-2">
                                         <span className="text-muted-foreground">Fecha</span>
                                         <p className="text-foreground text-right">{pago.fecha || pago.transaction?.fecha || 'N/A'}</p>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="flex min-w-0 flex-wrap justify-between gap-2">
                                         <span className="text-muted-foreground">Método de pago</span>
                                         <p className="text-foreground text-right">{pago.tipo_pago || pago.transaction?.tipo_pago || 'N/A'}</p>
                                     </div>
                                     {(pago.banco || pago.transaction?.banco) && (
-                                        <div className="flex justify-between">
+                                        <div className="flex min-w-0 flex-wrap justify-between gap-2">
                                             <span className="text-muted-foreground">Banco</span>
                                             <p className="text-foreground text-right">{pago.banco || pago.transaction?.banco}</p>
                                         </div>
                                     )}
                                     {(pago.numero_cuenta || pago.transaction?.numero_cuenta) && (
-                                        <div className="flex justify-between">
+                                        <div className="flex min-w-0 flex-wrap justify-between gap-2">
                                             <span className="text-muted-foreground">Cuenta cargo</span>
                                             <p className="text-foreground text-right">{pago.numero_cuenta || pago.transaction?.numero_cuenta}</p>
                                         </div>
                                     )}
                                     {(pago.numero_transferencia || pago.transaction?.numero_transferencia) && (
-                                        <div className="flex justify-between">
+                                        <div className="flex min-w-0 flex-wrap justify-between gap-2">
                                             <span className="text-muted-foreground">Cuenta abono</span>
                                             <p className="text-foreground text-right">{pago.numero_transferencia || pago.transaction?.numero_transferencia}</p>
                                         </div>
                                     )}
                                     {(pago.codigo_referencia || pago.transaction?.codigo_referencia) && (
-                                        <div className="flex justify-between">
+                                        <div className="flex min-w-0 flex-wrap justify-between gap-2">
                                             <span className="text-muted-foreground">Referencia</span>
                                             <p className="text-foreground text-right font-mono text-xs">{pago.codigo_referencia || pago.transaction?.codigo_referencia}</p>
                                         </div>

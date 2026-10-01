@@ -1,0 +1,961 @@
+[
+  {
+    "name": "proyectos-390",
+    "path": "/proyectos",
+    "cards": 12,
+    "headings": [
+      "Proyectos"
+    ],
+    "height": 649,
+    "main": [
+      {
+        "scroll": 292,
+        "width": 292
+      }
+    ],
+    "width": 300
+  },
+  {
+    "name": "presupuesto-390",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "cards": 33,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "height": 845,
+    "main": [
+      {
+        "scroll": 382,
+        "width": 382
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "control-390",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "cards": 5,
+    "headings": [
+      "Larena - Torre I",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "height": 845,
+    "main": [
+      {
+        "scroll": 382,
+        "width": 382
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "control-768",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "cards": 5,
+    "headings": [
+      "Larena - Torre I",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "height": 1024,
+    "main": [
+      {
+        "scroll": 760,
+        "width": 760
+      }
+    ],
+    "width": 768
+  },
+  {
+    "name": "documentos-390",
+    "path": "/documentos",
+    "cards": 0,
+    "headings": [
+      "Documentos",
+      "Biblioteca de documentos"
+    ],
+    "height": 845,
+    "main": [
+      {
+        "scroll": 382,
+        "width": 382
+      },
+      {
+        "scroll": 382,
+        "width": 382
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "documentos-carpeta-390",
+    "path": "/documentos",
+    "cards": 0,
+    "headings": [
+      "Documentos",
+      "FS ESTATE VILLAS COMMISSIONING"
+    ],
+    "height": 845,
+    "main": [
+      {
+        "scroll": 382,
+        "width": 382
+      },
+      {
+        "scroll": 382,
+        "width": 382
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "autorizaciones-390",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/autorizaciones",
+    "cards": 0,
+    "headings": [],
+    "height": 845,
+    "main": [
+      {
+        "scroll": 382,
+        "width": 382
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "imss-390",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/autorizaciones",
+    "cards": 0,
+    "headings": [],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "proveedores-proyecto-390",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/proveedores",
+    "cards": 1,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "transacciones-390",
+    "path": "/transacciones",
+    "cards": 51,
+    "headings": [
+      "Transacciones"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "proyecto-transacciones-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/transacciones",
+    "cards": 25,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "flujo-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/flujo",
+    "cards": 95,
+    "headings": [
+      "Flujo de Caja Proyectado"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 415,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "pnl-mobile",
+    "path": "/pnl",
+    "cards": 0,
+    "headings": [],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "flujo-mobile-loaded",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/flujo",
+    "cards": 95,
+    "headings": [
+      "Flujo de Caja Proyectado"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 415,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "flujo-mobile-final",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/flujo",
+    "cards": 95,
+    "headings": [
+      "Flujo de Caja Proyectado"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "sales-presupuesto-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/presupuesto",
+    "cards": 5,
+    "headings": [
+      "Larena Ventas"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "sales-control-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/control",
+    "cards": 5,
+    "headings": [
+      "Larena Ventas",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "sales-transacciones-mobile",
+    "path": "/sales-transacciones",
+    "cards": 878,
+    "headings": [
+      "Transacciones"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 415,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "sales-proyecto-transacciones-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/transacciones",
+    "cards": 226,
+    "headings": [
+      "Larena Ventas"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "sales-documentos-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/documentos",
+    "cards": 1,
+    "headings": [
+      "Larena Ventas"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "sales-flujo-mobile",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/flujo",
+    "cards": 0,
+    "headings": [
+      "Flujo de Caja Proyectado"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "admin-mobile",
+    "path": "/admin",
+    "cards": 0,
+    "headings": [
+      "Administración"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "admin-flujo-mobile",
+    "path": "/admin/flujo",
+    "cards": 0,
+    "headings": [
+      "Flujo de Caja Proyectado"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "admin-sales-flujo-mobile",
+    "path": "/admin/sales-flujo",
+    "cards": 0,
+    "headings": [
+      "Flujo de Caja Proyectado - Ventas"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "sales-gestion-mobile",
+    "path": "/sales-gestion",
+    "cards": 0,
+    "headings": [
+      "Gestión de Proyectos de Ventas"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "width": 390
+  },
+  {
+    "name": "sales-gestion-mobile-confirmed",
+    "path": "/sales-gestion",
+    "cards": 0,
+    "headings": [
+      "Gestión de Proyectos de Ventas"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/sales-gestion",
+    "width": 390
+  },
+  {
+    "name": "sales-usuarios-mobile",
+    "path": "/sales-usuarios",
+    "cards": 0,
+    "headings": [
+      "Gestión de Acceso a Proyectos de Ventas"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/sales-usuarios",
+    "width": 390
+  },
+  {
+    "name": "pnl-mobile-final",
+    "path": "/pnl",
+    "cards": 0,
+    "headings": [],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/pnl",
+    "width": 390
+  },
+  {
+    "name": "pnl-loaded-mobile-final",
+    "path": "/pnl",
+    "cards": 12,
+    "headings": [
+      "ESTADO DE RESULTADOS",
+      "COSTO ESTRUCTURA OGC",
+      "EBITDA OGC"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/pnl",
+    "width": 390
+  },
+  {
+    "name": "pnl-wip-mobile",
+    "path": "/pnl",
+    "cards": 11,
+    "headings": [
+      "OBRAS ACTIVAS - ESTADO AL CORTE"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/pnl",
+    "width": 390
+  },
+  {
+    "name": "pnl-profitability-mobile",
+    "path": "/pnl",
+    "cards": 24,
+    "headings": [
+      "RENTABILIDAD POR OBRA - ACUMULADO AL CORTE",
+      "COSTO ESTRUCTURA OGC",
+      "EBITDA OGC"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/pnl",
+    "width": 390
+  },
+  {
+    "name": "proyecto-proveedores-loaded-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/proveedores",
+    "cards": 18,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/proveedores",
+    "width": 390
+  },
+  {
+    "name": "presupuesto-320",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "cards": 33,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "height": 568,
+    "main": [
+      {
+        "scroll": 310,
+        "width": 310
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "width": 320
+  },
+  {
+    "name": "programa-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/programa",
+    "cards": 0,
+    "headings": [],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/programa",
+    "width": 390
+  },
+  {
+    "name": "requisiciones-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/requisiciones",
+    "cards": 0,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/requisiciones",
+    "width": 390
+  },
+  {
+    "name": "bitacora-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/bitacora",
+    "cards": 0,
+    "headings": [
+      "Preparando Bitácora offline"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/bitacora",
+    "width": 390
+  },
+  {
+    "name": "rfis-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/rfis",
+    "cards": 0,
+    "headings": [
+      "RFIs Larena - Torre I"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      },
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/rfis",
+    "width": 390
+  },
+  {
+    "name": "presupuesto-final-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "cards": 33,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "width": 390
+  },
+  {
+    "name": "partida-detail-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/partidas/j97ayh6cjsahmjehxga78ranm57w76wj",
+    "cards": 0,
+    "headings": [],
+    "height": 844,
+    "main": [],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/partidas/j97ayh6cjsahmjehxga78ranm57w76wj",
+    "width": 390
+  },
+  {
+    "name": "partida-detail-mobile-final",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/partidas/j97ayh6cjsahmjehxga78ranm57w76wj",
+    "cards": 0,
+    "headings": [
+      "CIMENTACIÓN"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/partidas/j97ayh6cjsahmjehxga78ranm57w76wj",
+    "width": 390
+  },
+  {
+    "name": "control-320-final",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "cards": 5,
+    "headings": [
+      "Larena - Torre I",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "height": 568,
+    "main": [
+      {
+        "scroll": 310,
+        "width": 310
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "width": 320
+  },
+  {
+    "name": "control-1024-final",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "cards": 5,
+    "headings": [
+      "Larena - Torre I",
+      "TOP 5 PARTIDAS CON MAYOR VARIANZA"
+    ],
+    "height": 900,
+    "main": [
+      {
+        "scroll": 758,
+        "width": 758
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/control",
+    "width": 1024
+  },
+  {
+    "name": "presupuesto-desktop-final",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "cards": 33,
+    "headings": [
+      "Larena - Torre I"
+    ],
+    "height": 900,
+    "main": [
+      {
+        "scroll": 1174,
+        "width": 1174
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/presupuesto",
+    "width": 1440
+  },
+  {
+    "name": "sales-presupuesto-320-final",
+    "path": "/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/presupuesto",
+    "cards": 5,
+    "headings": [
+      "Larena Ventas"
+    ],
+    "height": 568,
+    "main": [
+      {
+        "scroll": 310,
+        "width": 310
+      }
+    ],
+    "url": "http://127.0.0.1:5173/sales-proyecto/m578mevn7ehm8gk5x3dn8jwyhh85rakf/presupuesto",
+    "width": 320
+  },
+  {
+    "name": "sales-transacciones-final-mobile",
+    "path": "/sales-transacciones",
+    "cards": 50,
+    "headings": [
+      "Transacciones"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/sales-transacciones",
+    "width": 390
+  },
+  {
+    "name": "documentos-320-final",
+    "path": "/documentos",
+    "cards": 0,
+    "headings": [
+      "Documentos",
+      "Biblioteca de documentos"
+    ],
+    "height": 568,
+    "main": [
+      {
+        "scroll": 310,
+        "width": 310
+      },
+      {
+        "scroll": 310,
+        "width": 310
+      }
+    ],
+    "url": "http://127.0.0.1:5173/documentos",
+    "width": 320
+  },
+  {
+    "name": "proyectos-final-mobile",
+    "path": "/proyectos",
+    "cards": 12,
+    "headings": [
+      "Proyectos"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyectos",
+    "width": 390
+  },
+  {
+    "name": "crear-proyecto-320-final",
+    "path": "/proyectos",
+    "cards": 12,
+    "headings": [
+      "Proyectos",
+      "Crear Nuevo Proyecto"
+    ],
+    "height": 568,
+    "main": [
+      {
+        "scroll": 310,
+        "width": 310
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyectos",
+    "width": 320
+  },
+  {
+    "name": "sales-proyectos-mobile",
+    "path": "/sales-proyectos",
+    "cards": 1,
+    "headings": [
+      "Proyectos de Ventas"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/sales-proyectos",
+    "width": 390
+  },
+  {
+    "name": "proveedores-global-mobile",
+    "path": "/proveedores",
+    "cards": 0,
+    "headings": [
+      "Proveedores",
+      "0",
+      "ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proveedores",
+    "width": 390
+  },
+  {
+    "name": "reportes-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/reportes",
+    "cards": 0,
+    "headings": [
+      "Reportes Proyecto"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/reportes",
+    "width": 390
+  },
+  {
+    "name": "tareas-mobile",
+    "path": "/tareas",
+    "cards": 0,
+    "headings": [],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/tareas",
+    "width": 390
+  },
+  {
+    "name": "usuarios-mobile",
+    "path": "/usuarios",
+    "cards": 0,
+    "headings": [
+      "Gestión de Usuarios"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/usuarios",
+    "width": 390
+  },
+  {
+    "name": "nuevo-usuario-mobile",
+    "path": "/usuarios/nuevo",
+    "cards": 0,
+    "headings": [
+      "Agregar Usuario"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 370,
+        "width": 370
+      }
+    ],
+    "url": "http://127.0.0.1:5173/usuarios/nuevo",
+    "width": 390
+  },
+  {
+    "name": "sales-documentos-global-mobile",
+    "path": "/sales-documentos",
+    "cards": 0,
+    "headings": [
+      "Documentos de Ventas"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/sales-documentos",
+    "width": 390
+  },
+  {
+    "name": "planos-library-mobile",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/planos",
+    "cards": 0,
+    "headings": [],
+    "height": 844,
+    "main": [],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/planos",
+    "width": 390
+  },
+  {
+    "name": "proyectos-final-reviewed",
+    "path": "/proyectos",
+    "cards": 12,
+    "headings": [
+      "Proyectos"
+    ],
+    "height": 844,
+    "main": [
+      {
+        "scroll": 380,
+        "width": 380
+      }
+    ],
+    "url": "http://127.0.0.1:5173/proyectos",
+    "width": 390
+  },
+  {
+    "name": "planos-library-final",
+    "path": "/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/planos",
+    "cards": 0,
+    "headings": [],
+    "height": 844,
+    "main": [],
+    "url": "http://127.0.0.1:5173/proyecto/jh7a280xbfnvcamjtg9sweeyjd7w7eez/planos",
+    "width": 390
+  }
+]

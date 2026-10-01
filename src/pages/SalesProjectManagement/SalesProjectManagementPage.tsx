@@ -31,6 +31,7 @@ export default function SalesProjectManagementPage() {
   const updateProject = useMutation(api.sales_projects.update);
   const deleteProjectMutation = useMutation(api.sales_projects.deleteProject);
 
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -60,6 +61,7 @@ export default function SalesProjectManagementPage() {
 
   // Handle project selection
   const handleProjectSelect = (projectId: string) => {
+    setMobileDetailOpen(true);
     setSelectedProject(projectId);
     const project = salesProjects?.find((p) => p._id === projectId);
     if (project) {
@@ -74,6 +76,7 @@ export default function SalesProjectManagementPage() {
 
   // Handle create new project
   const handleCreateNew = () => {
+    setMobileDetailOpen(true);
     setSelectedProject(null);
     resetForm();
     setIsCreating(true);
@@ -178,7 +181,7 @@ export default function SalesProjectManagementPage() {
     <div className="bg-card min-h-screen">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8 flex justify-between items-start">
+        <div className="mb-8 responsive-header">
           <div>
             <h1 className="text-3xl font-normal text-foreground mb-2">
               Gestión de Proyectos de Ventas
@@ -195,7 +198,7 @@ export default function SalesProjectManagementPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Projects List */}
-          <Card className="lg:col-span-1">
+          <Card className={mobileDetailOpen ? "hidden lg:block lg:col-span-1" : "lg:col-span-1"}>
             <CardHeader>
               <CardTitle>Proyectos ({salesProjects.length})</CardTitle>
             </CardHeader>
@@ -236,9 +239,10 @@ export default function SalesProjectManagementPage() {
           </Card>
 
           {/* Project Editor */}
-          <Card className="lg:col-span-2">
+          <Card className={mobileDetailOpen ? "lg:col-span-2" : "hidden lg:block lg:col-span-2"}>
+            <Button type="button" variant="ghost" className="m-4 min-h-11 lg:hidden" onClick={() => setMobileDetailOpen(false)}>Volver a proyectos</Button>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle>
                   {isCreating
                     ? "Nuevo Proyecto"

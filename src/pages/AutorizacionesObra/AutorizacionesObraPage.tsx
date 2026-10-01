@@ -18,7 +18,7 @@ export default function AutorizacionesObraPage({ embedded = false }: { embedded?
 
   if (!proyecto) {
     return (
-      <div className="bg-card px-12 py-6 min-h-screen flex items-center justify-center">
+      <div className="bg-card px-4 sm:px-6 xl:px-12 py-6 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">Cargando datos...</p>
@@ -29,24 +29,24 @@ export default function AutorizacionesObraPage({ embedded = false }: { embedded?
 
   return (
     <div className={cn("bg-card", !embedded && "min-h-screen")}>
-      <div className={cn(!embedded && "px-12", "pt-6")}>
+      <div className={cn(!embedded && "px-4 sm:px-6 xl:px-12", "pt-6")}>
         <Tabs defaultValue="permisos">
-          <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start p-0 h-auto">
+          <TabsList className="bg-transparent border-b border-border rounded-none max-w-full w-full overflow-x-auto justify-start p-0 h-auto">
             <TabsTrigger
               value="permisos"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3 pt-1 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none shrink-0 px-4 pb-3 pt-1 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground"
             >
               Permisos y legal
             </TabsTrigger>
             <TabsTrigger
               value="presupuestos"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3 pt-1 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none shrink-0 px-4 pb-3 pt-1 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground"
             >
               Presupuestos y contratos
             </TabsTrigger>
             <TabsTrigger
               value="imss"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3 pt-1 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none shrink-0 px-4 pb-3 pt-1 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground"
             >
               IMSS y SIROC
             </TabsTrigger>

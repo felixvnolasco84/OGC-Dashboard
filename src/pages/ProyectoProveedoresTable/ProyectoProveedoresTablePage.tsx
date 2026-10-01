@@ -1,3 +1,4 @@
+import { Table } from "@/components/ui/table";
 import { useState } from "react";
 import { useParams } from "react-router";
 import { useQuery } from "convex/react";
@@ -47,8 +48,8 @@ export default function ProyectoProveedoresTablePage() {
   return (
     <div className="bg-card min-h-screen">
       <div className="max-w-full mx-auto py-8 text-left">
-        <div className="flex flex-col gap-4 px-12">
-          <div className="mb-8 flex items-start justify-between">
+        <div className="flex flex-col gap-4 px-4 sm:px-6 xl:px-12">
+          <div className="mb-8 responsive-header">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Proveedores</p>
               <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
@@ -77,7 +78,7 @@ export default function ProyectoProveedoresTablePage() {
 
         {/* Table */}
         <div className="border border-border rounded-none">
-          <table className="w-full">
+          <Table mobileSummary={[0, 3, 4, 5, 8, 9]} className="w-full">
             <thead className="border-b border-border">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-normal text-muted-foreground border-r border-border">
@@ -171,7 +172,7 @@ export default function ProyectoProveedoresTablePage() {
                 ))
               )}
             </tbody>
-          </table>
+          </Table>
         </div>
       </div>
     </div>

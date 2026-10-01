@@ -1,3 +1,4 @@
+import { Table } from "@/components/ui/table";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
@@ -521,7 +522,7 @@ export default function ProyectoTransaccionesTablePage() {
 
 
     return (
-        <div className="flex h-[calc(100dvh-2.5rem)] flex-col bg-card">
+        <div className="flex min-h-[calc(100dvh-2.5rem)] flex-col lg:h-[calc(100dvh-2.5rem)] bg-card">
             <div className="max-w-full mx-auto flex min-h-0 w-full flex-1 flex-col text-left">
                 <div className="flex shrink-0 flex-col gap-4 px-4 pt-6 sm:px-6 lg:px-8">
                     <div className="mb-2 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -887,8 +888,8 @@ export default function ProyectoTransaccionesTablePage() {
                 </div>
 
                 {/* Table */}
-                <div className="min-h-0 flex-1 overflow-auto border-y border-border">
-                    <table
+                <div className="min-h-0 max-w-full flex-1 overflow-auto border-y border-border">
+                    <Table mobileSummary={[]}
                         className={cn(
                             "w-full border-separate border-spacing-0",
                             extraColumns.visibleCount > 0 ? "min-w-[80rem]" : "min-w-[56rem]",
@@ -1093,7 +1094,7 @@ export default function ProyectoTransaccionesTablePage() {
                                 ))
                             )}
                         </tbody>
-                    </table>
+                    </Table>
                 </div>
                 {transaccionesPage && (
                     <div className="flex shrink-0 flex-col gap-3 px-4 py-4 text-sm text-muted-foreground sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">

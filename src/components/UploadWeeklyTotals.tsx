@@ -97,7 +97,7 @@ export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyT
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Statistics */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="responsive-metrics">
           <div className="bg-background p-4 rounded-lg">
             <p className="text-xs text-muted-foreground mb-1">Total Semanas</p>
             <p className="text-2xl font-semibold">{weeklyTotalsData.length}</p>

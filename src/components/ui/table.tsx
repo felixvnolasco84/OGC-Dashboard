@@ -1,17 +1,19 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { responsiveTableChildren, responsiveTableControls } from "./responsive-table"
 
 const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  React.HTMLAttributes<HTMLTableElement> & { mobileSummary?: number[] }
+>(({ className, children, mobileSummary, ...props }, ref) => (
+  <div className="relative min-w-0 w-full max-w-full overflow-auto">
+    {mobileSummary && <div className="flex flex-wrap gap-3 px-4 lg:hidden">{responsiveTableControls(children)}</div>}
     <table
       ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
+      className={cn("w-full caption-bottom text-sm", className, mobileSummary && "responsive-records")}
       {...props}
-    />
+    >{mobileSummary ? responsiveTableChildren(children, mobileSummary) : children}</table>
   </div>
 ))
 Table.displayName = "Table"

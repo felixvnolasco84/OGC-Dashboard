@@ -1,3 +1,4 @@
+import { resolveProjectDocumentFolder } from "./projectDocumentFolders";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Auth, paginationOptsValidator } from "convex/server";
@@ -199,6 +200,7 @@ export const createLogEntry = mutation({
         
         // Create the documento entry
         const docId = await ctx.db.insert("documentos", {
+          ...await resolveProjectDocumentFolder(ctx, args.proyecto, "bitacora_foto"),
           nombre: `${partidaNombre} - Foto`,
           descripcion: descripcion,
           type: "bitacora_foto",
@@ -228,6 +230,7 @@ export const createLogEntry = mutation({
         const nombre = args.documentosNombres?.[i] || `Documento ${i + 1}`;
         
         await ctx.db.insert("documentos", {
+          ...await resolveProjectDocumentFolder(ctx, args.proyecto, "bitacora_documento"),
           nombre: nombre,
           descripcion: "",
           type: "bitacora_documento",
@@ -513,6 +516,7 @@ export const updateLogEntry = mutation({
         
         // Create the documento entry
         const docId = await ctx.db.insert("documentos", {
+          ...await resolveProjectDocumentFolder(ctx, log.proyecto, "bitacora_foto"),
           nombre: `foto_${Date.now()}`,
           descripcion: descripcion,
           type: "bitacora_foto",
@@ -542,6 +546,7 @@ export const updateLogEntry = mutation({
         const nombre = args.documentosNombres?.[i] || `Documento ${i + 1}`;
         
         await ctx.db.insert("documentos", {
+          ...await resolveProjectDocumentFolder(ctx, log.proyecto, "bitacora_documento"),
           nombre: nombre,
           descripcion: "",
           type: "bitacora_documento",
@@ -848,6 +853,7 @@ export const uploadBitacoraPhoto = mutation({
 
     // Create document entry for photo
     const photoId = await ctx.db.insert("documentos", {
+      ...await resolveProjectDocumentFolder(ctx, bitacora.proyecto, "bitacora_foto"),
       nombre: `${partidaNombre} - Foto`,
       descripcion: `Foto adjunta a bitácora ${partidaNombre}`,
       type: "bitacora_foto",

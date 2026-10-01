@@ -400,7 +400,7 @@ export default function AddProyectoModal() {
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent data-square-modal="" className="w-[800px] sm:max-w-[800px] overflow-y-auto">
+      <SheetContent data-square-modal="" className="w-full sm:w-[800px] sm:max-w-[800px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <FolderPlus className="h-5 w-5" />
@@ -571,7 +571,7 @@ export default function AddProyectoModal() {
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-2 pt-4 border-t">
+            <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4 border-t">
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
@@ -585,7 +585,7 @@ export default function AddProyectoModal() {
           </form>
         ) : (
           <div className="mt-6">
-            <div className="flex justify-end space-x-2 pt-4 border-t mt-6">
+            <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4 border-t mt-6">
               <Button variant="outline" onClick={handleClose}>
                 Finalizar
               </Button>

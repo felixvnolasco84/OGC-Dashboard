@@ -15,3 +15,6 @@ playwright/.auth/
 # Local Convex migration snapshots, manifests, and deploy credentials
 .migration/
 .env.saas*
+
+# Generated bundle for isolated responsive browser checks
+output/responsive-test-build/

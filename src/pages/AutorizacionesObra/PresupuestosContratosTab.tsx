@@ -1,3 +1,4 @@
+import { ResponsiveFields } from "@/components/ui/responsive-fields";
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useUser } from "@clerk/clerk-react";
@@ -326,7 +327,7 @@ function SubcontratistaTableRow({
   const [editMonto, setEditMonto] = useState("");
 
   return (
-    <div className="grid grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 items-center p-4 bg-card border border-border mb-2 rounded-sm">
+    <ResponsiveFields labels={["Estado","Subcontratista","Partida","Presupuesto","Contrato","Monto","Acciones"]} summary={[0,1,2,5,6]} className="grid grid-cols-1 lg:grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 items-center p-4 bg-card border border-border mb-2 rounded-sm">
       {/* Status dot */}
       <StatusDot
         status={sub.status_manual}
@@ -416,7 +417,7 @@ function SubcontratistaTableRow({
 
       {/* Actions menu */}
       <RowActionMenu sub={sub} onDelete={onDelete} />
-    </div>
+    </ResponsiveFields>
   );
 }
 
@@ -700,7 +701,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
           {/* Section Header */}
           <div className="px-6">
             <div
-              className="flex items-center justify-between  py-6 cursor-pointer"
+              className="flex flex-wrap items-center justify-between gap-3  py-6 cursor-pointer"
               onClick={() => setExpanded(!expanded)}
             >
               <div className="flex items-center gap-3">
@@ -758,11 +759,11 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
 
 
           {expanded && (
-            <div className="px-12 pb-6 pt-4 border-t">
+            <div className="px-4 sm:px-6 xl:px-12 pb-6 pt-4 border-t">
 
 
               {/* Table header */}
-              <div className="grid grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-muted-foreground  pb-2 border-border text-left">
+              <div className="hidden lg:grid grid-cols-1 lg:grid-cols-[auto_1.2fr_0.8fr_1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-muted-foreground  pb-2 border-border text-left">
                 <span className="w-14" />
                 <span>Subcontratista</span>
                 <span>Partida</span>

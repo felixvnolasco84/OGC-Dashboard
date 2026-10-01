@@ -263,7 +263,7 @@ export default function PlanCanvas({
         {isPdf ? (
           <canvas
             ref={canvasRef}
-            className={cn("block h-auto w-full bg-card", loading && "min-h-[36rem]")}
+            className={cn("block h-auto w-full bg-card", loading && "min-h-64")}
             aria-label={`Página ${page} del plano`}
           />
         ) : (
@@ -282,8 +282,8 @@ export default function PlanCanvas({
           viewBox="0 0 1000 1000"
           preserveAspectRatio="none"
           className={cn(
-            "absolute inset-0 h-full w-full touch-none",
-            tool === "select" ? "cursor-default" : "cursor-crosshair",
+            "absolute inset-0 h-full w-full",
+            tool === "select" ? "cursor-default touch-pan-x touch-pan-y" : "cursor-crosshair touch-none",
           )}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}

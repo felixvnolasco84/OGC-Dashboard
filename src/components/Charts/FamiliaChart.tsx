@@ -281,7 +281,7 @@ export default function FamiliaChart({
             </style>
             {/* Header with title and total */}
             <div className="mb-8 text-left space-y-8">
-                <div className="flex items-start justify-between">
+                <div className="responsive-chart-heading">
                     <h3 className="text-2xl md:text-xl leading-tight font-normal text-foreground mb-1">{title}</h3>
                     {onConfigClick && (
                         <button

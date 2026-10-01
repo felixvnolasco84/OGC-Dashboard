@@ -2,13 +2,13 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { paginationOptsValidator } from "convex/server";
 import {
     assertCanWrite,
     checkDesarrolloAccess,
     getCurrentUserOrThrow,
     hasAdminAccess,
 } from "./permissions";
+import { assertNonProjectFolder, assertProjectFolder, ensureProjectDocumentRoot, findProjectDocumentRoot, resolveProjectDocumentFolder } from "./projectDocumentFolders";
 import { markLinkedInvoiceStaleForDocument } from "./invoiceIntegrity";
 
 async function assertSalesProjectAccess(ctx: QueryCtx | MutationCtx, projectId: Doc<"sales_projects">["_id"]) {
@@ -75,54 +75,6 @@ export const getFileManager = query({
 
 const normalize = (value: string) => value.toLowerCase().trim();
 
-const normalizeFolderKey = (value: string) => normalize(value).replace(/\s+/g, " ");
-
-const getOrCreateFolder = async (
-    ctx: MutationCtx,
-    folderSiblingsByParent: Map<string, Doc<"document_folders">[]>,
-    nombre: string,
-    parent_folder_id?: Doc<"document_folders">["_id"]
-) => {
-    const key = normalizeFolderKey(nombre);
-    const parentKey = parent_folder_id || "root";
-    let siblingFolders = folderSiblingsByParent.get(parentKey);
-
-    if (!siblingFolders) {
-        siblingFolders = await ctx.db
-            .query("document_folders")
-            .withIndex("by_parent_folder", (q) => q.eq("parent_folder_id", parent_folder_id))
-            .collect();
-        folderSiblingsByParent.set(parentKey, siblingFolders);
-    }
-
-    const existingFolder = siblingFolders.find(
-        (folder) =>
-            normalizeFolderKey(folder.nombre) === key &&
-            folder.parent_folder_id === parent_folder_id
-    );
-
-    if (existingFolder) {
-        return { folderId: existingFolder._id, created: false };
-    }
-
-    const now = Date.now();
-    const folderId = await ctx.db.insert("document_folders", {
-        nombre,
-        parent_folder_id,
-        created_at: now,
-    });
-
-    siblingFolders.push({
-        _id: folderId,
-        _creationTime: now,
-        nombre,
-        parent_folder_id,
-        created_at: now,
-    });
-
-    return { folderId, created: true };
-};
-
 export const getFileManagerMetadata = query({
     handler: async (ctx) => {
         const [folders, proyectos, salesProjects] = await Promise.all([
@@ -145,6 +97,8 @@ export const getProjectFileManagerMetadata = query({
         proyecto: v.id("desarrollos"),
     },
     handler: async (ctx, args) => {
+        if (!(await checkDesarrolloAccess(ctx, args.proyecto))) throw new Error("No tienes acceso al proyecto.");
+        const root = await findProjectDocumentRoot(ctx, args.proyecto);
         const [projectFolders, documents, proyectos, salesProjects] = await Promise.all([
             ctx.db
                 .query("document_folders")
@@ -169,7 +123,9 @@ export const getProjectFileManagerMetadata = query({
         for (const doc of documents) {
             let folderId = doc.folder_id;
 
-            while (folderId) {
+            const visited = new Set<string>();
+            while (folderId && !visited.has(folderId)) {
+                visited.add(folderId);
                 includeFolderIds.add(folderId);
                 let folder = folderById.get(folderId);
 
@@ -190,69 +146,13 @@ export const getProjectFileManagerMetadata = query({
         }, {});
 
         return {
+            projectRootFolderId: root?._id,
             folders: Array.from(includeFolderIds)
                 .map((folderId) => folderById.get(folderId))
                 .filter(Boolean),
             documentCountsByFolder,
             proyectos,
             salesProjects,
-        };
-    },
-});
-
-export const organizeDocumentsByProjectAndType = mutation({
-    args: {
-        paginationOpts: paginationOptsValidator,
-    },
-    handler: async (ctx, args) => {
-        const documentsPage = await ctx.db
-            .query("documentos")
-            .order("asc")
-            .paginate(args.paginationOpts);
-        const projectNameById = new Map<string, string>();
-        const folderSiblingsByParent = new Map<string, Doc<"document_folders">[]>();
-        let createdFolders = 0;
-        let movedDocuments = 0;
-
-        for (const doc of documentsPage.page) {
-            let projectName = "Sin proyecto";
-
-            if (doc.proyecto) {
-                projectName = projectNameById.get(doc.proyecto) || "";
-                if (!projectName) {
-                    const project = await ctx.db.get(doc.proyecto);
-                    projectName = project?.nombre || "Proyecto sin nombre";
-                    projectNameById.set(doc.proyecto, projectName);
-                }
-            } else if (doc.sales_proyecto) {
-                projectName = projectNameById.get(doc.sales_proyecto) || "";
-                if (!projectName) {
-                    const project = await ctx.db.get(doc.sales_proyecto);
-                    projectName = project?.nombre ? `${project.nombre} (Ventas)` : "Proyecto sin nombre";
-                    projectNameById.set(doc.sales_proyecto, projectName);
-                }
-            }
-
-            const typeName = doc.type?.trim() || "Sin tipo";
-
-            const projectFolder = await getOrCreateFolder(ctx, folderSiblingsByParent, projectName);
-            if (projectFolder.created) createdFolders += 1;
-
-            const typeFolder = await getOrCreateFolder(ctx, folderSiblingsByParent, typeName, projectFolder.folderId);
-            if (typeFolder.created) createdFolders += 1;
-
-            if (doc.folder_id !== typeFolder.folderId) {
-                await ctx.db.patch(doc._id, { folder_id: typeFolder.folderId });
-                movedDocuments += 1;
-            }
-        }
-
-        return {
-            createdFolders,
-            isDone: documentsPage.isDone,
-            movedDocuments,
-            processedDocuments: documentsPage.page.length,
-            continueCursor: documentsPage.continueCursor,
         };
     },
 });
@@ -274,7 +174,10 @@ export const listFileManagerDocuments = query({
 
         let queryBuilder;
 
+        let projectRootId: Doc<"document_folders">["_id"] | undefined;
         if (args.proyecto) {
+            if (!(await checkDesarrolloAccess(ctx, args.proyecto))) throw new Error("No tienes acceso al proyecto.");
+            projectRootId = (await findProjectDocumentRoot(ctx, args.proyecto))?._id;
             queryBuilder = ctx.db
                 .query("documentos")
                 .withIndex("by_folder_proyecto", (q) =>
@@ -303,9 +206,13 @@ export const listFileManagerDocuments = query({
             queryBuilder = queryBuilder.filter((q: any) => q.eq(q.field("type"), args.type));
         }
 
-        const documents = await queryBuilder
-            .order("desc")
-            .collect();
+        let documents = await queryBuilder.order("desc").collect();
+        if (args.proyecto && !args.folder_id && projectRootId) {
+            const rootDocuments = await ctx.db.query("documentos")
+                .withIndex("by_folder_proyecto", q => q.eq("folder_id", projectRootId).eq("proyecto", args.proyecto))
+                .collect();
+            documents = [...documents, ...rootDocuments].sort((a, b) => b._creationTime - a._creationTime);
+        }
 
         const filteredDocuments = documents.filter((doc) => {
             if (args.type && doc.type !== args.type) return false;
@@ -517,6 +424,11 @@ export const createWithStorage = mutation({
                 throw new Error("La transacción no pertenece al proyecto de ventas del documento.");
             }
         }
+        if (args.proyecto && args.sales_proyecto) throw new Error("Selecciona un solo proyecto.");
+        if (!args.proyecto && args.folder_id) await assertNonProjectFolder(ctx, args.folder_id);
+        const location = args.proyecto
+            ? await resolveProjectDocumentFolder(ctx, args.proyecto, args.type, args.folder_id)
+            : {};
         const documento = await ctx.db.insert("documentos", {
             nombre: args.nombre,
             descripcion: args.descripcion,
@@ -529,6 +441,7 @@ export const createWithStorage = mutation({
             sales_proyecto: args.sales_proyecto,
             sales_transaccion_id: args.sales_transaccion_id,
             folder_id: args.folder_id,
+            ...location,
             uploaded_at: Date.now(),
         });
         return documento;
@@ -550,6 +463,9 @@ export const create = mutation({
         if (!(await checkDesarrolloAccess(ctx, args.proyecto))) throw new Error("No tienes acceso al proyecto.");
         const transaction = await ctx.db.get(args.transaccion_id);
         if (!transaction || transaction.proyecto !== args.proyecto) throw new Error("La transacción no pertenece al proyecto.");
+        const location = args.proyecto
+            ? await resolveProjectDocumentFolder(ctx, args.proyecto, args.type)
+            : {};
         const documento = await ctx.db.insert("documentos", {
             nombre: args.nombre,
             descripcion: args.descripcion,
@@ -557,6 +473,7 @@ export const create = mutation({
             type: args.type,
             proyecto: args.proyecto,
             transaccion_id: args.transaccion_id,
+            ...location,
             uploaded_at: Date.now(),
         });
         return documento;
@@ -605,6 +522,16 @@ export const update = mutation({
             Object.entries(updateData).filter(([, value]) => value !== undefined)
         );
         
+        if (targetProject) {
+            const projectChanged = targetProject !== existing.proyecto;
+            if (args.folder_id) {
+                Object.assign(cleanUpdateData, await resolveProjectDocumentFolder(ctx, targetProject, args.type ?? existing.type, args.folder_id));
+            } else if (projectChanged || (args.type !== undefined && existing.folder_assignment === "automatic")) {
+                Object.assign(cleanUpdateData, await resolveProjectDocumentFolder(ctx, targetProject, args.type ?? existing.type));
+            }
+        } else if (args.folder_id) {
+            await assertNonProjectFolder(ctx, args.folder_id);
+        }
         const result = await ctx.db.patch(id, cleanUpdateData);
         if (sourceRelationshipChanged) await markLinkedInvoiceStaleForDocument(ctx, existing._id);
         return result;
@@ -625,9 +552,23 @@ export const createFolder = mutation({
         const name = args.nombre.trim();
         if (!name) throw new Error("Folder name is required");
 
+        if (args.proyecto && args.sales_proyecto) throw new Error("Selecciona un solo proyecto.");
+        let parentId = args.parent_folder_id;
+        if (args.proyecto) {
+            if (parentId) await assertProjectFolder(ctx, parentId, args.proyecto);
+            else parentId = await ensureProjectDocumentRoot(ctx, args.proyecto);
+        } else if (parentId) {
+            const parent = await ctx.db.get(parentId);
+            if (parent?.proyecto) {
+                if (args.sales_proyecto) throw new Error("La carpeta no pertenece al proyecto de ventas.");
+                if (!(await checkDesarrolloAccess(ctx, parent.proyecto))) throw new Error("No tienes acceso al proyecto.");
+                await assertProjectFolder(ctx, parentId, parent.proyecto);
+                args.proyecto = parent.proyecto;
+            }
+        }
         return await ctx.db.insert("document_folders", {
             nombre: name,
-            parent_folder_id: args.parent_folder_id,
+            parent_folder_id: parentId,
             proyecto: args.proyecto,
             sales_proyecto: args.sales_proyecto,
             created_at: Date.now(),
@@ -642,6 +583,10 @@ export const renameFolder = mutation({
     },
     handler: async (ctx, args) => {
         await assertCanWrite(ctx);
+        const folder = await ctx.db.get(args.id);
+        if (!folder) throw new Error("Carpeta no encontrada.");
+        if (folder.system_kind === "project_root") throw new Error("La raíz se administra desde el proyecto.");
+        if (folder.proyecto && !(await checkDesarrolloAccess(ctx, folder.proyecto))) throw new Error("No tienes acceso al proyecto.");
         const name = args.nombre.trim();
         if (!name) throw new Error("Folder name is required");
 
@@ -662,7 +607,12 @@ export const moveDocument = mutation({
         const document = await ctx.db.get(args.id);
         if (!document) throw new Error("Documento no encontrado.");
         await assertDocumentAccess(ctx, document);
-        return await ctx.db.patch(args.id, { folder_id: args.folder_id });
+        const folderId = document.proyecto
+            ? args.folder_id || await ensureProjectDocumentRoot(ctx, document.proyecto)
+            : args.folder_id;
+        if (document.proyecto && folderId) await assertProjectFolder(ctx, folderId, document.proyecto);
+        if (!document.proyecto && folderId) await assertNonProjectFolder(ctx, folderId);
+        return await ctx.db.patch(args.id, { folder_id: folderId, folder_assignment: "manual" });
     },
 });
 
@@ -693,6 +643,17 @@ export const moveFolder = mutation({
     },
     handler: async (ctx, args) => {
         await assertCanWrite(ctx);
+        const moving = await ctx.db.get(args.id);
+        if (!moving) throw new Error("Carpeta no encontrada.");
+        if (moving.system_kind === "project_root") throw new Error("La raíz del proyecto no se puede mover.");
+        if (moving.proyecto) {
+            if (!(await checkDesarrolloAccess(ctx, moving.proyecto))) throw new Error("No tienes acceso al proyecto.");
+            args.parent_folder_id ||= await ensureProjectDocumentRoot(ctx, moving.proyecto);
+            await assertProjectFolder(ctx, args.parent_folder_id, moving.proyecto);
+        } else if (args.parent_folder_id) {
+            const parent = await ctx.db.get(args.parent_folder_id);
+            if (parent?.proyecto) throw new Error("Migra la carpeta heredada antes de moverla al proyecto.");
+        }
         if (args.id === args.parent_folder_id) {
             throw new Error("A folder cannot be moved into itself");
         }
@@ -700,7 +661,10 @@ export const moveFolder = mutation({
         const folders = await ctx.db.query("document_folders").collect();
         let nextParent = args.parent_folder_id;
 
+        const visited = new Set<string>();
         while (nextParent) {
+            if (visited.has(nextParent)) throw new Error("La jerarquía contiene un ciclo.");
+            visited.add(nextParent);
             if (nextParent === args.id) {
                 throw new Error("A folder cannot be moved into one of its children");
             }
@@ -722,6 +686,10 @@ export const deleteFolder = mutation({
     },
     handler: async (ctx, args) => {
         await assertCanWrite(ctx);
+        const folder = await ctx.db.get(args.id);
+        if (!folder) throw new Error("Carpeta no encontrada.");
+        if (folder.system_kind === "project_root") throw new Error("La raíz se administra desde el proyecto.");
+        if (folder.proyecto && !(await checkDesarrolloAccess(ctx, folder.proyecto))) throw new Error("No tienes acceso al proyecto.");
         const childFolder = await ctx.db
             .query("document_folders")
             .withIndex("by_parent_folder", (q) => q.eq("parent_folder_id", args.id))

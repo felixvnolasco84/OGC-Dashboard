@@ -62,7 +62,7 @@ export default function PagosTablePage() {
   return (
     <div className="bg-card min-h-screen">
       <div className="max-w-full mx-auto py-8 text-left">
-        <div className="flex flex-col gap-4 px-12">
+        <div className="flex flex-col gap-4 px-4 sm:px-6 xl:px-12">
           <div className="mb-8">
             <h1 className="text-3xl font-normal text-foreground mb-2">Pagos</h1>
             <p className="text-sm text-muted-foreground">

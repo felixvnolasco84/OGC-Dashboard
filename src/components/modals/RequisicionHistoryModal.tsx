@@ -151,7 +151,7 @@ function CreatedDetails({ entry }: { entry: HistoryEntry }) {
 
   return (
     <div className="mt-2 p-3 bg-card border border-border text-xs space-y-2 text-left">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
         {tipo && (
           <div>
             <span className="text-disabled-foreground">Tipo:</span>{" "}
@@ -218,7 +218,7 @@ function DeletedDetails({ entry }: { entry: HistoryEntry }) {
 
   return (
     <div className="mt-2 p-3 bg-card border border-red-100 text-xs space-y-2 text-left">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
         {tipo && (
           <div>
             <span className="text-disabled-foreground">Tipo:</span>{" "}

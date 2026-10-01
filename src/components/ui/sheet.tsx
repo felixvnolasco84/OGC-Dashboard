@@ -36,9 +36,9 @@ const sheetVariants = cva(
         top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
           "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+        left: "inset-y-0 left-0 h-[100dvh] w-full overflow-y-auto border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
-          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+          "inset-y-0 right-0 h-[100dvh] w-full overflow-y-auto border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
       },
     },
     defaultVariants: {
@@ -61,14 +61,15 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
-      className={cn(sheetVariants({ side }), variant === "aggregated" && "flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md", variant === "paymentDetails" && "w-[600px] overflow-y-auto bg-card sm:max-w-[600px]", variant === "paymentForm" && "w-[800px] overflow-y-auto sm:max-w-[800px]", className)}
+      className={cn(sheetVariants({ side }), "responsive-sheet p-4 sm:p-6", variant === "aggregated" && "flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md", variant === "paymentDetails" && "w-full overflow-y-auto bg-card sm:w-[600px] sm:max-w-[600px]", variant === "paymentForm" && "w-full overflow-y-auto sm:w-[800px] sm:max-w-[800px]", className)}
       {...props}
+      style={{ ...props.style, maxHeight: "100dvh" }}
     >
-      <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+      <SheetPrimitive.Close className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-sm bg-background opacity-90 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </SheetPrimitive.Close>
-      {children}
+      {variant === "aggregated" ? children : <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain">{children}</div>}
     </SheetPrimitive.Content>
   </SheetPortal>
 ))
@@ -81,7 +82,7 @@ const SheetHeader = ({
 }: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "aggregated" }) => (
   <div
     className={cn(
-      "flex flex-col space-y-2 text-center sm:text-left",
+      "flex flex-col space-y-2 pr-10 text-left",
       variant === "aggregated" && "space-y-1 border-b px-5 py-4 pr-12 text-left",
       className
     )}
@@ -96,7 +97,7 @@ const SheetFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      "sticky bottom-0 flex flex-col-reverse gap-2 bg-background py-3 sm:flex-row sm:justify-end",
       className
     )}
     {...props}

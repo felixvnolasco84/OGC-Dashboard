@@ -82,7 +82,7 @@ export default function SaleTransactionDocumentosModal() {
                     <div className="space-y-6">
                         {/* Summary */}
                         <div className="bg-background rounded-none p-6">
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Total Documentos</p>
                                     <p className="text-2xl font-semibold text-foreground">

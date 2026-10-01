@@ -1,3 +1,4 @@
+import { resolveProjectDocumentFolder } from "./projectDocumentFolders";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import {
@@ -324,6 +325,7 @@ export const startDirectInvoiceIntake = mutation({
     const documentIds: Id<"documentos">[] = [];
     for (const document of args.documents) {
       documentIds.push(await ctx.db.insert("documentos", {
+        ...await resolveProjectDocumentFolder(ctx, args.project_id, document.type.trim() || "factura"),
         nombre: document.name.trim(),
         descripcion: "Factura cargada para análisis y aprobación",
         storage_id: document.storage_id,

@@ -1,3 +1,4 @@
+import { Table } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 export type TopVariancePartida = {
@@ -67,7 +68,7 @@ export default function TopVariancePartidasTable({
             </h2>
 
             <div className="overflow-x-auto border border-border bg-card">
-                <table className="w-full min-w-[800px] table-fixed border-collapse text-foreground">
+                <Table mobileSummary={[0, 1, 2, 3]} className="w-full min-w-[800px] table-fixed border-collapse text-foreground">
                     <colgroup>
                         <col className="w-[42%]" />
                         <col className="w-[18%]" />
@@ -127,7 +128,7 @@ export default function TopVariancePartidasTable({
                             ))
                         )}
                     </tbody>
-                </table>
+                </Table>
             </div>
         </section>
     );

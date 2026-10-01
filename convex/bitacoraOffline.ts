@@ -1,3 +1,4 @@
+import { resolveProjectDocumentFolder } from "./projectDocumentFolders";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -202,6 +203,7 @@ async function insertAttachment(
   }
 
   return ctx.db.insert("documentos", {
+    ...await resolveProjectDocumentFolder(ctx, proyecto, attachment.kind === "photo" ? "bitacora_foto" : "bitacora_documento"),
     nombre: attachment.name,
     descripcion: attachment.description ?? "",
     type:

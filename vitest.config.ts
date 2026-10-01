@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/lib/bitacora-offline/**/*.test.ts", "convex/paymentAccounts.test.mjs", "convex/programaObraExecution.test.mjs"],
+    include: ["convex/projectDocumentFolders.test.mjs", "src/lib/bitacora-offline/**/*.test.ts", "convex/paymentAccounts.test.mjs", "convex/programaObraExecution.test.mjs"],
     pool: "forks",
     fileParallelism: false,
   },

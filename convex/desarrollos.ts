@@ -1,3 +1,4 @@
+import { findProjectDocumentRoot } from "./projectDocumentFolders";
 import { query, mutation as rawMutation, QueryCtx } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { mutation } from "./functions";
@@ -1089,7 +1090,11 @@ export const update = mutation({
                 .filter(([, value]) => value !== undefined)
                 .map(([key, value]) => [key, key === "ubicacion" && value === null ? undefined : value])
         );
-        return await ctx.db.patch(id, updateData);
+        await ctx.db.patch(id, updateData);
+        if (args.nombre !== undefined) {
+            const root = await findProjectDocumentRoot(ctx, id);
+            if (root) await ctx.db.patch(root._id, { nombre: args.nombre, updated_at: Date.now() });
+        }
     },
 });
 

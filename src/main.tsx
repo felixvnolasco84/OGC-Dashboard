@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "./responsive.css";
 import WebsiteLayout from "./components/WebsiteLayout.tsx";
 import ScrollToTop from "./components/ui/ScrollToTop.tsx";
 import { HelmetProvider } from "react-helmet-async";

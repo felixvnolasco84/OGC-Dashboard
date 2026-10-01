@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { ResponsiveCurrency } from "@/components/ui/responsive-currency";
+const formatCurrencyCompact = (amount: number, currency: string) => <ResponsiveCurrency amount={amount} currency={currency} compact={formatDesktopCurrency(amount, currency)} />;
 import { Doc, Id } from "convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +28,7 @@ import {
   // Plus,
   X, RefreshCw
 } from "lucide-react";
-import { cn, formatCurrencyCompact } from "@/lib/utils";
+import { cn, formatCurrencyCompact as formatDesktopCurrency } from "@/lib/utils";
 import { useParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -360,7 +362,7 @@ export default function SalesPresupuestoTable() {
       <div className="max-w-full mx-auto space-y-12">
         {/* Header */}
         <div className="py-6 border-b border-border px-12 pb-12">
-          <div className="flex items-end justify-between">
+          <div className="responsive-header">
             <div className="flex flex-col text-left">
               <p className="text-base text-muted-foreground mb-1">Presupuesto</p>
               <h1 className="text-2xl text-foreground">{salesProyecto.nombre}</h1>
@@ -407,15 +409,15 @@ export default function SalesPresupuestoTable() {
         </div>
 
         {/* Main Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4 gap-12 mb-8 px-12">
+        <div className="responsive-metrics mb-8 px-4 sm:px-6 xl:px-12">
           {/* Total Ventas */}
           <Card className="bg-transparent shadow-none border-none">
             <CardContent className="p-0 text-left">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Ventas</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-foreground">
-                    {formatCurrencyCompact(Math.round(metrics.presupuestoOriginal), defaultCurrency)}
+                  <p className="text-2xl sm:text-3xl xl:text-4xl font-normal text-foreground">
+                    {formatCurrencyCompact(metrics.presupuestoOriginal, defaultCurrency)}
                   </p>
                 </div>
               </div>
@@ -428,8 +430,8 @@ export default function SalesPresupuestoTable() {
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Vendido</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-foreground">
-                    {formatCurrencyCompact(Math.round(metrics.presupuestoAprobado), defaultCurrency)}
+                  <p className="text-2xl sm:text-3xl xl:text-4xl font-normal text-foreground">
+                    {formatCurrencyCompact(metrics.presupuestoAprobado, defaultCurrency)}
                   </p>
                 </div>
                 <div className="text-lg text-muted-foreground">
@@ -447,8 +449,8 @@ export default function SalesPresupuestoTable() {
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Pagado</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-foreground">
-                    {formatCurrencyCompact(Math.round(metrics.pagado), defaultCurrency)}
+                  <p className="text-2xl sm:text-3xl xl:text-4xl font-normal text-foreground">
+                    {formatCurrencyCompact(metrics.pagado, defaultCurrency)}
                   </p>
                 </div>
                 <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
@@ -464,8 +466,8 @@ export default function SalesPresupuestoTable() {
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Por Pagar</p>
                 <div className="flex items-baseline space-x-2">
-                  <p className="text-4xl font-normal text-foreground">
-                    {formatCurrencyCompact(Math.round(metrics.porGastar), defaultCurrency)}
+                  <p className="text-2xl sm:text-3xl xl:text-4xl font-normal text-foreground">
+                    {formatCurrencyCompact(metrics.porGastar, defaultCurrency)}
                   </p>
                 </div>
                 <Badge variant="secondary" className="ml-0 bg-green-100 text-green-800 rounded-xl border-green-800 text-[10px] font-normal py-1.5 leading-none">
@@ -477,8 +479,8 @@ export default function SalesPresupuestoTable() {
         </div>
 
         {/* Filters */}
-        <div className="bg-card pb-4 px-12">
-          <div className="grid grid-cols-3 items-center gap-6">
+        <div className="bg-card pb-4 px-4 sm:px-6 xl:px-12">
+          <div className="responsive-filters items-center gap-6">
             {/* Partida Filter - Multi-select */}
             <div className="flex flex-col space-y-1 text-left border-b border-border">
               <span className="text-sm text-muted-foreground">Unidad</span>
@@ -690,7 +692,7 @@ export default function SalesPresupuestoTable() {
       {/* Budget Table */}
       <div className="space-y-4">
         <div className="bg-card border border-border overflow-hidden">
-          <Table>
+          <Table mobileSummary={[0, 1, 2, 3, 4]}>
             <TableHeader className="bg-card">
               <TableRow className="border-b border-border">
                 <TableHead className="px-6 py-4 text-left text-base font-medium text-muted-foreground border-r border-border last:border-r-0">
@@ -739,6 +741,8 @@ export default function SalesPresupuestoTable() {
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleExpanded(item.uniqueId)}
+                            aria-label={`${item.expanded ? "Contraer" : "Expandir"} ${item.displayName}`}
+                            aria-expanded={item.expanded}
                             className="p-0 h-auto hover:bg-transparent"
                           >
                             {item.expanded ? (

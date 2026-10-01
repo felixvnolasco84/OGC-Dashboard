@@ -1,3 +1,4 @@
+import { ResponsiveFields } from "@/components/ui/responsive-fields";
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useUser } from "@clerk/clerk-react";
@@ -303,11 +304,11 @@ function PagoCuotaTableRow({
   const [editMonto, setEditMonto] = useState("");
 
   const cols = showCuotaTipo
-    ? "grid-cols-[1.2fr_1.2fr_1fr_1fr_auto]"
-    : "grid-cols-[1.2fr_1.2fr_1fr_auto]";
+    ? "grid-cols-1 lg:grid-cols-[1.2fr_1.2fr_1fr_1fr_auto]"
+    : "grid-cols-1 lg:grid-cols-[1.2fr_1.2fr_1fr_auto]";
 
   return (
-    <div className={`grid ${cols} gap-4 items-center bg-card p-3 border-b  mt-2 border border-border rounded-sm`}>
+    <ResponsiveFields labels={showCuotaTipo ? ["Comprobante", "Soporte", "Cuota", "Monto", "Acciones"] : ["Comprobante", "Soporte", "Monto", "Acciones"]} summary={showCuotaTipo ? [2,3,4] : [2,3]} className={`grid ${cols} gap-4 items-center bg-card p-3 border-b  mt-2 border border-border rounded-sm`}>
       {/* Comprobante */}
       <FileCell
         nombre={pago.comprobante_nombre}
@@ -379,7 +380,7 @@ function PagoCuotaTableRow({
       >
         <Trash2 className="w-4 h-4" />
       </button>
-    </div>
+    </ResponsiveFields>
   );
 }
 
@@ -408,13 +409,13 @@ function PagosCuotaSection({
   partidas: PartidaNivel1[];
 }) {
   const headerCols = showCuotaTipo
-    ? "grid-cols-[1.2fr_1.2fr_1fr_1fr_auto]"
-    : "grid-cols-[1.2fr_1.2fr_1fr_auto]";
+    ? "grid-cols-1 lg:grid-cols-[1.2fr_1.2fr_1fr_1fr_auto]"
+    : "grid-cols-1 lg:grid-cols-[1.2fr_1.2fr_1fr_auto]";
 
   return (
     <div className="mt-8">
       {/* Header */}
-      <div className={`grid ${headerCols} gap-4 text-xs text-muted-foreground font-normal pb-2 text-left`}>
+      <div className={`hidden lg:grid ${headerCols} gap-4 text-xs text-muted-foreground font-normal pb-2 text-left`}>
         <span>Comprobante</span>
         <span>Soporte</span>
         {showCuotaTipo && <span>Cuota</span>}
@@ -478,7 +479,7 @@ function SubPagoCuotaRow({
   const [editMonto, setEditMonto] = useState("");
 
   return (
-    <div className="grid grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 items-center px-5 py-4 border-b border-border last:border-b-0">
+    <ResponsiveFields labels={["Comprobante","Soporte","Monto","Acciones"]} summary={[2,3]} className="grid grid-cols-1 lg:grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 items-center px-5 py-4 border-b border-border last:border-b-0">
       <FileCell
         nombre={pago.comprobante_nombre}
         uploadedAt={pago.comprobante_uploaded_at}
@@ -532,7 +533,7 @@ function SubPagoCuotaRow({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+    </ResponsiveFields>
   );
 }
 
@@ -559,7 +560,7 @@ function SubPagosCuotaSection({
   return (
     <div className="border border-border rounded-sm">
       {/* Header */}
-      <div className="grid grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-muted-foreground font-normal px-5 py-3 border-b border-border">
+      <div className="hidden lg:grid grid-cols-1 lg:grid-cols-[1.2fr_1.2fr_1fr_auto] gap-4 text-xs text-muted-foreground font-normal px-5 py-3 border-b border-border">
         <span>Comprobante</span>
         <span>Soporte</span>
         <span className="text-right">Monto</span>
@@ -643,8 +644,8 @@ function SubcontratistaImssRow({
   return (
     <div className="text-left">
       {/* Row */}
-      <div
-        className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 items-center px-4 py-6 border border-border cursor-pointer bg-card mt-2 rounded-sm"
+      <ResponsiveFields labels={["Subcontratista","Partida","SIROC","Avance","Monto avance","Acciones"]} summary={[0,1,3,4,5]}
+        className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 items-center px-4 py-6 border border-border cursor-pointer bg-card mt-2 rounded-sm"
         onClick={() => setExpanded(!expanded)}
       >
         <span className="text-sm text-foreground">{sub.nombre || "Sin nombre"}</span>
@@ -664,14 +665,14 @@ function SubcontratistaImssRow({
         <button className="text-disabled-foreground hover:text-muted-foreground">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
-      </div>
+      </ResponsiveFields>
 
       {/* Expanded content */}
       {expanded && (
         <div className="px-4 py-4 bg-background border border-border">
-          <div className="flex gap-8">
+          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:gap-8">
             {/* Left: SIROC + Contrato */}
-            <div className="w-48 shrink-0 space-y-4 p-4">
+            <div className="w-full xl:w-48 shrink-0 space-y-4 p-4">
               <div>
                 <div className="text-xs text-muted-foreground mb-4">SIROC</div>
                 <Input
@@ -1127,9 +1128,9 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
         <p className="text-base text-left text-foreground">Avance global IMSS</p>
       </div>
 
-      <div className="border border-border rounded-sm  px-12 py-6 space-y-6">
+      <div className="border border-border rounded-sm  px-4 sm:px-6 xl:px-12 py-6 space-y-6">
         {/* Three metric cards */}
-        <div className="grid grid-cols-3 gap-6 text-left">
+        <div className="responsive-metrics gap-6 text-left">
           <div>
             <p className="text-xs text-muted-foreground mb-1">Costo Total Obra IMSS</p>
             {
@@ -1188,7 +1189,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       {/* ====== SECTION 2: Contratista General ====== */}
       <div className="mt-8 border border-border rounded-sm ">
         {/* Header */}
-        <div className="flex items-center justify-between px-12 py-6 border-b">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 xl:px-12 py-6 border-b">
           <h3 className="text-base text-foreground">Contratista General</h3>
           <div className="flex items-center gap-3">
             {mainCG && (
@@ -1208,9 +1209,9 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           </div>
         </div>
 
-        <div className="px-12 pb-6 pt-4">
+        <div className="px-4 sm:px-6 xl:px-12 pb-6 pt-4">
           {/* CG Table */}
-          <div className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 text-xs  font-normal pb-2  text-muted-foreground text-left">
+          <div className="hidden lg:grid grid-cols-1 lg:grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 text-xs  font-normal pb-2  text-muted-foreground text-left">
             <span className="w-6" />
             <span>Contratista</span>
             <span>Contrato</span>
@@ -1224,9 +1225,9 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             const linkedSubsCount = subs.filter((sub) => sub.contratista_general_id === cg._id).length;
 
             return (
-              <div
+              <ResponsiveFields labels={["Estado","Contratista general","Contrato / SIROC","Pagos","Acciones"]} summary={[0,1,3,4]}
                 key={cg._id}
-                className="grid grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 items-center p-4 border bg-card border-border text-left rounded-sm"
+                className="grid grid-cols-1 lg:grid-cols-[auto_1.5fr_1.5fr_1fr_auto] gap-4 items-center p-4 border bg-card border-border text-left rounded-sm"
               >
                 <StatusDot
                   status={cg.status_manual}
@@ -1289,7 +1290,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
+              </ResponsiveFields>
             );
           })}
 
@@ -1302,7 +1303,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           {/* SIROC sub-section (for CG) */}
           {mainCG && (
             <div className="mt-6 border border-border rounded-sm p-6">
-              <div className="flex items-start gap-12 border-b border-border pb-4">
+              <div className="flex flex-col gap-4 xl:flex-row xl:gap-12 border-b border-border pb-4">
                 {/* Left: SIROC info */}
                 <div className="shrink-0">
                   <div className="flex items-center gap-2 mb-2">
@@ -1324,7 +1325,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
 
                 {/* Right: Metrics */}
                 <div className="flex-1">
-                  <div className="grid grid-cols-4 gap-4 mb-4 text-left font-normal">
+                  <div className="responsive-metrics gap-4 mb-4 text-left font-normal">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Contratista General</p>
                       <p className="text-lg  text-foreground">{formatCurrencyMXN(montoCG)}</p>
@@ -1377,7 +1378,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       {/* ====== SECTION 3: Subcontratistas ====== */}
       <div className="mt-8 border border-border rounded-sm ">
         {/* Header */}
-        <div className="flex items-center justify-between px-12 py-6 border-b">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 xl:px-12 py-6 border-b">
           <h3 className="text-base text-foreground">Subcontratistas</h3>
           <div className="flex items-center gap-3">
             {mainCG && (
@@ -1397,10 +1398,10 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           </div>
         </div>
 
-        <div className="px-12 pb-6 pt-4">
+        <div className="px-4 sm:px-6 xl:px-12 pb-6 pt-4">
           {/* SIROC sub-section for Subs */}
           <div className="border border-border rounded-sm p-6 mb-12">
-            <div className="flex items-start gap-8">
+            <div className="flex flex-col gap-4 xl:flex-row xl:gap-8">
               <div className="shrink-0">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-normal text-foreground">
@@ -1421,7 +1422,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
               </div>
 
               <div className="flex-1">
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="responsive-metrics gap-4 mb-4">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Subcontratistas</p>
                     <p className="text-lg font-normal text-foreground">{formatCurrencyMXN(montoSubs)}</p>
@@ -1445,7 +1446,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           </div>
 
           {/* Subcontratistas table */}
-          <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 text-xs text-muted-foreground font-normal pb-2 border-b border-border text-left">
+          <div className="hidden lg:grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1.5fr_1fr_auto] gap-4 text-xs text-muted-foreground font-normal pb-2 border-b border-border text-left">
             <span>Subcontratista</span>
             <span>Partida</span>
             <span>SIROC</span>

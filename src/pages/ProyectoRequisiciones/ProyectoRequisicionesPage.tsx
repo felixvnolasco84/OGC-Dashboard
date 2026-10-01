@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { Fragment, useCallback, useState, useMemo, useEffect, useRef, type MouseEvent, type KeyboardEvent } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Clock, ChevronDown, ChevronUp, XCircle, CheckCircle, CreditCard, PackageCheck, Mail, Send, ExternalLink, Paperclip, Trash2, UserPlus, Truck, Receipt, MessageSquare, FileUp } from "lucide-react";
+import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Clock, ChevronDown, ChevronUp, CheckCircle, CreditCard, PackageCheck, Mail, Send, ExternalLink, Paperclip, Trash2, UserPlus, Truck, Receipt, MessageSquare, FileUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,7 +52,11 @@ import {
     REQUISICION_NOTIFICATION_MATRIX,
     type RequisicionNotificationType,
 } from "@/lib/requisicionNotificationMatrix";
+import RequisicionItems from "./RequisicionItems";
+import RequisicionContextMenu, { type RequisicionActionGroup } from "./RequisicionContextMenu";
 import ProviderFormDialog, { type ProviderWithMeta } from "@/components/providers/ProviderFormDialog";
+
+const responsiveDialogClassName = "grid-cols-[minmax(0,1fr)] max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto p-4 [overflow-wrap:anywhere] sm:p-6 [&>div]:min-w-0 [&>button]:flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center [&>button]:right-1 [&>button]:top-1 [&_button]:min-h-11";
 
 type PipelineStageKey = "aprobadas" | "pagadas" | "recibidas";
 type StatusHistoryDocument = {
@@ -78,6 +82,13 @@ export default function ProyectoRequisicionesPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [activeTab, setActiveTab] = useState<"por_revisar" | "aprobadas" | "pagadas" | "recibidas">("por_revisar");
     const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+    const [contextMenu, setContextMenu] = useState<{
+        requisicionId: Id<"requisiciones">;
+        x: number;
+        y: number;
+        returnFocus: HTMLElement | null;
+    } | null>(null);
+    const closeContextMenu = useCallback(() => setContextMenu(null), []);
     const [emailDialogOpen, setEmailDialogOpen] = useState(false);
     const [notificationType, setNotificationType] = useState<RequisicionNotificationType>("created");
     const [selectedNotificationReqId, setSelectedNotificationReqId] = useState<string>("latest");
@@ -1087,6 +1098,95 @@ export default function ProyectoRequisicionesPage() {
         setIsEditingProvider(false);
     };
 
+    const openRequisicionDetails = (id: Id<"requisiciones">) => {
+        if (!proyectoId) return;
+        requisicionModal.onOpen({ projectId: proyectoId as Id<"desarrollos">, requisicionId: id }, "view");
+    };
+
+    const openRequisicionContextMenu = (event: MouseEvent<HTMLDivElement>, id: Id<"requisiciones">) => {
+        if (event.target instanceof HTMLElement && event.target.closest("input, textarea, [contenteditable=true]")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const target = event.target instanceof HTMLElement ? event.target.closest<HTMLElement>("button") : null;
+        setContextMenu({
+            requisicionId: id, x: event.clientX, y: event.clientY,
+            returnFocus: target ?? event.currentTarget.querySelector<HTMLElement>("[data-requisicion-title]"),
+        });
+    };
+
+    const openKeyboardContextMenu = (event: KeyboardEvent<HTMLDivElement>, id: Id<"requisiciones">) => {
+        if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+        if (!(event.target instanceof HTMLElement) || event.target.closest("input, textarea, [contenteditable=true]")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const bounds = event.target.getBoundingClientRect();
+        setContextMenu({ requisicionId: id, x: bounds.left, y: bounds.bottom, returnFocus: event.target });
+    };
+
+    const getRequisicionActionGroups = (req: NonNullable<typeof requisiciones>[number]): RequisicionActionGroup[] => {
+        const canManage = currentUser?.role === "admin" || currentUser?.role === "user"
+            || (currentUser?.role === "contratista" && req.solicitante_id === currentUser._id);
+        const groups: RequisicionActionGroup[] = [{
+            label: "Acciones",
+            actions: [
+                { label: "Ver detalles", icon: Eye, onSelect: () => openRequisicionDetails(req._id) },
+                { label: "Historial", icon: Clock, onSelect: () => historyModal.openSingleHistory(proyectoId as Id<"desarrollos">, req._id) },
+            ],
+        }];
+        const mainActions = groups[0].actions;
+        if (currentUser && canAddRemissionPhotos({ role: currentUser.role, status: req.status, hasProjectAccess: true })) {
+            mainActions.push({ label: "Agregar nota de remisión", icon: FileUp, onSelect: () => { setRemissionReqId(req._id); setRemissionPhotos([]); } });
+        }
+        if (canManage && isRequisicionApproved(req) && req.status !== "Pagado" && req.status !== "Cancelado" && req.pago_obra?.estado !== "pendiente") {
+            mainActions.push({ label: "Solicitar pago en obra", icon: CreditCard, onSelect: () => { setOnsitePaymentReqId(req._id); setOnsitePaymentAmount(""); setOnsitePaymentReason(""); } });
+        }
+        if (canManage) {
+            mainActions.push(
+                { label: "Editar", icon: Edit2, onSelect: () => requisicionModal.onOpen({ projectId: proyectoId as Id<"desarrollos">, requisicionId: req._id }, "edit") },
+                { label: "Agregar proveedor", icon: UserPlus, onSelect: () => openProviderDialog(req._id) },
+            );
+        }
+        groups.push({
+            label: "Cambiar etapa", icon: CheckCircle,
+            actions: getPipelineStages(req).map((stage) => ({
+                label: `Mover a ${stage.label}`, icon: stage.icon, complete: stage.complete,
+                busy: updatingPipelineReqId === req._id,
+                disabled: updatingPipelineReqId === req._id || !canUpdatePipelineStage(req, stage.key),
+                onSelect: () => openPipelineStatusDialog(req, stage.key),
+            })),
+        });
+        if (currentUser?.role === "admin" || currentUser?.role === "finance") {
+            groups.push({
+                label: "Estado de pago", icon: Receipt,
+                actions: (currentUser.role === "finance" ? ["Pagado", "Cancelado"] : ["En proceso", "Pagado", "Cancelado"]).map((status) => ({
+                    label: status, icon: CreditCard, disabled: status === req.status, complete: status === req.status,
+                    onSelect: () => openPaymentStatusDialog(req, status),
+                })),
+            });
+        }
+        if (canManage) {
+            groups.push({
+                label: "Estado de entrega", icon: Truck,
+                actions: ["Pendiente", "Parcial", "Completo"].map((status) => ({
+                    label: status, icon: PackageCheck, disabled: status === (req.status_entrega || "Pendiente"),
+                    complete: status === (req.status_entrega || "Pendiente"),
+                    onSelect: () => openDeliveryStatusDialog(req, status),
+                })),
+            });
+        }
+        if (currentUser?.role === "admin" || (currentUser?.role === "contratista" && req.solicitante_id === currentUser._id)) {
+            groups.push({ label: "Eliminar", actions: [{ label: "Eliminar", icon: Trash2, destructive: true, onSelect: () => openDeleteDialog(req._id) }] });
+        }
+        return groups;
+    };
+
+    const contextMenuRequisicion = contextMenu
+        ? filteredRequisiciones.find((req) => req._id === contextMenu.requisicionId)
+        : undefined;
+    useEffect(() => {
+        if (contextMenu && !contextMenuRequisicion) closeContextMenu();
+    }, [contextMenu, contextMenuRequisicion, closeContextMenu]);
+
     if (!proyecto) {
         return (
             <div className="bg-card min-h-screen flex items-center justify-center">
@@ -1096,16 +1196,17 @@ export default function ProyectoRequisicionesPage() {
     }
 
     return (
-        <div className="bg-card min-h-screen">
-            <div className="max-w-full mx-auto py-8 text-left">
-                <div className="flex flex-col gap-4 px-12">
-                    <div className="mb-8 flex items-start justify-between">
+        <div className="min-w-0 bg-card min-h-screen" data-requisiciones-page>
+            <div className="w-full min-w-0 max-w-full mx-auto py-4 text-left md:py-6 xl:py-8">
+                <div className="flex min-w-0 flex-col gap-4 px-4 md:px-6 xl:px-12">
+                    <div className="mb-2 flex min-w-0 flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
                         <div>
                             <p className="text-sm text-muted-foreground mb-1">Requisiciones</p>
-                            <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
+                            <h1 className="text-2xl text-foreground [overflow-wrap:anywhere]">{proyecto.nombre}</h1>
                         </div>
-                        <div className="flex gap-2">
-                            {(currentUser?.role === "admin" || currentUser?.role === "finance") && <Button onClick={() => setEmailDialogOpen(true)} variant="outline" className="font-normal">
+                        <div className="flex min-w-0 flex-col gap-4 2xl:items-end">
+                        <div className="flex flex-wrap gap-2 [&>button]:min-h-11 [&>button]:flex-auto sm:[&>button]:flex-none">
+                            {(currentUser?.role === "admin" || currentUser?.role === "finance") && <Button onClick={() => setEmailDialogOpen(true)} variant="outline" className="min-h-11 font-normal">
                                 <Mail className="h-4 w-4 mr-2" /> Notificaciones
                             </Button>}
                             {/*<Button
@@ -1121,7 +1222,7 @@ export default function ProyectoRequisicionesPage() {
                             <Button
                                 onClick={() => historyModal.openAllHistory(proyectoId as Id<"desarrollos">)}
                                 variant="outline"
-                                className="font-normal"
+                                className="min-h-11 font-normal"
                             >
                                 <Clock className="h-5 w-5" />
                                 Historial
@@ -1131,42 +1232,46 @@ export default function ProyectoRequisicionesPage() {
                                 <Button
                                     onClick={() => requisicionModal.onOpen({ projectId: proyectoId as Id<"desarrollos"> }, "create")}
                                     variant="outline"
-                                    className="font-normal"
+                                    className="min-h-11 font-normal"
                                 >
                                     Nueva Requisición
                                     <Plus className="h-5 w-5" />
                                 </Button>
                             )}
-                            <Button variant="outline" className="cursor-auto">
-                                <span className="text-sm font-normal">
-                                    Total: {requisiciones?.length || 0}
-                                </span>
-                            </Button>
-                            <Button variant="outline" >
-                                <span className="text-sm font-normal">
-                                    Monto total: ${montoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
-                            </Button>
+                        </div>
+                        <dl className="flex min-w-0 flex-wrap gap-x-6 gap-y-2 text-sm">
+                            <div className="flex items-baseline gap-2">
+                                <dt className="text-muted-foreground">Total:</dt>
+                                <dd>{requisiciones?.length || 0}</dd>
+                            </div>
+                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                                <dt className="text-muted-foreground">Monto total:</dt>
+                                <dd className="[overflow-wrap:anywhere]">${montoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+                            </div>
+                        </dl>
                         </div>
                     </div>
 
                     {/* Search Bar */}
-                    <div className="mb-4 relative">
+                    <div className="mb-2 flex min-w-0 flex-col gap-2 sm:flex-row">
+                        <div className="relative min-w-0 flex-1">
                         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
                         <Input
                             type="text"
+                            aria-label="Buscar requisiciones"
                             placeholder="Buscar por solicitante, descripción, familia, material..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-12 pr-24 rounded-none border-border-strong h-12"
+                            className="pl-12 pr-3 rounded-none border-border-strong h-12 text-base md:text-sm"
                         />
-                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
+                        </div>
+                        <div className="flex shrink-0 justify-end gap-2">
                             {hasActiveFilters && (
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={clearFilters}
-                                    className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                                    className="h-12 px-3 text-muted-foreground hover:text-foreground"
                                 >
                                     <X className="h-4 w-4 mr-1" />
                                     Limpiar
@@ -1176,7 +1281,9 @@ export default function ProyectoRequisicionesPage() {
                                 variant={showFilters ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className="h-8 rounded-none"
+                                className="h-12 rounded-none"
+                                aria-expanded={showFilters}
+                                aria-controls="requisicion-filters"
                             >
                                 <Filter className="h-4 w-4 mr-1" />
                                 Filtros
@@ -1186,13 +1293,13 @@ export default function ProyectoRequisicionesPage() {
 
                     {/* Advanced Filters Panel */}
                     {showFilters && (
-                        <div className="mb-6 p-4 border border-border  space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                        <div id="requisicion-filters" className="mb-4 min-w-0 p-4 border border-border space-y-4">
+                            <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                                 {/* Status Filter */}
                                 <div className="space-y-2">
                                     <label className="text-sm  text-foreground">Estado</label>
                                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                        <SelectTrigger className="rounded-none h-10">
+                                        <SelectTrigger className="min-w-0 rounded-none h-11 [&>span]:truncate">
                                             <SelectValue placeholder="Todos" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -1210,7 +1317,7 @@ export default function ProyectoRequisicionesPage() {
                                 <div className="space-y-2">
                                     <label className="text-sm  text-foreground">Tipo</label>
                                     <Select value={tipoFilter} onValueChange={setTipoFilter}>
-                                        <SelectTrigger className="rounded-none h-10">
+                                        <SelectTrigger className="min-w-0 rounded-none h-11 [&>span]:truncate">
                                             <SelectValue placeholder="Todos" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -1223,7 +1330,7 @@ export default function ProyectoRequisicionesPage() {
                             </div>
 
                             {/* Sort Controls */}
-                            <div className="flex items-center gap-4 pt-2 border-t border-border">
+                            <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border [&>button]:min-h-11">
                                 <span className="text-sm  text-foreground">Ordenar por:</span>
                                 <Button
                                     variant={sortField === "fecha_solicitud" ? "default" : "outline"}
@@ -1247,7 +1354,7 @@ export default function ProyectoRequisicionesPage() {
                                         sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
                                     )}
                                 </Button>
-                                <span className="text-sm text-muted-foreground ml-auto">
+                                <span className="w-full text-sm text-muted-foreground sm:ml-auto sm:w-auto">
                                     {filteredRequisiciones.length} de {requisiciones?.length || 0} requisiciones
                                 </span>
                             </div>
@@ -1256,33 +1363,33 @@ export default function ProyectoRequisicionesPage() {
                 </div>
 
                 {/* Status Tabs */}
-                <div className="px-12 mb-4">
+                <div className="min-w-0 px-4 md:px-6 xl:px-12 mb-4">
                     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
-                        <TabsList className="bg-transparent h-auto p-0 gap-0 border-b border-border w-full justify-start rounded-none">
+                        <TabsList aria-label="Estado de las requisiciones" className="flex max-w-full overflow-x-auto bg-transparent h-auto p-0 gap-0 border-b border-border w-full justify-start rounded-none [&>button]:shrink-0">
                             <TabsTrigger
                                 value="por_revisar"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none min-h-11 px-3 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2 md:px-6"
                             >
                                 Por revisar
                                 <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.por_revisar}</Badge>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="aprobadas"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none min-h-11 px-3 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2 md:px-6"
                             >
                                 Aprobadas
                                 <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.aprobadas}</Badge>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="pagadas"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none min-h-11 px-3 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2 md:px-6"
                             >
                                 Pagadas
                                 <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.pagadas}</Badge>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="recibidas"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none min-h-11 px-3 py-3 text-sm font-normal text-muted-foreground data-[state=active]:text-foreground gap-2 md:px-6"
                             >
                                 Recibidas
                                 <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.recibidas}</Badge>
@@ -1292,7 +1399,7 @@ export default function ProyectoRequisicionesPage() {
                 </div>
 
                 {/* Cards List */}
-                <div className="px-12 space-y-4">
+                <div className="min-w-0 px-4 md:px-6 xl:px-12 space-y-4">
                     {!requisiciones ? (
                         <div className="py-12 text-center text-muted-foreground">
                             Cargando requisiciones...
@@ -1317,20 +1424,23 @@ export default function ProyectoRequisicionesPage() {
                                 : `${itemCounts.total} materiales`;
                             const pipelineStages = getPipelineStages(req);
                             const pipelineBusy = updatingPipelineReqId === req._id;
+                            const actionGroups = getRequisicionActionGroups(req);
 
                             return (
-                                <div key={req._id} className="border border-border">
+                                <div key={req._id} className="min-w-0 border border-border" data-requisicion-id={req._id}
+                                    onContextMenu={(event) => openRequisicionContextMenu(event, req._id)}
+                                    onKeyDown={(event) => openKeyboardContextMenu(event, req._id)}>
                                     {/* Card Header - Collapsed View */}
                                     <div
-                                        className="flex items-center gap-6 py-6 px-4 cursor-pointer hover:/50 transition-colors border-b"
+                                        className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-4 p-3 cursor-pointer hover:bg-muted/50 transition-colors border-b md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:p-4 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,.7fr)_minmax(0,.9fr)_minmax(0,1.2fr)_auto] 2xl:gap-4 2xl:py-6"
                                         onClick={() => toggleCard(req._id)}
                                     >
                                         {/* Avatar + Solicitante */}
-                                        <div className="flex items-center gap-3 min-w-[200px]">
+                                        <div className="order-1 col-span-2 flex min-w-0 flex-col items-start gap-3 md:flex-row md:items-center 2xl:col-span-1">
                                             <div className="h-10 w-10 rounded-full bg-disabled flex items-center justify-center text-sm  text-muted-foreground flex-shrink-0">
                                                 {req.solicitante_nombre?.charAt(0).toUpperCase() || "?"}
                                             </div>
-                                            <div className="flex flex-col">
+                                            <div className="flex min-w-0 flex-col [overflow-wrap:anywhere]">
                                                 <span className="text-sm text-muted-foreground">
                                                     {req.solicitante_nombre || "-"}
                                                 </span>
@@ -1341,19 +1451,22 @@ export default function ProyectoRequisicionesPage() {
                                         </div>
 
                                         {/* Category + Materials Count */}
-                                        <div className="flex flex-col flex-1 min-w-0">
-                                            <span className="text-sm  uppercase tracking-wide truncate">
+                                        <div className="order-3 col-span-2 flex min-w-0 flex-col md:col-span-3 2xl:order-2 2xl:col-span-1">
+                                            <button type="button" data-requisicion-title
+                                                className="min-h-11 w-full text-left text-sm uppercase [overflow-wrap:anywhere] hover:underline focus-visible:outline focus-visible:outline-2"
+                                                aria-label={`Ver detalles de ${categoryLabel}`}
+                                                onClick={(event) => { event.stopPropagation(); openRequisicionDetails(req._id); }}>
                                                 {categoryLabel}
-                                            </span>
+                                            </button>
                                             <Badge variant="outline" className="w-fit mt-1">
                                                 {materialsBadgeText}
                                             </Badge>
                                             {!!unreadRequisiciones?.[req._id] && <Badge className="mt-1 w-fit bg-blue-600 text-white">{unreadRequisiciones[req._id]} sin leer</Badge>}
-                                            {req.pago_obra?.estado === "pendiente" && <Badge variant="outline" className="mt-1 w-fit border-amber-500 text-amber-700">Pago en obra pendiente · ${req.pago_obra.importe.toLocaleString("es-MX")}</Badge>}
+                                            {req.pago_obra?.estado === "pendiente" && <Badge variant="outline" className="mt-1 max-w-full w-fit whitespace-normal text-left border-amber-500 text-amber-700 [overflow-wrap:anywhere]">Pago en obra pendiente · ${req.pago_obra.importe.toLocaleString("es-MX")}</Badge>}
                                         </div>
 
                                         {/* Fecha Entrega */}
-                                        <div className="flex flex-col items-start min-w-[100px]">
+                                        <div className="order-4 flex min-w-0 flex-col items-start [overflow-wrap:anywhere] md:col-span-1 2xl:order-3">
                                             {req.fecha_entrega ? (
                                                 <>
                                                     <span className="text-sm ">{req.fecha_entrega}</span>
@@ -1365,7 +1478,7 @@ export default function ProyectoRequisicionesPage() {
                                         </div>
 
                                         {/* Monto Total */}
-                                        <div className="flex flex-col items-end min-w-[140px]">
+                                        <div className="order-5 flex min-w-0 flex-col items-end text-right [overflow-wrap:anywhere] md:col-span-2 2xl:order-4 2xl:col-span-1">
                                             <span className="text-xs text-muted-foreground">Monto Total</span>
                                             <span className="text-foreground">
                                                 ${reqMontoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1373,228 +1486,81 @@ export default function ProyectoRequisicionesPage() {
                                         </div>
 
                                         {/* Status Pipeline */}
-                                        <div className="min-w-[230px]" onClick={(e) => e.stopPropagation()}>
-                                            <div className="relative">
-                                                <div className="absolute left-3 right-3 top-2 h-0.5 bg-disabled" />
-                                                <div className="relative grid grid-cols-3 gap-1">
-                                                    {pipelineStages.map((stage, stageIndex) => {
-                                                        const nextStage = pipelineStages[stageIndex + 1];
-                                                        const segmentComplete = stage.complete && nextStage?.complete;
-                                                        const canUpdateStage = canUpdatePipelineStage(req, stage.key);
-
-                                                        return (
-                                                            <div key={stage.key} className="relative flex flex-col items-center">
-                                                                {segmentComplete && (
-                                                                    <span className="pointer-events-none absolute left-1/2 top-2 h-0.5 w-full bg-[#50AC66]" />
-                                                                )}
-                                                                <button
-                                                                    type="button"
-                                                                    disabled={pipelineBusy || !canUpdateStage}
-                                                                    onClick={() => openPipelineStatusDialog(req, stage.key)}
-                                                                    className={cn(
-                                                                        "relative z-10 flex h-4 w-4 items-center justify-center rounded-full border bg-card transition-colors",
-                                                                        stage.complete
-                                                                            ? "border-[#50AC66] bg-[#50AC66] text-on-color"
-                                                                            : "border-border-strong text-muted-foreground hover:border-[#7EC18E] hover:text-[#50AC66]",
-                                                                        (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60"
-                                                                    )}
-                                                                    title={`Cambiar a ${stage.label}`}
-                                                                >
-                                                                    {pipelineBusy ? (
-                                                                        <Loader2 className="h-2 w-2 animate-spin" />
-                                                                    ) : (
-                                                                        <span
-                                                                            className={cn(
-                                                                                "h-2 w-2 rounded-full",
-                                                                                stage.complete ? "bg-[#50AC66]" : "bg-transparent"
-                                                                            )}
-                                                                        />
-                                                                    )}
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    disabled={pipelineBusy || !canUpdateStage}
-                                                                    onClick={() => openPipelineStatusDialog(req, stage.key)}
-                                                                    className={cn(
-                                                                        "mt-1 text-[10px] leading-none transition-colors",
-                                                                        stage.complete ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                                                                        (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60"
-                                                                    )}
-                                                                >
-                                                                    {stage.label}
-                                                                </button>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                        <div className="order-6 col-span-2 min-w-0 md:col-span-3 2xl:order-5 2xl:col-span-1" onClick={(e) => e.stopPropagation()}>
+                                            <div className="relative grid grid-cols-3 gap-1">
+                                                <div className="pointer-events-none absolute left-[16.67%] right-[16.67%] top-3 h-0.5 bg-disabled" />
+                                                {pipelineStages.map((stage, stageIndex) => {
+                                                    const nextStage = pipelineStages[stageIndex + 1];
+                                                    const segmentComplete = stage.complete && nextStage?.complete;
+                                                    const canUpdateStage = canUpdatePipelineStage(req, stage.key);
+                                                    return (
+                                                        <div key={stage.key} className="relative min-w-0">
+                                                            {segmentComplete && <span className="pointer-events-none absolute left-1/2 top-3 h-0.5 w-full bg-[#50AC66]" />}
+                                                            <button type="button"
+                                                                disabled={pipelineBusy || !canUpdateStage}
+                                                                onClick={() => openPipelineStatusDialog(req, stage.key)}
+                                                                aria-label={`Cambiar a ${stage.label}`}
+                                                                title={`Cambiar a ${stage.label}`}
+                                                                className={cn("relative z-10 flex min-h-11 w-full flex-col items-center gap-2 rounded-sm py-1 text-xs transition-colors focus-visible:outline focus-visible:outline-2", stage.complete ? "text-foreground" : "text-muted-foreground hover:text-foreground", (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60")}>
+                                                                <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border bg-card", stage.complete ? "border-[#50AC66] bg-[#50AC66]" : "border-border-strong")}>
+                                                                    {pipelineBusy ? <Loader2 className="h-2 w-2 animate-spin" /> : <span className={cn("h-2 w-2 rounded-full", stage.complete ? "bg-[#50AC66]" : "bg-transparent")} />}
+                                                                </span>
+                                                                <span>{stage.label}</span>
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
 
                                         {/* Actions Menu */}
-                                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                        <div className="absolute right-3 top-3 order-2 flex items-center justify-end gap-1 md:static md:self-start 2xl:order-6 2xl:self-center" onClick={(e) => e.stopPropagation()}>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8  p-0 hover:bg-muted">
+                                                    <Button variant="ghost" size="sm" className="h-11 w-11 p-0 hover:bg-muted" aria-label="Acciones de requisición" title="Acciones de requisición">
                                                         <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="border-border p-1">
-                                                    <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal uppercase tracking-wide text-muted-foreground">
-                                                        Acciones
-                                                    </DropdownMenuLabel>
-                                                    <DropdownMenuItem
-                                                        className="gap-2   focus:bg-muted focus:text-foreground"
-                                                        onClick={() => requisicionModal.onOpen({
-                                                            projectId: proyectoId as Id<"desarrollos">,
-                                                            requisicionId: req._id
-                                                        }, "view")}
-                                                    >
-                                                        <Eye className="h-4 w-4 " />
-                                                        Ver detalles
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className="gap-2" onClick={() => historyModal.openSingleHistory(proyectoId as Id<"desarrollos">, req._id)}>
-                                                        <Clock className="h-4 w-4" /> Historial
-                                                    </DropdownMenuItem>
-                                                    {currentUser && canAddRemissionPhotos({ role: currentUser.role, status: req.status, hasProjectAccess: true }) && (
-                                                        <DropdownMenuItem className="gap-2" onClick={() => { setRemissionReqId(req._id); setRemissionPhotos([]); }}>
-                                                            <FileUp className="h-4 w-4" /> Agregar nota de remisión
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {(currentUser?.role === "admin" || currentUser?.role === "user" || (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) &&
-                                                        (req.status_revision === "Aprobada" || req.status_revision === "Parcialmente Aprobada") &&
-                                                        req.status !== "Pagado" && req.status !== "Cancelado" && req.pago_obra?.estado !== "pendiente" && (
-                                                        <DropdownMenuItem className="gap-2" onClick={() => { setOnsitePaymentReqId(req._id); setOnsitePaymentAmount(""); setOnsitePaymentReason(""); }}>
-                                                            <CreditCard className="h-4 w-4" /> Solicitar pago en obra
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {(currentUser?.role === "admin" || currentUser?.role === "user" ||
-                                                        (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
-                                                            <DropdownMenuItem
-                                                                className="gap-2   focus:bg-muted focus:text-foreground"
-                                                                onClick={() => requisicionModal.onOpen({
-                                                                    projectId: proyectoId as Id<"desarrollos">,
-                                                                    requisicionId: req._id
-                                                                }, "edit")}
-                                                            >
-                                                                <Edit2 className="h-4 w-4 " />
-                                                                Editar
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                    {(currentUser?.role === "admin" || currentUser?.role === "user" ||
-                                                        (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
-                                                            <DropdownMenuItem
-                                                                className="gap-2   focus:bg-muted focus:text-foreground"
-                                                                onClick={() => openProviderDialog(req._id)}
-                                                            >
-                                                                <UserPlus className="h-4 w-4 " />
-                                                                Agregar proveedor
-                                                            </DropdownMenuItem>
-                                                        )}
-
-                                                    <DropdownMenuSeparator className="bg-muted" />
-
-                                                    <DropdownMenuSub>
-                                                        <DropdownMenuSubTrigger className="gap-2  focus:bg-muted data-[state=open]:bg-muted">
-                                                            <CheckCircle className="h-4 w-4 text-[#50AC66]" />
-                                                            Cambiar etapa
-                                                        </DropdownMenuSubTrigger>
-                                                        <DropdownMenuSubContent className="w-56 border-border p-1">
-                                                            {pipelineStages.map((stage) => {
-                                                                const StageIcon = stage.icon;
-                                                                const canUpdateStage = canUpdatePipelineStage(req, stage.key);
-
-                                                                return (
-                                                                    <DropdownMenuItem
-                                                                        key={stage.key}
-                                                                        disabled={pipelineBusy || !canUpdateStage}
-                                                                        className="gap-2  focus:bg-muted focus:text-foreground"
-                                                                        onClick={() => openPipelineStatusDialog(req, stage.key)}
-                                                                    >
-                                                                        {pipelineBusy ? (
-                                                                            <Loader2 className="h-4 w-4 animate-spin " />
-                                                                        ) : (
-                                                                            <StageIcon className={cn("h-4 w-4", stage.complete ? "text-[#50AC66]" : "")} />
-                                                                        )}
-                                                                        <span>Mover a {stage.label}</span>
-                                                                        {stage.complete && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
-                                                                    </DropdownMenuItem>
-                                                                );
-                                                            })}
-                                                        </DropdownMenuSubContent>
-                                                    </DropdownMenuSub>
-
-                                                    {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
-                                                        <DropdownMenuSub>
-                                                            <DropdownMenuSubTrigger className="gap-2  focus:bg-muted data-[state=open]:bg-muted">
-                                                                <Receipt className="h-4 w-4 " />
-                                                                Estado de pago
-                                                            </DropdownMenuSubTrigger>
-                                                            <DropdownMenuSubContent className="w-52 border-border p-1">
-                                                                {(currentUser?.role === "finance"
-                                                                    ? ["Pagado", "Cancelado"]
-                                                                    : ["En proceso", "Pagado", "Cancelado"]
-                                                                ).map(s => (
-                                                                    <DropdownMenuItem
-                                                                        key={s}
-                                                                        disabled={s === req.status}
-                                                                        className="gap-2  focus:bg-muted focus:text-foreground"
-                                                                        onClick={() => openPaymentStatusDialog(req, s)}
-                                                                    >
-                                                                        <CreditCard className={cn("h-4 w-4", s === "Pagado" ? "text-[#50AC66]" : s === "Cancelado" ? "text-red-500" : "")} />
-                                                                        {s}
-                                                                        {s === req.status && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
-                                                                    </DropdownMenuItem>
-                                                                ))}
-                                                            </DropdownMenuSubContent>
-                                                        </DropdownMenuSub>
-                                                    )}
-
-                                                    {(currentUser?.role === "admin" || currentUser?.role === "user" ||
-                                                        (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
-                                                            <DropdownMenuSub>
-                                                                <DropdownMenuSubTrigger className="gap-2  focus:bg-muted data-[state=open]:bg-muted">
-                                                                    <Truck className="h-4 w-4 " />
-                                                                    Estado de entrega
-                                                                </DropdownMenuSubTrigger>
-                                                                <DropdownMenuSubContent className="w-52 border-border p-1">
-                                                                    {["Pendiente", "Parcial", "Completo"].map(s => {
-                                                                        const isCurrent = s === (req.status_entrega || "Pendiente");
-
-                                                                        return (
-                                                                            <DropdownMenuItem
-                                                                                key={s}
-                                                                                disabled={isCurrent}
-                                                                                className="gap-2  focus:bg-muted focus:text-foreground"
-                                                                                onClick={() => openDeliveryStatusDialog(req, s)}
-                                                                            >
-                                                                                <PackageCheck className={cn("h-4 w-4", s === "Completo" ? "text-[#50AC66]" : s === "Parcial" ? "text-yellow-600" : "text-muted-foreground")} />
-                                                                                {s}
-                                                                                {isCurrent && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
-                                                                            </DropdownMenuItem>
-                                                                        );
-                                                                    })}
-                                                                </DropdownMenuSubContent>
-                                                            </DropdownMenuSub>
-                                                        )}
-
-                                                    {(currentUser?.role === "admin" ||
-                                                        (currentUser?.role === "contratista" && req.solicitante_id === currentUser?._id)) && (
-                                                            <>
-                                                                <DropdownMenuSeparator className="bg-muted" />
-                                                                <DropdownMenuItem
-                                                                    className="gap-2 rounded-none text-red-600 focus:bg-red-50 focus:text-red-700"
-                                                                    onClick={() => openDeleteDialog(req._id)}
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                    Eliminar
+                                                <DropdownMenuContent align="end" className="max-w-[calc(100vw-2rem)] border-border p-1 [&_[role=menuitem]]:min-h-11">
+                                                    {actionGroups.map((group, groupIndex) => {
+                                                        const items = group.actions.map((action) => {
+                                                            const Icon = action.busy ? Loader2 : action.icon;
+                                                            return (
+                                                                <DropdownMenuItem key={action.label} disabled={action.disabled}
+                                                                    className={cn("gap-2 focus:bg-muted focus:text-foreground", action.destructive && "text-red-600 focus:bg-red-50 focus:text-red-700")}
+                                                                    onClick={action.onSelect}>
+                                                                    <Icon className={cn("h-4 w-4", action.busy && "animate-spin", action.complete && "text-[#50AC66]")} />
+                                                                    {action.label}
+                                                                    {action.complete && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
                                                                 </DropdownMenuItem>
-                                                            </>
-                                                        )}
+                                                            );
+                                                        });
+                                                        return (
+                                                            <Fragment key={group.label}>
+                                                                {groupIndex === 0 && <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal uppercase tracking-wide text-muted-foreground">Acciones</DropdownMenuLabel>}
+                                                                {(groupIndex === 1 || group.label === "Eliminar") && <DropdownMenuSeparator className="bg-muted" />}
+                                                                {group.icon ? (
+                                                                    <DropdownMenuSub>
+                                                                        <DropdownMenuSubTrigger className="gap-2 focus:bg-muted data-[state=open]:bg-muted">
+                                                                            <group.icon className="h-4 w-4" />{group.label}
+                                                                        </DropdownMenuSubTrigger>
+                                                                        <DropdownMenuSubContent className="w-56 max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto border-border p-1 [&_[role=menuitem]]:min-h-11">
+                                                                            {items}
+                                                                        </DropdownMenuSubContent>
+                                                                    </DropdownMenuSub>
+                                                                ) : items}
+                                                            </Fragment>
+                                                        );
+                                                    })}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                             <button
                                                 onClick={() => toggleCard(req._id)}
-                                                className="p-1 hover:bg-muted rounded transition-colors"
+                                                className="flex h-11 w-11 items-center justify-center hover:bg-muted rounded transition-colors"
+                                                aria-label={isExpanded ? "Contraer requisición" : "Expandir requisición"}
+                                                title={isExpanded ? "Contraer requisición" : "Expandir requisición"}
+                                                aria-expanded={isExpanded}
+                                                aria-controls={`requisicion-items-${req._id}`}
                                             >
                                                 {isExpanded ? (
                                                     <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -1607,140 +1573,19 @@ export default function ProyectoRequisicionesPage() {
 
                                     {/* Expanded Content */}
                                     {isExpanded && (
-                                        <div className="px-4 pb-6 pt-6">
-                                            {/* Items Table */}
-                                            <div className="rounded-sm overflow-hidden">
-                                                <table className="w-full border-separate border-spacing-y-2">
-                                                    <thead>
-                                                        <tr>
-                                                            <th className="px-4 py-3 text-left text-xs font-normal text-muted-foreground">Partida / Subpartida</th>
-                                                            <th className="px-4 py-3 text-left text-xs font-normal text-muted-foreground">Unidad</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-muted-foreground">Cantidad</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-muted-foreground">Precio Unitario</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-muted-foreground">Ejercido</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-muted-foreground">Solicitado</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-muted-foreground">Aprobado</th>
-                                                            <th className="px-4 py-3 text-right text-xs font-normal text-muted-foreground">Monto</th>
-                                                            <th className="px-4 py-3 text-center text-xs font-normal text-muted-foreground w-[120px]"></th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="text-foreground">
-                                                        {req.items?.map((item) => {
-                                                            const isRejected = item.status_revision === "rechazado";
-                                                            const isItemApproved = item.status_revision === "aprobado";
-                                                            const isPending = !item.status_revision || item.status_revision === "pendiente";
-                                                            const precioUnitario = item.precio_unitario ?? 0;
-                                                            const presupuestoAprobado = item.presupuesto_aprobado ?? 0;
-                                                            const pagado = item.pagado ?? 0;
-                                                            const ejercido = presupuestoAprobado > 0
-                                                                ? Math.round((pagado / presupuestoAprobado) * 100)
-                                                                : 0;
-                                                            const isLoading = reviewingItemId === item._id;
-                                                            const qtyModified = isItemApproved && item.cantidad_aprobada !== undefined && item.cantidad_aprobada !== item.cantidad;
-                                                            const showInlineReview = activeTab === "por_revisar" && isReviewUser && isPending;
-
-                                                            return (
-                                                                <tr key={item._id} className={cn(
-                                                                    "transition-colors rounded-lg overflow-hidden bg-card border border-border",
-                                                                    isRejected && "opacity-40 bg-[#CD56364A] border-[#FBE8E0]",
-                                                                    isItemApproved && "border-green-200",
-                                                                )}>
-                                                                    <td className="px-4 py-3">
-                                                                        <span className="text-sm text-foreground uppercase">
-                                                                            {item.sub_partida || item.familia}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-sm text-muted-foreground">{item.unidad}</td>
-                                                                    <td className="px-4 py-3 text-sm text-foreground text-right">
-                                                                        {item.cantidad.toLocaleString("es-MX")}
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-sm text-foreground text-right">
-                                                                        ${precioUnitario.toLocaleString("es-MX")}
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-sm text-foreground text-right">
-                                                                        {ejercido}%
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-center">
-                                                                        <span className="text-sm text-foreground">
-                                                                            {item.cantidad} {item.unidad}
-                                                                        </span>
-                                                                    </td>
-                                                                    {/* Aprobado column */}
-                                                                    <td className="px-4 py-3 text-center">
-                                                                        {showInlineReview ? (
-                                                                            <div className="flex items-center justify-center gap-1">
-                                                                                <input
-                                                                                    type="number"
-                                                                                    min={1}
-                                                                                    value={editedQuantities[item._id] ?? item.cantidad}
-                                                                                    onClick={(e) => e.stopPropagation()}
-                                                                                    onChange={(e) => updateEditedQty(item._id, Number(e.target.value))}
-                                                                                    className="w-16 px-2 py-1 text-sm border border-border-strong text-center rounded-sm bg-card text-foreground"
-                                                                                />
-                                                                                <span className="text-xs text-muted-foreground">{item.unidad}</span>
-                                                                            </div>
-                                                                        ) : qtyModified ? (
-                                                                            <div className="flex items-center justify-center gap-1">
-                                                                                <span className="text-sm text-muted-foreground line-through">{item.cantidad}</span>
-                                                                                <span className="text-sm text-foreground font-medium">{item.cantidad_aprobada}</span>
-                                                                                <span className="text-xs text-muted-foreground">{item.unidad}</span>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <span className={cn(
-                                                                                "inline-flex items-center px-2.5 py-1 text-sm border rounded-sm",
-                                                                                isItemApproved ? "border-border-strong text-foreground bg-card" : "border-border text-muted-foreground"
-                                                                            )}>
-                                                                                {item.cantidad_aprobada ?? item.cantidad} {item.unidad}
-                                                                            </span>
-                                                                        )}
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-sm text-foreground text-right">
-                                                                        ${(item.monto || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                    </td>
-                                                                    {/* Actions column */}
-                                                                    <td className="px-4 py-3">
-                                                                        {showInlineReview ? (
-                                                                            <div className="flex items-center justify-center gap-1.5">
-                                                                                {isLoading ? (
-                                                                                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                                                                                ) : (
-                                                                                    <>
-                                                                                        <button
-                                                                                            onClick={(e) => { e.stopPropagation(); handleApproveItem(item._id, editedQuantities[item._id] ?? item.cantidad); }}
-                                                                                            className="text-muted-foreground hover:text-green-600 transition-colors"
-                                                                                            title="Aprobar"
-                                                                                        >
-                                                                                            <CheckCircle className="w-5 h-5" />
-                                                                                        </button>
-                                                                                        <button
-                                                                                            onClick={(e) => { e.stopPropagation(); handleRejectItem(item._id); }}
-                                                                                            className="text-muted-foreground hover:text-red-500 transition-colors"
-                                                                                            title="Rechazar"
-                                                                                        >
-                                                                                            <XCircle className="w-5 h-5" />
-                                                                                        </button>
-                                                                                    </>
-                                                                                )}
-                                                                            </div>
-                                                                        ) : isItemApproved ? (
-                                                                            <div className="flex justify-center">
-                                                                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                                                            </div>
-                                                                        ) : isRejected ? (
-                                                                            <div className="flex justify-center">
-                                                                                <XCircle className="w-4 h-4 text-red-500" />
-                                                                            </div>
-                                                                        ) : null}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                        <div id={`requisicion-items-${req._id}`} className="min-w-0 px-3 pb-4 pt-4 md:px-4 md:pb-6 md:pt-6">
+                                            <RequisicionItems
+                                                items={req.items ?? []}
+                                                canReview={activeTab === "por_revisar" && isReviewUser}
+                                                editedQuantities={editedQuantities}
+                                                reviewingItemId={reviewingItemId}
+                                                onQuantityChange={updateEditedQty}
+                                                onApprove={handleApproveItem}
+                                                onReject={handleRejectItem}
+                                            />
 
                                             {/* Nota General */}
-                                            <div className="ml-12 mt-4 border-l-2 border-border pl-4">
+                                            <div className="mt-4 border-l-2 border-border pl-3 [overflow-wrap:anywhere] md:ml-4 md:pl-4 xl:ml-12">
                                                 <p className="text-xs text-muted-foreground mb-1">Nota General:</p>
                                                 <p className="text-sm text-muted-foreground">
                                                     {req.descripcion || <span className="text-muted-foreground italic">Sin notas</span>}
@@ -1755,9 +1600,18 @@ export default function ProyectoRequisicionesPage() {
                 </div>
             </div>
 
+            {contextMenu && contextMenuRequisicion && (
+                <RequisicionContextMenu
+                    position={contextMenu}
+                    groups={getRequisicionActionGroups(contextMenuRequisicion)}
+                    returnFocus={contextMenu.returnFocus}
+                    onClose={closeContextMenu}
+                />
+            )}
+
             <Dialog open={remissionReqId !== null} onOpenChange={(open) => { if (!open && !isUploadingRemission) closeRemissionDialog(); }}>
-                <DialogContent className="max-w-lg rounded-none">
-                    <DialogHeader>
+                <DialogContent className={cn(responsiveDialogClassName, "max-w-lg rounded-none")}>
+                    <DialogHeader className="min-w-0 pr-10 text-left">
                         <DialogTitle>Agregar nota de remisión</DialogTitle>
                         <DialogDescription>
                             Agrega fotos a esta requisición pagada. El estado de entrega no cambiará.
@@ -1787,7 +1641,7 @@ export default function ProyectoRequisicionesPage() {
                                 ))}
                             </ul>
                         )}
-                        <div className="flex justify-end gap-2 border-t border-border pt-4">
+                        <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
                             <Button type="button" variant="outline" onClick={closeRemissionDialog} disabled={isUploadingRemission}>Cancelar</Button>
                             <Button type="button" onClick={handleUploadRemissionPhotos} disabled={isUploadingRemission || remissionPhotos.length === 0}>
                                 {isUploadingRemission && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1804,8 +1658,8 @@ export default function ProyectoRequisicionesPage() {
                     if (!open && !isRequestingOnsitePayment) setOnsitePaymentReqId(null);
                 }}
             >
-                <DialogContent className="max-w-lg rounded-none">
-                    <DialogHeader>
+                <DialogContent className={cn(responsiveDialogClassName, "max-w-lg rounded-none")}>
+                    <DialogHeader className="min-w-0 pr-10 text-left">
                         <DialogTitle>Solicitar pago en obra</DialogTitle>
                         <DialogDescription>Finanzas y Administración recibirán un aviso vinculado a esta requisición.</DialogDescription>
                     </DialogHeader>
@@ -1818,7 +1672,7 @@ export default function ProyectoRequisicionesPage() {
                             <Label htmlFor="onsite-payment-reason">Motivo</Label>
                             <Textarea id="onsite-payment-reason" maxLength={500} value={onsitePaymentReason} onChange={(e) => setOnsitePaymentReason(e.target.value)} placeholder="Describe el pago que debe hacerse en obra" />
                         </div>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                             <Button variant="outline" onClick={() => setOnsitePaymentReqId(null)} disabled={isRequestingOnsitePayment}>Cancelar</Button>
                             <Button onClick={handleRequestOnsitePayment} disabled={isRequestingOnsitePayment || !onsitePaymentReason.trim() || !(Number(onsitePaymentAmount) > 0)}>
                                 {isRequestingOnsitePayment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1833,8 +1687,8 @@ export default function ProyectoRequisicionesPage() {
                 if (!open && !isSubmittingStatusHistory) resetStatusHistoryDialog();
                 else setStatusHistoryDialogOpen(open);
             }}>
-                <DialogContent className="max-w-lg rounded-none">
-                    <DialogHeader>
+                <DialogContent className={cn(responsiveDialogClassName, "max-w-lg rounded-none")}>
+                    <DialogHeader className="min-w-0 pr-10 text-left">
                         <DialogTitle className="text-xl font-normal text-foreground">
                             {pendingStatusChange?.title || "Actualizar estado"}
                         </DialogTitle>
@@ -1887,13 +1741,13 @@ export default function ProyectoRequisicionesPage() {
                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => { setStatusHistoryDocument(e.target.files?.[0] ?? null); e.target.value = ""; }} />
                                 </label>
                             </div> : <label className="flex cursor-pointer items-center justify-between gap-3 border border-dashed border-border-strong px-4 py-3 text-sm text-muted-foreground hover:border-[#7EC18E]">
-                                <span className="flex min-w-0 items-center gap-2">
+                                <span className="flex min-w-0 flex-1 items-center gap-2">
                                     <Paperclip className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                                     <span className="truncate">
                                         {statusHistoryDocument ? statusHistoryDocument.name : "Adjuntar comprobante, factura o evidencia"}
                                     </span>
                                 </span>
-                                <span className="text-xs text-muted-foreground">Seleccionar</span>
+                                <span className="shrink-0 text-xs text-muted-foreground">Seleccionar</span>
                                 <input
                                     type="file"
                                     className="hidden"
@@ -1905,14 +1759,14 @@ export default function ProyectoRequisicionesPage() {
                                 <button
                                     type="button"
                                     onClick={() => setStatusHistoryDocument(null)}
-                                    className="text-xs text-red-600 hover:text-red-700"
+                                    className="min-h-11 text-xs text-red-600 hover:text-red-700"
                                 >
                                     Quitar documento
                                 </button>
                             )}
                         </div>
 
-                        <div className="flex justify-end gap-2 border-t border-border pt-4">
+                        <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1938,10 +1792,10 @@ export default function ProyectoRequisicionesPage() {
 
             {/* Email Notification Dialog */}
             <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-                <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-5xl rounded-none p-0 overflow-hidden">
+                <DialogContent className={cn(responsiveDialogClassName, "max-w-5xl rounded-none p-0 sm:p-0 overflow-hidden")}>
                     <div className="grid max-h-[calc(100dvh-2rem)] grid-cols-1 overflow-y-auto lg:grid-cols-[360px_minmax(0,1fr)] lg:overflow-hidden">
                         <div className="space-y-5 border-b border-border p-4 sm:space-y-6 sm:p-6 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
-                            <DialogHeader>
+                            <DialogHeader className="min-w-0 pr-10 text-left">
                                 <DialogTitle className="flex items-center gap-2 text-xl font-normal text-foreground">
                                     <Mail className="h-5 w-5 text-muted-foreground" />
                                     Notificaciones por correo
@@ -1954,7 +1808,7 @@ export default function ProyectoRequisicionesPage() {
                             <div className="space-y-2">
                                 <Label>Tipo de notificación</Label>
                                 <Select value={notificationType} onValueChange={(value) => setNotificationType(value as RequisicionNotificationType)}>
-                                    <SelectTrigger className="rounded-none h-10">
+                                    <SelectTrigger className="min-w-0 rounded-none h-11 [&>span]:truncate">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1968,7 +1822,7 @@ export default function ProyectoRequisicionesPage() {
                             </div>
 
                             <div className="border border-border bg-card p-4 text-sm">
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                <div className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
                                     <div>
                                         <p className="text-xs text-muted-foreground">Audiencia</p>
                                         <p className="mt-1 text-foreground">{selectedNotificationConfig.audienceLabel}</p>
@@ -1991,7 +1845,7 @@ export default function ProyectoRequisicionesPage() {
                             <div className="space-y-2">
                                 <Label>Requisición</Label>
                                 <Select value={selectedNotificationReqId} onValueChange={setSelectedNotificationReqId}>
-                                    <SelectTrigger className="rounded-none h-10">
+                                    <SelectTrigger className="min-w-0 rounded-none h-11 [&>span]:truncate">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -2025,7 +1879,7 @@ export default function ProyectoRequisicionesPage() {
                             </div>
 
                             <div className="border border-border bg-card p-4">
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
                                     <p className="text-sm font-medium text-foreground">Eventos recientes</p>
                                     <Badge variant="outline" className="text-[10px]">
                                         notification_events
@@ -2044,7 +1898,7 @@ export default function ProyectoRequisicionesPage() {
                                             const readCount = event.deliveries.filter((delivery) => Boolean(delivery.read_at)).length;
                                             return (
                                                 <div key={event._id} className="border border-border bg-card p-3">
-                                                    <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex flex-wrap items-start justify-between gap-3">
                                                         <div className="min-w-0">
                                                             <p className="truncate text-sm font-medium text-foreground">{event.subject}</p>
                                                             <p className="mt-1 text-xs text-muted-foreground">
@@ -2055,7 +1909,7 @@ export default function ProyectoRequisicionesPage() {
                                                             {({ pending: "En proceso", sent: "Enviado", partial: "Parcial", failed: "Fallido", no_recipients: "Sin destinatarios" } as Record<string, string>)[event.status] || event.status}
                                                         </Badge>
                                                     </div>
-                                                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                                                    <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 text-xs text-muted-foreground sm:grid-cols-3">
                                                         <span>Correos enviados: {event.sent_count}</span>
                                                         <span>Correos fallidos: {event.failed_count}</span>
                                                         <span>Leídos en app: {readCount}</span>
@@ -2150,8 +2004,8 @@ export default function ProyectoRequisicionesPage() {
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
+                <AlertDialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto p-4 [overflow-wrap:anywhere] sm:p-6 [&_button]:min-h-11">
+                    <AlertDialogHeader className="text-left">
                         <AlertDialogTitle>¿Eliminar requisición?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Esta acción no se puede deshacer. Se eliminará la requisición y sus items operativos,
@@ -2179,15 +2033,16 @@ export default function ProyectoRequisicionesPage() {
                     setProviderSearchTerm("");
                 }
             }}>
-                <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+                <DialogContent className={cn(responsiveDialogClassName, "max-w-2xl flex flex-col")}>
                     {/* Show provider details/edit view */}
                     {selectedProviderForView && viewingProvider ? (
                         <>
-                            <DialogHeader>
+                            <DialogHeader className="min-w-0 pr-10 text-left">
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={backToProviderList}
-                                        className="p-1 hover:bg-muted rounded"
+                                        className="flex h-11 w-11 shrink-0 items-center justify-center hover:bg-muted rounded"
+                                        aria-label="Volver a proveedores"
                                     >
                                         <ChevronLeft className="h-5 w-5" />
                                     </button>
@@ -2205,8 +2060,8 @@ export default function ProyectoRequisicionesPage() {
                             </DialogHeader>
 
                             {isEditingProvider ? (
-                                <div className="space-y-4 overflow-y-auto flex-1">
-                                    <div className="grid grid-cols-2 gap-4">
+                                <div className="min-w-0 shrink-0 space-y-4">
+                                    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
                                             <Label>Razón Social *</Label>
                                             <Input
@@ -2229,7 +2084,7 @@ export default function ProyectoRequisicionesPage() {
                                             onChange={(e) => setEditProviderData(prev => ({ ...prev, direccion: e.target.value }))}
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
                                             <Label>Contacto</Label>
                                             <Input
@@ -2245,7 +2100,7 @@ export default function ProyectoRequisicionesPage() {
                                             />
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-4">
+                                    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-3">
                                         <div className="space-y-2">
                                             <Label>Banco</Label>
                                             <Input
@@ -2268,7 +2123,7 @@ export default function ProyectoRequisicionesPage() {
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex justify-end gap-2 pt-4">
+                                    <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
                                         <Button variant="outline" onClick={() => setIsEditingProvider(false)}>
                                             Cancelar
                                         </Button>
@@ -2282,8 +2137,8 @@ export default function ProyectoRequisicionesPage() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="space-y-4 overflow-y-auto flex-1">
-                                    <div className="grid grid-cols-2 gap-4">
+                                <div className="min-w-0 shrink-0 space-y-4">
+                                    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="space-y-1">
                                             <Label className="text-xs text-muted-foreground">Razón Social</Label>
                                             <p className="">{viewingProvider.razon_social}</p>
@@ -2297,7 +2152,7 @@ export default function ProyectoRequisicionesPage() {
                                         <Label className="text-xs text-muted-foreground">Dirección</Label>
                                         <p>{viewingProvider.direccion || "No especificada"}</p>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="space-y-1">
                                             <Label className="text-xs text-muted-foreground">Contacto</Label>
                                             <p>{viewingProvider.nombre_contacto || "No especificado"}</p>
@@ -2309,7 +2164,7 @@ export default function ProyectoRequisicionesPage() {
                                     </div>
                                     <div className="border-t pt-4">
                                         <Label className="text-xs text-muted-foreground block mb-2">Información Bancaria</Label>
-                                        <div className="grid grid-cols-3 gap-4">
+                                        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-3">
                                             <div className="space-y-1">
                                                 <Label className="text-xs text-muted-foreground">Banco</Label>
                                                 <p className="text-sm">{viewingProvider.banco || "-"}</p>
@@ -2331,7 +2186,7 @@ export default function ProyectoRequisicionesPage() {
                                             </p>
                                         </div>
                                     )}
-                                    <div className="flex justify-between gap-2 pt-4">
+                                    <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-between">
                                         <div>
                                             {canEditProvider(viewingProvider) && (
                                                 <Button variant="outline" onClick={startEditingProvider}>
@@ -2340,7 +2195,7 @@ export default function ProyectoRequisicionesPage() {
                                                 </Button>
                                             )}
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-col-reverse gap-2 sm:flex-row">
                                             <Button variant="outline" onClick={backToProviderList}>
                                                 Volver
                                             </Button>
@@ -2361,7 +2216,7 @@ export default function ProyectoRequisicionesPage() {
                         </>
                     ) : (
                         <>
-                            <DialogHeader>
+                            <DialogHeader className="min-w-0 pr-10 text-left">
                                 <DialogTitle>Asignar Proveedor</DialogTitle>
                                 <DialogDescription>
                                     Selecciona un proveedor existente o crea uno nuevo.
@@ -2369,7 +2224,7 @@ export default function ProyectoRequisicionesPage() {
                             </DialogHeader>
 
                             {/* Mode Toggle */}
-                            <div className="flex gap-2 border-b border-border pb-4">
+                            <div className="flex flex-col gap-2 border-b border-border pb-4 sm:flex-row">
                                 <Button
                                     variant={providerMode === "select" ? "default" : "outline"}
                                     size="sm"
@@ -2394,7 +2249,7 @@ export default function ProyectoRequisicionesPage() {
                             </div>
 
                             {providerMode === "select" ? (
-                                <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                                <div className="min-w-0 shrink-0 space-y-4 flex flex-col">
                                     {/* Search */}
                                     <div className="relative">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -2434,7 +2289,7 @@ export default function ProyectoRequisicionesPage() {
                                                                     e.stopPropagation();
                                                                     openProviderView(proveedor._id);
                                                                 }}
-                                                                className="p-1.5 hover:bg-disabled rounded"
+                                                                className="flex h-11 w-11 items-center justify-center hover:bg-disabled rounded"
                                                                 title="Ver detalles"
                                                             >
                                                                 <Eye className="h-4 w-4 text-muted-foreground" />
@@ -2446,7 +2301,7 @@ export default function ProyectoRequisicionesPage() {
                                                                         setCommonProviderForEdit(proveedor);
                                                                         setCommonProviderFormOpen(true);
                                                                     }}
-                                                                    className="p-1.5 hover:bg-disabled rounded"
+                                                                    className="flex h-11 w-11 items-center justify-center hover:bg-disabled rounded"
                                                                     title="Editar"
                                                                 >
                                                                     <Edit2 className="h-4 w-4 text-muted-foreground" />
@@ -2459,7 +2314,7 @@ export default function ProyectoRequisicionesPage() {
                                         )}
                                     </div>
 
-                                    <div className="flex justify-end gap-2 pt-4">
+                                    <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
                                         <Button variant="outline" onClick={() => setProviderDialogOpen(false)}>
                                             Cancelar
                                         </Button>
@@ -2474,7 +2329,7 @@ export default function ProyectoRequisicionesPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
                                             <Label>Razón Social *</Label>
                                             <Input
@@ -2500,7 +2355,7 @@ export default function ProyectoRequisicionesPage() {
                                             placeholder="Dirección"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
                                             <Label>Contacto</Label>
                                             <Input
@@ -2518,7 +2373,7 @@ export default function ProyectoRequisicionesPage() {
                                             />
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-4">
+                                    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-3">
                                         <div className="space-y-2">
                                             <Label>Banco</Label>
                                             <Input
@@ -2544,7 +2399,7 @@ export default function ProyectoRequisicionesPage() {
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex justify-end gap-2 pt-4">
+                                    <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
                                         <Button variant="outline" onClick={() => setProviderDialogOpen(false)}>
                                             Cancelar
                                         </Button>
