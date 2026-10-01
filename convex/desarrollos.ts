@@ -92,6 +92,7 @@ const STRUCTURE_COST_GROUPS = [
     { key: "impuestos", label: "IMPUESTOS", labels: ["impuestos", "imss", "isn", "infonavit", "cargas sociales"] },
     { key: "renta", label: "RENTA", labels: ["renta"] },
 ];
+const DISP_HONORARIOS_LABELS = ["disp honorarios", "dispersion honorarios"];
 const OGC_STRUCTURE_COST_GROUPS = [
     ...STRUCTURE_COST_GROUPS.filter(() => false),
     { key: "nomina", label: "NOMINA", labels: ["nomina", "residente", "residentes", "sueldos"] },
@@ -99,7 +100,7 @@ const OGC_STRUCTURE_COST_GROUPS = [
     { key: "transporte", label: "TRANSPORTE", labels: ["transporte"] },
     { key: "renta", label: "RENTA", labels: ["renta"] },
     { key: "otros", label: "OTROS", labels: ["otros", "administracion", "administrativo"] },
-    { key: "disp_honorarios", label: "DISP HONORARIOS", labels: ["disp honorarios", "dispersion honorarios"] },
+    { key: "disp_honorarios", label: "DISP HONORARIOS", labels: DISP_HONORARIOS_LABELS },
 ];
 type OgcMovement = Doc<"ogc_movimientos">;
 type PnlQueryArgs = {
@@ -147,6 +148,8 @@ const matchesMovementGroup = (movement: Pick<OgcMovement, "categoria" | "descrip
 };
 
 const getMovementGroupKey = (movement: Pick<OgcMovement, "categoria" | "descripcion">) => {
+    // A dispersion can mention other costs, but belongs exclusively to this row.
+    if (matchesMovementGroup(movement, DISP_HONORARIOS_LABELS)) return "disp_honorarios";
     return OGC_STRUCTURE_COST_GROUPS.find((group) => matchesMovementGroup(movement, group.labels))?.key || "otros";
 };
 
@@ -307,18 +310,15 @@ const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rate
             const amount = Math.abs(convertToMxn(movement.monto || 0, movement.moneda, movement.tipo_cambio, rates));
             const monthKey = parsedDate ? `${parsedDate.getFullYear()}-${parsedDate.getMonth() + 1}` : null;
 
-            if (movement.tipo === "ingreso") {
-                if (matchesAnyReportLabel(movement.categoria, INDIRECTOS_LABELS)) {
-                    acc.indirectos += amount;
-                    addMonthlyAmount(acc.monthly, monthKey, (summary) => {
-                        summary.indirectos += amount;
-                    });
-                } else {
-                    acc.honorarios += amount;
-                    addMonthlyAmount(acc.monthly, monthKey, (summary) => {
-                        summary.honorarios += amount;
-                    });
-                }
+            const isDispHonorarios = matchesMovementGroup(movement, DISP_HONORARIOS_LABELS);
+            if (movement.tipo === "ingreso" && !isDispHonorarios) {
+                // Only project payment percentages generate P&L honorarios.
+                // Other OGC income stays available in the ledger and collected income.
+                if (!matchesAnyReportLabel(movement.categoria, INDIRECTOS_LABELS)) return acc;
+                acc.indirectos += amount;
+                addMonthlyAmount(acc.monthly, monthKey, (summary) => {
+                    summary.indirectos += amount;
+                });
                 acc.hasIncomeMovements = true;
             } else {
                 const groupKey = getMovementGroupKey(movement);
@@ -521,8 +521,8 @@ const summarizeProjectPayments = async (
         }
     });
 
+    // P&L and profitability always use the percentage, independently of the budget mode.
     const honorariosRate = Math.max(toFiniteNumber(proyecto.honorarios_porcentaje), 0) / 100;
-    const automaticMode = getHonorariosModo(proyecto.honorarios_modo) === "automatico";
     const summary = {
         metrics,
         honorarios: 0,
@@ -552,19 +552,10 @@ const summarizeProjectPayments = async (
 
             const isHonorariosPayment = isHonorariosPartida(partida);
 
-            if (!automaticMode && isHonorariosPayment) {
-                const honorariosAmount = convertToMxn(pago.monto || 0, transaction.moneda, transaction.tipo_cambio, rates);
-                summary.honorarios += honorariosAmount;
-                addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
-                    monthlySummary.honorarios += honorariosAmount;
-                });
-            }
-
             if (transaction.status !== "Pagado") continue;
             summary.totalPagado += amount;
 
             if (
-                automaticMode &&
                 !isHonorariosPayment &&
                 !excludedPartidaIds.has(String(partida._id))
             ) {
@@ -616,10 +607,8 @@ const getOgcFormulaTotals = async (
     mergeMonthlySummaries(monthlyOgcMovements, projectPaymentSummary.monthly);
     mergeMonthlySummaries(monthlyOgcMovements, movementSummary.monthly);
 
-    const legacyHonorarios = projectPaymentSummary.honorarios;
-    const legacyIndirectos = projectPaymentSummary.indirectos;
-    const honorarios = legacyHonorarios + movementSummary.honorarios;
-    const indirectos = legacyIndirectos + movementSummary.indirectos;
+    const honorarios = projectPaymentSummary.honorarios;
+    const indirectos = projectPaymentSummary.indirectos + movementSummary.indirectos;
     const ingresosOgc = honorarios + indirectos;
     const mergedStructureBreakdown = OGC_STRUCTURE_COST_GROUPS.map((group) => ({
         key: group.key,
@@ -787,16 +776,14 @@ export const getPnlSummary = query({
         }
     );
 
-    totals.honorarios += companyOnlyMovementSummary.honorarios;
     totals.indirectos += companyOnlyMovementSummary.indirectos;
-    totals.ingresosOgc += companyOnlyMovementSummary.honorarios + companyOnlyMovementSummary.indirectos;
+    totals.ingresosOgc += companyOnlyMovementSummary.indirectos;
     totals.costosEstructuraOgc += companyOnlyMovementSummary.costosEstructura;
     totals.costosEstructuraMasIndirectos += companyOnlyMovementSummary.costosEstructura + companyOnlyMovementSummary.indirectos;
     totals.margenBruto +=
-        companyOnlyMovementSummary.honorarios +
         companyOnlyMovementSummary.indirectos -
         companyOnlyMovementSummary.costosEstructura;
-    totals.ebitda += companyOnlyMovementSummary.honorarios - companyOnlyMovementSummary.costosEstructura;
+    totals.ebitda -= companyOnlyMovementSummary.costosEstructura;
     Object.entries(companyOnlyMovementSummary.structureBreakdown).forEach(([key, amount]) => {
         totals.structureBreakdown[key] = (totals.structureBreakdown[key] || 0) + amount;
     });

@@ -13,6 +13,7 @@
     "test:e2e:bitacora": "playwright test --config playwright.bitacora.config.ts",
     "typecheck:convex-saas": "tsc -p convex-SAAS/tsconfig.json --noEmit",
     "test:reports": "node --experimental-strip-types scripts/test-reporting-rules.mjs",
+    "test:pnl": "vitest run --config vitest.config.ts --configLoader runner convex/pnl.test.mjs",
     "test:providers": "node --experimental-strip-types scripts/test-provider-transaction-rules.mjs",
     "test:labor-import": "node --experimental-strip-types scripts/test-labor-payment-import-rules.mjs",
     "test:ogc-import": "node --experimental-strip-types scripts/test-ogc-import-rules.mjs",
