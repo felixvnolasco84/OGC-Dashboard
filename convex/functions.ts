@@ -4,6 +4,7 @@ import { DataModel, Doc, Id } from "./_generated/dataModel";
 import { Triggers } from "convex-helpers/server/triggers";
 import { customCtx, customMutation } from "convex-helpers/server/customFunctions";
 import { getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
+import { calculatePresupuestoMetrics } from "./presupuestoRules";
 
 // Initialize Triggers with table types from schema.ts
 const triggers = new Triggers<DataModel>();
@@ -383,6 +384,11 @@ triggers.register("partidas", async (ctx, change) => {
         console.log("Updating meticas_presupuesto for proyecto:", partida.proyecto);
         await updateMeticasPresupuesto(ctx, partida.proyecto);
         console.log("✅ Successfully updated meticas_presupuesto after partida change");
+      } else if (partida.nivel === 1 && (
+        change.oldDoc.pagado !== newPagado ||
+        change.oldDoc.presupuesto_original !== change.newDoc.presupuesto_original
+      )) {
+        await updateMeticasPresupuesto(ctx, partida.proyecto);
       }
     }
     
@@ -391,6 +397,9 @@ triggers.register("partidas", async (ctx, change) => {
       const porGastar = partida.presupuesto_aprobado - (partida.pagado || 0);
       await ctx.db.patch(change.id, { por_gastar: porGastar });
       console.log(`Set initial por_gastar for partida ${change.id}: ${porGastar}`);
+    }
+    if (partida.nivel === 1 && change.operation !== "update") {
+      await updateMeticasPresupuesto(ctx, partida.proyecto);
     }
   } catch (error) {
     console.error("❌ Error in partida trigger:", error);
@@ -414,23 +423,9 @@ async function updateMeticasPresupuesto(
       )
       .collect();
     
-    // Calculate totals by summing nivel 1 partidas
-    const presupuesto_original = nivel1Partidas.reduce(
-      (sum: number, p: any) => sum + (p.presupuesto_original || 0),
-      0
-    );
-    
-    const presupuesto_aprobado = nivel1Partidas.reduce(
-      (sum: number, p: any) => sum + (p.presupuesto_aprobado || 0),
-      0
-    );
-    
-    const gasto_total = nivel1Partidas.reduce(
-      (sum: number, p: any) => sum + (p.pagado || 0),
-      0
-    );
-    
-    const por_gastar = presupuesto_aprobado - gasto_total;
+    const proyecto = await ctx.db.get(proyectoId);
+    const { presupuesto_original, presupuesto_aprobado, gasto_total, por_gastar } =
+      calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto);
     
     console.log("Calculated metrics:", {
       presupuesto_original,
@@ -634,9 +629,7 @@ async function updateHonorariosPartida(
       .collect();
     
     // Find the honorarios partida with case-insensitive matching
-    const honorariosPartida = nivel1Partidas.find((p: any) => 
-      p.nombre.toLowerCase() === "honorarios"
-    );
+    const honorariosPartida = nivel1Partidas.find(isHonorariosPartida);
     
     if (honorariosPartida) {
       // Update pagado and por_gastar for existing HONORARIOS partida

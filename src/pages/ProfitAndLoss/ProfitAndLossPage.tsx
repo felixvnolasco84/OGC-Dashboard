@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -29,7 +30,7 @@ import { OgcMovementsUploadModal } from "@/components/modals/ogc-movements-uploa
 import { OgcInvoiceEvidenceDialog } from "@/components/modals/ogc-invoice-evidence-dialog";
 import type { OgcInvoiceProof } from "@/lib/ogcInvoiceEvidence";
 import { cn } from "@/lib/utils";
-import { Ban, CalendarDays, Check, Copy, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
+import { Ban, CalendarDays, Check, Copy, Info, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   ALL_PROJECT_LOCATIONS,
@@ -529,12 +530,23 @@ function MonthlyPnlTable({
   const mobileMonthIndex = foundMonth >= 0 ? foundMonth : Math.max(0, months.length - 1);
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <h2 className="text-lg text-foreground">ESTADO DE RESULTADOS</h2>
-        <div className="text-left md:text-right">
-          <p className="text-sm text-disabled-foreground">Movimientos reales acumulados {periodLabel}</p>
-          {dataQualityNote && <p className="mt-1 text-xs text-muted-foreground">{dataQualityNote}</p>}
+      <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex shrink-0 items-center gap-2">
+          <h2 className="text-left text-lg text-foreground md:whitespace-nowrap">ESTADO DE RESULTADOS</h2>
+          {dataQualityNote && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0 text-muted-foreground" aria-label="Ver explicación del cálculo">
+                  <Info className="size-4" aria-hidden="true" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start" className="w-[calc(100vw-2rem)] max-w-sm text-left leading-relaxed">
+                {dataQualityNote}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
+        <p className="text-left text-sm text-disabled-foreground md:text-right">Movimientos reales acumulados {periodLabel}</p>
       </div>
 
       <div className="space-y-4 lg:hidden">
@@ -560,7 +572,7 @@ function MonthlyPnlTable({
         <table className="w-full min-w-[980px] border-collapse text-left">
           <thead>
             <tr className="border-b border-border text-sm text-muted-foreground">
-              <th className="w-[340px] px-8 py-4 font-normal">Concepto</th>
+              <th className="sticky left-0 z-20 w-[180px] min-w-[180px] border-r border-border bg-card px-8 py-4 font-normal lg:w-[340px] lg:min-w-0">Concepto</th>
               {months.map((month) => (
                 <th key={month.key} className="px-8 py-4 text-center font-normal">
                   {month.label}
@@ -585,7 +597,8 @@ function MonthlyPnlTable({
                 >
                   <td
                     className={cn(
-                      "px-8 py-6 align-middle text-base whitespace-nowrap",
+                      "sticky left-0 z-10 max-w-[180px] whitespace-normal border-r border-border px-8 py-6 align-middle text-base lg:max-w-none lg:whitespace-nowrap",
+                      isSubtotal || isMetric ? "bg-[#FBFAF2]" : "bg-card",
                       isSection ? "text-foreground" : "text-disabled-foreground",
                       isSubtotal || isMetric ? "text-foreground" : ""
                     )}

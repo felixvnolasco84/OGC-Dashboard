@@ -5,6 +5,7 @@ import { mutation, updateHonorariosMonto } from "./functions";
 import { v } from "convex/values";
 import { assertCanWrite } from "./permissions";
 import { cleanHierarchyText, normalizeHierarchyText } from "./partidaRules";
+import { calculatePresupuestoMetrics } from "./presupuestoRules";
 
 type PartidaTotals = {
   presupuesto_original: number;
@@ -204,7 +205,8 @@ async function updateProjectMetrics(ctx: any, proyecto: Id<"desarrollos">) {
     .query("partidas")
     .withIndex("by_nivel_proyecto", (q: any) => q.eq("nivel", 1).eq("proyecto", proyecto))
     .collect();
-  const totals = totalsFromPartidas(nivel1Partidas);
+  const project = await ctx.db.get(proyecto);
+  const totals = calculatePresupuestoMetrics(nivel1Partidas, project?.honorarios_monto);
 
   const existingMetrics = await ctx.db
     .query("meticas_presupuesto")
@@ -215,7 +217,7 @@ async function updateProjectMetrics(ctx: any, proyecto: Id<"desarrollos">) {
     await ctx.db.patch(existingMetrics._id, {
       presupuesto_original: totals.presupuesto_original,
       presupuesto_aprobado: totals.presupuesto_aprobado,
-      gasto_total: totals.pagado,
+      gasto_total: totals.gasto_total,
       por_gastar: totals.por_gastar,
     });
   } else {
@@ -223,7 +225,7 @@ async function updateProjectMetrics(ctx: any, proyecto: Id<"desarrollos">) {
       proyecto,
       presupuesto_original: totals.presupuesto_original,
       presupuesto_aprobado: totals.presupuesto_aprobado,
-      gasto_total: totals.pagado,
+      gasto_total: totals.gasto_total,
       por_gastar: totals.por_gastar,
     });
   }

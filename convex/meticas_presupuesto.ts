@@ -2,6 +2,7 @@ import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import { calculateHonorariosFromRecords } from "./honorariosRules";
+import { calculatePresupuestoMetrics } from "./presupuestoRules";
 
 // Query to get metrics for a specific proyecto
 export const getByProyecto = query({
@@ -22,10 +23,16 @@ export const getByProyecto = query({
       return null;
     }
     
-    // gasto_total already includes honorarios via the HONORARIOS partida's `pagado`
-    // (set by updateHonorariosPartida in functions.ts), so do NOT add it again.
+    // Read current root totals instead of serving a stale metrics cache.
+    // This also makes the query reactive to partida changes and includes the
+    // same complete honorarios amount shown by PresupuestoTable, exactly once.
+    const nivel1Partidas = await ctx.db
+      .query("partidas")
+      .withIndex("by_nivel_proyecto", (q) => q.eq("nivel", 1).eq("proyecto", args.proyecto_id))
+      .collect();
     return {
       ...metrics,
+      ...calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto),
       honorarios_monto,
     };
   },
@@ -178,34 +185,11 @@ export const recalculate = mutation({
     // Get all partidas for this proyecto (nivel 1 only for aggregated totals)
     const nivel1Partidas = await ctx.db
       .query("partidas")
-      .filter((q) => 
-        q.and(
-          q.eq(q.field("nivel"), 1),
-          q.eq(q.field("proyecto"), args.proyecto_id)
-        )
-      )
+      .withIndex("by_nivel_proyecto", (q) => q.eq("nivel", 1).eq("proyecto", args.proyecto_id))
       .collect();
-    
-    // Calculate totals by summing nivel 1 partidas
-    const presupuesto_original = nivel1Partidas.reduce(
-      (sum, p) => sum + (p.presupuesto_original || 0),
-      0
-    );
-    
-    const presupuesto_aprobado = nivel1Partidas.reduce(
-      (sum, p) => sum + (p.presupuesto_aprobado || 0),
-      0
-    );
-    
-    // gasto_total from nivel 1 partidas already includes the HONORARIOS partida
-    // (its `pagado` is set by updateHonorariosPartida in functions.ts).
-    // Do NOT add honorarios_monto separately — that would double-count.
-    const gasto_total = nivel1Partidas.reduce(
-      (sum, p) => sum + (p.pagado || 0),
-      0
-    );
-    
-    const por_gastar = presupuesto_aprobado - gasto_total;
+    const proyecto = await ctx.db.get(args.proyecto_id);
+    const { presupuesto_original, presupuesto_aprobado, gasto_total, por_gastar } =
+      calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto);
     
     // Check if meticas_presupuesto already exists for this proyecto
     const existingMetrics = await ctx.db
