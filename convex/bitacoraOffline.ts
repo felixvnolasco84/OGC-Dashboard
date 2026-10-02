@@ -1,6 +1,7 @@
 import { resolveProjectDocumentFolder } from "./projectDocumentFolders";
+import { assertBudgetFamilyTags } from "./partidaReferences";
 import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
@@ -543,6 +544,12 @@ export const applyOfflineOperation = mutation({
           status: "validation_error" as const,
           message: "La partida no pertenece al proyecto o no es de nivel 1.",
         };
+      }
+      try {
+        await assertBudgetFamilyTags(ctx, args.proyecto, args.payload.partida_id, args.payload.familias_tags);
+      } catch (error) {
+        if (!(error instanceof ConvexError)) throw error;
+        return { status: "validation_error" as const, message: String(error.data) };
       }
       for (const attachment of args.addedAttachments) {
         const validationError = await validateReservedAttachment(

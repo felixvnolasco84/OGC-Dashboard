@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import type { ConvexReactClient } from "convex/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bitacoraDb, findValidOfflineProfile, OFFLINE_PROFILE_TTL_MS } from "./db";
-import { acceptServerVersion, deleteEntryLocally, mergeRemoteEntries, saveEntryLocally } from "./repository";
+import { acceptServerVersion, cacheBootstrap, deleteEntryLocally, mergeRemoteEntries, resolveBudgetCatalog, saveEntryLocally } from "./repository";
 import { pullProjectChanges, queueHistoricalAttachmentDownload } from "./sync";
 import type { BitacoraFields, OfflineProfile, RemoteEntry } from "./types";
 
@@ -57,6 +57,31 @@ describe("BitacoraRepository offline", () => {
   afterEach(async () => {
     vi.restoreAllMocks();
     await bitacoraDb.delete();
+  });
+
+  it("resuelve familias de Convex por nombre y conserva el padre en la caché", async () => {
+    await cacheBootstrap({ clerkId: "user-a", projectId: "project-1", bootstrap: {
+      verifiedAt: Date.now(), expiresAt: Date.now() + OFFLINE_PROFILE_TTL_MS, latestVersion: 0,
+      user: { name: "Ada", role: "admin" }, project: { _id: "project-1" }, assignableUsers: [],
+      partidas: [
+        { _id: "root", nombre: "Estructura", nivel: 1 },
+        { _id: "family", nombre: "Estructura", partida_nombre: "Estructura", familia: "Concreto", nivel: 2 },
+        { _id: "historical-family", nombre: "Estructura", familia: "Acero", nivel: 2 },
+      ],
+    } });
+    const catalog = resolveBudgetCatalog(await bitacoraDb.partidas.toArray());
+    expect(catalog.find(item => item.id === "family")).toMatchObject({ name: "Concreto", parentId: "root" });
+    expect(catalog.find(item => item.id === "historical-family")).toMatchObject({ name: "Acero", parentId: "root" });
+  });
+
+  it("corrige catálogos antiguos en memoria sin migrar o vincular familias de otra partida", () => {
+    const catalog = resolveBudgetCatalog([
+      { partidaId: "root", name: "Estructura", nivel: 1, raw: {} },
+      { partidaId: "family", name: "Estructura", nivel: 2, raw: { nombre: "Estructura", familia: "Concreto" } },
+      { partidaId: "orphan", name: "Otra", nivel: 2, raw: { nombre: "Otra", familia: "Muro" } },
+    ]);
+    expect(catalog[1]).toMatchObject({ name: "Concreto", parentId: "root" });
+    expect(catalog[2]).toMatchObject({ name: "Muro", parentId: undefined });
   });
 
   it("persiste atómicamente reporte, blob y outbox a través de un cierre", async () => {

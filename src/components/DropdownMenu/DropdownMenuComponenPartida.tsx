@@ -14,22 +14,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../ui/alert-dialog";
 import { useSeePaymentDetailsModal } from "@/hooks/see-transactions-details";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import EditPartidaForm from "../Forms/EditPartidaForm";
-import { toast } from "sonner";
-import { formatCurrency } from "@/lib/utils";
 
 interface DropdownMenuComponentPartidaProps {
   partida: Doc<"partidas">;
@@ -43,19 +31,18 @@ interface DropdownMenuComponentPartidaProps {
     hasChildren: boolean;
   };
   currency?: string;
+  onRequestDelete: (partida: Doc<"partidas">) => void;
 }
 
 export default function DropdownMenuComponentPartida({
   partida,
   level,
   rowData,
-  currency = "MXN",
+  onRequestDelete,
 }: DropdownMenuComponentPartidaProps) {
   const seePaymentDetailsModal = useSeePaymentDetailsModal();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const currentUser = useQuery(api.users.getCurrentUser);
   const isViewer = currentUser?.role === "viewer";
@@ -65,12 +52,6 @@ export default function DropdownMenuComponentPartida({
   // Note: level 0 = nivel 1 (partida), level 1 = nivel 2 (familia), level 2 = nivel 3 (sub-partida)
   const isRealPartida = level === 2 && partida._id && !partida._id.toString().startsWith("temp-");
   const shouldPrimePayments = isMenuOpen;
-  const deletionImpact = useQuery(
-    api.partida.getSubPartidaDeletionImpact,
-    isDeleteOpen && canEdit && isRealPartida ? { id: partida._id } : "skip",
-  );
-  const deleteSubPartida = useMutation(api.partida.deleteSubPartida);
-
   // Level 2 (nivel 3): Get payments by partida_id (specific sub-partida)
   const level2Payments = useQuery(
     api.pagos.getByPartidaId,
@@ -148,24 +129,7 @@ export default function DropdownMenuComponentPartida({
 
   const handleOpenDelete = () => {
     setIsMenuOpen(false);
-    window.setTimeout(() => setIsDeleteOpen(true), 100);
-  };
-
-  const handleDelete = async () => {
-    if (!deletionImpact?.canDelete || isDeleting) return;
-    setIsDeleting(true);
-    try {
-      await deleteSubPartida({ id: partida._id });
-      toast.success("Subpartida eliminada.");
-      setIsDeleteOpen(false);
-    } catch (error) {
-      const message = error instanceof Error
-        ? error.message.match(/Uncaught Error: ([^\n]+)/)?.[1] || error.message
-        : "No se pudo eliminar la subpartida.";
-      toast.error(message);
-    } finally {
-      setIsDeleting(false);
-    }
+    onRequestDelete(partida);
   };
 
   const handleViewTransactions = () => {
@@ -215,10 +179,10 @@ export default function DropdownMenuComponentPartida({
                     <Pencil className="h-4 w-4" />
                     Editar {labels.title.toLowerCase()}
                   </DropdownMenuItem>
-                  {level === 2 && (
+                  {currentUser?.role === "admin" && partida.proyecto && (
                     <DropdownMenuItem onSelect={handleOpenDelete} variant="destructive">
                       <Trash2 className="h-4 w-4" />
-                      Eliminar subpartida
+                      Eliminar {level === 0 ? "partida" : level === 1 ? "familia" : "subpartida"}
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuGroup>
@@ -260,72 +224,7 @@ export default function DropdownMenuComponentPartida({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
-        open={isDeleteOpen}
-        onOpenChange={(open) => {
-          if (!isDeleting) setIsDeleteOpen(open);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {deletionImpact && !deletionImpact.canDelete
-                ? "No se puede eliminar la subpartida"
-                : "¿Eliminar subpartida?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p>
-                  <span className=" text-foreground">{rowData.displayName}</span>
-                  {" · "}
-                  Presupuesto aprobado: {formatCurrency(rowData.presupuestoAprobado, currency)}
-                </p>
-                {deletionImpact === undefined ? (
-                  <p>Verificando pagos y datos asociados...</p>
-                ) : deletionImpact.canDelete ? (
-                  <p>
-                    Esta acción eliminará el concepto del presupuesto y recalculará los totales de su familia y partida. No se puede deshacer.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    <p>Debes retirar o reasignar estos datos antes de eliminarla:</p>
-                    <ul className="list-disc space-y-1 pl-5">
-                      {deletionImpact.blockers.map((blocker) => (
-                        <li key={blocker}>{blocker}</li>
-                      ))}
-                    </ul>
-                    <p>Puedes renombrar la subpartida sin perder esos vínculos.</p>
-                  </div>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>
-              {deletionImpact && !deletionImpact.canDelete ? "Cerrar" : "Cancelar"}
-            </AlertDialogCancel>
-            {deletionImpact?.canDelete && (
-              <AlertDialogAction
-                disabled={isDeleting}
-                variant="destructive"
-                onClick={(event) => {
-                  event.preventDefault();
-                  void handleDelete();
-                }}
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Eliminando...
-                  </>
-                ) : (
-                  "Eliminar"
-                )}
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </>
   );
 }

@@ -390,7 +390,8 @@ export default defineSchema({
   }).index("by_run", { fields: ["run_id"] })
     .index("by_invoice", { fields: ["invoice_id"] })
     .index("by_category", { fields: ["category_id"] })
-    .index("by_partida", { fields: ["partida_id"] }),
+    .index("by_partida", { fields: ["partida_id"] })
+    .index("by_proposed_partida", { fields: ["proposed_partida_id"] }),
 
   invoice_budget_mapping_memory: defineTable({
     project_id: v.id("desarrollos"),
@@ -403,7 +404,8 @@ export default defineSchema({
     updated_at: v.number(),
   }).index("by_project", { fields: ["project_id"] })
     .index("by_project_description", { fields: ["project_id", "normalized_description"] })
-    .index("by_project_product", { fields: ["project_id", "product_code"] }),
+    .index("by_project_product", { fields: ["project_id", "product_code"] })
+    .index("by_partida", { fields: ["partida_id"] }),
 
   invoice_allocations: defineTable({
     invoice_id: v.id("invoice_records"),
@@ -1253,7 +1255,8 @@ export default defineSchema({
     .index("by_proyecto_status", { fields: ["proyecto", "status"] })
     .index("by_previous_revision", { fields: ["previous_revision_id"] })
     .index("by_manager", { fields: ["rfi_manager_id"] })
-    .index("by_due_date", { fields: ["due_date"] }),
+    .index("by_due_date", { fields: ["due_date"] })
+    .index("by_partida_id", { fields: ["partida_id"] }),
 
   rfi_number_sequences: defineTable({
     proyecto: v.id("desarrollos"),
@@ -1527,7 +1530,8 @@ export default defineSchema({
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_programa_hito", { fields: ["programa_obra_id", "hito"] })
     .index("by_transaccion", { fields: ["transaccion_id"] })
-    .index("by_requisicion", { fields: ["requisicion_id"] }),
+    .index("by_requisicion", { fields: ["requisicion_id"] })
+    .index("by_partida_id", { fields: ["partida_id"] }),
   
   // Programa de Obra - Ponderación (complexity weight) per familia/sub-partida
   programa_obra_ponderacion: defineTable({
@@ -1711,7 +1715,8 @@ export default defineSchema({
     siroc_type: v.optional(v.string()),
     siroc_uploaded_at: v.optional(v.number()),
   }).index("by_proyecto", { fields: ["proyecto"] })
-    .index("by_contratista_general", { fields: ["contratista_general_id"] }),
+    .index("by_contratista_general", { fields: ["contratista_general_id"] })
+    .index("by_partida_id", { fields: ["partida_id"] }),
 
   // IMSS configuration per project (manual input)
   imss_configuracion: defineTable({

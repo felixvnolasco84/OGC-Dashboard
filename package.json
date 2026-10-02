@@ -19,6 +19,8 @@
     "test:ogc-import": "node --experimental-strip-types scripts/test-ogc-import-rules.mjs",
     "test:ogc-classification": "vitest run --config vitest.config.ts --configLoader runner convex/ogcClassification.test.mjs",
     "test:partidas": "node --experimental-strip-types scripts/test-partida-rules.mjs",
+    "test:partida-deletion": "vitest run --config vitest.config.ts --configLoader runner convex/partidaDeletion.test.mjs",
+    "test:partida-deletion-ui": "node scripts/test-partida-deletion-ui.mjs",
     "test:project-locations": "node --experimental-strip-types scripts/test-project-location-rules.mjs",
     "test:chatbot": "node --experimental-strip-types scripts/test-assistant-rules.mjs",
     "test:invoices": "node --experimental-strip-types scripts/test-invoice-analysis-rules.mjs",

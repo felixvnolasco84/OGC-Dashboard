@@ -11,6 +11,7 @@ import {
   deleteEntryLocally,
   reapplyLocalVersion,
   restoreConflictAsNew,
+  resolveBudgetCatalog,
   saveEntryLocally,
   toEntryView,
 } from "./repository";
@@ -300,7 +301,7 @@ function BaseBitacoraRepositoryProvider({
     project: project ? { id: project.projectId, name: project.name, raw: project.raw } : undefined,
     profile,
     entries,
-    partidas: (partidas ?? []).map((item) => ({ id: item.partidaId, name: item.name, nivel: item.nivel, parentId: item.parentId })),
+    partidas: resolveBudgetCatalog(partidas ?? []),
     assignableUsers: (cachedUsers ?? []).map((item) => ({ id: item.targetUserId, name: item.name })),
     isReady: Boolean(profile && project && syncMetadata?.prepared && (client || profile.expiresAt > Date.now())),
     isOnline: Boolean(client && networkOnline && backendConnected),

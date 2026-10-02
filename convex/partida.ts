@@ -1,11 +1,14 @@
 import { paginationOptsValidator } from "convex/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
-import { mutation, updateHonorariosMonto } from "./functions";
+import { query, mutation as rawMutation } from "./_generated/server";
+import { mutation } from "./functions";
 import { v } from "convex/values";
 import { assertCanWrite } from "./permissions";
 import { cleanHierarchyText, normalizeHierarchyText } from "./partidaRules";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
+import { repairProjectPaymentTotals } from "./budgetMaintenance";
+import { analyzePartidaDeletion, executePartidaDeletion } from "./partidaDeletion";
+import { assertBudgetParent, assertBudgetReference } from "./partidaReferences";
 
 type PartidaTotals = {
   presupuesto_original: number;
@@ -21,157 +24,6 @@ type SyncPartidaResult = {
   familiasSynced: number;
   subPartidasCount: number;
 };
-
-type SubPartidaDependencyCounts = {
-  pagos: number;
-  ponderaciones: number;
-  avances: number;
-  programacion: number;
-  requisiciones: number;
-  rfis: number;
-};
-
-type SubPartidaDeletionImpact = {
-  canDelete: boolean;
-  hasEquivalentSibling: boolean;
-  counts: SubPartidaDependencyCounts;
-  blockers: string[];
-};
-
-function dependencyBlockers(counts: SubPartidaDependencyCounts) {
-  const labels: Array<[keyof SubPartidaDependencyCounts, string]> = [
-    ["pagos", "pagos"],
-    ["ponderaciones", "ponderaciones del programa de obra"],
-    ["avances", "registros de avance"],
-    ["programacion", "registros de programación"],
-    ["requisiciones", "requisiciones"],
-    ["rfis", "RFIs"],
-  ];
-  return labels
-    .filter(([key]) => counts[key] > 0)
-    .map(([key, label]) => `${counts[key]} ${label}`);
-}
-
-async function getEquivalentSubPartidas(
-  ctx: QueryCtx | MutationCtx,
-  partida: Doc<"partidas">,
-) {
-  if (!partida.proyecto || partida.nivel !== 3) return [];
-  const partidaNombre = partida.partida_nombre || partida.nombre;
-  const normalizedName = normalizeHierarchyText(partida.sub_partida || partida.nombre);
-  const siblings: Doc<"partidas">[] = await ctx.db
-    .query("partidas")
-    .withIndex("by_proyecto_nivel_partida_familia", (q) =>
-      q
-        .eq("proyecto", partida.proyecto)
-        .eq("nivel", 3)
-        .eq("partida_nombre", partidaNombre)
-        .eq("familia", partida.familia),
-    )
-    .collect();
-
-  return siblings.filter(
-    (item) =>
-      item._id !== partida._id &&
-      normalizeHierarchyText(item.sub_partida || item.nombre) === normalizedName,
-  );
-}
-
-async function getSubPartidaDeletionImpactInternal(
-  ctx: QueryCtx | MutationCtx,
-  partida: Doc<"partidas">,
-): Promise<SubPartidaDeletionImpact> {
-  const proyecto = partida.proyecto;
-  if (partida.nivel !== 3 || !proyecto) {
-    throw new Error("Solo se pueden eliminar subpartidas vinculadas a un proyecto.");
-  }
-
-  const [pagos, ponderaciones, avances, equivalentSiblings] = await Promise.all([
-    ctx.db
-      .query("pagos")
-      .withIndex("by_partida_id", (q) => q.eq("partida_id", partida._id))
-      .collect(),
-    ctx.db
-      .query("programa_obra_ponderacion")
-      .withIndex("by_partida_id", (q) => q.eq("partida_id", partida._id))
-      .collect(),
-    ctx.db
-      .query("avance_real")
-      .withIndex("by_partida_id", (q) => q.eq("partida_id", partida._id))
-      .collect(),
-    getEquivalentSubPartidas(ctx, partida),
-  ]);
-
-  const counts: SubPartidaDependencyCounts = {
-    pagos: pagos.length,
-    ponderaciones: ponderaciones.length,
-    avances: avances.length,
-    programacion: 0,
-    requisiciones: 0,
-    rfis: 0,
-  };
-
-  // Name-only references remain valid when another equivalent budget concept
-  // will survive the deletion. Otherwise they block removal to avoid orphans.
-  if (equivalentSiblings.length === 0) {
-    const partidaNombre = partida.partida_nombre || partida.nombre;
-    const normalizedPartida = normalizeHierarchyText(partidaNombre);
-    const normalizedFamilia = normalizeHierarchyText(partida.familia);
-    const normalizedSubPartida = normalizeHierarchyText(partida.sub_partida || partida.nombre);
-
-    const detalles = await ctx.db
-      .query("programa_obra_detalle")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto))
-      .collect();
-    counts.programacion = detalles.filter(
-      (detalle) =>
-        detalle.nivel === 3 &&
-        normalizeHierarchyText(detalle.partida) === normalizedPartida &&
-        normalizeHierarchyText(detalle.familia) === normalizedFamilia &&
-        normalizeHierarchyText(detalle.subpartida) === normalizedSubPartida,
-    ).length;
-
-    const nivel1Partidas: Doc<"partidas">[] = await ctx.db
-      .query("partidas")
-      .withIndex("by_proyecto_nivel_nombre", (q) =>
-        q.eq("proyecto", proyecto).eq("nivel", 1).eq("nombre", partidaNombre),
-      )
-      .collect();
-    const nivel1Ids = new Set(nivel1Partidas.map((item) => String(item._id)));
-
-    for (const parent of nivel1Partidas) {
-      const items = await ctx.db
-        .query("requisicion_items")
-        .withIndex("by_partida", (q) => q.eq("partida_id", parent._id))
-        .collect();
-      counts.requisiciones += items.filter(
-        (item) =>
-          normalizeHierarchyText(item.familia) === normalizedFamilia &&
-          normalizeHierarchyText(item.sub_partida) === normalizedSubPartida,
-      ).length;
-    }
-
-    const projectRfis = await ctx.db
-      .query("rfis")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto))
-      .collect();
-    counts.rfis = projectRfis.filter(
-      (rfi) =>
-        rfi.partida_id &&
-        nivel1Ids.has(String(rfi.partida_id)) &&
-        normalizeHierarchyText(rfi.familia) === normalizedFamilia &&
-        normalizeHierarchyText(rfi.sub_partida) === normalizedSubPartida,
-    ).length;
-  }
-
-  const blockers = dependencyBlockers(counts);
-  return {
-    canDelete: blockers.length === 0,
-    hasEquivalentSibling: equivalentSiblings.length > 0,
-    counts,
-    blockers,
-  };
-}
 
 function totalsFromPartidas(partidas: Doc<"partidas">[]): PartidaTotals {
   const presupuesto_original = partidas.reduce((sum, item) => sum + (item.presupuesto_original || 0), 0);
@@ -195,8 +47,14 @@ function totalsChanged(item: Doc<"partidas">, totals: PartidaTotals) {
 }
 
 async function patchTotalsIfChanged(ctx: any, item: Doc<"partidas">, totals: PartidaTotals) {
-  if (!totalsChanged(item, totals)) return false;
-  await ctx.db.patch(item._id, totals);
+  // Budget rollups must not overwrite payments made directly to a parent.
+  const budgetTotals = {
+    ...totals,
+    pagado: item.pagado || 0,
+    por_gastar: totals.presupuesto_aprobado - (item.pagado || 0),
+  };
+  if (!totalsChanged(item, budgetTotals)) return false;
+  await ctx.db.patch(item._id, budgetTotals);
   return true;
 }
 
@@ -660,15 +518,7 @@ export const createPartida = mutation({
         throw new Error("partida_nombre es requerido para niveles 2 y 3");
       }
       if (args.proyecto) {
-        const parent = await ctx.db
-          .query("partidas")
-          .withIndex("by_proyecto_nivel_nombre", (q) =>
-            q.eq("proyecto", args.proyecto).eq("nivel", 1).eq("nombre", args.partida_nombre!)
-          )
-          .first();
-        if (!parent) {
-          throw new Error(`No existe la partida padre "${args.partida_nombre}" en este proyecto`);
-        }
+        await assertBudgetParent(ctx, args.proyecto, args.partida_nombre, args.nivel === 3 ? args.familia : undefined);
       }
     }
 
@@ -728,6 +578,13 @@ export const update = mutation({
 
     if (!existingPartida) {
       throw new Error("Not found");
+    }
+    const referenceProject = args.proyecto || existingPartida.proyecto;
+    if (referenceProject) {
+      await assertBudgetReference(ctx, id, referenceProject);
+      if (args.nivel === 2 || args.nivel === 3) {
+        await assertBudgetParent(ctx, referenceProject, args.partida_nombre || args.nombre, args.nivel === 3 ? args.familia : undefined);
+      }
     }
 
     let subPartida = args.sub_partida;
@@ -815,59 +672,39 @@ export const update = mutation({
   },
 });
 
+export const getDeletionImpact = query({
+  args: { id: v.id("partidas"), projectId: v.id("desarrollos") },
+  handler: (ctx, args) => analyzePartidaDeletion(ctx, args.id, args.projectId),
+});
+
+export const deletePartida = rawMutation({
+  args: { id: v.id("partidas"), projectId: v.id("desarrollos"), expectedScope: v.string() },
+  handler: (ctx, args) => executePartidaDeletion(ctx, args.id, args.projectId, args.expectedScope),
+});
+
+// Compatibility adapters retain the single-leaf scope of the old endpoints.
 export const getSubPartidaDeletionImpact = query({
   args: { id: v.id("partidas") },
-  handler: async (ctx, args) => {
-    const partida = await ctx.db.get(args.id);
-    if (!partida) {
-      throw new Error("La subpartida ya no existe.");
+  handler: async (ctx, { id }) => {
+    const partida = await ctx.db.get(id);
+    if (!partida || partida.nivel !== 3 || !partida.proyecto) {
+      throw new Error("La subpartida ya no existe o no tiene una jerarquía válida.");
     }
-    return await getSubPartidaDeletionImpactInternal(ctx, partida);
+    return analyzePartidaDeletion(ctx, id, partida.proyecto);
   },
 });
 
-export const deleteSubPartida = mutation({
+export const deleteSubPartida = rawMutation({
   args: { id: v.id("partidas") },
-  handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
-
-    const partida = await ctx.db.get(args.id);
-    if (!partida) {
-      throw new Error("La subpartida ya no existe.");
+  handler: async (ctx, { id }) => {
+    const partida = await ctx.db.get(id);
+    if (!partida || partida.nivel !== 3 || !partida.proyecto) {
+      throw new Error("La subpartida ya no existe o no tiene una jerarquía válida.");
     }
-    if (partida.nivel !== 3 || !partida.proyecto) {
-      throw new Error("Solo se pueden eliminar subpartidas vinculadas a un proyecto.");
-    }
-
-    const impact = await getSubPartidaDeletionImpactInternal(ctx, partida);
-    if (!impact.canDelete) {
-      throw new Error(
-        `No se puede eliminar la subpartida porque tiene ${impact.blockers.join(", ")} asociados.`,
-      );
-    }
-
-    const partidaNombre = partida.partida_nombre || partida.nombre;
-    await ctx.db.delete(partida._id);
-    await recalculateFamiliaRollup(
-      ctx,
-      {
-        proyecto: partida.proyecto,
-        partidaNombre,
-        familia: partida.familia,
-      },
-      { zeroWhenEmpty: true },
-    );
-    await recalculatePartidaRollup(ctx, {
-      proyecto: partida.proyecto,
-      partidaNombre,
-    });
-    await updateProjectMetrics(ctx, partida.proyecto);
-
-    return { deletedId: partida._id };
+    await executePartidaDeletion(ctx, id, partida.proyecto);
+    return { deletedId: id };
   },
 });
-
-
 export const getByAdministracion = query({
   args: {
     proyecto: v.id("desarrollos"),
@@ -1328,147 +1165,10 @@ export const syncProjectData = mutation({
       // ============================================
       console.log("Step 2: Syncing pagado for all partidas...");
 
-      // Get all pagos - filter by project's transactions to avoid cross-project issues
-      const projectTransactions = await ctx.db
-        .query("transacciones")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
-        .collect();
-      const projectTransactionIds = new Set(projectTransactions.map(t => t._id));
-      
-      const allPagos = await ctx.db.query("pagos").collect();
-      // Filter pagos to only those belonging to this project's transactions
-      const projectPagos = allPagos.filter(p => projectTransactionIds.has(p.transaccion_id));
-      console.log(`Found ${projectPagos.length} pagos for this project (${allPagos.length} total)`);
-
-      // Build a map of partida_id -> sum of pagos (only from "Pagado" transactions)
-      const pagosByPartidaId = new Map<Id<"partidas">, number>();
-      const transactionStatusMap = new Map(projectTransactions.map(t => [t._id, t.status]));
-      
-      for (const pago of projectPagos) {
-        // Only count pagos from transactions with status "Pagado"
-        const txStatus = transactionStatusMap.get(pago.transaccion_id);
-        if (txStatus !== "Pagado") {
-          console.log(`Skipping pago (status=${txStatus}): ${pago.monto}`);
-          continue;
-        }
-        if (!pago.partida_id) continue;
-        
-        const current = pagosByPartidaId.get(pago.partida_id) || 0;
-        pagosByPartidaId.set(pago.partida_id, current + (pago.monto || 0));
-        
-        // Debug: Log each pago
-        const partida = allPartidas.find(p => p._id === pago.partida_id);
-        if (partida) {
-          console.log(`Pago: ${pago.monto} -> ${partida.sub_partida || partida.familia || partida.nombre} (nivel ${partida.nivel})`);
-        }
-      }
-
-      // Build aggregation maps for nivel 1 and 2
-      // IMPORTANT: Only aggregate from nivel 3 (leaf nodes) to avoid double-counting
-      // For nivel 2: key = "nombre|familia" -> sum of pagos from nivel 3 children
-      // For nivel 1: key = "nombre" -> sum of pagos from nivel 3 children
-      const pagadoByFamilia = new Map<string, number>();
-      const pagadoByPartida = new Map<string, number>();
-
-      // Debug: Log partida structure
-      console.log("=== PARTIDA STRUCTURE DEBUG ===");
-      const sampleNivel2 = allPartidas.find(p => p.nivel === 2 && p.familia === "EXCAVACIÓN");
-      const sampleNivel3 = allPartidas.find(p => p.nivel === 3 && p.familia === "EXCAVACIÓN");
-      if (sampleNivel2) {
-        console.log(`Nivel 2 EXCAVACIÓN: nombre=${sampleNivel2.nombre}, partida_nombre=${sampleNivel2.partida_nombre}, familia=${sampleNivel2.familia}`);
-      }
-      if (sampleNivel3) {
-        console.log(`Nivel 3 sample: nombre=${sampleNivel3.nombre}, partida_nombre=${sampleNivel3.partida_nombre}, familia=${sampleNivel3.familia}, sub_partida=${sampleNivel3.sub_partida}`);
-      }
-
-      // Only iterate over nivel 3 partidas (leaf nodes where payments are actually made)
-      const nivel3Partidas = allPartidas.filter(p => p.nivel === 3);
-      console.log(`Found ${nivel3Partidas.length} nivel 3 partidas`);
-      
-      for (const partida of nivel3Partidas) {
-        const directPagado = pagosByPartidaId.get(partida._id) || 0;
-
-        // Aggregate for familia level (nivel 2) using partida_nombre (parent partida name)
-        const familiaKey = `${partida.partida_nombre || partida.nombre}|${partida.familia}`;
-        pagadoByFamilia.set(familiaKey, (pagadoByFamilia.get(familiaKey) || 0) + directPagado);
-        
-        if (directPagado > 0) {
-          console.log(`Nivel 3 aggregation: ${partida.sub_partida} -> key=${familiaKey}, amount=${directPagado}`);
-        }
-
-        // Aggregate for partida level (nivel 1) using partida_nombre (parent partida name)
-        const partidaName = partida.partida_nombre || partida.nombre;
-        pagadoByPartida.set(partidaName, (pagadoByPartida.get(partidaName) || 0) + directPagado);
-      }
-      
-      // Also handle nivel 2 partidas that have direct payments (familias without sub-partidas)
-      const nivel2Partidas = allPartidas.filter(p => p.nivel === 2);
-      for (const partida of nivel2Partidas) {
-        const directPagado = pagosByPartidaId.get(partida._id) || 0;
-        if (directPagado > 0) {
-          // Add to familia aggregation
-          const familiaKey = `${partida.nombre}|${partida.familia}`;
-          pagadoByFamilia.set(familiaKey, (pagadoByFamilia.get(familiaKey) || 0) + directPagado);
-          
-          // Add to partida aggregation
-          pagadoByPartida.set(partida.nombre, (pagadoByPartida.get(partida.nombre) || 0) + directPagado);
-        }
-      }
-
-      // Debug: Log the aggregation maps
-      console.log("pagadoByFamilia entries:");
-      pagadoByFamilia.forEach((value, key) => {
-        console.log(`  ${key}: ${value}`);
-      });
-      console.log("pagadoByPartida entries:");
-      pagadoByPartida.forEach((value, key) => {
-        console.log(`  ${key}: ${value}`);
-      });
-
-      let updatedPagadoCount = 0;
-
-      // Update each partida with correct pagado and por_gastar
-      for (const partida of allPartidas) {
-        let correctPagado: number;
-
-        if (partida.nivel === 1) {
-          correctPagado = pagadoByPartida.get(partida.nombre) || 0;
-        } else if (partida.nivel === 2) {
-          // Use partida_nombre if available (reference to parent), otherwise use nombre
-          const partidaName = partida.partida_nombre || partida.nombre;
-          const lookupKey = `${partidaName}|${partida.familia}`;
-          correctPagado = pagadoByFamilia.get(lookupKey) || 0;
-          console.log(`Nivel 2 lookup: ${partida.familia} -> key=${lookupKey}, pagado=${correctPagado}`);
-        } else {
-          correctPagado = pagosByPartidaId.get(partida._id) || 0;
-        }
-
-        const presupuestoAprobado = partida.presupuesto_aprobado || 0;
-        const correctPorGastar = presupuestoAprobado - correctPagado;
-
-        const pagadoChanged = Math.abs((partida.pagado || 0) - correctPagado) > 0.001;
-        const porGastarChanged = Math.abs((partida.por_gastar || 0) - correctPorGastar) > 0.001;
-
-        if (pagadoChanged || porGastarChanged) {
-          await ctx.db.patch(partida._id, {
-            pagado: correctPagado,
-            por_gastar: correctPorGastar
-          });
-          updatedPagadoCount++;
-        }
-      }
-      console.log(`✅ Updated pagado/por_gastar for ${updatedPagadoCount} partidas`);
-
-      // ============================================
-      if (updatedPagadoCount > 0) {
-        allPartidas = await ctx.db
-          .query("partidas")
-          .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))
-          .collect();
-      }
-
-      // Reuse the same mode-aware calculation used by transaction triggers.
-      await updateHonorariosMonto(ctx, String(args.projectId));
+      // Reuse the payment aggregation used by maintenance. This reads only
+      // this project's transactions and includes direct payments at all levels.
+      const paymentSync = await repairProjectPaymentTotals(ctx, args.projectId);
+      const updatedPagadoCount = paymentSync.partidasUpdated;
       allPartidas = await ctx.db
         .query("partidas")
         .withIndex("by_proyecto", (q) => q.eq("proyecto", args.projectId))

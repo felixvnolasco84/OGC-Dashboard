@@ -39,7 +39,8 @@ import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useIngresosModal } from "@/hooks/ingresos-modal";
 import IngresosModal from "@/components/modals/ingresos-modal";
-import { Id } from "../../../convex/_generated/dataModel";
+import { Doc, Id } from "../../../convex/_generated/dataModel";
+import { DeletePartidaDialog } from "@/components/Presupuesto/DeletePartidaDialog";
 import { cn } from "@/lib/utils";
 import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
 import { AddTransactionMenu } from "@/components/transactions/AddTransactionMenu";
@@ -113,6 +114,9 @@ export default function PresupuestoPage() {
   const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Doc<"partidas"> | null>(null);
+
+  useEffect(() => { setDeleteTarget(null); }, [proyectoId]);
 
   useEffect(() => {
     if (isPartidaOpen) partidaSearchRef.current?.focus();
@@ -251,6 +255,22 @@ export default function PresupuestoPage() {
     proyectoId ? { projectId: proyectoId as Id<"desarrollos"> } : "skip",
     { initialNumItems: 5000 }
   );
+
+  // Also remove stale filters after another user's deletion. Only a complete
+  // result can prove that a name is gone; unloaded pages must not clear it.
+  useEffect(() => {
+    if (partidasStatus !== "Exhausted") return;
+    const names = new Set(allPartidas.flatMap(p => [p.nombre, p.partida_nombre || p.nombre]));
+    const families = new Set(allPartidas.map(p => p.familia));
+    setSelectedPartidas(current => {
+      const next = current.filter(name => names.has(name));
+      return next.length === current.length ? current : next;
+    });
+    setSelectedFamilias(current => {
+      const next = current.filter(name => families.has(name));
+      return next.length === current.length ? current : next;
+    });
+  }, [allPartidas, partidasStatus]);
 
 
   // Get metrics for a proyecto
@@ -837,6 +857,7 @@ export default function PresupuestoPage() {
 
         {/* Budget Table Component */}
         <PresupuestoTable
+          onRequestDelete={setDeleteTarget}
           data={filteredPartidas}
           status={partidasStatus}
           loadMore={loadMore}
@@ -848,6 +869,15 @@ export default function PresupuestoPage() {
       </div>
 
       {/* Ingresos Modal */}
+      <DeletePartidaDialog
+        target={deleteTarget}
+        currency={moneda}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={(removed) => {
+          setSelectedPartidas(current => current.filter(name => !removed.partidas.includes(name)));
+          setSelectedFamilias(current => current.filter(name => !removed.familias.includes(name)));
+        }}
+      />
       <IngresosModal />
       <InvoiceIntakeDialog
         hideTrigger

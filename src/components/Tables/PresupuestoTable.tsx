@@ -63,6 +63,7 @@ const getPorGastarBadge = (porGastar: number) => {
 };
 
 interface PresupuestoTableProps {
+  onRequestDelete: (partida: Doc<"partidas">) => void;
   data: Doc<"partidas">[];
   status: "CanLoadMore" | "LoadingFirstPage" | "LoadingMore" | "Exhausted";
   showPrecioUnitario: boolean;
@@ -72,7 +73,7 @@ interface PresupuestoTableProps {
   loadMore: (numItems: number) => void;
 }
 
-export default function PresupuestoTable({ data, status, showPrecioUnitario, filteredPayments, filteredHonorarios, dateFilterLabel, loadMore }: PresupuestoTableProps) {
+export default function PresupuestoTable({ data, status, showPrecioUnitario, filteredPayments, filteredHonorarios, dateFilterLabel, loadMore, onRequestDelete }: PresupuestoTableProps) {
   // Get project's default currency based on transaction history
   const projectId = data.length > 0 ? data[0].proyecto : undefined;
   const currencyInfo = useQuery(
@@ -451,6 +452,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                     </TableCell>
                     <TableCell variant="budgetMuted">
                       <DropdownMenuComponentPartida
+                        onRequestDelete={onRequestDelete}
                         partida={item.originalDoc!}
                         level={item.level}
                         currency={defaultCurrency}

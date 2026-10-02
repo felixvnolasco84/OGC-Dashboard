@@ -16,6 +16,8 @@ export default defineConfig({
       "convex/programaObraExecution.test.mjs",
       "convex/pnl.test.mjs",
       "convex/presupuesto.test.mjs",
+      "convex/paymentHierarchy.test.mjs",
+      "convex/partidaDeletion.test.mjs",
       "convex/ogcClassification.test.mjs",
     ],
     pool: "forks",

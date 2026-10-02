@@ -200,10 +200,11 @@ export default function BitacoraModal() {
     ...repository.assignableUsers.map((user) => user.name),
     responsable,
   ].filter(Boolean)));
-  const relatedFamilies = levelTwo.filter((item) => item.parentId === partidaId);
-  const familyOptions = (relatedFamilies.length > 0 ? relatedFamilies : levelTwo)
-    .map((item) => item.name)
-    .filter((name, index, all) => all.indexOf(name) === index);
+  const selectedRoot = levelOne.find(item => item.id === partidaId);
+  const equivalentRootIds = new Set(levelOne.filter(item => item.name === selectedRoot?.name).map(item => item.id));
+  const relatedFamilies = levelTwo.filter(item => item.parentId && equivalentRootIds.has(item.parentId));
+  // Keep historical selections visible so they can be removed after deletion.
+  const familyOptions = Array.from(new Set([...relatedFamilies.map(item => item.name), ...familias]));
   const galleryPhotos = repository.isOnline ? photos : photos.filter((photo) => photo.type === "new" || photo.availableOffline);
   const currentPhoto = galleryPhotos[Math.min(galleryIndex, Math.max(galleryPhotos.length - 1, 0))];
 

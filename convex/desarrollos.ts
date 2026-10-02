@@ -1,4 +1,5 @@
 import { findProjectDocumentRoot } from "./projectDocumentFolders";
+import { assertBudgetReference } from "./partidaReferences";
 import { query, mutation as rawMutation, QueryCtx } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { mutation } from "./functions";
@@ -1082,6 +1083,10 @@ export const update = mutation({
                 .filter(([, value]) => value !== undefined)
                 .map(([key, value]) => [key, key === "ubicacion" && value === null ? undefined : value])
         );
+        // Budget exclusions must be revalidated in this transaction.
+        for (const partidaId of args.excluded_partidas_honorarios || []) {
+            await assertBudgetReference(ctx, partidaId, id, 1);
+        }
         await ctx.db.patch(id, updateData);
         if (args.nombre !== undefined) {
             const root = await findProjectDocumentRoot(ctx, id);

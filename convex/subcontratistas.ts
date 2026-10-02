@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { assertBudgetParent, assertBudgetReference } from "./partidaReferences";
 
 // ============================================
 // QUERIES
@@ -87,6 +88,8 @@ export const createSubcontratista = mutation({
     monto: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (args.partida_id) await assertBudgetReference(ctx, args.partida_id, args.proyecto, 1);
+    else if (args.partida_nombre) await assertBudgetParent(ctx, args.proyecto, args.partida_nombre);
     return await ctx.db.insert("subcontratistas", {
       proyecto: args.proyecto,
       contratista_general_id: args.contratista_general_id,
@@ -112,6 +115,10 @@ export const updateSubcontratista = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
+    const current = await ctx.db.get(id);
+    if (!current) throw new Error("El subcontratista ya no existe.");
+    if (fields.partida_id) await assertBudgetReference(ctx, fields.partida_id, current.proyecto, 1);
+    else if (!current.partida_id && fields.partida_nombre) await assertBudgetParent(ctx, current.proyecto, fields.partida_nombre);
     // Filter out undefined values
     const updates: Record<string, unknown> = {};
     if (fields.nombre !== undefined) updates.nombre = fields.nombre;

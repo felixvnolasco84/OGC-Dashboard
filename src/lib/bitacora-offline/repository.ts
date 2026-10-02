@@ -386,6 +386,22 @@ export async function reapplyLocalVersion(userId: string, entryClientId: string)
   });
 }
 
+// Resolve from raw fields as well, so existing offline caches need no migration.
+export function resolveBudgetCatalog(partidas: readonly { partidaId: string; name: string; nivel: number; parentId?: string; raw: Record<string, unknown> }[]) {
+  return partidas.map((partida) => {
+    const rootName = partida.raw.partida_nombre || partida.raw.nombre;
+    const root = partida.nivel === 2 && typeof rootName === "string"
+      ? partidas.find(candidate => candidate.nivel === 1 && candidate.name === rootName)
+      : undefined;
+    return {
+      id: partida.partidaId,
+      name: partida.nivel === 2 && typeof partida.raw.familia === "string" ? partida.raw.familia : partida.name,
+      nivel: partida.nivel,
+      parentId: root?.partidaId ?? partida.parentId,
+    };
+  });
+}
+
 export async function cacheBootstrap(args: {
   clerkId: string;
   projectId: string;
@@ -429,7 +445,7 @@ export async function cacheBootstrap(args: {
         raw: bootstrap.project,
       });
       await bitacoraDb.partidas.where("[userId+projectId]").equals([clerkId, projectId]).delete();
-      await bitacoraDb.partidas.bulkPut(bootstrap.partidas.map((partida) => ({
+      const catalog = bootstrap.partidas.map((partida) => ({
         key: scopedKey(clerkId, String(partida._id)),
         userId: clerkId,
         projectId,
@@ -438,6 +454,12 @@ export async function cacheBootstrap(args: {
         nivel: partida.nivel,
         parentId: partida.padre ? String(partida.padre) : undefined,
         raw: partida,
+      }));
+      const resolved = resolveBudgetCatalog(catalog);
+      await bitacoraDb.partidas.bulkPut(catalog.map((partida, index) => ({
+        ...partida,
+        name: resolved[index].name,
+        parentId: resolved[index].parentId,
       })));
       await bitacoraDb.assignableUsers.where("[userId+projectId]").equals([clerkId, projectId]).delete();
       const users: CachedAssignableUser[] = bootstrap.assignableUsers.map((user) => ({

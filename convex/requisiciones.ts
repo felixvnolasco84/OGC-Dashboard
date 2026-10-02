@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { canUserAccessDesarrollo, getCurrentUserOrThrow } from "./permissions";
+import { assertRequisicionBudgetItems } from "./partidaReferences";
 import { renderRequisicionEmail } from "./requisicionEmailTemplates";
 import { canAddRemissionPhotos, getRequisicionNotificationConfig, isValidRemissionPhoto, notificationForStatusTransition, requisitionDetailUrl, shouldNotifyRequisitionUser, validateOnsitePaymentRequest, type RequisicionNotificationType } from "../src/lib/requisicionNotificationMatrix";
 
@@ -879,6 +880,7 @@ export const create = mutation({
         const project = await ctx.db.get(args.proyecto);
         if (!project || !canUserAccessDesarrollo(actor, project) || actor._id !== args.solicitante_id || !["admin", "user", "contratista"].includes(actor.role)) throw new Error("Sin permisos para crear la requisición");
         const { items, ...requisicionData } = args;
+        await assertRequisicionBudgetItems(ctx, args.proyecto, items);
         
         // Create requisicion with default statuses
         const requisicionId = await ctx.db.insert("requisiciones", {
@@ -1287,6 +1289,7 @@ export const update = mutation({
         if (!project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || actor.role === "user" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para editar la requisición");
         
         // Fetch old items for comparison
+        if (items) await assertRequisicionBudgetItems(ctx, requisicion.proyecto, items);
         const oldItems = await ctx.db
             .query("requisicion_items")
             .withIndex("by_requisicion", (q) => q.eq("requisicion_id", id))

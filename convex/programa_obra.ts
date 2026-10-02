@@ -1,5 +1,6 @@
 import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { mutation } from "./functions";
+import { assertBudgetParent } from "./partidaReferences";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { assertProgramCapability, bumpProgramVersion, executionContext, updateLegacyExecutionProgress, event } from "./programaObraExecution";
@@ -457,17 +458,7 @@ export const addSubPartida = mutation({
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
     await assertProjectAccess(ctx, args.proyecto);
-
-    const family = await ctx.db
-      .query("partidas")
-      .withIndex("by_proyecto_nivel_partida", (q) =>
-        q.eq("proyecto", args.proyecto).eq("nivel", 2).eq("partida_nombre", args.partida_nombre),
-      )
-      .filter((q) => q.eq(q.field("familia"), args.familia))
-      .first();
-    if (!family) {
-      throw new Error("La familia padre no pertenece a la partida seleccionada.");
-    }
+    await assertBudgetParent(ctx, args.proyecto, args.partida_nombre, args.familia);
 
     return await ctx.db.insert("partidas", {
       nivel: 3,

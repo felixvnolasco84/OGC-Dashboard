@@ -1,4 +1,5 @@
 import { resolveProjectDocumentFolder } from "./projectDocumentFolders";
+import { assertBudgetFamilyTags } from "./partidaReferences";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Auth, paginationOptsValidator } from "convex/server";
@@ -138,6 +139,7 @@ export const createLogEntry = mutation({
     ) {
       throw new Error("Invalid partida for project");
     }
+    await assertBudgetFamilyTags(ctx, args.proyecto, args.partida_id, args.familias_tags);
     await validateStoredFiles(ctx, args.imagenes, "photo");
     await validateStoredFiles(ctx, args.documentos, "document");
     const syncVersion = await bumpSyncVersion(ctx, args.proyecto);
@@ -454,6 +456,9 @@ export const updateLogEntry = mutation({
       throw new Error("Log entry not found");
     }
     const user = await assertProjectAdmin(ctx, log.proyecto);
+    if (args.partida_id !== undefined || args.familias_tags !== undefined) {
+      await assertBudgetFamilyTags(ctx, log.proyecto, args.partida_id ?? log.partida_id, args.familias_tags ?? log.familias_tags);
+    }
     if (log.deleted_at) throw new Error("Log entry not found");
     if (args.partida_id !== undefined) {
       const partida = await ctx.db.get(args.partida_id);
