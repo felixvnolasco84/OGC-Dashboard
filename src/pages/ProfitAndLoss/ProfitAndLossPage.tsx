@@ -28,6 +28,7 @@ import {
 import { OgcMovementsUploadModal } from "@/components/modals/ogc-movements-upload-modal";
 import { OgcInvoiceEvidenceDialog } from "@/components/modals/ogc-invoice-evidence-dialog";
 import type { OgcInvoiceProof } from "@/lib/ogcInvoiceEvidence";
+import { getOgcTypeLabel, normalizeOgcClassification } from "../../../convex/ogcClassificationRules";
 import { cn } from "@/lib/utils";
 import { Ban, CalendarDays, Check, Copy, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
@@ -295,6 +296,8 @@ const LEDGER_CATEGORIES = [
   "RENTA",
   "OTROS",
   "DISP HONORARIOS",
+  "CARGA SOCIAL OBRA (SIROC-RECUPERABLE)",
+  "FLUJO FISCAL (IVA + RETENCIONES)",
 ];
 
 const safeNumber = (value: unknown) => {
@@ -1454,7 +1457,12 @@ function OgcLedgerDialog({
   };
 
   const updateDraft = <K extends keyof LedgerDraft>(key: K, value: LedgerDraft[K]) => {
-    setDraft((currentDraft) => currentDraft ? { ...currentDraft, [key]: value } : currentDraft);
+    setDraft((currentDraft) => {
+      if (!currentDraft) return currentDraft;
+      const updated = { ...currentDraft, [key]: value };
+      const classification = normalizeOgcClassification(updated);
+      return { ...updated, categoria: classification.categoria, tipo: classification.tipo || updated.tipo };
+    });
   };
 
   const saveEdit = async () => {
@@ -1672,9 +1680,10 @@ function OgcLedgerDialog({
                             <SelectContent>
                               <SelectItem value="ingreso">Ingreso</SelectItem>
                               <SelectItem value="costo_estructura">Costo estructura</SelectItem>
+                              <SelectItem value="informativo">Informativo</SelectItem>
                             </SelectContent>
                           </Select>
-                        ) : movement.tipo === "ingreso" ? "Ingreso" : "Costo estructura"}
+                        ) : getOgcTypeLabel(movement.tipo)}
                       </td>
                       <td className="px-4 py-4 align-top">
                         {isEditing ? (

@@ -166,7 +166,7 @@ describe.each([
   });
 });
 
-it("keeps corporate DISP in consolidated P&L and preserves raw collected income in WIP", async () => {
+it("keeps corporate DISP in consolidated P&L and excludes misclassified costs from WIP income", async () => {
   const f = database({
     ingresos: [{ _id: "income", proyecto: "project", monto: 200, fecha: "01/01/2026", moneda: "MXN" }],
     ogc_movimientos: [movement({ categoria: "DISP HONORARIOS" }), movement({ _id: "corporate", proyecto: undefined, categoria: "DISP HONORARIOS", monto: 70 })],
@@ -176,9 +176,30 @@ it("keeps corporate DISP in consolidated P&L and preserves raw collected income 
   expect(structureAmount(pnl, "disp_honorarios")).toBe(370);
   expect(pnl.monthlyOgcMovements["2026-1"].structureBreakdown.disp_honorarios).toBe(370);
   expect(structureAmount(profitability, "disp_honorarios")).toBe(300);
-  expect(profitability.projects[0].wip.pagado).toBe(500);
+  expect(profitability.projects[0].wip.pagado).toBe(200);
   expect(profitability.projects[0].wip.costoReal).toBe(500);
   expect(profitability.projects[0].wip.averageMonthlyExpense).toBe(1000);
+});
+
+it("excludes informative source categories from costs and collected income even with legacy types", async () => {
+  const f = database({ ogc_movimientos: [
+    movement({ tipo: "costo_estructura", categoria: "CARGA SOCIAL OBRA (SIROC-RECUPERABLE)", descripcion: "PAGO IMSS", monto: 500 }),
+    movement({ _id: "fiscal", tipo: "ingreso", categoria: "FLUJO FISCAL (IVA + RETENCIONES)", monto: 400 }),
+    movement({ _id: "informative", tipo: "informativo", categoria: "OTROS", monto: 100 }),
+    movement({ _id: "rent", tipo: "costo_estructura", categoria: "RENTA", descripcion: "Renta, transporte e impuestos", monto: 50 }),
+    movement({ _id: "nomina", tipo: "costo_estructura", categoria: "NOMINA", descripcion: "Pago con IMSS", monto: 60 }),
+    movement({ _id: "other", tipo: "costo_estructura", categoria: "OTROS", descripcion: "Gastos de transporte", monto: 70 }),
+    movement({ _id: "actual-income", categoria: "HONORARIOS", monto: 80 }),
+  ] });
+  const pnl = await getPnlSummary._handler(f.ctx, period);
+  const profitability = await getProfitabilitySummary._handler(f.ctx, period);
+  expect(pnl.totals.costosEstructuraOgc).toBe(180);
+  expect(structureAmount(pnl, "renta")).toBe(50);
+  expect(structureAmount(pnl, "nomina")).toBe(60);
+  expect(structureAmount(pnl, "otros")).toBe(70);
+  expect(structureAmount(pnl, "transporte")).toBe(0);
+  expect(structureAmount(pnl, "cargas_sociales")).toBe(0);
+  expect(profitability.projects[0].wip.pagado).toBe(80);
 });
 
 const snapshotPath = process.env.PNL_AUDIT_SNAPSHOT;

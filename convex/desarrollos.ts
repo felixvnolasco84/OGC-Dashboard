@@ -14,6 +14,7 @@ import {
 import { isValidProjectLocationKey } from "./project_locations";
 import { getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
 import { updateHonorariosMonto } from "./functions";
+import { isDispHonorarios, isOgcIncome, normalizeOgcClassification } from "./ogcClassificationRules";
 import {
     NO_PROJECT_LOCATION,
     matchesProjectLocation,
@@ -149,7 +150,10 @@ const matchesMovementGroup = (movement: Pick<OgcMovement, "categoria" | "descrip
 
 const getMovementGroupKey = (movement: Pick<OgcMovement, "categoria" | "descripcion">) => {
     // A dispersion can mention other costs, but belongs exclusively to this row.
-    if (matchesMovementGroup(movement, DISP_HONORARIOS_LABELS)) return "disp_honorarios";
+    if (isDispHonorarios(movement)) return "disp_honorarios";
+    const category = normalizeMovementCategory(movement.categoria);
+    const explicitGroup = OGC_STRUCTURE_COST_GROUPS.find(group => normalizeMovementCategory(group.label) === category);
+    if (explicitGroup) return explicitGroup.key;
     return OGC_STRUCTURE_COST_GROUPS.find((group) => matchesMovementGroup(movement, group.labels))?.key || "otros";
 };
 
@@ -310,8 +314,9 @@ const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rate
             const amount = Math.abs(convertToMxn(movement.monto || 0, movement.moneda, movement.tipo_cambio, rates));
             const monthKey = parsedDate ? `${parsedDate.getFullYear()}-${parsedDate.getMonth() + 1}` : null;
 
-            const isDispHonorarios = matchesMovementGroup(movement, DISP_HONORARIOS_LABELS);
-            if (movement.tipo === "ingreso" && !isDispHonorarios) {
+            const classification = normalizeOgcClassification(movement);
+            if (!classification.tipo || classification.tipo === "informativo") return acc;
+            if (classification.tipo === "ingreso") {
                 // Only project payment percentages generate P&L honorarios.
                 // Other OGC income stays available in the ledger and collected income.
                 if (!matchesAnyReportLabel(movement.categoria, INDIRECTOS_LABELS)) return acc;
@@ -431,7 +436,7 @@ const getProjectCollectedIncomeBreakdown = async (
         .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
         .collect();
 
-    const ogcIngresos = ogcMovements.filter((movement) => movement.tipo === "ingreso");
+    const ogcIngresos = ogcMovements.filter(isOgcIncome);
     const records = [
         ...ingresos.map((ingreso) => ({
             id: String(ingreso._id),

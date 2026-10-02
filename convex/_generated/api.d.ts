@@ -40,6 +40,7 @@ import type * as invoiceRules from "../invoiceRules.js";
 import type * as laborPaymentImports from "../laborPaymentImports.js";
 import type * as meticas_presupuesto from "../meticas_presupuesto.js";
 import type * as migrations from "../migrations.js";
+import type * as ogcClassificationRules from "../ogcClassificationRules.js";
 import type * as ogcImportRules from "../ogcImportRules.js";
 import type * as ogcInvoiceRules from "../ogcInvoiceRules.js";
 import type * as ogc_movimientos from "../ogc_movimientos.js";
@@ -136,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   laborPaymentImports: typeof laborPaymentImports;
   meticas_presupuesto: typeof meticas_presupuesto;
   migrations: typeof migrations;
+  ogcClassificationRules: typeof ogcClassificationRules;
   ogcImportRules: typeof ogcImportRules;
   ogcInvoiceRules: typeof ogcInvoiceRules;
   ogc_movimientos: typeof ogc_movimientos;
