@@ -22,11 +22,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { hashFile } from "@/lib/transactionImport";
+import { parseOgcExcel } from "@/lib/ogcExcel";
+import { getOgcTypeLabel, normalizeOgcClassification, type OgcMovementType } from "../../../convex/ogcClassificationRules";
 import { OGC_INVOICE_FILE_ACCEPT, uploadOgcInvoiceProof, validateOgcInvoiceFile } from "@/lib/ogcInvoiceEvidence";
 import { AlertTriangle, CheckCircle2, Copy, FileSpreadsheet, FileText, Image, Loader2, Paperclip, Plus, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
-type OgcMovementType = "ingreso" | "costo_estructura";
 type ExchangeRateMode = "pnl" | "manual";
 type DeliveryNoteStatus = "none" | "parcial" | "completa";
 type UploadedDeliveryNoteStatus = Exclude<DeliveryNoteStatus, "none">;
@@ -197,10 +198,6 @@ type UploadedDeliveryNote = {
   documentos: DeliveryNoteDocument[];
 };
 
-const OGC_UPLOAD_ENDPOINTS = [
-  "https://ogc-excel-reader.vercel.app/upload/ogc-transactions",
-  "http://localhost:3000/upload/ogc-transactions",
-];
 const MAX_DELIVERY_NOTE_FILE_SIZE = 20 * 1024 * 1024;
 const MAX_EXCEL_FILE_SIZE = 20 * 1024 * 1024;
 const MAX_DELIVERY_NOTE_FILES_PER_ROW = 8;
@@ -221,6 +218,8 @@ const CATEGORIES = [
   "RENTA",
   "OTROS",
   "DISP HONORARIOS",
+  "CARGA SOCIAL OBRA (SIROC-RECUPERABLE)",
+  "FLUJO FISCAL (IVA + RETENCIONES)",
 ];
 const MONTH_LABELS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const EMPTY_PREFLIGHT: BulkPreflight = { validRows: [], duplicateRows: [], rejectedRows: [] };
@@ -245,13 +244,6 @@ const normalizeLookupText = (value?: string) => {
 const isCompanyObraValue = (value?: string) => {
   const normalized = normalizeLookupText(value);
   return !normalized || normalized === "empresa";
-};
-
-const normalizeTipo = (value?: string, fallback: OgcMovementType = "costo_estructura"): OgcMovementType => {
-  const normalized = normalizeLookupText(value);
-  if (normalized.includes("ingreso") || normalized.includes("cobro")) return "ingreso";
-  if (normalized.includes("costo") || normalized.includes("gasto") || normalized.includes("egreso")) return "costo_estructura";
-  return fallback;
 };
 
 const normalizeDate = (value?: string) => {
@@ -357,6 +349,7 @@ const isFechaInPeriod = (fecha: string, period?: PnlPeriodFilter) => {
 };
 
 const addImpactAmount = (totals: ImpactTotals, tipo: string, amount: number, bucket: "current" | "incoming") => {
+  if (tipo === "informativo") return;
   const isIngreso = tipo === "ingreso";
   if (bucket === "current") {
     if (isIngreso) totals.currentIngresos += amount;
@@ -413,7 +406,7 @@ const buildExcelImpact = ({
     const projectLabel = proyecto ? projectNameById.get(proyecto) || "Obra" : "Empresa";
     addImpactAmount(getOrCreateImpactRow(byProject, projectKey, projectLabel), tipo, amount, bucket);
     const categoryKey = `${tipo}:${categoria || "OTROS"}`;
-    const categoryLabel = `${categoria || "OTROS"} · ${tipo === "ingreso" ? "Ingreso" : "Costo"}`;
+    const categoryLabel = `${categoria || "OTROS"} · ${getOgcTypeLabel(tipo)}`;
     addImpactAmount(getOrCreateImpactRow(byCategory, categoryKey, categoryLabel), tipo, amount, bucket);
   };
 
@@ -421,7 +414,8 @@ const buildExcelImpact = ({
     if (movement.status && movement.status !== "activo") return;
     if (!isFechaInPeriod(movement.fecha, period)) return;
     const amount = convertMovementToMxn(movement.monto, movement.moneda, movement.tipo_cambio, exchangeRates);
-    applyAmount(normalizeTipo(movement.tipo), movement.categoria || "OTROS", movement.proyecto, amount, "current");
+    const classification = normalizeOgcClassification(movement);
+    if (classification.tipo) applyAmount(classification.tipo, classification.categoria, movement.proyecto, amount, "current");
   });
 
   incoming.forEach((movement) => {
@@ -584,6 +578,8 @@ export function OgcMovementsUploadModal({
 
     movements.forEach((movement) => {
       const rowErrors: string[] = [];
+      const classification = normalizeOgcClassification(movement);
+      if (!classification.tipo) rowErrors.push("Tipo de movimiento invalido");
       const monto = Math.abs(safeAmount(movement.monto));
       const fecha = normalizeDate(movement.fecha);
       const moneda = (movement.moneda || "MXN").toUpperCase();
@@ -603,18 +599,18 @@ export function OgcMovementsUploadModal({
         rowErrors.push("Obra no encontrada");
       }
 
-      if (rowErrors.length > 0) {
+      if (rowErrors.length > 0 || !classification.tipo) {
         errors.push({ row: movement.rowIndex, message: rowErrors.join(", ") });
         return;
       }
 
       valid.push({
-        tipo: normalizeTipo(movement.tipo),
-        categoria: movement.categoria || "OTROS",
+        tipo: classification.tipo,
+        categoria: classification.categoria,
         monto,
         fecha,
         descripcion: movement.descripcion || undefined,
-        factura_referencia: movement.tipo === "ingreso" ? movement.factura_referencia?.trim() || undefined : undefined,
+        factura_referencia: classification.tipo === "ingreso" ? movement.factura_referencia?.trim() || undefined : undefined,
         moneda,
         tipo_cambio: moneda === "MXN" ? undefined : tipoCambio,
         proyecto,
@@ -690,10 +686,14 @@ export function OgcMovementsUploadModal({
     setManualRows((currentRows) =>
       currentRows.map((row) => {
         if (row.id !== id) return row;
-        if (key === "tipo" && value !== "ingreso") {
-          return { ...row, tipo: value as OgcMovementType, factura_referencia: "", factura_file: null };
-        }
-        return { ...row, [key]: value };
+        const updated = { ...row, [key]: value };
+        const classification = normalizeOgcClassification(updated);
+        return {
+          ...updated,
+          tipo: classification.tipo || updated.tipo,
+          categoria: classification.categoria,
+          ...(classification.tipo !== "ingreso" ? { factura_referencia: "", factura_file: null } : {}),
+        };
       })
     );
   };
@@ -900,33 +900,10 @@ export function OgcMovementsUploadModal({
     event.target.value = "";
   };
 
-  const parseFile = async (selectedFile: File) => {
-    const defaultError = "No se pudo procesar el archivo.";
-    let lastError = defaultError;
-
-    for (const endpoint of OGC_UPLOAD_ENDPOINTS) {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-
-      try {
-        const response = await fetch(endpoint, { method: "POST", body: formData });
-        const data = await response.json().catch(() => null);
-        if (response.ok && data) {
-          const parsed = data as OgcUploadResult;
-          if (parsed.success && parsed.movimientos?.length) return parsed;
-          if (parsed.movimientos?.length || parsed.errors?.length) return parsed;
-          lastError = parsed.message || parsed.errors?.[0]?.error || lastError;
-          continue;
-        }
-        lastError = data?.message || data?.error || lastError;
-      } catch (error) {
-        if (lastError === defaultError) {
-          lastError = error instanceof Error ? error.message : lastError;
-        }
-      }
-    }
-
-    throw new Error(lastError);
+  const parseFile = async (selectedFile: File): Promise<OgcUploadResult> => {
+    const parsed = await parseOgcExcel(await selectedFile.arrayBuffer());
+    if (!parsed.movimientos.length && !parsed.errors.length) throw new Error("El Excel no contiene movimientos.");
+    return parsed;
   };
 
   const runBulkPreflight = async (
@@ -1579,8 +1556,8 @@ function ExcelValidationPreview({
                 : "Archivo listo para cargar"}
           </p>
           <p className="mt-1 text-xs">
-            {createCount} movimientos nuevos se sumarian al P&L de {formatPeriodLabel(period)}.
-            Los duplicados no modifican valores actuales.
+            Se guardarían {createCount} movimientos nuevos. El impacto corresponde a {formatPeriodLabel(period)}.
+            Los informativos se conservan sin afectar el P&L. Los duplicados no modifican valores actuales.
           </p>
         </div>
       </div>
@@ -1919,6 +1896,7 @@ function EditableMovementsTable({
                   <SelectContent data-square-modal="">
                     <SelectItem value="costo_estructura">Costo estructura</SelectItem>
                     <SelectItem value="ingreso">Ingreso</SelectItem>
+                    <SelectItem value="informativo">Informativo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2298,7 +2276,7 @@ function MovementPreview({
             )}
           >
             <PreviewCell label="Fila">{movement.rowIndex}</PreviewCell>
-            <PreviewCell label="Tipo">{movement.tipo === "ingreso" ? "Ingreso" : "Costo estructura"}</PreviewCell>
+            <PreviewCell label="Tipo">{getOgcTypeLabel(movement.tipo)}</PreviewCell>
             <PreviewCell label="Categoria">{movement.categoria}</PreviewCell>
             <PreviewCell label="Monto">${movement.monto.toLocaleString("es-MX")}</PreviewCell>
             <PreviewCell label="Fecha">{movement.fecha}</PreviewCell>

@@ -17,6 +17,7 @@
     "test:providers": "node --experimental-strip-types scripts/test-provider-transaction-rules.mjs",
     "test:labor-import": "node --experimental-strip-types scripts/test-labor-payment-import-rules.mjs",
     "test:ogc-import": "node --experimental-strip-types scripts/test-ogc-import-rules.mjs",
+    "test:ogc-classification": "vitest run --config vitest.config.ts --configLoader runner convex/ogcClassification.test.mjs",
     "test:partidas": "node --experimental-strip-types scripts/test-partida-rules.mjs",
     "test:project-locations": "node --experimental-strip-types scripts/test-project-location-rules.mjs",
     "test:chatbot": "node --experimental-strip-types scripts/test-assistant-rules.mjs",

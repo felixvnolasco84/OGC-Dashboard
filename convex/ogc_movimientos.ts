@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { mutation } from "./functions";
+import { internalMutation, mutation } from "./functions";
 import {
   assertCanWrite,
   checkDesarrolloAccess,
@@ -16,6 +16,7 @@ import {
   isValidOgcImportFile,
 } from "./ogcImportRules";
 import { appendOgcInvoiceDuplicateKey, canResumeOgcCapture, normalizeOgcInvoiceReference } from "./ogcInvoiceRules";
+import { isOgcIncome, normalizeOgcClassification } from "./ogcClassificationRules";
 
 type OgcMovement = Doc<"ogc_movimientos">;
 type CurrentUser = Awaited<ReturnType<typeof getCurrentUserOrThrow>>;
@@ -68,11 +69,6 @@ const ogcMovementInputValidator = v.object({
   nota_recepcion_uploaded_at: v.optional(v.number()),
   nota_recepcion_documentos: v.optional(v.array(deliveryNoteDocumentValidator)),
 });
-
-const normalizeTipo = (value: string) => {
-  const normalized = value.toLowerCase().trim();
-  return normalized === "ingreso" ? "ingreso" : "costo_estructura";
-};
 
 const normalizeCategoria = (value: string) => {
   return value.trim().toUpperCase() || "OTROS";
@@ -146,6 +142,83 @@ const buildFinancialKey = (movement: NormalizedMovement, organizationId?: string
 const buildDuplicateKey = (movement: NormalizedMovement, organizationId?: string) =>
   appendOgcInvoiceDuplicateKey(buildFinancialKey(movement, organizationId), movement.tipo, movement.factura_referencia);
 
+/** Operator-only repair, with a reviewed source and optimistic concurrency checks. */
+export const recategorizeFromSource = internalMutation({
+  args: {
+    actor_id: v.id("users"),
+    source_file: v.string(),
+    source_hash: v.string(),
+    dry_run: v.optional(v.boolean()),
+    corrections: v.array(v.object({
+      id: v.id("ogc_movimientos"),
+      expected: v.object({
+        tipo: v.string(), categoria: v.string(), monto: v.number(), fecha: v.string(),
+        moneda: v.string(), descripcion: v.optional(v.string()),
+        proyecto: v.optional(v.id("desarrollos")), fila_origen: v.optional(v.number()),
+        updated_at: v.optional(v.number()),
+      }),
+      tipo: v.string(), categoria: v.string(), source_rows: v.array(v.number()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const actor = await ctx.db.get(args.actor_id);
+    if (!actor || !hasGlobalAdminAccess(actor)) throw new Error("La reparación requiere un administrador global.");
+    if (!/^[a-f0-9]{64}$/i.test(args.source_hash) || !args.source_file.trim()) throw new Error("Fuente inválida.");
+    if (args.corrections.length > 100 || new Set(args.corrections.map(c => c.id)).size !== args.corrections.length) {
+      throw new Error("El lote debe tener hasta 100 movimientos únicos.");
+    }
+    const planned = [];
+    for (const correction of args.corrections) {
+      const before = await ctx.db.get(correction.id);
+      if (!before || !isActiveMovement(before) || before.archivo_origen !== args.source_file) {
+        throw new Error(`Movimiento fuera de la fuente: ${correction.id}`);
+      }
+      for (const field of ["monto", "fecha", "moneda", "descripcion", "proyecto", "fila_origen"] as const) {
+        if (before[field] !== correction.expected[field]) throw new Error(`El movimiento cambió: ${correction.id} (${field})`);
+      }
+      if (!correction.source_rows.length || correction.source_rows.some(row => !Number.isInteger(row) || row < 2)) {
+        throw new Error("La corrección requiere las filas del Excel que la respaldan.");
+      }
+      const classification = normalizeOgcClassification({ tipo: correction.tipo, categoria: correction.categoria });
+      if (!classification.tipo || classification.tipo !== correction.tipo || classification.categoria !== correction.categoria) {
+        throw new Error("Clasificación de destino inválida.");
+      }
+      if (classification.tipo !== "ingreso" && (before.factura_referencia || before.factura_comprobante)) {
+        throw new Error(`El movimiento tiene evidencia de factura: ${correction.id}`);
+      }
+      if (before.tipo === classification.tipo && before.categoria === classification.categoria) continue;
+      for (const field of ["tipo", "categoria", "updated_at"] as const) {
+        if (before[field] !== correction.expected[field]) throw new Error(`El movimiento cambió: ${correction.id} (${field})`);
+      }
+      const after = { ...before, tipo: classification.tipo, categoria: classification.categoria };
+      planned.push({ before, after, sourceRows: correction.source_rows });
+    }
+    if (args.dry_run === false) {
+      for (const { before, after, sourceRows } of planned) {
+        await ctx.db.patch(before._id, {
+          tipo: after.tipo, categoria: after.categoria,
+          duplicate_key: buildDuplicateKey(after, before.organization_id),
+          updated_by_id: actor._id, updated_by_name: actor.name, updated_at: Date.now(),
+        });
+        const saved = await ctx.db.get(before._id);
+        if (saved) await auditMovement(ctx, {
+          movimiento_id: before._id, action: "recategorized", user: actor,
+          organization_id: before.organization_id, before, after: saved,
+          reason: `Recategorización según ${args.source_file}, filas ${sourceRows.join(", ")}; SHA-256 ${args.source_hash}`,
+        });
+      }
+    }
+    return {
+      dryRun: args.dry_run !== false,
+      count: planned.length,
+      corrections: planned.map(({ before, after }) => ({
+        id: before._id, before: { tipo: before.tipo, categoria: before.categoria },
+        after: { tipo: after.tipo, categoria: after.categoria }, monto: before.monto,
+      })),
+    };
+  },
+});
+
 const normalizeMovementInput = (item: {
   tipo: string;
   categoria: string;
@@ -160,17 +233,17 @@ const normalizeMovementInput = (item: {
   const fecha = normalizeDate(item.fecha);
   const monto = Math.abs(item.monto);
   const moneda = normalizeCurrency(item.moneda);
-  const tipo = normalizeTipo(item.tipo);
+  const { tipo, categoria } = normalizeOgcClassification(item);
   const facturaReferencia = normalizeOgcInvoiceReference(item.factura_referencia);
 
-  if (!Number.isFinite(monto) || monto === 0 || !isValidDate(fecha) ||
+  if (!tipo || !Number.isFinite(monto) || monto === 0 || !isValidDate(fecha) ||
     (facturaReferencia && (tipo !== "ingreso" || facturaReferencia.length > 120))) {
     return null;
   }
 
   return {
     tipo,
-    categoria: normalizeCategoria(item.categoria),
+    categoria,
     monto,
     fecha,
     descripcion: item.descripcion?.trim() || undefined,
@@ -285,7 +358,7 @@ const auditMovement = async (
   args: {
     movimiento_id: Id<"ogc_movimientos">;
     action: string;
-    user: CurrentUser;
+    user: Pick<CurrentUser, "_id" | "name">;
     organization_id?: string;
     reason?: string;
     before?: OgcMovement;
@@ -423,7 +496,7 @@ export const getIncomeTotalsByProyecto = query({
       .collect();
 
     const activeIncomeMovements = movements.filter((movement) => (
-      movement.tipo === "ingreso" && isActiveMovement(movement)
+      isOgcIncome(movement) && isActiveMovement(movement)
     ));
 
     const total_ingresos = activeIncomeMovements.reduce((sum, movement) => {
@@ -456,7 +529,7 @@ export const getIncomeByProyecto = query({
       .collect();
 
     return movements
-      .filter((movement) => movement.tipo === "ingreso" && isActiveMovement(movement))
+      .filter((movement) => isOgcIncome(movement) && isActiveMovement(movement))
       .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
   },
 });

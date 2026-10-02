@@ -846,7 +846,7 @@ export default defineSchema({
   // OGC company-level financial movements used only by the Profit & Loss views.
   // These records intentionally do not update project budgets, partidas, or normal transactions.
   ogc_movimientos: defineTable({
-    tipo: v.string(), // "ingreso" | "costo_estructura"
+    tipo: v.string(), // "ingreso" | "costo_estructura" | "informativo"
     categoria: v.string(), // HONORARIOS, INDIRECTOS, NOMINA, TRANSPORTE, RENTA, etc.
     monto: v.number(),
     fecha: v.string(), // DD/MM/YYYY
