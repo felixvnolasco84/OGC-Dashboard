@@ -1,16 +1,20 @@
 import { Table } from "@/components/ui/table";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { hasProviderManagementAccess } from "../../../convex/providerRules";
 
 export default function ProyectoProveedoresTablePage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const canManageProviders = hasProviderManagementAccess(currentUser);
   
   // Fetch project
   const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -55,6 +59,11 @@ export default function ProyectoProveedoresTablePage() {
               <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
             </div>
             <div className="flex gap-2">
+              {canManageProviders && (
+                <Button variant="outline" asChild>
+                  <Link to="/proveedores">Gestionar proveedores</Link>
+                </Button>
+              )}
               <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                 <span className="text-sm font-normal">
                   Total: {proyectoProveedoresData.length}
@@ -64,6 +73,9 @@ export default function ProyectoProveedoresTablePage() {
           </div>
 
           {/* Search Bar */}
+          {!canManageProviders && (
+            <p className="mb-4 text-sm text-muted-foreground">Solo consulta. La gestión de proveedores está disponible para administradores.</p>
+          )}
           <div className="mb-8 relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
             <Input
@@ -114,7 +126,7 @@ export default function ProyectoProveedoresTablePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {!proyectoProveedoresData ? (
+              {proyectoProveedoresQuery === undefined ? (
                 <tr>
                   <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                     Cargando proveedores...

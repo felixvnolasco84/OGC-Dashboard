@@ -10,6 +10,7 @@ import {
 } from "./functions";
 import {
   assertCanWrite,
+  assertProviderManager,
   checkDesarrolloAccess,
   getCurrentUserOrThrow,
 } from "./permissions";
@@ -21,6 +22,7 @@ import {
 } from "./providerUtils";
 import { mostSpecificCostLabel, normalizeCostText } from "./costRules";
 import { classifyProjectMatch } from "./projectMatchUtils";
+import { assertProviderManagementRole, hasProviderManagementAccess } from "./providerRules";
 
 const MAX_ROWS = 1_000;
 const MONEY_TOLERANCE = 0.01;
@@ -124,6 +126,7 @@ async function resolveProvider(
     throw new Error(`El proveedor seleccionado para ${providerName} ya no está disponible.`);
   }
 
+  await assertProviderManager(ctx);
   const createdProviderId = await ctx.db.insert("proveedores", {
     razon_social: providerName.trim(),
     razon_social_normalizada: normalized,
@@ -306,6 +309,17 @@ export const replaceLaborPaymentImport = mutation({
       };
     }
 
+    const providersByName = buildProviderMatchIndex(
+      await ctx.db.query("proveedores").collect(),
+    );
+    if (!hasProviderManagementAccess(user) && args.weeks.some((week) =>
+      week.transactions.some((transaction) =>
+        classifyProviderImportAction(transaction.proveedor, providersByName).action === "create",
+      ),
+    )) {
+      assertProviderManagementRole(user);
+    }
+
     const oldImportsByDate = new Map<string, Array<Id<"labor_payment_imports">>>();
     const affectedHierarchies = new Map<string, {
       partida: string;
@@ -355,9 +369,6 @@ export const replaceLaborPaymentImport = mutation({
     const now = Date.now();
     let importedTransactions = 0;
     let replacedDates = 0;
-    const providersByName = buildProviderMatchIndex(
-      await ctx.db.query("proveedores").collect(),
-    );
     const resolvedProviders = new Map<string, {
       providerId: Id<"proveedores">;
       status: "matched" | "created";

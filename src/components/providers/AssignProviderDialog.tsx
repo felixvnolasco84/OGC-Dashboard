@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProviderFormDialog from "./ProviderFormDialog";
+import { hasProviderManagementAccess } from "../../../convex/providerRules";
 
 export default function AssignProviderDialog({
   open,
@@ -31,6 +32,8 @@ export default function AssignProviderDialog({
   currentProviderId?: Id<"proveedores">;
 }) {
   const { isAuthenticated } = useConvexAuth();
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const canManageProviders = hasProviderManagementAccess(currentUser);
   const providers = useQuery(
     api.proveedores.getAll,
     open && isAuthenticated ? {} : "skip"
@@ -112,9 +115,11 @@ export default function AssignProviderDialog({
                   placeholder="Buscar proveedor o RFC"
                 />
               </div>
-              <Button variant="outline" className="h-10 shrink-0 border-border-strong px-3 shadow-none" onClick={() => setCreateOpen(true)}>
-                <Plus /> Nuevo
-              </Button>
+              {canManageProviders && (
+                <Button variant="outline" className="h-10 shrink-0 border-border-strong px-3 shadow-none" onClick={() => setCreateOpen(true)}>
+                  <Plus /> Nuevo
+                </Button>
+              )}
             </div>
             <ScrollArea className="h-[min(18rem,42vh)] min-w-0 border border-border">
               <button

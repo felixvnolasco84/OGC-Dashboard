@@ -5,7 +5,7 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import {
   assertAdmin,
-  assertCanWrite,
+  assertProviderManager,
   checkDesarrolloAccess,
   getCurrentUserOrThrow,
 } from "./permissions";
@@ -350,7 +350,7 @@ export const matchByNames = query({
 export const create = mutation({
   args: providerFields,
   handler: async (ctx, args) => {
-    const user = await assertCanWrite(ctx);
+    const user = await assertProviderManager(ctx);
     const razonSocial = args.razon_social.trim();
     if (!razonSocial) throw new Error("La razón social es obligatoria.");
     const normalizedName = normalizeProviderName(razonSocial);
@@ -396,7 +396,7 @@ export const create = mutation({
 export const resolveOrCreate = mutation({
   args: { razon_social: v.string(), tipo: v.optional(providerTypeValidator) },
   handler: async (ctx, args) => {
-    const user = await assertCanWrite(ctx);
+    const user = await assertProviderManager(ctx);
     const razonSocial = args.razon_social.trim();
     if (!razonSocial) return { status: "empty" as const };
     const normalizedName = normalizeProviderName(razonSocial);
@@ -444,13 +444,10 @@ export const resolveOrCreate = mutation({
 export const update = mutation({
   args: { id: v.id("proveedores"), ...providerFields },
   handler: async (ctx, args) => {
-    const user = await assertCanWrite(ctx);
+    await assertProviderManager(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Proveedor no encontrado.");
     if (existing.archived_at) throw new Error("Reactiva el proveedor antes de editarlo.");
-    if (user.role !== "admin" && existing.created_by !== user._id) {
-      throw new Error("No tienes permiso para editar este proveedor.");
-    }
 
     const razonSocial = args.razon_social.trim();
     if (!razonSocial) throw new Error("La razón social es obligatoria.");

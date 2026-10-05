@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { assertIncomeManager, assertIncomeProjectAccess } from "./permissions";
 
 // ============================================
 // QUERIES
@@ -9,6 +10,9 @@ import { query, mutation } from "./_generated/server";
 export const getByIngreso = query({
   args: { ingreso_id: v.id("ingresos") },
   handler: async (ctx, args) => {
+    const ingreso = await ctx.db.get(args.ingreso_id);
+    if (!ingreso) throw new Error("Ingreso no encontrado.");
+    await assertIncomeProjectAccess(ctx, ingreso.proyecto);
     const documents = await ctx.db
       .query("ingresos_documentos")
       .withIndex("by_ingreso", (q) => q.eq("ingreso_id", args.ingreso_id))
@@ -28,6 +32,7 @@ export const getByIngreso = query({
 export const getByProyecto = query({
   args: { proyecto_id: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertIncomeProjectAccess(ctx, args.proyecto_id);
     const documents = await ctx.db
       .query("ingresos_documentos")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -49,6 +54,7 @@ export const getById = query({
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.id);
     if (!doc) return null;
+    await assertIncomeProjectAccess(ctx, doc.proyecto);
     
     const url = await ctx.storage.getUrl(doc.storage_id);
     return { ...doc, url };
@@ -59,6 +65,11 @@ export const getById = query({
 export const getUrl = query({
   args: { storage_id: v.id("_storage") },
   handler: async (ctx, args) => {
+    const doc = await ctx.db.query("ingresos_documentos")
+      .filter((q) => q.eq(q.field("storage_id"), args.storage_id))
+      .first();
+    if (!doc) return null;
+    await assertIncomeProjectAccess(ctx, doc.proyecto);
     return await ctx.storage.getUrl(args.storage_id);
   },
 });
@@ -70,6 +81,7 @@ export const getUrl = query({
 // Generate upload URL for file upload
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
+    await assertIncomeManager(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -84,18 +96,15 @@ export const create = mutation({
     storage_id: v.id("_storage"),
     type: v.string(),
     size: v.number(),
-    clerk_id: v.string(), // Clerk user ID to look up internal user
+    clerk_id: v.optional(v.string()), // Legacy argument; attribution comes from the session.
   },
   handler: async (ctx, args) => {
-    // Look up internal user by Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id))
-      .first();
-    
-    if (!user) {
-      throw new Error("User not found");
+    const user = await assertIncomeManager(ctx);
+    const ingreso = await ctx.db.get(args.ingreso_id);
+    if (!ingreso || ingreso.proyecto !== args.proyecto) {
+      throw new Error("El ingreso no pertenece al proyecto del documento.");
     }
+    await assertIncomeProjectAccess(ctx, ingreso.proyecto);
     
     const documentId = await ctx.db.insert("ingresos_documentos", {
       ingreso_id: args.ingreso_id,
@@ -118,10 +127,12 @@ export const create = mutation({
 export const remove = mutation({
   args: { id: v.id("ingresos_documentos") },
   handler: async (ctx, args) => {
+    await assertIncomeManager(ctx);
     const doc = await ctx.db.get(args.id);
     if (!doc) {
       throw new Error("Document not found");
     }
+    await assertIncomeProjectAccess(ctx, doc.proyecto);
     
     // Delete from storage
     await ctx.storage.delete(doc.storage_id);
@@ -137,6 +148,10 @@ export const remove = mutation({
 export const removeByIngreso = mutation({
   args: { ingreso_id: v.id("ingresos") },
   handler: async (ctx, args) => {
+    await assertIncomeManager(ctx);
+    const ingreso = await ctx.db.get(args.ingreso_id);
+    if (!ingreso) throw new Error("Ingreso no encontrado.");
+    await assertIncomeProjectAccess(ctx, ingreso.proyecto);
     const documents = await ctx.db
       .query("ingresos_documentos")
       .withIndex("by_ingreso", (q) => q.eq("ingreso_id", args.ingreso_id))

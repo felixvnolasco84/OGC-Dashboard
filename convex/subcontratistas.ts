@@ -1,3 +1,4 @@
+import { assertWorkAdmin, assertWorkProjectAccess, assertWorkRecordAccess, assertWorkRecordProject } from "./autorizacionesPermissions";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { assertBudgetParent, assertBudgetReference } from "./partidaReferences";
@@ -10,6 +11,7 @@ import { assertBudgetParent, assertBudgetReference } from "./partidaReferences";
 export const getByProyecto = query({
   args: { proyecto_id: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertWorkProjectAccess(ctx, args.proyecto_id);
     const subs = await ctx.db
       .query("subcontratistas")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -39,6 +41,7 @@ export const getByProyecto = query({
 export const getContratistasGeneralesByProyecto = query({
   args: { proyecto_id: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertWorkProjectAccess(ctx, args.proyecto_id);
     const contratistas = await ctx.db
       .query("contratistas_generales")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -73,6 +76,7 @@ export const getContratistasGeneralesByProyecto = query({
 
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
+    await assertWorkAdmin(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -88,6 +92,9 @@ export const createSubcontratista = mutation({
     monto: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkProjectAccess(ctx, args.proyecto);
+    if (args.contratista_general_id) await assertWorkRecordProject(ctx, args.contratista_general_id, args.proyecto);
     if (args.partida_id) await assertBudgetReference(ctx, args.partida_id, args.proyecto, 1);
     else if (args.partida_nombre) await assertBudgetParent(ctx, args.proyecto, args.partida_nombre);
     return await ctx.db.insert("subcontratistas", {
@@ -114,9 +121,12 @@ export const updateSubcontratista = mutation({
     contratista_general_id: v.optional(v.id("contratistas_generales")),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    const current = await assertWorkRecordAccess(ctx, args.id);
+    if (args.contratista_general_id) {
+      await assertWorkRecordProject(ctx, args.contratista_general_id, current.proyecto);
+    }
     const { id, ...fields } = args;
-    const current = await ctx.db.get(id);
-    if (!current) throw new Error("El subcontratista ya no existe.");
     if (fields.partida_id) await assertBudgetReference(ctx, fields.partida_id, current.proyecto, 1);
     else if (!current.partida_id && fields.partida_nombre) await assertBudgetParent(ctx, current.proyecto, fields.partida_nombre);
     // Filter out undefined values
@@ -135,6 +145,8 @@ export const updateSubcontratista = mutation({
 export const deleteSubcontratista = mutation({
   args: { id: v.id("subcontratistas") },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     // Delete related history entries
     const subHistoryParentTypes = [
       "subcontratista_presupuesto",
@@ -190,18 +202,14 @@ export const attachPresupuesto = mutation({
     clerk_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const actor = await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const sub = await ctx.db.get(args.id);
     if (!sub) throw new Error("Subcontratista not found");
 
     // Move existing to history
     if (sub.presupuesto_storage_id && sub.presupuesto_nombre) {
-      let replacedByUser = null;
-      if (args.clerk_id) {
-        replacedByUser = await ctx.db
-          .query("users")
-          .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id!))
-          .first();
-      }
+      const replacedByUser = actor;
       await ctx.db.insert("autorizaciones_obra_historial", {
         proyecto: sub.proyecto,
         parent_type: "subcontratista_presupuesto",
@@ -237,18 +245,14 @@ export const attachContrato = mutation({
     clerk_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const actor = await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const sub = await ctx.db.get(args.id);
     if (!sub) throw new Error("Subcontratista not found");
 
     // Move existing to history
     if (sub.contrato_storage_id && sub.contrato_nombre) {
-      let replacedByUser = null;
-      if (args.clerk_id) {
-        replacedByUser = await ctx.db
-          .query("users")
-          .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id!))
-          .first();
-      }
+      const replacedByUser = actor;
       await ctx.db.insert("autorizaciones_obra_historial", {
         proyecto: sub.proyecto,
         parent_type: "subcontratista_contrato",
@@ -277,6 +281,8 @@ export const attachContrato = mutation({
 export const removePresupuesto = mutation({
   args: { id: v.id("subcontratistas") },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const sub = await ctx.db.get(args.id);
     if (!sub) throw new Error("Subcontratista not found");
     await ctx.db.patch(args.id, {
@@ -293,6 +299,8 @@ export const removePresupuesto = mutation({
 export const removeContrato = mutation({
   args: { id: v.id("subcontratistas") },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const sub = await ctx.db.get(args.id);
     if (!sub) throw new Error("Subcontratista not found");
     await ctx.db.patch(args.id, {
@@ -316,6 +324,8 @@ export const createContratistaGeneral = mutation({
     responsable_id: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkProjectAccess(ctx, args.proyecto);
     return await ctx.db.insert("contratistas_generales", {
       proyecto: args.proyecto,
       nombre: args.nombre,
@@ -334,6 +344,8 @@ export const updateContratistaGeneral = mutation({
     siroc_numero: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const { id, ...fields } = args;
     const updates: Record<string, unknown> = {};
     if (fields.nombre !== undefined) updates.nombre = fields.nombre;
@@ -347,6 +359,8 @@ export const updateContratistaGeneral = mutation({
 export const deleteContratistaGeneral = mutation({
   args: { id: v.id("contratistas_generales") },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const cg = await ctx.db.get(args.id);
     if (!cg) throw new Error("Contratista general not found");
 
@@ -409,6 +423,8 @@ export const attachContratistaGeneralContrato = mutation({
     type: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     await ctx.db.patch(args.id, {
       contrato_storage_id: args.storage_id,
       contrato_nombre: args.nombre,
@@ -429,6 +445,8 @@ export const attachContratistaGeneralSiroc = mutation({
     type: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     await ctx.db.patch(args.id, {
       siroc_storage_id: args.storage_id,
       siroc_nombre: args.nombre,
@@ -446,6 +464,8 @@ export const updateSubcontratistaSiroc = mutation({
     siroc_numero: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const updates: Record<string, unknown> = {};
     if (args.siroc_numero !== undefined) updates.siroc_numero = args.siroc_numero;
     await ctx.db.patch(args.id, updates);
@@ -462,6 +482,8 @@ export const attachSubcontratistaSiroc = mutation({
     type: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     await ctx.db.patch(args.id, {
       siroc_storage_id: args.storage_id,
       siroc_nombre: args.nombre,

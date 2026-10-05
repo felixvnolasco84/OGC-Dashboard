@@ -1,3 +1,4 @@
+import { hasProviderManagementAccess } from "../../../convex/providerRules";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "react-router";
@@ -204,6 +205,7 @@ export function InvoiceIntakeDialog({
   const initializedRunId = useRef<string | null>(null);
 
   const currentUser = useQuery(api.users.getCurrentUser);
+  const canManageProviders = hasProviderManagementAccess(currentUser);
   const canReview = currentUser?.role === "admin" || currentUser?.role === "finance";
   const canUpload = Boolean(currentUser && currentUser.role !== "viewer");
   const projects = useQuery(api.desarrollos.getAll, open && !fixedProjectId ? {} : "skip");
@@ -554,7 +556,9 @@ export function InvoiceIntakeDialog({
                             <SelectTrigger className="flex-1"><SelectValue placeholder="Selecciona el proveedor" /></SelectTrigger>
                             <SelectContent>{providers?.map((provider) => <SelectItem key={provider._id} value={provider._id}>{provider.razon_social}{provider.rfc ? ` · ${provider.rfc}` : ""}</SelectItem>)}</SelectContent>
                           </Select>
-                          <Button type="button" variant="outline" size="icon" onClick={() => setProviderFormOpen(true)} aria-label="Crear proveedor"><Plus /></Button>
+                          {canManageProviders && (
+                            <Button type="button" variant="outline" size="icon" onClick={() => setProviderFormOpen(true)} aria-label="Crear proveedor"><Plus /></Button>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2"><Label>Estado</Label><Select value={status} onValueChange={(value) => { const next = value as typeof status; setStatus(next); if (next === "Por pagar") setPaymentType("Por definir"); }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Por pagar">Por pagar</SelectItem><SelectItem value="Pagado">Pagado</SelectItem></SelectContent></Select></div>

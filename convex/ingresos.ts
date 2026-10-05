@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { Id } from "./_generated/dataModel";
+import { assertIncomeManager, assertIncomeProjectAccess } from "./permissions";
 
 // ============================================
 // QUERIES
@@ -11,6 +12,7 @@ import { Id } from "./_generated/dataModel";
 export const getByProyecto = query({
   args: { proyecto_id: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertIncomeProjectAccess(ctx, args.proyecto_id);
     const ingresos = await ctx.db
       .query("ingresos")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -32,7 +34,10 @@ export const getByProyecto = query({
 export const getById = query({
   args: { id: v.id("ingresos") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const ingreso = await ctx.db.get(args.id);
+    if (!ingreso) return null;
+    await assertIncomeProjectAccess(ctx, ingreso.proyecto);
+    return ingreso;
   },
 });
 
@@ -40,6 +45,7 @@ export const getById = query({
 export const getTotalsByProyecto = query({
   args: { proyecto_id: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertIncomeProjectAccess(ctx, args.proyecto_id);
     const totals = await ctx.db
       .query("ingresos_totals")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -68,18 +74,11 @@ export const create = mutation({
     moneda: v.string(),
     documento_adjunto: v.optional(v.string()),
     documento_nombre: v.optional(v.string()),
-    clerk_id: v.string(), // Clerk user ID to look up internal user
+    clerk_id: v.optional(v.string()), // Legacy argument; attribution comes from the session.
   },
   handler: async (ctx, args) => {
-    // Look up internal user by Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id))
-      .first();
-    
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const user = await assertIncomeManager(ctx);
+    await assertIncomeProjectAccess(ctx, args.proyecto);
     
     const ingresoId = await ctx.db.insert("ingresos", {
       proyecto: args.proyecto,
@@ -102,7 +101,7 @@ export const create = mutation({
 export const bulkCreate = mutation({
   args: {
     proyecto: v.id("desarrollos"),
-    clerk_id: v.string(), // Clerk user ID to look up internal user
+    clerk_id: v.optional(v.string()), // Legacy argument; attribution comes from the session.
     ingresos: v.array(
       v.object({
         monto: v.number(),
@@ -113,15 +112,8 @@ export const bulkCreate = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    // Look up internal user by Clerk ID once for the whole batch
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id))
-      .first();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const user = await assertIncomeManager(ctx);
+    await assertIncomeProjectAccess(ctx, args.proyecto);
 
     if (args.ingresos.length === 0) {
       return { created: 0, ids: [] as Id<"ingresos">[] };
@@ -166,6 +158,10 @@ export const update = mutation({
     documento_nombre: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertIncomeManager(ctx);
+    const ingreso = await ctx.db.get(args.id);
+    if (!ingreso) throw new Error("Ingreso no encontrado.");
+    await assertIncomeProjectAccess(ctx, ingreso.proyecto);
     const { id, ...updates } = args;
     
     // Filter out undefined values and add updated_at
@@ -185,6 +181,10 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("ingresos") },
   handler: async (ctx, args) => {
+    await assertIncomeManager(ctx);
+    const ingreso = await ctx.db.get(args.id);
+    if (!ingreso) throw new Error("Ingreso no encontrado.");
+    await assertIncomeProjectAccess(ctx, ingreso.proyecto);
     await ctx.db.delete(args.id);
     return args.id;
   },

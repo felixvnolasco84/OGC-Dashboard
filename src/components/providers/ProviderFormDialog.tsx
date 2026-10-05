@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { Loader2 } from "lucide-react";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { hasProviderManagementAccess } from "../../../convex/providerRules";
 
 export type ProviderWithMeta = Doc<"proveedores"> & {
   tipo?: "regular" | "generico";
@@ -56,6 +57,8 @@ export default function ProviderFormDialog({
   provider?: ProviderWithMeta | null;
   onSaved?: (providerId: Doc<"proveedores">["_id"]) => void;
 }) {
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const canManage = hasProviderManagementAccess(currentUser);
   const createProvider = useMutation(api.proveedores.create);
   const updateProvider = useMutation(api.proveedores.update);
   const [form, setForm] = useState<ProviderForm>(emptyForm);
@@ -84,6 +87,7 @@ export default function ProviderFormDialog({
   };
 
   const handleSave = async () => {
+    if (!canManage) return;
     if (!form.razon_social.trim()) {
       toast.error("La razón social es obligatoria");
       return;
@@ -126,7 +130,7 @@ export default function ProviderFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open && canManage} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{provider ? "Editar proveedor" : "Nuevo proveedor"}</DialogTitle>
@@ -177,7 +181,7 @@ export default function ProviderFormDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isSaving || !form.razon_social.trim()}>
+          <Button onClick={handleSave} disabled={!canManage || isSaving || !form.razon_social.trim()}>
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Guardar
           </Button>

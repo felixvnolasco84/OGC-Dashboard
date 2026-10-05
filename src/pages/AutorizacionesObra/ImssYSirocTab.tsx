@@ -1,7 +1,7 @@
+import { useWorkAccess, useWorkMutation } from "./useWorkAccess";
 import { ResponsiveFields } from "@/components/ui/responsive-fields";
 import { useState, useCallback, useRef, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { useUser } from "@clerk/clerk-react";
+import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ interface ContratistaGeneralRow {
   proyecto: Id<"desarrollos">;
   nombre: string;
   responsable_id?: Id<"users">;
+  responsable?: { name: string } | null;
   status_manual?: string;
   contrato_storage_id?: Id<"_storage">;
   contrato_nombre?: string;
@@ -156,6 +157,7 @@ function FileCell({
   parentType: string;
   parentId: string;
 }) {
+  const canManage = useWorkAccess();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -168,6 +170,7 @@ function FileCell({
   return (
     <div>
       <input
+        disabled={!canManage}
         ref={fileInputRef}
         type="file"
         className="hidden"
@@ -178,6 +181,7 @@ function FileCell({
         }}
       />
       <input
+        disabled={!canManage}
         ref={replaceInputRef}
         type="file"
         className="hidden"
@@ -202,7 +206,7 @@ function FileCell({
             <button
               className="text-disabled-foreground hover:text-muted-foreground p-0.5"
               onClick={() => replaceInputRef.current?.click()}
-              disabled={uploading}
+              disabled={!canManage || uploading}
               title="Reemplazar archivo"
             >
               {uploading ? (
@@ -222,6 +226,7 @@ function FileCell({
             )}
             {onDelete && (
               <button
+                disabled={!canManage}
                 className="text-disabled-foreground hover:text-red-500 p-0.5"
                 onClick={onDelete}
                 title="Eliminar archivo"
@@ -264,7 +269,7 @@ function FileCell({
         <button
           className="text-sm text-disabled-foreground hover:text-muted-foreground"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
+          disabled={!canManage || uploading}
         >
           {uploading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -301,6 +306,7 @@ function PagoCuotaTableRow({
   showCuotaTipo: boolean;
   partidas: PartidaNivel1[];
 }) {
+  const canManage = useWorkAccess();
   const [editMonto, setEditMonto] = useState("");
 
   const cols = showCuotaTipo
@@ -338,6 +344,7 @@ function PagoCuotaTableRow({
       {/* Cuota tipo (only for CG section) */}
       {showCuotaTipo && (
         <Select
+          disabled={!canManage}
           value={pago.cuota_tipo || ""}
           onValueChange={(val) => onUpdate({ cuota_tipo: val })}
         >
@@ -358,6 +365,7 @@ function PagoCuotaTableRow({
 
       {/* Monto */}
       <Input
+        disabled={!canManage}
         className="h-8 rounded-none border-transparent hover:border-border focus:border-border-strong text-sm text-right"
         value={editMonto || (pago.monto ? formatCurrencyMXN(pago.monto) : "")}
         onFocus={() => setEditMonto(pago.monto?.toString() || "")}
@@ -374,6 +382,7 @@ function PagoCuotaTableRow({
 
       {/* Delete */}
       <button
+        disabled={!canManage}
         className="text-disabled-foreground hover:text-red-500 p-1"
         onClick={onDelete}
         title="Eliminar pago"
@@ -408,6 +417,7 @@ function PagosCuotaSection({
   showCuotaTipo: boolean;
   partidas: PartidaNivel1[];
 }) {
+  const canManage = useWorkAccess();
   const headerCols = showCuotaTipo
     ? "grid-cols-1 lg:grid-cols-[1.2fr_1.2fr_1fr_1fr_auto]"
     : "grid-cols-1 lg:grid-cols-[1.2fr_1.2fr_1fr_auto]";
@@ -448,6 +458,7 @@ function PagosCuotaSection({
 
       {/* Add button */}
       <button
+        disabled={!canManage}
         className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border-strong px-3 py-2 hover:border-border-strong transition-colors"
         onClick={onCreatePago}
       >
@@ -476,6 +487,7 @@ function SubPagoCuotaRow({
   uploadingComprobante: boolean;
   uploadingSoporte: boolean;
 }) {
+  const canManage = useWorkAccess();
   const [editMonto, setEditMonto] = useState("");
 
   return (
@@ -503,6 +515,7 @@ function SubPagoCuotaRow({
         parentId={pago._id}
       />
       <Input
+        disabled={!canManage}
         className="h-8 rounded-none border-transparent hover:border-border focus:border-border-strong text-sm text-right"
         value={editMonto || (pago.monto ? formatCurrencyMXN(pago.monto) : "")}
         onFocus={() => setEditMonto(pago.monto?.toString() || "")}
@@ -519,6 +532,7 @@ function SubPagoCuotaRow({
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <button
+            disabled={!canManage}
             className="text-disabled-foreground hover:text-muted-foreground p-1"
             type="button"
             title="Acciones del pago"
@@ -527,7 +541,7 @@ function SubPagoCuotaRow({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-44 p-1" align="end">
-          <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+          <DropdownMenuItem disabled={!canManage} variant="destructive" onSelect={onDelete}>
             <Trash2 className="w-3.5 h-3.5" />
             Eliminar pago
           </DropdownMenuItem>
@@ -557,6 +571,7 @@ function SubPagosCuotaSection({
   uploadingPagoId: string | null;
   uploadingField: "comprobante" | "soporte" | null;
 }) {
+  const canManage = useWorkAccess();
   return (
     <div className="border border-border rounded-sm">
       {/* Header */}
@@ -592,6 +607,7 @@ function SubPagosCuotaSection({
       {/* Add button */}
       <div className="px-5 py-3 border-t border-border">
         <button
+          disabled={!canManage}
           className="w-full flex items-center justify-center gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border px-3 py-2.5 hover:border-border-strong transition-colors rounded-sm"
           onClick={onCreatePago}
         >
@@ -634,6 +650,7 @@ function SubcontratistaImssRow({
   uploadingSirocId: string | null;
   partidas: PartidaNivel1[];
 }) {
+  const canManage = useWorkAccess();
   const [expanded, setExpanded] = useState(false);
   const [editSiroc, setEditSiroc] = useState(sub.siroc_numero || "");
 
@@ -676,6 +693,7 @@ function SubcontratistaImssRow({
               <div>
                 <div className="text-xs text-muted-foreground mb-4">SIROC</div>
                 <Input
+                  disabled={!canManage}
                   className="h-7 rounded-none text-sm mb-4"
                   value={editSiroc}
                   onChange={(e) => setEditSiroc(e.target.value)}
@@ -740,7 +758,7 @@ function SubcontratistaImssRow({
 // ============================================================
 
 export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
-  const { user } = useUser();
+  const canManage = useWorkAccess();
   const [uploadingPagoId, setUploadingPagoId] = useState<string | null>(null);
   const [uploadingField, setUploadingField] = useState<"comprobante" | "soporte" | null>(null);
   const [uploadingSirocId, setUploadingSirocId] = useState<string | null>(null);
@@ -777,7 +795,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
     api.imss_siroc.getPagosCuotaByProyecto,
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
-  const allUsers = useQuery(api.autorizaciones_obra.getAllUsers);
+  const allUsers = useQuery(api.autorizaciones_obra.getAllUsers, canManage ? {} : "skip");
   const allPartidas = useQuery(
     api.partida.getByNivel,
     proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, nivel: 1 } : "skip"
@@ -786,28 +804,28 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
   // ============================================================
   // Mutations
   // ============================================================
-  const upsertConfig = useMutation(api.imss_siroc.upsertConfig);
-  const createPago = useMutation(api.imss_siroc.createPagoCuota);
-  const updatePago = useMutation(api.imss_siroc.updatePagoCuota);
-  const deletePago = useMutation(api.imss_siroc.deletePagoCuota);
-  const attachComprobante = useMutation(api.imss_siroc.attachComprobante);
-  const attachSoporte = useMutation(api.imss_siroc.attachSoporte);
-  const removeComprobante = useMutation(api.imss_siroc.removeComprobante);
-  const removeSoporte = useMutation(api.imss_siroc.removeSoporte);
-  const generateUploadUrl = useMutation(api.imss_siroc.generateUploadUrl);
-  const updateCG = useMutation(api.subcontratistas.updateContratistaGeneral);
-  const deleteCG = useMutation(api.subcontratistas.deleteContratistaGeneral);
-  const attachCGContrato = useMutation(api.subcontratistas.attachContratistaGeneralContrato);
-  const attachCGSiroc = useMutation(api.subcontratistas.attachContratistaGeneralSiroc);
-  const updateSubSiroc = useMutation(api.subcontratistas.updateSubcontratistaSiroc);
-  const attachSubSiroc = useMutation(api.subcontratistas.attachSubcontratistaSiroc);
+  const upsertConfig = useWorkMutation(api.imss_siroc.upsertConfig);
+  const createPago = useWorkMutation(api.imss_siroc.createPagoCuota);
+  const updatePago = useWorkMutation(api.imss_siroc.updatePagoCuota);
+  const deletePago = useWorkMutation(api.imss_siroc.deletePagoCuota);
+  const attachComprobante = useWorkMutation(api.imss_siroc.attachComprobante);
+  const attachSoporte = useWorkMutation(api.imss_siroc.attachSoporte);
+  const removeComprobante = useWorkMutation(api.imss_siroc.removeComprobante);
+  const removeSoporte = useWorkMutation(api.imss_siroc.removeSoporte);
+  const generateUploadUrl = useWorkMutation(api.imss_siroc.generateUploadUrl);
+  const updateCG = useWorkMutation(api.subcontratistas.updateContratistaGeneral);
+  const deleteCG = useWorkMutation(api.subcontratistas.deleteContratistaGeneral);
+  const attachCGContrato = useWorkMutation(api.subcontratistas.attachContratistaGeneralContrato);
+  const attachCGSiroc = useWorkMutation(api.subcontratistas.attachContratistaGeneralSiroc);
+  const updateSubSiroc = useWorkMutation(api.subcontratistas.updateSubcontratistaSiroc);
+  const attachSubSiroc = useWorkMutation(api.subcontratistas.attachSubcontratistaSiroc);
 
   // ============================================================
   // Derived data
   // ============================================================
   const cgs = (contratistas || []) as ContratistaGeneralRow[];
   const subs = (subcontratistas || []) as SubcontratistaRow[];
-  const pagos = (allPagos || []) as PagoCuotaRow[];
+  const pagos = useMemo(() => (allPagos || []) as PagoCuotaRow[], [allPagos]);
   const users = allUsers || [];
   const partidas: PartidaNivel1[] = useMemo(() => {
     if (!allPartidas) return [];
@@ -982,7 +1000,6 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             nombre: file.name,
             size: file.size,
             type: file.type,
-            clerk_id: user?.id,
           });
         } else {
           await attachSoporte({
@@ -991,7 +1008,6 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             nombre: file.name,
             size: file.size,
             type: file.type,
-            clerk_id: user?.id,
           });
         }
         toast.success("Archivo adjuntado");
@@ -1003,7 +1019,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
         setUploadingField(null);
       }
     },
-    [generateUploadUrl, attachComprobante, attachSoporte, user]
+    [generateUploadUrl, attachComprobante, attachSoporte]
   );
 
   const handleDeletePagoFile = useCallback(
@@ -1134,10 +1150,11 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
           <div>
             <p className="text-xs text-muted-foreground mb-1">Costo Total Obra IMSS</p>
             {
-              !isEditingCostoTotal ? (
-                <p className="text-3xl font-light text-foreground cursor-pointer mt-2" onClick={handleEditCostoTotal}>{formatCurrencyMXN(costoTotal)}</p>
+              !canManage || !isEditingCostoTotal ? (
+                <p className={`text-3xl font-light text-foreground mt-2 ${canManage ? "cursor-pointer" : ""}`} onClick={canManage ? handleEditCostoTotal : undefined}>{formatCurrencyMXN(costoTotal)}</p>
               ) : (
                 <Input
+                  disabled={!canManage}
                   autoFocus
                   className="text-3xl font-light h-auto py-1 rounded-none border-transparent hover:border-border focus:border-border-strong mt-2"
                   value={costoInput}
@@ -1195,6 +1212,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             {mainCG && (
               <ResponsableSelector
                 currentId={mainCG.responsable_id}
+                currentName={mainCG.responsable?.name}
                 users={users}
                 onSelect={async (userId) => {
                   try {
@@ -1274,6 +1292,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
+                      disabled={!canManage}
                       variant="destructive"
                       onSelect={() =>
                         setCgToDelete({
@@ -1384,6 +1403,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
             {mainCG && (
               <ResponsableSelector
                 currentId={mainCG.responsable_id}
+                currentName={mainCG.responsable?.name}
                 users={users}
                 onSelect={async (userId) => {
                   try {
@@ -1497,7 +1517,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       </div>
 
       <AlertDialog
-        open={Boolean(pagoToDelete)}
+        open={canManage && Boolean(pagoToDelete)}
         onOpenChange={(open) => {
           if (!open && !isDeletingPago) setPagoToDelete(null);
         }}
@@ -1519,7 +1539,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 event.preventDefault();
                 void handleConfirmDeletePago();
               }}
-              disabled={isDeletingPago}
+              disabled={!canManage || isDeletingPago}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
               {isDeletingPago ? (
@@ -1536,7 +1556,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
       </AlertDialog>
 
       <AlertDialog
-        open={Boolean(cgToDelete)}
+        open={canManage && Boolean(cgToDelete)}
         onOpenChange={(open) => {
           if (!open && !isDeletingCG) setCgToDelete(null);
         }}
@@ -1561,7 +1581,7 @@ export default function ImssYSirocTab({ proyectoId }: { proyectoId: string }) {
                 event.preventDefault();
                 void handleConfirmDeleteCG();
               }}
-              disabled={isDeletingCG || Boolean(cgToDelete?.linkedSubsCount)}
+              disabled={!canManage || (isDeletingCG || Boolean(cgToDelete?.linkedSubsCount))}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isDeletingCG ? (

@@ -2,6 +2,7 @@ import { Fragment, useCallback, useState, useMemo, useEffect, useRef, type Mouse
 import { useParams, useSearchParams } from "react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { hasProviderManagementAccess } from "../../../convex/providerRules";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Clock, ChevronDown, ChevronUp, CheckCircle, CreditCard, PackageCheck, Mail, Send, ExternalLink, Paperclip, Trash2, UserPlus, Truck, Receipt, MessageSquare, FileUp } from "lucide-react";
@@ -181,6 +182,7 @@ export default function ProyectoRequisicionesPage() {
 
     // Get current user info for permission check
     const currentUser = useQuery(api.users.getCurrentUser);
+    const canManageProviders = hasProviderManagementAccess(currentUser);
     useEffect(() => {
         if (currentUser?.role === "almacenista") setActiveTab("pagadas");
     }, [currentUser?.role]);
@@ -976,6 +978,7 @@ export default function ProyectoRequisicionesPage() {
 
     // Handle create new provider
     const handleCreateProvider = async () => {
+        if (!canManageProviders) return;
         if (!selectedRequisicionForProvider || !newProviderData.razon_social || !currentUser) return;
 
         setIsSubmittingProvider(true);
@@ -1017,12 +1020,9 @@ export default function ProyectoRequisicionesPage() {
         return proveedores.find(p => p._id === selectedProviderForView);
     }, [selectedProviderForView, proveedores]);
 
-    // Check if user can edit provider (creator or admin)
+    // Only administrators can edit the shared provider catalogue.
     const canEditProvider = (provider: typeof viewingProvider) => {
-        if (!provider || !currentUser) return false;
-        if (currentUser.role === "admin") return true;
-        if (provider.created_by === currentUser._id) return true;
-        return false;
+        return Boolean(provider && canManageProviders);
     };
 
     // Open provider details view
@@ -1072,7 +1072,7 @@ export default function ProyectoRequisicionesPage() {
 
     // Save provider edits
     const handleSaveProviderEdit = async () => {
-        if (!selectedProviderForView) return;
+        if (!selectedProviderForView || !canManageProviders) return;
 
         setIsSubmittingProvider(true);
         try {
@@ -2059,7 +2059,7 @@ export default function ProyectoRequisicionesPage() {
                                 </div>
                             </DialogHeader>
 
-                            {isEditingProvider ? (
+                            {isEditingProvider && canManageProviders ? (
                                 <div className="min-w-0 shrink-0 space-y-4">
                                     <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
@@ -2219,7 +2219,7 @@ export default function ProyectoRequisicionesPage() {
                             <DialogHeader className="min-w-0 pr-10 text-left">
                                 <DialogTitle>Asignar Proveedor</DialogTitle>
                                 <DialogDescription>
-                                    Selecciona un proveedor existente o crea uno nuevo.
+                                    {canManageProviders ? "Selecciona un proveedor existente o crea uno nuevo." : "Selecciona un proveedor existente."}
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -2234,18 +2234,20 @@ export default function ProyectoRequisicionesPage() {
                                     <Building2 className="h-4 w-4 mr-2" />
                                     Seleccionar existente
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                        setCommonProviderForEdit(null);
-                                        setCommonProviderFormOpen(true);
-                                    }}
-                                    className="flex-1 rounded-none"
-                                >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Crear nuevo
-                                </Button>
+                                {canManageProviders && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setCommonProviderForEdit(null);
+                                            setCommonProviderFormOpen(true);
+                                        }}
+                                        className="flex-1 rounded-none"
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Crear nuevo
+                                    </Button>
+                                )}
                             </div>
 
                             {providerMode === "select" ? (

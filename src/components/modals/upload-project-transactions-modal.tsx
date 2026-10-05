@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { hasProviderManagementAccess } from "../../../convex/providerRules";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 import {
@@ -78,6 +79,8 @@ function formatDate(value: string) {
 }
 
 export default function UploadProjectTransactionsModal() {
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const canManageProviders = hasProviderManagementAccess(currentUser);
   const convex = useConvex();
   const { isOpen, proyectoId, proyectoNombre, onClose } = useUploadProjectTransactionsModal();
   const [file, setFile] = useState<File | null>(null);
@@ -196,6 +199,9 @@ export default function UploadProjectTransactionsModal() {
               ? match.status
               : "new";
           const errors: string[] = [];
+          if (status === "new" && !canManageProviders) {
+            errors.push("Un administrador debe registrar este proveedor antes de importar.");
+          }
           if (status === "archived") {
             errors.push("El proveedor está archivado y debe reactivarse antes de importar.");
           }
@@ -330,7 +336,7 @@ export default function UploadProjectTransactionsModal() {
   };
 
   const hasBlockingErrors = validationReport?.transactions.some(
-    (transaction) => transaction.errors.length > 0,
+    (transaction) => transaction.errors.length > 0 || (!canManageProviders && transaction.providerStatus === "new"),
   ) || false;
   const lastWeek = validationReport?.parsed.weeks.at(-1);
 

@@ -1,0 +1,32 @@
+[
+  {
+    "timestamp": "2026-10-05T20:57:15.673Z",
+    "query": "[CONVEX Q(transacciones:getFamiliaChartData)]",
+    "error": "Your request timed out performing too many system operations."
+  },
+  {
+    "timestamp": "2026-10-05T20:57:15.676Z",
+    "query": "[CONVEX Q(transacciones:getFamiliaChartData)]",
+    "error": "Your request timed out performing too many system operations."
+  },
+  {
+    "timestamp": "2026-10-05T20:57:15.680Z",
+    "query": "[CONVEX Q(transacciones:getFamiliaChartData)]",
+    "error": "Your request timed out performing too many system operations."
+  },
+  {
+    "timestamp": "2026-10-05T21:00:53.079Z",
+    "query": "[CONVEX Q(desarrollos:getPnlSummary)]",
+    "error": "Your request timed out performing too many system operations."
+  },
+  {
+    "timestamp": "2026-10-05T21:00:53.080Z",
+    "query": "[CONVEX Q(desarrollos:getPnlSummary)]",
+    "error": "Your request timed out performing too many system operations."
+  },
+  {
+    "timestamp": "2026-10-05T21:00:53.082Z",
+    "query": "[CONVEX Q(desarrollos:getPnlSummary)]",
+    "error": "Your request timed out performing too many system operations."
+  }
+]

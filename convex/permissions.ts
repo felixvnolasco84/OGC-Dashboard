@@ -1,5 +1,7 @@
 import type { ActionCtx, QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { assertIncomeManagementRole } from "./ingresoRules";
+import { assertProviderManagementRole } from "./providerRules";
 
 const SUPER_ADMIN_EMAILS = new Set([
   "ops@ogc.mx",
@@ -16,6 +18,27 @@ export function hasAdminAccess(user?: { role: string; email: string } | null): b
 
 export function hasInvoiceReviewAccess(user?: { role: string; email: string } | null): boolean {
   return hasAdminAccess(user) || user?.role === "finance";
+}
+
+export async function assertIncomeManager(ctx: QueryCtx | MutationCtx) {
+  const user = await getCurrentUserOrThrow(ctx);
+  assertIncomeManagementRole(user);
+  return user;
+}
+
+export async function assertProviderManager(ctx: QueryCtx | MutationCtx) {
+  const user = await getCurrentUserOrThrow(ctx);
+  assertProviderManagementRole(user);
+  return user;
+}
+
+export async function assertIncomeProjectAccess(
+  ctx: QueryCtx | MutationCtx,
+  proyecto: Id<"desarrollos">,
+) {
+  if (!(await checkDesarrolloAccess(ctx, proyecto))) {
+    throw new Error("No tienes acceso al proyecto del ingreso.");
+  }
 }
 
 export function hasGlobalAdminAccess(

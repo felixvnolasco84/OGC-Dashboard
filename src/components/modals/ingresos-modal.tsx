@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useQuery, useMutation } from "convex/react";
-import { useUser } from "@clerk/clerk-react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
+import { hasIncomeManagementAccess } from "../../../convex/ingresoRules";
 import { useIngresosModal } from "@/hooks/ingresos-modal";
 import { OgcInvoiceEvidenceDialog } from "@/components/modals/ogc-invoice-evidence-dialog";
 import { formatCurrency } from "@/lib/utils";
@@ -154,7 +154,8 @@ const normalizeBulkDate = (raw: string): string | null => {
 };
 
 export default function IngresosModal() {
-  const { user } = useUser();
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const canManageIngresos = hasIncomeManagementAccess(currentUser);
   const {
     isOpen,
     context,
@@ -250,6 +251,15 @@ export default function IngresosModal() {
     }
   }, [isOpen, resetForm]);
 
+  useEffect(() => {
+    if (!canManageIngresos) {
+      setShowForm(false);
+      setShowBulkUpload(false);
+      setEditingOgcMovement(null);
+      cancelEditing();
+    }
+  }, [canManageIngresos, cancelEditing]);
+
   const resetDocumentForm = () => {
     setDocumentFile(null);
     setDocumentType("");
@@ -268,7 +278,7 @@ export default function IngresosModal() {
 
   // Step 1: send the selected file to the external Excel reader and validate the rows
   const handleValidateBulk = async () => {
-    if (!context || !bulkFile) return;
+    if (!canManageIngresos || !context || !bulkFile) return;
 
     setIsValidatingBulk(true);
     setBulkRows(null);
@@ -374,7 +384,7 @@ export default function IngresosModal() {
 
   // Step 2: confirm and bulk-insert all valid rows
   const handleConfirmBulk = async () => {
-    if (!context || !user || !bulkRows) return;
+    if (!canManageIngresos || !context || !bulkRows) return;
 
     const validRows = bulkRows.filter((r) => r.status === "valid");
     if (validRows.length === 0) {
@@ -386,7 +396,6 @@ export default function IngresosModal() {
     try {
       const result = await bulkCreateIngresos({
         proyecto: context.projectId,
-        clerk_id: user.id,
         ingresos: validRows.map((r) => ({
           monto: r.monto,
           fecha: r.fecha,
@@ -479,7 +488,7 @@ export default function IngresosModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!context || !user) return;
+    if (!canManageIngresos || !context) return;
 
     setIsSubmitting(true);
     try {
@@ -534,7 +543,6 @@ export default function IngresosModal() {
           moneda: formData.moneda,
           documento_adjunto: formData.documento_adjunto || undefined,
           documento_nombre: formData.documento_nombre || undefined,
-          clerk_id: user.id,
         });
       }
 
@@ -569,7 +577,6 @@ export default function IngresosModal() {
             storage_id: storageId,
             type: documentType,
             size: documentFile.size,
-            clerk_id: user.id,
           });
 
           documentUploaded = true;
@@ -601,6 +608,7 @@ export default function IngresosModal() {
   };
 
   const handleDelete = async (row: IncomeTableRow) => {
+    if (!canManageIngresos) return;
     if (row.source === "ogc") {
       const reason = window.prompt("Motivo para anular este ingreso OGC:", "Eliminado desde presupuesto");
       if (!reason?.trim()) return;
@@ -632,6 +640,7 @@ export default function IngresosModal() {
   };
 
   const handleEdit = (row: IncomeTableRow) => {
+    if (!canManageIngresos) return;
     resetDocumentForm();
 
     if (row.source === "ogc") {
@@ -662,6 +671,7 @@ export default function IngresosModal() {
   };
 
   const handleAddNew = () => {
+    if (!canManageIngresos) return;
     setEditingOgcMovement(null);
     resetForm();
     setShowForm(true);
@@ -685,7 +695,7 @@ export default function IngresosModal() {
         </DialogHeader>
 
         <div className="max-h-[calc(90vh-81px)] overflow-y-auto">
-          {showForm && (
+          {canManageIngresos && showForm && (
             <div>
               <div className="flex items-start justify-between border-b border-border px-6 py-4">
                 <div>
@@ -869,7 +879,7 @@ export default function IngresosModal() {
                                       </AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={async () => {
-                                          if (!replaceFile || !editingIngreso || !context || !user) return;
+                                          if (!canManageIngresos || !replaceFile || !editingIngreso || !context) return;
 
                                           setIsReplacingDocument(true);
                                           try {
@@ -889,7 +899,6 @@ export default function IngresosModal() {
                                               storage_id: storageId,
                                               type: doc.type,
                                               size: replaceFile.size,
-                                              clerk_id: user.id,
                                             });
 
                                             await deleteIngresoDocument({ id: doc._id });
@@ -932,6 +941,7 @@ export default function IngresosModal() {
                                       <AlertDialogAction
                                         variant="destructive"
                                         onClick={async () => {
+                                          if (!canManageIngresos) return;
                                           try {
                                             await deleteIngresoDocument({ id: doc._id });
                                             toast.success("Documento eliminado");
@@ -1074,7 +1084,7 @@ export default function IngresosModal() {
             </section>
           )}
 
-          {!showForm && !showBulkUpload && (
+          {canManageIngresos && !showForm && !showBulkUpload && (
             <div className="flex items-center justify-end gap-1 border-b border-border px-4 py-2">
               <Button
                 variant="outline"
@@ -1100,7 +1110,7 @@ export default function IngresosModal() {
             </div>
           )}
 
-          {!showForm && showBulkUpload && (
+          {canManageIngresos && !showForm && showBulkUpload && (
             <div>
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -1401,7 +1411,7 @@ export default function IngresosModal() {
                               })()}
                             </TableCell>
                             <TableCell variant="ledger">
-                              <DropdownMenu>
+                              {canManageIngresos && <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="quiet" size="iconXs">
                                     <MoreHorizontal className="h-4 w-4" />
@@ -1428,7 +1438,7 @@ export default function IngresosModal() {
                                     {row.source === "ogc" ? "Anular" : "Eliminar"}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
-                              </DropdownMenu>
+                              </DropdownMenu>}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -1441,11 +1451,13 @@ export default function IngresosModal() {
                   <FileText className="h-7 w-7 text-disabled-foreground" />
                   <p className="mt-3 text-sm font-medium text-foreground">No hay ingresos registrados</p>
                   <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Agrega un ingreso o carga un archivo Excel para comenzar.
+                    {canManageIngresos
+                      ? "Agrega un ingreso o carga un archivo Excel para comenzar."
+                      : "Aquí aparecerán los ingresos registrados del proyecto."}
                   </p>
-                  <div className="mt-4"><Button variant="outline" onClick={handleAddNew}>
+                  {canManageIngresos && <div className="mt-4"><Button variant="outline" onClick={handleAddNew}>
                     <Plus className="h-4 w-4" />Agregar primer ingreso
-                  </Button></div>
+                  </Button></div>}
                 </div>
               )}
             </div>

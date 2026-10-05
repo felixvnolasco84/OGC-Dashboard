@@ -17,6 +17,7 @@ import {
 } from "./ogcImportRules";
 import { appendOgcInvoiceDuplicateKey, canResumeOgcCapture, normalizeOgcInvoiceReference } from "./ogcInvoiceRules";
 import { isOgcIncome, normalizeOgcClassification } from "./ogcClassificationRules";
+import { assertIncomeManagementRole } from "./ingresoRules";
 
 type OgcMovement = Doc<"ogc_movimientos">;
 type CurrentUser = Awaited<ReturnType<typeof getCurrentUserOrThrow>>;
@@ -822,6 +823,7 @@ export const validateBulkCreate = mutation({
         rejectedRows.push(row);
         continue;
       }
+      if (isOgcIncome(normalized)) assertIncomeManagementRole(user);
 
       if (normalized.proyecto) {
         const hasAccess = await checkDesarrolloAccess(ctx, normalized.proyecto);
@@ -929,6 +931,7 @@ export const bulkCreate = mutation({
         rejected += 1;
         continue;
       }
+      if (isOgcIncome(normalized)) assertIncomeManagementRole(user);
 
       if (normalized.proyecto) {
         const hasAccess = await checkDesarrolloAccess(ctx, normalized.proyecto);
@@ -945,6 +948,7 @@ export const bulkCreate = mutation({
           continue;
         }
         await assertMovementAccess(ctx, storedMovement, user);
+        if (isOgcIncome(storedMovement)) assertIncomeManagementRole(user);
         if (!existingRow.active) {
           rejected += 1;
           continue;
@@ -1048,6 +1052,7 @@ export const update = mutation({
     const before = await ctx.db.get(args.id);
     if (!before) throw new Error("Movimiento no encontrado.");
     await assertMovementAccess(ctx, before, user);
+    if (isOgcIncome(before)) assertIncomeManagementRole(user);
     if (!isActiveMovement(before)) throw new Error("Solo se pueden editar movimientos activos.");
 
     const projectPatch = "proyecto" in args.patch
@@ -1071,6 +1076,7 @@ export const update = mutation({
       factura_referencia: before.factura_referencia,
     });
     if (!normalized) throw new Error("Movimiento invalido.");
+    if (isOgcIncome(normalized)) assertIncomeManagementRole(user);
     if (before.factura_comprobante && normalized.tipo !== "ingreso") {
       throw new Error("Quita el comprobante de factura antes de cambiar el ingreso a costo.");
     }
@@ -1119,6 +1125,7 @@ export const setInvoiceEvidence = mutation({
     const before = await ctx.db.get(args.id);
     if (!before) throw new Error("Movimiento no encontrado.");
     await assertMovementAccess(ctx, before, user);
+    assertIncomeManagementRole(user);
     if (!isActiveMovement(before) || before.tipo !== "ingreso") {
       throw new Error("Solo se puede vincular una factura a un ingreso OGC activo.");
     }
@@ -1192,6 +1199,7 @@ export const voidMovement = mutation({
     const before = await ctx.db.get(args.id);
     if (!before) throw new Error("Movimiento no encontrado.");
     await assertMovementAccess(ctx, before, user);
+    if (isOgcIncome(before)) assertIncomeManagementRole(user);
     if (!isActiveMovement(before)) throw new Error("Este movimiento ya no esta activo.");
 
     const reason = args.reason.trim();
@@ -1237,6 +1245,7 @@ export const reconcile = mutation({
     const before = await ctx.db.get(args.id);
     if (!before) throw new Error("Movimiento no encontrado.");
     await assertMovementAccess(ctx, before, user);
+    if (isOgcIncome(before)) assertIncomeManagementRole(user);
     if (!isActiveMovement(before)) throw new Error("Solo se pueden conciliar movimientos activos.");
 
     await ctx.db.patch(args.id, {
@@ -1278,6 +1287,7 @@ export const markDuplicate = mutation({
     const before = await ctx.db.get(args.id);
     if (!before) throw new Error("Movimiento no encontrado.");
     await assertMovementAccess(ctx, before, user);
+    if (isOgcIncome(before)) assertIncomeManagementRole(user);
     if (!isActiveMovement(before)) throw new Error("Este movimiento ya no esta activo.");
 
     if (args.duplicate_of) {

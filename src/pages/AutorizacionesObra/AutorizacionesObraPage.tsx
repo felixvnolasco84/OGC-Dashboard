@@ -7,9 +7,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PermisosYLegalTab from "./PermisosYLegalTab";
 import PresupuestosContratosTab from "./PresupuestosContratosTab";
 import ImssYSirocTab from "./ImssYSirocTab";
+import { useWorkAccess } from "./useWorkAccess";
 
 export default function AutorizacionesObraPage({ embedded = false }: { embedded?: boolean }) {
   const { proyectoId } = useParams<{ proyectoId: string }>();
+  const canManage = useWorkAccess();
 
   const proyecto = useQuery(
     api.desarrollos.getById,
@@ -30,6 +32,9 @@ export default function AutorizacionesObraPage({ embedded = false }: { embedded?
   return (
     <div className={cn("bg-card", !embedded && "min-h-screen")}>
       <div className={cn(!embedded && "px-4 sm:px-6 xl:px-12", "pt-6")}>
+        {!canManage && (
+          <p className="mb-4 text-sm text-muted-foreground">Solo consulta. La gestión de estas secciones está disponible para administradores.</p>
+        )}
         <Tabs defaultValue="permisos">
           <TabsList className="bg-transparent border-b border-border rounded-none max-w-full w-full overflow-x-auto justify-start p-0 h-auto">
             <TabsTrigger

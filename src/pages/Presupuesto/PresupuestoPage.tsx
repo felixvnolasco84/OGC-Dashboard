@@ -39,6 +39,7 @@ import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 import { useAddPartidaModal } from "@/hooks/add-partida-modal";
 import { useIngresosModal } from "@/hooks/ingresos-modal";
 import IngresosModal from "@/components/modals/ingresos-modal";
+import { hasIncomeManagementAccess } from "../../../convex/ingresoRules";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { DeletePartidaDialog } from "@/components/Presupuesto/DeletePartidaDialog";
 import { cn } from "@/lib/utils";
@@ -481,7 +482,7 @@ export default function PresupuestoPage() {
                       }}
                     >
                       <CreditCard className="h-4 w-4" />
-                      Gestionar ingresos
+                      {hasIncomeManagementAccess(currentUser) ? "Gestionar ingresos" : "Ver ingresos"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onSelect={() => {

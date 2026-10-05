@@ -1,3 +1,4 @@
+import { assertWorkAdmin, assertWorkProjectAccess, assertWorkRecordAccess, assertWorkParentAccess, findWorkParentForRead } from "./autorizacionesPermissions";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -9,6 +10,7 @@ import { v } from "convex/values";
 export const getConfigByProyecto = query({
   args: { proyecto_id: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertWorkProjectAccess(ctx, args.proyecto_id);
     return await ctx.db
       .query("imss_configuracion")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -20,6 +22,7 @@ export const getConfigByProyecto = query({
 export const getPagosCuotaByProyecto = query({
   args: { proyecto_id: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertWorkProjectAccess(ctx, args.proyecto_id);
     const pagos = await ctx.db
       .query("imss_pagos_cuota")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -48,6 +51,8 @@ export const getPagosCuotaByParent = query({
     parent_id: v.string(),
   },
   handler: async (ctx, args) => {
+    const parent = await findWorkParentForRead(ctx, args.parent_type, args.parent_id);
+    if (!parent) return [];
     const pagos = await ctx.db
       .query("imss_pagos_cuota")
       .withIndex("by_parent", (q) =>
@@ -56,7 +61,7 @@ export const getPagosCuotaByParent = query({
       .collect();
 
     return await Promise.all(
-      pagos.map(async (p) => {
+      pagos.filter((p) => p.proyecto === parent.proyecto).map(async (p) => {
         let comprobante_url = null;
         if (p.comprobante_storage_id) {
           comprobante_url = await ctx.storage.getUrl(p.comprobante_storage_id);
@@ -77,6 +82,7 @@ export const getPagosCuotaByParent = query({
 
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
+    await assertWorkAdmin(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -88,6 +94,8 @@ export const upsertConfig = mutation({
     costo_total_imss: v.number(),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkProjectAccess(ctx, args.proyecto);
     const existing = await ctx.db
       .query("imss_configuracion")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
@@ -121,6 +129,11 @@ export const createPagoCuota = mutation({
     monto: v.number(),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkProjectAccess(ctx, args.proyecto);
+    if (!["contratista_general", "subcontratista"].includes(args.parent_type)) throw new Error("Tipo de cuota no válido.");
+    const parent = await assertWorkParentAccess(ctx, args.parent_type, args.parent_id);
+    if (parent.proyecto !== args.proyecto) throw new Error("El registro no pertenece al proyecto.");
     return await ctx.db.insert("imss_pagos_cuota", {
       proyecto: args.proyecto,
       parent_type: args.parent_type,
@@ -139,6 +152,8 @@ export const updatePagoCuota = mutation({
     monto: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const { id, ...fields } = args;
     const updates: Record<string, unknown> = {};
     if (fields.cuota_tipo !== undefined) updates.cuota_tipo = fields.cuota_tipo;
@@ -151,6 +166,8 @@ export const updatePagoCuota = mutation({
 export const deletePagoCuota = mutation({
   args: { id: v.id("imss_pagos_cuota") },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const pago = await ctx.db.get(args.id);
     if (!pago) throw new Error("Pago not found");
 
@@ -182,18 +199,14 @@ export const attachComprobante = mutation({
     clerk_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const actor = await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const pago = await ctx.db.get(args.id);
     if (!pago) throw new Error("Pago not found");
 
     // Move existing to history
     if (pago.comprobante_storage_id && pago.comprobante_nombre) {
-      let replacedByUser = null;
-      if (args.clerk_id) {
-        replacedByUser = await ctx.db
-          .query("users")
-          .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id!))
-          .first();
-      }
+      const replacedByUser = actor;
       await ctx.db.insert("autorizaciones_obra_historial", {
         proyecto: pago.proyecto,
         parent_type: "imss_comprobante",
@@ -229,18 +242,14 @@ export const attachSoporte = mutation({
     clerk_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const actor = await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const pago = await ctx.db.get(args.id);
     if (!pago) throw new Error("Pago not found");
 
     // Move existing to history
     if (pago.soporte_storage_id && pago.soporte_nombre) {
-      let replacedByUser = null;
-      if (args.clerk_id) {
-        replacedByUser = await ctx.db
-          .query("users")
-          .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id!))
-          .first();
-      }
+      const replacedByUser = actor;
       await ctx.db.insert("autorizaciones_obra_historial", {
         proyecto: pago.proyecto,
         parent_type: "imss_soporte",
@@ -269,6 +278,8 @@ export const attachSoporte = mutation({
 export const removeComprobante = mutation({
   args: { id: v.id("imss_pagos_cuota") },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const pago = await ctx.db.get(args.id);
     if (!pago) throw new Error("Pago not found");
     await ctx.db.patch(args.id, {
@@ -285,6 +296,8 @@ export const removeComprobante = mutation({
 export const removeSoporte = mutation({
   args: { id: v.id("imss_pagos_cuota") },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const pago = await ctx.db.get(args.id);
     if (!pago) throw new Error("Pago not found");
     await ctx.db.patch(args.id, {

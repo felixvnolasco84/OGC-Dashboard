@@ -1,7 +1,7 @@
+import { useWorkAccess, useWorkMutation } from "./useWorkAccess";
 import { ResponsiveFields } from "@/components/ui/responsive-fields";
 import { useState, useCallback, useRef, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { useUser } from "@clerk/clerk-react";
+import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
@@ -127,9 +127,11 @@ export function StatusDot({
   status?: string;
   onToggle: () => void;
 }) {
+  const canManage = useWorkAccess();
   const isActive = status === "activo";
   return (
     <button
+      disabled={!canManage}
       onClick={onToggle}
       className={cn(
         "w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors border-2",
@@ -137,7 +139,7 @@ export function StatusDot({
           ? "bg-[#1A5D21] border-[#1A5D21] text-on-color"
           : "bg-card border-border-strong text-disabled-foreground hover:border-border-strong"
       )}
-      title={isActive ? "Activo — clic para desactivar" : "Inactivo — clic para activar"}
+      title={canManage ? (isActive ? "Activo — clic para desactivar" : "Inactivo — clic para activar") : (isActive ? "Activo" : "Inactivo")}
     >
       {isActive && (
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -151,27 +153,34 @@ export function StatusDot({
 /** Responsable badge / selector */
 export function ResponsableSelector({
   currentId,
+  currentName,
   users,
   onSelect,
 }: {
   currentId?: Id<"users">;
+  currentName?: string;
   users: { _id: Id<"users">; name: string; email: string }[];
   onSelect: (userId: Id<"users"> | undefined) => void;
 }) {
+  const canManage = useWorkAccess();
   const current = users.find((u) => u._id === currentId);
+
+  if (!canManage) {
+    return <span className="text-sm text-muted-foreground">{currentName || current?.name || "Sin responsable"}</span>;
+  }
 
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         {current ? (
-          <button className="flex items-center gap-2 text-sm text-foreground hover:text-foreground">
+          <button disabled={!canManage} className="flex items-center gap-2 text-sm text-foreground hover:text-foreground">
             <span>{current.name}</span>
             <span className="w-7 h-7 rounded-full bg-disabled flex items-center justify-center text-xs font-medium text-muted-foreground">
               {current.name.charAt(0).toUpperCase()}
             </span>
           </button>
         ) : (
-          <button className="text-sm text-muted-foreground hover:text-muted-foreground">
+          <button disabled={!canManage} className="text-sm text-muted-foreground hover:text-muted-foreground">
             Asignar responsable
           </button>
         )}
@@ -183,6 +192,7 @@ export function ResponsableSelector({
         <div className="max-h-48 overflow-y-auto">
           {current && (
             <DropdownMenuItem
+              disabled={!canManage}
               className="w-full text-left px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 rounded"
               onSelect={() => onSelect(undefined)}
             >
@@ -191,6 +201,7 @@ export function ResponsableSelector({
           )}
           {users.map((u) => (
             <DropdownMenuItem
+              disabled={!canManage}
               key={u._id}
               className={cn(
                 "w-full text-left px-2 py-1.5 text-sm hover:bg-muted rounded flex items-center gap-2",
@@ -220,6 +231,7 @@ function DatePickerField({
   value?: string;
   onChange: (dateStr: string) => void;
 }) {
+  const canManage = useWorkAccess();
   const dateObj = value ? parseDateStr(value) : undefined;
 
   return (
@@ -227,7 +239,7 @@ function DatePickerField({
       <span className="text-xs text-muted-foreground">{label}</span>
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center h-9 w-full border border-border px-3 text-sm text-left hover:border-border-strong">
+          <button disabled={!canManage} className="flex items-center h-9 w-full border border-border px-3 text-sm text-left hover:border-border-strong">
             <span className={cn("flex-1", !value && "text-disabled-foreground")}>
               {value ? formatDateDisplay(value) : "Fecha"}
             </span>
@@ -236,6 +248,7 @@ function DatePickerField({
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-auto p-0" align="start">
           <Calendar
+            disabled={!canManage}
             mode="single"
             selected={dateObj}
             onSelect={(d) => {
@@ -269,19 +282,21 @@ function DocumentAttachment({
   parentType: string;
   parentId: string;
 }) {
+  const canManage = useWorkAccess();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  const historial = useQuery(api.autorizaciones_obra.getHistorial, {
+  const historial = useQuery(api.autorizaciones_obra.getHistorial, parentId ? {
     parent_type: parentType,
     parent_id: parentId,
-  });
+  } : "skip");
 
   if (!nombre) {
     return (
       <div>
         <input
+          disabled={!canManage}
           ref={fileInputRef}
           type="file"
           className="hidden"
@@ -294,7 +309,7 @@ function DocumentAttachment({
         <button
           className="flex items-center gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border-strong px-3 py-2 hover:border-border-strong transition-colors"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
+          disabled={!canManage || uploading}
         >
           {uploading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -320,6 +335,7 @@ function DocumentAttachment({
           <span className="font-medium">{nombre}</span>
         </a>
         <input
+          disabled={!canManage}
           ref={replaceInputRef}
           type="file"
           className="hidden"
@@ -332,7 +348,7 @@ function DocumentAttachment({
         <button
           className="text-disabled-foreground hover:text-muted-foreground p-1"
           onClick={() => replaceInputRef.current?.click()}
-          disabled={uploading}
+          disabled={!canManage || uploading}
           title="Reemplazar archivo"
         >
           {uploading ? (
@@ -427,6 +443,7 @@ function LicenciaSection({
         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
           <ResponsableSelector
             currentId={section?.responsable_id}
+            currentName={section?.responsable?.name}
             users={users}
             onSelect={(userId) => onUpdateResponsable("licencia", userId, section?._id)}
           />
@@ -491,6 +508,7 @@ function PolizaSection({
   onUploadDocument: (seccion: SeccionType, file: File, replace: boolean) => void;
   uploading: boolean;
 }) {
+  const canManage = useWorkAccess();
   const [expanded, setExpanded] = useState(false);
   const [sumaInput, setSumaInput] = useState("");
 
@@ -522,6 +540,7 @@ function PolizaSection({
         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
           <ResponsableSelector
             currentId={section?.responsable_id}
+            currentName={section?.responsable?.name}
             users={users}
             onSelect={(userId) => onUpdateResponsable("poliza", userId, section?._id)}
           />
@@ -553,6 +572,7 @@ function PolizaSection({
             <span className="text-xs text-muted-foreground">Suma asegurada</span>
             <div className="flex items-center gap-2">
               <Input
+                disabled={!canManage}
                 placeholder="$0.00"
                 className="h-9 rounded-none"
                 value={displaySuma}
@@ -601,6 +621,7 @@ function TramitesSection({
   onUploadTramiteDocument: (tramiteId: Id<"autorizaciones_obra_tramites">, file: File) => void;
   uploadingTramiteId: string | null;
 }) {
+  const canManage = useWorkAccess();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -621,10 +642,12 @@ function TramitesSection({
         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
           <ResponsableSelector
             currentId={section?.responsable_id}
+            currentName={section?.responsable?.name}
             users={users}
             onSelect={(userId) => onUpdateResponsable("tramites", userId, section?._id)}
           />
           <button
+            disabled={!canManage}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground border border-border bg-disabled px-2 py-2 rounded-full"
             onClick={(e) => {
               e.stopPropagation();
@@ -670,6 +693,7 @@ function TramitesSection({
 
           {/* Add button */}
           <button
+            disabled={!canManage}
             className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border-strong px-3 py-2 hover:border-border-strong transition-colors"
             onClick={onCreateTramite}
           >
@@ -696,6 +720,7 @@ function TramiteRow({
   onUploadDocument: (file: File) => void;
   uploading: boolean;
 }) {
+  const canManage = useWorkAccess();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editServicio, setEditServicio] = useState(tramite.servicio);
   const [editTramite, setEditTramite] = useState(tramite.tramite);
@@ -711,6 +736,7 @@ function TramiteRow({
           }
         />
         <Input
+          disabled={!canManage}
           className="h-8 rounded-none border-transparent hover:border-border focus:border-border-strong text-sm"
           value={editServicio}
           onChange={(e) => setEditServicio(e.target.value)}
@@ -725,6 +751,7 @@ function TramiteRow({
 
       {/* Trámite */}
       <Input
+        disabled={!canManage}
         className="h-8 rounded-none border-transparent hover:border-border focus:border-border-strong text-sm"
         value={editTramite}
         onChange={(e) => setEditTramite(e.target.value)}
@@ -749,6 +776,7 @@ function TramiteRow({
       {/* Comprobante */}
       <div className="text-right">
         <input
+          disabled={!canManage}
           ref={fileInputRef}
           type="file"
           className="hidden"
@@ -772,7 +800,7 @@ function TramiteRow({
             <button
               className="text-disabled-foreground hover:text-muted-foreground"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={!canManage || uploading}
               title="Reemplazar"
             >
               {uploading ? (
@@ -786,7 +814,7 @@ function TramiteRow({
           <button
             className="flex items-center gap-1.5 text-sm text-disabled-foreground hover:text-muted-foreground ml-auto"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
+            disabled={!canManage || uploading}
           >
             {uploading ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -805,6 +833,7 @@ function TramiteRow({
 
       {/* Delete */}
       <button
+        disabled={!canManage}
         className="text-disabled-foreground hover:text-red-500 p-1"
         onClick={onDelete}
         title="Eliminar trámite"
@@ -853,6 +882,7 @@ function PlanSeguridadSection({
         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
           <ResponsableSelector
             currentId={section?.responsable_id}
+            currentName={section?.responsable?.name}
             users={users}
             onSelect={(userId) => onUpdateResponsable("plan_seguridad", userId, section?._id)}
           />
@@ -903,7 +933,7 @@ function PlanSeguridadSection({
 // ============================================================
 
 export default function PermisosYLegalTab({ proyectoId }: { proyectoId: string }) {
-  const { user } = useUser();
+  const canManage = useWorkAccess();
 
   // Queries
   const secciones = useQuery(
@@ -914,19 +944,19 @@ export default function PermisosYLegalTab({ proyectoId }: { proyectoId: string }
     api.autorizaciones_obra.getTramitesByProyecto,
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
-  const allUsers = useQuery(api.autorizaciones_obra.getAllUsers);
+  const allUsers = useQuery(api.autorizaciones_obra.getAllUsers, canManage ? {} : "skip");
 
   // Mutations
-  const ensureSeccion = useMutation(api.autorizaciones_obra.ensureSeccion);
-  const updateStatus = useMutation(api.autorizaciones_obra.updateStatus);
-  const updateResponsable = useMutation(api.autorizaciones_obra.updateResponsable);
-  const updateFields = useMutation(api.autorizaciones_obra.updateSeccionFields);
-  const attachDocument = useMutation(api.autorizaciones_obra.attachDocument);
-  const generateUploadUrl = useMutation(api.autorizaciones_obra.generateUploadUrl);
-  const createTramite = useMutation(api.autorizaciones_obra.createTramite);
-  const updateTramite = useMutation(api.autorizaciones_obra.updateTramite);
-  const deleteTramite = useMutation(api.autorizaciones_obra.deleteTramite);
-  const attachTramiteDoc = useMutation(api.autorizaciones_obra.attachTramiteDocument);
+  const ensureSeccion = useWorkMutation(api.autorizaciones_obra.ensureSeccion);
+  const updateStatus = useWorkMutation(api.autorizaciones_obra.updateStatus);
+  const updateResponsable = useWorkMutation(api.autorizaciones_obra.updateResponsable);
+  const updateFields = useWorkMutation(api.autorizaciones_obra.updateSeccionFields);
+  const attachDocument = useWorkMutation(api.autorizaciones_obra.attachDocument);
+  const generateUploadUrl = useWorkMutation(api.autorizaciones_obra.generateUploadUrl);
+  const createTramite = useWorkMutation(api.autorizaciones_obra.createTramite);
+  const updateTramite = useWorkMutation(api.autorizaciones_obra.updateTramite);
+  const deleteTramite = useWorkMutation(api.autorizaciones_obra.deleteTramite);
+  const attachTramiteDoc = useWorkMutation(api.autorizaciones_obra.attachTramiteDocument);
 
   // Upload state
   const [uploadingSection, setUploadingSection] = useState<string | null>(null);
@@ -1042,7 +1072,6 @@ export default function PermisosYLegalTab({ proyectoId }: { proyectoId: string }
           nombre: file.name,
           size: file.size,
           type: file.type,
-          clerk_id: user?.id,
         });
         toast.success("Documento adjuntado");
       } catch (err) {
@@ -1052,7 +1081,7 @@ export default function PermisosYLegalTab({ proyectoId }: { proyectoId: string }
         setUploadingSection(null);
       }
     },
-    [proyectoId, generateUploadUrl, attachDocument, user]
+    [proyectoId, generateUploadUrl, attachDocument]
   );
 
   const handleCreateTramite = useCallback(async () => {
@@ -1116,7 +1145,6 @@ export default function PermisosYLegalTab({ proyectoId }: { proyectoId: string }
           nombre: file.name,
           size: file.size,
           type: file.type,
-          clerk_id: user?.id,
         });
         toast.success("Documento adjuntado");
       } catch (err) {
@@ -1126,7 +1154,7 @@ export default function PermisosYLegalTab({ proyectoId }: { proyectoId: string }
         setUploadingTramiteId(null);
       }
     },
-    [generateUploadUrl, attachTramiteDoc, user]
+    [generateUploadUrl, attachTramiteDoc]
   );
 
   const users = allUsers || [];

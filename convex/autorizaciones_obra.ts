@@ -1,3 +1,4 @@
+import { assertWorkAdmin, assertWorkProjectAccess, assertWorkRecordAccess, findWorkParentForRead, assertWorkRecordProject } from "./autorizacionesPermissions";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -9,6 +10,7 @@ import { v } from "convex/values";
 export const getByProyecto = query({
   args: { proyecto_id: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertWorkProjectAccess(ctx, args.proyecto_id);
     const sections = await ctx.db
       .query("autorizaciones_obra")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -38,6 +40,7 @@ export const getByProyecto = query({
 export const getTramitesByAutorizacion = query({
   args: { autorizacion_id: v.id("autorizaciones_obra") },
   handler: async (ctx, args) => {
+    await assertWorkRecordAccess(ctx, args.autorizacion_id);
     const tramites = await ctx.db
       .query("autorizaciones_obra_tramites")
       .withIndex("by_autorizacion", (q) =>
@@ -62,6 +65,7 @@ export const getTramitesByAutorizacion = query({
 export const getTramitesByProyecto = query({
   args: { proyecto_id: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertWorkProjectAccess(ctx, args.proyecto_id);
     const tramites = await ctx.db
       .query("autorizaciones_obra_tramites")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -86,6 +90,8 @@ export const getHistorial = query({
     parent_id: v.string(),
   },
   handler: async (ctx, args) => {
+    const parent = await findWorkParentForRead(ctx, args.parent_type, args.parent_id);
+    if (!parent) return [];
     const history = await ctx.db
       .query("autorizaciones_obra_historial")
       .withIndex("by_parent", (q) =>
@@ -95,7 +101,7 @@ export const getHistorial = query({
 
     // Enrich with URLs
     return await Promise.all(
-      history.map(async (entry) => {
+      history.filter((entry) => entry.proyecto === parent.proyecto).map(async (entry) => {
         const url = await ctx.storage.getUrl(entry.documento_storage_id);
         return { ...entry, url };
       })
@@ -106,6 +112,7 @@ export const getHistorial = query({
 // Get all users (for responsable selector)
 export const getAllUsers = query({
   handler: async (ctx) => {
+    await assertWorkAdmin(ctx);
     const users = await ctx.db.query("users").collect();
     return users.map((u) => ({ _id: u._id, name: u.name, email: u.email }));
   },
@@ -118,6 +125,7 @@ export const getAllUsers = query({
 // Generate upload URL
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
+    await assertWorkAdmin(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -136,6 +144,8 @@ export const upsertSeccion = mutation({
     vigencia: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkProjectAccess(ctx, args.proyecto);
     const existing = await ctx.db
       .query("autorizaciones_obra")
       .withIndex("by_proyecto_seccion", (q) =>
@@ -177,6 +187,8 @@ export const updateStatus = mutation({
     status_manual: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     await ctx.db.patch(args.id, { status_manual: args.status_manual });
   },
 });
@@ -188,6 +200,8 @@ export const updateResponsable = mutation({
     responsable_id: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     await ctx.db.patch(args.id, { responsable_id: args.responsable_id });
   },
 });
@@ -203,6 +217,8 @@ export const updateSeccionFields = mutation({
     vigencia: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const { id, ...fields } = args;
     await ctx.db.patch(id, fields);
   },
@@ -220,8 +236,10 @@ export const attachDocument = mutation({
     clerk_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const actor = await assertWorkAdmin(ctx);
+    await assertWorkProjectAccess(ctx, args.proyecto);
     // Find or create the section
-    let section = await ctx.db
+    const section = await ctx.db
       .query("autorizaciones_obra")
       .withIndex("by_proyecto_seccion", (q) =>
         q.eq("proyecto", args.proyecto).eq("seccion", args.seccion)
@@ -243,13 +261,7 @@ export const attachDocument = mutation({
 
     // If there's an existing document, move it to history
     if (section.documento_storage_id && section.documento_nombre) {
-      let replacedByUser = null;
-      if (args.clerk_id) {
-        replacedByUser = await ctx.db
-          .query("users")
-          .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id!))
-          .first();
-      }
+      const replacedByUser = actor;
 
       await ctx.db.insert("autorizaciones_obra_historial", {
         proyecto: args.proyecto,
@@ -292,6 +304,9 @@ export const createTramite = mutation({
     estado: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkProjectAccess(ctx, args.proyecto);
+    await assertWorkRecordProject(ctx, args.autorizacion_id, args.proyecto);
     return await ctx.db.insert("autorizaciones_obra_tramites", {
       proyecto: args.proyecto,
       autorizacion_id: args.autorizacion_id,
@@ -311,6 +326,8 @@ export const updateTramite = mutation({
     estado: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     const { id, ...fields } = args;
     // Filter out undefined values
     const updates: Record<string, string> = {};
@@ -325,6 +342,8 @@ export const updateTramite = mutation({
 export const deleteTramite = mutation({
   args: { id: v.id("autorizaciones_obra_tramites") },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.id);
     // Delete related history
     const history = await ctx.db
       .query("autorizaciones_obra_historial")
@@ -350,18 +369,14 @@ export const attachTramiteDocument = mutation({
     clerk_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const actor = await assertWorkAdmin(ctx);
+    await assertWorkRecordAccess(ctx, args.tramite_id);
     const tramite = await ctx.db.get(args.tramite_id);
     if (!tramite) throw new Error("Tramite not found");
 
     // If there's an existing document, move it to history
     if (tramite.documento_storage_id && tramite.documento_nombre) {
-      let replacedByUser = null;
-      if (args.clerk_id) {
-        replacedByUser = await ctx.db
-          .query("users")
-          .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerk_id!))
-          .first();
-      }
+      const replacedByUser = actor;
 
       await ctx.db.insert("autorizaciones_obra_historial", {
         proyecto: tramite.proyecto,
@@ -394,6 +409,8 @@ export const ensureSeccion = mutation({
     seccion: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertWorkAdmin(ctx);
+    await assertWorkProjectAccess(ctx, args.proyecto);
     const existing = await ctx.db
       .query("autorizaciones_obra")
       .withIndex("by_proyecto_seccion", (q) =>

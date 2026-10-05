@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
+import { hasIncomeManagementAccess } from "../../../convex/ingresoRules";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,8 @@ import { toast } from "sonner";
 type InvoiceMovement = Pick<Doc<"ogc_movimientos">, "_id" | "tipo" | "status" | "factura_referencia" | "factura_comprobante">;
 
 export function OgcInvoiceEvidenceDialog({ movement, compact = false }: { movement: InvoiceMovement; compact?: boolean }) {
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const canManageIngresos = hasIncomeManagementAccess(currentUser);
   const [open, setOpen] = useState(false);
   const [reference, setReference] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -24,6 +27,7 @@ export function OgcInvoiceEvidenceDialog({ movement, compact = false }: { moveme
     ? { movimiento_id: movement._id }
     : "skip");
   const active = !movement.status || movement.status === "activo";
+  const canEdit = active && canManageIngresos;
 
   const changeOpen = (next: boolean) => {
     if (saving) return;
@@ -36,6 +40,7 @@ export function OgcInvoiceEvidenceDialog({ movement, compact = false }: { moveme
   };
 
   const save = async () => {
+    if (!canEdit) return;
     const trimmed = reference.trim();
     if ((file || (movement.factura_comprobante && !removeProof)) && !trimmed) {
       toast.error("El comprobante requiere folio o referencia.");
@@ -70,9 +75,9 @@ export function OgcInvoiceEvidenceDialog({ movement, compact = false }: { moveme
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className={compact ? "h-7 max-w-[180px] text-xs" : "max-w-full"} title={movement.factura_referencia || "Agregar factura"}>
+        <Button type="button" variant="outline" size="sm" className={compact ? "h-7 max-w-[180px] text-xs" : "max-w-full"} title={movement.factura_referencia || (canEdit ? "Agregar factura" : "Ver factura")}>
           <FileText className="h-3.5 w-3.5" />
-          <span className="truncate">{movement.factura_referencia || "Agregar factura"}</span>
+          <span className="truncate">{movement.factura_referencia || (canEdit ? "Agregar factura" : "Ver factura")}</span>
           {movement.factura_comprobante && <span aria-label="Con comprobante">•</span>}
         </Button>
       </DialogTrigger>
@@ -84,17 +89,17 @@ export function OgcInvoiceEvidenceDialog({ movement, compact = false }: { moveme
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor={`ogc-invoice-reference-${movement._id}`}>Folio o referencia</Label>
-            <Input id={`ogc-invoice-reference-${movement._id}`} value={reference} onChange={(event) => setReference(event.target.value)} maxLength={120} disabled={!active || saving} />
+            <Input id={`ogc-invoice-reference-${movement._id}`} value={reference} onChange={(event) => setReference(event.target.value)} maxLength={120} disabled={!canEdit || saving} />
           </div>
           {movement.factura_comprobante && !removeProof && (
             <div className="flex flex-wrap items-center gap-2 border border-border p-3 text-sm">
               <span className="min-w-0 flex-1 truncate" title={movement.factura_comprobante.nombre}>{movement.factura_comprobante.nombre}</span>
               {proofUrl && <a href={proofUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline"><ExternalLink className="h-4 w-4" /> Abrir</a>}
-              {active && <Button type="button" variant="outline" size="sm" disabled={saving} onClick={() => { setRemoveProof(true); setFile(null); }}>Quitar</Button>}
+              {canEdit && <Button type="button" variant="outline" size="sm" disabled={saving} onClick={() => { setRemoveProof(true); setFile(null); }}>Quitar</Button>}
             </div>
           )}
-          {removeProof && <Button type="button" variant="outline" size="sm" disabled={saving} onClick={() => setRemoveProof(false)}>Conservar archivo actual</Button>}
-          {active && (
+          {canEdit && removeProof && <Button type="button" variant="outline" size="sm" disabled={saving} onClick={() => setRemoveProof(false)}>Conservar archivo actual</Button>}
+          {canEdit && (
             <div className="space-y-1.5">
               <Label htmlFor={`ogc-invoice-file-${movement._id}`}>{movement.factura_comprobante ? "Reemplazar comprobante" : "Adjuntar comprobante (opcional)"}</Label>
               <Input
@@ -116,7 +121,7 @@ export function OgcInvoiceEvidenceDialog({ movement, compact = false }: { moveme
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cerrar</Button>
-            {active && <Button type="button" onClick={save} disabled={saving}>{saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : "Guardar factura"}</Button>}
+            {canEdit && <Button type="button" onClick={save} disabled={saving}>{saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : "Guardar factura"}</Button>}
           </div>
         </div>
       </DialogContent>

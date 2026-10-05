@@ -1,4 +1,5 @@
 "use client";
+import { hasProviderManagementAccess } from "../../../convex/providerRules";
 import {
     Sheet,
     SheetContent,
@@ -38,6 +39,8 @@ export default function AddPaymentModal() {
     const paymentContext = useAddPaymentModal((state) => state.paymentContext);
     const isOpen = useAddPaymentModal((state) => state.isOpen);
     const { isAuthenticated } = useConvexAuth();
+    const currentUser = useQuery(api.users.getCurrentUser);
+    const canManageProviders = hasProviderManagementAccess(currentUser);
     const partidas = useAddPaymentModal((state) => state.partidas);
     const onClose = useAddPaymentModal((state) => state.onClose);
     const addPartida = useAddPaymentModal((state) => state.addPartida);
@@ -371,9 +374,11 @@ export default function AddPaymentModal() {
                                 <h3 className="font-medium text-foreground">Proveedor</h3>
                                 <p className="text-xs text-muted-foreground">Opcional; puede asignarse o modificarse después.</p>
                             </div>
-                            <Button type="button" variant="outline" size="sm" onClick={() => setProviderFormOpen(true)}>
-                                <Plus className="mr-2 h-4 w-4" /> Nuevo
-                            </Button>
+                            {canManageProviders && (
+                                <Button type="button" variant="outline" size="sm" onClick={() => setProviderFormOpen(true)}>
+                                    <Plus className="mr-2 h-4 w-4" /> Nuevo
+                                </Button>
+                            )}
                         </div>
                         <Popover open={providerSearchOpen} onOpenChange={setProviderSearchOpen}>
                             <PopoverTrigger asChild>

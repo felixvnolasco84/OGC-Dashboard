@@ -1,7 +1,7 @@
+import { useWorkAccess, useWorkMutation } from "./useWorkAccess";
 import { ResponsiveFields } from "@/components/ui/responsive-fields";
 import { useState, useCallback, useRef, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { useUser } from "@clerk/clerk-react";
+import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Input } from "@/components/ui/input";
@@ -125,6 +125,7 @@ function FileCell({
   parentType: string;
   parentId: string;
 }) {
+  const canManage = useWorkAccess();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -137,6 +138,7 @@ function FileCell({
   return (
     <div>
       <input
+        disabled={!canManage}
         ref={fileInputRef}
         type="file"
         className="hidden"
@@ -147,6 +149,7 @@ function FileCell({
         }}
       />
       <input
+        disabled={!canManage}
         ref={replaceInputRef}
         type="file"
         className="hidden"
@@ -171,7 +174,7 @@ function FileCell({
             <button
               className="text-disabled-foreground hover:text-muted-foreground p-0.5"
               onClick={() => replaceInputRef.current?.click()}
-              disabled={uploading}
+              disabled={!canManage || uploading}
               title="Reemplazar archivo"
             >
               {uploading ? (
@@ -191,6 +194,7 @@ function FileCell({
             )}
             {onDelete && (
               <button
+                disabled={!canManage}
                 className="text-disabled-foreground hover:text-red-500 p-0.5"
                 onClick={onDelete}
                 title="Eliminar archivo"
@@ -233,7 +237,7 @@ function FileCell({
         <button
           className="text-sm text-disabled-foreground hover:text-muted-foreground "
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
+          disabled={!canManage || uploading}
         >
           {uploading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -254,6 +258,7 @@ function RowActionMenu({
   sub: SubcontratistaRow;
   onDelete: () => void;
 }) {
+  const canManage = useWorkAccess();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -290,6 +295,7 @@ function RowActionMenu({
         )}
         {(sub.presupuesto_url || sub.contrato_url) && <DropdownMenuSeparator />}
         <DropdownMenuItem
+          disabled={!canManage}
           className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
           onClick={onDelete}
         >
@@ -323,6 +329,7 @@ function SubcontratistaTableRow({
   onDeleteContrato: () => void;
   uploadingField: "presupuesto" | "contrato" | null;
 }) {
+  const canManage = useWorkAccess();
   const [editNombre, setEditNombre] = useState(sub.nombre);
   const [editMonto, setEditMonto] = useState("");
 
@@ -340,6 +347,7 @@ function SubcontratistaTableRow({
 
       {/* Subcontratista name */}
       <Input
+        disabled={!canManage}
         className="h-8 rounded-none border-transparent hover:border-border-strong focus:border-border-strong focus:ring-1 focus:ring-ring text-sm transition-colors shadow-none"
         value={editNombre}
         onChange={(e) => setEditNombre(e.target.value)}
@@ -353,6 +361,7 @@ function SubcontratistaTableRow({
 
       {/* Partida selector */}
       <Select
+        disabled={!canManage}
         value={sub.partida_id || ""}
         onValueChange={(val) => {
           const selected = partidas.find((p) => p._id === val);
@@ -401,6 +410,7 @@ function SubcontratistaTableRow({
 
       {/* Monto */}
       <Input
+        disabled={!canManage}
         className="h-8 rounded-none border-transparent hover:border-border-strong focus:border-border-strong focus:ring-1 focus:ring-ring text-sm text-right transition-colors shadown-none"
         value={editMonto || (sub.monto ? formatCurrencyMXN(sub.monto) : "")}
         onFocus={() => setEditMonto(sub.monto?.toString() || "")}
@@ -426,7 +436,7 @@ function SubcontratistaTableRow({
 // ============================================================
 
 export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: string }) {
-  const { user } = useUser();
+  const canManage = useWorkAccess();
   const [expanded, setExpanded] = useState(false);
   const [uploadingSubId, setUploadingSubId] = useState<string | null>(null);
   const [uploadingField, setUploadingField] = useState<"presupuesto" | "contrato" | null>(null);
@@ -449,7 +459,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
     api.subcontratistas.getContratistasGeneralesByProyecto,
     proyectoId ? { proyecto_id: proyectoId as Id<"desarrollos"> } : "skip"
   );
-  const allUsers = useQuery(api.autorizaciones_obra.getAllUsers);
+  const allUsers = useQuery(api.autorizaciones_obra.getAllUsers, canManage ? {} : "skip");
   const allPartidas = useQuery(
     api.partida.getByNivel,
     proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, nivel: 1 } : "skip"
@@ -465,18 +475,18 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
   }, [secciones]);
 
   // Mutations
-  const createSub = useMutation(api.subcontratistas.createSubcontratista);
-  const updateSub = useMutation(api.subcontratistas.updateSubcontratista);
-  const deleteSub = useMutation(api.subcontratistas.deleteSubcontratista);
-  const attachPresupuesto = useMutation(api.subcontratistas.attachPresupuesto);
-  const attachContrato = useMutation(api.subcontratistas.attachContrato);
-  const removePresupuesto = useMutation(api.subcontratistas.removePresupuesto);
-  const removeContrato = useMutation(api.subcontratistas.removeContrato);
-  const generateUploadUrl = useMutation(api.subcontratistas.generateUploadUrl);
-  const createCg = useMutation(api.subcontratistas.createContratistaGeneral);
-  const ensureSeccion = useMutation(api.autorizaciones_obra.ensureSeccion);
-  const updateStatus = useMutation(api.autorizaciones_obra.updateStatus);
-  const updateResponsable = useMutation(api.autorizaciones_obra.updateResponsable);
+  const createSub = useWorkMutation(api.subcontratistas.createSubcontratista);
+  const updateSub = useWorkMutation(api.subcontratistas.updateSubcontratista);
+  const deleteSub = useWorkMutation(api.subcontratistas.deleteSubcontratista);
+  const attachPresupuesto = useWorkMutation(api.subcontratistas.attachPresupuesto);
+  const attachContrato = useWorkMutation(api.subcontratistas.attachContrato);
+  const removePresupuesto = useWorkMutation(api.subcontratistas.removePresupuesto);
+  const removeContrato = useWorkMutation(api.subcontratistas.removeContrato);
+  const generateUploadUrl = useWorkMutation(api.subcontratistas.generateUploadUrl);
+  const createCg = useWorkMutation(api.subcontratistas.createContratistaGeneral);
+  const ensureSeccion = useWorkMutation(api.autorizaciones_obra.ensureSeccion);
+  const updateStatus = useWorkMutation(api.autorizaciones_obra.updateStatus);
+  const updateResponsable = useWorkMutation(api.autorizaciones_obra.updateResponsable);
 
   // Derived data
   const subs = (subcontratistas || []) as SubcontratistaRow[];
@@ -657,7 +667,6 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
             nombre: file.name,
             size: file.size,
             type: file.type,
-            clerk_id: user?.id,
           });
         } else {
           await attachContrato({
@@ -666,7 +675,6 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
             nombre: file.name,
             size: file.size,
             type: file.type,
-            clerk_id: user?.id,
           });
         }
         toast.success("Documento adjuntado");
@@ -678,7 +686,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
         setUploadingField(null);
       }
     },
-    [generateUploadUrl, attachPresupuesto, attachContrato, user]
+    [generateUploadUrl, attachPresupuesto, attachContrato]
   );
 
   // ============================================================
@@ -716,10 +724,12 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
               <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                 <ResponsableSelector
                   currentId={sectionHeader?.responsable_id}
+                  currentName={sectionHeader?.responsable?.name}
                   users={users}
                   onSelect={handleUpdateSectionResponsable}
                 />
                 <button
+                  disabled={!canManage}
                   className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground border border-border px-2 py-1"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -806,6 +816,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                         ¿Eliminar a {sub.nombre || "este subcontratista"}?
                       </span>
                       <button
+                        disabled={!canManage}
                         className="text-red-600 font-medium hover:text-red-800"
                         onClick={() => handleDeleteSubcontratista(sub._id)}
                       >
@@ -830,6 +841,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
 
               {/* Add button */}
               <button
+                disabled={!canManage}
                 className="mt-3 w-full flex items-start justify-start gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border-strong px-3 py-3 hover:border-border-strong transition-colors"
                 onClick={openAddModal}
               >
@@ -842,7 +854,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
       </div>
 
       {/* =============== Add Subcontratista Modal =============== */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+      <Dialog open={canManage && showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Agregar Subcontratista</DialogTitle>
@@ -858,6 +870,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                 Nombre del subcontratista
               </label>
               <Input
+                disabled={!canManage}
                 value={modalNombre}
                 onChange={(e) => setModalNombre(e.target.value)}
                 placeholder="Ej. Alberto Sánchez de Haro"
@@ -873,6 +886,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
               {!showNewCgInput ? (
                 <div className="space-y-2">
                   <Select
+                    disabled={!canManage}
                     value={modalCgId}
                     onValueChange={(val) => setModalCgId(val)}
                   >
@@ -895,6 +909,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
                     </SelectContent>
                   </Select>
                   <button
+                    disabled={!canManage}
                     type="button"
                     className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
                     onClick={() => {
@@ -909,12 +924,14 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
               ) : (
                 <div className="space-y-2">
                   <Input
+                    disabled={!canManage}
                     value={modalNewCgName}
                     onChange={(e) => setModalNewCgName(e.target.value)}
                     placeholder="Nombre del nuevo contratista general"
                     className="text-sm"
                   />
                   <button
+                    disabled={!canManage}
                     type="button"
                     className="text-sm text-muted-foreground hover:text-foreground"
                     onClick={() => {
@@ -942,7 +959,7 @@ export default function PresupuestosContratosTab({ proyectoId }: { proyectoId: s
               type="button"
               className="px-4 py-2 text-sm bg-inverse text-on-color hover:bg-inverse disabled:opacity-50 rounded-sm"
               onClick={handleModalCreate}
-              disabled={modalCreating || (!modalNombre.trim())}
+              disabled={!canManage || (modalCreating || (!modalNombre.trim()))}
             >
               {modalCreating ? (
                 <Loader2 className="w-4 h-4 animate-spin inline mr-1" />
