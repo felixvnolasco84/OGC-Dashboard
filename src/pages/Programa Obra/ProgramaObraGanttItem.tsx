@@ -53,6 +53,8 @@ type Props = {
   timelineMonths: TimelineMonth[];
   currentTime: number;
   forceShowMilestones?: boolean;
+  showMilestones?: boolean;
+  showComments?: boolean;
   onMilestoneSelect?: (milestone: ProgramaMilestoneSummary) => void;
 };
 
@@ -116,7 +118,7 @@ function MilestoneMarker({
   );
 }
 
-export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonths, currentTime, forceShowMilestones, onMilestoneSelect }: Props) {
+export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonths, currentTime, forceShowMilestones, showMilestones = true, showComments = true, onMilestoneSelect }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const [expandedComentarios, setExpandedComentarios] = useState<Set<string>>(new Set());
 
@@ -516,18 +518,18 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         )}
 
         {/* === Operational milestone markers (only for nivel 0) === */}
-        {item.level === 0 && anticipoPx != null && getMilestone("anticipo") && (
+        {showMilestones && item.level === 0 && anticipoPx != null && getMilestone("anticipo") && (
           <MilestoneMarker milestone={getMilestone("anticipo")!} left={anticipoPx - startPx} forceLabel={forceShowMilestones} onSelect={onMilestoneSelect} />
         )}
-        {item.level === 0 && suministroPx != null && getMilestone("suministro") && (
+        {showMilestones && item.level === 0 && suministroPx != null && getMilestone("suministro") && (
           <MilestoneMarker milestone={getMilestone("suministro")!} left={suministroPx - startPx} forceLabel={forceShowMilestones} onSelect={onMilestoneSelect} />
         )}
-        {item.level === 0 && finiquitoPx != null && getMilestone("finiquito") && (
+        {showMilestones && item.level === 0 && finiquitoPx != null && getMilestone("finiquito") && (
           <MilestoneMarker milestone={getMilestone("finiquito")!} left={finiquitoPx - startPx} forceLabel={forceShowMilestones} onSelect={onMilestoneSelect} />
         )}
 
         {/* === Comentario bars (blue) for nivel 0 and nivel 1 === */}
-        {(item.level === 0 || item.level === 1) && item.comentarios && item.comentarios.length > 0 && (
+        {showComments && (item.level === 0 || item.level === 1) && item.comentarios && item.comentarios.length > 0 && (
           <>
             {item.comentarios.map((c) => {
               const cStart = parseDate(c.fecha_inicio);

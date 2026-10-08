@@ -11,7 +11,7 @@ import {
   validateMilestonePercentage,
   validateReminderDays,
 } from "../convex/programaObraMilestoneRules.ts";
-import { collectExpandableIds, computeGanttPagination, ROW_CSS_PX } from "../src/pages/Programa Obra/programa-obra-pdf-layout.ts";
+import { collectExpandableIds, computeGanttPagination, selectGanttExportRows, ROW_CSS_PX } from "../src/pages/Programa Obra/programa-obra-pdf-layout.ts";
 import { countDelayedProgramaItems, isProgramaItemDelayed } from "../src/pages/Programa Obra/programa-obra-status.ts";
 
 const delayNow = new Date(2026, 8, 29, 12).getTime();
@@ -91,6 +91,16 @@ assert.equal(expanded.has("fam-a1"), false);
 assert.equal(expanded.has("partida-b"), false);
 assert.equal(expanded.has("sub-a2"), false);
 
+const exportItems = [
+  { id: "a", children: [{ id: "a1", children: [] }, { id: "a2", children: [] }] },
+  { id: "b", children: [{ id: "b1", children: [] }] },
+  { id: "c", children: [] },
+];
+assert.deepEqual(selectGanttExportRows(exportItems, new Set(["a", "b"])).map((item) => item.id), ["a", "a1", "a2", "b", "b1", "c"]);
+assert.deepEqual(selectGanttExportRows(exportItems, new Set(["b"])).map((item) => item.id), ["a", "b", "b1", "c"]);
+assert.deepEqual(selectGanttExportRows(exportItems, new Set()).map((item) => item.id), ["a", "b", "c"]);
+assert.deepEqual(selectGanttExportRows(exportItems, new Set(["deleted"])).map((item) => item.id), ["a", "b", "c"]);
+
 const shortGantt = computeGanttPagination({
   canvasHeight: 2000,
   elementHeight: 1000,
@@ -98,6 +108,17 @@ const shortGantt = computeGanttPagination({
   usableHMm: 265,
 });
 assert.equal(shortGantt.vPages, 1);
+
+const summaryGantt = computeGanttPagination({
+  canvasHeight: 448,
+  elementHeight: 224,
+  headerCssH: 56,
+  usableHMm: 265,
+  maxScale: 400 / (832 + 3200),
+});
+assert.equal(summaryGantt.vPages, 1);
+assert.ok(summaryGantt.scaleToFitH * 832 < 400, "summary exports must leave page width for the timeline");
+assert.ok(summaryGantt.scaleToFitH * (832 + 3200) <= 400, "a short export should fit the full timeline when rows remain readable");
 
 const tallGantt = computeGanttPagination({
   canvasHeight: 22000,

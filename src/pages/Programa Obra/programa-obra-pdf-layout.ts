@@ -6,6 +6,14 @@ export type ExpandableNode = {
   children: ExpandableNode[];
 };
 
+/** Keep all partidas; only selected partidas contribute their family rows. */
+export function selectGanttExportRows<T extends { id: string; children: T[] }>(
+  items: T[],
+  breakdownIds: ReadonlySet<string>,
+): T[] {
+  return items.flatMap((item) => breakdownIds.has(item.id) ? [item, ...item.children] : [item]);
+}
+
 /** IDs of items that have children and should be expanded to show the full breakdown. */
 export function collectExpandableIds(items: ExpandableNode[]): Set<string> {
   const ids = new Set<string>();
@@ -25,12 +33,17 @@ export function computeGanttPagination(params: {
   elementHeight: number;
   headerCssH: number;
   usableHMm: number;
+  /** Optional width cap so short programs do not enlarge the left columns past the page. */
+  maxScale?: number;
 }) {
   const pxPerCss = params.canvasHeight / Math.max(params.elementHeight, 1);
   const headerCanvasH = Math.max(1, Math.round(params.headerCssH * pxPerCss));
   const bodyCanvasH = Math.max(0, params.canvasHeight - headerCanvasH);
   const rowCanvasH = Math.max(1, ROW_CSS_PX * pxPerCss);
-  const fitAllScale = params.usableHMm / Math.max(params.canvasHeight, 1);
+  const fitAllScale = Math.min(
+    params.usableHMm / Math.max(params.canvasHeight, 1),
+    params.maxScale ?? Infinity,
+  );
   const minScale = MIN_ROW_HEIGHT_MM / rowCanvasH;
 
   if (fitAllScale >= minScale) {

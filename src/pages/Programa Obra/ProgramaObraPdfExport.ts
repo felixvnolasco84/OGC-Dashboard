@@ -21,6 +21,8 @@ export interface PdfExportOptions {
   projectName: string;
   /** Level-0 items with comentarios attached (for the comments pages) */
   programaData: ProgramaItem[];
+  /** Include operational markers, comment bars and the comments appendix. Defaults to true. */
+  includeNotices?: boolean;
 }
 
 // Landscape A3: 420 x 297 mm
@@ -39,6 +41,14 @@ const PDF_EXPORT_CSS = `
     overflow: visible !important;
     text-overflow: unset !important;
     white-space: nowrap !important;
+  }
+  /* html2canvas clips glyphs in the WebKit box used by line-clamp. */
+  [data-pdf-export-active] .line-clamp-2 {
+    display: block !important;
+    -webkit-line-clamp: unset !important;
+    -webkit-box-orient: unset !important;
+    max-height: 32px !important;
+    overflow: visible !important;
   }
   [data-pdf-export-active] .min-h-\\[56px\\] {
     min-height: 56px !important;
@@ -308,7 +318,7 @@ function renderCommentsPages(
 
 /**
  * Export the Programa de Obra Gantt view as a multi-page landscape PDF.
- * Every partida is expanded so familias appear in the capture.
+ * The caller prepares the selected partida breakdown and notice visibility before capture.
  * Left columns and Gantt headers repeat on every page; the timeline is sliced
  * horizontally and the rows are sliced vertically when the breakdown is tall.
  * Comments are rendered as separate pages at the end.
@@ -318,6 +328,7 @@ export async function exportProgramaObraPdf({
   timelineEl,
   projectName,
   programaData,
+  includeNotices = true,
 }: PdfExportOptions): Promise<void> {
   await waitForLayout(350);
 
@@ -378,6 +389,7 @@ export async function exportProgramaObraPdf({
       elementHeight: leftCssH,
       headerCssH: headerCssHeight(leftColumnsEl),
       usableHMm: USABLE_H_MM,
+      maxScale: USABLE_W_MM / Math.max(leftImgW + tlImgW, 1),
     });
     const { scaleToFitH, headerCanvasH, bodyCanvasH, bodyCanvasPerPage, vPages, headerMmH } = pagination;
 
@@ -387,7 +399,7 @@ export async function exportProgramaObraPdf({
     const hPages = Math.max(1, Math.ceil(tlImgW / tlPixelsPerSlice));
     const ganttPages = hPages * vPages;
 
-    const comments = collectComments(programaData);
+    const comments = includeNotices ? collectComments(programaData) : [];
     const commentPages = comments.length > 0 ? Math.max(1, Math.ceil(comments.length / 8)) : 0;
     const totalPages = ganttPages + commentPages;
 

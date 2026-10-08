@@ -60,6 +60,8 @@ import ProgramaObraComentarios from "./ProgramaObraComentarios";
 import ProgramaObraAvanceHistorial from "./ProgramaObraAvanceHistorial";
 import ProgramaObraExcelPreview, { type ExcelPartida, type ExcelRow } from "./ProgramaObraExcelPreview";
 import { exportProgramaObraPdf } from "./ProgramaObraPdfExport";
+import ProgramaObraExportDialog, { type ProgramaObraExportSelection } from "./ProgramaObraExportDialog";
+import { selectGanttExportRows } from "./programa-obra-pdf-layout";
 import {
   ProgramaObraAlertsPanel,
   ProgramaObraMilestoneDetail,
@@ -222,7 +224,10 @@ export default function ProgramaObra() {
   const [historialItem, setHistorialItem] = useState<ProgramaItem | null>(null);
   const [ponderacionItem, setPonderacionItem] = useState<ProgramaItem | null>(null);
   const [savingPonderacion, setSavingPonderacion] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [activeExport, setActiveExport] = useState<ProgramaObraExportSelection | null>(null);
+  const exportInProgressRef = useRef(false);
+  const exporting = activeExport !== null;
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [executionView, setExecutionView] = useState(false);
   const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
@@ -683,10 +688,10 @@ export default function ProgramaObra() {
     return result;
   }, [currentTime, expandedIds, programaDataWithComentarios, searchTerm, statusFilter]);
 
-  // Capture every row without changing the visible mobile list or its filters.
+  // Export selection is independent of screen expansion and filters.
   const ganttData = useMemo(
-    () => exporting ? programaDataWithComentarios.flatMap((item) => [item, ...item.children]) : filteredData,
-    [exporting, filteredData, programaDataWithComentarios],
+    () => activeExport ? selectGanttExportRows(programaDataWithComentarios, activeExport.breakdownIds) : filteredData,
+    [activeExport, filteredData, programaDataWithComentarios],
   );
 
   const handleSaveMobileAvance = useCallback(async (item: ProgramaItem, value: number) => {
@@ -869,22 +874,35 @@ export default function ProgramaObra() {
   }, []);
 
   // PDF Export handler
-  const handleExportPdf = useCallback(async () => {
-    if (!proyecto || programaDataWithComentarios.length === 0) return;
-    flushSync(() => setExporting(true));
+  const handleExportPdf = useCallback(async (selection: ProgramaObraExportSelection) => {
+    if (exportInProgressRef.current || !proyecto || programaDataWithComentarios.length === 0) return;
+    exportInProgressRef.current = true;
+    const scrollPositions = [leftScrollRef.current, ganttContainerRef.current].flatMap((el) =>
+      el ? [{ el, top: el.scrollTop, left: el.scrollLeft }] : [],
+    );
     try {
+      flushSync(() => {
+        setExportDialogOpen(false);
+        setActiveExport(selection);
+      });
       if (!leftColumnsRef.current || !scrollContainerRef.current) throw new Error("No se pudo preparar el programa para exportar.");
       await exportProgramaObraPdf({
         leftColumnsEl: leftColumnsRef.current,
         timelineEl: scrollContainerRef.current,
         projectName: proyecto.nombre,
         programaData: programaDataWithComentarios,
+        includeNotices: selection.includeNotices,
       });
     } catch (err) {
       console.error("PDF export failed:", err);
       toast.error("No se pudo exportar el programa", { description: err instanceof Error ? err.message : undefined });
     } finally {
-      setExporting(false);
+      flushSync(() => setActiveExport(null));
+      scrollPositions.forEach(({ el, top, left }) => {
+        el.scrollTop = top;
+        el.scrollLeft = left;
+      });
+      exportInProgressRef.current = false;
     }
   }, [proyecto, programaDataWithComentarios]);
 
@@ -1049,7 +1067,7 @@ export default function ProgramaObra() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem onSelect={handleExportPdf} disabled={exporting || parsing || uploading} data-viewer-readonly-allow="true">
+                  <DropdownMenuItem onSelect={() => setExportDialogOpen(true)} disabled={exporting || parsing || uploading} data-viewer-readonly-allow="true">
                     <FileDown className="h-4 w-4" /> Exportar PDF
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -1288,7 +1306,9 @@ export default function ProgramaObra() {
 
               {/* Rows */}
               {ganttData.map((item) => {
-                const isExpanded = exporting || Boolean(searchTerm.trim()) || statusFilter !== "all" || expandedIds.has(item.id);
+                const isExpanded = activeExport
+                  ? activeExport.breakdownIds.has(item.id)
+                  : Boolean(searchTerm.trim()) || statusFilter !== "all" || expandedIds.has(item.id);
                 return (
                   <div
                     key={item.id}
@@ -1613,6 +1633,8 @@ export default function ProgramaObra() {
                     timelineMonths={timelineMonths}
                     currentTime={currentTime}
                     forceShowMilestones={exporting}
+                    showMilestones={!activeExport || activeExport.includeNotices}
+                    showComments={!activeExport || activeExport.includeNotices}
                     onMilestoneSelect={setSelectedMilestone}
                   />
                 </div>
@@ -1625,6 +1647,14 @@ export default function ProgramaObra() {
       </div>
 
 
+
+      {exportDialogOpen && (
+        <ProgramaObraExportDialog
+          items={programaDataWithComentarios}
+          onCancel={() => setExportDialogOpen(false)}
+          onExport={handleExportPdf}
+        />
+      )}
 
       <ProgramaObraAlertsPanel
         open={alertsOpen}
