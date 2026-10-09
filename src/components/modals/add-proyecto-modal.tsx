@@ -140,7 +140,9 @@ export default function AddProyectoModal() {
 
   const handleInputChange = (field: string, value: string) => {
     // Convert to number for honorarios_porcentaje field
-    if (field === 'honorarios_porcentaje') {
+    if (field === 'indirectos_porcentaje') {
+      updateFormData({ indirectos_porcentaje: value === '' ? undefined : Number(value) });
+    } else if (field === 'honorarios_porcentaje') {
       const numValue = parseFloat(value) || 0;
       updateFormData({ [field]: numValue });
     } else {
@@ -203,6 +205,7 @@ export default function AddProyectoModal() {
         image: "",
         ubicacion: formData.ubicacion,
         honorarios_porcentaje: formData.honorarios_porcentaje,
+        indirectos_porcentaje: formData.indirectos_porcentaje,
       });
 
       // Type for the record from the API
@@ -366,7 +369,7 @@ export default function AddProyectoModal() {
         nombre: '',
         descripcion: '',
         excel: null,
-        honorarios_porcentaje: 0,
+        honorarios_porcentaje: 0, indirectos_porcentaje: undefined,
         ubicacion: undefined,
       });
       setFile(null);
@@ -387,7 +390,7 @@ export default function AddProyectoModal() {
 
   const handleClose = () => {
     // Reset form state
-    updateFormData({ nombre: '', descripcion: '', excel: null, honorarios_porcentaje: 0 });
+    updateFormData({ nombre: '', descripcion: '', excel: null, honorarios_porcentaje: 0, indirectos_porcentaje: undefined });
     setFile(null);
     setShowExcelUploader(false);
     setResult(null);
@@ -471,6 +474,13 @@ export default function AddProyectoModal() {
               </p>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="indirectos_porcentaje">Indirectos (%)</Label>
+              <Input id="indirectos_porcentaje" type="number" min="0" max="100" step="0.01"
+                placeholder="Sin activar" value={formData.indirectos_porcentaje ?? ''}
+                onChange={e => handleInputChange('indirectos_porcentaje', e.target.value)} />
+              <p className="text-xs text-muted-foreground">Cargo automático sobre pagos elegibles, con las mismas exclusiones que honorarios. Inicia el 1 de octubre de 2026. Captura los costos reales en P&amp;L como costo de estructura, categoría INDIRECTOS. Vacío conserva la lógica anterior; 0% activa el esquema sin cargo.</p>
+            </div>
             {/* Honorarios Percentage */}
             <div className="space-y-2">
               <Label htmlFor="honorarios_porcentaje">Porcentaje de Honorarios (%)</Label>

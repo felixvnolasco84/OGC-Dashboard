@@ -1,0 +1,19 @@
+[
+  "convex/programaObraExecution.test.mjs",
+  "convex/programaObraExecution.ts",
+  "convex/programa_obra.ts",
+  "convex/schema.ts",
+  "docs/programa-obra-ejecucion.md",
+  "e2e/programa/convex-stub.ts",
+  "e2e/programa/preview.tsx",
+  "scripts/test-programa-ui.mjs",
+  "src/lib/programa-obra-rules.ts",
+  "src/lib/programa-obra-progress.ts",
+  "src/pages/Programa Obra/ProgramaObra.tsx",
+  "src/pages/Programa Obra/ProgramaObraAvanceHistorial.tsx",
+  "src/pages/Programa Obra/ProgramaObraExecution.tsx",
+  "src/pages/Programa Obra/ProgramaObraGanttItem.tsx",
+  "src/pages/Programa Obra/ProgramaObraMobileList.tsx",
+  "src/pages/Programa Obra/ProgramaObraProgressEditor.tsx",
+  "src/pages/Programa Obra/ProgramaObraProgressForm.tsx"
+]

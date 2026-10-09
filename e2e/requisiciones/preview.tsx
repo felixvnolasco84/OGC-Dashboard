@@ -5,6 +5,7 @@ import ProyectoRequisicionesPage from "../../src/pages/ProyectoRequisiciones/Pro
 import { Sidebar, SidebarContent, SidebarProvider, SidebarTrigger } from "../../src/components/ui/Sidebar";
 import { TooltipProvider } from "../../src/components/ui/tooltip";
 import "../../src/index.css";
+import { Toaster } from "sonner";
 
 createRoot(document.getElementById("root")!).render(
     <React.StrictMode><MemoryRouter initialEntries={["/proyecto/project/requisiciones"]}>
@@ -14,6 +15,6 @@ createRoot(document.getElementById("root")!).render(
                 <div className="sticky top-0 z-10 flex h-10 items-center border-b bg-card px-2"><SidebarTrigger /></div>
                 <Routes><Route path="/proyecto/:proyectoId/requisiciones" element={<ProyectoRequisicionesPage />} /></Routes>
             </main>
-        </SidebarProvider></TooltipProvider>
+        </SidebarProvider><Toaster /></TooltipProvider>
     </MemoryRouter></React.StrictMode>,
 );

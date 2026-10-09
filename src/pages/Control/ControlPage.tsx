@@ -451,6 +451,10 @@ export default function ControlPage() {
                                             <p className="text-2xl xl:text-3xl">${formatNumber(Math.round(budgetMetrics.por_gastar || 0))}</p>
                                         </div>
                                         <div className="space-y-1 text-left">
+                                            <p className="text-xs text-muted-foreground">Indirectos automáticos</p>
+                                            <p className="text-2xl xl:text-3xl">${formatNumber(Math.round(budgetMetrics.indirectos_monto || 0))}</p>
+                                        </div>
+                                        <div className="space-y-1 text-left">
                                             <p className="text-xs text-muted-foreground">Honorarios</p>
                                             <p className="text-2xl xl:text-3xl">${formatNumber(Math.round(budgetMetrics.honorarios_monto || 0))}</p>
                                         </div>

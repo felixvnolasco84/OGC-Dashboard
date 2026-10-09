@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: [
+      "convex/requisicionStates.test.mjs",
       "convex/projectDocumentFolders.test.mjs",
       "src/lib/bitacora-offline/**/*.test.ts",
       "convex/paymentAccounts.test.mjs",

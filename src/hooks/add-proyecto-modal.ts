@@ -6,6 +6,7 @@ type ProyectoFormData = {
   descripcion: string;
   excel: File | null;
   honorarios_porcentaje: number;
+  indirectos_porcentaje?: number;
   ubicacion?: ProjectLocationKey;
 };
 

@@ -11,6 +11,7 @@ type BudgetPartida = {
 export function calculatePresupuestoMetrics(
   partidas: readonly BudgetPartida[],
   honorariosMonto?: number,
+  indirectos?: { automaticos: number; manualesSustituidos: number },
 ) {
   const roots = partidas.filter((partida) => partida.nivel === 1);
   const presupuesto_original = roots.reduce((sum, partida) => sum + (partida.presupuesto_original || 0), 0);
@@ -19,7 +20,7 @@ export function calculatePresupuestoMetrics(
   // `pagado` can be replaced by hierarchy rollups, so substitute, never add twice.
   const gasto_total = roots.reduce((sum, partida) =>
     sum + (honorariosMonto !== undefined && isHonorariosPartida(partida) ? 0 : (partida.pagado || 0)),
-  0) + (honorariosMonto ?? 0);
+  0) + (honorariosMonto ?? 0) + (indirectos?.automaticos || 0) - (indirectos?.manualesSustituidos || 0);
 
   return {
     presupuesto_original,

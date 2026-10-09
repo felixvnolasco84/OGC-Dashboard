@@ -864,6 +864,8 @@ export default function PresupuestoPage() {
           loadMore={loadMore}
           showPrecioUnitario={showPrecioUnitario}
           filteredPayments={dateFilter !== "total" ? filteredPayments?.paymentsByPartida : undefined}
+          proyectoId={proyectoId as Id<"desarrollos">}
+          filteredIndirectos={dateFilter !== "total" ? filteredPayments?.indirectos : undefined}
           filteredHonorarios={dateFilter !== "total" ? filteredPayments?.honorarios : undefined}
           dateFilterLabel={dateFilter === "total" ? undefined : dateFilter === "ultima_semana" ? "Últ. 7 días" : dateFilter === "este_mes" ? "Este mes" : dateFilter === "mes_pasado" ? "Mes pasado" : "Rango"}
         />

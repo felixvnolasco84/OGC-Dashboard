@@ -1,3 +1,4 @@
+import { calculateBudgetIndirectos } from "./indirectosBudget";
 /**
  * DEPRECATED: This file maintains backward compatibility with old payment queries.
  * New code should use convex/transacciones.ts which implements the transaction-based model.
@@ -349,12 +350,20 @@ export const getPaymentsByDateRange = query({
         })
       : transactions;
 
+    const [proyecto, partidas] = await Promise.all([
+      ctx.db.get(args.proyecto_id),
+      ctx.db.query("partidas")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
+        .collect(),
+    ]);
+
     // Aggregate pagos by partida_id
     const paymentsByPartida: Record<string, number> = {};
     const periodPagos: Doc<"pagos">[] = [];
     let total = 0;
 
     for (const transaction of filtered) {
+      if (proyecto?.indirectos_porcentaje !== undefined && transaction.status !== "Pagado") continue;
       const pagos = await ctx.db
         .query("pagos")
         .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
@@ -368,12 +377,7 @@ export const getPaymentsByDateRange = query({
       }
     }
 
-    const [proyecto, partidas] = await Promise.all([
-      ctx.db.get(args.proyecto_id),
-      ctx.db.query("partidas")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
-        .collect(),
-    ]);
+
     const honorarios = calculateHonorariosFromRecords({
       proyectoId: String(args.proyecto_id),
       modo: proyecto?.honorarios_modo,
@@ -384,7 +388,12 @@ export const getPaymentsByDateRange = query({
       partidas,
     });
 
-    return { paymentsByPartida, total, honorarios };
+    const indirectos = calculateBudgetIndirectos(proyecto, partidas, filtered, periodPagos);
+    for (const [id, amount] of Object.entries(indirectos.sustituidosPorPartida)) {
+      paymentsByPartida[id] = (paymentsByPartida[id] || 0) - amount;
+    }
+    total += indirectos.automaticos - indirectos.manualesSustituidos;
+    return { paymentsByPartida, total, honorarios, indirectos: indirectos.automaticos, indirectosSustituidosPorPartida: indirectos.sustituidosPorPartida };
   },
 });
 

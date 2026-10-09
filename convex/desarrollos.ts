@@ -1,3 +1,6 @@
+import { INDIRECTOS_START, isAutomaticIndirectos, isIndirectosPartida, indirectosCharge, validateIndirectosPercentage, getFeeExcludedPartidaIds, isEligibleFeePayment } from "./indirectosRules";
+import { getBudgetIndirectos } from "./indirectosBudget";
+import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { findProjectDocumentRoot } from "./projectDocumentFolders";
 import { assertBudgetReference } from "./partidaReferences";
 import { query, mutation as rawMutation, QueryCtx } from "./_generated/server";
@@ -48,7 +51,11 @@ export const getAllWithMetrics = query(async (ctx) => {
                 .first();
             
             const presupuestoAprobado = metrics?.presupuesto_aprobado || 0;
-            const gastoTotal = metrics?.gasto_total || 0;
+            let gastoTotal = metrics?.gasto_total || 0;
+            if (proyecto.indirectos_porcentaje !== undefined) {
+                const roots = await ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", proyecto._id)).collect();
+                gastoTotal = calculatePresupuestoMetrics(roots, proyecto.honorarios_monto, await getBudgetIndirectos(ctx, proyecto)).gasto_total;
+            }
             
             return {
                 ...proyecto,
@@ -97,6 +104,7 @@ const STRUCTURE_COST_GROUPS = [
 const DISP_HONORARIOS_LABELS = ["disp honorarios", "dispersion honorarios"];
 const OGC_STRUCTURE_COST_GROUPS = [
     ...STRUCTURE_COST_GROUPS.filter(() => false),
+    { key: "indirectos_reales", label: "COSTOS REALES DE INDIRECTOS", labels: ["indirectos", "indirecto"] },
     { key: "nomina", label: "NOMINA", labels: ["nomina", "residente", "residentes", "sueldos"] },
     { key: "cargas_sociales", label: "CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)", labels: ["impuestos", "imss", "isn", "infonavit", "cargas sociales"] },
     { key: "transporte", label: "TRANSPORTE", labels: ["transporte"] },
@@ -125,6 +133,7 @@ type ExchangeRates = {
 type MonthlyOgcMovementSummary = {
     honorarios: number;
     indirectos: number;
+    indirectosLegacyCosto: number;
     costosDirectosObra: number;
     structureBreakdown: Record<string, number>;
 };
@@ -152,6 +161,7 @@ const matchesMovementGroup = (movement: Pick<OgcMovement, "categoria" | "descrip
 const getMovementGroupKey = (movement: Pick<OgcMovement, "categoria" | "descripcion">) => {
     // A dispersion can mention other costs, but belongs exclusively to this row.
     if (isDispHonorarios(movement)) return "disp_honorarios";
+    if (normalizeMovementCategory(movement.categoria) === "indirectos") return "indirectos_reales";
     const category = normalizeMovementCategory(movement.categoria);
     const explicitGroup = OGC_STRUCTURE_COST_GROUPS.find(group => normalizeMovementCategory(group.label) === category);
     if (explicitGroup) return explicitGroup.key;
@@ -255,6 +265,7 @@ const emptyStructureBreakdownMap = () => {
 const createEmptyMonthlySummary = (): MonthlyOgcMovementSummary => ({
     honorarios: 0,
     indirectos: 0,
+    indirectosLegacyCosto: 0,
     costosDirectosObra: 0,
     structureBreakdown: emptyStructureBreakdownMap(),
 });
@@ -277,6 +288,7 @@ const mergeMonthlySummaries = (
         target[monthKey] = target[monthKey] || createEmptyMonthlySummary();
         target[monthKey].honorarios += sourceSummary.honorarios;
         target[monthKey].indirectos += sourceSummary.indirectos;
+        target[monthKey].indirectosLegacyCosto += sourceSummary.indirectosLegacyCosto || 0;
         target[monthKey].costosDirectosObra += sourceSummary.costosDirectosObra || 0;
         Object.entries(sourceSummary.structureBreakdown || {}).forEach(([key, amount]) => {
             target[monthKey].structureBreakdown[key] = (target[monthKey].structureBreakdown[key] || 0) + amount;
@@ -304,7 +316,7 @@ const getAccessibleOgcMovements = async (ctx: QueryCtx, proyectos: Doc<"desarrol
     });
 };
 
-const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rates: ExchangeRates) => {
+const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rates: ExchangeRates, proyecto?: Doc<"desarrollos">) => {
     return movements.reduce(
         (acc, movement) => {
             const parsedDate = parseReportDate(movement.fecha);
@@ -321,9 +333,12 @@ const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rate
                 // Only project payment percentages generate P&L honorarios.
                 // Other OGC income stays available in the ledger and collected income.
                 if (!matchesAnyReportLabel(movement.categoria, INDIRECTOS_LABELS)) return acc;
+                if (proyecto && isAutomaticIndirectos(proyecto, movement.fecha)) return acc;
                 acc.indirectos += amount;
+                acc.indirectosLegacyCosto += amount;
                 addMonthlyAmount(acc.monthly, monthKey, (summary) => {
                     summary.indirectos += amount;
+                    summary.indirectosLegacyCosto += amount;
                 });
                 acc.hasIncomeMovements = true;
             } else {
@@ -343,6 +358,7 @@ const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rate
         {
             honorarios: 0,
             indirectos: 0,
+            indirectosLegacyCosto: 0,
             costosEstructura: 0,
             structureBreakdown: emptyStructureBreakdownMap(),
             monthly: {} as Record<string, MonthlyOgcMovementSummary>,
@@ -511,21 +527,7 @@ const summarizeProjectPayments = async (
     ]);
 
     const partidasById = new Map(partidas.map((partida) => [partida._id as string, partida]));
-    const excludedPartidaIds = new Set((proyecto.excluded_partidas_honorarios || []).map(String));
-    const excludedPartidaNames = new Set(
-        partidas
-            .filter((partida) => excludedPartidaIds.has(String(partida._id)))
-            .map((partida) => normalizeReportLabel(partida.nombre))
-    );
-
-    partidas.forEach((partida) => {
-        if (
-            excludedPartidaNames.has(normalizeReportLabel(partida.nombre)) ||
-            excludedPartidaNames.has(normalizeReportLabel(partida.partida_nombre))
-        ) {
-            excludedPartidaIds.add(String(partida._id));
-        }
-    });
+    const excludedPartidaIds = getFeeExcludedPartidaIds(partidas, proyecto.excluded_partidas_honorarios);
 
     // P&L and profitability always use the percentage, independently of the budget mode.
     const honorariosRate = Math.max(toFiniteNumber(proyecto.honorarios_porcentaje), 0) / 100;
@@ -533,6 +535,7 @@ const summarizeProjectPayments = async (
         metrics,
         honorarios: 0,
         indirectos: 0,
+        indirectosLegacyCosto: 0,
         totalPagado: 0,
         costosDirectosObra: 0,
         monthly: {} as Record<string, MonthlyOgcMovementSummary>,
@@ -561,10 +564,12 @@ const summarizeProjectPayments = async (
             if (transaction.status !== "Pagado") continue;
             summary.totalPagado += amount;
 
-            if (
-                !isHonorariosPayment &&
-                !excludedPartidaIds.has(String(partida._id))
-            ) {
+            if (isEligibleFeePayment(partida, excludedPartidaIds)) {
+                if (isAutomaticIndirectos(proyecto, transaction.fecha)) {
+                    const charge = indirectosCharge(amount, proyecto);
+                    summary.indirectos += charge;
+                    addMonthlyAmount(summary.monthly, monthKey, monthly => { monthly.indirectos += charge; });
+                }
                 const calculatedHonorarios = amount * honorariosRate;
                 summary.honorarios += calculatedHonorarios;
                 addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
@@ -577,13 +582,18 @@ const summarizeProjectPayments = async (
             }
 
             if (
-                matchesAnyReportLabel(partida.nombre, INDIRECTOS_LABELS) ||
-                matchesAnyReportLabel(partida.familia, INDIRECTOS_LABELS) ||
-                matchesAnyReportLabel(partida.sub_partida, INDIRECTOS_LABELS)
+                isAutomaticIndirectos(proyecto, transaction.fecha)
+                    ? isIndirectosPartida(partida)
+                    : (matchesAnyReportLabel(partida.nombre, INDIRECTOS_LABELS) ||
+                       matchesAnyReportLabel(partida.familia, INDIRECTOS_LABELS) ||
+                       matchesAnyReportLabel(partida.sub_partida, INDIRECTOS_LABELS))
             ) {
+                if (isAutomaticIndirectos(proyecto, transaction.fecha)) continue;
                 summary.indirectos += amount;
+                summary.indirectosLegacyCosto += amount;
                 addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
                     monthlySummary.indirectos += amount;
+                    monthlySummary.indirectosLegacyCosto += amount;
                 });
                 continue;
             }
@@ -607,7 +617,7 @@ const getOgcFormulaTotals = async (
     rates: ExchangeRates,
     ogcMovements: OgcMovement[] = []
 ) => {
-    const movementSummary = summarizeOgcMovements(ogcMovements, period, rates);
+    const movementSummary = summarizeOgcMovements(ogcMovements, period, rates, proyecto);
     const projectPaymentSummary = await summarizeProjectPayments(ctx, proyecto, period, rates);
     const monthlyOgcMovements = {} as Record<string, MonthlyOgcMovementSummary>;
     mergeMonthlySummaries(monthlyOgcMovements, projectPaymentSummary.monthly);
@@ -623,12 +633,18 @@ const getOgcFormulaTotals = async (
     }));
     const costosDirectosObra = projectPaymentSummary.costosDirectosObra;
     const costosEstructuraOgc = movementSummary.costosEstructura;
-    const costosEstructuraMasIndirectos = costosEstructuraOgc + indirectos;
+    const indirectosLegacyCosto = projectPaymentSummary.indirectosLegacyCosto + movementSummary.indirectosLegacyCosto;
+    const costosRealesIndirectos = movementSummary.structureBreakdown.indirectos_reales || 0;
+    const saldoIndirectos = indirectos - indirectosLegacyCosto - costosRealesIndirectos;
+    const costosEstructuraMasIndirectos = costosEstructuraOgc + indirectosLegacyCosto;
     const margenBruto = ingresosOgc - costosDirectosObra - costosEstructuraOgc;
     const ebitda = ingresosOgc - costosEstructuraMasIndirectos;
 
     return {
         metrics: projectPaymentSummary.metrics,
+        indirectosLegacyCosto,
+        costosRealesIndirectos,
+        saldoIndirectos,
         honorarios,
         indirectos,
         ingresosOgc,
@@ -657,7 +673,11 @@ const getWipFormulaTotals = async (
     ogcMovements: OgcMovement[] = []
 ) => {
     const presupuesto = formulaTotals.metrics?.presupuesto_aprobado || 0;
-    const costoReal = formulaTotals.metrics?.gasto_total || 0;
+    let costoReal = formulaTotals.metrics?.gasto_total || 0;
+    if (proyecto.indirectos_porcentaje !== undefined) {
+        const roots = await ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", proyecto._id)).collect();
+        costoReal = calculatePresupuestoMetrics(roots, proyecto.honorarios_monto, await getBudgetIndirectos(ctx, proyecto)).gasto_total;
+    }
     const collectedIncome = await getProjectCollectedIncomeBreakdown(ctx, proyecto._id, period, rates, ogcMovements);
     const pagado = collectedIncome.total;
     const avance = await getControlPhysicalProgressPercent(ctx, proyecto._id);
@@ -756,6 +776,9 @@ export const getPnlSummary = query({
         (acc, project) => {
             acc.honorarios += project.honorarios;
             acc.indirectos += project.indirectos;
+            acc.indirectosLegacyCosto += project.indirectosLegacyCosto;
+            acc.costosRealesIndirectos += project.costosRealesIndirectos;
+            acc.saldoIndirectos += project.saldoIndirectos;
             acc.ingresosOgc += project.ingresosOgc;
             acc.costosDirectosObra += project.costosDirectosObra;
             acc.costosEstructuraOgc += project.costosEstructuraOgc;
@@ -771,6 +794,9 @@ export const getPnlSummary = query({
         {
             honorarios: 0,
             indirectos: 0,
+            indirectosLegacyCosto: 0,
+            costosRealesIndirectos: 0,
+            saldoIndirectos: 0,
             ingresosOgc: 0,
             costosDirectosObra: 0,
             costosEstructuraOgc: 0,
@@ -783,9 +809,12 @@ export const getPnlSummary = query({
     );
 
     totals.indirectos += companyOnlyMovementSummary.indirectos;
+    totals.indirectosLegacyCosto += companyOnlyMovementSummary.indirectosLegacyCosto;
+    totals.costosRealesIndirectos += companyOnlyMovementSummary.structureBreakdown.indirectos_reales || 0;
+    totals.saldoIndirectos -= companyOnlyMovementSummary.structureBreakdown.indirectos_reales || 0;
     totals.ingresosOgc += companyOnlyMovementSummary.indirectos;
     totals.costosEstructuraOgc += companyOnlyMovementSummary.costosEstructura;
-    totals.costosEstructuraMasIndirectos += companyOnlyMovementSummary.costosEstructura + companyOnlyMovementSummary.indirectos;
+    totals.costosEstructuraMasIndirectos += companyOnlyMovementSummary.costosEstructura + companyOnlyMovementSummary.indirectosLegacyCosto;
     totals.margenBruto +=
         companyOnlyMovementSummary.indirectos -
         companyOnlyMovementSummary.costosEstructura;
@@ -830,7 +859,7 @@ export const getPnlSummary = query({
             estructuraPercent: "estructura / ingresos OGC",
             margenBruto: "ingresos OGC - costos directos por obra - estructura OGC",
             margenBrutoPercent: "margen bruto / ingresos OGC",
-            ebitda: "ingresos OGC - (estructura OGC + indirectos)",
+            ebitda: "ingresos OGC - costos reales OGC - costo histórico de indirectos",
             ebitdaMargin: "EBITDA / ingresos OGC",
         },
         generatedAt: now.getTime(),
@@ -860,14 +889,13 @@ export const getProfitabilitySummary = query({
             );
             const wip = await getWipFormulaTotals(ctx, proyecto, formulaTotals, period, rates, projectOgcMovements);
             const ingresosOgc = formulaTotals.ingresosOgc;
-            // Project profitability compares the operating income charged to the
-            // client against that same indirect component plus administrative OGC
-            // costs explicitly assigned to the project. Construction costs stay in WIP.
-            const costosOgc = formulaTotals.indirectos + formulaTotals.costosEstructuraAsignadaOgc;
+            // Compare charged income against actual assigned OGC costs and the
+            // legacy indirect cost, without treating automatic charges as expenses.
+            const costosOgc = formulaTotals.costosEstructuraMasIndirectos;
             const margen = ingresosOgc - costosOgc;
             const currentMonthSummary = formulaTotals.monthlyOgcMovements[period.currentMonthKey];
             const currentMonthIngresos = (currentMonthSummary?.honorarios || 0) + (currentMonthSummary?.indirectos || 0);
-            const currentMonthCostos = (currentMonthSummary?.indirectos || 0) + getMonthlyStructureTotal(currentMonthSummary);
+            const currentMonthCostos = (currentMonthSummary?.indirectosLegacyCosto || 0) + getMonthlyStructureTotal(currentMonthSummary);
 
             return {
                 id: proyecto._id,
@@ -875,6 +903,9 @@ export const getProfitabilitySummary = query({
                 status: proyecto.status,
                 honorarios: formulaTotals.honorarios,
                 indirectos: formulaTotals.indirectos,
+                indirectosLegacyCosto: formulaTotals.indirectosLegacyCosto,
+                costosRealesIndirectos: formulaTotals.costosRealesIndirectos,
+                saldoIndirectos: formulaTotals.saldoIndirectos,
                 ingresosOgc,
                 costosOgc,
                 costosEstructuraOgc: formulaTotals.costosEstructuraOgc,
@@ -907,6 +938,9 @@ export const getProfitabilitySummary = query({
             acc.costosOgc += project.costosOgc;
             acc.honorarios += project.honorarios;
             acc.indirectos += project.indirectos;
+            acc.indirectosLegacyCosto += project.indirectosLegacyCosto;
+            acc.costosRealesIndirectos += project.costosRealesIndirectos;
+            acc.saldoIndirectos += project.saldoIndirectos;
             acc.costosEstructuraOgc += project.costosEstructuraOgc;
             acc.costosEstructuraMasIndirectos += project.costosEstructuraMasIndirectos;
             acc.ebitda += project.ebitda;
@@ -923,6 +957,9 @@ export const getProfitabilitySummary = query({
         {
             honorarios: 0,
             indirectos: 0,
+            indirectosLegacyCosto: 0,
+            costosRealesIndirectos: 0,
+            saldoIndirectos: 0,
             ingresosOgc: 0,
             costosOgc: 0,
             costosEstructuraOgc: 0,
@@ -1005,6 +1042,7 @@ export const create = mutation({
         ubicacion: v.optional(v.string()),
         status: v.optional(v.string()),
         fecha_creacion: v.optional(v.string()),
+        indirectos_porcentaje: v.optional(v.number()),
         honorarios_porcentaje: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
@@ -1018,6 +1056,7 @@ export const create = mutation({
         }
 
         const organizationId = getScopedOrganizationId(currentUser);
+        validateIndirectosPercentage(args.indirectos_porcentaje);
         const project = await ctx.db.insert("desarrollos", {
             nombre: args.nombre,
             descripcion: args.descripcion,
@@ -1029,6 +1068,7 @@ export const create = mutation({
                 month: "short",
                 year: "numeric",
             }),
+            ...(args.indirectos_porcentaje !== undefined ? { indirectos_porcentaje: args.indirectos_porcentaje, indirectos_fecha_inicio: INDIRECTOS_START } : {}),
             honorarios_porcentaje: args.honorarios_porcentaje || 0,
             honorarios_monto: 0, // Initial value, will be calculated by triggers
             ...(organizationId ? { organization_id: organizationId } : {}),
@@ -1054,6 +1094,7 @@ export const update = mutation({
         ubicacion: v.optional(nullableProjectLocationValidator),
         status: v.optional(v.string()),
         fecha_creacion: v.optional(v.string()),
+        indirectos_porcentaje: v.optional(v.number()),
         honorarios_porcentaje: v.optional(v.number()),
         excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
         honorarios_modo: v.optional(v.union(v.literal("automatico"), v.literal("transacciones"))),
@@ -1086,6 +1127,11 @@ export const update = mutation({
         // Budget exclusions must be revalidated in this transaction.
         for (const partidaId of args.excluded_partidas_honorarios || []) {
             await assertBudgetReference(ctx, partidaId, id, 1);
+        }
+        validateIndirectosPercentage(args.indirectos_porcentaje);
+        if (args.indirectos_porcentaje !== undefined) {
+            const existing = await ctx.db.get(id);
+            updateData.indirectos_fecha_inicio = existing?.indirectos_fecha_inicio || INDIRECTOS_START;
         }
         await ctx.db.patch(id, updateData);
         if (args.nombre !== undefined) {

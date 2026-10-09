@@ -1,3 +1,4 @@
+import { getBudgetIndirectos, calculateBudgetIndirectos } from "./indirectosBudget";
 import { query } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
@@ -30,9 +31,12 @@ export const getByProyecto = query({
       .query("partidas")
       .withIndex("by_nivel_proyecto", (q) => q.eq("nivel", 1).eq("proyecto", args.proyecto_id))
       .collect();
+    const indirectos = await getBudgetIndirectos(ctx, proyecto);
     return {
+      indirectos_monto: indirectos.automaticos,
+      indirectos_manuales_sustituidos: indirectos.manualesSustituidos,
       ...metrics,
-      ...calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto),
+      ...calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto, indirectos),
       honorarios_monto,
     };
   },
@@ -141,7 +145,7 @@ export const getFilteredMetrics = query({
     }
 
     // Calculate por_ejercer (remaining budget)
-    const por_ejercer = presupuesto_aprobado - gasto;
+    let por_ejercer = presupuesto_aprobado - gasto;
 
     // Calculate honorarios based on date filter
     const proyecto = await ctx.db.get(args.proyecto_id);
@@ -166,7 +170,17 @@ export const getFilteredMetrics = query({
       });
     }
 
+    const periodPagos = (await Promise.all(filteredTransactions.map(transaction => ctx.db.query("pagos")
+      .withIndex("by_transaccion", q => q.eq("transaccion_id", transaction._id)).collect()))).flat();
+    const indirectos = calculateBudgetIndirectos(proyecto, allPartidas, filteredTransactions, periodPagos);
+    if (!startDate) {
+      gasto = calculatePresupuestoMetrics(allPartidas, proyecto?.honorarios_monto, indirectos).gasto_total;
+    } else {
+      gasto += indirectos.automaticos - indirectos.manualesSustituidos;
+    }
+    por_ejercer = presupuesto_aprobado - gasto;
     return {
+      indirectos: indirectos.automaticos,
       gasto,
       por_ejercer,
       honorarios,
@@ -189,7 +203,7 @@ export const recalculate = mutation({
       .collect();
     const proyecto = await ctx.db.get(args.proyecto_id);
     const { presupuesto_original, presupuesto_aprobado, gasto_total, por_gastar } =
-      calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto);
+      calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto, await getBudgetIndirectos(ctx, proyecto));
     
     // Check if meticas_presupuesto already exists for this proyecto
     const existingMetrics = await ctx.db

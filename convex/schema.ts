@@ -54,6 +54,8 @@ export default defineSchema({
     ubicacion: v.optional(v.string()),
     status: v.optional(v.string()), // Activo, Cancelado, Entregado
     fecha_creacion: v.optional(v.string()),
+    indirectos_porcentaje: v.optional(v.number()),
+    indirectos_fecha_inicio: v.optional(v.string()),
     honorarios_porcentaje: v.optional(v.number()), // User-set percentage (e.g., 15 for 15%)
     honorarios_monto: v.optional(v.number()), // Calculated according to honorarios_modo
     honorarios_modo: v.optional(v.union(v.literal("automatico"), v.literal("transacciones"))),

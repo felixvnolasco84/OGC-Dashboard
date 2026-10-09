@@ -1,0 +1,702 @@
+[
+  {
+    "filename": "completo-con-avisos",
+    "includeNotices": true,
+    "names": [
+      "Estructura",
+      "Eje 01",
+      "Eje 02",
+      "Eje 03",
+      "Eje 04",
+      "Eje 05",
+      "Eje 06",
+      "Eje 07",
+      "Eje 08",
+      "Eje 09",
+      "Eje 10",
+      "Eje 11",
+      "Eje 12",
+      "Eje 13",
+      "Eje 14",
+      "Eje 15",
+      "Eje 16",
+      "Eje 17",
+      "Eje 18",
+      "Eje 19",
+      "Eje 20",
+      "Eje 21",
+      "Eje 22",
+      "Eje 23",
+      "Eje 24",
+      "Eje 25",
+      "Eje 26",
+      "Eje 27",
+      "Eje 28",
+      "Eje 29",
+      "Eje 30",
+      "Eje 31",
+      "Eje 32",
+      "Eje 33",
+      "Eje 34",
+      "Eje 35",
+      "Eje 36",
+      "Eje 37",
+      "Eje 38",
+      "Eje 39",
+      "Eje 40",
+      "Eje 41",
+      "Eje 42",
+      "Eje 43",
+      "Eje 44",
+      "Eje 45",
+      "Eje 46",
+      "Eje 47",
+      "Eje 48",
+      "Eje 49",
+      "Eje 50",
+      "Eje 51",
+      "Eje 52",
+      "Eje 53",
+      "Eje 54",
+      "Instalaciones",
+      "Red 01",
+      "Red 02",
+      "Acabados"
+    ],
+    "leftRows": [
+      {
+        "top": 152,
+        "height": 56
+      },
+      {
+        "top": 208,
+        "height": 56
+      },
+      {
+        "top": 264,
+        "height": 56
+      },
+      {
+        "top": 320,
+        "height": 56
+      },
+      {
+        "top": 376,
+        "height": 56
+      },
+      {
+        "top": 432,
+        "height": 56
+      },
+      {
+        "top": 488,
+        "height": 56
+      },
+      {
+        "top": 544,
+        "height": 56
+      },
+      {
+        "top": 600,
+        "height": 56
+      },
+      {
+        "top": 656,
+        "height": 56
+      },
+      {
+        "top": 712,
+        "height": 56
+      },
+      {
+        "top": 768,
+        "height": 56
+      },
+      {
+        "top": 824,
+        "height": 56
+      },
+      {
+        "top": 880,
+        "height": 56
+      },
+      {
+        "top": 936,
+        "height": 56
+      },
+      {
+        "top": 992,
+        "height": 56
+      },
+      {
+        "top": 1048,
+        "height": 56
+      },
+      {
+        "top": 1104,
+        "height": 56
+      },
+      {
+        "top": 1160,
+        "height": 56
+      },
+      {
+        "top": 1216,
+        "height": 56
+      },
+      {
+        "top": 1272,
+        "height": 56
+      },
+      {
+        "top": 1328,
+        "height": 56
+      },
+      {
+        "top": 1384,
+        "height": 56
+      },
+      {
+        "top": 1440,
+        "height": 56
+      },
+      {
+        "top": 1496,
+        "height": 56
+      },
+      {
+        "top": 1552,
+        "height": 56
+      },
+      {
+        "top": 1608,
+        "height": 56
+      },
+      {
+        "top": 1664,
+        "height": 56
+      },
+      {
+        "top": 1720,
+        "height": 56
+      },
+      {
+        "top": 1776,
+        "height": 56
+      },
+      {
+        "top": 1832,
+        "height": 56
+      },
+      {
+        "top": 1888,
+        "height": 56
+      },
+      {
+        "top": 1944,
+        "height": 56
+      },
+      {
+        "top": 2000,
+        "height": 56
+      },
+      {
+        "top": 2056,
+        "height": 56
+      },
+      {
+        "top": 2112,
+        "height": 56
+      },
+      {
+        "top": 2168,
+        "height": 56
+      },
+      {
+        "top": 2224,
+        "height": 56
+      },
+      {
+        "top": 2280,
+        "height": 56
+      },
+      {
+        "top": 2336,
+        "height": 56
+      },
+      {
+        "top": 2392,
+        "height": 56
+      },
+      {
+        "top": 2448,
+        "height": 56
+      },
+      {
+        "top": 2504,
+        "height": 56
+      },
+      {
+        "top": 2560,
+        "height": 56
+      },
+      {
+        "top": 2616,
+        "height": 56
+      },
+      {
+        "top": 2672,
+        "height": 56
+      },
+      {
+        "top": 2728,
+        "height": 56
+      },
+      {
+        "top": 2784,
+        "height": 56
+      },
+      {
+        "top": 2840,
+        "height": 56
+      },
+      {
+        "top": 2896,
+        "height": 56
+      },
+      {
+        "top": 2952,
+        "height": 56
+      },
+      {
+        "top": 3008,
+        "height": 56
+      },
+      {
+        "top": 3064,
+        "height": 56
+      },
+      {
+        "top": 3120,
+        "height": 56
+      },
+      {
+        "top": 3176,
+        "height": 56
+      },
+      {
+        "top": 3232,
+        "height": 56
+      },
+      {
+        "top": 3288,
+        "height": 56
+      },
+      {
+        "top": 3344,
+        "height": 56
+      },
+      {
+        "top": 3400,
+        "height": 56
+      }
+    ],
+    "timelineRows": [
+      {
+        "top": 152,
+        "height": 56
+      },
+      {
+        "top": 208,
+        "height": 56
+      },
+      {
+        "top": 264,
+        "height": 56
+      },
+      {
+        "top": 320,
+        "height": 56
+      },
+      {
+        "top": 376,
+        "height": 56
+      },
+      {
+        "top": 432,
+        "height": 56
+      },
+      {
+        "top": 488,
+        "height": 56
+      },
+      {
+        "top": 544,
+        "height": 56
+      },
+      {
+        "top": 600,
+        "height": 56
+      },
+      {
+        "top": 656,
+        "height": 56
+      },
+      {
+        "top": 712,
+        "height": 56
+      },
+      {
+        "top": 768,
+        "height": 56
+      },
+      {
+        "top": 824,
+        "height": 56
+      },
+      {
+        "top": 880,
+        "height": 56
+      },
+      {
+        "top": 936,
+        "height": 56
+      },
+      {
+        "top": 992,
+        "height": 56
+      },
+      {
+        "top": 1048,
+        "height": 56
+      },
+      {
+        "top": 1104,
+        "height": 56
+      },
+      {
+        "top": 1160,
+        "height": 56
+      },
+      {
+        "top": 1216,
+        "height": 56
+      },
+      {
+        "top": 1272,
+        "height": 56
+      },
+      {
+        "top": 1328,
+        "height": 56
+      },
+      {
+        "top": 1384,
+        "height": 56
+      },
+      {
+        "top": 1440,
+        "height": 56
+      },
+      {
+        "top": 1496,
+        "height": 56
+      },
+      {
+        "top": 1552,
+        "height": 56
+      },
+      {
+        "top": 1608,
+        "height": 56
+      },
+      {
+        "top": 1664,
+        "height": 56
+      },
+      {
+        "top": 1720,
+        "height": 56
+      },
+      {
+        "top": 1776,
+        "height": 56
+      },
+      {
+        "top": 1832,
+        "height": 56
+      },
+      {
+        "top": 1888,
+        "height": 56
+      },
+      {
+        "top": 1944,
+        "height": 56
+      },
+      {
+        "top": 2000,
+        "height": 56
+      },
+      {
+        "top": 2056,
+        "height": 56
+      },
+      {
+        "top": 2112,
+        "height": 56
+      },
+      {
+        "top": 2168,
+        "height": 56
+      },
+      {
+        "top": 2224,
+        "height": 56
+      },
+      {
+        "top": 2280,
+        "height": 56
+      },
+      {
+        "top": 2336,
+        "height": 56
+      },
+      {
+        "top": 2392,
+        "height": 56
+      },
+      {
+        "top": 2448,
+        "height": 56
+      },
+      {
+        "top": 2504,
+        "height": 56
+      },
+      {
+        "top": 2560,
+        "height": 56
+      },
+      {
+        "top": 2616,
+        "height": 56
+      },
+      {
+        "top": 2672,
+        "height": 56
+      },
+      {
+        "top": 2728,
+        "height": 56
+      },
+      {
+        "top": 2784,
+        "height": 56
+      },
+      {
+        "top": 2840,
+        "height": 56
+      },
+      {
+        "top": 2896,
+        "height": 56
+      },
+      {
+        "top": 2952,
+        "height": 56
+      },
+      {
+        "top": 3008,
+        "height": 56
+      },
+      {
+        "top": 3064,
+        "height": 56
+      },
+      {
+        "top": 3120,
+        "height": 56
+      },
+      {
+        "top": 3176,
+        "height": 56
+      },
+      {
+        "top": 3232,
+        "height": 56
+      },
+      {
+        "top": 3288,
+        "height": 56
+      },
+      {
+        "top": 3344,
+        "height": 56
+      },
+      {
+        "top": 3400,
+        "height": 56
+      }
+    ],
+    "markers": 9,
+    "commentBars": 2,
+    "delayBars": 1
+  },
+  {
+    "filename": "selectivo-sin-avisos",
+    "includeNotices": false,
+    "names": [
+      "Estructura",
+      "Instalaciones",
+      "Red 01",
+      "Red 02",
+      "Acabados"
+    ],
+    "leftRows": [
+      {
+        "top": 152,
+        "height": 56
+      },
+      {
+        "top": 208,
+        "height": 56
+      },
+      {
+        "top": 264,
+        "height": 56
+      },
+      {
+        "top": 320,
+        "height": 56
+      },
+      {
+        "top": 376,
+        "height": 56
+      }
+    ],
+    "timelineRows": [
+      {
+        "top": 152,
+        "height": 56
+      },
+      {
+        "top": 208,
+        "height": 56
+      },
+      {
+        "top": 264,
+        "height": 56
+      },
+      {
+        "top": 320,
+        "height": 56
+      },
+      {
+        "top": 376,
+        "height": 56
+      }
+    ],
+    "markers": 0,
+    "commentBars": 0,
+    "delayBars": 1
+  },
+  {
+    "filename": "resumido-sin-avisos",
+    "includeNotices": false,
+    "names": [
+      "Estructura",
+      "Instalaciones",
+      "Acabados"
+    ],
+    "leftRows": [
+      {
+        "top": 152,
+        "height": 56
+      },
+      {
+        "top": 208,
+        "height": 56
+      },
+      {
+        "top": 264,
+        "height": 56
+      }
+    ],
+    "timelineRows": [
+      {
+        "top": 152,
+        "height": 56
+      },
+      {
+        "top": 208,
+        "height": 56
+      },
+      {
+        "top": 264,
+        "height": 56
+      }
+    ],
+    "markers": 0,
+    "commentBars": 0,
+    "delayBars": 1
+  },
+  {
+    "filename": "selectivo-con-avisos-lector-movil",
+    "includeNotices": true,
+    "names": [
+      "Estructura",
+      "Instalaciones",
+      "Red 01",
+      "Red 02",
+      "Acabados"
+    ],
+    "leftRows": [
+      {
+        "top": 50,
+        "height": 56
+      },
+      {
+        "top": 106,
+        "height": 56
+      },
+      {
+        "top": 162,
+        "height": 56
+      },
+      {
+        "top": 218,
+        "height": 56
+      },
+      {
+        "top": 274,
+        "height": 56
+      }
+    ],
+    "timelineRows": [
+      {
+        "top": 50,
+        "height": 56
+      },
+      {
+        "top": 106,
+        "height": 56
+      },
+      {
+        "top": 162,
+        "height": 56
+      },
+      {
+        "top": 218,
+        "height": 56
+      },
+      {
+        "top": 274,
+        "height": 56
+      }
+    ],
+    "markers": 9,
+    "commentBars": 1,
+    "delayBars": 1
+  }
+]

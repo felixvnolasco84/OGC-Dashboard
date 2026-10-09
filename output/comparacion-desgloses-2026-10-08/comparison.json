@@ -1,0 +1,4062 @@
+{
+  "target": {
+    "file": "C:\\Users\\felix\\Downloads\\PROGRAMA LARENA TORRE H_2026.xlsx",
+    "sheet": "Torre I",
+    "parents": [
+      {
+        "row": 3,
+        "partida": "CIMENTACIÓN"
+      },
+      {
+        "row": 12,
+        "partida": "MUROS_PB"
+      },
+      {
+        "row": 20,
+        "partida": "LOSA_PN"
+      },
+      {
+        "row": 28,
+        "partida": "MUROS_PN"
+      },
+      {
+        "row": 36,
+        "partida": "LOSA_2N"
+      },
+      {
+        "row": 44,
+        "partida": "MUROS_3NPH"
+      },
+      {
+        "row": 52,
+        "partida": "LOSA_3NRT"
+      },
+      {
+        "row": 61,
+        "partida": "MUROS_4NRT"
+      },
+      {
+        "row": 69,
+        "partida": "ESTRUCTURAS_COMPLEMENTARIAS"
+      },
+      {
+        "row": 75,
+        "partida": "ALBAÑILERÍAS"
+      },
+      {
+        "row": 85,
+        "partida": "PLOMERÍA"
+      },
+      {
+        "row": 91,
+        "partida": "ELECTRICIDAD"
+      },
+      {
+        "row": 97,
+        "partida": "GAS"
+      },
+      {
+        "row": 101,
+        "partida": "LUMINARIAS"
+      },
+      {
+        "row": 106,
+        "partida": "IMPERMEABILIZACIÓN"
+      },
+      {
+        "row": 112,
+        "partida": "AIRE_ACONDICIONADO"
+      },
+      {
+        "row": 117,
+        "partida": "YESO_PINTURA"
+      },
+      {
+        "row": 125,
+        "partida": "HERRERÍA"
+      },
+      {
+        "row": 132,
+        "partida": "PINTURA_HERRERÍA"
+      },
+      {
+        "row": 135,
+        "partida": "MÁRMOL"
+      },
+      {
+        "row": 147,
+        "partida": "RECUBRIMIENTOS "
+      },
+      {
+        "row": 153,
+        "partida": "CANCELERÍA "
+      },
+      {
+        "row": 160,
+        "partida": "CARPINTERÍA"
+      },
+      {
+        "row": 166,
+        "partida": "HERRAJES"
+      },
+      {
+        "row": 169,
+        "partida": "MOBILIARIO_EQUIPO"
+      },
+      {
+        "row": 173,
+        "partida": "MUEBLES_BAÑO"
+      },
+      {
+        "row": 178,
+        "partida": "COCINA"
+      },
+      {
+        "row": 183,
+        "partida": "INSTALACIONES_ESPECIALES"
+      },
+      {
+        "row": 187,
+        "partida": "JARDÍN"
+      },
+      {
+        "row": 191,
+        "partida": "VARIOS"
+      }
+    ],
+    "rows": [
+      {
+        "row": 4,
+        "partida": "CIMENTACIÓN",
+        "familia": "PRELIMINARES Y EXCAVACIÓN DE CEPAS",
+        "fecha_inicio": "2025-01-13",
+        "fecha_fin": "2025-02-18"
+      },
+      {
+        "row": 5,
+        "partida": "CIMENTACIÓN",
+        "familia": "ARMADO DE ACERO",
+        "fecha_inicio": "2025-02-10",
+        "fecha_fin": "2025-03-11"
+      },
+      {
+        "row": 6,
+        "partida": "CIMENTACIÓN",
+        "familia": "CIMBRADO FRONTERAS",
+        "fecha_inicio": "2025-02-23",
+        "fecha_fin": "2025-03-18"
+      },
+      {
+        "row": 7,
+        "partida": "CIMENTACIÓN",
+        "familia": "COLADO DE LOSA CIMENTACIÓN",
+        "fecha_inicio": "2025-03-20",
+        "fecha_fin": "2025-03-20"
+      },
+      {
+        "row": 8,
+        "partida": "CIMENTACIÓN",
+        "familia": "IMPERMEABILIZACIÓN",
+        "fecha_inicio": "2025-03-25",
+        "fecha_fin": "2025-03-25"
+      },
+      {
+        "row": 9,
+        "partida": "CIMENTACIÓN",
+        "familia": "COLADO BALCONES",
+        "fecha_inicio": "2025-03-18",
+        "fecha_fin": "2025-03-18"
+      },
+      {
+        "row": 13,
+        "partida": "MUROS_PB",
+        "familia": "MUROS DE BLOCK",
+        "fecha_inicio": "2025-03-27",
+        "fecha_fin": "2025-05-02"
+      },
+      {
+        "row": 14,
+        "partida": "MUROS_PB",
+        "familia": "DALAS INTERMEDIAS",
+        "fecha_inicio": "2025-04-02",
+        "fecha_fin": "2025-04-21"
+      },
+      {
+        "row": 15,
+        "partida": "MUROS_PB",
+        "familia": "CASTILLOS",
+        "fecha_inicio": "2025-04-07",
+        "fecha_fin": "2025-05-03"
+      },
+      {
+        "row": 16,
+        "partida": "MUROS_PB",
+        "familia": "COLUMNAS",
+        "fecha_inicio": "2025-04-11",
+        "fecha_fin": "2025-05-06"
+      },
+      {
+        "row": 17,
+        "partida": "MUROS_PB",
+        "familia": "MUROS (MC/MCR)",
+        "fecha_inicio": "2025-04-23",
+        "fecha_fin": "2025-05-08"
+      },
+      {
+        "row": 21,
+        "partida": "LOSA_PN",
+        "familia": "CIMBRADO DE LOSA",
+        "fecha_inicio": "2025-04-17",
+        "fecha_fin": "2025-05-06"
+      },
+      {
+        "row": 22,
+        "partida": "LOSA_PN",
+        "familia": "ARMADO DE ACERO",
+        "fecha_inicio": "2025-04-26",
+        "fecha_fin": "2025-05-13"
+      },
+      {
+        "row": 23,
+        "partida": "LOSA_PN",
+        "familia": "CASETONES",
+        "fecha_inicio": "2025-05-06",
+        "fecha_fin": "2025-05-17"
+      },
+      {
+        "row": 24,
+        "partida": "LOSA_PN",
+        "familia": "COLADO DE LOSA",
+        "fecha_inicio": "2025-05-22",
+        "fecha_fin": "2025-05-22"
+      },
+      {
+        "row": 25,
+        "partida": "LOSA_PN",
+        "familia": "COLADO ESCALERA",
+        "fecha_inicio": "2025-05-22",
+        "fecha_fin": "2025-05-22"
+      },
+      {
+        "row": 29,
+        "partida": "MUROS_PN",
+        "familia": "MUROS DE BLOCK",
+        "fecha_inicio": "2025-05-24",
+        "fecha_fin": "2025-06-23"
+      },
+      {
+        "row": 30,
+        "partida": "MUROS_PN",
+        "familia": "DALAS INTERMEDIAS",
+        "fecha_inicio": "2025-05-29",
+        "fecha_fin": "2025-06-14"
+      },
+      {
+        "row": 31,
+        "partida": "MUROS_PN",
+        "familia": "CASTILLOS",
+        "fecha_inicio": "2025-06-02",
+        "fecha_fin": "2025-06-24"
+      },
+      {
+        "row": 32,
+        "partida": "MUROS_PN",
+        "familia": "COLUMNAS",
+        "fecha_inicio": "2025-06-05",
+        "fecha_fin": "2025-06-26"
+      },
+      {
+        "row": 33,
+        "partida": "MUROS_PN",
+        "familia": "MUROS (MC/MCR)",
+        "fecha_inicio": "2025-06-16",
+        "fecha_fin": "2025-06-28"
+      },
+      {
+        "row": 37,
+        "partida": "LOSA_2N",
+        "familia": "CIMBRADO DE LOSA",
+        "fecha_inicio": "2025-06-11",
+        "fecha_fin": "2025-06-30"
+      },
+      {
+        "row": 38,
+        "partida": "LOSA_2N",
+        "familia": "ARMADO DE ACERO",
+        "fecha_inicio": "2025-06-20",
+        "fecha_fin": "2025-07-07"
+      },
+      {
+        "row": 39,
+        "partida": "LOSA_2N",
+        "familia": "CASETONES",
+        "fecha_inicio": "2025-06-30",
+        "fecha_fin": "2025-07-11"
+      },
+      {
+        "row": 40,
+        "partida": "LOSA_2N",
+        "familia": "COLADO DE LOSA",
+        "fecha_inicio": "2025-07-16",
+        "fecha_fin": "2025-07-16"
+      },
+      {
+        "row": 41,
+        "partida": "LOSA_2N",
+        "familia": "COLADO ESCALERA",
+        "fecha_inicio": "2025-07-16",
+        "fecha_fin": "2025-07-16"
+      },
+      {
+        "row": 45,
+        "partida": "MUROS_3NPH",
+        "familia": "MUROS DE BLOCK",
+        "fecha_inicio": "2025-07-18",
+        "fecha_fin": "2025-08-18"
+      },
+      {
+        "row": 46,
+        "partida": "MUROS_3NPH",
+        "familia": "DALAS INTERMEDIAS",
+        "fecha_inicio": "2025-07-24",
+        "fecha_fin": "2025-08-09"
+      },
+      {
+        "row": 47,
+        "partida": "MUROS_3NPH",
+        "familia": "CASTILLOS",
+        "fecha_inicio": "2025-07-27",
+        "fecha_fin": "2025-08-20"
+      },
+      {
+        "row": 48,
+        "partida": "MUROS_3NPH",
+        "familia": "COLUMNAS",
+        "fecha_inicio": "2025-07-31",
+        "fecha_fin": "2025-08-22"
+      },
+      {
+        "row": 49,
+        "partida": "MUROS_3NPH",
+        "familia": "MUROS (MC/MCR)",
+        "fecha_inicio": "2025-08-11",
+        "fecha_fin": "2025-08-24"
+      },
+      {
+        "row": 53,
+        "partida": "LOSA_3NRT",
+        "familia": "CIMBRADO DE LOSA",
+        "fecha_inicio": "2025-08-06",
+        "fecha_fin": "2025-09-06"
+      },
+      {
+        "row": 54,
+        "partida": "LOSA_3NRT",
+        "familia": "ARMADO DE ACERO",
+        "fecha_inicio": "2025-08-20",
+        "fecha_fin": "2025-09-17"
+      },
+      {
+        "row": 55,
+        "partida": "LOSA_3NRT",
+        "familia": "CASETONES",
+        "fecha_inicio": "2025-09-06",
+        "fecha_fin": "2025-09-23"
+      },
+      {
+        "row": 56,
+        "partida": "LOSA_3NRT",
+        "familia": "COLADO DE LOSA",
+        "fecha_inicio": "2025-10-01",
+        "fecha_fin": "2025-10-01"
+      },
+      {
+        "row": 57,
+        "partida": "LOSA_3NRT",
+        "familia": "COLADO ESCALERA",
+        "fecha_inicio": "2025-10-01",
+        "fecha_fin": "2025-10-01"
+      },
+      {
+        "row": 62,
+        "partida": "MUROS_4NRT",
+        "familia": "MUROS DE BLOCK",
+        "fecha_inicio": "2025-09-06",
+        "fecha_fin": "2025-09-24"
+      },
+      {
+        "row": 63,
+        "partida": "MUROS_4NRT",
+        "familia": "DALAS INTERMEDIAS",
+        "fecha_inicio": "2025-09-09",
+        "fecha_fin": "2025-09-19"
+      },
+      {
+        "row": 64,
+        "partida": "MUROS_4NRT",
+        "familia": "CASTILLOS",
+        "fecha_inicio": "2025-09-11",
+        "fecha_fin": "2025-09-25"
+      },
+      {
+        "row": 65,
+        "partida": "MUROS_4NRT",
+        "familia": "COLUMNAS",
+        "fecha_inicio": "2025-09-13",
+        "fecha_fin": "2025-09-26"
+      },
+      {
+        "row": 66,
+        "partida": "MUROS_4NRT",
+        "familia": "PRETILES Y JARDINERAS",
+        "fecha_inicio": "2025-09-20",
+        "fecha_fin": "2025-09-27"
+      },
+      {
+        "row": 70,
+        "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+        "familia": "BASE PLUNGE POOL PA",
+        "fecha_inicio": "2026-03-05",
+        "fecha_fin": "2026-03-23"
+      },
+      {
+        "row": 71,
+        "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+        "familia": "LOSA ESCALERA",
+        "fecha_inicio": "2026-02-17",
+        "fecha_fin": "2026-03-04"
+      },
+      {
+        "row": 72,
+        "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+        "familia": "BASE PLUNGE POOL PB",
+        "fecha_inicio": "2026-03-12",
+        "fecha_fin": "2026-04-03"
+      },
+      {
+        "row": 76,
+        "partida": "ALBAÑILERÍAS",
+        "familia": "TRAZOS Y PREPARACIONES",
+        "fecha_inicio": "2025-07-23",
+        "fecha_fin": "2025-08-14"
+      },
+      {
+        "row": 77,
+        "partida": "ALBAÑILERÍAS",
+        "familia": "APLANADOS Y RESANES",
+        "fecha_inicio": "2025-07-23",
+        "fecha_fin": "2025-12-02"
+      },
+      {
+        "row": 78,
+        "partida": "ALBAÑILERÍAS",
+        "familia": "NICHOS Y REGISTROS",
+        "fecha_inicio": "2025-07-23",
+        "fecha_fin": "2025-10-08"
+      },
+      {
+        "row": 79,
+        "partida": "ALBAÑILERÍAS",
+        "familia": "FIRME DE CONCRETO Y RELLENOS",
+        "fecha_inicio": "2025-10-08",
+        "fecha_fin": "2025-11-25"
+      },
+      {
+        "row": 80,
+        "partida": "ALBAÑILERÍAS",
+        "familia": "IMPERMEABILIZACIONES",
+        "fecha_inicio": "2025-09-05",
+        "fecha_fin": "2026-02-28"
+      },
+      {
+        "row": 81,
+        "partida": "ALBAÑILERÍAS",
+        "familia": "MUROS DIVISORIOS BAÑOS",
+        "fecha_inicio": "2025-10-08",
+        "fecha_fin": "2025-12-24"
+      },
+      {
+        "row": 82,
+        "partida": "ALBAÑILERÍAS",
+        "familia": "DETALLES Y CIERRE DE VIVIENDA",
+        "fecha_inicio": "2026-01-26",
+        "fecha_fin": "2026-02-28"
+      },
+      {
+        "row": 86,
+        "partida": "PLOMERÍA",
+        "familia": "RAMAL HIDRÁULICO",
+        "fecha_inicio": "2025-02-12",
+        "fecha_fin": "2025-12-24"
+      },
+      {
+        "row": 87,
+        "partida": "PLOMERÍA",
+        "familia": "LIBERACIÓN CHAROLAS",
+        "fecha_inicio": "2025-07-30",
+        "fecha_fin": "2026-03-18"
+      },
+      {
+        "row": 88,
+        "partida": "PLOMERÍA",
+        "familia": "PRUEBAS HIDROSANITARIAS",
+        "fecha_inicio": "2026-03-18",
+        "fecha_fin": "2026-04-08"
+      },
+      {
+        "row": 89,
+        "partida": "PLOMERÍA",
+        "familia": "INSTALACIÓN MUEBLES DE BAÑO",
+        "fecha_inicio": "2026-02-17",
+        "fecha_fin": "2026-04-08"
+      },
+      {
+        "row": 92,
+        "partida": "ELECTRICIDAD",
+        "familia": "DUCTERÍA Y CAJAS",
+        "fecha_inicio": "2025-04-09",
+        "fecha_fin": "2026-02-18"
+      },
+      {
+        "row": 93,
+        "partida": "ELECTRICIDAD",
+        "familia": "CANALIZACIÓN",
+        "fecha_inicio": "2025-09-24",
+        "fecha_fin": "2026-01-07"
+      },
+      {
+        "row": 94,
+        "partida": "ELECTRICIDAD",
+        "familia": "LIBERACIÓN CABLEADO",
+        "fecha_inicio": "2026-01-07",
+        "fecha_fin": "2026-06-03"
+      },
+      {
+        "row": 95,
+        "partida": "ELECTRICIDAD",
+        "familia": "INSTALACIÓN LUMINARIAS",
+        "fecha_inicio": "2026-10-05",
+        "fecha_fin": "2026-10-25"
+      },
+      {
+        "row": 98,
+        "partida": "GAS",
+        "familia": "ALIMENTACIÓN",
+        "fecha_inicio": "2025-02-12",
+        "fecha_fin": "2026-01-31"
+      },
+      {
+        "row": 99,
+        "partida": "GAS",
+        "familia": "LIBERACIÓN DE MEDIDORES",
+        "fecha_inicio": "2026-02-18",
+        "fecha_fin": "2026-02-18"
+      },
+      {
+        "row": 102,
+        "partida": "LUMINARIAS",
+        "familia": "ACCESORIOS ELÉCTRICOS",
+        "fecha_inicio": "2026-03-11",
+        "fecha_fin": "2026-04-08"
+      },
+      {
+        "row": 103,
+        "partida": "LUMINARIAS",
+        "familia": "LUMINARIAS Y EQUIPOS (CASA)",
+        "fecha_inicio": "2026-03-11",
+        "fecha_fin": "2026-04-08"
+      },
+      {
+        "row": 104,
+        "partida": "LUMINARIAS",
+        "familia": "LUMINARIAS Y EQUIPOS (JARDÍN)",
+        "fecha_inicio": "2026-03-11",
+        "fecha_fin": "2026-04-08"
+      },
+      {
+        "row": 107,
+        "partida": "IMPERMEABILIZACIÓN",
+        "familia": "CHAROLAS",
+        "fecha_inicio": "2025-09-05",
+        "fecha_fin": "2026-05-28"
+      },
+      {
+        "row": 108,
+        "partida": "IMPERMEABILIZACIÓN",
+        "familia": "BAÑOS Y REGADERAS",
+        "fecha_inicio": "2026-06-25",
+        "fecha_fin": "2026-07-08"
+      },
+      {
+        "row": 109,
+        "partida": "IMPERMEABILIZACIÓN",
+        "familia": "TERRAZAS Y JARDINERAS",
+        "fecha_inicio": "2026-07-20",
+        "fecha_fin": "2026-10-08"
+      },
+      {
+        "row": 110,
+        "partida": "IMPERMEABILIZACIÓN",
+        "familia": "LOSAS DE AZOTEA (POLIUREA)",
+        "fecha_inicio": "2026-10-15",
+        "fecha_fin": "2026-10-18"
+      },
+      {
+        "row": 113,
+        "partida": "AIRE_ACONDICIONADO",
+        "familia": "SOPORTERÍA Y DUCTERÍA",
+        "fecha_inicio": "2025-09-06",
+        "fecha_fin": "2026-01-27"
+      },
+      {
+        "row": 114,
+        "partida": "AIRE_ACONDICIONADO",
+        "familia": "INSTALACIÓN DE EQUIPOS",
+        "fecha_inicio": "2025-11-22",
+        "fecha_fin": "2026-01-05"
+      },
+      {
+        "row": 115,
+        "partida": "AIRE_ACONDICIONADO",
+        "familia": "CONDENSADORAS, DIFUSORES Y REJILLAS",
+        "fecha_inicio": "2026-01-27",
+        "fecha_fin": "2026-04-14"
+      },
+      {
+        "row": 118,
+        "partida": "YESO_PINTURA",
+        "familia": "YESO EN MUROS",
+        "fecha_inicio": "2025-12-10",
+        "fecha_fin": "2026-10-21"
+      },
+      {
+        "row": 119,
+        "partida": "YESO_PINTURA",
+        "familia": "SOPORTERÍA PLAFÓN",
+        "fecha_inicio": "2026-05-05",
+        "fecha_fin": "2026-09-11"
+      },
+      {
+        "row": 120,
+        "partida": "YESO_PINTURA",
+        "familia": "AISLANTE",
+        "fecha_inicio": "2026-02-04",
+        "fecha_fin": "2026-09-11"
+      },
+      {
+        "row": 121,
+        "partida": "YESO_PINTURA",
+        "familia": "CIERRE DE PLAFONES",
+        "fecha_inicio": "2026-03-11",
+        "fecha_fin": "2026-09-24"
+      },
+      {
+        "row": 122,
+        "partida": "YESO_PINTURA",
+        "familia": "PINTURA INTERIOR EN  MUROS Y PLAFONES",
+        "fecha_inicio": "2026-10-17",
+        "fecha_fin": "2026-11-06"
+      },
+      {
+        "row": 123,
+        "partida": "YESO_PINTURA",
+        "familia": "PINTURA FACHADAS",
+        "fecha_inicio": "2026-10-10",
+        "fecha_fin": "2026-10-24"
+      },
+      {
+        "row": 126,
+        "partida": "HERRERÍA",
+        "familia": "ANCLAJE Y PLACAS",
+        "fecha_inicio": "2026-01-09",
+        "fecha_fin": "2026-01-29"
+      },
+      {
+        "row": 127,
+        "partida": "HERRERÍA",
+        "familia": "BASES CAMPANAS",
+        "fecha_inicio": "2026-06-08",
+        "fecha_fin": "2026-09-08"
+      },
+      {
+        "row": 128,
+        "partida": "HERRERÍA",
+        "familia": "BASES LAVABOS",
+        "fecha_inicio": "2026-05-19",
+        "fecha_fin": "2026-10-23"
+      },
+      {
+        "row": 129,
+        "partida": "HERRERÍA",
+        "familia": "ESTRUCTURA HVAC Y VESTÍBULO",
+        "fecha_inicio": "2026-10-12",
+        "fecha_fin": "2026-10-22"
+      },
+      {
+        "row": 130,
+        "partida": "HERRERÍA",
+        "familia": "PASAMANOS/BARANDALES",
+        "fecha_inicio": "2026-09-05",
+        "fecha_fin": "2026-10-31"
+      },
+      {
+        "row": 133,
+        "partida": "PINTURA_HERRERÍA",
+        "familia": "PINTURA AUTOMOTIVA",
+        "fecha_inicio": "2026-10-15",
+        "fecha_fin": "2026-11-05"
+      },
+      {
+        "row": 136,
+        "partida": "MÁRMOL",
+        "familia": "COLOCACION CALIZA FACHADA 01",
+        "fecha_inicio": "2026-06-02",
+        "fecha_fin": "2026-08-27"
+      },
+      {
+        "row": 137,
+        "partida": "MÁRMOL",
+        "familia": "COLOCACION CALIZA FACHADA 02",
+        "fecha_inicio": "2026-06-02",
+        "fecha_fin": "2026-09-02"
+      },
+      {
+        "row": 138,
+        "partida": "MÁRMOL",
+        "familia": "COLOCACION CALIZA FACHADA 03",
+        "fecha_inicio": "2026-10-19",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "row": 139,
+        "partida": "MÁRMOL",
+        "familia": "COLOCACION BAÑOS (LAMBRINES REGADERA Y WC)",
+        "fecha_inicio": "2026-06-07",
+        "fecha_fin": "2026-11-10"
+      },
+      {
+        "row": 140,
+        "partida": "MÁRMOL",
+        "familia": "COLOCACION DE REPIZONES",
+        "fecha_inicio": "2026-04-17",
+        "fecha_fin": "2026-05-02"
+      },
+      {
+        "row": 141,
+        "partida": "MÁRMOL",
+        "familia": "COLOCACION PISOS, ESCALERAS Y CUBIERTA DE MUEBLES BAÑO",
+        "fecha_inicio": "2026-06-27",
+        "fecha_fin": "2026-11-10"
+      },
+      {
+        "row": 142,
+        "partida": "MÁRMOL",
+        "familia": "CUBIERTA DE MUEBLES BAÑO",
+        "fecha_inicio": "2026-04-09",
+        "fecha_fin": "2026-05-24"
+      },
+      {
+        "row": 143,
+        "partida": "MÁRMOL",
+        "familia": "COLOCACIÓN PIEDRA MUROS ASADORES",
+        "fecha_inicio": "2026-06-05",
+        "fecha_fin": "2026-09-15"
+      },
+      {
+        "row": 144,
+        "partida": "MÁRMOL",
+        "familia": "COLOCACIÓN PIEDRA MURO DIVISORIO",
+        "fecha_inicio": "2026-06-01",
+        "fecha_fin": "2026-06-26"
+      },
+      {
+        "row": 145,
+        "partida": "MÁRMOL",
+        "familia": "COLOCACIÓN CALIZA ROOFTOP",
+        "fecha_inicio": "2026-10-26",
+        "fecha_fin": "2026-11-02"
+      },
+      {
+        "row": 148,
+        "partida": "RECUBRIMIENTOS ",
+        "familia": "COLOCACIÓN MARIMBAS",
+        "fecha_inicio": "2026-11-04",
+        "fecha_fin": "2026-11-18"
+      },
+      {
+        "row": 149,
+        "partida": "RECUBRIMIENTOS ",
+        "familia": "COLOCACIÓN TEJA",
+        "fecha_inicio": "2026-10-25",
+        "fecha_fin": "2026-11-10"
+      },
+      {
+        "row": 150,
+        "partida": "RECUBRIMIENTOS ",
+        "familia": "COLOCACIÓN PLAFON DECK",
+        "fecha_inicio": "2026-10-29",
+        "fecha_fin": "2026-11-13"
+      },
+      {
+        "row": 151,
+        "partida": "RECUBRIMIENTOS ",
+        "familia": "ALBERCAS  RECUBRIMIENTO CRISTAL SMOTH",
+        "fecha_inicio": "2026-10-12",
+        "fecha_fin": "2026-10-31"
+      },
+      {
+        "row": 154,
+        "partida": "CANCELERÍA ",
+        "familia": "LIBERACIÓN VANOS",
+        "fecha_inicio": "2026-11-06",
+        "fecha_fin": "2026-11-12"
+      },
+      {
+        "row": 155,
+        "partida": "CANCELERÍA ",
+        "familia": "COLOCACIÓN CANCELES 01",
+        "fecha_inicio": "2026-09-22",
+        "fecha_fin": "2026-10-06"
+      },
+      {
+        "row": 156,
+        "partida": "CANCELERÍA ",
+        "familia": "COLOCACIÓN CANCELES 02",
+        "fecha_inicio": "2026-10-15",
+        "fecha_fin": "2026-10-23"
+      },
+      {
+        "row": 157,
+        "partida": "CANCELERÍA ",
+        "familia": "COLOCACIÓN CANCELES 03",
+        "fecha_inicio": "2026-10-19",
+        "fecha_fin": "2026-10-29"
+      },
+      {
+        "row": 158,
+        "partida": "CANCELERÍA ",
+        "familia": "LUNAS Y TEMPLADOS",
+        "fecha_inicio": "2026-11-02",
+        "fecha_fin": "2026-11-16"
+      },
+      {
+        "row": 161,
+        "partida": "CARPINTERÍA",
+        "familia": "PUERTAS PRINCIPALES",
+        "fecha_inicio": "2026-11-04",
+        "fecha_fin": "2026-11-18"
+      },
+      {
+        "row": 162,
+        "partida": "CARPINTERÍA",
+        "familia": "LAMBRIN",
+        "fecha_inicio": "2026-11-04",
+        "fecha_fin": "2026-11-29"
+      },
+      {
+        "row": 163,
+        "partida": "CARPINTERÍA",
+        "familia": "CLOSETS Y VESTIDORES",
+        "fecha_inicio": "2026-11-09",
+        "fecha_fin": "2026-12-04"
+      },
+      {
+        "row": 164,
+        "partida": "CARPINTERÍA",
+        "familia": "MUEBLES DE BAÑO",
+        "fecha_inicio": "2026-11-07",
+        "fecha_fin": "2026-11-22"
+      },
+      {
+        "row": 167,
+        "partida": "HERRAJES",
+        "familia": "CERRADURAS",
+        "fecha_inicio": "2026-10-05",
+        "fecha_fin": "2026-10-08"
+      },
+      {
+        "row": 170,
+        "partida": "MOBILIARIO_EQUIPO",
+        "familia": "EQUIPOS ALBERCAS",
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-11-10"
+      },
+      {
+        "row": 171,
+        "partida": "MOBILIARIO_EQUIPO",
+        "familia": "CALENTADORES",
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-11-10"
+      },
+      {
+        "row": 174,
+        "partida": "MUEBLES_BAÑO",
+        "familia": "MONO MANDOS REGADERAS Y LAVABOS",
+        "fecha_inicio": "2026-10-07",
+        "fecha_fin": "2026-10-27"
+      },
+      {
+        "row": 175,
+        "partida": "MUEBLES_BAÑO",
+        "familia": "WC´S",
+        "fecha_inicio": "2026-10-18",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "row": 176,
+        "partida": "MUEBLES_BAÑO",
+        "familia": "ACCESORIOS ",
+        "fecha_inicio": "2026-10-25",
+        "fecha_fin": "2026-11-06"
+      },
+      {
+        "row": 179,
+        "partida": "COCINA",
+        "familia": "COCINA PRINCIPAL (MOBILIARIO)",
+        "fecha_inicio": "2026-08-12",
+        "fecha_fin": "2026-11-18"
+      },
+      {
+        "row": 180,
+        "partida": "COCINA",
+        "familia": "COCINA PRINCIPAL (EQUIPOS)",
+        "fecha_inicio": "2026-11-06",
+        "fecha_fin": "2026-11-20"
+      },
+      {
+        "row": 181,
+        "partida": "COCINA",
+        "familia": "COCINA PRINCIPAL (CUBIERTAS)",
+        "fecha_inicio": "2026-11-06",
+        "fecha_fin": "2026-11-18"
+      },
+      {
+        "row": 184,
+        "partida": "INSTALACIONES_ESPECIALES",
+        "familia": "PROTECCION CONTRA INCENDIOS",
+        "fecha_inicio": "2025-09-27",
+        "fecha_fin": "2026-11-27"
+      },
+      {
+        "row": 185,
+        "partida": "INSTALACIONES_ESPECIALES",
+        "familia": "INSTALACIÓN ELÉCTRICA PARA AUDIO Y VIDEO (TIMBRE REMOTO, SOLO DUCTERIAS)",
+        "fecha_inicio": "2025-10-20",
+        "fecha_fin": "2025-11-02"
+      },
+      {
+        "row": 188,
+        "partida": "JARDÍN",
+        "familia": "RIEGO PARA JARDÍN",
+        "fecha_inicio": "2026-10-25",
+        "fecha_fin": "2026-11-05"
+      },
+      {
+        "row": 189,
+        "partida": "JARDÍN",
+        "familia": "JARDINERÍA  PLANTAS ",
+        "fecha_inicio": "2026-11-05",
+        "fecha_fin": "2026-11-24"
+      },
+      {
+        "row": 192,
+        "partida": "VARIOS",
+        "familia": "ELEVADOR 3 ESTACIONES 1 PUERTA",
+        "fecha_inicio": "2026-08-30",
+        "fecha_fin": "2026-10-01"
+      },
+      {
+        "row": 193,
+        "partida": "VARIOS",
+        "familia": "PLUNGE POOL  EQUIPOS E INSTALACIÓN",
+        "fecha_inicio": "2026-09-17",
+        "fecha_fin": "2026-10-15"
+      },
+      {
+        "row": 194,
+        "partida": "VARIOS",
+        "familia": "GRILL(EQUIPOS)",
+        "fecha_inicio": "2026-10-19",
+        "fecha_fin": "2026-10-27"
+      }
+    ]
+  },
+  "reference_read_at": "2026-10-08T18:46:23.653Z",
+  "comparisons": [
+    {
+      "label": "Larena - Torre H (dashboard)",
+      "source": "animated-walrus-612",
+      "source_count": 125,
+      "matched": 122,
+      "new": [],
+      "absent": [
+        {
+          "_creationTime": 1773789644737.3003,
+          "_id": "p97f7z6rfa6qwbe7xxawy3df8s833nnm",
+          "avance_porcentaje": 0,
+          "familia": "LOSAS DE AZOTEA",
+          "fecha_fin": "24/05/2026",
+          "fecha_inicio": "02/04/2026",
+          "nivel": 2,
+          "orden": 67,
+          "partida": "IMPERMEABILIZACIÓN",
+          "peso": 30,
+          "programa_obra_id": "p17avd1jhcpzf0kfw9e93xhr3x833khz",
+          "proyecto": "jh73xarwj1zvgjkp9pff1fh2jd7w7kqb"
+        },
+        {
+          "_creationTime": 1773789644737.3042,
+          "_id": "p972h3p4veja8ygd2ckx72f7cn8331sm",
+          "avance_porcentaje": 80,
+          "familia": "COLOCACION CALIZA",
+          "fecha_fin": "02/04/2026",
+          "fecha_inicio": "25/12/2025",
+          "nivel": 2,
+          "orden": 83,
+          "partida": "MÁRMOL",
+          "peso": 25,
+          "programa_obra_id": "p17es8x1p73b46wd7jt9hrk5rs83258m",
+          "proyecto": "jh73xarwj1zvgjkp9pff1fh2jd7w7kqb"
+        },
+        {
+          "_creationTime": 1773789644737.3066,
+          "_id": "p97e7h4kfwkkp2wq8h33abn86n83221k",
+          "familia": "COLOCACIÓN CANCELES",
+          "fecha_fin": "25/06/2026",
+          "fecha_inicio": "05/05/2026",
+          "nivel": 2,
+          "orden": 93,
+          "partida": "CANCELERÍA ",
+          "peso": 75,
+          "programa_obra_id": "p17a0ezkhth09g34hv9bhb3g758324k1",
+          "proyecto": "jh73xarwj1zvgjkp9pff1fh2jd7w7kqb"
+        }
+      ],
+      "possible_renames": []
+    },
+    {
+      "label": "Larena - Torre I (dashboard)",
+      "source": "animated-walrus-612",
+      "source_count": 115,
+      "matched": 112,
+      "new": [
+        {
+          "row": 110,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA (POLIUREA)",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-18"
+        },
+        {
+          "row": 136,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 01",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-08-27"
+        },
+        {
+          "row": 137,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 02",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-09-02"
+        },
+        {
+          "row": 138,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-30"
+        },
+        {
+          "row": 143,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MUROS ASADORES",
+          "fecha_inicio": "2026-06-05",
+          "fecha_fin": "2026-09-15"
+        },
+        {
+          "row": 144,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MURO DIVISORIO",
+          "fecha_inicio": "2026-06-01",
+          "fecha_fin": "2026-06-26"
+        },
+        {
+          "row": 145,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN CALIZA ROOFTOP",
+          "fecha_inicio": "2026-10-26",
+          "fecha_fin": "2026-11-02"
+        },
+        {
+          "row": 155,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 01",
+          "fecha_inicio": "2026-09-22",
+          "fecha_fin": "2026-10-06"
+        },
+        {
+          "row": 156,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 02",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-23"
+        },
+        {
+          "row": 157,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-29"
+        }
+      ],
+      "absent": [
+        {
+          "_creationTime": 1771553730364.5552,
+          "_id": "p9701rpmgw1xcymaqncqpy1bfx81gde9",
+          "avance_porcentaje": 100,
+          "familia": "LOSAS DE AZOTEA",
+          "fecha_fin": "2026-04-23",
+          "fecha_inicio": "2026-03-02",
+          "nivel": 2,
+          "orden": 67,
+          "partida": "IMPERMEABILIZACIÓN",
+          "peso": 25,
+          "programa_obra_id": "p176tm69b9c5bx74b41b1zex0d81hcrd",
+          "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+          "tiempo_extra_cantidad": 0,
+          "tiempo_extra_unidad": "dias"
+        },
+        {
+          "_creationTime": 1771553730364.5593,
+          "_id": "p97fbzvqnz560qdr16p7r4rhgx81h7ey",
+          "avance_porcentaje": 100,
+          "familia": "COLOCACION CALIZA",
+          "fecha_fin": "2026-04-30",
+          "fecha_inicio": "2026-01-12",
+          "nivel": 2,
+          "orden": 83,
+          "partida": "MÁRMOL",
+          "peso": 25,
+          "programa_obra_id": "p176d65m8t7gwmgpsp3azg2sb181hnmm",
+          "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+          "tiempo_extra_cantidad": 0,
+          "tiempo_extra_unidad": "dias"
+        },
+        {
+          "_creationTime": 1772644914502.058,
+          "_id": "p973kq18fze5mjfz07qvftd2e1828m6c",
+          "avance_porcentaje": 100,
+          "familia": "COLOCACIÓN CANCELES",
+          "fecha_fin": "2026-05-31",
+          "fecha_inicio": "2026-04-10",
+          "nivel": 2,
+          "orden": 93,
+          "partida": "CANCELERÍA ",
+          "peso": 75,
+          "programa_obra_id": "p177aazq0cwq3e8d79n9815end828481",
+          "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+          "tiempo_extra_cantidad": 0,
+          "tiempo_extra_unidad": "dias"
+        }
+      ],
+      "possible_renames": [
+        {
+          "current": {
+            "row": 110,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA (POLIUREA)",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-18"
+          },
+          "previous": {
+            "_creationTime": 1771553730364.5552,
+            "_id": "p9701rpmgw1xcymaqncqpy1bfx81gde9",
+            "avance_porcentaje": 100,
+            "familia": "LOSAS DE AZOTEA",
+            "fecha_fin": "2026-04-23",
+            "fecha_inicio": "2026-03-02",
+            "nivel": 2,
+            "orden": 67,
+            "partida": "IMPERMEABILIZACIÓN",
+            "peso": 25,
+            "programa_obra_id": "p176tm69b9c5bx74b41b1zex0d81hcrd",
+            "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+            "tiempo_extra_cantidad": 0,
+            "tiempo_extra_unidad": "dias"
+          },
+          "similarity": 0.732
+        },
+        {
+          "current": {
+            "row": 136,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 01",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-08-27"
+          },
+          "previous": {
+            "_creationTime": 1771553730364.5593,
+            "_id": "p97fbzvqnz560qdr16p7r4rhgx81h7ey",
+            "avance_porcentaje": 100,
+            "familia": "COLOCACION CALIZA",
+            "fecha_fin": "2026-04-30",
+            "fecha_inicio": "2026-01-12",
+            "nivel": 2,
+            "orden": 83,
+            "partida": "MÁRMOL",
+            "peso": 25,
+            "programa_obra_id": "p176d65m8t7gwmgpsp3azg2sb181hnmm",
+            "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+            "tiempo_extra_cantidad": 0,
+            "tiempo_extra_unidad": "dias"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 137,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 02",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-09-02"
+          },
+          "previous": {
+            "_creationTime": 1771553730364.5593,
+            "_id": "p97fbzvqnz560qdr16p7r4rhgx81h7ey",
+            "avance_porcentaje": 100,
+            "familia": "COLOCACION CALIZA",
+            "fecha_fin": "2026-04-30",
+            "fecha_inicio": "2026-01-12",
+            "nivel": 2,
+            "orden": 83,
+            "partida": "MÁRMOL",
+            "peso": 25,
+            "programa_obra_id": "p176d65m8t7gwmgpsp3azg2sb181hnmm",
+            "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+            "tiempo_extra_cantidad": 0,
+            "tiempo_extra_unidad": "dias"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 138,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-30"
+          },
+          "previous": {
+            "_creationTime": 1771553730364.5593,
+            "_id": "p97fbzvqnz560qdr16p7r4rhgx81h7ey",
+            "avance_porcentaje": 100,
+            "familia": "COLOCACION CALIZA",
+            "fecha_fin": "2026-04-30",
+            "fecha_inicio": "2026-01-12",
+            "nivel": 2,
+            "orden": 83,
+            "partida": "MÁRMOL",
+            "peso": 25,
+            "programa_obra_id": "p176d65m8t7gwmgpsp3azg2sb181hnmm",
+            "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+            "tiempo_extra_cantidad": 0,
+            "tiempo_extra_unidad": "dias"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 145,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACIÓN CALIZA ROOFTOP",
+            "fecha_inicio": "2026-10-26",
+            "fecha_fin": "2026-11-02"
+          },
+          "previous": {
+            "_creationTime": 1771553730364.5593,
+            "_id": "p97fbzvqnz560qdr16p7r4rhgx81h7ey",
+            "avance_porcentaje": 100,
+            "familia": "COLOCACION CALIZA",
+            "fecha_fin": "2026-04-30",
+            "fecha_inicio": "2026-01-12",
+            "nivel": 2,
+            "orden": 83,
+            "partida": "MÁRMOL",
+            "peso": 25,
+            "programa_obra_id": "p176d65m8t7gwmgpsp3azg2sb181hnmm",
+            "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+            "tiempo_extra_cantidad": 0,
+            "tiempo_extra_unidad": "dias"
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 155,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 01",
+            "fecha_inicio": "2026-09-22",
+            "fecha_fin": "2026-10-06"
+          },
+          "previous": {
+            "_creationTime": 1772644914502.058,
+            "_id": "p973kq18fze5mjfz07qvftd2e1828m6c",
+            "avance_porcentaje": 100,
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_fin": "2026-05-31",
+            "fecha_inicio": "2026-04-10",
+            "nivel": 2,
+            "orden": 93,
+            "partida": "CANCELERÍA ",
+            "peso": 75,
+            "programa_obra_id": "p177aazq0cwq3e8d79n9815end828481",
+            "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+            "tiempo_extra_cantidad": 0,
+            "tiempo_extra_unidad": "dias"
+          },
+          "similarity": 0.927
+        },
+        {
+          "current": {
+            "row": 156,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 02",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-23"
+          },
+          "previous": {
+            "_creationTime": 1772644914502.058,
+            "_id": "p973kq18fze5mjfz07qvftd2e1828m6c",
+            "avance_porcentaje": 100,
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_fin": "2026-05-31",
+            "fecha_inicio": "2026-04-10",
+            "nivel": 2,
+            "orden": 93,
+            "partida": "CANCELERÍA ",
+            "peso": 75,
+            "programa_obra_id": "p177aazq0cwq3e8d79n9815end828481",
+            "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+            "tiempo_extra_cantidad": 0,
+            "tiempo_extra_unidad": "dias"
+          },
+          "similarity": 0.927
+        },
+        {
+          "current": {
+            "row": 157,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-29"
+          },
+          "previous": {
+            "_creationTime": 1772644914502.058,
+            "_id": "p973kq18fze5mjfz07qvftd2e1828m6c",
+            "avance_porcentaje": 100,
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_fin": "2026-05-31",
+            "fecha_inicio": "2026-04-10",
+            "nivel": 2,
+            "orden": 93,
+            "partida": "CANCELERÍA ",
+            "peso": 75,
+            "programa_obra_id": "p177aazq0cwq3e8d79n9815end828481",
+            "proyecto": "jh7a280xbfnvcamjtg9sweeyjd7w7eez",
+            "tiempo_extra_cantidad": 0,
+            "tiempo_extra_unidad": "dias"
+          },
+          "similarity": 0.927
+        }
+      ]
+    },
+    {
+      "label": "PRESUPUESTO LARENA TORRE I _PROGRAMA 6 (3).xlsx",
+      "source": "C:\\Users\\felix\\Downloads\\PRESUPUESTO LARENA TORRE I _PROGRAMA 6 (3).xlsx",
+      "source_count": 143,
+      "matched": 80,
+      "new": [
+        {
+          "row": 71,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "LOSA ESCALERA",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-03-04"
+        },
+        {
+          "row": 86,
+          "partida": "PLOMERÍA",
+          "familia": "RAMAL HIDRÁULICO",
+          "fecha_inicio": "2025-02-12",
+          "fecha_fin": "2025-12-24"
+        },
+        {
+          "row": 87,
+          "partida": "PLOMERÍA",
+          "familia": "LIBERACIÓN CHAROLAS",
+          "fecha_inicio": "2025-07-30",
+          "fecha_fin": "2026-03-18"
+        },
+        {
+          "row": 88,
+          "partida": "PLOMERÍA",
+          "familia": "PRUEBAS HIDROSANITARIAS",
+          "fecha_inicio": "2026-03-18",
+          "fecha_fin": "2026-04-08"
+        },
+        {
+          "row": 89,
+          "partida": "PLOMERÍA",
+          "familia": "INSTALACIÓN MUEBLES DE BAÑO",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-04-08"
+        },
+        {
+          "row": 92,
+          "partida": "ELECTRICIDAD",
+          "familia": "DUCTERÍA Y CAJAS",
+          "fecha_inicio": "2025-04-09",
+          "fecha_fin": "2026-02-18"
+        },
+        {
+          "row": 93,
+          "partida": "ELECTRICIDAD",
+          "familia": "CANALIZACIÓN",
+          "fecha_inicio": "2025-09-24",
+          "fecha_fin": "2026-01-07"
+        },
+        {
+          "row": 94,
+          "partida": "ELECTRICIDAD",
+          "familia": "LIBERACIÓN CABLEADO",
+          "fecha_inicio": "2026-01-07",
+          "fecha_fin": "2026-06-03"
+        },
+        {
+          "row": 95,
+          "partida": "ELECTRICIDAD",
+          "familia": "INSTALACIÓN LUMINARIAS",
+          "fecha_inicio": "2026-10-05",
+          "fecha_fin": "2026-10-25"
+        },
+        {
+          "row": 99,
+          "partida": "GAS",
+          "familia": "LIBERACIÓN DE MEDIDORES",
+          "fecha_inicio": "2026-02-18",
+          "fecha_fin": "2026-02-18"
+        },
+        {
+          "row": 108,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "BAÑOS Y REGADERAS",
+          "fecha_inicio": "2026-06-25",
+          "fecha_fin": "2026-07-08"
+        },
+        {
+          "row": 109,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "TERRAZAS Y JARDINERAS",
+          "fecha_inicio": "2026-07-20",
+          "fecha_fin": "2026-10-08"
+        },
+        {
+          "row": 110,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA (POLIUREA)",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-18"
+        },
+        {
+          "row": 113,
+          "partida": "AIRE_ACONDICIONADO",
+          "familia": "SOPORTERÍA Y DUCTERÍA",
+          "fecha_inicio": "2025-09-06",
+          "fecha_fin": "2026-01-27"
+        },
+        {
+          "row": 114,
+          "partida": "AIRE_ACONDICIONADO",
+          "familia": "INSTALACIÓN DE EQUIPOS",
+          "fecha_inicio": "2025-11-22",
+          "fecha_fin": "2026-01-05"
+        },
+        {
+          "row": 115,
+          "partida": "AIRE_ACONDICIONADO",
+          "familia": "CONDENSADORAS, DIFUSORES Y REJILLAS",
+          "fecha_inicio": "2026-01-27",
+          "fecha_fin": "2026-04-14"
+        },
+        {
+          "row": 118,
+          "partida": "YESO_PINTURA",
+          "familia": "YESO EN MUROS",
+          "fecha_inicio": "2025-12-10",
+          "fecha_fin": "2026-10-21"
+        },
+        {
+          "row": 119,
+          "partida": "YESO_PINTURA",
+          "familia": "SOPORTERÍA PLAFÓN",
+          "fecha_inicio": "2026-05-05",
+          "fecha_fin": "2026-09-11"
+        },
+        {
+          "row": 120,
+          "partida": "YESO_PINTURA",
+          "familia": "AISLANTE",
+          "fecha_inicio": "2026-02-04",
+          "fecha_fin": "2026-09-11"
+        },
+        {
+          "row": 121,
+          "partida": "YESO_PINTURA",
+          "familia": "CIERRE DE PLAFONES",
+          "fecha_inicio": "2026-03-11",
+          "fecha_fin": "2026-09-24"
+        },
+        {
+          "row": 126,
+          "partida": "HERRERÍA",
+          "familia": "ANCLAJE Y PLACAS",
+          "fecha_inicio": "2026-01-09",
+          "fecha_fin": "2026-01-29"
+        },
+        {
+          "row": 127,
+          "partida": "HERRERÍA",
+          "familia": "BASES CAMPANAS",
+          "fecha_inicio": "2026-06-08",
+          "fecha_fin": "2026-09-08"
+        },
+        {
+          "row": 128,
+          "partida": "HERRERÍA",
+          "familia": "BASES LAVABOS",
+          "fecha_inicio": "2026-05-19",
+          "fecha_fin": "2026-10-23"
+        },
+        {
+          "row": 129,
+          "partida": "HERRERÍA",
+          "familia": "ESTRUCTURA HVAC Y VESTÍBULO",
+          "fecha_inicio": "2026-10-12",
+          "fecha_fin": "2026-10-22"
+        },
+        {
+          "row": 136,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 01",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-08-27"
+        },
+        {
+          "row": 137,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 02",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-09-02"
+        },
+        {
+          "row": 138,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-30"
+        },
+        {
+          "row": 143,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MUROS ASADORES",
+          "fecha_inicio": "2026-06-05",
+          "fecha_fin": "2026-09-15"
+        },
+        {
+          "row": 144,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MURO DIVISORIO",
+          "fecha_inicio": "2026-06-01",
+          "fecha_fin": "2026-06-26"
+        },
+        {
+          "row": 145,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN CALIZA ROOFTOP",
+          "fecha_inicio": "2026-10-26",
+          "fecha_fin": "2026-11-02"
+        },
+        {
+          "row": 148,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "COLOCACIÓN MARIMBAS",
+          "fecha_inicio": "2026-11-04",
+          "fecha_fin": "2026-11-18"
+        },
+        {
+          "row": 149,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "COLOCACIÓN TEJA",
+          "fecha_inicio": "2026-10-25",
+          "fecha_fin": "2026-11-10"
+        },
+        {
+          "row": 150,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "COLOCACIÓN PLAFON DECK",
+          "fecha_inicio": "2026-10-29",
+          "fecha_fin": "2026-11-13"
+        },
+        {
+          "row": 154,
+          "partida": "CANCELERÍA ",
+          "familia": "LIBERACIÓN VANOS",
+          "fecha_inicio": "2026-11-06",
+          "fecha_fin": "2026-11-12"
+        },
+        {
+          "row": 155,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 01",
+          "fecha_inicio": "2026-09-22",
+          "fecha_fin": "2026-10-06"
+        },
+        {
+          "row": 156,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 02",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-23"
+        },
+        {
+          "row": 157,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-29"
+        },
+        {
+          "row": 158,
+          "partida": "CANCELERÍA ",
+          "familia": "LUNAS Y TEMPLADOS",
+          "fecha_inicio": "2026-11-02",
+          "fecha_fin": "2026-11-16"
+        },
+        {
+          "row": 167,
+          "partida": "HERRAJES",
+          "familia": "CERRADURAS",
+          "fecha_inicio": "2026-10-05",
+          "fecha_fin": "2026-10-08"
+        },
+        {
+          "row": 170,
+          "partida": "MOBILIARIO_EQUIPO",
+          "familia": "EQUIPOS ALBERCAS",
+          "fecha_inicio": "2026-10-27",
+          "fecha_fin": "2026-11-10"
+        },
+        {
+          "row": 180,
+          "partida": "COCINA",
+          "familia": "COCINA PRINCIPAL (EQUIPOS)",
+          "fecha_inicio": "2026-11-06",
+          "fecha_fin": "2026-11-20"
+        },
+        {
+          "row": 189,
+          "partida": "JARDÍN",
+          "familia": "JARDINERÍA  PLANTAS ",
+          "fecha_inicio": "2026-11-05",
+          "fecha_fin": "2026-11-24"
+        }
+      ],
+      "absent": [
+        {
+          "row": 99,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "ESCALERA",
+          "fecha_inicio": "2026-02-25",
+          "fecha_fin": "2026-03-02"
+        },
+        {
+          "row": 120,
+          "partida": "PLOMERÍA",
+          "familia": "INSTALACIÓN HIDRO SANITARIA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 121,
+          "partida": "PLOMERÍA",
+          "familia": "ALIMENTACIÓN A CUARTO DE MAQUINAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 122,
+          "partida": "PLOMERÍA",
+          "familia": "ALIMENTACIÓN PARA JACUZZI Y ALBERCA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 123,
+          "partida": "PLOMERÍA",
+          "familia": "ACOMETIDA HIDRÁULICA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 126,
+          "partida": "ELECTRICIDAD",
+          "familia": "INSTALACIÓN ELÉCTRICA PARA LÁMPARAS Y CONTACTOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 127,
+          "partida": "ELECTRICIDAD",
+          "familia": "INSLACIÓN ELECTRICA CCTC",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 135,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 136,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "TERRAZAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 137,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "JARDINERAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 141,
+          "partida": "AIRE_ACONDICIONADO",
+          "familia": "INSTALACIÓN Y EQUIPOS VIVIENDAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 144,
+          "partida": "HERRERÍA",
+          "familia": "PISO REJILLA IRVING PARA CODENSADORAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 145,
+          "partida": "HERRERÍA",
+          "familia": "PLACA DE 3/8 PARA SOPORTE DE CRISTALES EN DOMOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 146,
+          "partida": "HERRERÍA",
+          "familia": "ESTRUCTURA  PARA CELOSIA ESCALERA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 147,
+          "partida": "HERRERÍA",
+          "familia": "SOPORTES PARA CANCELES EN BAÑOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 148,
+          "partida": "HERRERÍA",
+          "familia": "BASE PARA CAMPANA DE COCINA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 149,
+          "partida": "HERRERÍA",
+          "familia": "TAPAS CISTERNAS Y REGISTROS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 156,
+          "partida": "MÁRMOL",
+          "familia": "MATERIAL OCEAN WHITE",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 157,
+          "partida": "MÁRMOL",
+          "familia": "MATERIAL MARMOL FENDI",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 158,
+          "partida": "MÁRMOL",
+          "familia": "MATERIAL CALIZA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 159,
+          "partida": "MÁRMOL",
+          "familia": "MATERIAL PIEDRA CAREADA DE SITIO",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 160,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 165,
+          "partida": "MÁRMOL",
+          "familia": "CUBIERTAS PARA ASADORES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 166,
+          "partida": "MÁRMOL",
+          "familia": "ASIENTOS EN ACCESO PRINCIPAL  PB",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 167,
+          "partida": "MÁRMOL",
+          "familia": "VIATICOS COLOCACION",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 168,
+          "partida": "MÁRMOL",
+          "familia": "FLETES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 171,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "TEJA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 172,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "PLAFON BBQ Y BARANDALES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 173,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "CELOSIA ESCALERA ANAPURNA TARIAMTEC",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 174,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "PLAFON TECHNOWOOD",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 178,
+          "partida": "YESO_PINTURA",
+          "familia": "YESO EN PLAFONES Y PLAFONES FALSOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 179,
+          "partida": "YESO_PINTURA",
+          "familia": "PLAFONES DE DUROCK",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 180,
+          "partida": "YESO_PINTURA",
+          "familia": "CAJILLOS Y CORTINEROS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 181,
+          "partida": "YESO_PINTURA",
+          "familia": "ABRIR HUECOS PARA LUMINARIAS EN PLAFONES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 182,
+          "partida": "YESO_PINTURA",
+          "familia": "YESO MUROS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 183,
+          "partida": "YESO_PINTURA",
+          "familia": "BUÑA ENTRE MURO Y PLAFON",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 184,
+          "partida": "YESO_PINTURA",
+          "familia": "ENTRECALLE CON BAGUETA DE ALUMINIO EN ZOCLOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 189,
+          "partida": "CANCELERÍA",
+          "familia": "DOMOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 190,
+          "partida": "CANCELERÍA",
+          "familia": "CANCELERÍA VISTA COSTA WINDOWS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 191,
+          "partida": "CANCELERÍA",
+          "familia": "TEMPLADOS EN VESTIBULOS DE ESCALERA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 192,
+          "partida": "CANCELERÍA",
+          "familia": "TEMPLADOS BAÑOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 193,
+          "partida": "CANCELERÍA",
+          "familia": "LUNAS PRINCIPALES Y DE SERVICIO",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 194,
+          "partida": "CANCELERÍA",
+          "familia": "CELOSIAS  LOUVER DE ALUMINIO",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 195,
+          "partida": "CANCELERÍA",
+          "familia": "PUERTAS LOUVER DE ALUMINIO PARA SERVICIOS EN PB",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 199,
+          "partida": "CARPINTERÍA",
+          "familia": "PUERTAS ABATIBLES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 202,
+          "partida": "CARPINTERÍA",
+          "familia": "CLOSET DE BLANCOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 204,
+          "partida": "CARPINTERÍA",
+          "familia": "VIATICOS CARPINTERIA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 205,
+          "partida": "CARPINTERÍA",
+          "familia": "FLETES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 208,
+          "partida": "HERRAJES",
+          "familia": "CHAPAS, PASADORES Y TOPES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 209,
+          "partida": "HERRAJES",
+          "familia": "TUBOS Y BRIDAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 212,
+          "partida": "MOBILIARIO_EQUIPO",
+          "familia": "RECIRCULADOR Y ACUASTATO",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 226,
+          "partida": "COCINA",
+          "familia": "COCINA PRINCIPAL (VIATICOS  Y  FLETE)",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 234,
+          "partida": "JARDÍN",
+          "familia": "TIERRA PARA JARDÍN",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 235,
+          "partida": "JARDÍN",
+          "familia": "JARDINERÍA  PLANTAS MONTO MAXIMO POR M2",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 240,
+          "partida": "VARIOS",
+          "familia": "COCINA PRINCIPAL (EQUIPOS)",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 246,
+          "partida": "HONORARIOS",
+          "familia": "ADMINISTRACIÓN DE OBRA(+-15% POR TORRE)",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 247,
+          "partida": "HONORARIOS",
+          "familia": "VIATICOS(PRORRATEADOS+-1%)",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 250,
+          "partida": "INDIRECTOS",
+          "familia": "TRANSPORTE DE PERSONAL",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 251,
+          "partida": "INDIRECTOS",
+          "familia": "SANITARIO PORTÁTIL",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 252,
+          "partida": "INDIRECTOS",
+          "familia": "CAMPAMENTO/HABITACION",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 253,
+          "partida": "INDIRECTOS",
+          "familia": "DESAYUNOS Y  COMIDAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 254,
+          "partida": "INDIRECTOS",
+          "familia": "VUELOS DE AVION",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 255,
+          "partida": "INDIRECTOS",
+          "familia": "FLETES NACIONALES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        }
+      ],
+      "possible_renames": [
+        {
+          "current": {
+            "row": 71,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "LOSA ESCALERA",
+            "fecha_inicio": "2026-02-17",
+            "fecha_fin": "2026-03-04"
+          },
+          "previous": {
+            "row": 99,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "ESCALERA",
+            "fecha_inicio": "2026-02-25",
+            "fecha_fin": "2026-03-02"
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 86,
+            "partida": "PLOMERÍA",
+            "familia": "RAMAL HIDRÁULICO",
+            "fecha_inicio": "2025-02-12",
+            "fecha_fin": "2025-12-24"
+          },
+          "previous": {
+            "row": 123,
+            "partida": "PLOMERÍA",
+            "familia": "ACOMETIDA HIDRÁULICA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.722
+        },
+        {
+          "current": {
+            "row": 110,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA (POLIUREA)",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-18"
+          },
+          "previous": {
+            "row": 135,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.732
+        },
+        {
+          "current": {
+            "row": 114,
+            "partida": "AIRE_ACONDICIONADO",
+            "familia": "INSTALACIÓN DE EQUIPOS",
+            "fecha_inicio": "2025-11-22",
+            "fecha_fin": "2026-01-05"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "AIRE_ACONDICIONADO",
+            "familia": "INSTALACIÓN Y EQUIPOS VIVIENDAS",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.755
+        },
+        {
+          "current": {
+            "row": 118,
+            "partida": "YESO_PINTURA",
+            "familia": "YESO EN MUROS",
+            "fecha_inicio": "2025-12-10",
+            "fecha_fin": "2026-10-21"
+          },
+          "previous": {
+            "row": 182,
+            "partida": "YESO_PINTURA",
+            "familia": "YESO MUROS",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.87
+        },
+        {
+          "current": {
+            "row": 136,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 01",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-08-27"
+          },
+          "previous": {
+            "row": 160,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 137,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 02",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-09-02"
+          },
+          "previous": {
+            "row": 160,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 138,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-30"
+          },
+          "previous": {
+            "row": 160,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 145,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACIÓN CALIZA ROOFTOP",
+            "fecha_inicio": "2026-10-26",
+            "fecha_fin": "2026-11-02"
+          },
+          "previous": {
+            "row": 160,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 180,
+            "partida": "COCINA",
+            "familia": "COCINA PRINCIPAL (EQUIPOS)",
+            "fecha_inicio": "2026-11-06",
+            "fecha_fin": "2026-11-20"
+          },
+          "previous": {
+            "row": 226,
+            "partida": "COCINA",
+            "familia": "COCINA PRINCIPAL (VIATICOS  Y  FLETE)",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.721
+        }
+      ]
+    },
+    {
+      "label": "PRESUPUESTO LARENA TORRE I _PROGRAMA 6.xlsx",
+      "source": "C:\\Users\\felix\\Downloads\\PRESUPUESTO LARENA TORRE I _PROGRAMA 6.xlsx",
+      "source_count": 143,
+      "matched": 80,
+      "new": [
+        {
+          "row": 71,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "LOSA ESCALERA",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-03-04"
+        },
+        {
+          "row": 86,
+          "partida": "PLOMERÍA",
+          "familia": "RAMAL HIDRÁULICO",
+          "fecha_inicio": "2025-02-12",
+          "fecha_fin": "2025-12-24"
+        },
+        {
+          "row": 87,
+          "partida": "PLOMERÍA",
+          "familia": "LIBERACIÓN CHAROLAS",
+          "fecha_inicio": "2025-07-30",
+          "fecha_fin": "2026-03-18"
+        },
+        {
+          "row": 88,
+          "partida": "PLOMERÍA",
+          "familia": "PRUEBAS HIDROSANITARIAS",
+          "fecha_inicio": "2026-03-18",
+          "fecha_fin": "2026-04-08"
+        },
+        {
+          "row": 89,
+          "partida": "PLOMERÍA",
+          "familia": "INSTALACIÓN MUEBLES DE BAÑO",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-04-08"
+        },
+        {
+          "row": 92,
+          "partida": "ELECTRICIDAD",
+          "familia": "DUCTERÍA Y CAJAS",
+          "fecha_inicio": "2025-04-09",
+          "fecha_fin": "2026-02-18"
+        },
+        {
+          "row": 93,
+          "partida": "ELECTRICIDAD",
+          "familia": "CANALIZACIÓN",
+          "fecha_inicio": "2025-09-24",
+          "fecha_fin": "2026-01-07"
+        },
+        {
+          "row": 94,
+          "partida": "ELECTRICIDAD",
+          "familia": "LIBERACIÓN CABLEADO",
+          "fecha_inicio": "2026-01-07",
+          "fecha_fin": "2026-06-03"
+        },
+        {
+          "row": 95,
+          "partida": "ELECTRICIDAD",
+          "familia": "INSTALACIÓN LUMINARIAS",
+          "fecha_inicio": "2026-10-05",
+          "fecha_fin": "2026-10-25"
+        },
+        {
+          "row": 99,
+          "partida": "GAS",
+          "familia": "LIBERACIÓN DE MEDIDORES",
+          "fecha_inicio": "2026-02-18",
+          "fecha_fin": "2026-02-18"
+        },
+        {
+          "row": 108,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "BAÑOS Y REGADERAS",
+          "fecha_inicio": "2026-06-25",
+          "fecha_fin": "2026-07-08"
+        },
+        {
+          "row": 109,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "TERRAZAS Y JARDINERAS",
+          "fecha_inicio": "2026-07-20",
+          "fecha_fin": "2026-10-08"
+        },
+        {
+          "row": 110,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA (POLIUREA)",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-18"
+        },
+        {
+          "row": 113,
+          "partida": "AIRE_ACONDICIONADO",
+          "familia": "SOPORTERÍA Y DUCTERÍA",
+          "fecha_inicio": "2025-09-06",
+          "fecha_fin": "2026-01-27"
+        },
+        {
+          "row": 114,
+          "partida": "AIRE_ACONDICIONADO",
+          "familia": "INSTALACIÓN DE EQUIPOS",
+          "fecha_inicio": "2025-11-22",
+          "fecha_fin": "2026-01-05"
+        },
+        {
+          "row": 115,
+          "partida": "AIRE_ACONDICIONADO",
+          "familia": "CONDENSADORAS, DIFUSORES Y REJILLAS",
+          "fecha_inicio": "2026-01-27",
+          "fecha_fin": "2026-04-14"
+        },
+        {
+          "row": 118,
+          "partida": "YESO_PINTURA",
+          "familia": "YESO EN MUROS",
+          "fecha_inicio": "2025-12-10",
+          "fecha_fin": "2026-10-21"
+        },
+        {
+          "row": 119,
+          "partida": "YESO_PINTURA",
+          "familia": "SOPORTERÍA PLAFÓN",
+          "fecha_inicio": "2026-05-05",
+          "fecha_fin": "2026-09-11"
+        },
+        {
+          "row": 120,
+          "partida": "YESO_PINTURA",
+          "familia": "AISLANTE",
+          "fecha_inicio": "2026-02-04",
+          "fecha_fin": "2026-09-11"
+        },
+        {
+          "row": 121,
+          "partida": "YESO_PINTURA",
+          "familia": "CIERRE DE PLAFONES",
+          "fecha_inicio": "2026-03-11",
+          "fecha_fin": "2026-09-24"
+        },
+        {
+          "row": 126,
+          "partida": "HERRERÍA",
+          "familia": "ANCLAJE Y PLACAS",
+          "fecha_inicio": "2026-01-09",
+          "fecha_fin": "2026-01-29"
+        },
+        {
+          "row": 127,
+          "partida": "HERRERÍA",
+          "familia": "BASES CAMPANAS",
+          "fecha_inicio": "2026-06-08",
+          "fecha_fin": "2026-09-08"
+        },
+        {
+          "row": 128,
+          "partida": "HERRERÍA",
+          "familia": "BASES LAVABOS",
+          "fecha_inicio": "2026-05-19",
+          "fecha_fin": "2026-10-23"
+        },
+        {
+          "row": 129,
+          "partida": "HERRERÍA",
+          "familia": "ESTRUCTURA HVAC Y VESTÍBULO",
+          "fecha_inicio": "2026-10-12",
+          "fecha_fin": "2026-10-22"
+        },
+        {
+          "row": 136,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 01",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-08-27"
+        },
+        {
+          "row": 137,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 02",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-09-02"
+        },
+        {
+          "row": 138,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-30"
+        },
+        {
+          "row": 143,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MUROS ASADORES",
+          "fecha_inicio": "2026-06-05",
+          "fecha_fin": "2026-09-15"
+        },
+        {
+          "row": 144,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MURO DIVISORIO",
+          "fecha_inicio": "2026-06-01",
+          "fecha_fin": "2026-06-26"
+        },
+        {
+          "row": 145,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN CALIZA ROOFTOP",
+          "fecha_inicio": "2026-10-26",
+          "fecha_fin": "2026-11-02"
+        },
+        {
+          "row": 148,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "COLOCACIÓN MARIMBAS",
+          "fecha_inicio": "2026-11-04",
+          "fecha_fin": "2026-11-18"
+        },
+        {
+          "row": 149,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "COLOCACIÓN TEJA",
+          "fecha_inicio": "2026-10-25",
+          "fecha_fin": "2026-11-10"
+        },
+        {
+          "row": 150,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "COLOCACIÓN PLAFON DECK",
+          "fecha_inicio": "2026-10-29",
+          "fecha_fin": "2026-11-13"
+        },
+        {
+          "row": 154,
+          "partida": "CANCELERÍA ",
+          "familia": "LIBERACIÓN VANOS",
+          "fecha_inicio": "2026-11-06",
+          "fecha_fin": "2026-11-12"
+        },
+        {
+          "row": 155,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 01",
+          "fecha_inicio": "2026-09-22",
+          "fecha_fin": "2026-10-06"
+        },
+        {
+          "row": 156,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 02",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-23"
+        },
+        {
+          "row": 157,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-29"
+        },
+        {
+          "row": 158,
+          "partida": "CANCELERÍA ",
+          "familia": "LUNAS Y TEMPLADOS",
+          "fecha_inicio": "2026-11-02",
+          "fecha_fin": "2026-11-16"
+        },
+        {
+          "row": 167,
+          "partida": "HERRAJES",
+          "familia": "CERRADURAS",
+          "fecha_inicio": "2026-10-05",
+          "fecha_fin": "2026-10-08"
+        },
+        {
+          "row": 170,
+          "partida": "MOBILIARIO_EQUIPO",
+          "familia": "EQUIPOS ALBERCAS",
+          "fecha_inicio": "2026-10-27",
+          "fecha_fin": "2026-11-10"
+        },
+        {
+          "row": 180,
+          "partida": "COCINA",
+          "familia": "COCINA PRINCIPAL (EQUIPOS)",
+          "fecha_inicio": "2026-11-06",
+          "fecha_fin": "2026-11-20"
+        },
+        {
+          "row": 189,
+          "partida": "JARDÍN",
+          "familia": "JARDINERÍA  PLANTAS ",
+          "fecha_inicio": "2026-11-05",
+          "fecha_fin": "2026-11-24"
+        }
+      ],
+      "absent": [
+        {
+          "row": 99,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "ESCALERA",
+          "fecha_inicio": "2026-02-25",
+          "fecha_fin": "2026-03-02"
+        },
+        {
+          "row": 120,
+          "partida": "PLOMERÍA",
+          "familia": "INSTALACIÓN HIDRO SANITARIA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 121,
+          "partida": "PLOMERÍA",
+          "familia": "ALIMENTACIÓN A CUARTO DE MAQUINAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 122,
+          "partida": "PLOMERÍA",
+          "familia": "ALIMENTACIÓN PARA JACUZZI Y ALBERCA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 123,
+          "partida": "PLOMERÍA",
+          "familia": "ACOMETIDA HIDRÁULICA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 126,
+          "partida": "ELECTRICIDAD",
+          "familia": "INSTALACIÓN ELÉCTRICA PARA LÁMPARAS Y CONTACTOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 127,
+          "partida": "ELECTRICIDAD",
+          "familia": "INSLACIÓN ELECTRICA CCTC",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 135,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 136,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "TERRAZAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 137,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "JARDINERAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 141,
+          "partida": "AIRE_ACONDICIONADO",
+          "familia": "INSTALACIÓN Y EQUIPOS VIVIENDAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 144,
+          "partida": "HERRERÍA",
+          "familia": "PISO REJILLA IRVING PARA CODENSADORAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 145,
+          "partida": "HERRERÍA",
+          "familia": "PLACA DE 3/8 PARA SOPORTE DE CRISTALES EN DOMOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 146,
+          "partida": "HERRERÍA",
+          "familia": "ESTRUCTURA  PARA CELOSIA ESCALERA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 147,
+          "partida": "HERRERÍA",
+          "familia": "SOPORTES PARA CANCELES EN BAÑOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 148,
+          "partida": "HERRERÍA",
+          "familia": "BASE PARA CAMPANA DE COCINA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 149,
+          "partida": "HERRERÍA",
+          "familia": "TAPAS CISTERNAS Y REGISTROS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 156,
+          "partida": "MÁRMOL",
+          "familia": "MATERIAL OCEAN WHITE",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 157,
+          "partida": "MÁRMOL",
+          "familia": "MATERIAL MARMOL FENDI",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 158,
+          "partida": "MÁRMOL",
+          "familia": "MATERIAL CALIZA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 159,
+          "partida": "MÁRMOL",
+          "familia": "MATERIAL PIEDRA CAREADA DE SITIO",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 160,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 165,
+          "partida": "MÁRMOL",
+          "familia": "CUBIERTAS PARA ASADORES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 166,
+          "partida": "MÁRMOL",
+          "familia": "ASIENTOS EN ACCESO PRINCIPAL  PB",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 167,
+          "partida": "MÁRMOL",
+          "familia": "VIATICOS COLOCACION",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 168,
+          "partida": "MÁRMOL",
+          "familia": "FLETES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 171,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "TEJA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 172,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "PLAFON BBQ Y BARANDALES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 173,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "CELOSIA ESCALERA ANAPURNA TARIAMTEC",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 174,
+          "partida": "RECUBRIMIENTOS ",
+          "familia": "PLAFON TECHNOWOOD",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 178,
+          "partida": "YESO_PINTURA",
+          "familia": "YESO EN PLAFONES Y PLAFONES FALSOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 179,
+          "partida": "YESO_PINTURA",
+          "familia": "PLAFONES DE DUROCK",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 180,
+          "partida": "YESO_PINTURA",
+          "familia": "CAJILLOS Y CORTINEROS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 181,
+          "partida": "YESO_PINTURA",
+          "familia": "ABRIR HUECOS PARA LUMINARIAS EN PLAFONES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 182,
+          "partida": "YESO_PINTURA",
+          "familia": "YESO MUROS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 183,
+          "partida": "YESO_PINTURA",
+          "familia": "BUÑA ENTRE MURO Y PLAFON",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 184,
+          "partida": "YESO_PINTURA",
+          "familia": "ENTRECALLE CON BAGUETA DE ALUMINIO EN ZOCLOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 189,
+          "partida": "CANCELERÍA",
+          "familia": "DOMOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 190,
+          "partida": "CANCELERÍA",
+          "familia": "CANCELERÍA VISTA COSTA WINDOWS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 191,
+          "partida": "CANCELERÍA",
+          "familia": "TEMPLADOS EN VESTIBULOS DE ESCALERA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 192,
+          "partida": "CANCELERÍA",
+          "familia": "TEMPLADOS BAÑOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 193,
+          "partida": "CANCELERÍA",
+          "familia": "LUNAS PRINCIPALES Y DE SERVICIO",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 194,
+          "partida": "CANCELERÍA",
+          "familia": "CELOSIAS  LOUVER DE ALUMINIO",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 195,
+          "partida": "CANCELERÍA",
+          "familia": "PUERTAS LOUVER DE ALUMINIO PARA SERVICIOS EN PB",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 199,
+          "partida": "CARPINTERÍA",
+          "familia": "PUERTAS ABATIBLES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 202,
+          "partida": "CARPINTERÍA",
+          "familia": "CLOSET DE BLANCOS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 204,
+          "partida": "CARPINTERÍA",
+          "familia": "VIATICOS CARPINTERIA",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 205,
+          "partida": "CARPINTERÍA",
+          "familia": "FLETES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 208,
+          "partida": "HERRAJES",
+          "familia": "CHAPAS, PASADORES Y TOPES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 209,
+          "partida": "HERRAJES",
+          "familia": "TUBOS Y BRIDAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 212,
+          "partida": "MOBILIARIO_EQUIPO",
+          "familia": "RECIRCULADOR Y ACUASTATO",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 226,
+          "partida": "COCINA",
+          "familia": "COCINA PRINCIPAL (VIATICOS  Y  FLETE)",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 234,
+          "partida": "JARDÍN",
+          "familia": "TIERRA PARA JARDÍN",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 235,
+          "partida": "JARDÍN",
+          "familia": "JARDINERÍA  PLANTAS MONTO MAXIMO POR M2",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 240,
+          "partida": "VARIOS",
+          "familia": "COCINA PRINCIPAL (EQUIPOS)",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 246,
+          "partida": "HONORARIOS",
+          "familia": "ADMINISTRACIÓN DE OBRA(+-15% POR TORRE)",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 247,
+          "partida": "HONORARIOS",
+          "familia": "VIATICOS(PRORRATEADOS+-1%)",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 250,
+          "partida": "INDIRECTOS",
+          "familia": "TRANSPORTE DE PERSONAL",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 251,
+          "partida": "INDIRECTOS",
+          "familia": "SANITARIO PORTÁTIL",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 252,
+          "partida": "INDIRECTOS",
+          "familia": "CAMPAMENTO/HABITACION",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 253,
+          "partida": "INDIRECTOS",
+          "familia": "DESAYUNOS Y  COMIDAS",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 254,
+          "partida": "INDIRECTOS",
+          "familia": "VUELOS DE AVION",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        },
+        {
+          "row": 255,
+          "partida": "INDIRECTOS",
+          "familia": "FLETES NACIONALES",
+          "fecha_inicio": null,
+          "fecha_fin": null
+        }
+      ],
+      "possible_renames": [
+        {
+          "current": {
+            "row": 71,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "LOSA ESCALERA",
+            "fecha_inicio": "2026-02-17",
+            "fecha_fin": "2026-03-04"
+          },
+          "previous": {
+            "row": 99,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "ESCALERA",
+            "fecha_inicio": "2026-02-25",
+            "fecha_fin": "2026-03-02"
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 86,
+            "partida": "PLOMERÍA",
+            "familia": "RAMAL HIDRÁULICO",
+            "fecha_inicio": "2025-02-12",
+            "fecha_fin": "2025-12-24"
+          },
+          "previous": {
+            "row": 123,
+            "partida": "PLOMERÍA",
+            "familia": "ACOMETIDA HIDRÁULICA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.722
+        },
+        {
+          "current": {
+            "row": 110,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA (POLIUREA)",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-18"
+          },
+          "previous": {
+            "row": 135,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.732
+        },
+        {
+          "current": {
+            "row": 114,
+            "partida": "AIRE_ACONDICIONADO",
+            "familia": "INSTALACIÓN DE EQUIPOS",
+            "fecha_inicio": "2025-11-22",
+            "fecha_fin": "2026-01-05"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "AIRE_ACONDICIONADO",
+            "familia": "INSTALACIÓN Y EQUIPOS VIVIENDAS",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.755
+        },
+        {
+          "current": {
+            "row": 118,
+            "partida": "YESO_PINTURA",
+            "familia": "YESO EN MUROS",
+            "fecha_inicio": "2025-12-10",
+            "fecha_fin": "2026-10-21"
+          },
+          "previous": {
+            "row": 182,
+            "partida": "YESO_PINTURA",
+            "familia": "YESO MUROS",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.87
+        },
+        {
+          "current": {
+            "row": 136,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 01",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-08-27"
+          },
+          "previous": {
+            "row": 160,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 137,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 02",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-09-02"
+          },
+          "previous": {
+            "row": 160,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 138,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-30"
+          },
+          "previous": {
+            "row": 160,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 145,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACIÓN CALIZA ROOFTOP",
+            "fecha_inicio": "2026-10-26",
+            "fecha_fin": "2026-11-02"
+          },
+          "previous": {
+            "row": 160,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 180,
+            "partida": "COCINA",
+            "familia": "COCINA PRINCIPAL (EQUIPOS)",
+            "fecha_inicio": "2026-11-06",
+            "fecha_fin": "2026-11-20"
+          },
+          "previous": {
+            "row": 226,
+            "partida": "COCINA",
+            "familia": "COCINA PRINCIPAL (VIATICOS  Y  FLETE)",
+            "fecha_inicio": null,
+            "fecha_fin": null
+          },
+          "similarity": 0.721
+        }
+      ]
+    },
+    {
+      "label": "PRESUPUESTO LARENA TORRE I _PROGRAMA 7 (1).xlsx",
+      "source": "C:\\Users\\felix\\Downloads\\PRESUPUESTO LARENA TORRE I _PROGRAMA 7 (1).xlsx",
+      "source_count": 113,
+      "matched": 109,
+      "new": [
+        {
+          "row": 71,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "LOSA ESCALERA",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-03-04"
+        },
+        {
+          "row": 89,
+          "partida": "PLOMERÍA",
+          "familia": "INSTALACIÓN MUEBLES DE BAÑO",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-04-08"
+        },
+        {
+          "row": 95,
+          "partida": "ELECTRICIDAD",
+          "familia": "INSTALACIÓN LUMINARIAS",
+          "fecha_inicio": "2026-10-05",
+          "fecha_fin": "2026-10-25"
+        },
+        {
+          "row": 110,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA (POLIUREA)",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-18"
+        },
+        {
+          "row": 136,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 01",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-08-27"
+        },
+        {
+          "row": 137,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 02",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-09-02"
+        },
+        {
+          "row": 138,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-30"
+        },
+        {
+          "row": 143,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MUROS ASADORES",
+          "fecha_inicio": "2026-06-05",
+          "fecha_fin": "2026-09-15"
+        },
+        {
+          "row": 144,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MURO DIVISORIO",
+          "fecha_inicio": "2026-06-01",
+          "fecha_fin": "2026-06-26"
+        },
+        {
+          "row": 145,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN CALIZA ROOFTOP",
+          "fecha_inicio": "2026-10-26",
+          "fecha_fin": "2026-11-02"
+        },
+        {
+          "row": 155,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 01",
+          "fecha_inicio": "2026-09-22",
+          "fecha_fin": "2026-10-06"
+        },
+        {
+          "row": 156,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 02",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-23"
+        },
+        {
+          "row": 157,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-29"
+        }
+      ],
+      "absent": [
+        {
+          "row": 65,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "ESCALERA",
+          "fecha_inicio": "2026-02-25",
+          "fecha_fin": "2026-03-02"
+        },
+        {
+          "row": 101,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA",
+          "fecha_inicio": "2025-11-13",
+          "fecha_fin": "2025-12-01"
+        },
+        {
+          "row": 127,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA",
+          "fecha_inicio": "2025-10-28",
+          "fecha_fin": "2026-01-26"
+        },
+        {
+          "row": 141,
+          "partida": "CANCELERÍA",
+          "familia": "COLOCACIÓN CANCELES",
+          "fecha_inicio": "2026-03-02",
+          "fecha_fin": "2026-04-16"
+        }
+      ],
+      "possible_renames": [
+        {
+          "current": {
+            "row": 71,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "LOSA ESCALERA",
+            "fecha_inicio": "2026-02-17",
+            "fecha_fin": "2026-03-04"
+          },
+          "previous": {
+            "row": 65,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "ESCALERA",
+            "fecha_inicio": "2026-02-25",
+            "fecha_fin": "2026-03-02"
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 110,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA (POLIUREA)",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-18"
+          },
+          "previous": {
+            "row": 101,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA",
+            "fecha_inicio": "2025-11-13",
+            "fecha_fin": "2025-12-01"
+          },
+          "similarity": 0.732
+        },
+        {
+          "current": {
+            "row": 136,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 01",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-08-27"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 137,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 02",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-09-02"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 138,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-30"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 145,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACIÓN CALIZA ROOFTOP",
+            "fecha_inicio": "2026-10-26",
+            "fecha_fin": "2026-11-02"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 155,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 01",
+            "fecha_inicio": "2026-09-22",
+            "fecha_fin": "2026-10-06"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "CANCELERÍA",
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_inicio": "2026-03-02",
+            "fecha_fin": "2026-04-16"
+          },
+          "similarity": 0.927
+        },
+        {
+          "current": {
+            "row": 156,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 02",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-23"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "CANCELERÍA",
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_inicio": "2026-03-02",
+            "fecha_fin": "2026-04-16"
+          },
+          "similarity": 0.927
+        },
+        {
+          "current": {
+            "row": 157,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-29"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "CANCELERÍA",
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_inicio": "2026-03-02",
+            "fecha_fin": "2026-04-16"
+          },
+          "similarity": 0.927
+        }
+      ]
+    },
+    {
+      "label": "PRESUPUESTO LARENA TORRE I _PROGRAMA 7 (2).xlsx",
+      "source": "C:\\Users\\felix\\Downloads\\PRESUPUESTO LARENA TORRE I _PROGRAMA 7 (2).xlsx",
+      "source_count": 113,
+      "matched": 109,
+      "new": [
+        {
+          "row": 71,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "LOSA ESCALERA",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-03-04"
+        },
+        {
+          "row": 89,
+          "partida": "PLOMERÍA",
+          "familia": "INSTALACIÓN MUEBLES DE BAÑO",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-04-08"
+        },
+        {
+          "row": 95,
+          "partida": "ELECTRICIDAD",
+          "familia": "INSTALACIÓN LUMINARIAS",
+          "fecha_inicio": "2026-10-05",
+          "fecha_fin": "2026-10-25"
+        },
+        {
+          "row": 110,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA (POLIUREA)",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-18"
+        },
+        {
+          "row": 136,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 01",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-08-27"
+        },
+        {
+          "row": 137,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 02",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-09-02"
+        },
+        {
+          "row": 138,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-30"
+        },
+        {
+          "row": 143,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MUROS ASADORES",
+          "fecha_inicio": "2026-06-05",
+          "fecha_fin": "2026-09-15"
+        },
+        {
+          "row": 144,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MURO DIVISORIO",
+          "fecha_inicio": "2026-06-01",
+          "fecha_fin": "2026-06-26"
+        },
+        {
+          "row": 145,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN CALIZA ROOFTOP",
+          "fecha_inicio": "2026-10-26",
+          "fecha_fin": "2026-11-02"
+        },
+        {
+          "row": 155,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 01",
+          "fecha_inicio": "2026-09-22",
+          "fecha_fin": "2026-10-06"
+        },
+        {
+          "row": 156,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 02",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-23"
+        },
+        {
+          "row": 157,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-29"
+        }
+      ],
+      "absent": [
+        {
+          "row": 65,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "ESCALERA",
+          "fecha_inicio": "2026-02-25",
+          "fecha_fin": "2026-03-02"
+        },
+        {
+          "row": 101,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA",
+          "fecha_inicio": "2025-11-13",
+          "fecha_fin": "2025-12-01"
+        },
+        {
+          "row": 127,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA",
+          "fecha_inicio": "2025-10-28",
+          "fecha_fin": "2026-01-26"
+        },
+        {
+          "row": 141,
+          "partida": "CANCELERÍA",
+          "familia": "COLOCACIÓN CANCELES",
+          "fecha_inicio": "2026-03-02",
+          "fecha_fin": "2026-04-16"
+        }
+      ],
+      "possible_renames": [
+        {
+          "current": {
+            "row": 71,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "LOSA ESCALERA",
+            "fecha_inicio": "2026-02-17",
+            "fecha_fin": "2026-03-04"
+          },
+          "previous": {
+            "row": 65,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "ESCALERA",
+            "fecha_inicio": "2026-02-25",
+            "fecha_fin": "2026-03-02"
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 110,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA (POLIUREA)",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-18"
+          },
+          "previous": {
+            "row": 101,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA",
+            "fecha_inicio": "2025-11-13",
+            "fecha_fin": "2025-12-01"
+          },
+          "similarity": 0.732
+        },
+        {
+          "current": {
+            "row": 136,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 01",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-08-27"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 137,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 02",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-09-02"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 138,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-30"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 145,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACIÓN CALIZA ROOFTOP",
+            "fecha_inicio": "2026-10-26",
+            "fecha_fin": "2026-11-02"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 155,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 01",
+            "fecha_inicio": "2026-09-22",
+            "fecha_fin": "2026-10-06"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "CANCELERÍA",
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_inicio": "2026-03-02",
+            "fecha_fin": "2026-04-16"
+          },
+          "similarity": 0.927
+        },
+        {
+          "current": {
+            "row": 156,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 02",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-23"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "CANCELERÍA",
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_inicio": "2026-03-02",
+            "fecha_fin": "2026-04-16"
+          },
+          "similarity": 0.927
+        },
+        {
+          "current": {
+            "row": 157,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-29"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "CANCELERÍA",
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_inicio": "2026-03-02",
+            "fecha_fin": "2026-04-16"
+          },
+          "similarity": 0.927
+        }
+      ]
+    },
+    {
+      "label": "PRESUPUESTO LARENA TORRE I _PROGRAMA 7.xlsx",
+      "source": "C:\\Users\\felix\\Downloads\\PRESUPUESTO LARENA TORRE I _PROGRAMA 7.xlsx",
+      "source_count": 113,
+      "matched": 109,
+      "new": [
+        {
+          "row": 71,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "LOSA ESCALERA",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-03-04"
+        },
+        {
+          "row": 89,
+          "partida": "PLOMERÍA",
+          "familia": "INSTALACIÓN MUEBLES DE BAÑO",
+          "fecha_inicio": "2026-02-17",
+          "fecha_fin": "2026-04-08"
+        },
+        {
+          "row": 95,
+          "partida": "ELECTRICIDAD",
+          "familia": "INSTALACIÓN LUMINARIAS",
+          "fecha_inicio": "2026-10-05",
+          "fecha_fin": "2026-10-25"
+        },
+        {
+          "row": 110,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA (POLIUREA)",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-18"
+        },
+        {
+          "row": 136,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 01",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-08-27"
+        },
+        {
+          "row": 137,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 02",
+          "fecha_inicio": "2026-06-02",
+          "fecha_fin": "2026-09-02"
+        },
+        {
+          "row": 138,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA FACHADA 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-30"
+        },
+        {
+          "row": 143,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MUROS ASADORES",
+          "fecha_inicio": "2026-06-05",
+          "fecha_fin": "2026-09-15"
+        },
+        {
+          "row": 144,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN PIEDRA MURO DIVISORIO",
+          "fecha_inicio": "2026-06-01",
+          "fecha_fin": "2026-06-26"
+        },
+        {
+          "row": 145,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACIÓN CALIZA ROOFTOP",
+          "fecha_inicio": "2026-10-26",
+          "fecha_fin": "2026-11-02"
+        },
+        {
+          "row": 155,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 01",
+          "fecha_inicio": "2026-09-22",
+          "fecha_fin": "2026-10-06"
+        },
+        {
+          "row": 156,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 02",
+          "fecha_inicio": "2026-10-15",
+          "fecha_fin": "2026-10-23"
+        },
+        {
+          "row": 157,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES 03",
+          "fecha_inicio": "2026-10-19",
+          "fecha_fin": "2026-10-29"
+        }
+      ],
+      "absent": [
+        {
+          "row": 65,
+          "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+          "familia": "ESCALERA",
+          "fecha_inicio": "2026-02-25",
+          "fecha_fin": "2026-03-02"
+        },
+        {
+          "row": 101,
+          "partida": "IMPERMEABILIZACIÓN",
+          "familia": "LOSAS DE AZOTEA",
+          "fecha_inicio": "2025-11-13",
+          "fecha_fin": "2025-12-01"
+        },
+        {
+          "row": 127,
+          "partida": "MÁRMOL",
+          "familia": "COLOCACION CALIZA",
+          "fecha_inicio": "2025-10-28",
+          "fecha_fin": "2026-01-26"
+        },
+        {
+          "row": 141,
+          "partida": "CANCELERÍA ",
+          "familia": "COLOCACIÓN CANCELES",
+          "fecha_inicio": "2026-03-02",
+          "fecha_fin": "2026-04-16"
+        }
+      ],
+      "possible_renames": [
+        {
+          "current": {
+            "row": 71,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "LOSA ESCALERA",
+            "fecha_inicio": "2026-02-17",
+            "fecha_fin": "2026-03-04"
+          },
+          "previous": {
+            "row": 65,
+            "partida": "ESTRUCTURAS_COMPLEMENTARIAS",
+            "familia": "ESCALERA",
+            "fecha_inicio": "2026-02-25",
+            "fecha_fin": "2026-03-02"
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 110,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA (POLIUREA)",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-18"
+          },
+          "previous": {
+            "row": 101,
+            "partida": "IMPERMEABILIZACIÓN",
+            "familia": "LOSAS DE AZOTEA",
+            "fecha_inicio": "2025-11-13",
+            "fecha_fin": "2025-12-01"
+          },
+          "similarity": 0.732
+        },
+        {
+          "current": {
+            "row": 136,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 01",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-08-27"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 137,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 02",
+            "fecha_inicio": "2026-06-02",
+            "fecha_fin": "2026-09-02"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 138,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA FACHADA 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-30"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.756
+        },
+        {
+          "current": {
+            "row": 145,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACIÓN CALIZA ROOFTOP",
+            "fecha_inicio": "2026-10-26",
+            "fecha_fin": "2026-11-02"
+          },
+          "previous": {
+            "row": 127,
+            "partida": "MÁRMOL",
+            "familia": "COLOCACION CALIZA",
+            "fecha_inicio": "2025-10-28",
+            "fecha_fin": "2026-01-26"
+          },
+          "similarity": 0.762
+        },
+        {
+          "current": {
+            "row": 155,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 01",
+            "fecha_inicio": "2026-09-22",
+            "fecha_fin": "2026-10-06"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_inicio": "2026-03-02",
+            "fecha_fin": "2026-04-16"
+          },
+          "similarity": 0.927
+        },
+        {
+          "current": {
+            "row": 156,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 02",
+            "fecha_inicio": "2026-10-15",
+            "fecha_fin": "2026-10-23"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_inicio": "2026-03-02",
+            "fecha_fin": "2026-04-16"
+          },
+          "similarity": 0.927
+        },
+        {
+          "current": {
+            "row": 157,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES 03",
+            "fecha_inicio": "2026-10-19",
+            "fecha_fin": "2026-10-29"
+          },
+          "previous": {
+            "row": 141,
+            "partida": "CANCELERÍA ",
+            "familia": "COLOCACIÓN CANCELES",
+            "fecha_inicio": "2026-03-02",
+            "fecha_fin": "2026-04-16"
+          },
+          "similarity": 0.927
+        }
+      ]
+    }
+  ]
+}

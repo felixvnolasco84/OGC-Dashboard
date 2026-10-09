@@ -103,6 +103,7 @@ const FIELD_LABELS: Record<string, string> = {
   items: "Materiales / Items",
   status: "Estado de pago",
   status_entrega: "Estado de entrega",
+  status_revision: "Aprobación",
 };
 
 function formatDate(timestamp: number): string {
@@ -306,6 +307,7 @@ function StatusChangeDetails({ entry }: { entry: HistoryEntry }) {
         </div>
       )}
       {/* Status transition */}
+      <p className="font-medium text-muted-foreground">{FIELD_LABELS[statusField]}</p>
       <div className="flex items-center gap-2">
         <span className="px-2 py-0.5 rounded-none bg-red-50 text-red-600 line-through">{oldStatus}</span>
         <ArrowRight className="w-3 h-3 text-disabled-foreground" />

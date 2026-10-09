@@ -38,6 +38,7 @@ export default function EditProyectoModal() {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [status, setStatus] = useState("Activo");
+  const [indirectosPorcentaje, setIndirectosPorcentaje] = useState<string>("");
   const [honorariosPorcentaje, setHonorariosPorcentaje] = useState<number>(0);
   const [honorariosModo, setHonorariosModo] = useState<"automatico" | "transacciones">("automatico");
   const [ubicacion, setUbicacion] = useState<string | undefined>();
@@ -63,6 +64,7 @@ export default function EditProyectoModal() {
       setDescripcion(proyecto.descripcion || "");
       setStatus(proyecto.status || "Activo");
       setHonorariosPorcentaje(proyecto.honorarios_porcentaje || 0);
+      setIndirectosPorcentaje(proyecto.indirectos_porcentaje === undefined ? "" : String(proyecto.indirectos_porcentaje));
       setHonorariosModo(proyecto.honorarios_modo === "transacciones" ? "transacciones" : "automatico");
       setUbicacion(proyecto.ubicacion);
       setExcludedPartidas(proyecto.excluded_partidas_honorarios || []);
@@ -75,6 +77,7 @@ export default function EditProyectoModal() {
     setDescripcion("");
     setStatus("Activo");
     setHonorariosPorcentaje(0);
+    setIndirectosPorcentaje("");
     setHonorariosModo("automatico");
     setUbicacion(undefined);
     setExcludedPartidas([]);
@@ -96,6 +99,7 @@ export default function EditProyectoModal() {
         descripcion,
         status,
         honorarios_porcentaje: honorariosPorcentaje,
+        indirectos_porcentaje: indirectosPorcentaje === "" ? undefined : Number(indirectosPorcentaje),
         honorarios_modo: honorariosModo,
         ubicacion: ubicacion ?? null,
         excluded_partidas_honorarios: excludedPartidas,
@@ -211,6 +215,12 @@ export default function EditProyectoModal() {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="indirectos_porcentaje">Indirectos (%)</Label>
+            <Input id="indirectos_porcentaje" type="number" min="0" max="100" step="0.01"
+              placeholder="Sin activar" value={indirectosPorcentaje}
+              onChange={e => setIndirectosPorcentaje(e.target.value)}
+              required={proyecto?.indirectos_porcentaje !== undefined} />
+            <p className="text-xs text-muted-foreground">Cargo automático sobre pagos elegibles con las mismas exclusiones que honorarios. Inicio: {proyecto?.indirectos_fecha_inicio || "2026-10-01"}. Cambiar el porcentaje recalcula desde esa fecha. Captura los gastos reales en P&amp;L como costo de estructura, categoría INDIRECTOS. 0% mantiene el esquema sin cargo.</p>
             <Label htmlFor="honorarios_modo" className="text-sm font-medium">Cálculo de honorarios</Label>
             <Select value={honorariosModo} onValueChange={(value) => setHonorariosModo(value as "automatico" | "transacciones")}>
               <SelectTrigger id="honorarios_modo" className="rounded-none">

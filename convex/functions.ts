@@ -1,3 +1,4 @@
+import { getBudgetIndirectos } from "./indirectosBudget";
 import { mutation as rawMutation, internalMutation as rawInternalMutation } from "./_generated/server";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataModel, Doc, Id } from "./_generated/dataModel";
@@ -308,7 +309,7 @@ async function updateMeticasPresupuesto(
     
     const proyecto = await ctx.db.get(proyectoId);
     const { presupuesto_original, presupuesto_aprobado, gasto_total, por_gastar } =
-      calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto);
+      calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto, await getBudgetIndirectos(ctx, proyecto));
     
     console.log("Calculated metrics:", {
       presupuesto_original,
@@ -666,7 +667,9 @@ triggers.register("desarrollos", async (ctx, change) => {
       const percentageChanged = oldPercentage !== newPercentage;
       const excludedPartidasChanged = oldExcludedPartidas !== newExcludedPartidas;
       
-      if (modeChanged || percentageChanged || excludedPartidasChanged) {
+      if (modeChanged || percentageChanged || excludedPartidasChanged ||
+          change.oldDoc.indirectos_porcentaje !== change.newDoc.indirectos_porcentaje ||
+          change.oldDoc.indirectos_fecha_inicio !== change.newDoc.indirectos_fecha_inicio) {
         if (percentageChanged) {
           console.log(`Honorarios percentage changed from ${oldPercentage} to ${newPercentage}`);
         }

@@ -2,6 +2,9 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import { getPnlSummary, getProfitabilitySummary } from "./desarrollos";
 import { getPaymentsByDateRange } from "./pagos";
+import { calculateIndirectosFromRecords, isAutomaticIndirectos, validateIndirectosPercentage } from "./indirectosRules";
+import { calculatePresupuestoMetrics } from "./presupuestoRules";
+import { getByProyecto } from "./meticas_presupuesto";
 
 const period = { periodYear: 2026, cutoffMonth: 2, usdToMxn: 17, eurToMxn: 18.5 };
 
@@ -200,6 +203,115 @@ it("excludes informative source categories from costs and collected income even 
   expect(structureAmount(pnl, "transporte")).toBe(0);
   expect(structureAmount(pnl, "cargas_sociales")).toBe(0);
   expect(profitability.projects[0].wip.pagado).toBe(80);
+});
+
+function automaticDatabase(patch = {}) {
+  return database({
+    desarrollos: [{ _id: "project", nombre: "Obra", honorarios_porcentaje: 15, indirectos_porcentaje: 10, indirectos_fecha_inicio: "2026-10-01", honorarios_monto: 15000 }],
+    partidas: [{ _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA", pagado: 100000, presupuesto_aprobado: 200000 }],
+    transacciones: [{ _id: "transaction", proyecto: "project", fecha: "2026-10-01", status: "Pagado", monto_total: 100000, moneda: "MXN" }],
+    pagos: [{ _id: "payment", transaccion_id: "transaction", partida_id: "work", monto: 100000 }],
+    ogc_movimientos: [movement({ tipo: "costo_estructura", categoria: "INDIRECTOS", monto: 7000, fecha: "2026-10-02" })],
+    ...patch,
+  });
+}
+const october = { ...period, cutoffMonth: 10 };
+
+describe.each([["P&L", getPnlSummary], ["Profitability", getProfitabilitySummary]])("Automatic indirectos: %s", (_name, query) => {
+  it("charges 10% and subtracts only actual costs, once", async () => {
+    const f = automaticDatabase();
+    const before = structuredClone(f.tables);
+    const result = await query._handler(f.ctx, october);
+    expect(result.totals).toMatchObject({ honorarios: 15000, indirectos: 10000, costosRealesIndirectos: 7000, saldoIndirectos: 3000, ingresosOgc: 25000, costosEstructuraMasIndirectos: 7000, ebitda: 18000 });
+    expect(result.projects[0].monthlyOgcMovements["2026-10"]).toMatchObject({ indirectos: 10000, indirectosLegacyCosto: 0 });
+    expect(f.tables).toEqual(before);
+  });
+
+  it("preserves September and mixes legacy and automatic months without duplicating ledger income", async () => {
+    const f = automaticDatabase({
+      partidas: [{ _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA" }, { _id: "indirect", proyecto: "project", nivel: 1, nombre: "INDIRECTOS" }],
+      transacciones: [
+        { _id: "september", proyecto: "project", fecha: "30/09/2026", status: "Pagado", monto_total: 1000, moneda: "MXN" },
+        { _id: "transaction", proyecto: "project", fecha: "01/10/2026", status: "Pagado", monto_total: 100000, moneda: "MXN" },
+      ],
+      pagos: [{ transaccion_id: "september", partida_id: "indirect", monto: 1000 }, { transaccion_id: "transaction", partida_id: "work", monto: 100000 }],
+      ogc_movimientos: [movement({ categoria: "INDIRECTOS", monto: 9999, fecha: "2026-10-02" })],
+    });
+    const september = await query._handler(f.ctx, { ...october, cutoffMonth: 9 });
+    expect(september.totals).toMatchObject({ indirectos: 1000, indirectosLegacyCosto: 1000, ebitda: 150 });
+    const mixed = await query._handler(f.ctx, october);
+    expect(mixed.totals).toMatchObject({ indirectos: 11000, indirectosLegacyCosto: 1000, ebitda: 25150 });
+    expect(mixed.projects[0].monthlyOgcMovements["2026-9"].indirectos).toBe(1000);
+    expect(mixed.projects[0].monthlyOgcMovements["2026-10"].indirectos).toBe(10000);
+  });
+
+  it("supports zero percent without falling back to explicit indirect income", async () => {
+    const f = automaticDatabase({ desarrollos: [{ _id: "project", nombre: "Obra", indirectos_porcentaje: 0 }], ogc_movimientos: [movement({ categoria: "INDIRECTOS", fecha: "2026-10-01" })] });
+    expect((await query._handler(f.ctx, october)).totals.indirectos).toBe(0);
+  });
+
+  it("recalculates percentages, dates and payment changes reactively", async () => {
+    const f = automaticDatabase();
+    f.tables.desarrollos[0].indirectos_porcentaje = 20;
+    expect((await query._handler(f.ctx, october)).totals.indirectos).toBe(20000);
+    f.tables.pagos[0].monto = 50000;
+    expect((await query._handler(f.ctx, october)).totals.indirectos).toBe(10000);
+    f.tables.transacciones[0].status = "Por pagar";
+    expect((await query._handler(f.ctx, october)).totals.indirectos).toBe(0);
+    f.tables.transacciones[0].status = "Pagado";
+    f.tables.transacciones[0].fecha = "2026-11-01";
+    expect((await query._handler(f.ctx, october)).totals.indirectos).toBe(0);
+    f.tables.transacciones.length = 0;
+    expect((await query._handler(f.ctx, october)).totals.indirectos).toBe(0);
+  });
+
+  it("uses honorarios exclusions and converts USD and EUR on eligible paid amounts", async () => {
+    const f = automaticDatabase({
+      desarrollos: [{ _id: "project", nombre: "Obra", honorarios_porcentaje: 15, indirectos_porcentaje: 10, excluded_partidas_honorarios: ["excluded"] }],
+      partidas: [{ _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA" }, { _id: "excluded", proyecto: "project", nivel: 1, nombre: "EXCLUIDA" }, { _id: "child", proyecto: "project", nivel: 3, nombre: "Material", partida_nombre: "EXCLUIDA" }, { _id: "fee", proyecto: "project", nivel: 1, nombre: "HONORARIOS" }],
+      transacciones: [{ _id: "usd", proyecto: "project", status: "Pagado", fecha: "2026-10-01", moneda: "USD", tipo_cambio: "20" }, { _id: "eur", proyecto: "project", status: "Pagado", fecha: "2026-10-02", moneda: "EUR" }],
+      pagos: [{ transaccion_id: "usd", partida_id: "work", monto: 100 }, { transaccion_id: "eur", partida_id: "work", monto: 100 }, { transaccion_id: "usd", partida_id: "child", monto: 999 }, { transaccion_id: "usd", partida_id: "fee", monto: 999 }],
+      ogc_movimientos: [],
+    });
+    expect((await query._handler(f.ctx, october)).totals).toMatchObject({ honorarios: 577.5, indirectos: 385 });
+  });
+});
+
+it("includes corporate real indirect expenses only in consolidated P&L", async () => {
+  const f = automaticDatabase({ ogc_movimientos: [movement({ proyecto: undefined, categoria: "INDIRECTOS", tipo: "costo_estructura", fecha: "2026-10-02", monto: 12000 })] });
+  const pnl = await getPnlSummary._handler(f.ctx, october);
+  const profitability = await getProfitabilitySummary._handler(f.ctx, october);
+  expect(pnl.totals).toMatchObject({ saldoIndirectos: -2000, costosRealesIndirectos: 12000, ebitda: 13000 });
+  expect(profitability.totals).toMatchObject({ saldoIndirectos: 10000, costosRealesIndirectos: 0 });
+});
+
+it("substitutes post-cut manual indirectos in budget, control, filtered payments and WIP", async () => {
+  const f = automaticDatabase({
+    partidas: [{ _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA", pagado: 100000, presupuesto_aprobado: 200000 }, { _id: "indirect", proyecto: "project", nivel: 1, nombre: "INDIRECTOS", pagado: 8000 }],
+    pagos: [{ transaccion_id: "transaction", partida_id: "work", monto: 100000 }, { transaccion_id: "transaction", partida_id: "indirect", monto: 8000 }],
+  });
+  const metrics = await getByProyecto._handler(f.ctx, { proyecto_id: "project" });
+  expect(metrics).toMatchObject({ indirectos_monto: 10800, gasto_total: 125800, por_gastar: 74200 });
+  const payments = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "project", start_date: "2026-10-01", end_date: "2026-10-31" });
+  expect(payments.indirectos).toBe(10800);
+  expect(payments.paymentsByPartida.indirect).toBe(0);
+  expect(payments.total).toBe(110800);
+  const profitability = await getProfitabilitySummary._handler(f.ctx, october);
+  expect(profitability.projects[0].wip.costoReal).toBe(125800);
+  expect(calculatePresupuestoMetrics(f.tables.partidas, 15000, { automaticos: 10800, manualesSustituidos: 8000 }).gasto_total).toBe(metrics.gasto_total);
+});
+
+it("validates percentages and activation dates without accepting invalid calendar dates", () => {
+  for (const value of [-1, 101, NaN, Infinity]) expect(() => validateIndirectosPercentage(value)).toThrow();
+  for (const value of [undefined, 0, 10, 100]) expect(() => validateIndirectosPercentage(value)).not.toThrow();
+  expect(isAutomaticIndirectos({}, "2026-10-01")).toBe(false);
+  expect(isAutomaticIndirectos({ indirectos_porcentaje: 0 }, "2026-10-01")).toBe(true);
+  expect(isAutomaticIndirectos({ indirectos_porcentaje: 10 }, "31/09/2026")).toBe(false);
+  const f = automaticDatabase();
+  const calculate = () => calculateIndirectosFromRecords({ config: f.tables.desarrollos[0], partidas: f.tables.partidas, transactions: f.tables.transacciones, pagos: f.tables.pagos });
+  expect(calculate().automaticos).toBe(10000);
+  f.tables.desarrollos[0].indirectos_fecha_inicio = "2026-11-01";
+  expect(calculate().automaticos).toBe(0);
 });
 
 const snapshotPath = process.env.PNL_AUDIT_SNAPSHOT;

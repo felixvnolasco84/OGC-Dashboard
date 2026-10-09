@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from "react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { hasProviderManagementAccess } from "../../../convex/providerRules";
+import { getRequisicionStateChange, isRequisicionApproved } from "../../../convex/requisicionStateRules";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Clock, ChevronDown, ChevronUp, CheckCircle, CreditCard, PackageCheck, Mail, Send, ExternalLink, Paperclip, Trash2, UserPlus, Truck, Receipt, MessageSquare, FileUp } from "lucide-react";
@@ -111,6 +112,7 @@ export default function ProyectoRequisicionesPage() {
     const [statusHistoryComment, setStatusHistoryComment] = useState("");
     const [statusHistoryDocument, setStatusHistoryDocument] = useState<File | null>(null);
     const [isSubmittingStatusHistory, setIsSubmittingStatusHistory] = useState(false);
+    const submittingStatusHistoryRef = useRef(false);
     const [remissionReqId, setRemissionReqId] = useState<Id<"requisiciones"> | null>(null);
     const [remissionPhotos, setRemissionPhotos] = useState<File[]>([]);
     const [isUploadingRemission, setIsUploadingRemission] = useState(false);
@@ -123,7 +125,7 @@ export default function ProyectoRequisicionesPage() {
     // Inline review state
     const [editedQuantities, setEditedQuantities] = useState<Record<string, number>>({});
     const [reviewingItemId, setReviewingItemId] = useState<string | null>(null);
-    const [updatingPipelineReqId, setUpdatingPipelineReqId] = useState<string | null>(null);
+    const reviewingItemRef = useRef(false);
 
     // Fetch project
     const proyecto = useQuery(api.desarrollos.getById, proyectoId ? { id: proyectoId as Id<"desarrollos"> } : "skip");
@@ -135,7 +137,6 @@ export default function ProyectoRequisicionesPage() {
     const updateStatus = useMutation(api.requisiciones.updateStatus);
     const updateStatusEntrega = useMutation(api.requisiciones.updateStatusEntrega);
     const updateRequisicionProveedor = useMutation(api.requisiciones.update);
-    const reviewRequisicionMutation = useMutation(api.requisiciones.reviewRequisicion);
     const reviewSingleItemMutation = useMutation(api.requisiciones.reviewSingleItem);
     const generateRequisicionUploadUrl = useMutation(api.requisiciones.generateUploadUrl);
     const generateRemissionUploadUrl = useMutation(api.requisiciones.generateRemissionUploadUrl);
@@ -457,13 +458,10 @@ export default function ProyectoRequisicionesPage() {
         return { approved, total: req.items.length };
     };
 
-    const isRequisicionApproved = (req: NonNullable<typeof requisiciones>[number]) =>
-        req.status_revision === "Aprobada" || req.status_revision === "Parcialmente Aprobada";
-
     const getPipelineStages = (req: NonNullable<typeof requisiciones>[number]) => [
         {
             key: "aprobadas" as const,
-            label: "Aprobada",
+            label: req.status_revision === "Parcialmente Aprobada" ? "Aprobación parcial" : isRequisicionApproved(req) ? "Aprobada" : req.status_revision === "Rechazada" ? "Rechazada" : "Por revisar",
             icon: CheckCircle,
             complete: isRequisicionApproved(req),
         },
@@ -491,125 +489,17 @@ export default function ProyectoRequisicionesPage() {
         return currentUser.role === "admin" || currentUser.role === "user" || (currentUser.role === "contratista" && req.solicitante_id === currentUser._id);
     };
 
-    const approveRequisicion = async (
-        req: NonNullable<typeof requisiciones>[number],
-        comentario?: string,
-        documentos?: StatusHistoryDocument[]
-    ) => {
-        if (!currentUser) return;
-        if (!req.items?.length) {
-            throw new Error("La requisición no tiene items para aprobar.");
-        }
-
-        await reviewRequisicionMutation({
-            id: req._id,
-            reviewer_id: currentUser._id,
-            reviewer_name: currentUser.name,
-            comentario,
-            documentos,
-            items: req.items.map((item) => ({
-                item_id: item._id,
-                status_revision: "aprobado",
-                cantidad_aprobada: item.cantidad_aprobada ?? item.cantidad,
-            })),
+    const reviewApproval = (req: NonNullable<typeof requisiciones>[number]) => {
+        if (!isReviewUser) return;
+        resetStatusHistoryDialog();
+        setExpandedCards((current) => new Set(current).add(req._id));
+        requestAnimationFrame(() => {
+            const materials = Array.from(document.querySelectorAll<HTMLElement>(`[data-requisicion-id="${req._id}"] [data-material-layout]`))
+                .find(element => element.offsetHeight > 0);
+            materials?.scrollIntoView({ block: "nearest" });
+            materials?.querySelector<HTMLInputElement>('input[type="number"]:not([disabled])')?.focus({ preventScroll: true });
         });
-    };
-
-    const handlePipelineStageChange = async (
-        req: NonNullable<typeof requisiciones>[number],
-        targetStage: PipelineStageKey,
-        comentario?: string,
-        documentos?: StatusHistoryDocument[]
-    ) => {
-        if (!currentUser) return;
-
-        if (!canUpdatePipelineStage(req, targetStage)) {
-            toast.error("Sin permisos para actualizar este estado");
-            return;
-        }
-
-        const needsApproval = !isRequisicionApproved(req);
-        if (needsApproval && !(currentUser.role === "admin" || currentUser.role === "finance")) {
-            toast.error("Primero debe aprobarse la requisición");
-            return;
-        }
-
-        setUpdatingPipelineReqId(req._id);
-        try {
-            let pendingDocuments = documentos;
-            const consumeDocuments = () => {
-                const currentDocuments = pendingDocuments;
-                pendingDocuments = undefined;
-                return currentDocuments;
-            };
-
-            if (needsApproval) {
-                await approveRequisicion(req, comentario, consumeDocuments());
-            }
-
-            if (targetStage === "aprobadas") {
-                if (req.status === "Pagado") {
-                    await updateStatus({
-                        id: req._id,
-                        status: "En proceso",
-                        comentario,
-                        documentos: consumeDocuments(),
-                        changed_by_id: currentUser._id,
-                        changed_by_name: currentUser.name,
-                    });
-                }
-                if (req.status_entrega === "Completo") {
-                    await updateStatusEntrega({
-                        id: req._id,
-                        status_entrega: "Pendiente",
-                        comentario,
-                        documentos: consumeDocuments(),
-                        changed_by_id: currentUser._id,
-                        changed_by_name: currentUser.name,
-                    });
-                }
-            }
-
-            if (targetStage === "pagadas") {
-                if (req.status !== "Pagado") {
-                    await updateStatus({
-                        id: req._id,
-                        status: "Pagado",
-                        comentario,
-                        documentos: consumeDocuments(),
-                        changed_by_id: currentUser._id,
-                        changed_by_name: currentUser.name,
-                    });
-                }
-                if (req.status_entrega === "Completo") {
-                    await updateStatusEntrega({
-                        id: req._id,
-                        status_entrega: "Pendiente",
-                        comentario,
-                        documentos: consumeDocuments(),
-                        changed_by_id: currentUser._id,
-                        changed_by_name: currentUser.name,
-                    });
-                }
-            }
-
-            if (targetStage === "recibidas" && req.status_entrega !== "Completo") {
-                await updateStatusEntrega({
-                    id: req._id,
-                    status_entrega: "Completo",
-                    comentario,
-                    documentos: consumeDocuments(),
-                    changed_by_id: currentUser._id,
-                    changed_by_name: currentUser.name,
-                });
-            }
-
-            toast.success("Pipeline actualizado");
-        } catch (error) {
-            throw error;
-        } finally {
-            setUpdatingPipelineReqId(null);
-        }
+        toast.info("Revisa las cantidades y aprueba o rechaza cada material.");
     };
 
     // Format date from DD/MM/YYYY to readable
@@ -627,7 +517,8 @@ export default function ProyectoRequisicionesPage() {
     const isReviewUser = currentUser?.role === "admin" || currentUser?.role === "finance";
 
     const handleApproveItem = async (itemId: Id<"requisicion_items">, cantidad?: number) => {
-        if (!currentUser) return;
+        if (!currentUser || reviewingItemRef.current) return;
+        reviewingItemRef.current = true;
         setReviewingItemId(itemId);
         try {
             const result = await reviewSingleItemMutation({
@@ -650,12 +541,14 @@ export default function ProyectoRequisicionesPage() {
             console.error("Error approving item:", error);
             toast.error("Error al aprobar item");
         } finally {
+            reviewingItemRef.current = false;
             setReviewingItemId(null);
         }
     };
 
     const handleRejectItem = async (itemId: Id<"requisicion_items">) => {
-        if (!currentUser) return;
+        if (!currentUser || reviewingItemRef.current) return;
+        reviewingItemRef.current = true;
         setReviewingItemId(itemId);
         try {
             const result = await reviewSingleItemMutation({
@@ -677,6 +570,7 @@ export default function ProyectoRequisicionesPage() {
             console.error("Error rejecting item:", error);
             toast.error("Error al rechazar item");
         } finally {
+            reviewingItemRef.current = false;
             setReviewingItemId(null);
         }
     };
@@ -716,48 +610,42 @@ export default function ProyectoRequisicionesPage() {
         requisicionId: Id<"requisiciones">,
         newStatus: string,
         comentario?: string,
-        documentos?: StatusHistoryDocument[]
+        documentos?: StatusHistoryDocument[],
+        expectedStatus?: string
     ) => {
         if (!currentUser) return;
-        try {
-            await updateStatus({
-                id: requisicionId,
-                status: newStatus,
-                comentario,
-                documentos,
-                changed_by_id: currentUser._id,
-                changed_by_name: currentUser.name,
-            });
-            toast.success("Estado de pago actualizado", {
-                description: `La requisición ahora está "${newStatus}".`,
-            });
-        } catch (error) {
-            throw error;
-        }
+        const result = await updateStatus({
+            id: requisicionId,
+            status: newStatus,
+            expected_status: expectedStatus,
+            comentario,
+            documentos,
+            changed_by_id: currentUser._id,
+            changed_by_name: currentUser.name,
+        });
+        if (result.changed) toast.success(`Pago: ${expectedStatus} → ${newStatus}`);
+        else toast.info("El pago ya tenía ese estado. No se realizaron cambios.");
     };
 
     const handleStatusEntregaChange = async (
         requisicionId: Id<"requisiciones">,
         newStatus: string,
         comentario?: string,
-        documentos?: StatusHistoryDocument[]
+        documentos?: StatusHistoryDocument[],
+        expectedStatus?: string
     ) => {
         if (!currentUser) return;
-        try {
-            await updateStatusEntrega({
-                id: requisicionId,
-                status_entrega: newStatus,
-                comentario,
-                documentos,
-                changed_by_id: currentUser._id,
-                changed_by_name: currentUser.name,
-            });
-            toast.success("Estado de entrega actualizado", {
-                description: `La entrega ahora está "${newStatus}".`,
-            });
-        } catch (error) {
-            throw error;
-        }
+        const result = await updateStatusEntrega({
+            id: requisicionId,
+            status_entrega: newStatus,
+            expected_status_entrega: expectedStatus,
+            comentario,
+            documentos,
+            changed_by_id: currentUser._id,
+            changed_by_name: currentUser.name,
+        });
+        if (result.changed) toast.success(`Entrega: ${expectedStatus} → ${newStatus}`);
+        else toast.info("La entrega ya tenía ese estado. No se realizaron cambios.");
     };
 
     const resetStatusHistoryDialog = () => {
@@ -771,9 +659,16 @@ export default function ProyectoRequisicionesPage() {
         req: NonNullable<typeof requisiciones>[number],
         targetStage: PipelineStageKey
     ) => {
-        const stageLabel = targetStage === "aprobadas"
-            ? "Aprobada"
-            : targetStage === "pagadas"
+        if (submittingStatusHistoryRef.current || !canUpdatePipelineStage(req, targetStage)) return;
+        if (getPipelineStages(req).find((stage) => stage.key === targetStage)?.complete) {
+            toast.info("Esta condición ya está cumplida. No se realizaron cambios.");
+            return;
+        }
+        if (targetStage === "aprobadas") {
+            reviewApproval(req);
+            return;
+        }
+        const stageLabel = targetStage === "pagadas"
                 ? "Pagada"
                 : "Recibida";
 
@@ -794,6 +689,7 @@ export default function ProyectoRequisicionesPage() {
         req: NonNullable<typeof requisiciones>[number],
         paymentStatus: string
     ) => {
+        if (submittingStatusHistoryRef.current || req.status === paymentStatus) return;
         setPendingStatusChange({
             requisicionId: req._id,
             paymentStatus,
@@ -809,6 +705,7 @@ export default function ProyectoRequisicionesPage() {
         req: NonNullable<typeof requisiciones>[number],
         deliveryStatus: string
     ) => {
+        if (submittingStatusHistoryRef.current || (req.status_entrega || "Pendiente") === deliveryStatus) return;
         setPendingStatusChange({
             requisicionId: req._id,
             deliveryStatus,
@@ -889,38 +786,51 @@ export default function ProyectoRequisicionesPage() {
     };
 
     const handleConfirmStatusHistory = async () => {
-        if (!pendingStatusChange) return;
+        if (!pendingStatusChange || !currentUser || submittingStatusHistoryRef.current) return;
+        const req = requisiciones?.find((item) => item._id === pendingStatusChange.requisicionId);
+        if (!req) {
+            toast.error("No se encontró la requisición.");
+            return;
+        }
+        const change = {
+            paymentStatus: pendingStatusChange.paymentStatus ?? (pendingStatusChange.targetStage === "pagadas" ? "Pagado" : undefined),
+            deliveryStatus: pendingStatusChange.deliveryStatus ?? (pendingStatusChange.targetStage === "recibidas" ? "Completo" : undefined),
+        };
+        const transition = getRequisicionStateChange(req, change);
+        if (!transition.changed) {
+            toast.info("El estado ya está registrado. No se realizaron cambios.");
+            resetStatusHistoryDialog();
+            return;
+        }
+        if (!canUpdatePipelineStage(req, change.paymentStatus ? "pagadas" : "recibidas") || transition.blockedReason) {
+            toast.error(transition.blockedReason || "Sin permisos para actualizar este estado");
+            return;
+        }
         const comment = statusHistoryComment.trim() || undefined;
         if (!comment && !isMarkingAsPaid && !(isReceivingMaterials && statusHistoryDocument)) {
             toast.error(isReceivingMaterials ? "Agrega un comentario o una foto de la remisión." : "Agrega un comentario para registrar el cambio.");
             return;
         }
 
-        const req = requisiciones?.find((item) => item._id === pendingStatusChange.requisicionId);
-        if (!req) {
-            toast.error("No se encontró la requisición.");
-            return;
-        }
-
+        submittingStatusHistoryRef.current = true;
         setIsSubmittingStatusHistory(true);
         try {
             const documentos = await uploadStatusHistoryDocument();
 
-            if (pendingStatusChange.targetStage) {
-                await handlePipelineStageChange(req, pendingStatusChange.targetStage, comment, documentos);
-            } else if (pendingStatusChange.paymentStatus) {
-                await handleStatusChange(req._id, pendingStatusChange.paymentStatus, comment, documentos);
-            } else if (pendingStatusChange.deliveryStatus) {
-                await handleStatusEntregaChange(req._id, pendingStatusChange.deliveryStatus, comment, documentos);
+            if (change.paymentStatus) {
+                await handleStatusChange(req._id, change.paymentStatus, comment, documentos, transition.before);
+            } else if (change.deliveryStatus) {
+                await handleStatusEntregaChange(req._id, change.deliveryStatus, comment, documentos, transition.before);
             }
 
             resetStatusHistoryDialog();
         } catch (error) {
             console.error("Error saving status history:", error);
-            toast.error("Error al guardar el historial", {
+            toast.error("No se pudo actualizar el estado", {
                 description: error instanceof Error ? error.message : "No se pudo registrar el cambio.",
             });
         } finally {
+            submittingStatusHistoryRef.current = false;
             setIsSubmittingStatusHistory(false);
         }
     };
@@ -1147,11 +1057,11 @@ export default function ProyectoRequisicionesPage() {
             );
         }
         groups.push({
-            label: "Cambiar etapa", icon: CheckCircle,
+            label: "Aprobación, pago y entrega", icon: CheckCircle,
             actions: getPipelineStages(req).map((stage) => ({
-                label: `Mover a ${stage.label}`, icon: stage.icon, complete: stage.complete,
-                busy: updatingPipelineReqId === req._id,
-                disabled: updatingPipelineReqId === req._id || !canUpdatePipelineStage(req, stage.key),
+                label: stage.key === "aprobadas" && !stage.complete ? "Revisar aprobación" : `${stage.complete ? "Estado:" : "Marcar como"} ${stage.label}`, icon: stage.icon, complete: stage.complete,
+                busy: isSubmittingStatusHistory && pendingStatusChange?.requisicionId === req._id,
+                disabled: isSubmittingStatusHistory || !canUpdatePipelineStage(req, stage.key),
                 onSelect: () => openPipelineStatusDialog(req, stage.key),
             })),
         });
@@ -1186,6 +1096,12 @@ export default function ProyectoRequisicionesPage() {
     useEffect(() => {
         if (contextMenu && !contextMenuRequisicion) closeContextMenu();
     }, [contextMenu, contextMenuRequisicion, closeContextMenu]);
+
+    const pendingRequisicion = requisiciones?.find((req) => req._id === pendingStatusChange?.requisicionId);
+    const pendingTransition = pendingRequisicion && pendingStatusChange ? getRequisicionStateChange(pendingRequisicion, {
+        paymentStatus: pendingStatusChange.paymentStatus ?? (pendingStatusChange.targetStage === "pagadas" ? "Pagado" : undefined),
+        deliveryStatus: pendingStatusChange.deliveryStatus ?? (pendingStatusChange.targetStage === "recibidas" ? "Completo" : undefined),
+    }) : undefined;
 
     if (!proyecto) {
         return (
@@ -1423,7 +1339,7 @@ export default function ProyectoRequisicionesPage() {
                                 ? `${itemCounts.approved} de ${itemCounts.total} materiales`
                                 : `${itemCounts.total} materiales`;
                             const pipelineStages = getPipelineStages(req);
-                            const pipelineBusy = updatingPipelineReqId === req._id;
+                            const pipelineBusy = isSubmittingStatusHistory && pendingStatusChange?.requisicionId === req._id;
                             const actionGroups = getRequisicionActionGroups(req);
 
                             return (
@@ -1485,22 +1401,18 @@ export default function ProyectoRequisicionesPage() {
                                             </span>
                                         </div>
 
-                                        {/* Status Pipeline */}
+                                        {/* Independent approval, payment and delivery controls */}
                                         <div className="order-6 col-span-2 min-w-0 md:col-span-3 2xl:order-5 2xl:col-span-1" onClick={(e) => e.stopPropagation()}>
                                             <div className="relative grid grid-cols-3 gap-1">
-                                                <div className="pointer-events-none absolute left-[16.67%] right-[16.67%] top-3 h-0.5 bg-disabled" />
-                                                {pipelineStages.map((stage, stageIndex) => {
-                                                    const nextStage = pipelineStages[stageIndex + 1];
-                                                    const segmentComplete = stage.complete && nextStage?.complete;
+                                                {pipelineStages.map((stage) => {
                                                     const canUpdateStage = canUpdatePipelineStage(req, stage.key);
                                                     return (
                                                         <div key={stage.key} className="relative min-w-0">
-                                                            {segmentComplete && <span className="pointer-events-none absolute left-1/2 top-3 h-0.5 w-full bg-[#50AC66]" />}
                                                             <button type="button"
                                                                 disabled={pipelineBusy || !canUpdateStage}
                                                                 onClick={() => openPipelineStatusDialog(req, stage.key)}
-                                                                aria-label={`Cambiar a ${stage.label}`}
-                                                                title={`Cambiar a ${stage.label}`}
+                                                                aria-label={stage.key === "aprobadas" && !stage.complete ? "Revisar aprobación" : `Cambiar a ${stage.label}`}
+                                                                title={!canUpdateStage ? "Sin permisos para actualizar este estado" : stage.complete ? "Condición cumplida" : stage.key === "aprobadas" ? "Revisar materiales" : `Cambiar a ${stage.label}`}
                                                                 className={cn("relative z-10 flex min-h-11 w-full flex-col items-center gap-2 rounded-sm py-1 text-xs transition-colors focus-visible:outline focus-visible:outline-2", stage.complete ? "text-foreground" : "text-muted-foreground hover:text-foreground", (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60")}>
                                                                 <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border bg-card", stage.complete ? "border-[#50AC66] bg-[#50AC66]" : "border-border-strong")}>
                                                                     {pipelineBusy ? <Loader2 className="h-2 w-2 animate-spin" /> : <span className={cn("h-2 w-2 rounded-full", stage.complete ? "bg-[#50AC66]" : "bg-transparent")} />}
@@ -1684,8 +1596,9 @@ export default function ProyectoRequisicionesPage() {
             </Dialog>
 
             <Dialog open={statusHistoryDialogOpen} onOpenChange={(open) => {
-                if (!open && !isSubmittingStatusHistory) resetStatusHistoryDialog();
-                else setStatusHistoryDialogOpen(open);
+                if (submittingStatusHistoryRef.current) return;
+                if (!open) resetStatusHistoryDialog();
+                else setStatusHistoryDialogOpen(true);
             }}>
                 <DialogContent className={cn(responsiveDialogClassName, "max-w-lg rounded-none")}>
                     <DialogHeader className="min-w-0 pr-10 text-left">
@@ -1693,32 +1606,39 @@ export default function ProyectoRequisicionesPage() {
                             {pendingStatusChange?.title || "Actualizar estado"}
                         </DialogTitle>
                         <DialogDescription>
-                            {isMarkingAsPaid
-                                ? "Puedes marcar la requisición como pagada sin adjuntar un comprobante de pago ni agregar un comentario."
+                            {pendingTransition?.blockedReason
+                                ? "Revisa el requisito pendiente antes de cambiar este estado."
+                                : isMarkingAsPaid
+                                ? "El comentario y el comprobante de pago son opcionales. El cambio quedará en el historial."
                                 : pendingStatusChange?.description || "Registra el motivo del cambio para el historial de la requisición."}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-5">
-                        <div className="rounded-none border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
-                            <div className="flex items-start gap-3">
-                                <MessageSquare className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#50AC66]" />
-                                <p>
-                                    {isMarkingAsPaid
-                                        ? "El cambio queda guardado en el historial. El comentario y el comprobante de pago son opcionales."
-                                        : isReceivingMaterials
-                                            ? "La recepción queda en el historial. La foto de la nota de remisión es opcional."
-                                            : "El comentario queda guardado en el historial del cambio. El documento es opcional para respaldar la aprobación o el pago."}
-                                </p>
-                            </div>
+                        <div className="border border-border px-4 py-3 text-sm" data-status-consequences>
+                            <p className="mb-3 font-medium">{pendingTransition?.blockedReason ? "Cambio pendiente" : "Cambios al guardar"}</p>
+                            <dl className="space-y-3">
+                                {pendingTransition?.rows.map((row) => <div key={row.label} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                                    <dt className="text-muted-foreground">{row.label}</dt>
+                                    <dd className="text-right">{row.before === row.after
+                                        ? <>{row.after} <span className="text-xs text-muted-foreground">· Se conserva</span></>
+                                        : <><span className="text-muted-foreground">{row.before}</span> → <strong className="font-medium">{row.after}</strong></>}</dd>
+                                </div>)}
+                            </dl>
                         </div>
-
+                        {pendingTransition?.blockedReason ? <div className="space-y-3" role="status">
+                            <p className="text-sm text-muted-foreground">{pendingTransition.blockedReason}</p>
+                            {isReviewUser && pendingRequisicion ? <Button type="button" onClick={() => reviewApproval(pendingRequisicion)}>Revisar materiales</Button>
+                                : <p className="text-sm text-muted-foreground">Solicita la revisión a administración o finanzas.</p>}
+                            <Button type="button" variant="outline" className="w-full" onClick={resetStatusHistoryDialog}>Cerrar</Button>
+                        </div> : <fieldset disabled={isSubmittingStatusHistory} className="min-w-0 space-y-5">
                         <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-foreground">
+                            <Label htmlFor="status-history-comment" className="flex items-center gap-2 text-foreground">
                                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                                 {isMarkingAsPaid ? "Comentario opcional" : isReceivingMaterials ? "Comentario (opcional con foto)" : "Comentario *"}
                             </Label>
                             <Textarea
+                                id="status-history-comment"
                                 value={statusHistoryComment}
                                 onChange={(e) => setStatusHistoryComment(e.target.value)}
                                 placeholder="Ej. Pago confirmado con transferencia, entrega validada en obra, aprobación autorizada por dirección..."
@@ -1786,6 +1706,7 @@ export default function ProyectoRequisicionesPage() {
                                 Guardar cambio
                             </Button>
                         </div>
+                        </fieldset>}
                     </div>
                 </DialogContent>
             </Dialog>

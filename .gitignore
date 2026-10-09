@@ -18,3 +18,5 @@ playwright/.auth/
 
 # Generated bundle for isolated responsive browser checks
 output/responsive-test-build/
+output/indirectos-ui-build/
+output/indirectos-test-temp/

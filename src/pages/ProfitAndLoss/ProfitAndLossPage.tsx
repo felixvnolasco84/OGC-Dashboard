@@ -77,6 +77,9 @@ type ProfitabilityProject = {
   status?: string;
   honorarios: number;
   indirectos: number;
+  indirectosLegacyCosto?: number;
+  costosRealesIndirectos?: number;
+  saldoIndirectos?: number;
   ingresosOgc: number;
   costosOgc: number;
   costosEstructuraOgc: number;
@@ -111,6 +114,9 @@ type ProfitabilityStructureRow = {
 type PnlMonthlyMovement = {
   honorarios: number;
   indirectos: number;
+  indirectosLegacyCosto?: number;
+  costosRealesIndirectos?: number;
+  saldoIndirectos?: number;
   costosDirectosObra?: number;
   structureBreakdown: Record<string, number>;
 };
@@ -189,6 +195,9 @@ type ProfitabilitySummary = {
   totals: {
     honorarios: number;
     indirectos: number;
+    indirectosLegacyCosto?: number;
+    costosRealesIndirectos?: number;
+    saldoIndirectos?: number;
     ingresosOgc: number;
     costosOgc: number;
     costosEstructuraOgc: number;
@@ -225,8 +234,12 @@ type PnlSummary = {
   totals: {
     honorarios: number;
     indirectos: number;
+    indirectosLegacyCosto?: number;
+    costosRealesIndirectos?: number;
+    saldoIndirectos?: number;
     ingresosOgc: number;
     costosEstructuraOgc: number;
+    costosEstructuraMasIndirectos: number;
     ebitda: number;
     estructuraPercent: number;
     ebitdaMargin: number;
@@ -257,6 +270,9 @@ type AnnualPnlTotals = Pick<
   | "indirectos"
   | "ingresosOgc"
   | "costosEstructuraOgc"
+  | "costosEstructuraMasIndirectos"
+  | "costosRealesIndirectos"
+  | "saldoIndirectos"
   | "ebitda"
   | "ebitdaMargin"
   | "structureBreakdown"
@@ -281,6 +297,7 @@ const DETAIL_TEXT_CLASS = "text-disabled-foreground";
 const SOFT_HIGHLIGHT_CLASS = "bg-[#FBFAF2]";
 const STRONG_HIGHLIGHT_CLASS = "bg-[#F7F5E6]";
 const DEFAULT_STRUCTURE_GROUPS = [
+  { key: "indirectos_reales", label: "COSTOS REALES DE INDIRECTOS" },
   { key: "nomina", label: "NOMINA" },
   { key: "cargas_sociales", label: "CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)" },
   { key: "transporte", label: "TRANSPORTE" },
@@ -465,7 +482,9 @@ const buildMonthlyRows = (
     });
   });
   const monthlyEstructura = months.map((_, index) => costRows.reduce((sum, row) => sum + safeNumber(row[index]), 0));
-  const ebitdaValues = monthlyIngresos.map((value, index) => value + monthlyEstructura[index]);
+  const legacyIndirectosCosts = months.map(month => safeNumber(monthlyMovements[month.key]?.indirectosLegacyCosto));
+  const indirectosBalances = monthlyIndirectos.map((amount, i) => amount - legacyIndirectosCosts[i] - safeNumber(monthlyMovements[months[i].key]?.structureBreakdown.indirectos_reales));
+  const ebitdaValues = monthlyIngresos.map((value, index) => value + monthlyEstructura[index] - legacyIndirectosCosts[index]);
   const isrValues = ebitdaValues.map((value) => -Math.max(value, 0) * (taxSettings.isr / 100));
   const ptuValues = ebitdaValues.map((value) => -Math.max(value, 0) * (taxSettings.ptu / 100));
   const sirocValues = monthlyIngresos.map((value) => -Math.max(value, 0) * (taxSettings.siroc / 100));
@@ -477,11 +496,13 @@ const buildMonthlyRows = (
   return [
     { label: "INGRESOS OGC", type: "section" },
     { label: "HONORARIOS", type: "line", values: monthlyHonorarios },
-    { label: "INDIRECTOS", type: "line", values: monthlyIndirectos },
+    { label: "INDIRECTOS COBRADOS", type: "line", values: monthlyIndirectos },
     { label: "TOTAL INGRESOS", type: "subtotal", values: monthlyIngresos },
     { label: "COSTO ESTRUCTURA", type: "section" },
     ...structureGroups.map((group, index) => ({ label: group.label, type: "line" as const, values: costRows[index] })),
     { label: "TOTAL ESTRUCTURA", type: "subtotal", values: monthlyEstructura },
+    { label: "COSTO HISTÓRICO DE INDIRECTOS", type: "line", values: legacyIndirectosCosts.map(amount => -amount) },
+    { label: "SALDO DE INDIRECTOS", type: "subtotal", values: indirectosBalances },
     { label: "EBITDA", type: "metric", values: ebitdaValues, percentages: ebitdaPercentages },
     { label: "IMPUESTOS SOBRE RESULTADO", type: "section" },
     { label: "ISR CORPORATIVO", type: "line", values: isrValues },
@@ -508,10 +529,10 @@ const buildMonthlyDataNote = (months: PnlMonth[], pnlSummary?: PnlSummary) => {
     safeNumber(pnlSummary.totals.ingresosOgc) > 0 || safeNumber(pnlSummary.totals.costosEstructuraOgc) > 0;
 
   if (hasPeriodActivity && monthsWithMovements < months.length) {
-    return `Honorarios calculados exclusivamente con el porcentaje automático de cada obra sobre pagos elegibles; indirectos, viáticos y general conditions según la fecha del pago. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
+    return `Honorarios calculados exclusivamente con el porcentaje automático de cada obra sobre pagos elegibles; indirectos automáticos desde la fecha de inicio configurada por obra; costos reales desde movimientos OGC. Los periodos anteriores conservan indirectos históricos. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
   }
 
-  return "Honorarios calculados exclusivamente con el porcentaje automático de cada obra sobre pagos elegibles; indirectos, viáticos y general conditions según la fecha del pago. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento, sin prorrateo lineal.";
+  return "Honorarios calculados exclusivamente con el porcentaje automático de cada obra sobre pagos elegibles; indirectos automáticos desde la fecha de inicio configurada por obra; costos reales desde movimientos OGC. Los periodos anteriores conservan indirectos históricos. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento, sin prorrateo lineal.";
 };
 
 function MonthlyPnlTable({
@@ -1039,6 +1060,19 @@ function CollectedIncomeBreakdownDialog({
   );
 }
 
+function renderIndirectosBalanceRows(totals: { costosRealesIndirectos?: number; saldoIndirectos?: number }) {
+  return <>
+    <tr className="border-b border-border bg-card">
+      <td className="px-8 py-6 align-middle text-base text-foreground">COSTOS REALES DE INDIRECTOS <span className="block text-xs text-muted-foreground">Incluidos en costos OGC</span></td>
+      <td className="px-8 py-6 text-center align-middle text-base">{formatAccountingCurrency(-safeNumber(totals.costosRealesIndirectos))}</td>
+    </tr>
+    <tr className="border-b border-border bg-card">
+      <td className="px-8 py-6 align-middle text-base text-foreground">SALDO DE INDIRECTOS <span className="block text-xs text-muted-foreground">Cobrados menos costos reales y costo histórico</span></td>
+      <td className="px-8 py-6 text-center align-middle text-base">{formatTableCurrency(safeNumber(totals.saldoIndirectos))}</td>
+    </tr>
+  </>;
+}
+
 function AnnualPnlSummaryTables({
   totals,
   periodLabel,
@@ -1052,7 +1086,7 @@ function AnnualPnlSummaryTables({
     ...row,
     percent: safeDivide(row.amount, totals.costosEstructuraOgc),
   }));
-  const costosEstructuraMasIndirectos = totals.costosEstructuraOgc + totals.indirectos;
+  const costosEstructuraMasIndirectos = totals.costosEstructuraMasIndirectos;
 
   return (
     <div className="grid grid-cols-1 gap-10 xl:grid-cols-2">
@@ -1126,7 +1160,7 @@ function AnnualPnlSummaryTables({
                 </td>
               </tr>
               <tr className="border-b border-border bg-card">
-                <td className="px-8 py-6 align-middle text-base text-foreground">INDIRECTOS OGC</td>
+                <td className="px-8 py-6 align-middle text-base text-foreground">INDIRECTOS COBRADOS</td>
                 <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                   {formatTableCurrency(totals.indirectos)}
                 </td>
@@ -1138,11 +1172,12 @@ function AnnualPnlSummaryTables({
                 </td>
               </tr>
               <tr className="border-b border-border bg-card">
-                <td className="px-8 py-6 align-middle text-base text-foreground">COSTO ESTRUCTURA + INDIRECTOS</td>
+                <td className="px-8 py-6 align-middle text-base text-foreground">COSTOS OGC + INDIRECTOS HISTÓRICOS</td>
                 <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                   {formatAccountingCurrency(-Math.abs(costosEstructuraMasIndirectos))}
                 </td>
               </tr>
+              {renderIndirectosBalanceRows(totals)}
               <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                 <td className="px-8 py-6 align-middle text-base text-foreground">
                   <div className="flex flex-col gap-1">
@@ -1220,7 +1255,7 @@ function ProjectProfitabilityView({
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <h2 className="text-lg text-foreground">RENTABILIDAD POR OBRA - ACUMULADO AL CORTE</h2>
             <div className="text-left md:text-right">
-              <p className="text-sm text-disabled-foreground">Ingresos por obra vs. indirectos y costos administrativos asignados</p>
+              <p className="text-sm text-disabled-foreground">Ingresos por obra vs. costos reales OGC asignados y costos históricos de indirectos</p>
             </div>
           </div>
 
@@ -1231,11 +1266,11 @@ function ProjectProfitabilityView({
                   <th className="w-[420px] px-8 py-4 font-normal">Obra</th>
                   <th className="px-8 py-4 text-center font-normal">
                     <span className="block">Ingresos OGC</span>
-                    <span className="mt-1 block text-xs text-disabled-foreground">Honorarios + indirectos / viáticos / general conditions</span>
+                    <span className="mt-1 block text-xs text-disabled-foreground">Honorarios + indirectos cobrados</span>
                   </th>
                   <th className="px-8 py-4 text-center font-normal">
                     <span className="block">Costos OGC</span>
-                    <span className="mt-1 block text-xs text-disabled-foreground">Indirectos + costos administrativos asignados</span>
+                    <span className="mt-1 block text-xs text-disabled-foreground">Costos reales OGC asignados + costo histórico de indirectos</span>
                   </th>
                   <th className="px-8 py-4 text-center font-normal">Margen</th>
                 </tr>
@@ -1360,7 +1395,7 @@ function ProjectProfitabilityView({
                     </td>
                   </tr>
                   <tr className="border-b border-border bg-card">
-                    <td className="px-8 py-6 align-middle text-base text-foreground">INDIRECTOS OGC</td>
+                    <td className="px-8 py-6 align-middle text-base text-foreground">INDIRECTOS COBRADOS</td>
                     <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatTableCurrency(indirectosOgc)}
                     </td>
@@ -1372,11 +1407,12 @@ function ProjectProfitabilityView({
                     </td>
                   </tr>
                   <tr className="border-b border-border bg-card">
-                    <td className="px-8 py-6 align-middle text-base text-foreground">COSTO ESTRUCTURA + INDIRECTOS</td>
+                    <td className="px-8 py-6 align-middle text-base text-foreground">COSTOS OGC + INDIRECTOS HISTÓRICOS</td>
                     <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatAccountingCurrency(-Math.abs(totals.costosEstructuraMasIndirectos))}
                     </td>
                   </tr>
+                  {renderIndirectosBalanceRows(totals)}
                   <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                     <td className="px-8 py-6 align-middle text-base text-foreground">
                       <div className="flex flex-col gap-1">

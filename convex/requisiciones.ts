@@ -4,6 +4,7 @@ import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { canUserAccessDesarrollo, getCurrentUserOrThrow } from "./permissions";
 import { assertRequisicionBudgetItems } from "./partidaReferences";
+import { assertRequisicionStateChange } from "./requisicionStateRules";
 import { renderRequisicionEmail } from "./requisicionEmailTemplates";
 import { canAddRemissionPhotos, getRequisicionNotificationConfig, isValidRemissionPhoto, notificationForStatusTransition, requisitionDetailUrl, shouldNotifyRequisitionUser, validateOnsitePaymentRequest, type RequisicionNotificationType } from "../src/lib/requisicionNotificationMatrix";
 
@@ -938,6 +939,7 @@ export const updateStatus = mutation({
     args: {
         id: v.id("requisiciones"),
         status: v.string(),
+        expected_status: v.optional(v.string()),
         comentario: v.optional(v.string()),
         documentos: v.optional(v.array(requisicionStatusDocumentValidator)),
         changed_by_id: v.id("users"),
@@ -950,7 +952,9 @@ export const updateStatus = mutation({
         if (!requisicion) throw new Error("Requisicion not found");
         const project = await ctx.db.get(requisicion.proyecto);
         if (!project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
-        if (requisicion.status === args.status) return { success: true };
+        if (!["En proceso", "Pagado", "Cancelado"].includes(args.status)) throw new Error("Estado de pago inválido");
+        const transition = assertRequisicionStateChange(requisicion, { paymentStatus: args.status }, args.expected_status);
+        if (!transition.changed) return { success: true, changed: false };
         
         const oldStatus = requisicion.status;
         const now = Date.now();
@@ -1006,7 +1010,7 @@ export const updateStatus = mutation({
             message: args.comentario || "La requisición se marcó como pagada.",
         });
         
-        return { success: true };
+        return { success: true, changed: true };
     },
 });
 
@@ -1045,6 +1049,7 @@ export const updateStatusEntrega = mutation({
     args: {
         id: v.id("requisiciones"),
         status_entrega: v.string(),
+        expected_status_entrega: v.optional(v.string()),
         comentario: v.optional(v.string()),
         documentos: v.optional(v.array(requisicionStatusDocumentValidator)),
         changed_by_id: v.id("users"),
@@ -1057,7 +1062,9 @@ export const updateStatusEntrega = mutation({
         if (!requisicion) throw new Error("Requisicion not found");
         const project = await ctx.db.get(requisicion.proyecto);
         if (!project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || actor.role === "user" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para registrar la entrega");
-        if (requisicion.status_entrega === args.status_entrega) return { success: true };
+        if (!["Pendiente", "Parcial", "Completo"].includes(args.status_entrega)) throw new Error("Estado de entrega inválido");
+        const transition = assertRequisicionStateChange(requisicion, { deliveryStatus: args.status_entrega }, args.expected_status_entrega);
+        if (!transition.changed) return { success: true, changed: false };
         if (args.status_entrega === "Parcial" || args.status_entrega === "Completo") {
             for (const doc of args.documentos ?? []) {
                 const metadata = await ctx.storage.getMetadata(doc.storage_id);
@@ -1115,7 +1122,7 @@ export const updateStatusEntrega = mutation({
             message: `Entrega ${args.status_entrega.toLowerCase()} registrada${args.documentos?.length ? " con nota de remisión" : ""}.`,
         });
         
-        return { success: true };
+        return { success: true, changed: true };
     },
 });
 
@@ -1528,6 +1535,20 @@ export const reviewRequisicion = mutation({
         const project = await ctx.db.get(requisicion.proyecto);
         if (!project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
         
+        const existingItems = await ctx.db.query("requisicion_items")
+            .withIndex("by_requisicion", q => q.eq("requisicion_id", args.id)).collect();
+        if (!existingItems.length || args.items.length !== existingItems.length || new Set(args.items.map(i => i.item_id)).size !== existingItems.length) {
+            throw new Error("Revisa todos los materiales de la requisición una sola vez.");
+        }
+        for (const decision of args.items) {
+            const item = existingItems.find(i => i._id === decision.item_id);
+            if (!item) throw new Error("El material no pertenece a la requisición");
+            if (!["aprobado", "rechazado"].includes(decision.status_revision)) throw new Error("Decisión de revisión inválida");
+            if (decision.status_revision === "aprobado" && (!Number.isFinite(decision.cantidad_aprobada ?? item.cantidad) || (decision.cantidad_aprobada ?? item.cantidad) <= 0)) {
+                throw new Error("La cantidad aprobada debe ser mayor a cero");
+            }
+        }
+
         // Patch each item with review decision
         for (const itemDecision of args.items) {
             const item = await ctx.db.get(itemDecision.item_id);
@@ -1610,6 +1631,7 @@ export const reviewRequisicion = mutation({
             proyecto: requisicion.proyecto,
             requisicion_id: args.id,
             action: "reviewed",
+            field_changed: "status_revision",
             new_value: JSON.stringify({
                 status_revision: overallStatus,
                 nota_revision: args.nota_revision,
@@ -1663,6 +1685,10 @@ export const reviewSingleItem = mutation({
         const target = await ctx.db.get(item.requisicion_id);
         const project = target ? await ctx.db.get(target.proyecto) : null;
         if (!target || !project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
+        if (!["aprobado", "rechazado"].includes(args.status_revision)) throw new Error("Decisión de revisión inválida");
+        const approvedQuantity = args.cantidad_aprobada ?? item.cantidad;
+        if (args.status_revision === "aprobado" && (!Number.isFinite(approvedQuantity) || approvedQuantity <= 0)) throw new Error("La cantidad aprobada debe ser mayor a cero");
+        if (item.status_revision === args.status_revision && (args.status_revision === "rechazado" || item.cantidad_aprobada === approvedQuantity)) return { allReviewed: false };
         
         // Update this item
         await ctx.db.patch(args.item_id, {
@@ -1693,7 +1719,8 @@ export const reviewSingleItem = mutation({
         ).length;
         const totalCount = allItems.length;
         
-        const overallStatus = approvedCount === totalCount ? "Aprobada" : approvedCount === 0 ? "Rechazada" : "Parcialmente Aprobada";
+        const hasModifiedQuantity = allItems.some(i => i.status_revision === "aprobado" && (i.cantidad_aprobada ?? i.cantidad) !== i.cantidad);
+        const overallStatus = approvedCount === totalCount && !hasModifiedQuantity ? "Aprobada" : approvedCount === 0 ? "Rechazada" : "Parcialmente Aprobada";
         
         const requisicion = await ctx.db.get(item.requisicion_id);
         
@@ -1723,6 +1750,7 @@ export const reviewSingleItem = mutation({
                 proyecto: requisicion.proyecto,
                 requisicion_id: item.requisicion_id,
                 action: "reviewed",
+                field_changed: "status_revision",
                 new_value: JSON.stringify({
                     status_revision: overallStatus,
                     solicitante: requisicion.solicitante_nombre,

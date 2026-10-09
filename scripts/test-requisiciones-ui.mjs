@@ -87,7 +87,7 @@ async function closeDialog(page) {
 async function openPage(width, query = "") {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     page.on("pageerror", (error) => errors.push(error.message));
-    page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("console", (message) => { if (message.type() === "error" && !message.text().includes("Fallo simulado al guardar el estado")) errors.push(message.text()); });
     // Keep the preview image local and prevent any external transport in this fixture.
     await page.route("https://www.ogc.mx/**", (route) => route.fulfill({ contentType: "image/svg+xml", body: logo }));
     await page.route("**/mock-upload", (route) => route.fulfill({ contentType: "application/json", body: '{"storageId":"mock-storage"}' }));
@@ -158,7 +158,7 @@ try {
         await assertModalContext(page, "pending", "edit");
         await closeDialog(page);
         await openContext(page);
-        await contextMenu(page).getByRole("option", { name: "Mover a Pagada", exact: true }).click();
+        await contextMenu(page).getByRole("option", { name: "Marcar como Pagada", exact: true }).click();
         await expect(page.getByRole("dialog", { name: "Cambiar a Pagada", exact: true })).toBeVisible();
         await closeDialog(page);
         await openContext(page);
@@ -203,6 +203,7 @@ try {
         await snapshot(page, `status-${width}`);
         await closeDialog(page);
         await expect(req.getByRole("button", { name: "Contraer requisición", exact: true })).toBeVisible();
+        await page.getByRole("tab", { name: /^Por revisar/ }).click();
         await menuAction(page, "pending", "Agregar proveedor");
         await snapshot(page, `providers-${width}`);
         await page.getByRole("button", { name: "Ver detalles", exact: true }).click();
@@ -253,6 +254,81 @@ try {
         await page.close();
         console.log(`Requisiciones ${width}px: layout, filtros, materiales y diálogos OK`);
     }
+    for (const width of [390, 1280]) {
+        const page = await openPage(width, "?role=finance&received-unpaid=1");
+        await card(page).getByRole("button", { name: "Cambiar a Pagada", exact: true }).click();
+        await expect(page.getByRole("dialog").getByText(/Primero completa la revisión de materiales/)).toBeVisible();
+        await expect(page.getByRole("button", { name: "Guardar cambio", exact: true })).toHaveCount(0);
+        assert.equal(await page.evaluate(() => window.recordedMutations.length), 0);
+        await page.getByRole("button", { name: "Revisar materiales", exact: true }).click();
+        await expect(visibleQuantity(page)).toBeVisible();
+        await expect(card(page).locator(`[data-material-layout='${width < 768 ? "mobile" : "table"}']`).getByText("Material rechazado", { exact: true })).toBeVisible();
+        assert.equal(await page.evaluate(() => window.recordedMutations.length), 0);
+        await page.getByRole("tab", { name: /^Aprobadas/ }).click();
+        const req = card(page, "approved");
+        await req.getByRole("button", { name: "Cambiar a Aprobación parcial", exact: true }).click();
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        assert.equal(await page.evaluate(() => window.recordedMutations.length), 0);
+        await req.getByRole("button", { name: "Cambiar a Pagada", exact: true }).click();
+        const consequences = page.locator("[data-status-consequences]");
+        await expect(consequences).toContainText("Parcialmente Aprobada");
+        await expect(consequences).toContainText("Completo · Se conserva");
+        await expect(consequences).toContainText("En proceso → Pagado");
+        await expect(page.getByRole("button", { name: "Guardar cambio", exact: true })).toBeEnabled();
+        await snapshot(page, `independent-payment-${width}`);
+        await page.evaluate(() => { window.holdStatus = true; });
+        await page.getByRole("button", { name: "Guardar cambio", exact: true }).evaluate(button => { button.click(); button.click(); });
+        await expect(page.getByRole("button", { name: "Guardar cambio", exact: true })).toBeDisabled();
+        await page.keyboard.press("Escape");
+        await expect(page.getByRole("dialog")).toBeVisible();
+        assert.equal(await page.evaluate(() => window.recordedMutations.length), 1);
+        assert.equal(await page.evaluate(() => window.recordedMutations[0].name), "requisiciones:updateStatus");
+        await page.evaluate(() => { window.releaseStatus(); window.holdStatus = false; });
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        await expect(page.getByText("Pago: En proceso → Pagado", { exact: true })).toBeVisible();
+        await page.getByRole("tab", { name: /^Recibidas/ }).click();
+        await expect(card(page, "approved")).toBeVisible();
+        await expect(card(page, "approved").getByRole("button", { name: "Cambiar a Aprobación parcial", exact: true })).toBeVisible();
+        await card(page, "approved").getByRole("button", { name: "Cambiar a Pagada", exact: true }).click();
+        assert.equal(await page.evaluate(() => window.recordedMutations.length), 1);
+        await page.close();
+
+        const deliveryPage = await openPage(width);
+        await deliveryPage.getByRole("tab", { name: /^Aprobadas/ }).click();
+        await card(deliveryPage, "approved").getByRole("button", { name: "Cambiar a Recibida", exact: true }).click();
+        await expect(deliveryPage.locator("[data-status-consequences]")).toContainText("En proceso · Se conserva");
+        await expect(deliveryPage.getByRole("button", { name: "Guardar cambio", exact: true })).toBeDisabled();
+        await deliveryPage.getByLabel("Comentario (opcional con foto)", { exact: true }).fill("Entrega validada en obra");
+        await snapshot(deliveryPage, `independent-delivery-${width}`);
+        await deliveryPage.evaluate(() => { window.failStatus = true; });
+        await deliveryPage.getByRole("button", { name: "Guardar cambio", exact: true }).click();
+        await expect(deliveryPage.getByText("No se pudo actualizar el estado", { exact: true })).toBeVisible();
+        await expect(deliveryPage.getByRole("dialog")).toBeVisible();
+        await expect(deliveryPage.getByLabel("Comentario (opcional con foto)", { exact: true })).toHaveValue("Entrega validada en obra");
+        assert.deepEqual(await deliveryPage.evaluate(() => window.recordedMutations.map(entry => entry.name)), ["requisiciones:updateStatusEntrega"]);
+        await deliveryPage.evaluate(() => { window.failStatus = false; });
+        await deliveryPage.getByRole("button", { name: "Guardar cambio", exact: true }).click();
+        await expect(deliveryPage.getByRole("dialog")).toHaveCount(0);
+        await deliveryPage.getByRole("tab", { name: /^Recibidas/ }).click();
+        await expect(card(deliveryPage, "approved")).toBeVisible();
+        await card(deliveryPage, "approved").getByRole("button", { name: "Cambiar a Recibida", exact: true }).click();
+        assert.equal(await deliveryPage.evaluate(() => window.recordedMutations.length), 2);
+        await openContext(deliveryPage, "approved");
+        await contextMenu(deliveryPage).getByRole("option", { name: "Pendiente", exact: true }).click();
+        await expect(deliveryPage.locator("[data-status-consequences]")).toContainText("Completo → Pendiente");
+        await expect(deliveryPage.locator("[data-status-consequences]")).toContainText("En proceso · Se conserva");
+        await expect(deliveryPage.getByRole("button", { name: "Guardar cambio", exact: true })).toBeDisabled();
+        await snapshot(deliveryPage, `delivery-reversal-${width}`);
+        await closeDialog(deliveryPage);
+        await openContext(deliveryPage, "received");
+        await contextMenu(deliveryPage).getByRole("option", { name: "En proceso", exact: true }).click();
+        await expect(deliveryPage.locator("[data-status-consequences]")).toContainText("Pagado → En proceso");
+        await expect(deliveryPage.locator("[data-status-consequences]")).toContainText("Completo · Se conserva");
+        await expect(deliveryPage.getByRole("button", { name: "Guardar cambio", exact: true })).toBeDisabled();
+        await snapshot(deliveryPage, `payment-reversal-${width}`);
+        await closeDialog(deliveryPage);
+        await deliveryPage.close();
+    }
     const rejectPage = await openPage(390);
     await card(rejectPage).getByRole("button", { name: "Expandir requisición", exact: true }).click();
     await rejectPage.getByRole("button", { name: `Rechazar ${material}`, exact: true }).click();
@@ -276,11 +352,11 @@ try {
         assert.equal(await menu.getByRole("option", { name: "Eliminar", exact: true }).count(), role === "contratista" ? 1 : 0);
         assert.equal(await menu.getByRole("option", { name: "Pagado", exact: true }).count(), role === "finance" ? 1 : 0);
         if (role === "finance") {
-            await expect(menu.getByRole("option", { name: "Mover a Aprobada", exact: true })).toHaveAttribute("data-disabled", "false");
-            await expect(menu.getByRole("option", { name: "Mover a Recibida", exact: true })).toHaveAttribute("data-disabled", "true");
+            await expect(menu.getByRole("option", { name: "Revisar aprobación", exact: true })).toHaveAttribute("data-disabled", "false");
+            await expect(menu.getByRole("option", { name: "Marcar como Recibida", exact: true })).toHaveAttribute("data-disabled", "true");
         } else {
-            await expect(menu.getByRole("option", { name: "Mover a Aprobada", exact: true })).toHaveAttribute("data-disabled", "true");
-            await expect(menu.getByRole("option", { name: "Mover a Recibida", exact: true })).toHaveAttribute("data-disabled", canManage ? "false" : "true");
+            await expect(menu.getByRole("option", { name: role === "almacenista" ? "Estado: Aprobada" : "Revisar aprobación", exact: true })).toHaveAttribute("data-disabled", "true");
+            await expect(menu.getByRole("option", { name: "Marcar como Recibida", exact: true })).toHaveAttribute("data-disabled", canManage ? "false" : "true");
         }
         if (role === "almacenista") await expect(menu.getByRole("option", { name: "Agregar nota de remisión", exact: true })).toBeVisible();
         await page.keyboard.press("Escape");
@@ -290,7 +366,7 @@ try {
             assert.equal(await contextMenu(page).getByRole("option", { name: "Editar", exact: true }).count(), 0);
             assert.equal(await contextMenu(page).getByRole("option", { name: "Agregar proveedor", exact: true }).count(), 0);
             assert.equal(await contextMenu(page).getByRole("option", { name: "Eliminar", exact: true }).count(), 0);
-            await expect(contextMenu(page).getByRole("option", { name: "Mover a Recibida", exact: true })).toHaveAttribute("data-disabled", "true");
+            await expect(contextMenu(page).getByRole("option", { name: "Marcar como Recibida", exact: true })).toHaveAttribute("data-disabled", "true");
             await page.keyboard.press("Escape");
         }
         await checkLayout(page, `role-${role}`);
@@ -305,10 +381,12 @@ try {
     for (const [width, height] of [[320, 568], [1024, 600]]) {
         const page = await openPage(width);
         await page.setViewportSize({ width, height });
-        await card(page).getByRole("button", { name: "Cambiar a Pagada", exact: true }).click();
+        await page.getByRole("tab", { name: /^Aprobadas/ }).click();
+        await card(page, "approved").getByRole("button", { name: "Cambiar a Pagada", exact: true }).click();
         await page.getByRole("button", { name: "Guardar cambio", exact: true }).scrollIntoViewIfNeeded();
         await snapshot(page, `short-status-${width}`);
         await closeDialog(page);
+        await page.getByRole("tab", { name: /^Por revisar/ }).click();
         await menuAction(page, "pending", "Agregar proveedor");
         await page.getByRole("button", { name: "Ver detalles", exact: true }).click();
         await page.getByRole("button", { name: "Asignar este Proveedor", exact: true }).scrollIntoViewIfNeeded();

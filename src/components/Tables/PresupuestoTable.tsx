@@ -69,13 +69,15 @@ interface PresupuestoTableProps {
   showPrecioUnitario: boolean;
   filteredPayments?: Record<string, number>;
   filteredHonorarios?: number;
+  filteredIndirectos?: number;
+  proyectoId?: Id<"desarrollos">;
   dateFilterLabel?: string;
   loadMore: (numItems: number) => void;
 }
 
-export default function PresupuestoTable({ data, status, showPrecioUnitario, filteredPayments, filteredHonorarios, dateFilterLabel, loadMore, onRequestDelete }: PresupuestoTableProps) {
+export default function PresupuestoTable({ data, status, showPrecioUnitario, filteredPayments, filteredHonorarios, filteredIndirectos, proyectoId, dateFilterLabel, loadMore, onRequestDelete }: PresupuestoTableProps) {
   // Get project's default currency based on transaction history
-  const projectId = data.length > 0 ? data[0].proyecto : undefined;
+  const projectId = proyectoId || (data.length > 0 ? data[0].proyecto : undefined);
   const currencyInfo = useQuery(
     api.currency_helpers.getProjectDefaultCurrency,
     projectId ? { proyecto_id: projectId as Id<"desarrollos"> } : "skip"
@@ -87,6 +89,11 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
     api.desarrollos.getById,
     projectId ? { id: projectId as Id<"desarrollos"> } : "skip"
   );
+
+  const automaticPayments = useQuery(api.pagos.getPaymentsByDateRange,
+    projectId && proyecto?.indirectos_porcentaje !== undefined && !filteredPayments ? { proyecto_id: projectId } : "skip");
+  const displayPayments = filteredPayments || automaticPayments?.paymentsByPartida;
+  const automaticIndirectos = filteredPayments ? (filteredIndirectos ?? 0) : (automaticPayments?.indirectos ?? 0);
 
   // Helper to check if item is "Honorarios" (case-insensitive, trimmed)
   const isHonorariosItem = (nombre: string | undefined) => {
@@ -295,8 +302,8 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
 
   // Compute filtered pagado for an item (recursively aggregates children)
   const getFilteredPagado = (item: PartidaRow): number => {
-    if (!filteredPayments) return item.pagado;
-    const directPayment = filteredPayments[item.originalDoc?._id || ""] || 0;
+    if (!displayPayments) return item.pagado;
+    const directPayment = displayPayments[item.originalDoc?._id || ""] || 0;
     if (!item.children || item.children.length === 0) {
       return directPayment;
     }
@@ -307,7 +314,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
     <div className="space-y-4 text-left">
       <div className="bg-card border border-border overflow-hidden">
         <Table mobileSummary={showPrecioUnitario ? [0, 4, 5, 6, 7, 8] : [0, 1, 2, 3, 4, 5]}>
-          <TableHeader variant="budget" className="text-muted-foreground">
+          <TableHeader variant="budget">
             <TableRow variant="budget">
 
               <TableHead variant="budget">
@@ -357,7 +364,8 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
               // Calculate differences for each column
               const approvedDiff = getApprovedVsOriginal(item.presupuestoOriginal, item.presupuestoAprobado);
               const displayPagado = getFilteredPagado(item);
-              const porGastarBadge = getPorGastarBadge(item.porGastar);
+              const displayPorGastar = displayPayments ? item.presupuestoAprobado - displayPagado : item.porGastar;
+              const porGastarBadge = getPorGastarBadge(displayPorGastar);
 
               return (
                 <React.Fragment key={item.uniqueId}>
@@ -437,7 +445,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                           <Badge
                             variant={porGastarBadge.isRemaining ? "neutral" : "danger"}
                           >
-                            {porGastarBadge.isRemaining ? 'Por gastar' : 'Incremento'} - {formatCurrency(Math.abs(item.porGastar), defaultCurrency)}
+                            {porGastarBadge.isRemaining ? 'Por gastar' : 'Incremento'} - {formatCurrency(Math.abs(displayPorGastar), defaultCurrency)}
                           </Badge>
                         )}
                       </div>
@@ -470,6 +478,17 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                 </React.Fragment>
               );
             })}
+            {proyecto?.indirectos_porcentaje !== undefined && (
+              <TableRow variant="budget">
+                <TableCell variant="budget">Indirectos automáticos</TableCell>
+                {showPrecioUnitario && <><TableCell variant="budget">—</TableCell><TableCell variant="budget">—</TableCell><TableCell variant="budget">—</TableCell></>}
+                <TableCell variant="budget">—</TableCell>
+                <TableCell variant="budget">—</TableCell>
+                <TableCell variant="budget">{formatCurrency(automaticIndirectos, defaultCurrency)}</TableCell>
+                <TableCell variant="budget">{proyecto.indirectos_porcentaje}%</TableCell>
+                <TableCell variant="budgetMuted">Automático</TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
