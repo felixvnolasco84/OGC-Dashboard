@@ -1,4 +1,5 @@
 import { isProgramaItemDelayed } from "./programa-obra-status";
+import { programToday } from "@/lib/programa-obra-rules";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -210,7 +211,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
   const avanceReal = item.avanceReal ?? 0;
   const isComplete = item.isComplete ?? avanceReal >= 100;
   const financiero = item.financiero ?? 0;
-  const now = new Date(currentTime);
+  const now = parseDate(programToday(currentTime))!;
 
   // A late start is only shown after a full seven-day reporting window.
   // Once progress exists, preserve the red span through its first positive entry.
@@ -239,10 +240,9 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
   // Once the planned end has passed, keep extending an incomplete activity to
   // today. If it later reaches 100%, retain its known actual completion date.
   let automaticDelayEndDate: Date | null = null;
-  if (!isComplete && isProgramaItemDelayed(item, currentTime)) {
+  if (!isComplete && item.completedAt == null && isProgramaItemDelayed(item, currentTime)) {
     automaticDelayEndDate = now;
   } else if (
-    isComplete &&
     item.completionKnown &&
     item.completedAt != null
   ) {
@@ -327,6 +327,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
 
   return (
     <div
+      title={`Inicio real: ${item.progressStartedAt != null ? formatRecordedStart(item.progressStartedAt) : "Desconocido"} · Terminación real: ${item.completedAt != null ? formatRecordedStart(item.completedAt) : "Desconocida"} · Avance al día: ${item.detalleSchedule?.progress_as_of ?? "Sin fecha"}`}
       className={cn(
         "absolute top-0 bottom-0 flex items-start",
         isHovered ? "z-40" : "z-10"
@@ -383,7 +384,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         {item.level === 0 && level0ExtensionWidth > 0 && (
           <>
             <div
-              className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
+              data-delay-kind="finish" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
               style={{ left: `${barWidth}px`, width: `${level0ExtensionWidth}px` }}
             />
             <div
@@ -407,7 +408,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         {item.level === 0 && lateStartWidth > 0 && (
           <>
             <div
-              className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
+              data-delay-kind="start" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
               style={{ left: 0, width: `${lateStartWidth}px` }}
             />
             <div
@@ -449,7 +450,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         {item.level === 1 && extensionWidth > 0 && (
           <>
             <div
-              className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
+              data-delay-kind="finish" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
               style={{ left: `${barWidth}px`, width: `${extensionWidth}px` }}
             />
             <div
@@ -466,7 +467,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         {item.level === 1 && lateStartWidth > 0 && (
           <>
             <div
-              className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
+              data-delay-kind="start" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
               style={{ left: 0, width: `${lateStartWidth}px` }}
             />
             <div
@@ -484,7 +485,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                 type="button"
                 className="absolute inset-y-0 z-[15] w-8 -translate-x-1/2 cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border-0 bg-transparent p-0"
                 style={{ left: `${recordedStartOffset}px` }}
-                aria-label={`Inicio registrado: ${recordedStartLabel} · primer avance`}
+                aria-label={`Inicio real: ${recordedStartLabel}`}
                 onClick={(event) => event.stopPropagation()}
               >
                 <span
@@ -494,7 +495,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" sideOffset={4}>
-              Inicio registrado: {recordedStartLabel} · primer avance
+              Inicio real: {recordedStartLabel}
             </TooltipContent>
           </Tooltip>
         )}

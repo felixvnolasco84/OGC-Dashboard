@@ -4,7 +4,8 @@ import { assertBudgetParent } from "./partidaReferences";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { assertProgramCapability, bumpProgramVersion, executionContext, updateLegacyExecutionProgress, event } from "./programaObraExecution";
-import { programDate, projectProgramDates } from "../src/lib/programa-obra-rules";
+import { programDate, programToday, projectProgramDates } from "../src/lib/programa-obra-rules";
+import { resolveProgressRecord } from "../src/lib/programa-obra-progress";
 import { previewProgramImport } from "./programaObraImport";
 export {
   getExecutionProgram, initializeExecutionProgram, configureExecutionProgram, setExecutionPermission,
@@ -489,6 +490,8 @@ export const updateDetalleAvance = mutation({
     detalle_id: v.id("programa_obra_detalle"),
     avance_porcentaje: v.number(),
     execution_date: v.optional(v.string()),
+    actual_start: v.optional(v.string()),
+    actual_finish: v.optional(v.string()),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -500,11 +503,14 @@ export const updateDetalleAvance = mutation({
     }
     await assertProjectAccess(ctx, detalle.proyecto);
     validateMilestonePercentage(args.avance_porcentaje);
-    if (await updateLegacyExecutionProgress(ctx, detalle, args.avance_porcentaje, args.execution_date, args.reason)) return { success: true };
+    if (await updateLegacyExecutionProgress(ctx, detalle, args.avance_porcentaje, args.execution_date, args.reason, args.actual_start, args.actual_finish)) return { success: true };
     if (args.avance_porcentaje < (detalle.avance_porcentaje ?? 0) && !args.reason?.trim()) throw new Error("Explica el motivo de la reducción o reapertura.");
 
     const previousValue = detalle.avance_porcentaje;
-    if (previousValue === args.avance_porcentaje) {
+    const { actual_start, actual_finish, progress_as_of, changed } = resolveProgressRecord({ ...detalle, progress: previousValue ?? 0 }, {
+      progress: args.avance_porcentaje, execution_date: args.execution_date ?? programToday(), actual_start: args.actual_start, actual_finish: args.actual_finish, reason: args.reason,
+    });
+    if (!changed) {
       return { success: true };
     }
 
@@ -524,6 +530,7 @@ export const updateDetalleAvance = mutation({
 
     await ctx.db.patch(args.detalle_id, {
       avance_porcentaje: args.avance_porcentaje,
+      actual_start, actual_finish, progress_as_of,
     });
 
     await ctx.db.insert("programa_obra_avance_historial", {
@@ -533,6 +540,10 @@ export const updateDetalleAvance = mutation({
       familia: detalle.familia,
       old_value: previousValue,
       new_value: args.avance_porcentaje,
+      old_actual_start: detalle.actual_start, actual_start,
+      old_actual_finish: detalle.actual_finish, actual_finish,
+      old_progress_as_of: detalle.progress_as_of, execution_date: progress_as_of,
+      reason: args.reason?.trim() || "Registro de avance físico",
       changed_by_id: userId,
       changed_by_name: userName,
       created_at: Date.now(),
@@ -950,7 +961,7 @@ export const bulkUpsertFromExcel = mutation({
       const allDetails = await ctx.db.query("programa_obra_detalle").withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto)).collect();
       for (const d of allDetails.filter((d) => d.nivel === 2 && d.orden != null && !d.archived)) {
         if (execution.activities.some((a) => a.detalle_id === d._id)) continue;
-        await ctx.db.insert("programa_obra_activities", { proyecto: args.proyecto, detalle_id: d._id, front_id: front._id, name: d.familia, progress: d.avance_porcentaje ?? 0, share: 100, mandatory: true, archived: false, requires_review: false, current_start: programDate(d.fecha_inicio), current_finish: programDate(d.fecha_fin), dates_need_review: (d.tiempo_extra_cantidad ?? 0) > 0 });
+        await ctx.db.insert("programa_obra_activities", { proyecto: args.proyecto, detalle_id: d._id, front_id: front._id, name: d.familia, progress: d.avance_porcentaje ?? 0, actual_start: d.actual_start, actual_finish: d.actual_finish, progress_as_of: d.progress_as_of, share: 100, mandatory: true, archived: false, requires_review: false, current_start: programDate(d.fecha_inicio), current_finish: programDate(d.fecha_fin), dates_need_review: (d.tiempo_extra_cantidad ?? 0) > 0 });
       }
       const user = await getCurrentUserOrThrow(ctx);
       await ctx.db.insert("programa_obra_revisions", { proyecto: args.proyecto, kind: "import", actor_id: user._id, created_at: Date.now(), reason: "Importación revisada de Excel; las filas ausentes se conservan", version: execution.config.version, snapshot_json: JSON.stringify({ rows: args.rows, proposal: preview.proposal, absent: preview.absent }) });

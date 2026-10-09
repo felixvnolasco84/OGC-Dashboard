@@ -5,6 +5,7 @@ export function useMutation(reference: Parameters<typeof getFunctionName>[0]) {
     const state = window as unknown as { recordedMutations: unknown[] };
     state.recordedMutations ??= [];
     state.recordedMutations.push({ name: getFunctionName(reference), args });
+    window.dispatchEvent(new CustomEvent("programa-progress-test", { detail: { name: getFunctionName(reference), args } }));
   };
 }
 export function useQuery(reference: Parameters<typeof getFunctionName>[0], args?: unknown) {

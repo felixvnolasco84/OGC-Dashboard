@@ -24,6 +24,16 @@ La versión incorpora actividades estables por familia y frente, dependencias, r
 
 ## Excel, ponderaciones y reportes
 
+### Fechas reales desde el desglose
+
+El porcentaje de cada desglose y la opción **Registrar avance** abren la misma captura en escritorio y móvil. Se indica inicio real, avance acumulado y **Avance al día** (fecha de corte); con 100 % se indica también la terminación real. Si hay varios frentes se debe elegir la actividad concreta antes de capturar. La terminación se propone inicialmente con la fecha de corte y puede ajustarse al día en que se terminó el trabajo.
+
+La captura conserva usuario y hora actuales, aunque el trabajo sea de meses anteriores. El Gantt utiliza las fechas reales, con siete días de tolerancia de inicio. Las fechas de captura de registros antiguos no se convierten en fechas de ejecución: si no existe información comprobada se muestra desconocida. El trabajo incompleto con fin vencido sigue mostrando atraso.
+
+Se pueden corregir fechas sin cambiar el porcentaje; corregir fechas existentes o reducir el avance exige motivo. En actividades por frente, corregir fechas existentes requiere autorización de planificación. Las fechas se guardan junto con el porcentaje, se validan en el servidor y se conservan al preparar actividades o importar de nuevo el Excel. Las solicitudes de excepción incluyen las fechas propuestas y no registran avance hasta su aprobación.
+
+Los campos opcionales `actual_start`, `actual_finish` y `progress_as_of` almacenan las fechas civiles en desgloses y actividades. `execution_date` de las mutaciones e historial representa el corte del avance; `created_at` mantiene el momento de captura. No cambia el formato del Excel. Desplegar primero el esquema y funciones de Convex y después el frontend.
+
 El Excel mantiene su formato. La primera vista revisa sus filas y conflictos; la segunda consulta al servidor y distingue altas, cambios, coincidencias inválidas y ausencias. Para renombrar se selecciona el registro existente. Las filas ausentes permanecen activas, con su orden e historial. Archivar exige resolver las relaciones y requisitos pendientes.
 
 La revisión de importación guarda una huella del estado consultado. Aplicar vuelve a validar las filas y las fechas; cualquier cambio concurrente invalida esa revisión. En familias divididas se conservan las fechas de cada frente y se explica en la previsualización.

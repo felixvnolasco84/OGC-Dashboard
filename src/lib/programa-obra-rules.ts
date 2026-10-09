@@ -5,7 +5,7 @@ export type ProgramActivity = {
   _id: string; proyecto: string; detalle_id: string; front_id: string; name: string;
   progress: number; share: number; mandatory: boolean; archived: boolean;
   responsible_id?: string; current_start?: string; current_finish?: string;
-  actual_start?: string; actual_finish?: string; forecast_finish?: string;
+  actual_start?: string; actual_finish?: string; forecast_finish?: string; progress_as_of?: string;
   requires_review: boolean; accepted_at?: number; accepted_by?: string;
   review_incident?: string; dates_need_review?: boolean;
 };
@@ -156,6 +156,18 @@ export function activityBlockers(activity: ProgramActivity, activities: ProgramA
 }
 export function progressBlockers(activity: ProgramActivity, nextProgress: number, blockers: ProgramBlocker[]): ProgramBlocker[] {
   return nextProgress <= activity.progress ? [] : blockers.filter((b) => b.stage === "start" || nextProgress === 100);
+}
+/** Check the actual start/finish rather than substituting the later reporting cutoff. */
+export function recordedProgressBlockers(activity: ProgramActivity, nextProgress: number, dates: { actual_start?: string; actual_finish?: string; progress_as_of: string }, activities: ProgramActivity[], dependencies: ProgramDependency[], requirements: ProgramRequirement[], calendar = DEFAULT_PROGRAM_CALENDAR): ProgramBlocker[] {
+  const startChanged = !!dates.actual_start && dates.actual_start !== activity.actual_start;
+  const finishChanged = nextProgress === 100 && !!dates.actual_finish && dates.actual_finish !== activity.actual_finish;
+  const advancing = nextProgress > activity.progress;
+  const startDate = (activity.progress === 0 || startChanged) ? dates.actual_start ?? dates.progress_as_of : dates.progress_as_of;
+  const start = activityBlockers(activity, activities, dependencies, requirements, startDate, calendar)
+    .filter((b) => b.stage === "start" && (advancing || (startChanged && b.key.startsWith("dependency:"))));
+  const finish = activityBlockers(activity, activities, dependencies, requirements, dates.actual_finish ?? dates.progress_as_of, calendar)
+    .filter((b) => b.stage === "finish" && nextProgress === 100 && (advancing || (finishChanged && b.key.startsWith("dependency:"))));
+  return [...start, ...finish];
 }
 export function activityStatus(activity: ProgramActivity, blockers: ProgramBlocker[]) {
   if (activityReleased(activity)) return "completed" as const;

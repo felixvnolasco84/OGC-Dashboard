@@ -15,6 +15,11 @@ type HistorialEntry = {
   new_value: number;
   changed_by_name?: string;
   created_at: number;
+  execution_date?: string;
+  actual_start?: string; old_actual_start?: string;
+  actual_finish?: string; old_actual_finish?: string;
+  old_progress_as_of?: string;
+  reason?: string;
 };
 
 type Props = {
@@ -33,6 +38,7 @@ const formatDateTime = (timestamp: number) => {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "America/Mexico_City",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(timestamp));
@@ -81,7 +87,13 @@ export default function ProgramaObraAvanceHistorial({ item, historial, onClose }
                       </span>
                     </div>
                     <div className="mt-2 text-xs text-muted-foreground">
-                      {entry.changed_by_name ?? "Usuario no identificado"}
+                      Capturado por {entry.changed_by_name ?? "Usuario no identificado"}
+                    </div>
+                    <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                      <p>Inicio real: {entry.old_actual_start ?? "Sin fecha"} → {entry.actual_start ?? "Sin fecha registrada"}</p>
+                      <p>Avance al día: {entry.old_progress_as_of ?? "Sin fecha"} → {entry.execution_date ?? "Desconocida"}</p>
+                      {(entry.actual_finish || entry.old_actual_finish) && <p>Terminación real: {entry.old_actual_finish ?? "Sin fecha"} → {entry.actual_finish ?? "Sin fecha"}</p>}
+                      {entry.reason && <p>{entry.reason}</p>}
                     </div>
                   </div>
                 </div>

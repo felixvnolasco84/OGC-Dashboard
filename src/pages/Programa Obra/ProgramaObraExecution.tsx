@@ -15,8 +15,6 @@ import {
 } from "@/components/ui/sheet";
 import {
   PROGRAM_STATUS_LABELS,
-  activityBlockers,
-  progressBlockers,
   dateDay,
   programDate,
   type ProgramDateEdit,
@@ -30,6 +28,7 @@ import {
   Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
+import ProgramaObraProgressForm from "./ProgramaObraProgressForm";
 
 export type ExecutionProgram = FunctionReturnType<
   typeof api.programa_obra.getExecutionProgram
@@ -1185,18 +1184,21 @@ function ExecutionActivity({
               >
                 <p>{e.reason}</p>
                 <p className="text-muted-foreground">
-                  {e.actor_name} ·{" "}
-                  {e.execution_date ??
-                    new Intl.DateTimeFormat("es-MX", {
-                      timeZone: "America/Mexico_City",
-                    }).format(e.created_at)}
+                  Capturado por {e.actor_name} · {new Intl.DateTimeFormat("es-MX", {
+                    timeZone: "America/Mexico_City", dateStyle: "medium", timeStyle: "short",
+                  }).format(e.created_at)}
                 </p>
+                {e.execution_date && <p>Avance al día: {e.execution_date}</p>}
                 {e.type === "progress" && (
                   <p>
                     {JSON.parse(e.payload_json).old_progress} % →{" "}
                     {JSON.parse(e.payload_json).progress} %
                   </p>
                 )}
+                {e.type === "progress" && <>
+                  <p>Inicio real: {JSON.parse(e.payload_json).old_actual_start ?? "Sin fecha"} → {JSON.parse(e.payload_json).actual_start ?? "Sin fecha registrada"}</p>
+                  {(JSON.parse(e.payload_json).actual_finish || JSON.parse(e.payload_json).old_actual_finish) && <p>Terminación real: {JSON.parse(e.payload_json).old_actual_finish ?? "Sin fecha"} → {JSON.parse(e.payload_json).actual_finish ?? "Sin fecha"}</p>}
+                </>}
               </div>
             ))}
             {!!history?.legacy.length && (
@@ -1236,96 +1238,10 @@ function ProgressForm({
 }) {
   const update = useMutation(api.programa_obra.updateExecutionProgress),
     request = useMutation(api.programa_obra.requestExecutionException);
-  const [progress, setProgress] = useState(String(activity.progress)),
-    [date, setDate] = useState(model.today),
-    [reason, setReason] = useState("");
-  const requested = Number(progress),
-    blockers = programDate(date)
-      ? progressBlockers(
-          activity,
-          requested,
-          activityBlockers(
-            activity,
-            model.activities,
-            model.dependencies,
-            model.requirements,
-            date,
-            model.calendar,
-          ),
-        )
-      : [],
-    blocked = model.config?.enabled && blockers.length > 0;
-  return (
-    <section className="space-y-3 border-t border-border pt-4">
-      <h3 className="text-sm font-medium">Registrar avance</h3>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Avance físico (%)">
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            step="any"
-            value={progress}
-            onChange={(e) => setProgress(e.target.value)}
-          />
-        </Field>
-        <Field label="Fecha de ejecución">
-          <Input
-            type="date"
-            max={model.today}
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </Field>
-      </div>
-      <Field label="Motivo · obligatorio para corregir o solicitar excepción">
-        <Input value={reason} onChange={(e) => setReason(e.target.value)} />
-      </Field>
-      <p className="text-xs text-muted-foreground">
-        Usa la fecha del trabajo realizado, aunque lo estés capturando hoy.
-      </p>
-      {!!blocked && (
-        <p className="text-sm" role="status">
-          {blockers.map((b) => b.message).join(" ")}
-        </p>
-      )}
-      <Button
-        disabled={
-          busy ||
-          !progress.trim() ||
-          !Number.isFinite(requested) ||
-          requested < 0 ||
-          requested > 100 ||
-          !date ||
-          (!!blocked && !reason.trim()) ||
-          (requested < activity.progress && !reason.trim())
-        }
-        onClick={() =>
-          void perform(
-            () =>
-              blocked
-                ? request({
-                    activity_id: activity._id,
-                    progress: requested,
-                    execution_date: date,
-                    reason,
-                  })
-                : update({
-                    activity_id: activity._id,
-                    progress: requested,
-                    execution_date: date,
-                    reason: reason || undefined,
-                  }),
-            blocked
-              ? "Excepción solicitada; el avance espera autorización"
-              : "Avance registrado",
-          )
-        }
-      >
-        {blocked ? "Solicitar excepción para este avance" : "Guardar avance"}
-      </Button>
-    </section>
-  );
+  return <div className="border-t border-border pt-4"><ProgramaObraProgressForm key={activity._id} record={activity} today={model.today} model={model} activity={activity} busy={busy} onSave={(values, exception) => perform(
+    () => exception ? request({ activity_id: activity._id, ...values, reason: values.reason! }) : update({ activity_id: activity._id, ...values }),
+    exception ? "Excepción solicitada; el avance espera autorización" : "Avance registrado",
+  )} /></div>;
 }
 
 function DependencyForm({

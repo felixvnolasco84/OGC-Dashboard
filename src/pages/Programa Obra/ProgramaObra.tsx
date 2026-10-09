@@ -69,6 +69,8 @@ import {
 import { useSidebar } from "@/components/ui/Sidebar";
 import { toast } from "sonner";
 import ProgramaObraExecution from "./ProgramaObraExecution";
+import ProgramaObraProgressEditor from "./ProgramaObraProgressEditor";
+import { getRecordedProgressTiming } from "@/lib/programa-obra-progress";
 import ProgramaObraImportReview from "./ProgramaObraImportReview";
 import { aggregateProgramProgress, programToday } from "@/lib/programa-obra-rules";
 
@@ -111,56 +113,6 @@ const WEEK_WIDTH = 32; // px per week column
 const getMonthWidth = (weeks: number) => weeks * WEEK_WIDTH;
 
 const API_BASE_URL = "https://ogc-excel-reader.vercel.app";
-
-type ProgressTiming = {
-  hasReportedProgress: boolean;
-  progressStartedAt?: number;
-  progressStartKnown: boolean;
-  completedAt?: number;
-  completionKnown: boolean;
-};
-
-/**
- * Derive auditable start/completion dates from the progress change log.
- * When an existing positive value predates the log, the date is deliberately
- * left unknown so the UI does not claim a delay that cannot be proven.
- */
-function getProgressTiming(
-  currentProgress: number,
-  history: AvanceHistorialData[]
-): ProgressTiming {
-  const sortedHistory = [...history].sort((a, b) => a.created_at - b.created_at);
-  const firstEntry = sortedHistory[0];
-  const progressPredatesHistory = (firstEntry?.old_value ?? 0) > 0;
-  const firstPositiveEntry = sortedHistory.find((entry) => entry.new_value > 0);
-  const hasReportedProgress = currentProgress > 0 || progressPredatesHistory || firstPositiveEntry != null;
-
-  let progressStartedAt: number | undefined;
-  let progressStartKnown = !hasReportedProgress;
-  if (hasReportedProgress && !progressPredatesHistory && firstPositiveEntry) {
-    progressStartedAt = firstPositiveEntry.created_at;
-    progressStartKnown = true;
-  }
-
-  let completedAt: number | undefined;
-  let completionKnown = currentProgress < 100;
-  if (currentProgress >= 100) {
-    const completionEntries = sortedHistory.filter((entry) => entry.new_value >= 100);
-    const lastCompletionEntry = completionEntries[completionEntries.length - 1];
-    if (lastCompletionEntry) {
-      completedAt = lastCompletionEntry.created_at;
-      completionKnown = true;
-    }
-  }
-
-  return {
-    hasReportedProgress,
-    progressStartedAt,
-    progressStartKnown,
-    completedAt,
-    completionKnown,
-  };
-}
 
 /** Convert a Date object to a pixel offset within a multi-year timeline */
 function dateToPx(date: Date, months: TimelineMonth[]): number {
@@ -247,7 +199,7 @@ export default function ProgramaObra() {
 
   const currentUser = useQuery(api.users.getCurrentUser);
   const canEditPesos = currentUser?.role === "admin" || !!execution?.capabilities.plan;
-  const canEditActivities = Boolean(currentUser && currentUser.role !== "viewer");
+  const canEditActivities = Boolean(execution?.capabilities.write);
 
   const toggleFocusMode = useCallback(() => {
     setFocusMode((enabled) => {
@@ -309,15 +261,10 @@ export default function ProgramaObra() {
 
   // Mutations
   const bulkUpsertFromExcel = useMutation(api.programa_obra.bulkUpsertFromExcel);
-  const updateDetalleAvance = useMutation(api.programa_obra.updateDetalleAvance);
   const updateSchedulePeso = useMutation(api.programa_obra.updateSchedulePeso);
   const updateDetallePeso = useMutation(api.programa_obra.updateDetallePeso);
 
-  // Avance editing state
-  const [editingAvanceId, setEditingAvanceId] = useState<string | null>(null);
-  const [editingAvanceValue, setEditingAvanceValue] = useState("");
-  const editingAvanceValueRef = useRef("");
-  const editingItemRef = useRef<ProgramaItem | null>(null);
+  const [progressItem, setProgressItem] = useState<ProgramaItem | null>(null);
 
   // Peso editing state
   const [editingPesoId, setEditingPesoId] = useState<string | null>(null);
@@ -403,14 +350,14 @@ export default function ProgramaObra() {
         const summary = execution?.summaries.details.find((d) => d.id === fam._id);
         const leaves = execution?.activities.filter((a) => a.detalle_id === fam._id) ?? [];
         const avanceReal = summary?.progress ?? fam.avance_porcentaje ?? 0;
-        const started = leaves.filter((a) => a.progress > 0);
+        const started = leaves.filter((a) => a.progress > 0 || a.actual_start);
         const timing = leaves.length ? {
           hasReportedProgress: started.length > 0,
           progressStartKnown: started.every((a) => !!a.actual_start),
           progressStartedAt: started.length && started.every((a) => !!a.actual_start) ? Math.min(...started.map((a) => parseDate(a.actual_start)!.getTime())) : undefined,
-          completionKnown: leaves.every((a) => a.released && !!a.actual_finish),
-          completedAt: leaves.every((a) => a.released && !!a.actual_finish) ? Math.max(...leaves.map((a) => parseDate(a.actual_finish)!.getTime())) : undefined,
-        } : getProgressTiming(avanceReal, avanceHistorialMap.get(fam._id) ?? []);
+          completionKnown: leaves.every((a) => a.progress === 100 && !!a.actual_finish),
+          completedAt: leaves.every((a) => a.progress === 100 && !!a.actual_finish) ? Math.max(...leaves.map((a) => parseDate(a.actual_finish)!.getTime())) : undefined,
+        } : getRecordedProgressTiming(avanceReal, fam, avanceHistorialMap.get(fam._id) ?? []);
         return {
           id: `fam-${fam._id}`,
           partida: fam.familia,
@@ -463,7 +410,7 @@ export default function ProgramaObra() {
             item.completionKnown &&
             item.completedAt != null
         );
-      const completedAt = isPartidaComplete && completionKnown
+      const completedAt = relevantFamilias.length > 0 && relevantFamilias.every((item) => (item.avanceReal ?? 0) >= 100 && item.completionKnown && item.completedAt != null)
         ? Math.max(...relevantFamilias.map((item) => item.completedAt!))
         : undefined;
 
@@ -613,43 +560,6 @@ export default function ProgramaObra() {
     [closePonderacionEditor, updateSchedulePeso, updateDetallePeso]
   );
 
-  // Save avance real for a familia item (uses refs to avoid stale closures)
-  const handleSaveAvance = useCallback(
-    async () => {
-      const item = editingItemRef.current;
-      const rawValue = editingAvanceValueRef.current;
-      const detalleId = item?.detalleSchedule?._id;
-      if (execution?.activities.some((a) => a.detalle_id === detalleId)) { setEditingAvanceId(null); openExecution(item ?? undefined); return; }
-      if (!detalleId) {
-        editingItemRef.current = null;
-        setEditingAvanceId(null);
-        setEditingAvanceValue("");
-        return;
-      }
-      const value = parseFloat(rawValue);
-      if (isNaN(value) || value < 0 || value > 100) {
-        toast.error("El avance debe estar entre 0 y 100.");
-        return;
-      }
-      try {
-        await updateDetalleAvance({
-          detalle_id: detalleId,
-          avance_porcentaje: value,
-        });
-        toast.success("Avance actualizado");
-      } catch (err) {
-        toast.error("No se pudo guardar el avance", {
-          description: err instanceof Error ? err.message : undefined,
-        });
-        return;
-      }
-      editingItemRef.current = null;
-      setEditingAvanceId(null);
-      setEditingAvanceValue("");
-    },
-    [updateDetalleAvance, execution, openExecution]
-  );
-
   const filteredData = useMemo(() => {
     const result: ProgramaItem[] = [];
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("es-MX");
@@ -693,19 +603,6 @@ export default function ProgramaObra() {
     () => activeExport ? selectGanttExportRows(programaDataWithComentarios, activeExport.breakdownIds) : filteredData,
     [activeExport, filteredData, programaDataWithComentarios],
   );
-
-  const handleSaveMobileAvance = useCallback(async (item: ProgramaItem, value: number) => {
-    if (!canEditActivities || !item.detalleSchedule) return false;
-    if (execution?.activities.some((a) => a.detalle_id === item.detalleSchedule?._id)) { openExecution(item); return false; }
-    try {
-      await updateDetalleAvance({ detalle_id: item.detalleSchedule._id, avance_porcentaje: value });
-      toast.success("Avance actualizado");
-      return true;
-    } catch (error) {
-      toast.error("No se pudo guardar el avance", { description: error instanceof Error ? error.message : undefined });
-      return false;
-    }
-  }, [canEditActivities, updateDetalleAvance, execution, openExecution]);
 
   // Compute date range (year + month) from all data dates
   const yearRange = useMemo(() => {
@@ -956,6 +853,7 @@ export default function ProgramaObra() {
           <Percent className="h-4 w-4" /> Ponderación
           <span className="ml-auto text-xs text-muted-foreground">{item.ponderacion != null ? `${item.ponderacion.toFixed(2)}%` : "Sin definir"}</span>
         </DropdownMenuItem>}
+        {item.level === 1 && canEditActivities && <DropdownMenuItem disabled={!execution} onSelect={() => setProgressItem(item)}><Percent className="h-4 w-4" /> Registrar avance</DropdownMenuItem>}
         {item.level === 1 && <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => setHistorialItem(item)}>
           <History className="h-4 w-4" /> Historial avance
         </DropdownMenuItem>}
@@ -1276,7 +1174,7 @@ export default function ProgramaObra() {
           renderActions={renderItemActions}
           onToggle={toggleExpanded}
           onMilestoneSelect={setSelectedMilestone}
-          onSaveProgress={handleSaveMobileAvance}
+          onRegisterProgress={setProgressItem}
             onOpenActivity={openExecution}
         />
         {/* Gantt Chart */}
@@ -1414,59 +1312,14 @@ export default function ProgramaObra() {
                         <div className="flex flex-col items-end gap-0.5">
 
 
-                {/* Editable avance for level 1 */}
-                          {editingAvanceId === item.id ? (
-                            <div className="flex items-center gap-0.5">
-                              <input
-                                type="number"
-                                min={0}
-                                max={100}
-                                autoFocus
-                                value={editingAvanceValue}
-                                onChange={(e) => {
-                                  setEditingAvanceValue(e.target.value);
-                                  editingAvanceValueRef.current = e.target.value;
-                                }}
-                                onBlur={() => handleSaveAvance()}
-                                onKeyDown={(e: React.KeyboardEvent) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    (e.target as HTMLInputElement).blur();
-                                  }
-                                  if (e.key === "Escape") {
-                                    editingItemRef.current = null;
-                                    setEditingAvanceId(null);
-                                    setEditingAvanceValue("");
-                                  }
-                                }}
-                                className="w-16 h-8 text-xs text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-card"
-                              />
-                              <span className="text-[10px] text-disabled-foreground">%</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-0.5">
-                              <span className="text-xs text-foreground">Avance: </span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (item.executionManaged) { openExecution(item); return; }
-                                  editingItemRef.current = item;
-                                  editingAvanceValueRef.current = String(item.avanceReal ?? 0);
-                                  setEditingAvanceId(item.id);
-                                  setEditingAvanceValue(String(item.avanceReal ?? 0));
-                                }}
-                                className={cn(
-                                  "min-h-8 min-w-10 text-xs rounded-sm border-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                  (item.avanceReal ?? 0) > 0
-                                    ? ""
-                                    : "text-disabled-foreground bg-background border-border hover:bg-muted"
-                                )}
-                                aria-label={`Editar avance real de ${item.partida}, ${Math.round(item.avanceReal ?? 0)} por ciento`}
-                              >
-                                {Math.round(item.avanceReal ?? 0)}%
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-xs text-foreground">Avance: </span>
+                            <button type="button" disabled={!canEditActivities || !execution} onClick={() => setProgressItem(item)}
+                              className="min-h-8 min-w-10 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+                              aria-label={`Editar avance real de ${item.partida}, ${Math.round(item.avanceReal ?? 0)} por ciento`}>
+                              {Math.round(item.avanceReal ?? 0)}%
+                            </button>
+                          </div>
 
                           {/* Editable peso for level 1 */}
                           {editingPesoId === item.id ? (
@@ -1704,6 +1557,7 @@ export default function ProgramaObra() {
       )}
 
       {/* Avance History Sheet */}
+      {progressItem && <ProgramaObraProgressEditor key={progressItem.id} item={progressItem} model={execution} onClose={() => setProgressItem(null)} />}
       {historialItem && (
         <ProgramaObraAvanceHistorial
           item={historialItem}

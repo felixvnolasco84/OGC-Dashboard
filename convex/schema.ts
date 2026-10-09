@@ -1454,6 +1454,7 @@ export default defineSchema({
     responsible_id: v.optional(v.id("users")),
     current_start: v.optional(v.string()), current_finish: v.optional(v.string()),
     actual_start: v.optional(v.string()), actual_finish: v.optional(v.string()),
+    progress_as_of: v.optional(v.string()),
     forecast_finish: v.optional(v.string()), requires_review: v.boolean(),
     accepted_at: v.optional(v.number()), accepted_by: v.optional(v.id("users")),
     review_incident: v.optional(v.string()), dates_need_review: v.optional(v.boolean()),
@@ -1475,6 +1476,7 @@ export default defineSchema({
   programa_obra_exceptions: defineTable({
     proyecto: v.id("desarrollos"), activity_id: v.id("programa_obra_activities"),
     old_progress: v.number(), progress: v.number(), execution_date: v.string(),
+    actual_start: v.optional(v.string()), actual_finish: v.optional(v.string()),
     reason: v.string(), blockers_json: v.string(), version: v.number(),
     status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
     requested_by: v.id("users"), requested_at: v.number(),
@@ -1560,6 +1562,9 @@ export default defineSchema({
     finiquito_porcentaje: v.optional(v.number()),
     peso: v.optional(v.number()),
     avance_porcentaje: v.optional(v.number()), // Avance real % (0-100)
+    actual_start: v.optional(v.string()),
+    actual_finish: v.optional(v.string()),
+    progress_as_of: v.optional(v.string()),
     orden: v.optional(v.number()), // Row order from Excel upload
     tiempo_extra_cantidad: v.optional(v.number()), // Extension amount
     tiempo_extra_unidad: v.optional(v.string()), // "dias" | "semanas" | "meses"
@@ -1576,6 +1581,9 @@ export default defineSchema({
     familia: v.string(),
     old_value: v.optional(v.number()),
     new_value: v.number(),
+    old_actual_start: v.optional(v.string()), actual_start: v.optional(v.string()),
+    old_actual_finish: v.optional(v.string()), actual_finish: v.optional(v.string()),
+    old_progress_as_of: v.optional(v.string()),
     changed_by_id: v.optional(v.id("users")),
     changed_by_name: v.optional(v.string()),
     created_at: v.number(),

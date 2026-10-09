@@ -3,6 +3,7 @@ import * as program from "./programaObraExecution.ts";
 import { previewProgramImport } from "./programaObraImport.ts";
 import { bulkUpsertFromExcel, updateDetalleAvance } from "./programa_obra.ts";
 import { programToday } from "../src/lib/programa-obra-rules.ts";
+import { getRecordedProgressTiming, resolveProgressRecord } from "../src/lib/programa-obra-progress.ts";
 import { buildReportSnapshot } from "./reportSnapshot.ts";
 
 // Execute the registered Convex handlers against a transactional in-memory DB.
@@ -45,6 +46,75 @@ function fixture() {
 }
 
 describe("execution mutations and queries", () => {
+  it("records past physical dates separately from today's capture in legacy details", async () => {
+    const f = fixture(); f.list("programa_obra_activities").length = 0; f.get("config").enabled = false;
+    await f.call(updateDetalleAvance, { detalle_id: "familyA", avance_porcentaje: 100, actual_start: "2026-09-01", actual_finish: "2026-09-02", execution_date: "2026-09-15" });
+    expect(f.get("familyA")).toMatchObject({ avance_porcentaje: 100, actual_start: "2026-09-01", actual_finish: "2026-09-02", progress_as_of: "2026-09-15" });
+    const entry = f.list("programa_obra_avance_historial")[0];
+    expect(entry.execution_date).toBe("2026-09-15"); expect(programToday(entry.created_at)).toBe(programToday());
+    const timing = getRecordedProgressTiming(100, f.get("familyA"), [entry]);
+    expect(timing.progressStartedAt).toBe(new Date("2026-09-01T00:00:00").getTime());
+    expect(timing.completedAt).toBe(new Date("2026-09-02T00:00:00").getTime());
+    await expect(f.call(updateDetalleAvance, { detalle_id: "familyA", avance_porcentaje: 100, actual_start: "2026-08-31", execution_date: "2026-09-15" })).rejects.toThrow(/motivo/);
+    await f.call(updateDetalleAvance, { detalle_id: "familyA", avance_porcentaje: 100, actual_start: "2026-08-31", execution_date: "2026-09-15", reason: "Inicio verificado en bitácora" });
+    expect(f.list("programa_obra_avance_historial")).toHaveLength(2);
+    expect(f.list("programa_obra_avance_historial")[1]).toMatchObject({ old_value: 100, new_value: 100, old_actual_start: "2026-09-01", actual_start: "2026-08-31" });
+    f.as("admin"); await f.call(program.initializeExecutionProgram, { proyecto: "project" });
+    expect(f.list("programa_obra_activities").find((a) => a.detalle_id === "familyA")).toMatchObject({ actual_start: "2026-08-31", actual_finish: "2026-09-02", progress_as_of: "2026-09-15" });
+  });
+  it("audits dates-only activity corrections and enforces planning permission", async () => {
+    const f = fixture(); await f.advance("A", 100);
+    const correction = { activity_id: "A", progress: 100, actual_start: "2026-09-01", actual_finish: "2026-09-02", execution_date: "2026-09-15", reason: "Trabajo realizado previamente" };
+    await expect(f.call(program.updateExecutionProgress, correction)).rejects.toThrow(/autorización/);
+    f.as("admin"); await f.call(program.updateExecutionProgress, correction);
+    expect(f.get("A")).toMatchObject({ progress: 100, actual_start: "2026-09-01", actual_finish: "2026-09-02" });
+    const event = f.list("programa_obra_events").at(-1);
+    expect(JSON.parse(event.payload_json)).toMatchObject({ old_progress: 100, progress: 100, old_actual_start: "2026-09-15", actual_start: "2026-09-01" });
+    expect(f.list("programa_obra_avance_historial").at(-1)).toMatchObject({ old_value: 100, new_value: 100, actual_finish: "2026-09-02" });
+  });
+  it("validates real start and finish against dependencies rather than the reporting cutoff", async () => {
+    const f = fixture(); await f.advance("A", 100, "2026-09-10");
+    await expect(f.call(program.updateExecutionProgress, { activity_id: "B", progress: 20, actual_start: "2026-09-01", execution_date: "2026-09-15" })).rejects.toThrow(/bloqueado/);
+    expect(f.get("B").progress).toBe(0);
+    f.get("dependency").kind = "FF";
+    await expect(f.call(program.updateExecutionProgress, { activity_id: "B", progress: 100, actual_start: "2026-09-01", actual_finish: "2026-09-02", execution_date: "2026-09-15" })).rejects.toThrow(/bloqueado/);
+  });
+  it("does not reopen successor reviews when only the reporting cutoff changes", async () => {
+    const f = fixture(); await f.advance("A", 100); await f.advance("B", 100); f.as("admin");
+    await f.call(program.updateExecutionProgress, { activity_id: "A", progress: 100, execution_date: "2026-09-16", reason: "Actualización del corte" });
+    expect(f.get("B").review_incident).toBeUndefined();
+    await f.call(program.updateExecutionProgress, { activity_id: "A", progress: 100, execution_date: "2026-09-16", actual_start: "2026-09-14", reason: "Inicio verificado" });
+    expect(f.get("B").review_incident).toMatch(/A/);
+  });
+  it("retains proposed dates through exception approval", async () => {
+    const f = fixture();
+    const id = await f.call(program.requestExecutionException, { activity_id: "B", progress: 100, actual_start: "2026-09-01", actual_finish: "2026-09-02", execution_date: "2026-09-15", reason: "Trabajo previo verificado" });
+    expect(f.get("B").progress).toBe(0);
+    expect(f.get(id)).toMatchObject({ actual_start: "2026-09-01", actual_finish: "2026-09-02" });
+    f.as("admin"); await f.call(program.decideExecutionException, { exception_id: id, approve: true, reason: "Verificado" });
+    expect(f.get("B")).toMatchObject({ progress: 100, actual_start: "2026-09-01", actual_finish: "2026-09-02", progress_as_of: "2026-09-15" });
+    expect(f.get("B").review_incident).toBeTruthy();
+  });
+  it("preserves recorded dates when reimporting schedules", async () => {
+    const f = fixture(); await f.call(program.updateExecutionProgress, { activity_id: "A", progress: 100, actual_start: "2026-09-01", actual_finish: "2026-09-02", execution_date: "2026-09-15" });
+    f.as("admin"); f.list("programa_obra_fronts").push({ _id: "general", proyecto: "project", name: "General", archived: false });
+    const rows = [{ nivel: 1, partida: "Instalaciones" }, { nivel: 2, partida: "Instalaciones", familia: "Pruebas", detalle_id: "familyA" }];
+    const preview = await previewProgramImport(f.ctx, "project", rows);
+    await f.call(bulkUpsertFromExcel, { proyecto: "project", rows, expected_fingerprint: preview.fingerprint });
+    expect(f.get("A")).toMatchObject({ actual_start: "2026-09-01", actual_finish: "2026-09-02", progress_as_of: "2026-09-15" });
+    expect(f.get("familyA")).toMatchObject({ actual_start: "2026-09-01", actual_finish: "2026-09-02", progress_as_of: "2026-09-15" });
+  });
+  it("rejects invalid chronology, future dates, non-finite progress and unjustified reductions", () => {
+    const previous = { progress: 25, actual_start: "2026-09-01", progress_as_of: "2026-09-15" };
+    const base = { progress: 100, execution_date: "2026-09-15", actual_finish: "2026-09-10" };
+    for (const change of [ { actual_start: "2026-02-30" }, { actual_finish: "2026-08-31" }, { actual_finish: "2026-09-16" }, { execution_date: "2026-10-09" }, { progress: NaN }, { progress: -1 }, { progress: 101 } ]) {
+      expect(() => resolveProgressRecord(previous, { ...base, ...change }, "2026-10-08")).toThrow();
+    }
+    expect(() => resolveProgressRecord(previous, { progress: 10, execution_date: "2026-09-15" })).toThrow(/motivo/);
+    expect(() => resolveProgressRecord(previous, { progress: 50, execution_date: "2026-09-14" })).toThrow(/motivo/);
+    expect(resolveProgressRecord(previous, { progress: 10, execution_date: "2026-09-15", reason: "Corrección" }).actual_finish).toBeUndefined();
+    expect(getRecordedProgressTiming(100, {}, [{ old_value: 0, new_value: 100, created_at: Date.now() }])).toMatchObject({ progressStartKnown: false, completionKnown: false });
+  });
   it("enforces dependency, resolves only Piso 2 and synchronizes family progress", async () => {
     const f = fixture(); await expect(f.advance("B", 20)).rejects.toThrow(/bloqueado/);
     await f.advance("A", 100); await f.advance("B", 50);
