@@ -56,9 +56,10 @@ import RFIListPage from "./pages/RFIs/RFIListPage.tsx";
 import RFINewPage from "./pages/RFIs/RFINewPage.tsx";
 import RFIDetailPage from "./pages/RFIs/RFIDetailPage.tsx";
 import ProfitAndLossPage from "./pages/ProfitAndLoss/ProfitAndLossPage.tsx";
-import { findValidOfflineProfile } from "./lib/bitacora-offline/db.ts";
+import { inspectOfflinePreparation } from "./lib/bitacora-offline/db.ts";
 import { OfflineAccessBlocked, OfflineBitacoraApp } from "./pages/Bitacora/OfflineBitacoraApp.tsx";
 import PwaUpdatePrompt from "./components/pwa/PwaUpdatePrompt.tsx";
+import BitacoraOnlineStartup from "./components/Bitacora/BitacoraOnlineStartup.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -71,10 +72,12 @@ if (!CLERK_PUBLISHABLE_KEY) {
 }
 
 const root = createRoot(document.getElementById("root")!);
+const initialBitacoraRoute = BITACORA_OFFLINE_ENABLED ? window.location.pathname.match(/^\/proyecto\/([^/]+)\/bitacora\/?$/) : null;
 
 const onlineApplication = (
   <StrictMode>
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY || ""}>
+      <BitacoraOnlineStartup client={convex} projectId={initialBitacoraRoute ? decodeURIComponent(initialBitacoraRoute[1]) : undefined} routePath={initialBitacoraRoute ? `/proyecto/${initialBitacoraRoute[1]}/bitacora` : undefined}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <HelmetProvider>
           <BrowserRouter>
@@ -309,6 +312,7 @@ const onlineApplication = (
           </BrowserRouter>
         </HelmetProvider>
       </ConvexProviderWithClerk>
+      </BitacoraOnlineStartup>
     </ClerkProvider>
   </StrictMode>
 );
@@ -317,23 +321,6 @@ async function bootstrapApplication() {
   const match = window.location.pathname.match(/^\/proyecto\/([^/]+)\/bitacora\/?$/);
   if (navigator.onLine) {
     root.render(<>{onlineApplication}<PwaUpdatePrompt /></>);
-    if (match && BITACORA_OFFLINE_ENABLED) {
-      const projectId = decodeURIComponent(match[1]);
-      const profile = await findValidOfflineProfile(projectId);
-      if (profile && !convex.connectionState().isWebSocketConnected) {
-        let unsubscribe = () => {};
-        const timer = window.setTimeout(() => {
-          unsubscribe();
-          if (convex.connectionState().isWebSocketConnected || window.location.pathname.replace(/\/$/, "") !== `/proyecto/${match[1]}/bitacora`) return;
-          root.render(<StrictMode><OfflineBitacoraApp projectId={projectId} profile={profile} client={convex} /><PwaUpdatePrompt /></StrictMode>);
-        }, 7000);
-        unsubscribe = convex.subscribeToConnectionState((state) => {
-          if (!state.isWebSocketConnected) return;
-          window.clearTimeout(timer);
-          unsubscribe();
-        });
-      }
-    }
     return;
   }
 
@@ -343,9 +330,9 @@ async function bootstrapApplication() {
   }
 
   const projectId = decodeURIComponent(match[1]);
-  const profile = await findValidOfflineProfile(projectId);
+  const { profile, reason } = await inspectOfflinePreparation(projectId);
   if (!profile) {
-    root.render(<StrictMode><OfflineAccessBlocked expired /><PwaUpdatePrompt /></StrictMode>);
+    root.render(<StrictMode><OfflineAccessBlocked reason={reason} /><PwaUpdatePrompt /></StrictMode>);
     return;
   }
 

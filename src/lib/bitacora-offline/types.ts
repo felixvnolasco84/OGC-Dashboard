@@ -2,6 +2,9 @@ export type BitacoraRole = "admin" | "user" | "finance" | "contratista" | "viewe
 
 export type SyncState = "synced" | "pending" | "syncing" | "error" | "conflict";
 
+export type PreparationPhase = "idle" | "reading" | "session" | "bootstrap" | "storage" | "pull" | "downloads" | "push" | "refresh" | "waiting";
+export type PreparationFailure = "session" | "forbidden" | "storage" | "unknown";
+
 export interface OfflineProfile {
   clerkId: string;
   userId: string;
@@ -78,6 +81,7 @@ export interface LocalAttachment {
   blob?: Blob;
   thumbnail?: Blob;
   downloadRequested?: boolean;
+  downloadError?: string;
   deleted: boolean;
   syncState: "synced" | "pending" | "uploaded";
 }
@@ -202,6 +206,7 @@ export interface BitacoraAttachmentView {
   thumbnail_url?: string;
   available_offline: boolean;
   download_requested?: boolean;
+  download_error?: string;
   pending: boolean;
 }
 

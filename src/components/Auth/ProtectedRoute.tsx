@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useConvexAuth } from "convex/react";
 import { Id } from "../../../convex/_generated/dataModel";
+import { useOptionalBitacoraRepository } from "@/lib/bitacora-offline/context";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -21,6 +22,7 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const currentUser = useQuery(api.users.getCurrentUser);
+  const bitacora = useOptionalBitacoraRepository();
 
   // Detect project/sales project routes from URL params
   const { proyectoId, salesProyectoId } = useParams<{
@@ -41,8 +43,9 @@ export default function ProtectedRoute({
   );
 
   const isProjectRoute = !!proyectoId || !!salesProyectoId;
+  const hasPreparedBitacora = Boolean(bitacora?.isReady && bitacora.projectId === proyectoId && bitacora.profile?.clerkId === currentUser?.clerkId);
   const isProjectAccessLoading =
-    (!!proyectoId && hasDesarrolloAccess === undefined) ||
+    (!!proyectoId && hasDesarrolloAccess === undefined && !hasPreparedBitacora) ||
     (!!salesProyectoId && hasSalesProjectAccess === undefined);
 
   // Show loading state while checking authentication and project access

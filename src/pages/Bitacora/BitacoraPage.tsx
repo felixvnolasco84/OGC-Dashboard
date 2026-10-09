@@ -1,14 +1,10 @@
-import { useMemo, useState } from "react";
-import { useParams } from "react-router";
+import { useEffect, useMemo, useState } from "react";
 import {
-  AlertCircle,
   Calendar as CalendarIcon,
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronsUpDown,
   CloudDownload,
-  CloudOff,
   Download,
   Eye,
   FileText,
@@ -17,14 +13,13 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Trash2,
   WifiOff,
-  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import BitacoraCalendarView from "@/components/Bitacora/BitacoraCalendarView";
 import BitacoraGalleryModal from "@/components/Bitacora/BitacoraGalleryModal";
+import { BitacoraAvailabilityNotice, BitacoraPreparationPanel, BitacoraStatusHeader } from "@/components/Bitacora/BitacoraStatus";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -84,14 +79,16 @@ function syncLabel(entry: BitacoraEntryView): { text: string; variant: BadgeProp
   return { text: "Sincronizado", variant: "success" };
 }
 
-function DocumentPill({ file, online, onDownload }: {
+function DocumentPill({ file, online, downloading, onDownload }: {
   file: BitacoraAttachmentView;
   online: boolean;
+  downloading: boolean;
   onDownload: () => Promise<void>;
 }) {
   const href = file.available_offline ? file.local_url : file.url;
   const canOpen = file.available_offline || online;
   return (
+    <div className="max-w-full space-y-1">
     <div className="inline-flex max-w-full items-center border border-border bg-card text-xs text-foreground">
       {canOpen && href ? (
         <a
@@ -117,16 +114,21 @@ function DocumentPill({ file, online, onDownload }: {
             size="sm"
             variant="ghost"
             title={online ? "Descargar para uso sin conexión" : "Descargar automáticamente al reconectar"}
-            aria-label={`Guardar ${file.nombre} sin conexión`}
+            aria-label={`${file.download_error ? "Reintentar descarga de" : "Guardar"} ${file.nombre} sin conexión`}
+            aria-busy={downloading}
+            disabled={downloading || Boolean(file.download_requested && !file.download_error)}
             onClick={(event) => {
               event.stopPropagation();
               void onDownload();
             }}
           >
-            {file.download_requested ? <CloudDownload /> : online ? <Download /> : <WifiOff />}
+            {downloading ? <Loader2 aria-hidden="true" className="motion-safe:animate-spin" /> : file.download_requested ? <CloudDownload /> : online ? <Download /> : <WifiOff />}
           </Button>
         </span>
       )}
+    </div>
+    <p className="text-xs text-muted-foreground">{file.available_offline ? "Disponible sin conexión" : downloading ? "Descargando…" : file.download_error ? "Descarga fallida" : file.download_requested ? online ? "Descarga pendiente" : "Descarga en espera de conexión" : "Necesita conexión"}</p>
+    {file.download_error && <p className="max-w-64 break-words text-xs text-destructive">{file.download_error}</p>}
     </div>
   );
 }
@@ -141,6 +143,7 @@ function PhotoPreview({ file, online, downloading, onDownload, onOpen }: {
   const source = online ? file.url || file.local_url : file.local_url;
   if (source && (online || file.available_offline)) {
     return (
+      <div className="w-24 shrink-0 space-y-1">
       <Button
         type="button"
         onClick={onOpen}
@@ -151,11 +154,15 @@ function PhotoPreview({ file, online, downloading, onDownload, onOpen }: {
         <img src={source} alt={file.descripcion || file.nombre} className="h-full w-full object-cover" />
         {!online && <span className="absolute bottom-1 right-1 bg-overlay/80 px-1.5 py-0.5 text-xs text-on-color">Offline</span>}
       </Button>
+      <p className="text-xs text-muted-foreground">{file.available_offline ? "Disponible sin conexión" : "Necesita conexión"}</p>
+      {file.download_error && <p className="break-words text-xs text-destructive">{file.download_error}</p>}
+      </div>
     );
   }
 
   return (
-    <div className="relative h-24 w-24 shrink-0 overflow-hidden border border-border-strong bg-muted">
+    <div className="w-24 shrink-0 space-y-1">
+    <div className="relative h-24 w-24 overflow-hidden border border-border-strong bg-muted">
       {file.thumbnail_url ? (
         <img src={file.thumbnail_url} alt="Vista previa borrosa" className="h-full w-full scale-125 object-cover blur-md" />
       ) : (
@@ -167,24 +174,30 @@ function PhotoPreview({ file, online, downloading, onDownload, onOpen }: {
       <div className="absolute inset-0">
       <Button
         type="button"
-        disabled={downloading}
+        disabled={downloading || Boolean(file.download_requested && !file.download_error)}
+        aria-busy={downloading}
         onClick={onDownload}
         title={online ? "Descargar original para uso sin conexión" : "Descargar automáticamente al reconectar"}
         variant="mediaDownload"
         size="overlayFill"
       >
-        {downloading ? <Loader2 className="h-5 w-5 animate-spin" /> : file.download_requested ? <CloudDownload className="h-5 w-5" /> : online ? <Download className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
-        <span>{downloading ? "Descargando" : file.download_requested ? "En espera" : online ? "Descargar" : "Al reconectar"}</span>
+        {downloading ? <Loader2 aria-hidden="true" className="h-5 w-5 motion-safe:animate-spin" /> : file.download_requested ? <CloudDownload className="h-5 w-5" /> : online ? <Download className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
+        <span>{downloading ? "Descargando" : file.download_error ? "Reintentar descarga" : file.download_requested ? "En espera" : online ? "Descargar" : "Al reconectar"}</span>
       </Button>
       </div>
+    </div>
+    <p className="text-xs text-muted-foreground">{file.download_error ? "Descarga fallida" : file.download_requested ? online ? "Descarga pendiente" : "Descarga en espera de conexión" : "Necesita conexión"}</p>
+    {file.download_error && <p className="break-words text-xs text-destructive">{file.download_error}</p>}
     </div>
   );
 }
 
 export default function BitacoraPage() {
-  const { proyectoId = "" } = useParams<{ proyectoId: string }>();
   const repository = useBitacoraRepository();
+  const proyectoId = repository.projectId;
   const modal = useBitacoraModal();
+  const closeModal = modal.onClose;
+  useEffect(() => { closeModal(); }, [closeModal, proyectoId, repository.profile?.clerkId]);
   const [view, setView] = useState<"grouped" | "calendar">("grouped");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -224,7 +237,7 @@ export default function BitacoraPage() {
   };
 
   const downloadAttachment = async (file: BitacoraAttachmentView) => {
-    if (downloading.has(file.client_id) || file.download_requested) return;
+    if (downloading.has(file.client_id) || (file.download_requested && !file.download_error)) return;
     setDownloading((current) => new Set(current).add(file.client_id));
     try {
       const result = await repository.makeAttachmentAvailableOffline(file.client_id);
@@ -277,73 +290,13 @@ export default function BitacoraPage() {
     }
   };
 
-  if (!repository.isReady) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-card p-8 text-center text-foreground">
-        {repository.syncStatus === "error" ? <AlertCircle className="h-10 w-10 text-destructive dark:text-foreground" /> : <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />}
-        <div>
-          <h1 className="text-xl ">Preparando Bitácora offline</h1>
-          <p className="mt-1 text-sm text-muted-foreground">La primera preparación necesita una conexión y una sesión válida.</p>
-        </div>
-        {repository.syncError && <p className="max-w-xl text-sm text-destructive dark:text-foreground">{repository.syncError}</p>}
-        <Button size="sm" variant="default" onClick={() => void repository.retrySync()} disabled={!repository.isOnline}>
-          <RefreshCw className="mr-2 h-4 w-4" />Reintentar
-        </Button>
-      </div>
-    );
-  }
-
-  const globalStatus: { icon: LucideIcon; label: string; variant: BadgeProps["variant"] } = !repository.isOnline
-    ? { icon: WifiOff, label: "Sin conexión", variant: "neutral" }
-    : repository.syncStatus === "syncing"
-      ? { icon: Loader2, label: "Sincronizando", variant: "neutral" }
-      : repository.syncStatus === "error"
-        ? { icon: AlertCircle, label: "Error", variant: "danger" }
-        : repository.conflictCount
-          ? { icon: AlertCircle, label: `${repository.conflictCount} conflicto${repository.conflictCount === 1 ? "" : "s"}`, variant: "danger" }
-          : repository.pendingCount
-            ? { icon: CloudOff, label: `${repository.pendingCount} pendiente${repository.pendingCount === 1 ? "" : "s"}`, variant: "warning" }
-            : { icon: CheckCircle2, label: "Sincronizado", variant: "success" };
-  const StatusIcon = globalStatus.icon;
-
   return (
-    <div className="min-h-screen bg-card text-foreground">
+    <div className="min-h-[calc(100svh-2.75rem)] bg-card text-foreground">
       <header className="border-b border-border bg-card px-5 pb-8 pt-12 md:px-12">
         <div className="space-y-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="text-left">
-              <p className="mb-1 text-base text-muted-foreground">Bitácora</p>
-              <h1 className="text-2xl text-foreground">{repository.project?.name || "Proyecto"}</h1>
-            </div>
-            <div className="inline-flex min-h-9 max-w-full items-center border border-border bg-card">
-              <div role="status" aria-live="polite" className="flex min-h-9 items-center px-2">
-                <Badge variant={globalStatus.variant}>
-                  <StatusIcon className={`mr-1.5 h-3.5 w-3.5 ${repository.syncStatus === "syncing" ? "animate-spin" : ""}`} />
-                  {globalStatus.label}
-                </Badge>
-              </div>
-              {repository.lastSyncAt && (
-                <span className="hidden whitespace-nowrap px-2.5 text-xs text-muted-foreground sm:inline">
-                  {new Date(repository.lastSyncAt).toLocaleString("es-MX", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                </span>
-              )}
-              <span className="border-l border-border">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  title="Reintentar sincronización"
-                  aria-label="Reintentar sincronización"
-                  disabled={!repository.isOnline || repository.syncStatus === "syncing"}
-                  onClick={() => void repository.retrySync()}
-                >
-                  <RefreshCw />
-                </Button>
-              </span>
-            </div>
-          </div>
+          <BitacoraStatusHeader />
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          {repository.isReady && <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex border border-border" role="group" aria-label="Vista de bitácora">
               <Button  variant={view === "grouped" ? "default" : "ghost"} aria-pressed={view === "grouped"} onClick={() => setView("grouped")}>
                 <ChevronDown className="h-4 w-4" />Agrupado
@@ -357,10 +310,12 @@ export default function BitacoraPage() {
             {repository.canCreate && (
               <Button  variant="default" onClick={() => open("create")}><Plus className="h-4 w-4" />Agregar reporte</Button>
             )}
-          </div>
+          </div>}
+          {repository.isReady && <BitacoraAvailabilityNotice />}
         </div>
       </header>
 
+      {!repository.isReady ? <BitacoraPreparationPanel /> : <>
       <main className="space-y-6 bg-card px-5 py-8 md:px-12">
         {view === "calendar" && (
           <BitacoraCalendarView
@@ -399,7 +354,6 @@ export default function BitacoraPage() {
                             variant="entry"
                             size="entry"
                             onClick={() => toggleEntry(entry.client_id)}
-                            className="items-start"
                           >
                             {isExpanded ? <ChevronDown className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" /> : <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />}
                             <span className="min-w-0 font-normal">
@@ -412,7 +366,7 @@ export default function BitacoraPage() {
                                     {entry.status || "Sin problemas"}
                                   </Badge>
                                   {entry.familias_tags.map((tag) => <Badge key={tag} variant="neutral">{tag}</Badge>)}
-                                  <Badge variant={badge.variant}>{badge.text}</Badge>
+                                  {entry.sync_state !== "synced" && <Badge variant={badge.variant}>{badge.text}</Badge>}
                                 </div>
                               </div>
                             </span>
@@ -421,7 +375,7 @@ export default function BitacoraPage() {
                           {entry.documentos.length > 0 && (
                             <div className="mt-3 flex flex-wrap items-center gap-2 pl-8">
                               {entry.documentos.slice(0, 2).map((file) => (
-                                <DocumentPill key={file.client_id} file={file} online={repository.isOnline} onDownload={() => downloadAttachment(file)} />
+                                <DocumentPill key={file.client_id} file={file} online={repository.isOnline} downloading={downloading.has(file.client_id)} onDownload={() => downloadAttachment(file)} />
                               ))}
                               {entry.documentos.length > 2 && <span className="text-xs text-muted-foreground">+{entry.documentos.length - 2} documentos</span>}
                             </div>
@@ -430,7 +384,7 @@ export default function BitacoraPage() {
 
                         <div className="flex shrink-0 items-center gap-3 pl-8 md:pl-0">
                           <div className="flex min-w-0 items-center gap-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center bg-gray-200 text-xs text-foreground rounded-full">{entry.responsable.slice(0, 1).toUpperCase()}</div>
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center bg-muted text-xs text-foreground rounded-full">{entry.responsable.slice(0, 1).toUpperCase()}</div>
                             <span className="max-w-44 truncate text-sm text-muted-foreground">{entry.responsable}</span>
                           </div>
                           <DropdownMenu>
@@ -481,6 +435,8 @@ export default function BitacoraPage() {
                             )}
                           </div>
 
+                          <p className="mt-4 text-xs text-muted-foreground">Estado de cambios: {badge.text}</p>
+                          {entry.sync_state === "error" && <p className="mt-2 break-words text-sm text-destructive">{entry.sync_error || "Este reporte requiere revisión antes de sincronizar."}</p>}
                           {entry.sync_state === "conflict" && (
                             <div className="mt-6 border border-destructive/30 bg-destructive/10 p-4">
                               <p className=" text-destructive dark:text-foreground">Conflicto de sincronización</p>
@@ -525,8 +481,8 @@ export default function BitacoraPage() {
         {view === "grouped" && repository.entries.length === 0 && (
           <div className="border border-dashed border-border bg-background p-12 text-center">
             <FileText className="mx-auto h-10 w-10 text-muted-foreground" />
-            <h2 className="mt-4 ">No hay reportes</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Puedes crear el primero incluso sin conexión.</p>
+            <h2 className="mt-4">Aún no hay reportes en esta Bitácora</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{repository.canCreate ? "Puedes agregar el primero; también puedes guardarlo sin conexión mientras esta preparación siga vigente." : "Los reportes aparecerán aquí cuando se incorporen al proyecto."}</p>
           </div>
         )}
       </main>
@@ -558,6 +514,7 @@ export default function BitacoraPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </>}
     </div>
   );
 }

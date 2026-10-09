@@ -71,6 +71,7 @@ export async function saveEntryLocally(args: {
       const clientId = args.entryClientId ?? id();
       const key = scopedKey(args.userId, clientId);
       const previous = await bitacoraDb.entries.get(key);
+      if (previous && previous.projectId !== args.projectId) throw new Error("El reporte no pertenece a esta Bitácora.");
       const currentAttachments = await bitacoraDb.attachments
         .where("[userId+entryClientId]")
         .equals([args.userId, clientId])
@@ -165,6 +166,7 @@ export async function deleteEntryLocally(userId: string, projectId: string, role
     async () => {
       const entry = await bitacoraDb.entries.get(key);
       if (!entry) return;
+      if (entry.projectId !== projectId) throw new Error("El reporte no pertenece a esta Bitácora.");
       const existing = await bitacoraDb.outbox.where("entryClientId").equals(entryClientId).and((item) => item.userId === userId).first();
       if (!entry.serverId) {
         await bitacoraDb.entries.delete(key);
@@ -261,6 +263,7 @@ export async function mergeRemoteEntries(userId: string, projectId: string, rows
           blob: cached?.blob,
           thumbnail: cached?.thumbnail,
           downloadRequested: cached?.downloadRequested,
+           downloadError: cached?.downloadError,
           deleted: false,
           syncState: "synced",
         });
@@ -506,6 +509,7 @@ export function toEntryView(
     thumbnail_url: thumbnailUrls[attachment.clientId],
     available_offline: Boolean(attachment.blob),
     download_requested: attachment.downloadRequested,
+    download_error: attachment.downloadError,
     pending: attachment.syncState !== "synced",
   });
   const visible = attachments.filter((item) => !item.deleted);
