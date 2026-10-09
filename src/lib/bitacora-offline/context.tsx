@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/clerk-react";
-import { useConvex, type ConvexReactClient } from "convex/react";
+import { useConvex, usePaginatedQuery, useQuery, type ConvexReactClient } from "convex/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../../../convex/_generated/api";
@@ -8,18 +8,21 @@ import { bitacoraDb, projectScopeKey, readProjectSnapshot, rememberOfflineUser, 
 import { acceptServerVersion, cacheBootstrap, deleteEntryLocally, reapplyLocalVersion, restoreConflictAsNew, resolveBudgetCatalog, saveEntryLocally, toEntryView } from "./repository";
 import { cacheHistoricalAttachment, queueHistoricalAttachmentDownload, synchronizeProject } from "./sync";
 import { BitacoraAccessError, BitacoraScopeChanged, classifyPreparationFailure, createSingleAttempt, isProfileUsable, measurePreparation } from "./preparation";
-import type { BitacoraEntryView, BitacoraFields, LocalAttachment, OfflineProfile, PreparationFailure, PreparationPhase, PreparedAttachment, StorageCapacity } from "./types";
+import type { BitacoraEntryView, BitacoraSaveArgs, BitacoraSaveResult, LocalAttachment, OfflineProfile, PreparationFailure, PreparationPhase, RemoteEntry } from "./types";
+import { browserConnection, canUseOnlineBitacora } from "./connection";
+import { deleteEntryOnline, mergeOnlineEntries, saveEntryOnline, toOnlineEntryView } from "./online";
 
 interface OnlineUser { clerkId?: string; name?: string; email?: string; role?: string }
-type SaveArgs = {
-  fields: BitacoraFields; entryClientId?: string; newAttachments: PreparedAttachment[];
-  keptAttachmentClientIds?: string[]; attachmentUpdates?: Array<{ clientId: string; name?: string; description?: string }>;
-};
 interface RepositoryContextValue {
+  mode: "online" | "offline";
+  accountId?: string;
   projectId: string;
   project?: { id: string; name: string; raw: Record<string, unknown> };
   profile?: OfflineProfile;
   entries: BitacoraEntryView[];
+  localChangedIds: string[];
+  cacheVersion?: number;
+  canLoadMore?: boolean; isLoadingMore?: boolean; loadMore?: () => void;
   partidas: Array<{ id: string; name: string; nivel: number; parentId?: string }>;
   assignableUsers: Array<{ id: string; name: string }>;
   isReady: boolean; isOnline: boolean; networkOnline: boolean; backendConnected: boolean; hasClient: boolean;
@@ -30,8 +33,8 @@ interface RepositoryContextValue {
   attachmentCount: number; offlineAttachmentCount: number; downloadErrorCount: number;
   syncStatus: "idle" | "syncing" | "error" | "conflict";
   syncError?: string; lastSyncAt?: number;
-  saveEntry: (args: SaveArgs) => Promise<StorageCapacity>;
-  deleteEntry: (entryClientId: string) => Promise<void>;
+  saveEntry: (args: BitacoraSaveArgs) => Promise<BitacoraSaveResult>;
+  deleteEntry: (entryClientId: string) => Promise<"server" | "local">;
   retrySync: () => Promise<void>;
   acceptServer: (entryClientId: string) => Promise<void>;
   reapplyLocal: (entryClientId: string) => Promise<void>;
@@ -42,6 +45,7 @@ const BitacoraRepositoryContext = createContext<RepositoryContextValue | null>(n
 interface ProviderProps {
   children: ReactNode; projectId: string; client?: ConvexReactClient; onlineUser?: OnlineUser | null;
   initialProfile?: OfflineProfile; renewSession?: () => Promise<unknown>; isCurrentUser?: () => boolean;
+  preferOnline?: boolean;
 }
 
 function BaseBitacoraRepositoryProvider({ children, projectId, client, onlineUser, initialProfile, renewSession, isCurrentUser }: ProviderProps) {
@@ -235,8 +239,11 @@ function BaseBitacoraRepositoryProvider({ children, projectId, client, onlineUse
   const visibleIds = new Set(entries.map((entry) => entry.client_id));
   const visibleFiles = (data?.attachments ?? []).filter((item) => !item.deleted && visibleIds.has(item.entryClientId));
   const value: RepositoryContextValue = {
+    mode: "offline", accountId: userId,
     projectId, project: profileValid && failure !== "forbidden" && isCurrentUser?.() !== false && data?.project ? { id: projectId, name: data.project.name, raw: data.project.raw } : undefined,
     profile: profileValid ? profile : undefined, entries,
+    localChangedIds: isReady ? (data?.entries ?? []).filter(entry => entry.syncState !== "synced").map(entry => entry.clientId) : [],
+    cacheVersion: data?.metadata?.version,
     partidas: isReady ? resolveBudgetCatalog(data?.partidas ?? []) : [],
     assignableUsers: isReady ? (data?.users ?? []).map((item) => ({ id: item.targetUserId, name: item.name })) : [],
     isReady, isOnline, networkOnline, backendConnected, hasClient: Boolean(client), isReading,
@@ -254,8 +261,8 @@ function BaseBitacoraRepositoryProvider({ children, projectId, client, onlineUse
     syncStatus: attempt.busy ? "syncing" : data?.metadata?.status ?? "idle",
     syncError: local?.error ?? attempt.error ?? data?.metadata?.error,
     lastSyncAt: isReady ? data?.metadata?.lastSyncAt : undefined,
-    saveEntry: async (args) => { const { userId, profile } = requireProfile(); const result = await saveEntryLocally({ userId, projectId, role: profile.role, ...args }); void retrySync(); return result.capacity; },
-    deleteEntry: async (id) => { const { userId, profile } = requireProfile(); await deleteEntryLocally(userId, projectId, profile.role, id); void retrySync(); },
+    saveEntry: async (args) => { const { userId, profile } = requireProfile(); const result = await saveEntryLocally({ userId, projectId, role: profile.role, ...args }); void retrySync(); return { saved: "local", capacity: result.capacity }; },
+    deleteEntry: async (id) => { const { userId, profile } = requireProfile(); await deleteEntryLocally(userId, projectId, profile.role, id); void retrySync(); return "local"; },
     retrySync,
     acceptServer: async (id) => { const { userId } = await requireEntryScope(id); await acceptServerVersion(userId, id); },
     reapplyLocal: async (id) => { const { userId } = await requireEntryScope(id); await reapplyLocalVersion(userId, id); void retrySync(); },
@@ -277,7 +284,96 @@ function BaseBitacoraRepositoryProvider({ children, projectId, client, onlineUse
 
 export function BitacoraRepositoryProvider(props: ProviderProps) {
   const userId = props.client ? props.onlineUser?.clerkId : props.initialProfile?.clerkId;
-  return <BaseBitacoraRepositoryProvider key={`${userId ?? "unknown"}:${props.projectId}`} {...props} />;
+  return <BaseBitacoraRepositoryProvider key={`${userId ?? "unknown"}:${props.projectId}`} {...props}>
+    {props.preferOnline && props.client
+      ? <AdaptiveBitacoraRepository client={props.client} onlineUser={props.onlineUser} isCurrentUser={props.isCurrentUser}>{props.children}</AdaptiveBitacoraRepository>
+      : props.children}
+  </BaseBitacoraRepositoryProvider>;
+}
+
+function AdaptiveBitacoraRepository({ children, client, onlineUser, isCurrentUser }: Pick<ProviderProps, "children" | "onlineUser" | "isCurrentUser"> & { client: ConvexReactClient }) {
+  const local = useBitacoraRepository();
+  const lifetime = useRef(0);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true; lifetime.current += 1;
+    return () => { mounted.current = false; lifetime.current += 1; };
+  }, []);
+  const [slow, setSlow] = useState(() => !canUseOnlineBitacora(true, true, browserConnection()));
+  useEffect(() => {
+    const connection = browserConnection();
+    const changed = () => setSlow(!canUseOnlineBitacora(true, true, connection));
+    connection?.addEventListener("change", changed);
+    return () => connection?.removeEventListener("change", changed);
+  }, []);
+  const healthy = local.networkOnline && local.backendConnected && !slow;
+  const authenticated = Boolean(onlineUser?.clerkId && isCurrentUser?.() !== false);
+  const queryArgs = healthy && authenticated ? { proyecto: local.projectId as Id<"desarrollos"> } : "skip";
+  const bootstrap = useQuery(api.bitacoraOffline.getOfflineBootstrap, queryArgs);
+  const logs = usePaginatedQuery(api.bitacora.getLogEntriesByProject, queryArgs, { initialNumItems: 50 });
+  const scoped = Boolean(bootstrap && bootstrap.user.clerkId === onlineUser?.clerkId && bootstrap.project._id === local.projectId && authenticated);
+  const ready = scoped && logs.status !== "LoadingFirstPage";
+  const entries = useMemo(() => scoped
+    ? mergeOnlineEntries((logs.results as RemoteEntry[]).map(toOnlineEntryView), local.entries, local.localChangedIds)
+    : [], [scoped, logs.results, local.entries, local.localChangedIds]);
+  const { isBusy, failure, syncError, cacheVersion, retrySync } = local;
+
+  // Cache refresh is a background task. Its failure never blocks online reads
+  // or writes. A reactive server version also catches changes by other users.
+  useEffect(() => {
+    if (healthy && scoped && bootstrap && !isBusy && !failure && !syncError &&
+      cacheVersion !== undefined && bootstrap.latestVersion > cacheVersion) void retrySync();
+  }, [healthy, scoped, bootstrap, isBusy, failure, syncError, cacheVersion, retrySync]);
+
+  const onlineGuard = () => {
+    const generation = lifetime.current;
+    return () => {
+      if (!mounted.current || generation !== lifetime.current || isCurrentUser?.() === false || !authenticated || !scoped) throw new BitacoraScopeChanged();
+      if (!canUseOnlineBitacora(navigator.onLine, client.connectionState().isWebSocketConnected, browserConnection()))
+        throw new Error("La conexión cambió. Vuelve a guardar cuando esté disponible el modo sin conexión.");
+    };
+  };
+  const findEntry = (id: string) => {
+    const entry = entries.find(item => item.client_id === id);
+    if (!entry) throw new Error("El reporte no pertenece a esta Bitácora.");
+    return entry;
+  };
+  const localWork = local.pendingCount + local.pausedCount + local.errorCount + local.conflictCount > 0;
+  const value: RepositoryContextValue = {
+    ...local, mode: "online", entries,
+    project: scoped && bootstrap ? { id: local.projectId, name: bootstrap.project.nombre ?? "Proyecto", raw: bootstrap.project } : undefined,
+    profile: scoped && bootstrap ? {
+      clerkId: bootstrap.user.clerkId, userId: bootstrap.user.clerkId, name: bootstrap.user.name,
+      email: bootstrap.user.email, role: bootstrap.user.role, projectIds: [local.projectId],
+      verifiedAt: bootstrap.verifiedAt, expiresAt: bootstrap.expiresAt,
+    } : undefined,
+    partidas: scoped && bootstrap ? resolveBudgetCatalog(bootstrap.partidas.map(item => ({
+      partidaId: item._id, name: item.nombre ?? "Sin nombre", nivel: item.nivel, raw: item,
+    }))) : [],
+    assignableUsers: scoped && bootstrap ? bootstrap.assignableUsers.map(item => ({ id: item._id, name: item.name })) : [],
+    isReady: ready, isReading: !ready, isBusy: false, phase: "idle", failure: undefined,
+    profileExpired: false, prolonged: false, syncError: localWork ? local.syncError : undefined,
+    syncStatus: localWork ? local.syncStatus : "idle", lastSyncAt: undefined,
+    canRetry: localWork && local.canRetry,
+    canCreate: Boolean(ready && bootstrap && ["admin", "user", "finance", "contratista"].includes(bootstrap.user.role)),
+    canEdit: Boolean(ready && bootstrap?.user.role === "admin"),
+    canLoadMore: logs.status === "CanLoadMore", isLoadingMore: logs.status === "LoadingMore", loadMore: () => logs.loadMore(50),
+    saveEntry: async (args) => {
+      const assertActive = onlineGuard();
+      assertActive();
+      const entry = args.entryClientId ? findEntry(args.entryClientId) : undefined;
+      if (entry && entry.sync_state !== "synced") return local.saveEntry(args);
+      return saveEntryOnline(client, local.projectId, args, entry, assertActive);
+    },
+    deleteEntry: async (id) => {
+      const assertActive = onlineGuard();
+      assertActive();
+      const entry = findEntry(id);
+      if (entry.sync_state !== "synced") return local.deleteEntry(id);
+      return deleteEntryOnline(client, local.projectId, entry, assertActive);
+    },
+  };
+  return <BitacoraRepositoryContext.Provider value={healthy ? value : local}>{children}</BitacoraRepositoryContext.Provider>;
 }
 export function OnlineBitacoraRepositoryProvider({ children, projectId, currentUser }: { children: ReactNode; projectId: string; currentUser?: OnlineUser | null }) {
   const client = useConvex();
@@ -287,7 +383,7 @@ export function OnlineBitacoraRepositoryProvider({ children, projectId, currentU
   const expectedUser = currentUser?.clerkId;
   const isCurrentUser = useCallback(() => Boolean(expectedUser && identity.current === expectedUser), [expectedUser]);
   const renewSession = useCallback(() => getToken({ skipCache: true }), [getToken]);
-  return <BitacoraRepositoryProvider projectId={projectId} client={client} onlineUser={userId === expectedUser ? currentUser : undefined} renewSession={renewSession} isCurrentUser={isCurrentUser}>{children}</BitacoraRepositoryProvider>;
+  return <BitacoraRepositoryProvider preferOnline projectId={projectId} client={client} onlineUser={userId === expectedUser ? currentUser : undefined} renewSession={renewSession} isCurrentUser={isCurrentUser}>{children}</BitacoraRepositoryProvider>;
 }
 export function OfflineBitacoraRepositoryProvider({ children, projectId, profile }: { children: ReactNode; projectId: string; profile: OfflineProfile }) {
   return <BitacoraRepositoryProvider projectId={projectId} initialProfile={profile}>{children}</BitacoraRepositoryProvider>;

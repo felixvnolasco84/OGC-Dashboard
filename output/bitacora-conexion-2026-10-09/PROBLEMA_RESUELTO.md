@@ -1,0 +1,3 @@
+Bitácora estaba usando el flujo offline incluso cuando había conexión con el servidor. La pantalla dependía de la preparación de la caché y los reportes se guardaban primero en el dispositivo para sincronizarlos después. Por eso, una falla del almacenamiento local podía impedir trabajar aun teniendo internet.
+
+Se restableció el flujo online: las consultas se actualizan desde el servidor y el guardado se confirma cuando este acepta el reporte. El almacenamiento local continúa como respaldo para una conexión lenta o ausente. Al reconectar se conserva la cola pendiente, se sincronizan sus cambios y se muestran los conflictos que necesitan revisión.

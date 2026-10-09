@@ -286,7 +286,7 @@ export default function BitacoraModal() {
         ...photos.filter((photo) => photo.type === "new" && photo.file).map((photo) => ({ file: photo.file!, kind: "photo" as const, description: photo.description })),
         ...documents.filter((document) => document.type === "new" && document.file).map((document) => ({ file: document.file!, kind: "document" as const })),
       ];
-      const capacity = await repository.saveEntry({
+      const result = await repository.saveEntry({
         entryClientId: modal.mode === "edit" ? existing?.client_id : undefined,
         fields: {
           categoria,
@@ -309,8 +309,8 @@ export default function BitacoraModal() {
         ],
       });
       modal.onClose();
-      toast.success(repository.isOnline ? "Guardado localmente; se sincronizará enseguida." : "Guardado localmente sin conexión.");
-      if (capacity.warning) toast.warning("El almacenamiento local superará el 70% de su cuota.");
+      toast.success(result.saved === "server" ? "Reporte guardado en el servidor." : repository.isOnline ? "Guardado localmente; se sincronizará enseguida." : "Guardado localmente sin conexión.");
+      if (result.capacity?.warning) toast.warning("El almacenamiento local superará el 70% de su cuota.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo guardar el reporte.");
     } finally {
@@ -352,7 +352,7 @@ export default function BitacoraModal() {
 
         <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-5 text-left md:p-9">
-            {!repository.isOnline && <div className="flex items-center gap-2 border border-border-strong bg-subtle px-3 py-2 text-xs text-muted-foreground"><WifiOff className="h-4 w-4" />Los cambios y archivos se guardarán en este dispositivo.</div>}
+            {repository.mode === "offline" && <div className="flex items-center gap-2 border border-border-strong bg-subtle px-3 py-2 text-xs text-muted-foreground"><WifiOff className="h-4 w-4" />Los cambios y archivos se guardarán en este dispositivo.</div>}
 
             <div className="space-y-2">
               <Label>Categoría <span className="text-destructive">*</span></Label>

@@ -79,13 +79,14 @@ function syncLabel(entry: BitacoraEntryView): { text: string; variant: BadgeProp
   return { text: "Sincronizado", variant: "success" };
 }
 
-function DocumentPill({ file, online, downloading, onDownload }: {
+function DocumentPill({ file, online, fallback, downloading, onDownload }: {
   file: BitacoraAttachmentView;
   online: boolean;
+  fallback: boolean;
   downloading: boolean;
   onDownload: () => Promise<void>;
 }) {
-  const href = file.available_offline ? file.local_url : file.url;
+  const href = online ? file.url || file.local_url : file.local_url;
   const canOpen = file.available_offline || online;
   return (
     <div className="max-w-full space-y-1">
@@ -107,7 +108,7 @@ function DocumentPill({ file, online, downloading, onDownload }: {
           <span className="truncate">{truncateName(file.nombre)}</span>
         </span>
       )}
-      {!file.available_offline && (
+      {fallback && !file.available_offline && (
         <span className="border-l border-border">
           <Button
             type="button"
@@ -127,15 +128,16 @@ function DocumentPill({ file, online, downloading, onDownload }: {
         </span>
       )}
     </div>
-    <p className="text-xs text-muted-foreground">{file.available_offline ? "Disponible sin conexión" : downloading ? "Descargando…" : file.download_error ? "Descarga fallida" : file.download_requested ? online ? "Descarga pendiente" : "Descarga en espera de conexión" : "Necesita conexión"}</p>
+    {fallback && <p className="text-xs text-muted-foreground">{file.available_offline ? "Disponible sin conexión" : downloading ? "Descargando…" : file.download_error ? "Descarga fallida" : file.download_requested ? online ? "Descarga pendiente" : "Descarga en espera de conexión" : "Necesita conexión"}</p>}
     {file.download_error && <p className="max-w-64 break-words text-xs text-destructive">{file.download_error}</p>}
     </div>
   );
 }
 
-function PhotoPreview({ file, online, downloading, onDownload, onOpen }: {
+function PhotoPreview({ file, online, fallback, downloading, onDownload, onOpen }: {
   file: BitacoraAttachmentView;
   online: boolean;
+  fallback: boolean;
   downloading: boolean;
   onDownload: () => void;
   onOpen: () => void;
@@ -154,7 +156,7 @@ function PhotoPreview({ file, online, downloading, onDownload, onOpen }: {
         <img src={source} alt={file.descripcion || file.nombre} className="h-full w-full object-cover" />
         {!online && <span className="absolute bottom-1 right-1 bg-overlay/80 px-1.5 py-0.5 text-xs text-on-color">Offline</span>}
       </Button>
-      <p className="text-xs text-muted-foreground">{file.available_offline ? "Disponible sin conexión" : "Necesita conexión"}</p>
+      {fallback && <p className="text-xs text-muted-foreground">{file.available_offline ? "Disponible sin conexión" : "Necesita conexión"}</p>}
       {file.download_error && <p className="break-words text-xs text-destructive">{file.download_error}</p>}
       </div>
     );
@@ -197,7 +199,7 @@ export default function BitacoraPage() {
   const proyectoId = repository.projectId;
   const modal = useBitacoraModal();
   const closeModal = modal.onClose;
-  useEffect(() => { closeModal(); }, [closeModal, proyectoId, repository.profile?.clerkId]);
+  useEffect(() => { closeModal(); }, [closeModal, proyectoId, repository.accountId]);
   const [view, setView] = useState<"grouped" | "calendar">("grouped");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -280,8 +282,8 @@ export default function BitacoraPage() {
     if (!deleteEntry) return;
     setDeleting(true);
     try {
-      await repository.deleteEntry(deleteEntry.client_id);
-      toast.success(repository.isOnline ? "Eliminación guardada; se sincronizará." : "Eliminación guardada localmente.");
+      const saved = await repository.deleteEntry(deleteEntry.client_id);
+      toast.success(saved === "server" ? "Reporte eliminado en el servidor." : repository.isOnline ? "Eliminación guardada; se sincronizará." : "Eliminación guardada localmente.");
       setDeleteEntry(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo eliminar.");
@@ -375,7 +377,7 @@ export default function BitacoraPage() {
                           {entry.documentos.length > 0 && (
                             <div className="mt-3 flex flex-wrap items-center gap-2 pl-8">
                               {entry.documentos.slice(0, 2).map((file) => (
-                                <DocumentPill key={file.client_id} file={file} online={repository.isOnline} downloading={downloading.has(file.client_id)} onDownload={() => downloadAttachment(file)} />
+                                <DocumentPill key={file.client_id} file={file} online={repository.isOnline} fallback={repository.mode === "offline"} downloading={downloading.has(file.client_id)} onDownload={() => downloadAttachment(file)} />
                               ))}
                               {entry.documentos.length > 2 && <span className="text-xs text-muted-foreground">+{entry.documentos.length - 2} documentos</span>}
                             </div>
@@ -421,6 +423,7 @@ export default function BitacoraPage() {
                                     key={file.client_id}
                                     file={file}
                                     online={repository.isOnline}
+                                    fallback={repository.mode === "offline"}
                                     downloading={downloading.has(file.client_id)}
                                     onDownload={() => void downloadAttachment(file)}
                                     onOpen={() => openGallery(entry, file.client_id)}
@@ -435,7 +438,7 @@ export default function BitacoraPage() {
                             )}
                           </div>
 
-                          <p className="mt-4 text-xs text-muted-foreground">Estado de cambios: {badge.text}</p>
+                          {(repository.mode === "offline" || entry.sync_state !== "synced") && <p className="mt-4 text-xs text-muted-foreground">Estado de cambios: {badge.text}</p>}
                           {entry.sync_state === "error" && <p className="mt-2 break-words text-sm text-destructive">{entry.sync_error || "Este reporte requiere revisión antes de sincronizar."}</p>}
                           {entry.sync_state === "conflict" && (
                             <div className="mt-6 border border-destructive/30 bg-destructive/10 p-4">
@@ -478,11 +481,17 @@ export default function BitacoraPage() {
           );
         })}
 
+        {(repository.canLoadMore || repository.isLoadingMore) && <div className="flex justify-center">
+          <Button variant="outline" disabled={repository.isLoadingMore} onClick={repository.loadMore}>
+            {repository.isLoadingMore ? "Cargando…" : "Cargar más reportes"}
+          </Button>
+        </div>}
+
         {view === "grouped" && repository.entries.length === 0 && (
           <div className="border border-dashed border-border bg-background p-12 text-center">
             <FileText className="mx-auto h-10 w-10 text-muted-foreground" />
             <h2 className="mt-4">Aún no hay reportes en esta Bitácora</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{repository.canCreate ? "Puedes agregar el primero; también puedes guardarlo sin conexión mientras esta preparación siga vigente." : "Los reportes aparecerán aquí cuando se incorporen al proyecto."}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{repository.canCreate ? repository.mode === "online" ? "Puedes agregar el primer reporte del proyecto." : "Puedes agregar el primero; también puedes guardarlo sin conexión mientras esta preparación siga vigente." : "Los reportes aparecerán aquí cuando se incorporen al proyecto."}</p>
           </div>
         )}
       </main>
@@ -504,7 +513,7 @@ export default function BitacoraPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar este reporte?</AlertDialogTitle>
-            <AlertDialogDescription>Se ocultará de inmediato. Si ya existe en el servidor, la eliminación quedará pendiente y respetará su revisión actual.</AlertDialogDescription>
+            <AlertDialogDescription>{repository.mode === "online" && deleteEntry?.sync_state === "synced" ? "El reporte se eliminará en el servidor al confirmar." : "Se ocultará de inmediato. Si ya existe en el servidor, la eliminación quedará pendiente y respetará su revisión actual."}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button type="button" size="sm" variant="outline" onClick={() => setDeleteEntry(null)} disabled={deleting}>Cancelar</Button>

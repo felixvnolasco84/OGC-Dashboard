@@ -26,9 +26,16 @@ export function BitacoraStatusHeader() {
     if (r.canRetry && document.activeElement === document.body) refreshButton.current?.focus();
   }, [r.isBusy, r.canRetry, r.syncStatus]);
   const hasProblem = Boolean(r.failure || (!r.isBusy && (r.syncError || r.profileExpired)) || r.errorCount || r.conflictCount || r.pausedCount);
+  if (r.mode === "online" && !hasProblem && !r.pendingCount) return <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="min-w-0 text-left">
+      <p className="mb-1 text-base text-muted-foreground">Bitácora</p>
+      <h1 className="break-words text-2xl text-foreground">{r.project?.name || "Bitácora del proyecto"}</h1>
+    </div>
+    <Badge variant="success"><CheckCircle2 aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />En línea</Badge>
+  </div>;
   const label = !r.isReady
     ? hasProblem ? "Atención requerida" : r.isBusy ? "Preparando" : r.isReading ? "Abriendo" : "Preparación pendiente"
-    : hasProblem ? "Revisión necesaria" : r.isBusy ? "Actualizando" : !r.isOnline ? "Información local"
+    : hasProblem ? "Revisión necesaria" : r.isBusy ? "Actualizando" : r.mode === "offline" ? "Información local"
       : r.pendingCount ? "Cambios por enviar" : r.lastSyncAt ? "Cambios sincronizados" : "Datos disponibles";
   const Icon = hasProblem ? AlertCircle : r.isBusy || r.isReading ? Loader2 : !r.isOnline ? CloudOff : CheckCircle2;
   const retryLabel = r.isBusy ? r.isReady ? "Actualización en curso" : "Preparación en curso"
@@ -75,6 +82,11 @@ export function BitacoraStatusHeader() {
 export function BitacoraPreparationPanel() {
   const r = useBitacoraRepository();
   const message = usePreparationMessage();
+  if (r.mode === "online") return <section aria-busy="true" className="flex min-h-[55vh] flex-col items-center justify-center gap-4 px-5 py-10 text-center">
+    <Loader2 aria-hidden="true" className="h-9 w-9 motion-safe:animate-spin text-muted-foreground" />
+    <h2 className="text-xl">Cargando Bitácora</h2>
+    <p className="text-sm text-muted-foreground">Consultando los reportes del proyecto.</p>
+  </section>;
   const problem = Boolean(r.failure || r.profileExpired || (!r.isBusy && r.syncError));
   const Icon = problem ? AlertCircle : r.isBusy || r.isReading ? Loader2 : WifiOff;
   return <section aria-labelledby="bitacora-preparation-title" aria-busy={r.isBusy || r.isReading}
@@ -95,14 +107,16 @@ export function BitacoraPreparationPanel() {
 export function BitacoraAvailabilityNotice() {
   const r = useBitacoraRepository();
   const message = usePreparationMessage();
+  if (r.mode === "online" && !r.errorCount && !r.conflictCount && !r.syncError) return null;
   return <div className="space-y-2 border-t border-border pt-4 text-sm">
-    {(r.isBusy || !r.isOnline || r.syncError) && <p className="text-muted-foreground">{message.message}</p>}
+    {r.mode === "offline" && (r.isBusy || !r.isOnline || r.syncError) && <p className="text-muted-foreground">{message.message}</p>}
+    {r.mode === "offline" && r.isOnline && <p className="text-muted-foreground">La conexión es limitada. Puedes trabajar con la información guardada en este dispositivo.</p>}
     {r.failure === "session" && <Button asChild variant="outline" size="sm"><Link to="/sign-in">Iniciar sesión</Link></Button>}
     {r.errorCount > 0 && <p>Hay reportes con error. Revisa su detalle; los cambios rechazados pueden requerir corrección.</p>}
     {r.conflictCount > 0 && <p>Hay versiones diferentes de algunos reportes. Expándelos para revisar y resolver los conflictos.</p>}
-    <p className="text-xs text-muted-foreground">{r.attachmentCount
+    {r.mode === "offline" && <p className="text-xs text-muted-foreground">{r.attachmentCount
       ? `${r.offlineAttachmentCount} de ${r.attachmentCount} archivos disponibles sin conexión. Puedes guardar los demás desde cada archivo.`
-      : "Esta Bitácora no tiene archivos adjuntos."}</p>
-    {r.downloadErrorCount > 0 && <p className="text-xs text-destructive">{r.downloadErrorCount === 1 ? "No se pudo descargar 1 archivo" : `No se pudieron descargar ${r.downloadErrorCount} archivos`}. Revisa el aviso junto a cada archivo.</p>}
+      : "Esta Bitácora no tiene archivos adjuntos."}</p>}
+    {r.mode === "offline" && r.downloadErrorCount > 0 && <p className="text-xs text-destructive">{r.downloadErrorCount === 1 ? "No se pudo descargar 1 archivo" : `No se pudieron descargar ${r.downloadErrorCount} archivos`}. Revisa el aviso junto a cada archivo.</p>}
   </div>;
 }

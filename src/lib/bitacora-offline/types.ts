@@ -164,6 +164,19 @@ export interface PreparedAttachment {
   description?: string;
 }
 
+export interface BitacoraSaveArgs {
+  fields: BitacoraFields;
+  entryClientId?: string;
+  newAttachments: PreparedAttachment[];
+  keptAttachmentClientIds?: string[];
+  attachmentUpdates?: Array<{ clientId: string; name?: string; description?: string }>;
+}
+
+export interface BitacoraSaveResult {
+  saved: "server" | "local";
+  capacity?: StorageCapacity;
+}
+
 export interface BitacoraEntryView {
   _id: string;
   client_id: string;
