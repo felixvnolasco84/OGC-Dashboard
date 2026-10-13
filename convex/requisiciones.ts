@@ -5,6 +5,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { canUserAccessDesarrollo, getCurrentUserOrThrow } from "./permissions";
 import { assertRequisicionBudgetItems } from "./partidaReferences";
 import { assertRequisicionStateChange } from "./requisicionStateRules";
+import { assertRequestedRequisicionItems, assertRequisicionType, requisicionItemsChanged } from "./requisicionInputRules";
 import { renderRequisicionEmail } from "./requisicionEmailTemplates";
 import { canAddRemissionPhotos, getRequisicionNotificationConfig, isValidRemissionPhoto, notificationForStatusTransition, requisitionDetailUrl, shouldNotifyRequisitionUser, validateOnsitePaymentRequest, type RequisicionNotificationType } from "../src/lib/requisicionNotificationMatrix";
 
@@ -881,6 +882,8 @@ export const create = mutation({
         const project = await ctx.db.get(args.proyecto);
         if (!project || !canUserAccessDesarrollo(actor, project) || actor._id !== args.solicitante_id || !["admin", "user", "contratista"].includes(actor.role)) throw new Error("Sin permisos para crear la requisición");
         const { items, ...requisicionData } = args;
+        assertRequisicionType(args.tipo);
+        assertRequestedRequisicionItems(items);
         await assertRequisicionBudgetItems(ctx, args.proyecto, items);
         
         // Create requisicion with default statuses
@@ -1296,11 +1299,17 @@ export const update = mutation({
         if (!project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || actor.role === "user" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para editar la requisición");
         
         // Fetch old items for comparison
-        if (items) await assertRequisicionBudgetItems(ctx, requisicion.proyecto, items);
+        if (updateData.tipo !== undefined) assertRequisicionType(updateData.tipo);
+        if (items) {
+            assertRequestedRequisicionItems(items);
+            await assertRequisicionBudgetItems(ctx, requisicion.proyecto, items);
+        }
         const oldItems = await ctx.db
             .query("requisicion_items")
             .withIndex("by_requisicion", (q) => q.eq("requisicion_id", id))
             .collect();
+        const itemsChanged = items !== undefined && requisicionItemsChanged(oldItems, items);
+        const typeChanged = updateData.tipo !== undefined && updateData.tipo !== requisicion.tipo;
         
         // Resolve old proveedor name
         let oldProveedorName: string | null = null;
@@ -1331,7 +1340,7 @@ export const update = mutation({
         if (updateData.descripcion !== undefined && updateData.descripcion !== requisicion.descripcion) {
             fieldDiffs.push({ field: "descripcion", old_val: requisicion.descripcion || "Sin descripción", new_val: updateData.descripcion || "Sin descripción" });
         }
-        if (items) {
+        if (itemsChanged && items) {
             // Build readable items summary
             const oldItemsSummary = oldItems.map(i => `${i.familia}${i.sub_partida ? ` > ${i.sub_partida}` : ""}: ${i.cantidad} ${i.unidad}${i.monto ? ` ($${i.monto.toLocaleString()})` : ""}`).join("; ");
             const newItemsSummary = items.map(i => `${i.familia}${i.sub_partida ? ` > ${i.sub_partida}` : ""}: ${i.cantidad} ${i.unidad}${i.monto ? ` ($${i.monto.toLocaleString()})` : ""}`).join("; ");
@@ -1339,7 +1348,8 @@ export const update = mutation({
         }
         
         // Check if this is a re-submission after review
-        const wasReviewed = requisicion.status_revision === "Rechazada" || requisicion.status_revision === "Parcialmente Aprobada";
+        const wasRejected = requisicion.status_revision === "Rechazada";
+        const resetReview = itemsChanged || typeChanged || (wasRejected && fieldDiffs.length > 0);
         
         // Update requisicion data
         const patchData: Record<string, unknown> = {
@@ -1348,7 +1358,7 @@ export const update = mutation({
         };
         
         // Reset review fields on re-submission
-        if (wasReviewed) {
+        if (resetReview) {
             patchData.status_revision = "Pendiente de revisión";
             patchData.nota_revision = undefined;
             patchData.revisado_por_id = undefined;
@@ -1359,7 +1369,7 @@ export const update = mutation({
         await ctx.db.patch(id, patchData);
         
         // If items provided, delete old items and create new ones
-        if (items) {
+        if (itemsChanged && items) {
             for (const item of oldItems) {
                 await ctx.db.delete(item._id);
             }
@@ -1376,7 +1386,7 @@ export const update = mutation({
                     status_revision: "pendiente",
                 });
             }
-        } else if (wasReviewed) {
+        } else if (resetReview) {
             // Reset item review status even if items weren't changed
             for (const item of oldItems) {
                 await ctx.db.patch(item._id, {
@@ -1409,7 +1419,7 @@ export const update = mutation({
         }
         
         // Log re-submission history
-        if (wasReviewed) {
+        if (resetReview && requisicion.status_revision !== "Pendiente de revisión") {
             await ctx.db.insert("requisicion_history", {
                 proyecto: requisicion.proyecto,
                 requisicion_id: id,

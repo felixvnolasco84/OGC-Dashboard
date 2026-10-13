@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dr
 import { Progress } from "../ui/progress";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
+import { buildRequestedRequisicionItems } from "@/lib/requisicion-draft";
 import { es } from "date-fns/locale";
 import {
   AlertDialog,
@@ -133,7 +134,7 @@ export default function RequisicionModal() {
       // Extract partida from first item (all items share same partida)
       const firstItem = requisicionData.items[0];
       const partida = firstItem?.partida;
-      const partidaNombre = partida?.nombre || partida?.partida_nombre || "";
+      const partidaNombre = (partida?.nivel === 1 ? partida.nombre : partida?.partida_nombre || partida?.nombre) || "";
       const partidaRecord = partidas?.find(p => p.nombre === partidaNombre);
 
       // Group items by familia into nested structure
@@ -369,8 +370,9 @@ export default function RequisicionModal() {
   };
 
   const isRequestedSubPartidaValid = (sp: RequisicionItem["subPartidas"][number]) => {
-    if (!(sp.cantidad > 0)) return false;
-    if (!sp.unidad || !resolveSubPartidaName(sp)) return false;
+    if (!Number.isFinite(sp.cantidad) || !(sp.cantidad > 0)) return false;
+    if (!sp.unidad.trim() || !resolveSubPartidaName(sp).trim()) return false;
+    if (sp.monto !== undefined && (!Number.isFinite(sp.monto) || sp.monto < 0)) return false;
     if (sp.sub_partida === "OTRO" && !(sp.descripcion_otro && sp.descripcion_otro.trim())) {
       return false;
     }
@@ -379,7 +381,7 @@ export default function RequisicionModal() {
 
   // Check if form is valid
   const isFormValid = () => {
-    if (!selectedPartida.nombre) return false;
+    if (!selectedPartida.id || !selectedPartida.nombre) return false;
     if (items.length === 0) return false;
     const requestedSubPartidas = items.flatMap(item =>
       item.familia ? item.subPartidas.filter(sp => sp.cantidad > 0) : []
@@ -449,16 +451,7 @@ export default function RequisicionModal() {
         const fechaSolicitud = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
 
         // Flatten nested sub-partidas into individual items
-        const flattenedItems = items.flatMap(item =>
-          item.subPartidas.filter(sp => sp.cantidad > 0).map(sp => ({
-            partida_id: (sp.partida_id || item.partida_id || selectedPartida.id) as Id<"partidas">,
-            familia: item.familia,
-            sub_partida: resolveSubPartidaName(sp) || undefined,
-            cantidad: sp.cantidad,
-            unidad: sp.unidad,
-            monto: sp.monto,
-          }))
-        );
+        const flattenedItems = buildRequestedRequisicionItems(selectedPartida.id as Id<"partidas">, items);
 
         requisicionId = await createRequisicion({
           proyecto: context.projectId,
@@ -496,16 +489,7 @@ export default function RequisicionModal() {
         requisicionId = context.requisicionId;
 
         // Flatten nested sub-partidas into individual items
-        const flattenedItems = items.flatMap(item =>
-          item.subPartidas.filter(sp => sp.cantidad > 0).map(sp => ({
-            partida_id: (sp.partida_id || item.partida_id || selectedPartida.id) as Id<"partidas">,
-            familia: item.familia,
-            sub_partida: resolveSubPartidaName(sp) || undefined,
-            cantidad: sp.cantidad,
-            unidad: sp.unidad,
-            monto: sp.monto,
-          }))
-        );
+        const flattenedItems = buildRequestedRequisicionItems(selectedPartida.id as Id<"partidas">, items);
 
         await updateRequisicion({
           id: context.requisicionId,
@@ -838,14 +822,14 @@ export default function RequisicionModal() {
                                   </div>
                                   <div className="text-right">
 
-                                    {sp.monto && (
+                                    {sp.monto !== undefined && (
                                       <p className="text-blue-700 whitespace-nowrap">
-                                        {formatCurrency(sp.monto * sp.cantidad * 1.16)}
+                                        {formatCurrency(sp.monto * 1.16)}
                                       </p>
                                     )}
-                                    {sp.monto && (
+                                    {sp.monto !== undefined && sp.cantidad > 0 && (
                                       <p className="text-xs text-blue-500 whitespace-nowrap">
-                                        {formatCurrency(sp.monto)} × {sp.cantidad}
+                                        {formatCurrency(sp.monto / sp.cantidad)} × {sp.cantidad}
                                       </p>
                                     )}
                                   </div>

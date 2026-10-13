@@ -34,6 +34,7 @@
     "test:requisicion-notifications": "node --experimental-strip-types scripts/test-requisicion-notifications.mjs",
     "test:requisiciones-ui": "node scripts/test-requisiciones-ui.mjs",
     "test:requisicion-states": "vitest run --config vitest.config.ts --configLoader runner convex/requisicionStates.test.mjs",
+    "test:requisicion-integration": "vitest run --config vitest.config.ts --configLoader runner convex/requisicionIntegration.test.mjs",
     "test:responsive-ui": "node scripts/test-responsive-ui.mjs",
     "test:task-emails": "node --experimental-strip-types scripts/test-task-email-notifications.mjs",
     "test:programa": "node --experimental-strip-types scripts/test-programa-obra-rules.mjs && node --experimental-strip-types scripts/test-programa-execution-rules.mjs && vitest run --config vitest.config.ts --configLoader runner convex/programaObraExecution.test.mjs",

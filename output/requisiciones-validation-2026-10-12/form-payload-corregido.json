@@ -1,0 +1,14 @@
+[
+  {
+    "level": "info",
+    "message": "REQUISICION_TEST_PAYLOAD {\"name\":\"requisicion_history:markRequisicionNotificationsRead\",\"args\":{\"requisicion_id\":\"req\"}}",
+    "timestamp": "2026-10-13T01:11:30.446Z",
+    "url": "http://127.0.0.1:4198/output/requisiciones-validation-2026-10-12/form-convex-stub.ts"
+  },
+  {
+    "level": "info",
+    "message": "REQUISICION_TEST_PAYLOAD {\"name\":\"requisiciones:create\",\"args\":{\"proyecto\":\"project\",\"tipo\":\"material\",\"solicitante_id\":\"user\",\"solicitante_nombre\":\"Prueba local\",\"fecha_solicitud\":\"12/10/2026\",\"items\":[{\"partida_id\":\"root\",\"familia\":\"MATERIALES\",\"sub_partida\":\"CEMENTO\",\"cantidad\":10,\"unidad\":\"piezas\",\"monto\":1000}]}}",
+    "timestamp": "2026-10-13T01:14:08.053Z",
+    "url": "http://127.0.0.1:4198/output/requisiciones-validation-2026-10-12/form-convex-stub.ts"
+  }
+]

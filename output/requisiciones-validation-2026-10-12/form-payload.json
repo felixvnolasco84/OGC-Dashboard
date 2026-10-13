@@ -1,0 +1,14 @@
+{
+  "source": "Observed console output from the actual RequisicionModal using local fixture data",
+  "name": "requisiciones:create",
+  "args": {
+    "proyecto": "project",
+    "tipo": "material",
+    "solicitante_id": "user",
+    "solicitante_nombre": "Prueba local",
+    "fecha_solicitud": "12/10/2026",
+    "items": [{ "partida_id": "leaf", "familia": "MATERIALES", "sub_partida": "CEMENTO", "cantidad": 10, "unidad": "piezas", "monto": 1000 }]
+  },
+  "budgetReferenceLevel": 3,
+  "requiredServerReferenceLevel": 1
+}
