@@ -1,20 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Check,
   ChevronLeft,
   ChevronRight,
   ImageOff,
-  Loader2,
   MessageSquareText,
-  Pencil,
-  Send,
-  Trash2,
-  User,
   WifiOff,
   X,
 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
-import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { BitacoraAttachmentView } from "@/lib/bitacora-offline/types";
@@ -25,7 +18,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import CommentThread, { type CommentExitGuard } from "@/components/comments/CommentThread";
 
 interface Props {
   isOpen: boolean;
@@ -48,109 +41,24 @@ function thumbnailSource(photo: BitacoraAttachmentView, online: boolean) {
   return online ? photo.url || photo.local_url || "" : photo.local_url || "";
 }
 
-function OnlinePhotoComments({ photoId, onClose, readOnly }: { photoId: string; onClose: () => void; readOnly: boolean }) {
+function OnlinePhotoComments({ photoId, destination, online, onClose, readOnly, exitGuard }: { photoId: string; destination: string; online: boolean; onClose: () => void; readOnly: boolean; exitGuard: CommentExitGuard }) {
   const comments = useQuery(api.bitacora.getPhotoComments, { photoId: photoId as Id<"documentos"> });
+  const context = useQuery(api.bitacora.getPhotoCommentContext, { photoId: photoId as Id<"documentos"> });
   const addComment = useMutation(api.bitacora.addPhotoComment);
   const editComment = useMutation(api.bitacora.editPhotoComment);
   const deleteComment = useMutation(api.bitacora.deletePhotoComment);
-  const [comment, setComment] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [editingId, setEditingId] = useState<Id<"photo_comments"> | null>(null);
-  const [editingText, setEditingText] = useState("");
-  const [busyCommentId, setBusyCommentId] = useState<string | null>(null);
-
-  const save = async () => {
-    if (!comment.trim()) return;
-    setSaving(true);
-    try {
-      await addComment({ photoId: photoId as Id<"documentos">, comment: comment.trim() });
-      setComment("");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo agregar el comentario.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const saveEdit = async () => {
-    if (!editingId || !editingText.trim()) return;
-    setBusyCommentId(editingId);
-    try {
-      await editComment({ commentId: editingId, comment: editingText.trim() });
-      setEditingId(null);
-      setEditingText("");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo editar el comentario.");
-    } finally {
-      setBusyCommentId(null);
-    }
-  };
-
-  const remove = async (commentId: Id<"photo_comments">) => {
-    setBusyCommentId(commentId);
-    try {
-      await deleteComment({ commentId });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo eliminar el comentario.");
-    } finally {
-      setBusyCommentId(null);
-    }
-  };
-
   return (
-    <aside className="flex h-full min-h-0 flex-col border-l border-on-color/10 bg-overlay text-on-color">
+    <aside className="flex h-full min-h-0 flex-col border-l border-on-color/10 bg-overlay text-on-color" data-comment-panel="true">
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-on-color/10 px-5">
-        <div>
-          <h2 className="font-medium">Comentarios</h2>
-          <p className="text-xs text-on-color/60">{comments ? `${comments.length} en esta fotografía` : "Cargando…"}</p>
-        </div>
+        <h2 className="font-medium">Comentarios de fotografía</h2>
         <Button type="button" size="sm" variant="secondary" onClick={onClose} aria-label="Cerrar comentarios"><X /></Button>
       </div>
-
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
-        {!comments && <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>}
-        {comments?.map((item) => (
-          <div key={item._id} className="group bg-on-color/5 p-3 text-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <span className="inline-flex max-w-full items-center gap-1.5 font-medium">
-                  <User className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{item.user_name}</span>
-                </span>
-                <p className="mt-0.5 text-xs text-on-color/50">
-                  {new Date(item.created_at).toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                </p>
-              </div>
-              {!readOnly && editingId !== item._id && (
-                <div className="flex items-center opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                  <Button type="button" size="sm" variant="secondary" aria-label="Editar comentario" onClick={() => { setEditingId(item._id); setEditingText(item.comment); }}><Pencil /></Button>
-                  <Button type="button" size="sm" variant="destructive" disabled={busyCommentId === item._id} aria-label="Eliminar comentario" onClick={() => void remove(item._id)}><Trash2 /></Button>
-                </div>
-              )}
-            </div>
-            {editingId === item._id ? (
-              <div className="mt-2 space-y-2">
-                <Textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} variant="darkEdit" autoFocus />
-                <div className="flex justify-end gap-1">
-                  <Button type="button" size="sm" variant="secondary" aria-label="Cancelar edición" onClick={() => { setEditingId(null); setEditingText(""); }}><X /></Button>
-                  <Button type="button" size="sm" variant="secondary" aria-label="Guardar comentario" disabled={!editingText.trim() || busyCommentId === item._id} onClick={() => void saveEdit()}><Check /></Button>
-                </div>
-              </div>
-            ) : <p className="mt-2 whitespace-pre-wrap leading-relaxed text-on-color/80">{item.comment}</p>}
-          </div>
-        ))}
-        {comments?.length === 0 && <p className="py-8 text-center text-sm text-on-color/60">Sin comentarios.</p>}
-      </div>
-
-      {!readOnly && <div className="shrink-0 space-y-2 border-t border-on-color/10 p-4">
-        <Textarea value={comment} onChange={(event) => setComment(event.target.value)} variant="darkComment" placeholder="Agregar comentario" />
-        <div className="grid">
-          <Button type="button" size="sm" variant="secondary" onClick={() => void save()} disabled={saving || !comment.trim()}>
-            {saving ? <Loader2 className="animate-spin" /> : <Send />}
-            Publicar comentario
-          </Button>
-        </div>
-      </div>}
+      <CommentThread destination={destination} available={context?.available} online={online} canCreate={!readOnly && Boolean(context?.canCreate)} dark defaultComposer exitGuard={exitGuard}
+        comments={comments?.map((item) => ({ id: item._id, text: item.comment, author: item.user_name, createdAt: item.created_at, revision: item.revision ?? 1, canManage: item.can_manage }))}
+        onAdd={(draft, operationId) => addComment({ photoId: photoId as Id<"documentos">, comment: draft.text, operationId })}
+        onEdit={(original, draft, operationId) => editComment({ commentId: original.id as Id<"photo_comments">, photoId: photoId as Id<"documentos">, comment: draft.text, expectedRevision: original.revision, operationId })}
+        onDelete={(original, operationId) => deleteComment({ commentId: original.id as Id<"photo_comments">, photoId: photoId as Id<"documentos">, expectedRevision: original.revision, operationId })}
+      />
     </aside>
   );
 }
@@ -167,17 +75,23 @@ export default function BitacoraGalleryModal({
   canWriteComments = true,
   onPhotoViewed,
 }: Props) {
-  const [index, setIndex] = useState(initialIndex);
+  const [selectedPhoto, setSelectedPhoto] = useState(photos[initialIndex]);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const requestedDownloads = useRef(new Set<string>());
-  const current = photos[index];
+  const initialSelection = useRef({ photos, initialIndex });
+  initialSelection.current = { photos, initialIndex };
+  const current = photos.find((photo) => photo.client_id === selectedPhoto?.client_id) ?? selectedPhoto;
+  const index = Math.max(0, photos.findIndex((photo) => photo.client_id === current?.client_id));
+  const commentExitGuard = useRef<((action: () => void) => void) | null>(null);
+  const requestExit = (action: () => void) => commentExitGuard.current ? commentExitGuard.current(action) : action();
 
   useEffect(() => {
     if (!isOpen) return;
     requestedDownloads.current.clear();
     setCommentsOpen(false);
-    setIndex(Math.min(initialIndex, Math.max(photos.length - 1, 0)));
-  }, [initialIndex, isOpen, photos.length]);
+    const selection = initialSelection.current;
+    setSelectedPhoto(selection.photos[Math.min(selection.initialIndex, Math.max(selection.photos.length - 1, 0))]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !online || !current || current.available_offline || !onPhotoViewed) return;
@@ -189,19 +103,20 @@ export default function BitacoraGalleryModal({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft" && photos.length > 1) setIndex((value) => (value - 1 + photos.length) % photos.length);
-      if (event.key === "ArrowRight" && photos.length > 1) setIndex((value) => (value + 1) % photos.length);
+      if (commentsOpen || (event.target instanceof Element && event.target.closest('input, textarea, [contenteditable="true"], [role="alertdialog"]'))) return;
+      if (event.key === "ArrowLeft" && photos.length > 1) setSelectedPhoto(photos[(index - 1 + photos.length) % photos.length]);
+      if (event.key === "ArrowRight" && photos.length > 1) setSelectedPhoto(photos[(index + 1) % photos.length]);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, photos.length]);
+  }, [isOpen, photos, commentsOpen, index]);
 
-  const previous = () => setIndex((value) => (value - 1 + photos.length) % photos.length);
-  const next = () => setIndex((value) => (value + 1) % photos.length);
+  const previous = () => requestExit(() => setSelectedPhoto(photos[(index - 1 + photos.length) % photos.length]));
+  const next = () => requestExit(() => setSelectedPhoto(photos[(index + 1) % photos.length]));
   const canComment = Boolean(online && current?.server_id);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && requestExit(onClose)}>
       <DialogContent
         data-bitacora-surface="true"
         variant="gallery"
@@ -212,14 +127,14 @@ export default function BitacoraGalleryModal({
           </DialogTitle>
           <DialogDescription className="sr-only">Visor de fotografías de Bitácora</DialogDescription>
           {canComment ? (
-            <Button type="button" size="sm" variant="secondary" onClick={() => setCommentsOpen((value) => !value)} aria-expanded={commentsOpen} aria-label="Comentarios">
+            <Button type="button" size="sm" variant="secondary" onClick={() => requestExit(() => setCommentsOpen((value) => !value))} aria-expanded={commentsOpen} aria-label="Comentarios">
               <MessageSquareText /><span className="hidden sm:inline">Comentarios</span>
             </Button>
           ) : !online ? (
             <span className="hidden items-center gap-1.5 text-xs text-on-color/60 sm:inline-flex"><WifiOff className="h-3.5 w-3.5" />Comentarios al reconectar</span>
           ) : null}
           <span className="bg-on-color/10 px-3 py-1 text-xs font-medium text-on-color">{current ? index + 1 : 0} / {photos.length}</span>
-          <Button type="button" size="sm" variant="secondary" onClick={onClose} aria-label="Cerrar galería"><X /></Button>
+          <Button type="button" size="sm" variant="secondary" onClick={() => requestExit(onClose)} aria-label="Cerrar galería"><X /></Button>
         </header>
 
         <div className="relative min-h-0 min-w-0 overflow-hidden bg-overlay">
@@ -248,7 +163,7 @@ export default function BitacoraGalleryModal({
             {photos.map((photo, photoIndex) => {
               const source = thumbnailSource(photo, online);
               return (
-                <Button key={photo.client_id} type="button" onClick={() => setIndex(photoIndex)} variant={photoIndex === index ? "mediaSelected" : "mediaUnselected"} size="filmstrip" aria-label={`Ver fotografía ${photoIndex + 1}`} aria-current={photoIndex === index ? "true" : undefined}>
+                <Button key={photo.client_id} type="button" onClick={() => photo.client_id !== current?.client_id && requestExit(() => setSelectedPhoto(photo))} variant={photo.client_id === current?.client_id ? "mediaSelected" : "mediaUnselected"} size="filmstrip" aria-label={`Ver fotografía ${photoIndex + 1}`} aria-current={photo.client_id === current?.client_id ? "true" : undefined}>
                   {source ? <img src={source} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center bg-on-color/10"><ImageOff className="h-5 w-5" /></span>}
                 </Button>
               );
@@ -256,9 +171,9 @@ export default function BitacoraGalleryModal({
           </div>
         </div>
 
-        {commentsOpen && canComment && current?.server_id && (
+        {commentsOpen && current?.server_id && (
           <div className="absolute inset-y-0 right-0 z-30 w-full max-w-sm shadow-2xl">
-            <OnlinePhotoComments key={current.server_id} photoId={current.server_id} readOnly={!canWriteComments} onClose={() => setCommentsOpen(false)} />
+            <OnlinePhotoComments key={current.server_id} photoId={current.server_id} destination={`${current.nombre} · ${logTitle || "Bitácora"}${logDate ? ` · ${logDate}` : ""}`} online={online} readOnly={!canWriteComments} exitGuard={commentExitGuard} onClose={() => requestExit(() => setCommentsOpen(false))} />
           </div>
         )}
       </DialogContent>

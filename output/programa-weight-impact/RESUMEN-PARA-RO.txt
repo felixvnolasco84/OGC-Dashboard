@@ -1,0 +1,11 @@
+Hola, buenas tardes, Ro. Espero que te encuentres muy bien.
+
+Realicé algunas mejoras en el panel de ponderaciones del Programa de Obra: ahora permite comparar el peso actual y el propuesto, su participación relativa y el efecto sobre el avance real y planeado de la partida y del proyecto antes de guardar.
+
+También agregué una explicación cuando el cálculo es provisional y protecciones para evitar guardados duplicados. Si el programa cambia mientras se edita o ocurre un error, se conserva el peso propuesto y se permite revisar nuevamente antes de guardar.
+
+Estos cambios conservan el avance físico registrado y la línea base aprobada. Quedaron implementados localmente y verificados en escritorio y móvil.
+
+Adjunto las capturas de los cambios, tomadas con datos de prueba.
+
+Quedo atento a tus comentarios. Saludos.

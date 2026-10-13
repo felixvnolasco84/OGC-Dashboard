@@ -1,0 +1,13 @@
+Programa de Obra — editar ponderaciones
+
+Problema resuelto
+Al editar una ponderación ya existían Guardar y Cancelar, pero no se podía ver qué efecto tendría el nuevo peso sobre el avance de la partida o del proyecto. Esto dificultaba revisar el cambio antes de aplicarlo.
+
+Cambios realizados
+Se agregó una comparación dentro del mismo panel: peso actual, participación relativa, avance real y planeado antes y después, y explicación cuando el cálculo es provisional. No se exige que los pesos sumen 100.
+
+Guardar aplica un único cambio con los permisos correspondientes. Cancelar o cerrar descarta el borrador. Si el programa cambia mientras se revisa, el sistema conserva lo escrito y solicita revisar los resultados actualizados. Los errores también permiten recuperar el borrador y reintentar sin duplicar el cambio.
+
+Editar el peso recalcula el avance agregado; no altera el avance físico capturado ni los pesos del programa aprobado.
+
+Se verificó la interfaz en escritorio y móvil, además de teclado, permisos, conflictos y errores. La implementación está en el código local; las capturas utilizan datos ficticios de prueba y no representan cambios en un proyecto real. Control y WIP requieren una reconciliación separada de sus fórmulas.

@@ -1,0 +1,13 @@
+Hola, buenas tardes, Ro. Espero que te encuentres muy bien.
+
+Realicé mejoras en los modales de edición de pagos y transacciones de Obra: ahora, antes de guardar, muestran una comparación de los datos anteriores y los nuevos, junto con el impacto en partidas, presupuesto, honorarios, indirectos y P&L. También indican cuándo un análisis de factura requerirá una nueva revisión.
+
+Al editar desde una partida o familia, se incluyen todos los conceptos para mostrar correctamente el total de la transacción. La edición individual permite modificar únicamente el monto del concepto seleccionado. Los cambios se guardan juntos para evitar actualizaciones parciales.
+
+También agregué controles para evitar envíos duplicados, solicitar una nueva revisión si otra persona modifica los datos y conservar el borrador cuando ocurre un error. Al cancelar una edición con cambios, se puede elegir entre continuar o descartarla. Además, se aclara que las operaciones realizadas en la biblioteca de cuentas se conservan aunque se cancele la edición de la transacción.
+
+Revisé el funcionamiento en escritorio y móvil. Los cambios están implementados y validados localmente; queda pendiente su despliegue.
+
+Te comparto las capturas con datos de prueba.
+
+Quedo atento a tus comentarios. Saludos.

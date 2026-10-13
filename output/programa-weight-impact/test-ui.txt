@@ -1,0 +1,6 @@
+Checking weight editor at 1440px
+Checking weight editor at 390px
+Checking weight editor at 320px
+Checking provisional transition ?missing=1
+Checking provisional transition ?zero=1
+Programa weight UI: desktop, 390/320px, keyboard, cancellation, concurrency, retry, single save and provisional transitions passed.

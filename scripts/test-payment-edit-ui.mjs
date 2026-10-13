@@ -69,6 +69,18 @@ try {
     await expect(page.getByRole("alert")).toContainText("No se pudo guardar");
     await expect(page.getByLabel("OBRA › ACERO › VARILLA", { exact: true })).toHaveValue("350");
     await page.screenshot({ path: `${root}/output/payment-edits/error-${width}.png`, fullPage: true });
+    await open(page, "lost-response");
+    await edit(page);
+    await page.getByRole("button", { name: "Confirmar actualización", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByText("Los cambios ya están guardados", { exact: true })).toBeVisible();
+    assert.equal(await page.evaluate(() => window.paymentEditRecorded.mutations.length), 1);
+    await open(page, "lost-response-drift");
+    await edit(page);
+    await page.getByRole("button", { name: "Confirmar actualización", exact: true }).click();
+    await expect(page.getByRole("alert")).toContainText("Se perdió la respuesta");
+    await expect(page.getByLabel("OBRA › ACERO › VARILLA", { exact: true })).toHaveValue("350");
+    assert.equal(await page.evaluate(() => window.paymentEditRecorded.mutations.length), 1);
     await open(page, "preview-error");
     await page.getByLabel("OBRA › ACERO › VARILLA", { exact: true }).fill("350");
     await page.getByRole("button", { name: "Revisar cambios", exact: true }).click();

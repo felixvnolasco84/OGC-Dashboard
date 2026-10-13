@@ -24,7 +24,7 @@ const observeExport = {
         names: Array.from(leftColumnsEl.querySelectorAll("span[title]")).map(el => el.title),
         leftRows: testRows.map(el => ({ top: el.offsetTop, height: el.offsetHeight })),
         timelineRows: Array.from(timelineEl.children).slice(1).map(el => ({ top: el.offsetTop, height: el.offsetHeight })),
-        markers: timelineEl.querySelectorAll('button[aria-label*=" de "]').length,
+        markers: Array.from(timelineEl.querySelectorAll('button[aria-label]')).filter(el => /^(Anticipo|Suministro|Finiquito) de /.test(el.getAttribute('aria-label'))).length,
         commentBars: Array.from(timelineEl.querySelectorAll("div")).filter(el => el.classList.contains("bg-[#3B82F6]")).length,
         delayBars: Array.from(timelineEl.querySelectorAll("div")).filter(el => el.classList.contains("bg-[#B17C7C]")).length,
       });

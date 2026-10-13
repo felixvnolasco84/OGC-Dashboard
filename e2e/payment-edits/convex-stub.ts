@@ -13,6 +13,7 @@ const partida = { _id: "leaf", nombre: "OBRA", partida_nombre: "OBRA", nivel: 3,
 const items = [ { _id: "a", _creationTime: 0, transaccion_id: "tx", partida_id: "leaf", monto: 300, label: "OBRA › ACERO › VARILLA", partida },
   { _id: "b", _creationTime: 0, transaccion_id: "tx", partida_id: "root", monto: 700, label: "OBRA › CONCRETO", partida: { ...partida, _id: "root", nivel: 1, familia: "", sub_partida: "" } } ];
 export const initial = { transaction, lineItems: items, source: "source-0" };
+let recoveredContext: typeof initial | undefined;
 const bankDefaults = { payment_account_id: undefined, clabe: undefined, codigo_referencia: undefined, factura: undefined, comprobante: undefined, categoria: undefined };
 function review(args: any) {
   if (scenario === "preview-error") return { status: "error", message: "No se pudo consultar el impacto. Conservamos tu borrador." };
@@ -50,8 +51,14 @@ export function useMutation(query: any) {
     recorded.mutations.push({ name: getFunctionName(query), args });
     await new Promise(resolve => setTimeout(resolve, 120));
     if (scenario === "save-error") throw new Error("No se pudo guardar: la cuenta dejó de estar disponible.");
+    if (scenario === "lost-response" || scenario === "lost-response-drift") {
+      const saved = review(args);
+      recoveredContext = { ...initial, transaction: { ...saved.after, ...(scenario === "lost-response-drift" ? { banco: "Cambio posterior" } : {}) },
+        lineItems: items.map(p => ({ ...p, monto: saved.concepts.find((c: any) => c.id === p._id).after })) };
+      throw new Error("Se perdió la respuesta de guardado. Tu borrador se conserva.");
+    }
     return { id: "tx", changed: true };
   };
 }
-export function useConvex() { return { query: async () => ({ status: "ready", context: initial }) }; }
+export function useConvex() { return { query: async () => ({ status: "ready", context: recoveredContext || initial }) }; }
 export function useConvexAuth() { return { isAuthenticated: true, isLoading: false }; }

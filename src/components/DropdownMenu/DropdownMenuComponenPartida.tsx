@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { Doc } from "convex/_generated/dataModel";
 import { MoreHorizontal, Pencil, CreditCard, Loader2, Trash2 } from "lucide-react";
@@ -43,10 +43,11 @@ export default function DropdownMenuComponentPartida({
   const seePaymentDetailsModal = useSeePaymentDetailsModal();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const closeEditRequest = useRef<(() => void) | null>(null);
 
   const currentUser = useQuery(api.users.getCurrentUser);
   const isViewer = currentUser?.role === "viewer";
-  const canEdit = currentUser !== undefined && currentUser !== null && !isViewer;
+  const canEdit = currentUser !== undefined && currentUser !== null && !isViewer && currentUser.role !== "almacenista";
 
   // Query payments based on level with proper proyecto filtering
   // Note: level 0 = nivel 1 (partida), level 1 = nivel 2 (familia), level 2 = nivel 3 (sub-partida)
@@ -159,7 +160,11 @@ export default function DropdownMenuComponentPartida({
 
   return (
     <>
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+      <Dialog open={isEditOpen} onOpenChange={open => {
+        if (open) setIsEditOpen(true);
+        else if (closeEditRequest.current) closeEditRequest.current();
+        else setIsEditOpen(false);
+      }}>
         <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button
@@ -209,7 +214,7 @@ export default function DropdownMenuComponentPartida({
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>{labels.editTitle}</DialogTitle>
             <DialogDescription>
@@ -219,6 +224,7 @@ export default function DropdownMenuComponentPartida({
           <EditPartidaForm
             partida={partida}
             level={level}
+            closeRequestRef={closeEditRequest}
             onClose={() => setIsEditOpen(false)}
           />
         </DialogContent>

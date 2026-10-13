@@ -1,0 +1,19 @@
+Capturas de Programa de Obra — ponderaciones
+Fecha: 13 de octubre de 2026.
+
+Las capturas provienen del navegador con la página real y datos ficticios aislados. No son mockups ni capturas de un proyecto real.
+
+baseline-1440/390/320.png: panel anterior con Guardar y Cancelar.
+partida-review-1440/390/320.png: cambio de peso de partida; la comparación conserva todo el proyecto aunque el listado esté filtrado.
+familia-review-1440/390/320.png: cambio de peso familiar y comparación de avance de partida/general.
+conflict-1440/390/320.png: cambió el avance de un hermano; se conserva el borrador y se requiere revisar nuevamente.
+error-1440/390/320.png: error recuperable; no se pierde el peso propuesto.
+success-1440/390/320.png: página después de un único guardado.
+missing-to-weighted-390.png: al completar un peso faltante, la partida pasa de promedio provisional a ponderado.
+zero-to-weighted-390.png: al introducir un peso positivo en un grupo con suma cero, cambia el modo de cálculo.
+response-recovered-390.png: después de perder una respuesta, la revisión encuentra el peso ya vigente y evita repetir la escritura.
+
+51 pruebas de negocio, suite UI de ponderaciones, regresiones UI/PDF, tipos, lint de archivos nuevos y build: verificación satisfactoria.
+El comando habitual de reportes tiene un problema previo de resolución de imports; sus aserciones se ejecutaron satisfactoriamente con empaquetado local. Los logs conservan ambos resultados.
+
+Los cambios de fórmulas de Control/WIP se dejan para una tarea separada.

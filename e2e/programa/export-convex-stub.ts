@@ -1,4 +1,5 @@
 import { getFunctionName } from "convex/server";
+export const useConvexConnectionState = () => ({ isWebSocketConnected: true });
 
 // Stable, isolated fixtures for the real ProgramaObra page and its PDF exporter.
 const partidas = ["Estructura", "Instalaciones", "Acabados"].map((nombre, index) => ({

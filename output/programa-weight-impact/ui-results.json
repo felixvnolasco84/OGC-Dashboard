@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "width": 1440,
+      "events": 1,
+      "keyboard": true,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "events": 1,
+      "keyboard": true,
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "events": 1,
+      "keyboard": true,
+      "overflow": false
+    }
+  ],
+  "permissions": true,
+  "provisionalTransitions": true,
+  "serverConflict": true,
+  "lostResponse": true,
+  "filteredUniverse": true
+}

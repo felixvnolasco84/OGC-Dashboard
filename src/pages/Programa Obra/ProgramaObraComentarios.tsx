@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useRef } from "react";
+import { useQuery, useMutation, useConvexConnectionState } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   Sheet,
   SheetContent,
@@ -9,12 +9,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Trash2, Plus, MessageSquare, Pencil } from "lucide-react";
+import CommentThread from "@/components/comments/CommentThread";
 import { type ProgramaItem } from "./programa-obra-types";
 
 type Props = {
@@ -23,307 +18,104 @@ type Props = {
   onClose: () => void;
 };
 
-/** Convert DD/MM/YYYY to YYYY-MM-DD for HTML date inputs */
-function toInputDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return "";
-  if (dateStr.includes("-")) return dateStr;
-  const [d, m, y] = dateStr.split("/");
-  return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-}
-
-/** Convert YYYY-MM-DD to DD/MM/YYYY for storage */
-function toStorageDate(dateStr: string): string {
-  if (!dateStr) return "";
-  if (dateStr.includes("/")) return dateStr;
-  const [y, m, d] = dateStr.split("-");
-  return `${d}/${m}/${y}`;
-}
-
-/** Format DD/MM/YYYY for display */
-function formatDisplayDate(dateStr: string): string {
-  if (!dateStr) return "";
-  if (dateStr.includes("-")) {
-    const [y, m, d] = dateStr.split("-");
-    return `${d}/${m}/${y}`;
-  }
-  return dateStr;
-}
-
-export default function ProgramaObraComentarios({ item, proyectoId, onClose }: Props) {
+export default function ProgramaObraComentarios({
+  item,
+  proyectoId,
+  onClose,
+}: Props) {
   const parentType = item.level === 0 ? "partida" : "familia";
-  const parentId = item.level === 0
-    ? item.schedule?._id ?? ""
-    : item.detalleSchedule?._id ?? "";
-
-  const comentarios = useQuery(
-    api.programa_obra.getComentariosByProyecto,
-    { proyecto_id: proyectoId }
-  );
-
-  const addComentario = useMutation(api.programa_obra.addComentario);
-  const updateComentario = useMutation(api.programa_obra.updateComentario);
-  const deleteComentario = useMutation(api.programa_obra.deleteComentario);
-
-  const [showForm, setShowForm] = useState(false);
-  const [comentario, setComentario] = useState("");
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Edit state
-  const [editingId, setEditingId] = useState<Id<"programa_obra_comentarios"> | null>(null);
-  const [editComentario, setEditComentario] = useState("");
-  const [editFechaInicio, setEditFechaInicio] = useState("");
-  const [editFechaFin, setEditFechaFin] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  // Filter comentarios for this item
-  const itemComentarios = (comentarios ?? []).filter(
-    (c) => c.parent_type === parentType && c.parent_id === parentId
-  );
-
-  const handleAdd = async () => {
-    if (!comentario.trim() || !fechaInicio || !fechaFin || !parentId) return;
-    setIsSaving(true);
-    try {
-      await addComentario({
-        proyecto: proyectoId,
-        parent_type: parentType,
-        parent_id: parentId,
-        comentario: comentario.trim(),
-        fecha_inicio: toStorageDate(fechaInicio),
-        fecha_fin: toStorageDate(fechaFin),
-      });
-      setComentario("");
-      setFechaInicio("");
-      setFechaFin("");
-      setShowForm(false);
-    } catch (error) {
-      console.error("Error adding comentario:", error);
-    } finally {
-      setIsSaving(false);
-    }
+  const parentId =
+    item.level === 0
+      ? (item.schedule?._id ?? "")
+      : (item.detalleSchedule?._id ?? "");
+  const destination = {
+    proyecto: proyectoId,
+    parent_type: parentType,
+    parent_id: parentId,
   };
-
-  const handleDelete = async (id: Id<"programa_obra_comentarios">) => {
-    try {
-      await deleteComentario({ comentario_id: id });
-    } catch (error) {
-      console.error("Error deleting comentario:", error);
-    }
-  };
-
-  const startEdit = (c: { _id: Id<"programa_obra_comentarios">; comentario: string; fecha_inicio: string; fecha_fin: string }) => {
-    setEditingId(c._id);
-    setEditComentario(c.comentario);
-    setEditFechaInicio(toInputDate(c.fecha_inicio));
-    setEditFechaFin(toInputDate(c.fecha_fin));
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditComentario("");
-    setEditFechaInicio("");
-    setEditFechaFin("");
-  };
-
-  const handleUpdate = async () => {
-    if (!editingId || !editComentario.trim() || !editFechaInicio || !editFechaFin) return;
-    setIsUpdating(true);
-    try {
-      await updateComentario({
-        comentario_id: editingId,
-        comentario: editComentario.trim(),
-        fecha_inicio: toStorageDate(editFechaInicio),
-        fecha_fin: toStorageDate(editFechaFin),
-      });
-      cancelEdit();
-    } catch (error) {
-      console.error("Error updating comentario:", error);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
+  const context = useQuery(api.programa_obra.getComentarioContext, destination);
+  const comments = useQuery(api.programa_obra.getComentariosByProyecto, {
+    proyecto_id: proyectoId,
+  });
+  const online = useConvexConnectionState().isWebSocketConnected;
+  const add = useMutation(api.programa_obra.addComentario);
+  const edit = useMutation(api.programa_obra.updateComentario);
+  const remove = useMutation(api.programa_obra.deleteComentario);
+  const exitGuard = useRef<((action: () => void) => void) | null>(null);
+  const close = () =>
+    exitGuard.current ? exitGuard.current(onClose) : onClose();
+  const schedule = item.level === 0 ? item.schedule : item.detalleSchedule;
   return (
-    <Sheet open onOpenChange={onClose}>
-      <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
+    <Sheet
+      open
+      onOpenChange={(open) => {
+        if (!open) close();
+      }}
+    >
+      <SheetContent
+        data-comment-panel="true"
+        className="w-full sm:max-w-[480px]"
+      >
         <SheetHeader>
-          <SheetTitle className="text-left flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Comentarios
-          </SheetTitle>
-          <SheetDescription className="text-left">
-            {item.partida} — {parentType === "partida" ? "Partida" : "Familia"}
+          <SheetTitle>Comentarios de Programa</SheetTitle>
+          <SheetDescription className="break-words">
+            {item.partida} · {parentType === "partida" ? "Partida" : "Familia"}
+            {item.parentPartidaNombre ? ` · ${item.parentPartidaNombre}` : ""}
           </SheetDescription>
         </SheetHeader>
-
-        <div className="mt-6 space-y-4">
-          {/* Existing comentarios */}
-          {itemComentarios.length === 0 && !showForm && (
-            <p className="text-sm text-disabled-foreground text-center py-6">
-              No hay comentarios para este elemento
-            </p>
-          )}
-
-          {itemComentarios
+        <CommentThread
+          destination={`${parentType === "partida" ? "Partida" : "Familia"} ${item.partida}${item.parentPartidaNombre ? ` · ${item.parentPartidaNombre}` : ""}`}
+          available={context?.available}
+          online={online}
+          canCreate={Boolean(context?.canWrite)}
+          dated
+          exitGuard={exitGuard}
+          programStart={schedule?.fecha_inicio}
+          programFinish={schedule?.fecha_fin}
+          comments={comments
+            ?.filter(
+              (c) => c.parent_type === parentType && c.parent_id === parentId,
+            )
             .sort((a, b) => b.created_at - a.created_at)
-            .map((c) =>
-              editingId === c._id ? (
-                // Inline edit form
-                <div key={c._id} className="border border-blue-300 bg-blue-50/30 p-3 space-y-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Comentario</Label>
-                    <Textarea
-                      value={editComentario}
-                      onChange={(e) => setEditComentario(e.target.value)}
-                      className="min-h-[60px] text-sm rounded-none resize-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Fecha inicio</Label>
-                      <Input
-                        type="date"
-                        value={editFechaInicio}
-                        onChange={(e) => setEditFechaInicio(e.target.value)}
-                        className="h-9 rounded-none text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Fecha fin</Label>
-                      <Input
-                        type="date"
-                        value={editFechaFin}
-                        onChange={(e) => setEditFechaFin(e.target.value)}
-                        className="h-9 rounded-none text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" onClick={cancelEdit} className="rounded-none text-xs">
-                      Cancelar
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleUpdate}
-                      disabled={isUpdating || !editComentario.trim() || !editFechaInicio || !editFechaFin}
-                      className="rounded-none text-xs"
-                    >
-                      {isUpdating ? "Guardando..." : "Guardar"}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                // Display mode
-                <div
-                  key={c._id}
-                  className="border border-border p-3 space-y-2"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm text-foreground flex-1">{c.comentario}</p>
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <button
-                        onClick={() => startEdit(c)}
-                        className="p-1 hover:bg-blue-50 rounded text-disabled-foreground hover:text-blue-500"
-                        title="Editar comentario"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(c._id)}
-                        className="p-1 hover:bg-red-50 rounded text-disabled-foreground hover:text-red-500"
-                        title="Eliminar comentario"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>
-                      {formatDisplayDate(c.fecha_inicio)} → {formatDisplayDate(c.fecha_fin)}
-                    </span>
-                    {c.created_by_name && (
-                      <>
-                        <span>·</span>
-                        <span>{c.created_by_name}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )
-            )}
-
-          <Separator />
-
-          {/* Add comentario form */}
-          {showForm ? (
-            <div className="space-y-3 border border-dashed border-border-strong p-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Comentario</Label>
-                <Textarea
-                  value={comentario}
-                  onChange={(e) => setComentario(e.target.value)}
-                  placeholder="Escribe un comentario..."
-                  className="min-h-[80px] text-sm rounded-none resize-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Fecha inicio</Label>
-                  <Input
-                    type="date"
-                    value={fechaInicio}
-                    onChange={(e) => setFechaInicio(e.target.value)}
-                    className="h-9 rounded-none text-sm"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Fecha fin</Label>
-                  <Input
-                    type="date"
-                    value={fechaFin}
-                    onChange={(e) => setFechaFin(e.target.value)}
-                    className="h-9 rounded-none text-sm"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 pt-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setShowForm(false);
-                    setComentario("");
-                    setFechaInicio("");
-                    setFechaFin("");
-                  }}
-                  className="rounded-none text-xs"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleAdd}
-                  disabled={isSaving || !comentario.trim() || !fechaInicio || !fechaFin}
-                  className="rounded-none text-xs"
-                >
-                  {isSaving ? "Guardando..." : "Agregar"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowForm(true)}
-              className="rounded-none w-full gap-1.5"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Agregar Comentario
-            </Button>
-          )}
-        </div>
+            .map((c) => ({
+              id: c._id,
+              text: c.comentario,
+              author: c.created_by_name,
+              createdAt: c.created_at,
+              revision: c.revision ?? 1,
+              start: c.fecha_inicio,
+              finish: c.fecha_fin,
+              canManage: Boolean(context?.canWrite),
+            }))}
+          onAdd={(draft, operationId) =>
+            add({
+              ...destination,
+              comentario: draft.text,
+              fecha_inicio: draft.start,
+              fecha_fin: draft.finish,
+              operation_id: operationId,
+            })
+          }
+          onEdit={(original, draft, operationId) =>
+            edit({
+              ...destination,
+              comentario_id: original.id as Id<"programa_obra_comentarios">,
+              comentario: draft.text,
+              fecha_inicio: draft.start,
+              fecha_fin: draft.finish,
+              expected_revision: original.revision,
+              operation_id: operationId,
+            })
+          }
+          onDelete={(original, operationId) =>
+            remove({
+              ...destination,
+              comentario_id: original.id as Id<"programa_obra_comentarios">,
+              expected_revision: original.revision,
+              operation_id: operationId,
+            })
+          }
+        />
       </SheetContent>
     </Sheet>
   );

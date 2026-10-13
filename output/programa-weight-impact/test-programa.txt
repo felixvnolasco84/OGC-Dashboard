@@ -1,0 +1,14 @@
+
+> epi-group-react-vite@0.0.0 test:programa
+> node --experimental-strip-types scripts/test-programa-obra-rules.mjs && node --experimental-strip-types scripts/test-programa-execution-rules.mjs && vitest run --config vitest.config.ts --configLoader runner convex/programaObraExecution.test.mjs
+
+Programa de Obra milestone rules: OK
+Programa de Obra execution rules: OK
+
+ RUN  v5.0.0 C:/Users/felix/Documents/OGC-Dashboard
+
+
+ Test Files  1 passed (1)
+      Tests  51 passed (51)
+   Start at  14:14:41
+   Duration  793ms (transform 57%, tests 23%, import 19%, worker 1%)

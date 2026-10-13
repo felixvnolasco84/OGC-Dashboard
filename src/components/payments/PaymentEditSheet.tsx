@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { PaymentEditContext, PaymentEditDraft, PaymentEditReview as Review } from "../../../convex/paymentEdit";
-import { buildEditDraft, editForm, rebaseEditForm, type EditField } from "@/lib/payment-edit-draft";
+import { buildEditDraft, editableFields, editForm, rebaseEditForm, type EditField } from "@/lib/payment-edit-draft";
 import { formatMoney } from "@/lib/money";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -80,8 +80,8 @@ function EditSession({ initial, current, paymentId, contextIds, onClose, accessE
         const latest = await convex.query(api.transacciones.getEditContext, { id: base.transaction._id });
         if (latest.status === "ready") {
           const after = accepted.after;
-          const matchesFields = Object.keys(draft.fields).every(key => latest.context.transaction[key as keyof typeof after] === after[key as keyof typeof after]);
-          const matchesAmounts = draft.amounts.every(a => latest.context.lineItems.some(p => p._id === a.id && p.monto === a.monto));
+          const matchesFields = editableFields.every(key => latest.context.transaction[key] === after[key]);
+          const matchesAmounts = latest.context.lineItems.length === accepted.concepts.length && accepted.concepts.every(a => latest.context.lineItems.some(p => p._id === a.id && p.monto === a.after));
           if (matchesFields && matchesAmounts && latest.context.transaction.monto_total === after.monto_total) {
             toast.success("Los cambios ya están guardados"); onClose(); return;
           }

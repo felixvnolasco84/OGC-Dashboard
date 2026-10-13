@@ -1,0 +1,1 @@
+Reporting rules passed: honorarios modes, mixed dates, leap years, timezone periods, scheduling, earned value, and sanitization.

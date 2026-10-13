@@ -1,0 +1,2 @@
+2:07:59 p.m. [vite] (client) Re-optimizing dependencies because lockfile has changed
+Programa de Obra UI: escritorio, móvil, fechas reales, frentes, Gantt, teclado y lector OK

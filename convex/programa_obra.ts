@@ -1,12 +1,16 @@
 import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { mutation } from "./functions";
+import { assertCommentRevision, canWriteProgramComments, commentDates, commentError, commentText } from "./commentRules";
+import { commentOperation } from "./commentOperations";
 import { assertBudgetParent } from "./partidaReferences";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
-import { assertProgramCapability, bumpProgramVersion, executionContext, updateLegacyExecutionProgress, event } from "./programaObraExecution";
+import { assertProgramCapability, bumpProgramVersion, executionContext, updateLegacyExecutionProgress } from "./programaObraExecution";
 import { programDate, programToday, projectProgramDates } from "../src/lib/programa-obra-rules";
 import { resolveProgressRecord } from "../src/lib/programa-obra-progress";
 import { previewProgramImport } from "./programaObraImport";
+import { saveProgramWeight } from "./programaObraWeight";
+export { previewWeightChange } from "./programaObraWeight";
 export {
   getExecutionProgram, initializeExecutionProgram, configureExecutionProgram, setExecutionPermission,
   createExecutionFront, configureExecutionActivity, splitExecutionActivity,
@@ -571,19 +575,10 @@ export const updateSchedulePeso = mutation({
   args: {
     schedule_id: v.id("programa_obra"),
     peso: v.number(),
+    review_token: v.string(),
   },
   handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
-    const schedule = await ctx.db.get(args.schedule_id);
-    if (!schedule) throw new Error("Programa de obra no encontrado.");
-    await assertProjectAccess(ctx, schedule.proyecto);
-    const execution = await executionContext(ctx, schedule.proyecto);
-    if (execution.config) await assertProgramCapability(ctx, schedule.proyecto, "plan"); else await assertAdmin(ctx);
-    validateMilestonePercentage(args.peso);
-    await ctx.db.patch(args.schedule_id, { peso: args.peso });
-    await bumpProgramVersion(ctx, schedule.proyecto);
-    await event(ctx, schedule.proyecto, "weight_changed", "Ponderación del programa actualizada", { id: schedule._id, old_weight: schedule.peso ?? null, weight: args.peso });
-    return { success: true };
+    return saveProgramWeight(ctx, { kind: "schedule", id: args.schedule_id }, args.peso, args.review_token);
   },
 });
 
@@ -592,19 +587,10 @@ export const updateDetallePeso = mutation({
   args: {
     detalle_id: v.id("programa_obra_detalle"),
     peso: v.number(),
+    review_token: v.string(),
   },
   handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
-    const detalle = await ctx.db.get(args.detalle_id);
-    if (!detalle) throw new Error("Detalle de programa de obra no encontrado.");
-    await assertProjectAccess(ctx, detalle.proyecto);
-    const execution = await executionContext(ctx, detalle.proyecto);
-    if (execution.config) await assertProgramCapability(ctx, detalle.proyecto, "plan"); else await assertAdmin(ctx);
-    validateMilestonePercentage(args.peso);
-    await ctx.db.patch(args.detalle_id, { peso: args.peso });
-    await bumpProgramVersion(ctx, detalle.proyecto);
-    await event(ctx, detalle.proyecto, "weight_changed", "Ponderación del programa actualizada", { id: detalle._id, old_weight: detalle.peso ?? null, weight: args.peso });
-    return { success: true };
+    return saveProgramWeight(ctx, { kind: "detail", id: args.detalle_id }, args.peso, args.review_token);
   },
 });
 
@@ -982,12 +968,34 @@ export const bulkUpsertFromExcel = mutation({
 // ============================================================
 
 // Get all comentarios for a project
+async function commentParent(ctx: QueryCtx | MutationCtx, proyecto: Id<"desarrollos">, parentType: string, parentId: string) {
+  const id = parentType === "partida" ? ctx.db.normalizeId("programa_obra", parentId)
+    : parentType === "familia" ? ctx.db.normalizeId("programa_obra_detalle", parentId) : null;
+  const parent = id ? await ctx.db.get(id) : null;
+  if (!parent || parent.proyecto !== proyecto || parent.archived) return null;
+  if (parentType === "familia" && "programa_obra_id" in parent) {
+    const schedule = await ctx.db.get(parent.programa_obra_id);
+    if (parent.nivel !== 2 || !schedule || schedule.archived || schedule.proyecto !== proyecto) return null;
+  }
+  return parent;
+}
+
+export const getComentarioContext = query({
+  args: { proyecto: v.id("desarrollos"), parent_type: v.string(), parent_id: v.string() },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    if (!await checkDesarrolloAccess(ctx, args.proyecto)) return { available: false, canWrite: false };
+    const parent = await commentParent(ctx, args.proyecto, args.parent_type, args.parent_id);
+    return { available: Boolean(parent), canWrite: Boolean(parent && canWriteProgramComments(user.role)) };
+  },
+});
+
 export const getComentariosByProyecto = query({
   args: {
     proyecto_id: v.id("desarrollos"),
   },
   handler: async (ctx, args) => {
-    await assertProjectAccess(ctx, args.proyecto_id);
+    if (!await checkDesarrolloAccess(ctx, args.proyecto_id)) return [];
     return await ctx.db
       .query("programa_obra_comentarios")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
@@ -1004,19 +1012,17 @@ export const addComentario = mutation({
     comentario: v.string(),
     fecha_inicio: v.string(), // DD/MM/YYYY
     fecha_fin: v.string(), // DD/MM/YYYY
+    operation_id: v.string(),
   },
   handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
+    const actor = await assertCanWrite(ctx);
     await assertProjectAccess(ctx, args.proyecto);
     if (args.parent_type !== "partida" && args.parent_type !== "familia") {
       throw new Error("Tipo de comentario inválido.");
     }
-    const parent = args.parent_type === "partida"
-      ? await ctx.db.get(args.parent_id as Id<"programa_obra">)
-      : await ctx.db.get(args.parent_id as Id<"programa_obra_detalle">);
-    if (!parent || parent.proyecto !== args.proyecto) {
-      throw new Error("El elemento comentado no pertenece al proyecto.");
-    }
+    if (!await commentParent(ctx, args.proyecto, args.parent_type, args.parent_id)) commentError("DESTINATION", "La partida o familia ya no está disponible en este proyecto.");
+    const text = commentText(args.comentario);
+    const dates = commentDates(args.fecha_inicio, args.fecha_fin);
 
     const user = await ctx.auth.getUserIdentity();
     let userId: Id<"users"> | undefined;
@@ -1031,17 +1037,18 @@ export const addComentario = mutation({
         userName = dbUser.name;
       }
     }
-    return await ctx.db.insert("programa_obra_comentarios", {
+    return commentOperation(ctx, actor._id, args.proyecto, args.operation_id,
+      JSON.stringify(["program-add", args.parent_type, args.parent_id, text, dates]), () => ctx.db.insert("programa_obra_comentarios", {
       proyecto: args.proyecto,
       parent_type: args.parent_type,
       parent_id: args.parent_id,
-      comentario: args.comentario,
-      fecha_inicio: args.fecha_inicio,
-      fecha_fin: args.fecha_fin,
+      comentario: text,
+      ...dates,
       created_by_id: userId,
       created_by_name: userName,
       created_at: Date.now(),
-    });
+      revision: 1,
+    }));
   },
 });
 
@@ -1052,17 +1059,29 @@ export const updateComentario = mutation({
     comentario: v.optional(v.string()),
     fecha_inicio: v.optional(v.string()),
     fecha_fin: v.optional(v.string()),
+    proyecto: v.id("desarrollos"),
+    parent_type: v.string(),
+    parent_id: v.string(),
+    expected_revision: v.number(),
+    operation_id: v.string(),
   },
   handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
-    const existing = await ctx.db.get(args.comentario_id);
-    if (!existing) throw new Error("Comentario no encontrado.");
-    await assertProjectAccess(ctx, existing.proyecto);
-    const updates: Record<string, string> = {};
-    if (args.comentario !== undefined) updates.comentario = args.comentario;
-    if (args.fecha_inicio !== undefined) updates.fecha_inicio = args.fecha_inicio;
-    if (args.fecha_fin !== undefined) updates.fecha_fin = args.fecha_fin;
-    await ctx.db.patch(args.comentario_id, updates);
+    const actor = await assertCanWrite(ctx);
+    await assertProjectAccess(ctx, args.proyecto);
+    if (!await commentParent(ctx, args.proyecto, args.parent_type, args.parent_id)) commentError("DESTINATION", "La partida o familia ya no está disponible en este proyecto.");
+    await commentOperation(ctx, actor._id, args.proyecto, args.operation_id,
+      JSON.stringify(["program-edit", args.parent_type, args.parent_id, args.comentario_id, args.expected_revision, args.comentario ?? null, args.fecha_inicio ?? null, args.fecha_fin ?? null]), async () => {
+      const existing = await ctx.db.get(args.comentario_id);
+      if (!existing) commentError("DELETED", "El comentario ya fue eliminado.");
+      if (existing.proyecto !== args.proyecto || existing.parent_type !== args.parent_type || existing.parent_id !== args.parent_id) commentError("DESTINATION", "El comentario pertenece a otra partida o familia.");
+      assertCommentRevision(existing.revision, args.expected_revision);
+      const text = commentText(args.comentario ?? existing.comentario);
+      const dates = commentDates(args.fecha_inicio ?? existing.fecha_inicio, args.fecha_fin ?? existing.fecha_fin);
+      if (text !== existing.comentario || dates.fecha_inicio !== existing.fecha_inicio || dates.fecha_fin !== existing.fecha_fin) {
+        await ctx.db.patch(existing._id, { comentario: text, ...dates, revision: (existing.revision ?? 1) + 1 });
+      }
+      return existing._id;
+    });
     return { success: true };
   },
 });
@@ -1071,13 +1090,25 @@ export const updateComentario = mutation({
 export const deleteComentario = mutation({
   args: {
     comentario_id: v.id("programa_obra_comentarios"),
+    proyecto: v.id("desarrollos"),
+    parent_type: v.string(),
+    parent_id: v.string(),
+    expected_revision: v.number(),
+    operation_id: v.string(),
   },
   handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
-    const existing = await ctx.db.get(args.comentario_id);
-    if (!existing) throw new Error("Comentario no encontrado.");
-    await assertProjectAccess(ctx, existing.proyecto);
-    await ctx.db.delete(args.comentario_id);
+    const actor = await assertCanWrite(ctx);
+    await assertProjectAccess(ctx, args.proyecto);
+    if (!await commentParent(ctx, args.proyecto, args.parent_type, args.parent_id)) commentError("DESTINATION", "La partida o familia ya no está disponible en este proyecto.");
+    await commentOperation(ctx, actor._id, args.proyecto, args.operation_id,
+      JSON.stringify(["program-delete", args.parent_type, args.parent_id, args.comentario_id, args.expected_revision]), async () => {
+      const existing = await ctx.db.get(args.comentario_id);
+      if (!existing) commentError("DELETED", "El comentario ya fue eliminado.");
+      if (existing.proyecto !== args.proyecto || existing.parent_type !== args.parent_type || existing.parent_id !== args.parent_id) commentError("DESTINATION", "El comentario pertenece a otra partida o familia.");
+      assertCommentRevision(existing.revision, args.expected_revision);
+      await ctx.db.delete(args.comentario_id);
+      return args.comentario_id;
+    });
     return { success: true };
   },
 });

@@ -4,11 +4,12 @@ import { query, mutation as rawMutation } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import { assertCanWrite } from "./permissions";
-import { cleanHierarchyText, normalizeHierarchyText } from "./partidaRules";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { repairProjectPaymentTotals } from "./budgetMaintenance";
 import { analyzePartidaDeletion, executePartidaDeletion } from "./partidaDeletion";
-import { assertBudgetParent, assertBudgetReference } from "./partidaReferences";
+import { assertBudgetParent } from "./partidaReferences";
+import { budgetTotals, budgetRollupPatch } from "./budgetRollupRules";
+import { loadPartidaEditContext, analyzePartidaEdit, executePartidaEdit, partidaEditIdentity, partidaEditArgs } from "./partidaEdit";
 
 type PartidaTotals = {
   presupuesto_original: number;
@@ -25,17 +26,7 @@ type SyncPartidaResult = {
   subPartidasCount: number;
 };
 
-function totalsFromPartidas(partidas: Doc<"partidas">[]): PartidaTotals {
-  const presupuesto_original = partidas.reduce((sum, item) => sum + (item.presupuesto_original || 0), 0);
-  const presupuesto_aprobado = partidas.reduce((sum, item) => sum + (item.presupuesto_aprobado || 0), 0);
-  const pagado = partidas.reduce((sum, item) => sum + (item.pagado || 0), 0);
-  return {
-    presupuesto_original,
-    presupuesto_aprobado,
-    pagado,
-    por_gastar: presupuesto_aprobado - pagado,
-  };
-}
+const totalsFromPartidas = budgetTotals;
 
 function totalsChanged(item: Doc<"partidas">, totals: PartidaTotals) {
   return (
@@ -48,11 +39,7 @@ function totalsChanged(item: Doc<"partidas">, totals: PartidaTotals) {
 
 async function patchTotalsIfChanged(ctx: any, item: Doc<"partidas">, totals: PartidaTotals) {
   // Budget rollups must not overwrite payments made directly to a parent.
-  const budgetTotals = {
-    ...totals,
-    pagado: item.pagado || 0,
-    por_gastar: totals.presupuesto_aprobado - (item.pagado || 0),
-  };
+  const budgetTotals = budgetRollupPatch(item, totals);
   if (!totalsChanged(item, budgetTotals)) return false;
   await ctx.db.patch(item._id, budgetTotals);
   return true;
@@ -553,123 +540,22 @@ export const createPartida = mutation({
   },
 });
 
-export const update = mutation({
-  args: {
-    id: v.id("partidas"),
-    nivel: v.number(),
-    nombre: v.string(),
-    familia: v.string(),
-    sub_partida: v.string(),
-    partida_nombre: v.optional(v.string()),
-    unidad: v.string(),
-    cantidad: v.number(),
-    precio_unitario: v.number(),
-    presupuesto_original: v.number(),
-    presupuesto_aprobado: v.number(),
-    pagado: v.number(),
-    archivo_origen: v.string(),
-    proyecto: v.optional(v.id("desarrollos")),
-  },
+export const getEditContext = query({
+  args: partidaEditIdentity,
   handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
-
-    const { id, ...rest } = args;
-    const existingPartida = await ctx.db.get(id);
-
-    if (!existingPartida) {
-      throw new Error("Not found");
-    }
-    const referenceProject = args.proyecto || existingPartida.proyecto;
-    if (referenceProject) {
-      await assertBudgetReference(ctx, id, referenceProject);
-      if (args.nivel === 2 || args.nivel === 3) {
-        await assertBudgetParent(ctx, referenceProject, args.partida_nombre || args.nombre, args.nivel === 3 ? args.familia : undefined);
-      }
-    }
-
-    let subPartida = args.sub_partida;
-    let shouldUpdateProgrammingName = false;
-    if (existingPartida.nivel === 3) {
-      subPartida = cleanHierarchyText(args.sub_partida);
-      if (!subPartida) {
-        throw new Error("El nombre de la subpartida es obligatorio.");
-      }
-      if (!existingPartida.proyecto) {
-        throw new Error("La subpartida no está vinculada a un proyecto.");
-      }
-
-      const partidaNombre = existingPartida.partida_nombre || existingPartida.nombre;
-      const siblings: Doc<"partidas">[] = await ctx.db
-        .query("partidas")
-        .withIndex("by_proyecto_nivel_partida_familia", (q) =>
-          q
-            .eq("proyecto", existingPartida.proyecto)
-            .eq("nivel", 3)
-            .eq("partida_nombre", partidaNombre)
-            .eq("familia", existingPartida.familia),
-        )
-        .collect();
-      const normalizedNewName = normalizeHierarchyText(subPartida);
-      const duplicate = siblings.find(
-        (item) =>
-          item._id !== existingPartida._id &&
-          normalizeHierarchyText(item.sub_partida || item.nombre) === normalizedNewName,
-      );
-      if (duplicate) {
-        throw new Error(
-          `Ya existe una subpartida equivalente a "${subPartida}" dentro de esta familia.`,
-        );
-      }
-
-      const normalizedOldName = normalizeHierarchyText(
-        existingPartida.sub_partida || existingPartida.nombre,
-      );
-      const oldNameStillExists = siblings.some(
-        (item) =>
-          item._id !== existingPartida._id &&
-          normalizeHierarchyText(item.sub_partida || item.nombre) === normalizedOldName,
-      );
-      shouldUpdateProgrammingName =
-        cleanHierarchyText(existingPartida.sub_partida) !== subPartida && !oldNameStillExists;
-    }
-
-    const porGastar = (args.presupuesto_aprobado || 0) - (args.pagado || 0);
-    await ctx.db.patch(args.id, {
-      ...rest,
-      sub_partida: subPartida,
-      por_gastar: porGastar,
-    });
-
-    if (shouldUpdateProgrammingName && existingPartida.proyecto) {
-      const proyecto = existingPartida.proyecto;
-      const partidaNombre = existingPartida.partida_nombre || existingPartida.nombre;
-      const normalizedPartida = normalizeHierarchyText(partidaNombre);
-      const normalizedFamilia = normalizeHierarchyText(existingPartida.familia);
-      const normalizedOldName = normalizeHierarchyText(
-        existingPartida.sub_partida || existingPartida.nombre,
-      );
-      const detalles = await ctx.db
-        .query("programa_obra_detalle")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto", proyecto))
-        .collect();
-      for (const detalle of detalles) {
-        if (
-          detalle.nivel === 3 &&
-          normalizeHierarchyText(detalle.partida) === normalizedPartida &&
-          normalizeHierarchyText(detalle.familia) === normalizedFamilia &&
-          normalizeHierarchyText(detalle.subpartida) === normalizedOldName
-        ) {
-          await ctx.db.patch(detalle._id, { subpartida: subPartida });
-        }
-      }
-    }
-
-    const updatedPartida = await ctx.db.get(args.id);
-    if (updatedPartida) {
-      await recalculateBudgetAfterPartidaChange(ctx, updatedPartida);
-    }
-    return updatedPartida;
+    const { target, project, source } = await loadPartidaEditContext(ctx, args);
+    return { target, source, currency: project.moneda_principal || "MXN" };
   },
+});
+
+export const getEditImpact = query({
+  args: partidaEditArgs,
+  handler: async (ctx, args) => (await analyzePartidaEdit(ctx, args)).impact,
+});
+
+export const update = mutation({
+  args: { ...partidaEditArgs, expectedReview: v.string() },
+  handler: executePartidaEdit,
 });
 
 export const getDeletionImpact = query({

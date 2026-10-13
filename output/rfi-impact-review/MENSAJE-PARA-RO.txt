@@ -1,0 +1,13 @@
+Hola, buenas tardes, Ro. Espero que te encuentres muy bien.
+
+Realicé algunas mejoras en el flujo de RFIs: ahora, antes de abrir, cerrar o marcar una respuesta como oficial, se muestra una confirmación con la información y las consecuencias de la acción. Al cerrar, también se pueden revisar las respuestas oficiales que se conservarán.
+
+Para enviar a revisión y reabrir una RFI, agregué un resumen junto al botón que explica el cambio de estado. En los formularios de creación y edición, el resumen incluye al responsable, los adjuntos y los cambios que se guardarán.
+
+También incorporé controles para evitar envíos duplicados y solicitar una nueva revisión cuando otra persona modifica la RFI. Si falla la carga de un archivo después del envío, ahora se informa qué quedó pendiente y se puede reintentar sin volver a enviar la solicitud.
+
+Revisé el funcionamiento en escritorio y móvil, incluyendo las confirmaciones, el manejo de errores y la navegación con teclado. Los cambios están implementados y validados localmente; queda pendiente su despliegue.
+
+Te comparto las capturas de los cambios con datos de prueba.
+
+Quedo atento a tus comentarios. Saludos.

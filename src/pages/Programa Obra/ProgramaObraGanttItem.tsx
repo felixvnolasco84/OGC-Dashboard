@@ -540,9 +540,13 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
               const cEndPx = dateToPixel(cEnd, columnWidth, timelineMonths) - startPx;
               const cWidth = Math.max(cEndPx - cStartPx, 6);
               return (
-                <div
+                <button
                   key={c._id}
-                  className="absolute z-20 h-full top-0 bottom-0 cursor-pointer"
+                  type="button"
+                  data-viewer-readonly-allow="true"
+                  aria-label={`Comentario de ${item.partida}: ${c.comentario}, ${c.fecha_inicio} a ${c.fecha_fin}`}
+                  aria-expanded={expandedComentarios.has(c._id)}
+                  className="absolute z-20 min-w-11 h-full top-0 bottom-0 cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   style={{
                     left: `${cStartPx}px`,
                     top: item.level === 0 ? '0px' : '0px',
@@ -577,7 +581,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                       </div>
                     )}
                   </div>
-                </div>
+                </button>
               );
             })}
           </>

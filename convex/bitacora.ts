@@ -12,6 +12,8 @@ import {
   hasAdminAccess,
 } from "./permissions";
 import { canCreateBitacora, validateBitacoraAttachmentMetadata } from "./bitacoraRules";
+import { assertCommentRevision, canManagePhotoComment, commentError, commentText } from "./commentRules";
+import { commentOperation } from "./commentOperations";
 
 // Helper to check authentication
 async function getUserIdentity(ctx: { auth: Auth }) {
@@ -670,10 +672,35 @@ export const updatePhotoComment = mutation({
 });
 
 // Add a new comment to a photo
+async function photoCommentDestination(ctx: QueryCtx | MutationCtx, photoId: Id<"documentos">, forRead = false) {
+  const photo = await ctx.db.get(photoId);
+  if (!photo?.proyecto) return null;
+  const user = await getCurrentUserOrThrow(ctx);
+  const project = await ctx.db.get(photo.proyecto);
+  if (!project || !canUserAccessDesarrollo(user, project)) {
+    if (forRead) return null;
+    commentError("FORBIDDEN", "Ya no tienes acceso al proyecto de esta fotografía.");
+  }
+  if (photo.type !== "bitacora_foto" || photo.deleted_at || !photo.bitacora_id) return null;
+  const log = await ctx.db.get(photo.bitacora_id);
+  if (!log || log.deleted_at || log.proyecto !== photo.proyecto) return null;
+  return photo;
+}
+
+export const getPhotoCommentContext = query({
+  args: { photoId: v.id("documentos") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    const photo = await photoCommentDestination(ctx, args.photoId, true);
+    return { available: Boolean(photo), canCreate: Boolean(photo && canCreateBitacora(user.role)) };
+  },
+});
+
 export const addPhotoComment = mutation({
   args: {
     photoId: v.id("documentos"),
     comment: v.string(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await getUserIdentity(ctx);
@@ -689,22 +716,18 @@ export const addPhotoComment = mutation({
     }
     if (!canCreateBitacora(user.role)) throw new Error("Unauthorized: Bitácora create access required");
 
-    const photo = await ctx.db.get(args.photoId);
-    if (!photo) {
-      throw new Error("Photo not found");
-    }
-    if (!photo.proyecto) throw new Error("Photo has no project");
-    await assertProjectAccess(ctx, photo.proyecto);
-
-    const commentId = await ctx.db.insert("photo_comments", {
+    const photo = await photoCommentDestination(ctx, args.photoId);
+    if (!photo?.proyecto) commentError("DESTINATION", "La fotografía o su reporte ya no están disponibles.");
+    const text = commentText(args.comment);
+    return commentOperation(ctx, user._id, photo.proyecto, args.operationId,
+      JSON.stringify(["photo-add", args.photoId, text]), () => ctx.db.insert("photo_comments", {
       photo_id: args.photoId,
       user_id: user._id,
       user_name: user.name,
-      comment: args.comment,
+      comment: text,
       created_at: Date.now(),
-    });
-
-    return commentId;
+      revision: 1,
+    }));
   },
 });
 
@@ -714,10 +737,8 @@ export const getPhotoComments = query({
     photoId: v.id("documentos"),
   },
   handler: async (ctx, args) => {
-    await getUserIdentity(ctx);
-    const photo = await ctx.db.get(args.photoId);
-    if (!photo?.proyecto) throw new Error("Photo not found");
-    await assertProjectAccess(ctx, photo.proyecto);
+    const user = await getCurrentUserOrThrow(ctx);
+    if (!await photoCommentDestination(ctx, args.photoId, true)) return [];
 
     const comments = await ctx.db
       .query("photo_comments")
@@ -725,7 +746,9 @@ export const getPhotoComments = query({
       .collect();
 
     // Sort by created_at (oldest first)
-    return comments.sort((a, b) => a.created_at - b.created_at);
+    return comments.sort((a, b) => a.created_at - b.created_at).map((comment) => ({
+      ...comment, can_manage: canManagePhotoComment(user.role, user._id, comment.user_id),
+    }));
   },
 });
 
@@ -733,35 +756,25 @@ export const getPhotoComments = query({
 export const deletePhotoComment = mutation({
   args: {
     commentId: v.id("photo_comments"),
+    photoId: v.id("documentos"),
+    expectedRevision: v.number(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await getUserIdentity(ctx);
-    
-    const comment = await ctx.db.get(args.commentId);
-    if (!comment) {
-      throw new Error("Comment not found");
-    }
-
-    // Get user to check ownership
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .first();
-
-    if (user?.role === "viewer") {
-      throw new Error("Unauthorized: Viewer role is read-only");
-    }
-    const photo = await ctx.db.get(comment.photo_id);
-    if (!photo?.proyecto) throw new Error("Photo not found");
-    await assertProjectAccess(ctx, photo.proyecto);
-    
-    // Only allow deletion by comment owner or admin
-    if (user && (comment.user_id === user._id || user.role === "admin")) {
+    const user = await getCurrentUserOrThrow(ctx);
+    if (user.role === "viewer") commentError("FORBIDDEN", "No tienes permiso para eliminar comentarios.");
+    const photo = await photoCommentDestination(ctx, args.photoId);
+    if (!photo?.proyecto) commentError("DESTINATION", "La fotografía o su reporte ya no están disponibles.");
+    return commentOperation(ctx, user._id, photo.proyecto, args.operationId,
+      JSON.stringify(["photo-delete", args.photoId, args.commentId, args.expectedRevision]), async () => {
+      const comment = await ctx.db.get(args.commentId);
+      if (!comment) commentError("DELETED", "El comentario ya fue eliminado.");
+      if (comment.photo_id !== args.photoId) commentError("DESTINATION", "El comentario pertenece a otra fotografía.");
+      if (!canManagePhotoComment(user.role, user._id, comment.user_id)) commentError("FORBIDDEN", "Solo el autor o un administrador puede eliminar este comentario.");
+      assertCommentRevision(comment.revision, args.expectedRevision);
       await ctx.db.delete(args.commentId);
       return args.commentId;
-    }
-
-    throw new Error("Not authorized to delete this comment");
+    });
   },
 });
 
@@ -770,34 +783,28 @@ export const editPhotoComment = mutation({
   args: {
     commentId: v.id("photo_comments"),
     comment: v.string(),
+    photoId: v.id("documentos"),
+    expectedRevision: v.number(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await getUserIdentity(ctx);
-    
-    const existingComment = await ctx.db.get(args.commentId);
-    if (!existingComment) {
-      throw new Error("Comment not found");
-    }
-
-    // Get user to check ownership
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .first();
-    if (!user || user.role === "viewer") throw new Error("Unauthorized: Read-only role");
-    const photo = await ctx.db.get(existingComment.photo_id);
-    if (!photo?.proyecto) throw new Error("Photo not found");
-    await assertProjectAccess(ctx, photo.proyecto);
-    
-    // Only allow editing by comment owner or admin
-    if (user && (existingComment.user_id === user._id || user.role === "admin")) {
-      await ctx.db.patch(args.commentId, {
-        comment: args.comment,
+    const user = await getCurrentUserOrThrow(ctx);
+    if (user.role === "viewer") commentError("FORBIDDEN", "No tienes permiso para editar comentarios.");
+    const photo = await photoCommentDestination(ctx, args.photoId);
+    if (!photo?.proyecto) commentError("DESTINATION", "La fotografía o su reporte ya no están disponibles.");
+    const text = commentText(args.comment);
+    return commentOperation(ctx, user._id, photo.proyecto, args.operationId,
+      JSON.stringify(["photo-edit", args.photoId, args.commentId, args.expectedRevision, text]), async () => {
+      const existingComment = await ctx.db.get(args.commentId);
+      if (!existingComment) commentError("DELETED", "El comentario ya fue eliminado.");
+      if (existingComment.photo_id !== args.photoId) commentError("DESTINATION", "El comentario pertenece a otra fotografía.");
+      if (!canManagePhotoComment(user.role, user._id, existingComment.user_id)) commentError("FORBIDDEN", "Solo el autor o un administrador puede editar este comentario.");
+      assertCommentRevision(existingComment.revision, args.expectedRevision);
+      if (existingComment.comment !== text) await ctx.db.patch(args.commentId, {
+        comment: text, revision: (existingComment.revision ?? 1) + 1,
       });
       return args.commentId;
-    }
-
-    throw new Error("Not authorized to edit this comment");
+    });
   },
 });
 

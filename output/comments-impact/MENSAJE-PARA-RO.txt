@@ -1,0 +1,11 @@
+Hola, buenas tardes, Ro. Espero que te encuentres muy bien.
+
+Realicé algunas mejoras en los comentarios de Bitácora y Programa: ahora, antes de eliminar un comentario, se muestra su contenido, autor y la fotografía o partida/familia a la que pertenece para revisar y confirmar la acción.
+
+Al editar, se puede comparar el contenido actual con la propuesta. En Programa también se muestran las fechas y se explica su efecto sobre el Gantt y las futuras exportaciones PDF.
+
+También agregué protección para evitar perder lo escrito al cerrar o cambiar de fotografía. Los errores se muestran en pantalla y conservan el borrador; si otra persona modifica el comentario mientras se está editando, se solicita revisar la versión actual antes de guardar.
+
+Las mejoras ya están implementadas y verificadas localmente; queda pendiente su publicación en el entorno compartido. Adjunto capturas de la interfaz con datos de prueba para que puedas revisar los cambios.
+
+Quedo atento a tus comentarios. Saludos.

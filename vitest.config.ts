@@ -23,6 +23,7 @@ export default defineConfig({
       "convex/presupuesto.test.mjs",
       "convex/paymentHierarchy.test.mjs",
       "convex/partidaDeletion.test.mjs",
+      "convex/partidaEdit.test.mjs",
       "convex/ogcClassification.test.mjs",
       "convex/ingresosPermissions.test.mjs",
       "convex/autorizacionesPermissions.test.mjs",

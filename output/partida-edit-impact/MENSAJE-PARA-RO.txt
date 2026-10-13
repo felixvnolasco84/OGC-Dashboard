@@ -1,0 +1,13 @@
+Hola, buenas tardes, Ro. Espero que te encuentres muy bien.
+
+Realicé algunas mejoras en el modal de edición de Presupuesto de Construcción. Ahora permite revisar, antes de guardar, los valores anteriores y nuevos y su efecto en las subpartidas, familias, partidas y totales del proyecto, usando la moneda correspondiente. Esta revisión incluye el presupuesto completo, aunque la tabla tenga filtros aplicados.
+
+También reforcé el guardado para conservar los pagos registrados y evitar que se sobrescriban datos que hayan cambiado mientras el formulario está abierto. Si ocurre un conflicto o un error, los cambios capturados se conservan para actualizar la revisión y volver a intentar. Al cerrar el modal con cambios pendientes, se solicita confirmar que se desean descartar.
+
+Se mantiene la edición directa del aprobado de partidas y familias con hijos. El formulario explica que ese monto no se distribuye entre los hijos y que una edición posterior de éstos puede recalcularlo. Al cambiar el nombre de una subpartida, también se informa cuántas referencias del Programa se actualizarán, conservando sus identificadores e históricos.
+
+Además, ajusté el modal para escritorio y móvil, manteniendo accesibles las acciones de Actualizar y Cancelar.
+
+La implementación está terminada y validada localmente; queda pendiente su publicación coordinada en backend y frontend. Adjunto capturas con datos de prueba para mostrar el formulario, la comparación de impacto, los totales en móvil y los estados de conflicto y error.
+
+Quedo atento a tus comentarios. Saludos.

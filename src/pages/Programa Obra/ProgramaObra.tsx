@@ -31,14 +31,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -70,6 +62,7 @@ import { useSidebar } from "@/components/ui/Sidebar";
 import { toast } from "sonner";
 import ProgramaObraExecution from "./ProgramaObraExecution";
 import ProgramaObraProgressEditor from "./ProgramaObraProgressEditor";
+import ProgramaObraWeightEditor from "./ProgramaObraWeightEditor";
 import { getRecordedProgressTiming } from "@/lib/programa-obra-progress";
 import ProgramaObraImportReview from "./ProgramaObraImportReview";
 import { aggregateProgramProgress, programToday } from "@/lib/programa-obra-rules";
@@ -175,7 +168,7 @@ export default function ProgramaObra() {
   const [comentariosItem, setComentariosItem] = useState<ProgramaItem | null>(null);
   const [historialItem, setHistorialItem] = useState<ProgramaItem | null>(null);
   const [ponderacionItem, setPonderacionItem] = useState<ProgramaItem | null>(null);
-  const [savingPonderacion, setSavingPonderacion] = useState(false);
+  const ponderacionReturnFocus = useRef<HTMLElement | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [activeExport, setActiveExport] = useState<ProgramaObraExportSelection | null>(null);
   const exportInProgressRef = useRef(false);
@@ -198,7 +191,7 @@ export default function ProgramaObra() {
   }, []);
 
   const currentUser = useQuery(api.users.getCurrentUser);
-  const canEditPesos = currentUser?.role === "admin" || !!execution?.capabilities.plan;
+  const canEditPesos = !!execution?.capabilities.write && (execution.config ? execution.capabilities.plan : execution.capabilities.admin);
   const canEditActivities = Boolean(execution?.capabilities.write);
 
   const toggleFocusMode = useCallback(() => {
@@ -261,16 +254,8 @@ export default function ProgramaObra() {
 
   // Mutations
   const bulkUpsertFromExcel = useMutation(api.programa_obra.bulkUpsertFromExcel);
-  const updateSchedulePeso = useMutation(api.programa_obra.updateSchedulePeso);
-  const updateDetallePeso = useMutation(api.programa_obra.updateDetallePeso);
 
   const [progressItem, setProgressItem] = useState<ProgramaItem | null>(null);
-
-  // Peso editing state
-  const [editingPesoId, setEditingPesoId] = useState<string | null>(null);
-  const [editingPesoValue, setEditingPesoValue] = useState("");
-  const editingPesoValueRef = useRef("");
-  const editingPesoItemRef = useRef<ProgramaItem | null>(null);
 
   // Build lookup maps
   const scheduleMap = useMemo(() => {
@@ -502,21 +487,10 @@ export default function ProgramaObra() {
 
   const openPonderacionEditor = useCallback((item: ProgramaItem) => {
     if (!canEditPesos) return;
-    const value = String(item.ponderacion ?? "");
-    editingPesoItemRef.current = item;
-    editingPesoValueRef.current = value;
-    setEditingPesoValue(value);
+    ponderacionReturnFocus.current = Array.from(document.querySelectorAll<HTMLElement>("[data-programa-actions]"))
+      .find((button) => button.dataset.programaActions === item.id && button.getClientRects().length > 0) ?? null;
     setPonderacionItem(item);
   }, [canEditPesos]);
-
-  const closePonderacionEditor = useCallback(() => {
-    editingPesoItemRef.current = null;
-    editingPesoValueRef.current = "";
-    setEditingPesoValue("");
-    setEditingPesoId(null);
-    setPonderacionItem(null);
-    setSavingPonderacion(false);
-  }, []);
 
   const overallProgress = useMemo(() => execution?.summaries.overall.progress ?? aggregateProgramProgress(programaDataWithComentarios.map((item) => ({ progress: item.avanceReal ?? 0, weight: item.ponderacion }))).progress, [execution, programaDataWithComentarios]);
 
@@ -530,35 +504,6 @@ export default function ProgramaObra() {
     [milestoneDashboard],
   );
   const upcomingMilestones = actionableMilestones.filter((milestone) => milestone.status === "upcoming").length;
-
-  // Save peso for a level 0 or level 1 item
-  const handleSavePeso = useCallback(
-    async () => {
-      const item = editingPesoItemRef.current;
-      const rawValue = editingPesoValueRef.current;
-      const value = parseFloat(rawValue);
-      if (isNaN(value) || value < 0 || value > 100) {
-        toast.error("La ponderación debe estar entre 0 y 100.");
-        return;
-      }
-      setSavingPonderacion(true);
-      try {
-        if (item?.level === 0 && item.schedule?._id) {
-          await updateSchedulePeso({ schedule_id: item.schedule._id, peso: value });
-        } else if (item?.level === 1 && item.detalleSchedule?._id) {
-          await updateDetallePeso({ detalle_id: item.detalleSchedule._id, peso: value });
-        }
-        toast.success("Ponderación actualizada");
-        closePonderacionEditor();
-      } catch (err) {
-        toast.error("No se pudo guardar la ponderación", {
-          description: err instanceof Error ? err.message : undefined,
-        });
-        setSavingPonderacion(false);
-      }
-    },
-    [closePonderacionEditor, updateSchedulePeso, updateDetallePeso]
-  );
 
   const filteredData = useMemo(() => {
     const result: ProgramaItem[] = [];
@@ -841,12 +786,12 @@ export default function ProgramaObra() {
   const renderItemActions = (item: ProgramaItem) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-[850px]:h-8 min-[850px]:w-8" aria-label={`Opciones de ${item.partida}`}>
+        <button type="button" data-viewer-readonly-allow="true" className="flex h-11 w-11 shrink-0 items-center justify-center hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-[850px]:h-8 min-[850px]:w-8" data-programa-actions={item.id} aria-label={`Opciones de ${item.partida}`}>
           <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => execution?.activities.some((a) => a.detalle_id === item.detalleSchedule?._id) ? openExecution(item) : item.level === 0 ? setEditingPartida(item) : setEditingFamilia(item)}>
+        <DropdownMenuItem disabled={currentUser?.role === "viewer" || currentUser?.role === "almacenista"} className="min-h-11 min-[850px]:min-h-8" onSelect={() => execution?.activities.some((a) => a.detalle_id === item.detalleSchedule?._id) ? openExecution(item) : item.level === 0 ? setEditingPartida(item) : setEditingFamilia(item)}>
           <CalendarDays className="h-4 w-4" /> Editar programa
         </DropdownMenuItem>
         {canEditPesos && <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => openPonderacionEditor(item)}>
@@ -858,7 +803,7 @@ export default function ProgramaObra() {
           <History className="h-4 w-4" /> Historial avance
         </DropdownMenuItem>}
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => setComentariosItem(item)}>
+        <DropdownMenuItem data-viewer-readonly-allow="true" className="min-h-11 min-[850px]:min-h-8" onSelect={() => setComentariosItem(item)}>
           <MessageSquare className="h-4 w-4" /> Comentarios
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -1264,49 +1209,6 @@ export default function ProgramaObra() {
                           <span className="text-sm text-foreground font-medium">
                             {formatCurrency(item.presupuesto)}
                           </span>
-                          {/* Editable peso for level 0 */}
-                          {editingPesoId === item.id ? (
-                            <div className="flex items-center gap-0.5">
-                              <input
-                                type="number"
-                                min={0}
-                                max={100}
-                                autoFocus
-                                value={editingPesoValue}
-                                onChange={(e) => {
-                                  setEditingPesoValue(e.target.value);
-                                  editingPesoValueRef.current = e.target.value;
-                                }}
-                                onBlur={() => handleSavePeso()}
-                                onKeyDown={(e: React.KeyboardEvent) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    (e.target as HTMLInputElement).blur();
-                                  }
-                                  if (e.key === "Escape") {
-                                    editingPesoItemRef.current = null;
-                                    setEditingPesoId(null);
-                                    setEditingPesoValue("");
-                                  }
-                                }}
-                                className="w-16 h-4 text-[9px] text-right border border-border-strong rounded-sm px-1 focus:outline-none focus:border-blue-500 bg-card"
-                              />
-                              <span className="text-[9px] text-disabled-foreground">%</span>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                editingPesoItemRef.current = item;
-                                editingPesoValueRef.current = String(item.ponderacion ?? "");
-                                setEditingPesoId(item.id);
-                                setEditingPesoValue(String(item.ponderacion ?? ""));
-                              }}
-                              className="hidden"
-                              title="Editar peso"
-                            >
-                              {item.ponderacion != null ? `${(item.ponderacion).toFixed(2)}%` : "—"}
-                            </button>
-                          )}
                         </div>
                       ) : item.level === 1 ? (
                         <div className="flex flex-col items-end gap-0.5">
@@ -1320,51 +1222,6 @@ export default function ProgramaObra() {
                               {Math.round(item.avanceReal ?? 0)}%
                             </button>
                           </div>
-
-                          {/* Editable peso for level 1 */}
-                          {editingPesoId === item.id ? (
-                            <div className="flex items-center gap-0.5">
-                              <input
-                                type="number"
-                                min={0}
-                                max={100}
-                                autoFocus
-                                value={editingPesoValue}
-                                onChange={(e) => {
-                                  setEditingPesoValue(e.target.value);
-                                  editingPesoValueRef.current = e.target.value;
-                                }}
-                                onBlur={() => handleSavePeso()}
-                                onKeyDown={(e: React.KeyboardEvent) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    (e.target as HTMLInputElement).blur();
-                                  }
-                                  if (e.key === "Escape") {
-                                    editingPesoItemRef.current = null;
-                                    setEditingPesoId(null);
-                                    setEditingPesoValue("");
-                                  }
-                                }}
-                                className="w-16 h-4 text-[9px] text-right border border-green-300 rounded-sm px-1 focus:outline-none focus:border-green-500 bg-card"
-                              />
-                              <span className="text-[9px] text-disabled-foreground">%</span>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                editingPesoItemRef.current = item;
-                                editingPesoValueRef.current = String(item.ponderacion ?? "");
-                                setEditingPesoId(item.id);
-                                setEditingPesoValue(String(item.ponderacion ?? ""));
-                              }}
-                              className="hidden"
-                              title="Editar peso"
-                            >
-                              {item.ponderacion != null ? `${(item.ponderacion).toFixed(2)}%` : "—"}
-                            </button>
-
-                          )}
           
                         </div>
                       ) : null}
@@ -1550,6 +1407,7 @@ export default function ProgramaObra() {
       {/* Comentarios Sheet */}
       {comentariosItem && proyectoId && (
         <ProgramaObraComentarios
+          key={`${proyectoId}:${comentariosItem.id}`}
           item={comentariosItem}
           proyectoId={proyectoId as Id<"desarrollos">}
           onClose={() => setComentariosItem(null)}
@@ -1567,70 +1425,9 @@ export default function ProgramaObra() {
       )}
 
       {/* Ponderacion Sheet */}
-      {canEditPesos && ponderacionItem && (
-        <Sheet open onOpenChange={(open) => !open && closePonderacionEditor()}>
-          <SheetContent className="w-full overflow-y-auto sm:max-w-[360px]">
-            <SheetHeader>
-              <SheetTitle className="text-left flex items-center gap-2">
-                <Percent className="h-4 w-4" />
-                Ponderación
-              </SheetTitle>
-              <SheetDescription className="text-left">
-                {ponderacionItem.partida}
-              </SheetDescription>
-            </SheetHeader>
-
-            <div className="mt-6 space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="programa-ponderacion" className="text-xs text-muted-foreground">Peso del elemento</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="programa-ponderacion"
-                    type="number"
-                    min={0}
-                    max={100}
-                    autoFocus
-                    value={editingPesoValue}
-                    onChange={(e) => {
-                      setEditingPesoValue(e.target.value);
-                      editingPesoValueRef.current = e.target.value;
-                    }}
-                    onKeyDown={(e: React.KeyboardEvent) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSavePeso();
-                      }
-                      if (e.key === "Escape") {
-                        closePonderacionEditor();
-                      }
-                    }}
-                    className="h-9 rounded-none text-sm"
-                  />
-                  <span className="text-sm text-muted-foreground">%</span>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={closePonderacionEditor}
-                  className="rounded-none text-xs"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSavePeso}
-                  disabled={savingPonderacion || editingPesoValue.trim() === ""}
-                  className="rounded-none text-xs"
-                >
-                  {savingPonderacion ? "Guardando..." : "Guardar"}
-                </Button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+      {ponderacionItem && proyectoId && (
+        <ProgramaObraWeightEditor proyecto={proyectoId as Id<"desarrollos">} projectName={proyecto?.nombre ?? "Proyecto"}
+          item={ponderacionItem} returnFocus={ponderacionReturnFocus.current} onClose={() => setPonderacionItem(null)} />
       )}
 
       {/* Excel Preview Dialog */}

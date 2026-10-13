@@ -1,0 +1,1 @@
+Exportación PDF: todas/algunas/ninguna, avisos, filtros, cancelación, fallo, scroll, móvil y lector OK

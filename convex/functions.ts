@@ -6,6 +6,7 @@ import { Triggers } from "convex-helpers/server/triggers";
 import { customCtx, customMutation } from "convex-helpers/server/customFunctions";
 import { calculateHonorariosFromRecords, getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
+import { approvedBudgetPatch } from "./budgetRollupRules";
 import { calculateHierarchyPaymentTotals } from "./paymentHierarchyRules";
 
 // Initialize Triggers with table types from schema.ts
@@ -178,10 +179,7 @@ async function cascadePresupuestoAprobadoUpdate(
       for (const item of nivel2Items) {
         const pagado = item.pagado || 0;
         const porGastar = totalPresupuestoAprobado - pagado;
-        await ctx.db.patch(item._id, { 
-          presupuesto_aprobado: totalPresupuestoAprobado,
-          por_gastar: porGastar
-        });
+        await ctx.db.patch(item._id, approvedBudgetPatch(totalPresupuestoAprobado, pagado));
         console.log(`✅ Updated nivel 2: presupuesto_aprobado=${totalPresupuestoAprobado}, por_gastar=${porGastar}`);
       }
     }
@@ -216,10 +214,7 @@ async function cascadePresupuestoAprobadoUpdate(
       for (const item of nivel1Items) {
         const pagado = item.pagado || 0;
         const porGastar = totalPresupuestoAprobado - pagado;
-        await ctx.db.patch(item._id, { 
-          presupuesto_aprobado: totalPresupuestoAprobado,
-          por_gastar: porGastar
-        });
+        await ctx.db.patch(item._id, approvedBudgetPatch(totalPresupuestoAprobado, pagado));
         console.log(`✅ Updated nivel 1: presupuesto_aprobado=${totalPresupuestoAprobado}, por_gastar=${porGastar}`);
       }
     }

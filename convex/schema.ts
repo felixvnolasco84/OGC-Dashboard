@@ -816,8 +816,19 @@ export default defineSchema({
     user_name: v.string(), // Cached user name for display
     comment: v.string(), // Comment text
     created_at: v.number(), // Timestamp
+    revision: v.optional(v.number()), // Legacy comments start at revision 1
   }).index("by_photo", { fields: ["photo_id"] })
     .index("by_user", { fields: ["user_id"] }),
+
+  comment_operation_receipts: defineTable({
+    user_id: v.id("users"),
+    proyecto: v.id("desarrollos"),
+    operation_id: v.string(),
+    fingerprint: v.string(),
+    result_id: v.string(),
+    created_at: v.number(),
+  }).index("by_user_operation", { fields: ["user_id", "operation_id"] })
+    .index("by_proyecto", { fields: ["proyecto"] }),
   
   // Ingresos (Income) - Money entries for a project
   ingresos: defineTable({
@@ -1607,6 +1618,7 @@ export default defineSchema({
     created_by_id: v.optional(v.id("users")),
     created_by_name: v.optional(v.string()),
     created_at: v.number(),
+    revision: v.optional(v.number()),
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_parent", { fields: ["parent_type", "parent_id"] })
     .index("by_proyecto_parent", { fields: ["proyecto", "parent_type", "parent_id"] }),
