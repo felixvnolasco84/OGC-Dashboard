@@ -14,7 +14,7 @@ export function getHonorariosModo(modo?: HonorariosModo): HonorariosModo {
   return modo === "transacciones" ? "transacciones" : "automatico";
 }
 
-export function calculateHonorariosFromRecords(input: {
+export function getHonorariosBreakdown(input: {
   proyectoId: string;
   modo?: HonorariosModo;
   porcentaje?: number;
@@ -22,7 +22,7 @@ export function calculateHonorariosFromRecords(input: {
   transactions: readonly { _id: string; monto_total: number }[];
   pagos: readonly { transaccion_id: string; partida_id?: string; monto: number }[];
   partidas: readonly { _id: string; proyecto?: string; nivel: number; nombre: string; partida_nombre?: string }[];
-}): number {
+}) {
   const transactionIds = new Set(input.transactions.map((transaction) => String(transaction._id)));
   const partidasById = new Map(input.partidas.map((partida) => [String(partida._id), partida]));
   const periodPagos = input.pagos.filter((pago) => transactionIds.has(String(pago.transaccion_id)));
@@ -34,7 +34,7 @@ export function calculateHonorariosFromRecords(input: {
         ? sum + pago.monto
         : sum;
     }, 0);
-    return Math.round(amount * 100) / 100;
+    return { base: amount, excludedAmount: 0, amount: Math.round(amount * 100) / 100 };
   }
 
   const excludedIds = new Set((input.excludedPartidas || []).map(String));
@@ -49,5 +49,10 @@ export function calculateHonorariosFromRecords(input: {
       : sum;
   }, 0);
   const total = input.transactions.reduce((sum, transaction) => sum + transaction.monto_total, 0);
-  return Math.round((total - excludedAmount) * ((input.porcentaje || 0) / 100) * 100) / 100;
+  const base = total - excludedAmount;
+  return { base, excludedAmount, amount: Math.round(base * ((input.porcentaje || 0) / 100) * 100) / 100 };
+}
+
+export function calculateHonorariosFromRecords(input: Parameters<typeof getHonorariosBreakdown>[0]): number {
+  return getHonorariosBreakdown(input).amount;
 }

@@ -61,6 +61,7 @@ export function calculateIndirectosFromRecords(input: {
   const partidas = new Map(input.partidas.map(p => [String(p._id), p]));
   const excluded = getFeeExcludedPartidaIds(input.partidas, input.excludedPartidas);
   let automaticos = 0;
+  let baseElegible = 0;
   let manualesSustituidos = 0;
   const sustituidosPorPartida: Record<string, number> = {};
   for (const pago of input.pagos) {
@@ -68,12 +69,15 @@ export function calculateIndirectosFromRecords(input: {
     const partida = partidas.get(String(pago.partida_id));
     if (!transaction || !partida || transaction.status !== "Pagado" || !isAutomaticIndirectos(input.config, transaction.fecha)) continue;
     const amount = input.convert ? input.convert(Math.abs(pago.monto), transaction) : Math.abs(pago.monto);
-    if (isEligibleFeePayment(partida, excluded)) automaticos += indirectosCharge(amount, input.config);
+    if (isEligibleFeePayment(partida, excluded)) {
+      baseElegible += amount;
+      automaticos += indirectosCharge(amount, input.config);
+    }
     if (isIndirectosPartida(partida) && !isHonorariosPartida(partida)) {
       const manualAmount = input.convert ? input.convert(pago.monto, transaction) : pago.monto;
       manualesSustituidos += manualAmount;
       sustituidosPorPartida[String(partida._id)] = (sustituidosPorPartida[String(partida._id)] || 0) + manualAmount;
     }
   }
-  return { automaticos: Math.round(automaticos * 100) / 100, manualesSustituidos, sustituidosPorPartida };
+  return { baseElegible, automaticos: Math.round(automaticos * 100) / 100, manualesSustituidos, sustituidosPorPartida };
 }

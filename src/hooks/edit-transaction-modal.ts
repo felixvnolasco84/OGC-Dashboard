@@ -33,6 +33,7 @@ type TransactionFormData = {
 };
 
 type EditTransactionModalStore = {
+    session: number;
     transactionContext?: EditTransactionContext;
     formData: TransactionFormData;
     isOpen: boolean;
@@ -62,6 +63,7 @@ const initialFormData: TransactionFormData = {
 };
 
 export const useEditTransactionModal = create<EditTransactionModalStore>((set) => ({
+    session: 0,
     isOpen: false,
     formData: initialFormData,
     onOpen: (transactionContext: EditTransactionContext) => {
@@ -104,11 +106,12 @@ export const useEditTransactionModal = create<EditTransactionModalStore>((set) =
             categoria: (transaction.categoria || "").toLowerCase(),
         };
 
-        set({
+        set((state) => ({
+            session: state.session + 1,
             isOpen: true,
             transactionContext,
             formData: prefilledData
-        });
+        }));
     },
     onClose: () => set({
         isOpen: false,

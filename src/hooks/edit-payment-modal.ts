@@ -29,6 +29,7 @@ type PaymentFormData = {
 };
 
 type EditPaymentModalStore = {
+    session: number;
     paymentContext?: EditPaymentContext;
     formData: PaymentFormData;
     isOpen: boolean;
@@ -55,6 +56,7 @@ const initialFormData: PaymentFormData = {
 };
 
 export const useEditPaymentModal = create<EditPaymentModalStore>((set) => ({
+    session: 0,
     isOpen: false,
     formData: initialFormData,
     onOpen: (paymentContext: EditPaymentContext) => {
@@ -80,11 +82,12 @@ export const useEditPaymentModal = create<EditPaymentModalStore>((set) => ({
             proyecto: transaction?.proyecto || ("" as Id<"desarrollos">),
         };
 
-        set({
+        set((state) => ({
+            session: state.session + 1,
             isOpen: true,
             paymentContext,
             formData: prefilledData
-        });
+        }));
     },
     onClose: () => set({
         isOpen: false,

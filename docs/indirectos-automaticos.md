@@ -19,8 +19,15 @@
 
 ## Validación
 
+- Editar proyecto muestra una revisión **Actual → Propuesto → Diferencia** al cambiar porcentajes, modo o exclusiones. Presupuesto y P&L tienen bloques separados con moneda, periodo y bases. El filtro mensual de P&L solo cambia la revisión; guardar aplica a todo el proyecto.
+- La revisión incluye manuales sustituidos y el efecto sobre gasto total, por gastar, saldo de indirectos y EBITDA. Activar al 0% también puede sustituir manuales, sin borrar registros.
+- Solo se envían campos editados. Los cambios externos no sobrescriben el borrador. Si cambian los datos financieros, se debe revisar la actualización; el backend vuelve a comprobar el alcance y los permisos antes de guardar.
+- La simulación usa únicamente consultas. Cancelar no escribe y el guardado usa una sola mutación con los triggers existentes. Creación e importación de Excel quedan fuera de esta revisión.
+- `npm run test:project-fees`: cálculo anterior/nuevo, coincidencia con el guardado mediante los triggers sobre una base sintética, exclusiones, modos, fechas, monedas, signos, redondeo, permisos, errores y concurrencia. La prueba de rollback modela el contrato transaccional de Convex en una base de prueba; no se ejecuta contra producción.
+- La revisión completa está limitada a 2,500 registros combinados de partidas, transacciones, conceptos y movimientos del proyecto, y a 512 KiB de alcance canónico. Si se excede, se bloquea el guardado financiero sin presentar una muestra parcial. Se conserva la lectura por transacción para conceptos históricos sin `proyecto_id`.
+
 - `npm run test:pnl`: incluye corte histórico, porcentaje cero, exclusiones, monedas, gastos corporativos, cambios de pagos y sustitución de indirectos en obra/WIP.
-- `npm run test:indirectos-ui`: formulario de edición, cargo en presupuesto y saldo P&L a 390 y 1440 px, con datos sintéticos y sin conexión a Convex.
+- `npm run test:indirectos-ui`: revisión del impacto, filtro mensual, cambios concurrentes, conflictos de campos, fallos, cancelación, guardado único y accesibilidad del formulario a 390 y 1440 px, además de cargo en presupuesto y saldo P&L. Usa datos sintéticos y stubs sin conexión a Convex; genera capturas en `output/indirectos-ui`.
 - Pruebas relacionadas de presupuesto, jerarquía de pagos y clasificación OGC; TypeScript, lint de archivos modificados y build.
 
 Para usarlo en el sistema publicado se deben desplegar conjuntamente el schema/backend de Convex y el frontend. Después, configurar el porcentaje deseado en cada obra.

@@ -7,6 +7,7 @@ import {
   getCurrentUserOrThrow,
 } from "./permissions";
 import { canDeleteRfi, canEditRfi, nextRfiNumber } from "./rfiRules";
+import { rfiReviewSnapshot, RFI_REVIEW_CONFLICT } from "./rfiReviewSnapshot";
 
 const CREATE_ROLES = new Set(["admin", "user", "contratista"]);
 const RESPONSIBLE_ROLES = new Set(["admin", "user"]);
@@ -319,6 +320,16 @@ async function insertHistory(
   });
 }
 
+async function assertReviewedRfi(ctx: MutationCtx, rfi: Doc<"rfis">, expected: string) {
+  const [responses, attachments] = await Promise.all([
+    ctx.db.query("rfi_responses").withIndex("by_rfi", (q) => q.eq("rfi_id", rfi._id)).collect(),
+    ctx.db.query("rfi_attachments").withIndex("by_rfi", (q) => q.eq("rfi_id", rfi._id)).collect(),
+  ]);
+  if (rfiReviewSnapshot(rfi, responses, attachments) !== expected) {
+    throw new Error(RFI_REVIEW_CONFLICT);
+  }
+}
+
 async function enrichRfi(ctx: QueryCtx, rfi: Doc<"rfis">, user: RfiUser) {
   const [manager, creator, assignees, responses, attachments, readStatus] = await Promise.all([
     rfi.rfi_manager_id ? ctx.db.get(rfi.rfi_manager_id) : null,
@@ -504,6 +515,7 @@ export const getDetail = query({
 
     return {
       rfi: enriched,
+      review_snapshot: rfiReviewSnapshot(rfi, responses, attachments),
       responses: responses
         .sort((a, b) => a.created_at - b.created_at)
         .map((response) => ({
@@ -703,6 +715,7 @@ export const updateDraft = mutation({
     schedule_impact_days: v.optional(v.number()),
     is_private: v.boolean(),
     submit_for_review: v.boolean(),
+    expected_review: v.optional(v.string()),
     remove_attachment_ids: v.array(v.id("rfi_attachments")),
   },
   handler: async (ctx, args) => {
@@ -710,6 +723,8 @@ export const updateDraft = mutation({
     if (!canEditRfi(user, rfi)) {
       throw new Error("Esta RFI ya no puede editarse");
     }
+    if (args.submit_for_review && !args.expected_review) throw new Error(RFI_REVIEW_CONFLICT);
+    if (args.expected_review) await assertReviewedRfi(ctx, rfi, args.expected_review);
 
     const subject = args.subject.trim();
     const question = args.question.trim();
@@ -915,7 +930,7 @@ export const deleteRfi = mutation({
 });
 
 export const submitForReview = mutation({
-  args: { id: v.id("rfis") },
+  args: { id: v.id("rfis"), expected_review: v.string() },
   handler: async (ctx, args) => {
     const { rfi, user } = await getRfiOrThrow(ctx, args.id);
     if (
@@ -927,6 +942,7 @@ export const submitForReview = mutation({
     if (!rfi.rfi_manager_id) {
       throw new Error("La RFI necesita una persona responsable");
     }
+    await assertReviewedRfi(ctx, rfi, args.expected_review);
     const rolesByUser = await ensureUsersBelongToProject(
       ctx,
       rfi.proyecto,
@@ -950,7 +966,7 @@ export const submitForReview = mutation({
 });
 
 export const openRfi = mutation({
-  args: { id: v.id("rfis") },
+  args: { id: v.id("rfis"), expected_review: v.string() },
   handler: async (ctx, args) => {
     const { rfi, user } = await getRfiOrThrow(ctx, args.id);
     if (rfi.status !== "pending_manager_review" || !canManageRfi(user, rfi)) {
@@ -962,6 +978,7 @@ export const openRfi = mutation({
     if (!rfi.due_date) {
       throw new Error("Define una fecha límite antes de abrir la RFI");
     }
+    await assertReviewedRfi(ctx, rfi, args.expected_review);
     const now = Date.now();
     await ctx.db.patch(rfi._id, {
       status: "open",
@@ -1017,7 +1034,7 @@ export const addResponse = mutation({
 });
 
 export const markResponseOfficial = mutation({
-  args: { response_id: v.id("rfi_responses") },
+  args: { response_id: v.id("rfi_responses"), expected_review: v.string() },
   handler: async (ctx, args) => {
     const response = await ctx.db.get(args.response_id);
     if (!response) throw new Error("Respuesta no encontrada");
@@ -1025,6 +1042,8 @@ export const markResponseOfficial = mutation({
     if (rfi.status !== "open" || !canManageRfi(user, rfi)) {
       throw new Error("Solo el responsable de la RFI puede seleccionar una respuesta oficial");
     }
+    if (response.is_official) return { changed: false };
+    await assertReviewedRfi(ctx, rfi, args.expected_review);
     if (!response.is_official) {
       const now = Date.now();
       await ctx.db.patch(response._id, {
@@ -1044,11 +1063,12 @@ export const markResponseOfficial = mutation({
         },
       });
     }
+    return { changed: true };
   },
 });
 
 export const closeRfi = mutation({
-  args: { id: v.id("rfis") },
+  args: { id: v.id("rfis"), expected_review: v.string() },
   handler: async (ctx, args) => {
     const { rfi, user } = await getRfiOrThrow(ctx, args.id);
     if (rfi.status !== "open" || !canManageRfi(user, rfi)) {
@@ -1062,6 +1082,7 @@ export const closeRfi = mutation({
     if (!official) {
       throw new Error("Selecciona al menos una respuesta oficial antes de cerrar");
     }
+    await assertReviewedRfi(ctx, rfi, args.expected_review);
     const now = Date.now();
     await ctx.db.patch(rfi._id, {
       status: "closed",
@@ -1080,12 +1101,13 @@ export const closeRfi = mutation({
 });
 
 export const reopenRfi = mutation({
-  args: { id: v.id("rfis") },
+  args: { id: v.id("rfis"), expected_review: v.string() },
   handler: async (ctx, args) => {
     const { rfi, user } = await getRfiOrThrow(ctx, args.id);
     if (rfi.status !== "closed" || !canManageRfi(user, rfi)) {
       throw new Error("Solo el responsable de la RFI puede reabrirla");
     }
+    await assertReviewedRfi(ctx, rfi, args.expected_review);
     const now = Date.now();
     await ctx.db.patch(rfi._id, {
       status: "open",
@@ -1134,6 +1156,11 @@ export const addAttachment = mutation({
         throw new Error("La respuesta no pertenece a esta RFI");
       }
     }
+    // Retrying a completed storage upload must not attach it a second time.
+    const existing = await ctx.db.query("rfi_attachments")
+      .withIndex("by_rfi", (q) => q.eq("rfi_id", rfi._id)).collect();
+    const attached = existing.find((item) => item.storage_id === args.storage_id && item.response_id === args.response_id);
+    if (attached) return attached._id;
     const now = Date.now();
     const attachmentId = await ctx.db.insert("rfi_attachments", {
       rfi_id: rfi._id,

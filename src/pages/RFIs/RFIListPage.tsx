@@ -72,6 +72,7 @@ export default function RFIListPage() {
     null,
   );
   const [sheetMode, setSheetMode] = useState<"detail" | "edit">("detail");
+  const [sheetBusy, setSheetBusy] = useState(false);
   const questionInputRef = useRef<HTMLInputElement>(null);
 
   const projectId = proyectoId as Id<"desarrollos"> | undefined;
@@ -569,11 +570,13 @@ export default function RFIListPage() {
       <Sheet
         open={Boolean(selectedRfiId)}
         onOpenChange={(open) => {
-          if (!open) setSelectedRfiId(null);
+          if (!open && !sheetBusy) setSelectedRfiId(null);
         }}
       >
         <SheetContent
           side="right"
+          onEscapeKeyDown={(event) => { if (sheetBusy) event.preventDefault(); }}
+          onInteractOutside={(event) => { if (sheetBusy) event.preventDefault(); }}
           className="w-full overflow-y-auto rounded-l-[4px] border border-ring bg-card p-0 text-foreground sm:max-w-[632px]"
         >
           <SheetHeader className="sr-only">
@@ -591,6 +594,7 @@ export default function RFIListPage() {
               embedded
               projectIdOverride={projectId}
               rfiIdOverride={selectedRfiId}
+              onBusyChange={setSheetBusy}
               onEdit={() => setSheetMode("edit")}
               onDeleted={() => {
                 setSelectedRfiId(null);
@@ -602,6 +606,7 @@ export default function RFIListPage() {
               embedded
               projectIdOverride={projectId}
               rfiIdOverride={selectedRfiId}
+              onBusyChange={setSheetBusy}
               onCancel={() => setSheetMode("detail")}
               onSaved={() => setSheetMode("detail")}
             />

@@ -1,0 +1,98 @@
+import assert from "node:assert/strict";
+import { mkdir } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { createServer } from "vite";
+import { chromium, expect } from "@playwright/test";
+
+const root = fileURLToPath(new URL("../", import.meta.url));
+const server = await createServer({ configFile: `${root}/e2e/payment-edits/vite.config.ts`, server: { port: 4203, strictPort: true } });
+await server.listen();
+let browser;
+const errors = [];
+try {
+  browser = await chromium.launch({ channel: "chrome", headless: true });
+  await mkdir(`${root}/output/payment-edits`, { recursive: true });
+  const open = async (page, scenario = "", mode = "transaction") => {
+    await page.goto(`http://127.0.0.1:4203/e2e/payment-edits/preview.html${scenario ? `?case=${scenario}` : ""}`);
+    await page.getByRole("button", { name: mode === "transaction" ? "Editar transacción desde familia" : "Editar concepto A", exact: true }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+  };
+  const edit = async page => {
+    await page.getByLabel("OBRA › ACERO › VARILLA", { exact: true }).fill("350");
+    await page.getByRole("button", { name: "Revisar cambios", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Confirmar actualización" })).toBeEnabled();
+  };
+  for (const width of [1440, 390, 320]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    page.on("pageerror", error => errors.push(error.message));
+    await open(page);
+    await expect(page.getByLabel("OBRA › CONCRETO", { exact: true })).toHaveValue("700");
+    await expect(page.getByText("1 concepto del contexto de origen; se incluyen todos en el total.")).toBeVisible();
+    await page.screenshot({ path: `${root}/output/payment-edits/edit-${width}.png`, fullPage: true });
+    await page.getByLabel("OBRA › ACERO › VARILLA", { exact: true }).fill("");
+    await expect(page.getByRole("alert")).toContainText("Completa los montos");
+    await expect(page.getByRole("button", { name: "Revisar cambios", exact: true })).toBeDisabled();
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    await expect(page.getByRole("alertdialog")).toBeVisible();
+    await page.getByRole("button", { name: "Continuar editando", exact: true }).click();
+    await edit(page);
+    await expect(page.getByRole("heading", { name: "Revisar cambios", exact: true })).toBeFocused();
+    await expect(page.getByRole("region", { name: "Comparación de impacto" })).toContainText("$1,050.00 MXN");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Overflow at ${width}`);
+    await page.screenshot({ path: `${root}/output/payment-edits/review-${width}.png`, fullPage: true });
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    await page.getByRole("button", { name: "Descartar cambios", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    assert.equal(await page.evaluate(() => window.paymentEditRecorded.mutations.length), 0);
+    await page.getByRole("button", { name: "Editar concepto B", exact: true }).click();
+    await expect(page.getByLabel("OBRA › CONCRETO", { exact: true })).toHaveValue("700");
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await open(page, "", "individual");
+    assert.equal(await page.getByLabel("OBRA › CONCRETO", { exact: true }).count(), 0);
+    await edit(page);
+    await page.getByRole("button", { name: "Confirmar actualización", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Guardando…" })).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByText("Concepto actualizado", { exact: true })).toBeVisible();
+    assert.equal(await page.evaluate(() => window.paymentEditRecorded.mutations.length), 1);
+    const mutation = await page.evaluate(() => window.paymentEditRecorded.mutations[0]);
+    assert.equal(mutation.name, "transacciones:saveEdit");
+    assert.deepEqual(mutation.args.amounts, [{ id: "a", monto: 350 }]);
+    assert.deepEqual(mutation.args.fields, {});
+    await page.screenshot({ path: `${root}/output/payment-edits/success-${width}.png`, fullPage: true });
+    await open(page, "save-error");
+    await edit(page);
+    await page.getByRole("button", { name: "Confirmar actualización", exact: true }).click();
+    await expect(page.getByRole("alert")).toContainText("No se pudo guardar");
+    await expect(page.getByLabel("OBRA › ACERO › VARILLA", { exact: true })).toHaveValue("350");
+    await page.screenshot({ path: `${root}/output/payment-edits/error-${width}.png`, fullPage: true });
+    await open(page, "preview-error");
+    await page.getByLabel("OBRA › ACERO › VARILLA", { exact: true }).fill("350");
+    await page.getByRole("button", { name: "Revisar cambios", exact: true }).click();
+    await expect(page.getByRole("alert")).toContainText("No se pudo consultar");
+    await expect(page.getByRole("button", { name: "Confirmar actualización", exact: true })).toBeDisabled();
+    assert.equal(await page.evaluate(() => window.paymentEditRecorded.mutations.length), 0);
+    await open(page);
+    await edit(page);
+    await page.evaluate(() => window.dispatchEvent(new Event("payment-edit-change")));
+    await expect(page.getByRole("alert")).toContainText("Los datos cambiaron");
+    await expect(page.getByRole("button", { name: "Confirmar actualización", exact: true })).toBeDisabled();
+    await page.getByRole("button", { name: "Actualizar base y revisión", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Confirmar actualización", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "Volver a editar", exact: true }).click();
+    await expect(page.getByLabel("Referencia o notas", { exact: true })).toHaveValue("Cambio externo");
+    await expect(page.getByLabel("OBRA › ACERO › VARILLA", { exact: true })).toHaveValue("350");
+    await open(page, "denied");
+    await expect(page.getByRole("alert")).toContainText("No tienes permiso");
+    assert.equal(await page.getByRole("button", { name: "Revisar cambios", exact: true }).count(), 0);
+    await page.close();
+  }
+  assert.deepEqual(errors, []);
+  console.log("Payment edit UI: filtered/full totals, individual scope, cancel/reopen, empty values, keyboard, errors, concurrency and single atomic submission passed at 1440/390/320px.");
+} finally {
+  if (browser) await browser.close();
+  await server.close();
+}

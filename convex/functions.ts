@@ -4,7 +4,7 @@ import { mutation as rawMutation, internalMutation as rawInternalMutation } from
 import { DataModel, Doc, Id } from "./_generated/dataModel";
 import { Triggers } from "convex-helpers/server/triggers";
 import { customCtx, customMutation } from "convex-helpers/server/customFunctions";
-import { getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
+import { calculateHonorariosFromRecords, getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { calculateHierarchyPaymentTotals } from "./paymentHierarchyRules";
 
@@ -365,118 +365,19 @@ async function updateHonorariosMonto(
       return;
     }
     
-    const honorariosPorcentaje = proyecto.honorarios_porcentaje || 0;
-    const excludedPartidasIds = proyecto.excluded_partidas_honorarios || [];
-    
-    // Get all transactions for this proyecto
-    const allTransactions = await ctx.db
-      .query("transacciones")
-      .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId))
-      .collect();
-    
-    if (getHonorariosModo(proyecto.honorarios_modo) === "transacciones") {
-      let honorariosMonto = 0;
-      const partidasById = new Map<string, any>();
-      for (const transaction of allTransactions) {
-        const pagos = await ctx.db.query("pagos")
-          .withIndex("by_transaccion", (q: any) => q.eq("transaccion_id", transaction._id))
-          .collect();
-        for (const pago of pagos) {
-          if (!pago.partida_id) continue;
-          const key = String(pago.partida_id);
-          if (!partidasById.has(key)) partidasById.set(key, await ctx.db.get(pago.partida_id));
-          const partida = partidasById.get(key);
-          if (partida?.proyecto === proyectoId && isHonorariosPartida(partida)) {
-            honorariosMonto += pago.monto || 0;
-          }
-        }
-      }
-      const roundedMonto = Math.round(honorariosMonto * 100) / 100;
-      await ctx.db.patch(proyectoId, { honorarios_monto: roundedMonto });
-      await updateHonorariosPartida(ctx, proyectoId, roundedMonto);
-      await updateMeticasPresupuesto(ctx, proyectoId);
-      return;
-    }
-
-    // Calculate total amount from all transactions
-    const totalAmount = allTransactions.reduce(
-      (sum: number, t: any) => sum + (t.monto_total || 0),
-      0
-    );
-    
-    // If there are excluded partidas, subtract their amounts from the total
-    let excludedAmount = 0;
-    if (excludedPartidasIds.length > 0) {
-      // Read the explicitly excluded partidas by ID. A filter on `_id` still scans
-      // the entire table in Convex and can exceed the per-function read limit.
-      const excludedNivel1Partidas = (await Promise.all(
-        excludedPartidasIds.map((partidaId: any) => ctx.db.get(partidaId))
-      )).filter(
-        (partida: any) =>
-          partida && partida.proyecto === proyectoId && partida.nivel === 1
-      );
-      
-      // Get the names of excluded nivel 1 partidas
-      const excludedPartidasNames = excludedNivel1Partidas.map((p: any) => p.nombre);
-      
-      // Find all child partidas (nivel 2 and 3) that belong to excluded nivel 1 partidas
-      const allProjectPartidas = await ctx.db
-        .query("partidas")
-        .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId))
-        .collect();
-      
-      // Filter to get all partidas (nivel 1, 2, and 3) that should be excluded
-      const allExcludedPartidas = allProjectPartidas.filter((p: any) =>
-        excludedPartidasIds.includes(p._id) || // nivel 1 explicitly excluded
-        (p.partida_nombre && excludedPartidasNames.includes(p.partida_nombre)) // nivel 2 & 3 children
-      );
-      
-      const allExcludedPartidasIds = allExcludedPartidas.map((p: any) => p._id);
-      
-      console.log(`Excluding ${excludedNivel1Partidas.length} nivel 1 partidas and ${allExcludedPartidas.length - excludedNivel1Partidas.length} child partidas (total: ${allExcludedPartidas.length})`);
-      
-      // Get all pagos from this project's transactions using indexed queries
-      const allPagosArrays = await Promise.all(
-        allTransactions.map((t: any) =>
-          ctx.db
-            .query("pagos")
-            .withIndex("by_transaccion", (q: any) => q.eq("transaccion_id", t._id))
-            .collect()
-        )
-      );
-      const allProjectPagos = allPagosArrays.flat();
-      
-      // Filter pagos that reference the excluded partidas (including children)
-      const excludedPagos = allProjectPagos.filter((pago: any) => 
-        allExcludedPartidasIds.includes(pago.partida_id)
-      );
-      
-      // Sum up the amounts from excluded pagos
-      excludedAmount = excludedPagos.reduce(
-        (sum: number, pago: any) => sum + (pago.monto || 0),
-        0
-      );
-      
-      console.log(`Total excluded amount: ${excludedAmount} from ${excludedPagos.length} line items`);
-    }
-    
-    // Calculate base amount for honorarios (total - excluded amounts)
-    const baseAmount = totalAmount - excludedAmount;
-    
-    // Calculate honorarios amount: base amount * percentage / 100
-    const honorariosMonto = baseAmount * (honorariosPorcentaje / 100);
-    
-    // Round to 2 decimal places
-    const roundedHonorariosMonto = Math.round(honorariosMonto * 100) / 100;
-    
-    console.log("Honorarios calculation:", {
-      totalAmount,
-      excludedAmount,
-      baseAmount,
-      honorariosPorcentaje,
-      honorariosMonto: roundedHonorariosMonto
+    const transactions = await ctx.db.query("transacciones")
+      .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId)).collect();
+    const needsPayments = getHonorariosModo(proyecto.honorarios_modo) === "transacciones" ||
+      Boolean(proyecto.excluded_partidas_honorarios?.length);
+    const partidas = needsPayments ? await ctx.db.query("partidas")
+      .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId)).collect() : [];
+    const pagos = needsPayments ? (await Promise.all(transactions.map((t: any) => ctx.db.query("pagos")
+      .withIndex("by_transaccion", (q: any) => q.eq("transaccion_id", t._id)).collect()))).flat() : [];
+    const roundedHonorariosMonto = calculateHonorariosFromRecords({
+      proyectoId, modo: proyecto.honorarios_modo, porcentaje: proyecto.honorarios_porcentaje,
+      excludedPartidas: proyecto.excluded_partidas_honorarios, transactions, partidas, pagos,
     });
-    
+
     // Update the desarrollo's honorarios_monto field
     await ctx.db.patch(proyectoId, { 
       honorarios_monto: roundedHonorariosMonto 
@@ -620,8 +521,9 @@ triggers.register("transacciones", async (ctx, change) => {
       const monedaChanged = change.oldDoc.moneda !== change.newDoc.moneda;
       const statusChanged = change.oldDoc.status !== change.newDoc.status;
       const fechaChanged = change.oldDoc.fecha !== change.newDoc.fecha;
+      const rateChanged = change.oldDoc.tipo_cambio !== change.newDoc.tipo_cambio;
       
-      if (!montoChanged && !monedaChanged && !statusChanged && !fechaChanged) {
+      if (!montoChanged && !monedaChanged && !statusChanged && !fechaChanged && !rateChanged) {
         console.log("No financial transaction fields changed, skipping updates");
         return;
       }

@@ -37,6 +37,32 @@ import {
   transactionChangeInvalidatesInvoice,
 } from "./invoiceIntegrity";
 import { updateProviderStatsForTransactionChange } from "./providerStats";
+import { applyPaymentEdit, loadEditContext, preparePaymentEdit, paymentEditValidators } from "./paymentEdit";
+
+export const getEditContext = query({
+  args: { id: v.id("transacciones") },
+  handler: async (ctx, { id }) => {
+    try { return { status: "ready" as const, context: await loadEditContext(ctx, id) }; }
+    catch (error) { return { status: "error" as const, message: error instanceof Error ? error.message : "No se pudo cargar la transacción." }; }
+  },
+});
+
+export const previewEdit = query({
+  args: { ...paymentEditValidators, expectedSource: v.string() },
+  handler: async (ctx, { expectedSource, ...draft }) => {
+    try {
+      const context = await loadEditContext(ctx, draft.id);
+      if (context.source !== expectedSource) return { status: "conflict" as const, message: "La transacción cambió mientras editabas. Conservamos tu borrador; actualiza la base y vuelve a revisar." };
+      return (await preparePaymentEdit(ctx, draft)).review;
+    } catch (error) { return { status: "error" as const, message: error instanceof Error ? error.message : "No se pudo revisar el impacto." }; }
+  },
+});
+
+// Deliberately raw: all sources and derived records are written together once.
+export const saveEdit = baseMutation({
+  args: { ...paymentEditValidators, expectedSource: v.string(), expectedScope: v.string() },
+  handler: (ctx, { expectedSource, expectedScope, ...draft }) => applyPaymentEdit(ctx, draft, expectedScope, expectedSource),
+});
 
 type TransactionLineItemInput = {
   partida_id: Id<"partidas">;

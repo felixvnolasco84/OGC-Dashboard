@@ -133,6 +133,7 @@ export default function ProviderPaymentAccountPicker({
   return (
     <div className="space-y-2">
       <span className="block text-xs text-muted-foreground">Cuenta guardada del proveedor</span>
+      <p className="text-xs text-muted-foreground">Elegir una cuenta cambia el borrador. Guardar, editar o archivar en la biblioteca aplica inmediatamente y se conserva aunque canceles la transacción.</p>
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>
           <Button type="button" variant="combobox" role="combobox" aria-expanded={pickerOpen}>

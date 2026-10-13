@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
@@ -20,7 +20,6 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -52,6 +51,8 @@ import {
 } from "./rfiUi";
 import { useRfiUserDirectory } from "./useRfiUserDirectory";
 import { RfiHistoryTimeline } from "./RfiHistoryTimeline";
+import { RfiActionReviewDialog, RfiReviewSummary } from "./RfiActionReview";
+import { rfiActionBlocked, type RfiAction, type RfiConfirmation, type RfiDetail } from "./rfiActionReviewModel";
 
 type RfiDetailProps = {
   embedded?: boolean;
@@ -59,6 +60,7 @@ type RfiDetailProps = {
   rfiIdOverride?: Id<"rfis">;
   onEdit?: () => void;
   onDeleted?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 export default function RFIDetailPage({
@@ -67,6 +69,7 @@ export default function RFIDetailPage({
   rfiIdOverride,
   onEdit,
   onDeleted,
+  onBusyChange,
 }: RfiDetailProps = {}) {
   const navigate = useNavigate();
   const { proyectoId, rfiId } = useParams<{
@@ -108,7 +111,34 @@ export default function RFIDetailPage({
   const [responseFiles, setResponseFiles] = useState<File[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const actionLock = useRef(false);
+  const headingRef = useRef<HTMLElement>(null);
+  const [review, setReview] = useState<{ action: RfiConfirmation; detail: RfiDetail; responseId?: Id<"rfi_responses">; trigger: HTMLButtonElement | null } | null>(null);
+  const reviewTrigger = useRef<HTMLButtonElement | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [reviewRejected, setReviewRejected] = useState(false);
   const loadedRfiId = detail?.rfi._id;
+
+  useEffect(() => {
+    onBusyChange?.(busyAction !== null);
+    return () => onBusyChange?.(false);
+  }, [busyAction, onBusyChange]);
+
+  const restoreReviewFocus = () => {
+    requestAnimationFrame(() => {
+      const trigger = reviewTrigger.current;
+      if (trigger?.isConnected && !trigger.disabled) trigger.focus();
+      else headingRef.current?.focus();
+    });
+  };
+
+  const startReview = (action: RfiConfirmation, trigger: HTMLButtonElement | null, responseId?: Id<"rfi_responses">) => {
+    if (!detail || actionLock.current) return;
+    reviewTrigger.current = trigger;
+    setActionError(null);
+    setReviewRejected(false);
+    setReview({ action, detail, responseId, trigger });
+  };
 
   useEffect(() => {
     if (!id || !loadedRfiId) return;
@@ -120,14 +150,48 @@ export default function RFIDetailPage({
     action: () => Promise<unknown>,
     successMessage: string,
   ) => {
+    if (actionLock.current) return false;
+    actionLock.current = true;
     setBusyAction(name);
+    setActionError(null);
     try {
-      await action();
-      toast.success(successMessage);
+      const result = await action();
+      if (result && typeof result === "object" && "changed" in result && result.changed === false) {
+        toast.info("Esta respuesta ya fue marcada como oficial. No se registró otra selección.");
+      } else toast.success(successMessage);
+      return true;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo completar la acción");
+      const message = error instanceof Error ? error.message : "No se pudo completar la acción";
+      setActionError(message);
+      if (message.includes("cambió mientras")) setReviewRejected(true);
+      toast.error(message);
+      return false;
     } finally {
+      actionLock.current = false;
       setBusyAction(null);
+    }
+  };
+
+  const applyRfiAction = async (action: RfiAction, reviewed: RfiDetail, responseId?: Id<"rfi_responses">) => {
+    if (!detail || actionLock.current || reviewed.rfi._id !== id) return;
+    const blocked = rfiActionBlocked(detail, action, responseId);
+    if (blocked || reviewed.review_snapshot !== detail.review_snapshot) {
+      setActionError(blocked || "La RFI cambió mientras la revisabas. Actualiza la revisión antes de continuar.");
+      setReviewRejected(true);
+      return;
+    }
+    const args = { id: reviewed.rfi._id, expected_review: reviewed.review_snapshot };
+    const apply = () => {
+      if (action === "submit") return submitForReview(args);
+      if (action === "open") return openRfi(args);
+      if (action === "close") return closeRfi(args);
+      if (action === "reopen") return reopenRfi(args);
+      return markOfficial({ response_id: responseId!, expected_review: args.expected_review });
+    };
+    const messages = { submit: "RFI enviada a revisión", open: "RFI abierta", close: "RFI cerrada", reopen: "RFI reabierta", official: "Respuesta marcada como oficial" };
+    if (await runAction(action, apply, messages[action])) {
+      setReview(null);
+      if (action === "submit" || action === "reopen") requestAnimationFrame(() => headingRef.current?.focus());
     }
   };
 
@@ -180,8 +244,9 @@ export default function RFIDetailPage({
   };
 
   const handleDelete = async () => {
-    if (!id || !detail || busyAction !== null) return;
+    if (!id || !detail || actionLock.current) return;
     const targetProjectId = detail.rfi.proyecto;
+    actionLock.current = true;
     setBusyAction("delete");
     try {
       await deleteRfi({ id });
@@ -195,6 +260,7 @@ export default function RFIDetailPage({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo eliminar la RFI");
     } finally {
+      actionLock.current = false;
       setBusyAction(null);
     }
   };
@@ -242,6 +308,9 @@ export default function RFIDetailPage({
     >
       <div className={cn("space-y-0", !embedded && "mx-auto max-w-6xl")}>
         <header
+          ref={headingRef}
+          tabIndex={-1}
+          aria-label={`Acciones de ${rfi.code}`}
           className={cn(
             "bg-card",
             embedded
@@ -281,12 +350,13 @@ export default function RFIDetailPage({
                     variant="outline"
                     className="h-11 min-w-[118px] rounded-[4px] border-border bg-card font-normal text-muted-foreground shadow-none hover:bg-background"
                     onClick={onEdit}
+                    disabled={busyAction !== null || review !== null}
                   >
                     Editar
                   </Button>
                 ) : (
                   <Button asChild variant="outline" className="h-11 min-w-[118px] rounded-[4px] border-border bg-card font-normal text-muted-foreground shadow-none">
-                    <Link to={`/proyecto/${projectId}/rfis/${id}/editar`}>
+                    <Link to={`/proyecto/${projectId}/rfis/${id}/editar`} aria-disabled={busyAction !== null || review !== null} onClick={(event) => { if (actionLock.current || review) event.preventDefault(); }}>
                       Editar
                     </Link>
                   </Button>
@@ -309,12 +379,10 @@ export default function RFIDetailPage({
                   name="submit"
                   busyAction={busyAction}
                   onClick={() =>
-                    runAction(
-                      "submit",
-                      () => submitForReview({ id }),
-                      "RFI enviada a revisión",
-                    )
+                    void applyRfiAction("submit", detail)
                   }
+                  blocked={!!rfiActionBlocked(detail, "submit")}
+                  describedBy="rfi-submit-impact"
                   icon={Send}
                   label="Enviar a revisión"
                 />
@@ -323,9 +391,7 @@ export default function RFIDetailPage({
                 <ActionButton
                   name="open"
                   busyAction={busyAction}
-                  onClick={() =>
-                    runAction("open", () => openRfi({ id }), "RFI abierta")
-                  }
+                  onClick={(event) => startReview("open", event.currentTarget)}
                   icon={CheckCircle2}
                   label="Abrir RFI"
                 />
@@ -334,9 +400,7 @@ export default function RFIDetailPage({
                 <ActionButton
                   name="close"
                   busyAction={busyAction}
-                  onClick={() =>
-                    runAction("close", () => closeRfi({ id }), "RFI cerrada")
-                  }
+                  onClick={(event) => startReview("close", event.currentTarget)}
                   icon={CheckCircle2}
                   label="Cerrar"
                 />
@@ -345,15 +409,17 @@ export default function RFIDetailPage({
                 <ActionButton
                   name="reopen"
                   busyAction={busyAction}
-                  onClick={() =>
-                    runAction("reopen", () => reopenRfi({ id }), "RFI reabierta")
-                  }
+                  onClick={() => void applyRfiAction("reopen", detail)}
+                  describedBy="rfi-reopen-impact"
                   icon={RotateCcw}
                   label="Reabrir"
                 />
               )}
             </div>
           </div>
+          {permissions.can_submit && <div id="rfi-submit-impact" className="mt-4"><RfiReviewSummary detail={detail} action="submit" />{rfiActionBlocked(detail, "submit") && <p className="mt-2 text-sm" role="status">{rfiActionBlocked(detail, "submit")}</p>}</div>}
+          {permissions.can_reopen && <div id="rfi-reopen-impact" className="mt-4"><RfiReviewSummary detail={detail} action="reopen" /></div>}
+          {!review && actionError && <p role="alert" className="mt-3 text-sm text-destructive">{actionError}</p>}
         </header>
 
         <Tabs defaultValue="general" className="min-w-0">
@@ -508,16 +574,9 @@ export default function RFIDetailPage({
                           size="sm"
                           className="rounded-sm"
                           disabled={busyAction !== null}
-                          onClick={() =>
-                            runAction(
-                              `official-${response._id}`,
-                              () =>
-                                markOfficial({ response_id: response._id }),
-                              "Respuesta marcada como oficial",
-                            )
-                          }
+                          onClick={(event) => startReview("official", event.currentTarget, response._id)}
                         >
-                          {busyAction === `official-${response._id}` ? (
+                          {busyAction === "official" && review?.responseId === response._id ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
                             <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -558,10 +617,11 @@ export default function RFIDetailPage({
                           ? `${responseFiles.length} archivo${responseFiles.length === 1 ? "" : "s"}`
                           : "Adjuntar archivos"}
                       </span>
-                      <Input
+                      <input
                         type="file"
                         multiple
                         className="sr-only"
+                        disabled={busyAction !== null}
                         onChange={(event) =>
                           setResponseFiles(Array.from(event.target.files || []))
                         }
@@ -600,6 +660,15 @@ export default function RFIDetailPage({
           </Tabs>
       </div>
 
+      {review && <RfiActionReviewDialog
+        detail={review.detail} liveDetail={detail} action={review.action} responseId={review.responseId}
+        busy={busyAction !== null} error={actionError} rejected={reviewRejected}
+        distributionNames={review.detail.rfi.distribution_user_ids.map((userId) => usersById.get(userId)?.name || "Usuario no disponible").join(", ")}
+        onCancel={() => { if (!actionLock.current) { setReview(null); setActionError(null); setReviewRejected(false); } }}
+        onRefresh={() => { setReview({ ...review, detail }); setReviewRejected(false); setActionError(null); }}
+        onConfirm={() => void applyRfiAction(review.action, review.detail, review.responseId)}
+        onRestoreFocus={restoreReviewFocus}
+      />}
       <AlertDialog
         open={deleteDialogOpen}
         onOpenChange={(open) => {
@@ -661,18 +730,23 @@ function ActionButton({
   onClick,
   icon: Icon,
   label,
+  blocked = false,
+  describedBy,
 }: {
   name: string;
   busyAction: string | null;
-  onClick: () => void;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   icon: typeof Send;
   label: string;
+  blocked?: boolean;
+  describedBy?: string;
 }) {
   return (
     <Button
       type="button"
       onClick={onClick}
-      disabled={busyAction !== null}
+      disabled={busyAction !== null || blocked}
+      aria-describedby={describedBy}
       className="h-11 min-w-[118px] rounded-[4px] bg-inverse px-5 font-normal text-on-color shadow-none hover:bg-inverse/90"
     >
       {busyAction === name ? (

@@ -23,12 +23,82 @@ try {
     await expect(row).toContainText("10,000");
     await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
     const field = page.getByLabel("Indirectos (%)", { exact: true });
+    const save = page.getByRole("button", { name: "Guardar Cambios", exact: true });
     await expect(field).toHaveValue("10");
+    await expect(save).toBeDisabled();
     await field.fill("20");
-    await page.getByRole("button", { name: /Guardar/ }).click();
+    await expect(save).toBeDisabled();
+    const review = page.getByRole("region", { name: "Impacto financiero" });
+    await expect(review).toBeVisible();
+    await expect(review).toContainText("$20,000.00");
+    await expect(save).toBeEnabled();
+    await page.getByRole("button", { name: "Ver impacto antes de guardar" }).click();
+    assert.equal(await review.evaluate(element => element.parentElement === document.activeElement), true);
+    const layout = await page.getByRole("dialog").evaluate(element => {
+      const bounds = element.getBoundingClientRect(), scroll = element.querySelector("[data-project-form-scroll]");
+      return { left: bounds.left, right: bounds.right, viewport: window.innerWidth, overflow: scroll.scrollWidth > scroll.clientWidth };
+    });
+    assert.ok(layout.left >= 0 && layout.right <= layout.viewport);
+    assert.equal(layout.overflow, false);
+    const scrollSection = async locator => locator.evaluate(element => {
+      const scroll = element.closest("[data-project-form-scroll]");
+      scroll.scrollTop += element.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+    });
+    await scrollSection(page.getByRole("heading", { name: "Impacto al guardar" }));
+    await page.screenshot({ path: `${root}/output/indirectos-ui/impact-budget-${width}.png` });
+    await scrollSection(page.getByRole("heading", { name: "P&L · MXN" }));
+    await page.screenshot({ path: `${root}/output/indirectos-ui/impact-pnl-${width}.png` });
+    await page.getByLabel("Periodo de revisión de P&L").click();
+    await page.getByRole("option", { name: "2026-10", exact: true }).click();
+    await expect(review).toContainText("El filtro mensual no limita el alcance del guardado.");
+    // Data updates invalidate the reviewed scope without replacing the draft.
+    await page.getByLabel("Nombre del Proyecto *", { exact: true }).fill("Borrador local");
+    await page.evaluate(() => window.feeFixtureChange({ paymentBase: 110000, project: { descripcion: "Actualización externa" } }));
+    await expect(page.getByLabel("Nombre del Proyecto *", { exact: true })).toHaveValue("Borrador local");
+    await expect(save).toBeDisabled();
+    await page.getByRole("button", { name: "Revisar actualización" }).click();
+    await expect(save).toBeEnabled();
+    await page.evaluate(() => window.feeFixtureChange({ project: { nombre: "Nombre externo" } }));
+    await expect(save).toBeDisabled();
+    await page.getByRole("button", { name: "Usar valores actuales en esos campos" }).click();
+    await expect(page.getByLabel("Nombre del Proyecto *", { exact: true })).toHaveValue("Nombre externo");
+    await page.evaluate(() => window.feeFixtureChange({ previewFailure: true }));
+    await expect(page.getByText("No se pudo calcular el impacto completo. Error de prueba.")).toBeVisible();
+    await expect(save).toBeDisabled();
+    await page.evaluate(() => window.feeFixtureChange({ previewFailure: false }));
+    await expect(save).toBeEnabled();
+    await page.evaluate(() => window.feeFixtureChange({ mutationFailure: true }));
+    await save.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(field).toHaveValue("20");
+    await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Error de guardado de prueba");
+    await expect(save).toBeEnabled();
+    await page.evaluate(() => window.feeFixtureChange({ mutationFailure: false, delayedMutation: true }));
+    await save.click();
+    await expect(page.getByRole("button", { name: "Guardando...", exact: true })).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.indirectosMutation?.args.indirectos_porcentaje)).toBe(20);
+    assert.equal(await page.evaluate(() => typeof window.indirectosMutation?.args.expected_impact), "string");
+    assert.equal(await page.evaluate(() => "nombre" in window.indirectosMutation.args), false);
+    assert.equal(await page.evaluate(() => "descripcion" in window.indirectosMutation.args), false);
+    assert.equal(await page.evaluate(() => "honorarios_porcentaje" in window.indirectosMutation.args), false);
     await page.getByRole("dialog").waitFor({ state: "hidden" });
     await page.screenshot({ path: `${root}/output/indirectos-ui/budget-${width}.png`, fullPage: true });
+    await page.evaluate(() => { delete window.indirectosMutation; });
+    await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
+    await field.fill("0");
+    await expect(review).toBeVisible();
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    assert.equal(await page.evaluate(() => window.indirectosMutation), undefined);
+    // First activation at zero keeps its distinct copy and does not mutate on close.
+    await page.evaluate(() => window.feeFixtureChange({ project: { indirectos_porcentaje: undefined, indirectos_fecha_inicio: undefined } }));
+    await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
+    await expect(field).toHaveValue("");
+    await field.fill("0");
+    await expect(review).toContainText("La activación sustituye componentes manuales desde la fecha de inicio, incluso al 0%.");
+    await page.keyboard.press("Escape");
+    assert.equal(await page.evaluate(() => window.indirectosMutation), undefined);
     await page.goto("http://127.0.0.1:4197/e2e/indirectos/preview.html");
     await expect(page.getByText("INDIRECTOS COBRADOS", { exact: true }).filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByText("SALDO DE INDIRECTOS", { exact: true }).filter({ visible: true }).first()).toBeVisible();
@@ -38,7 +108,7 @@ try {
     assert.deepEqual(errors, []);
     await page.close();
   }
-  console.log("Indirectos UI passed: budget charge, editable percentage, P&L balance, desktop and mobile.");
+  console.log("Indirectos UI passed: preview, monthly scope, concurrency, field conflicts, failures, cancellation, single guarded save, desktop and mobile. Synthetic fixtures only.");
 } finally {
   await browser?.close(); await server.httpServer.close();
 }

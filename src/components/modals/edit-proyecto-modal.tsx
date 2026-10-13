@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useEditProyectoModal } from "@/hooks/edit-proyecto-modal";
@@ -23,7 +23,10 @@ import {
 import { Loader2, Info, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Id } from "../../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
+import ProjectFeeImpactReview from "./project-fee-impact-review";
+import { editableProjectFields, projectDraftPatch } from "@/lib/project-fee-draft";
+import type { FeeProposal } from "../../../convex/projectFeeImpact";
 import {
   NO_PROJECT_LOCATION,
   NO_PROJECT_LOCATION_LABEL,
@@ -39,87 +42,112 @@ export default function EditProyectoModal() {
   const [descripcion, setDescripcion] = useState("");
   const [status, setStatus] = useState("Activo");
   const [indirectosPorcentaje, setIndirectosPorcentaje] = useState<string>("");
-  const [honorariosPorcentaje, setHonorariosPorcentaje] = useState<number>(0);
+  const [honorariosPorcentaje, setHonorariosPorcentaje] = useState<string>("0");
   const [honorariosModo, setHonorariosModo] = useState<"automatico" | "transacciones">("automatico");
   const [ubicacion, setUbicacion] = useState<string | undefined>();
   const [excludedPartidas, setExcludedPartidas] = useState<Id<"partidas">[]>([]);
   const [partidaSearch, setPartidaSearch] = useState("");
 
-  // Queries and mutations
-  const proyecto = useQuery(
-    api.desarrollos.getById,
-    proyectoId ? { id: proyectoId } : "skip"
-  );
-  const partidas = useQuery(
-    api.partida.getByProject,
-    proyectoId ? { projectId: proyectoId } : "skip"
-  );
-  const projectLocations = useQuery(api.project_locations.list);
+  const [baseline, setBaseline] = useState<Doc<"desarrollos"> | null>(null);
+  const [reviewed, setReviewed] = useState<{ key: string; scope: string } | null>(null);
+  const [previewArgs, setPreviewArgs] = useState<(FeeProposal & { id: Id<"desarrollos"> }) | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  const submitting = useRef(false);
+  const impactPanel = useRef<HTMLDivElement>(null);
+  const formScroll = useRef<HTMLDivElement>(null);
+  const proyecto = useQuery(api.desarrollos.getById, isOpen && proyectoId ? { id: proyectoId } : "skip");
+  const partidas = useQuery(api.partida.getByProject, isOpen && proyectoId ? { projectId: proyectoId } : "skip");
+  const projectLocations = useQuery(api.project_locations.list, isOpen ? {} : "skip");
   const updateProyecto = useMutation(api.desarrollos.update);
+  const impact = useQuery(api.desarrollos.previewFeeImpact, previewArgs && isOpen ? { ...previewArgs, refresh } : "skip");
 
-  // Load proyecto data when modal opens
   useEffect(() => {
-    if (proyecto) {
+    if (!isOpen) { setBaseline(null); setPreviewArgs(null); setReviewed(null); return; }
+    if (proyecto && proyecto._id === proyectoId && baseline?._id !== proyectoId) {
+      setBaseline(proyecto);
       setNombre(proyecto.nombre || "");
       setDescripcion(proyecto.descripcion || "");
       setStatus(proyecto.status || "Activo");
-      setHonorariosPorcentaje(proyecto.honorarios_porcentaje || 0);
+      setHonorariosPorcentaje(String(proyecto.honorarios_porcentaje ?? 0));
       setIndirectosPorcentaje(proyecto.indirectos_porcentaje === undefined ? "" : String(proyecto.indirectos_porcentaje));
-      setHonorariosModo(proyecto.honorarios_modo === "transacciones" ? "transacciones" : "automatico");
+      setHonorariosModo(proyecto.honorarios_modo || "automatico");
       setUbicacion(proyecto.ubicacion);
       setExcludedPartidas(proyecto.excluded_partidas_honorarios || []);
       setPartidaSearch("");
+      setSaveError(null);
+      setReviewed(null);
     }
-  }, [proyecto]);
+  }, [isOpen, proyecto, proyectoId, baseline?._id]);
 
-  const handleClose = () => {
-    setNombre("");
-    setDescripcion("");
-    setStatus("Activo");
-    setHonorariosPorcentaje(0);
-    setIndirectosPorcentaje("");
-    setHonorariosModo("automatico");
-    setUbicacion(undefined);
-    setExcludedPartidas([]);
-    setPartidaSearch("");
-    setIsSubmitting(false);
-    onClose();
+  const patch = useMemo(() => baseline ? projectDraftPatch(baseline, {
+    nombre, descripcion, status, ubicacion, honorariosPorcentaje, indirectosPorcentaje,
+    honorariosModo, excludedPartidas,
+  }) : null, [baseline, nombre, descripcion, status, ubicacion, honorariosPorcentaje, indirectosPorcentaje, honorariosModo, excludedPartidas]);
+  const proposalKey = patch && proyectoId ? JSON.stringify({ id: proyectoId, ...patch.financial }) : "";
+  const canPreview = Boolean(isOpen && patch?.financialChanged && !patch.invalid);
+  useEffect(() => {
+    setSaveError(null);
+    if (!canPreview) { setPreviewArgs(null); setReviewed(null); return; }
+    const timer = window.setTimeout(() => setPreviewArgs(JSON.parse(proposalKey)), 350);
+    return () => window.clearTimeout(timer);
+  }, [canPreview, proposalKey]);
+  const previewMatches = Boolean(canPreview && previewArgs && JSON.stringify(previewArgs) === proposalKey);
+  useEffect(() => {
+    if (previewMatches && impact?.status === "ready") {
+      setReviewed(previous => previous?.key === proposalKey ? previous : { key: proposalKey, scope: impact.expectedImpact });
+    }
+  }, [previewMatches, impact, proposalKey]);
+  const stale = Boolean(previewMatches && impact?.status === "ready" && reviewed?.key === proposalKey && reviewed.scope !== impact.expectedImpact);
+  const reviewReady = Boolean(previewMatches && impact?.status === "ready" && reviewed?.key === proposalKey && reviewed.scope === impact.expectedImpact);
+  const conflicts = proyecto && patch ? editableProjectFields.filter(key =>
+    key in patch.expectedFields && (proyecto[key] ?? null) !== patch.expectedFields[key]) : [];
+  const useCurrentFields = () => {
+    if (!proyecto) return;
+    for (const key of conflicts) {
+      if (key === "nombre") setNombre(proyecto.nombre);
+      if (key === "descripcion") setDescripcion(proyecto.descripcion);
+      if (key === "status") setStatus(proyecto.status || "Activo");
+      if (key === "ubicacion") setUbicacion(proyecto.ubicacion);
+    }
+    setBaseline(previous => previous ? { ...previous, ...Object.fromEntries(conflicts.map(key => [key, proyecto[key]])) } : null);
+    setSaveError(null);
   };
+
+  const closeModal = () => {
+    setBaseline(null); setPreviewArgs(null); setReviewed(null); setSaveError(null);
+    submitting.current = false; setIsSubmitting(false); onClose();
+  };
+  const handleClose = () => { if (!submitting.current) closeModal(); };
+  const isFormValid = Boolean(baseline && proyecto && nombre.trim() && descripcion.trim() && patch?.changed && !patch.invalid && !conflicts.length && (!patch.financialChanged || reviewReady));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!proyectoId) return;
-
-    setIsSubmitting(true);
-
+    if (!proyectoId || !patch || !isFormValid || submitting.current) return;
+    submitting.current = true; setIsSubmitting(true); setSaveError(null);
     try {
       await updateProyecto({
         id: proyectoId,
-        nombre,
-        descripcion,
-        status,
-        honorarios_porcentaje: honorariosPorcentaje,
-        indirectos_porcentaje: indirectosPorcentaje === "" ? undefined : Number(indirectosPorcentaje),
-        honorarios_modo: honorariosModo,
-        ubicacion: ubicacion ?? null,
-        excluded_partidas_honorarios: excludedPartidas,
+        ...patch.fields,
+        ...patch.financial,
+        expected_fields: patch.expectedFields,
+        ...(patch.financialChanged && reviewed ? { expected_impact: reviewed.scope } : {}),
       });
-
-      toast.success("Proyecto actualizado", {
-        description: `El proyecto "${nombre}" ha sido actualizado correctamente.`,
-      });
-
-      handleClose();
+      toast.success("Proyecto actualizado", { description: `El proyecto "${nombre}" ha sido actualizado correctamente.` });
+      closeModal();
     } catch (error) {
-      console.error("Error updating proyecto:", error);
-      toast.error("Error al actualizar el proyecto", {
-        description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
-      });
-      setIsSubmitting(false);
+      const message = error instanceof Error ? error.message : "Ocurrió un error inesperado.";
+      setSaveError(message);
+      toast.error("Error al actualizar el proyecto", { description: message });
+      submitting.current = false; setIsSubmitting(false);
+      if (patch.financialChanged && message.includes("impacto cambió")) {
+        setReviewed(previous => previous ? { ...previous, scope: "" } : null);
+        setRefresh(previous => previous + 1);
+      }
     }
   };
 
-  const isFormValid = nombre.trim() !== "" && descripcion.trim() !== "";
+  const retryPreview = () => { setSaveError(null); setRefresh(previous => previous + 1); };
 
   // Handle partida exclusion toggle
   const handlePartidaToggle = (partidaId: Id<"partidas">) => {
@@ -140,8 +168,10 @@ export default function EditProyectoModal() {
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent data-square-modal=""
+        onEscapeKeyDown={(event) => { if (submitting.current) event.preventDefault(); }}
+        onPointerDownOutside={(event) => { if (submitting.current) event.preventDefault(); }}
         className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0"
       >
         <DialogHeader className="shrink-0 border-b px-6 py-5 pr-12">
@@ -154,7 +184,9 @@ export default function EditProyectoModal() {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          <div ref={formScroll} data-project-form-scroll className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          {!baseline && <p role="status" className="text-sm text-muted-foreground">{proyecto === null ? "El proyecto no está disponible o no tienes acceso." : "Cargando proyecto…"}</p>}
+          <fieldset disabled={!baseline || isSubmitting} className="min-w-0 space-y-6">
           {/* Nombre */}
           <div className="space-y-2">
             <Label htmlFor="nombre" className="text-sm font-medium">
@@ -219,8 +251,8 @@ export default function EditProyectoModal() {
             <Input id="indirectos_porcentaje" type="number" min="0" max="100" step="0.01"
               placeholder="Sin activar" value={indirectosPorcentaje}
               onChange={e => setIndirectosPorcentaje(e.target.value)}
-              required={proyecto?.indirectos_porcentaje !== undefined} />
-            <p className="text-xs text-muted-foreground">Cargo automático sobre pagos elegibles con las mismas exclusiones que honorarios. Inicio: {proyecto?.indirectos_fecha_inicio || "2026-10-01"}. Cambiar el porcentaje recalcula desde esa fecha. Captura los gastos reales en P&amp;L como costo de estructura, categoría INDIRECTOS. 0% mantiene el esquema sin cargo.</p>
+              required={baseline?.indirectos_porcentaje !== undefined} />
+            <p className="text-xs text-muted-foreground">Cargo automático sobre pagos elegibles con las mismas exclusiones que honorarios. Inicio: {baseline?.indirectos_fecha_inicio || "2026-10-01"}. Cambiar el porcentaje recalcula desde esa fecha. Captura los gastos reales en P&amp;L como costo de estructura, categoría INDIRECTOS. 0% mantiene el esquema sin cargo.</p>
             <Label htmlFor="honorarios_modo" className="text-sm font-medium">Cálculo de honorarios</Label>
             <Select value={honorariosModo} onValueChange={(value) => setHonorariosModo(value as "automatico" | "transacciones")}>
               <SelectTrigger id="honorarios_modo" className="rounded-none">
@@ -246,8 +278,8 @@ export default function EditProyectoModal() {
             <Input
               id="honorarios_porcentaje"
               type="number"
-              value={honorariosPorcentaje || ''}
-              onChange={(e) => setHonorariosPorcentaje(parseFloat(e.target.value) || 0)}
+              value={honorariosPorcentaje}
+              onChange={(e) => setHonorariosPorcentaje(e.target.value)}
               placeholder="Ej: 15"
               min="0"
               max="100"
@@ -257,7 +289,7 @@ export default function EditProyectoModal() {
             <p className="text-xs text-muted-foreground">
               {honorariosModo === "automatico"
                 ? "Porcentaje aplicado a la base de transacciones para calcular honorarios."
-                : "Se conserva para cuando vuelvas al modo automático."}
+                : "En Presupuesto se conserva para volver al modo automático. P&L sigue utilizando este porcentaje sobre pagos elegibles."}
             </p>
           </div>
 
@@ -273,12 +305,12 @@ export default function EditProyectoModal() {
                 <Info className="h-4 w-4 text-blue-500 mt-0.5" />
                 <div>
                   <Label className="text-sm font-medium">
-                    Excluir Partidas del Cálculo de Honorarios (Nivel 1)
+                    Excluir partidas de honorarios e indirectos (Nivel 1)
                   </Label>
                   <p className="text-xs text-muted-foreground mt-1">
                     {honorariosModo === "automatico"
-                      ? "Selecciona las partidas de nivel 1 que no se incluirán en el cálculo automático."
-                      : "Las exclusiones se conservan para cuando vuelvas al modo automático."}
+                      ? "Excluye partidas y sus descendientes de honorarios automáticos e indirectos. En P&L también se excluyen de la base porcentual."
+                      : "Siguen aplicando a indirectos y a honorarios porcentuales de P&L. En Presupuesto se conservan para volver al modo automático."}
                   </p>
                 </div>
               </div>
@@ -313,7 +345,7 @@ export default function EditProyectoModal() {
                         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                           {new Intl.NumberFormat("es-MX", {
                             style: "currency",
-                            currency: "MXN",
+                            currency: baseline?.moneda_principal || "MXN",
                             maximumFractionDigits: 0,
                           }).format(partida.presupuesto_aprobado)}
                         </span>
@@ -352,10 +384,35 @@ export default function EditProyectoModal() {
             </Select>
           </div>
 
+          {patch?.invalid && <p role="alert" className="text-sm text-destructive">Captura porcentajes entre 0 y 100. Para indirectos ya activados, usa 0% para mantener el esquema sin cargo; vacío no lo desactiva.</p>}
+          {conflicts.length > 0 && <div role="alert" className="space-y-2 border p-3 text-sm">
+            <p>Otra persona cambió campos que estás editando: {conflicts.join(", ")}. Tu borrador se conserva.</p>
+            {conflicts.map(key => <p key={key} className="break-words text-xs">{key}: actual «{proyecto?.[key] || "Sin valor"}» · borrador «{({ nombre, descripcion, status, ubicacion })[key] || "Sin valor"}»</p>)}
+            <Button type="button" variant="outline" onClick={useCurrentFields}>Usar valores actuales en esos campos</Button>
+          </div>}
+          {patch?.financialChanged && !patch.invalid && <div ref={impactPanel} tabIndex={-1} aria-live="polite" aria-busy={!previewMatches || impact === undefined} className="space-y-3">
+            {(!previewMatches || impact === undefined) && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Calculando impacto…</p>}
+            {previewMatches && impact?.status === "error" && <div role="alert" className="space-y-2 border p-3 text-sm"><p>{impact.message}</p><Button type="button" variant="outline" onClick={() => void retryPreview()}>Reintentar cálculo</Button></div>}
+            {stale && <div role="status" className="space-y-2 border p-3 text-sm"><p>Los datos cambiaron mientras revisabas. Este es el impacto actualizado; revísalo antes de guardar.</p><Button type="button" variant="outline" onClick={() => { if (impact?.status === "ready") { setReviewed({ key: proposalKey, scope: impact.expectedImpact }); setSaveError(null); } }}>Revisar actualización</Button></div>}
+            {previewMatches && impact?.status === "ready" && <ProjectFeeImpactReview impact={impact} partidas={partidas || []} />}
+          </div>}
+          {saveError && <p role="alert" className="break-words text-sm text-destructive">{saveError}</p>}
+          </fieldset>
           </div>
 
           {/* Actions */}
-          <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-6 py-4">
+          <div className="shrink-0 space-y-3 border-t bg-background px-6 py-4">
+            {patch?.financialChanged && <div className="text-xs" role="status">
+              {reviewReady && impact?.status === "ready" ? <>
+                <p>Cambio en gasto: {new Intl.NumberFormat("es-MX", { style: "currency", currency: impact.budgetCurrency }).format(impact.afterBudget.gasto_total - impact.beforeBudget.gasto_total)} {impact.budgetCurrency} · Cambio en EBITDA P&amp;L: {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(impact.afterPnl.ebitda - impact.beforePnl.ebitda)} MXN</p>
+                <button type="button" className="mt-1 min-h-9 underline underline-offset-4" onClick={() => {
+                  const panel = impactPanel.current, scroll = formScroll.current;
+                  if (panel && scroll) scroll.scrollTop += panel.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+                  panel?.focus({ preventScroll: true });
+                }}>Ver impacto antes de guardar</button>
+              </> : <p>{stale ? "Revisa el impacto actualizado antes de guardar." : impact?.status === "error" ? "No se pudo calcular el impacto. Reintenta la revisión." : "El guardado estará disponible al completar la revisión del impacto."}</p>}
+            </div>}
+            <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
@@ -379,6 +436,7 @@ export default function EditProyectoModal() {
                 "Guardar Cambios"
               )}
             </Button>
+            </div>
           </div>
         </form>
       </DialogContent>

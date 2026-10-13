@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
@@ -36,6 +36,7 @@ import {
 import { useRfiUserDirectory } from "./useRfiUserDirectory";
 import { RfiAssigneePicker } from "./RfiAssigneePicker";
 import { RfiDatePicker } from "./RfiDatePicker";
+import { rfiFormChanges } from "./rfiFormReview";
 
 type ImpactValue = "yes" | "unknown" | "no" | "na";
 const EMPTY_SELECT_VALUE = "__none__";
@@ -72,6 +73,7 @@ type RfiEditorProps = {
   rfiIdOverride?: Id<"rfis">;
   onCancel?: () => void;
   onSaved?: (id: Id<"rfis">) => void;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 export default function RFINewPage({
@@ -80,6 +82,7 @@ export default function RFINewPage({
   rfiIdOverride,
   onCancel,
   onSaved,
+  onBusyChange,
 }: RfiEditorProps = {}) {
   const { proyectoId, rfiId } = useParams<{
     proyectoId: string;
@@ -109,6 +112,22 @@ export default function RFINewPage({
   );
   const [submitting, setSubmitting] = useState<"draft" | "review" | null>(null);
   const [initializedEditId, setInitializedEditId] = useState<string | null>(null);
+  const [editReview, setEditReview] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [reviewRejected, setReviewRejected] = useState(false);
+  const saveLock = useRef(false);
+  const recoveryRef = useRef<HTMLDivElement>(null);
+  type PendingUpload = { file: File; storageId?: Id<"_storage"> };
+  const [uploadRecovery, setUploadRecovery] = useState<{ id: Id<"rfis">; mode: "draft" | "review"; pending: PendingUpload[] } | null>(null);
+
+  useEffect(() => {
+    if (uploadRecovery && submitting === null) recoveryRef.current?.focus();
+  }, [uploadRecovery, submitting]);
+
+  useEffect(() => {
+    onBusyChange?.(submitting !== null);
+    return () => onBusyChange?.(false);
+  }, [submitting, onBusyChange]);
 
   useEffect(() => {
     if (!editId || !detail || initializedEditId === editId) return;
@@ -139,6 +158,7 @@ export default function RFINewPage({
     setFiles([]);
     setRemovedAttachmentIds(new Set());
     setInitializedEditId(editId);
+    setEditReview(detail.review_snapshot);
   }, [detail, editId, initializedEditId]);
 
   const { users: resolvedProjectUsers } = useRfiUserDirectory(options?.users);
@@ -237,32 +257,117 @@ export default function RFINewPage({
     });
   };
 
-  const uploadFiles = async (rfiId: Id<"rfis">) => {
-    for (const file of files) {
-      const uploadUrl = await generateUploadUrl({ rfi_id: rfiId });
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file,
-      });
-      if (!response.ok) {
-        throw new Error(`No se pudo subir ${file.name}`);
+  const acknowledgeCurrentReview = () => {
+    if (!detail) return;
+    const currentAttachmentIds = new Set(detail.attachments.map((attachment) => String(attachment._id)));
+    setRemovedAttachmentIds((current) => new Set([...current].filter((id) => currentAttachmentIds.has(id))));
+    setEditReview(detail.review_snapshot);
+    setReviewRejected(false);
+    setSaveError(null);
+  };
+
+  const formValues = {
+    subject: form.subject,
+    background: form.background || undefined,
+    question: form.question,
+    received_from_id: form.receivedFromId
+      ? form.receivedFromId as Id<"users">
+      : undefined,
+    rfi_manager_id: form.responsibleUserId
+      ? form.responsibleUserId as Id<"users">
+      : undefined,
+    assignee_ids: Array.from(form.assigneeIds) as Id<"users">[],
+    required_assignee_ids: Array.from(
+      form.requiredAssigneeIds,
+    ) as Id<"users">[],
+    distribution_user_ids: Array.from(
+      form.distributionUserIds,
+    ) as Id<"users">[],
+    due_date: form.dueDate || undefined,
+    location: form.location || undefined,
+    drawing_number: form.drawingNumber || undefined,
+    spec_section: form.specSection || undefined,
+    partida_id: form.partidaId
+      ? form.partidaId as Id<"partidas">
+      : undefined,
+    familia: form.familia || undefined,
+    sub_partida: form.subPartida || undefined,
+    project_stage: form.projectStage || undefined,
+    cost_impact: form.costImpact,
+    cost_impact_amount:
+      form.costImpact === "yes" && form.costImpactAmount
+        ? Number(form.costImpactAmount)
+        : undefined,
+    schedule_impact: form.scheduleImpact,
+    schedule_impact_days:
+      form.scheduleImpact === "yes" && form.scheduleImpactDays
+        ? Number(form.scheduleImpactDays)
+        : undefined,
+    is_private: form.isPrivate,
+  };
+
+  const uploadFiles = async (rfiId: Id<"rfis">, pending: PendingUpload[]) => {
+    while (pending.length > 0) {
+      const item = pending[0];
+      const file = item.file;
+      if (!item.storageId) {
+        const uploadUrl = await generateUploadUrl({ rfi_id: rfiId });
+        const response = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: file,
+        });
+        if (!response.ok) {
+          throw new Error(`No se pudo subir ${file.name}`);
+        }
+        const { storageId } = (await response.json()) as {
+          storageId: Id<"_storage">;
+        };
+        item.storageId = storageId;
       }
-      const { storageId } = (await response.json()) as {
-        storageId: Id<"_storage">;
-      };
       await addAttachment({
         rfi_id: rfiId,
-        storage_id: storageId,
+        storage_id: item.storageId,
         nombre: file.name,
         type: file.type || "application/octet-stream",
         size: file.size,
       });
+      pending.shift();
+    }
+  };
+
+  const finishSave = (savedRfiId: Id<"rfis">) => {
+    if (embedded) onSaved?.(savedRfiId);
+    else navigate(`/proyecto/${projectId}/rfis/${savedRfiId}`);
+  };
+
+  const retryUploads = async () => {
+    if (!uploadRecovery || saveLock.current) return;
+    saveLock.current = true;
+    setSubmitting(uploadRecovery.mode);
+    setSaveError(null);
+    const pending = uploadRecovery.pending.map((item) => ({ ...item }));
+    try {
+      await uploadFiles(uploadRecovery.id, pending);
+      toast.success("Adjuntos completados");
+      setUploadRecovery(null);
+      finishSave(uploadRecovery.id);
+    } catch (error) {
+      setUploadRecovery({ ...uploadRecovery, pending });
+      setSaveError(error instanceof Error ? error.message : "No se pudieron completar los adjuntos");
+    } finally {
+      saveLock.current = false;
+      setSubmitting(null);
     }
   };
 
   const handleSubmit = async (mode: "draft" | "review") => {
-    if (!projectId) return;
+    if (!projectId || saveLock.current || uploadRecovery) return;
+    if (editId && (!detail || editReview !== detail.review_snapshot || reviewRejected)) {
+      setSaveError("La RFI cambió mientras la editabas. Revisa los cambios actuales antes de guardar.");
+      setReviewRejected(true);
+      return;
+    }
     if (!form.subject.trim() || !form.question.trim()) {
       toast.error("Completa el asunto y la pregunta");
       return;
@@ -272,76 +377,45 @@ export default function RFINewPage({
       return;
     }
 
+    saveLock.current = true;
     setSubmitting(mode);
+    setSaveError(null);
+    let savedRfiId: Id<"rfis"> | null = null;
+    const pending = files.map((file) => ({ file } as PendingUpload));
     try {
-      const values = {
-        subject: form.subject,
-        background: form.background || undefined,
-        question: form.question,
-        received_from_id: form.receivedFromId
-          ? form.receivedFromId as Id<"users">
-          : undefined,
-        rfi_manager_id: form.responsibleUserId
-          ? form.responsibleUserId as Id<"users">
-          : undefined,
-        assignee_ids: Array.from(form.assigneeIds) as Id<"users">[],
-        required_assignee_ids: Array.from(
-          form.requiredAssigneeIds,
-        ) as Id<"users">[],
-        distribution_user_ids: Array.from(
-          form.distributionUserIds,
-        ) as Id<"users">[],
-        due_date: form.dueDate || undefined,
-        location: form.location || undefined,
-        drawing_number: form.drawingNumber || undefined,
-        spec_section: form.specSection || undefined,
-        partida_id: form.partidaId
-          ? form.partidaId as Id<"partidas">
-          : undefined,
-        familia: form.familia || undefined,
-        sub_partida: form.subPartida || undefined,
-        project_stage: form.projectStage || undefined,
-        cost_impact: form.costImpact,
-        cost_impact_amount:
-          form.costImpact === "yes" && form.costImpactAmount
-            ? Number(form.costImpactAmount)
-            : undefined,
-        schedule_impact: form.scheduleImpact,
-        schedule_impact_days:
-          form.scheduleImpact === "yes" && form.scheduleImpactDays
-            ? Number(form.scheduleImpactDays)
-            : undefined,
-        is_private: form.isPrivate,
-        submit_for_review: mode === "review",
-      };
-      const savedRfiId = editId
+      const values = { ...formValues, submit_for_review: mode === "review" };
+      savedRfiId = editId
         ? await updateRfi({
             id: editId,
             ...values,
+            expected_review: editReview!,
             remove_attachment_ids: Array.from(
               removedAttachmentIds,
             ) as Id<"rfi_attachments">[],
           })
         : await createRfi({ proyecto: projectId, ...values });
 
-      if (files.length > 0) {
-        await uploadFiles(savedRfiId);
+      if (pending.length > 0) {
+        await uploadFiles(savedRfiId, pending);
       }
       toast.success(
-        editId
-          ? "Cambios guardados"
-          : mode === "review"
+        mode === "review"
             ? "RFI enviada a revisión"
-            : "Borrador de RFI guardado",
+            : editId ? "Cambios guardados" : "Borrador de RFI guardado",
       );
-      if (embedded) {
-        onSaved?.(savedRfiId);
-      } else {
-        navigate(`/proyecto/${projectId}/rfis/${savedRfiId}`);
-      }
+      finishSave(savedRfiId);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo crear la RFI");
+      const message = error instanceof Error ? error.message : "No se pudo guardar la RFI";
+      setSaveError(message);
+      if (savedRfiId) {
+        setUploadRecovery({ id: savedRfiId, mode, pending });
+        toast.warning(mode === "review" ? "RFI enviada; quedaron adjuntos pendientes" : "RFI guardada; quedaron adjuntos pendientes");
+      } else {
+        if (message.includes("cambió mientras")) setReviewRejected(true);
+        toast.error(message);
+      }
     } finally {
+      saveLock.current = false;
       setSubmitting(null);
     }
   };
@@ -358,7 +432,7 @@ export default function RFINewPage({
     );
   }
 
-  if (editId && detail && !detail.permissions.can_edit) {
+  if (editId && detail && !detail.permissions.can_edit && !uploadRecovery && submitting === null) {
     return (
       <CenteredMessage message="Esta RFI ya no puede editarse en su estado actual." />
     );
@@ -369,6 +443,18 @@ export default function RFINewPage({
       <CenteredMessage message="Tu rol puede consultar RFIs, pero no crear nuevas solicitudes." />
     );
   }
+
+  const conflict = !!editId && !!detail && (reviewRejected || editReview !== detail.review_snapshot);
+  const changes = detail ? rfiFormChanges(detail.rfi, formValues) : [];
+  const formatReviewValue = (key: string, value: unknown): string => {
+    if (value == null || value === "") return "Sin especificar";
+    if (Array.isArray(value)) return value.map((id) => projectUsers.find((user) => user._id === id)?.name || "Usuario no disponible").join(", ") || "Sin personas";
+    if (key.endsWith("_id") && key !== "partida_id") return projectUsers.find((user) => user._id === value)?.name || "Usuario no disponible";
+    if (key === "partida_id") return options.partidas.find((item) => item._id === value)?.nombre || "Partida no disponible";
+    if (key === "is_private") return value ? "Privada" : "Acceso según el rol en el proyecto";
+    if (key === "cost_impact" || key === "schedule_impact") return IMPACT_OPTIONS.find((item) => item.value === value)?.label || String(value);
+    return String(value);
+  };
 
   return (
     <div
@@ -384,7 +470,7 @@ export default function RFINewPage({
         <header className="border-b border-border-strong pb-6">
           {!embedded && (
             <Button asChild variant="ghost" className="-ml-3 mb-3 rounded-sm">
-              <Link to={`/proyecto/${projectId}/rfis`}>
+              <Link to={`/proyecto/${projectId}/rfis`} onClick={(event) => { if (saveLock.current) event.preventDefault(); }} aria-disabled={submitting !== null}>
                 <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
                 Volver al registro
               </Link>
@@ -406,6 +492,7 @@ export default function RFINewPage({
           </div>
         </header>
 
+        <fieldset disabled={submitting !== null || uploadRecovery !== null} className="min-w-0 space-y-5">
         <FormSection
           number="1"
           title="Pregunta"
@@ -808,26 +895,52 @@ export default function RFINewPage({
           </label>
         </FormSection>
 
-        <div className="sticky bottom-4 flex flex-col-reverse gap-3 rounded-[4px] border border-border bg-card/95 p-4 backdrop-blur sm:flex-row sm:justify-end">
+        </fieldset>
+
+        {!uploadRecovery && <div id="rfi-form-send-impact" className="space-y-3 rounded-[4px] border border-border bg-background p-4 text-sm [overflow-wrap:anywhere]">
+          <p className="font-medium">{detail?.rfi.code || "Nueva RFI"} · {form.subject.trim() || "Asunto por completar"}</p>
+          {(!editId || detail?.rfi.status === "draft") && <p>Al enviar quedará pendiente de revisión de <strong className="font-medium">{projectUsers.find((user) => user._id === form.responsibleUserId)?.name || "una persona responsable por seleccionar"}</strong>. Podrá seguir editándose con los permisos actuales y ya no podrá eliminarse como borrador.</p>}
+          <p>Adjuntos: {existingAttachments.length} conservados, {files.length} por subir y {removedAttachmentIds.size} por retirar. El guardado se realiza antes de subir los archivos; si una carga falla, podrás completar sólo los adjuntos pendientes.</p>
+          {!editId && <p className="text-xs text-muted-foreground">El folio se asignará al crear la RFI.</p>}
+          {changes.length > 0 && <details open={conflict || undefined}>
+              <summary className="min-h-11 cursor-pointer py-3 font-medium">Revisar {changes.length} cambio{changes.length === 1 ? "" : "s"} al guardar</summary>
+            <dl className="divide-y divide-border">{changes.map((change) => <div key={change.key} className="space-y-2 py-3"><dt className="font-medium">{change.label}</dt><dd className="grid gap-2 sm:grid-cols-2"><div><span className="block text-xs text-muted-foreground">Actual</span><p className="whitespace-pre-wrap">{formatReviewValue(change.key, change.before)}</p></div><div><span className="block text-xs text-muted-foreground">Al guardar</span><p className="whitespace-pre-wrap">{formatReviewValue(change.key, change.after)}</p></div></dd></div>)}</dl>
+          </details>}
+            {conflict && <div role="status" className="space-y-2"><p>La RFI cambió mientras la editabas. Revisa la información actual y los cambios que se guardarán. Los valores de tu formulario se conservan.</p><Button type="button" variant="outline" disabled={submitting !== null} onClick={acknowledgeCurrentReview}>He revisado los cambios actuales</Button></div>}
+          {removedAttachmentIds.size > 0 && <ul>{detail?.attachments.filter((attachment) => removedAttachmentIds.has(attachment._id)).map((attachment) => <li key={attachment._id}>Se retirará: {attachment.nombre}</li>)}</ul>}
+        </div>}
+
+        {uploadRecovery && <div ref={recoveryRef} tabIndex={-1} role="status" className="space-y-3 rounded-[4px] border border-border p-4 text-sm [overflow-wrap:anywhere]">
+          <p className="font-medium">{uploadRecovery.mode === "review" ? "La RFI ya se envió a revisión" : "La RFI ya se guardó"}</p>
+          <p>{uploadRecovery.pending.length === 1 ? "Quedó 1 adjunto pendiente" : `Quedaron ${uploadRecovery.pending.length} adjuntos pendientes`}. Reintentar completará los archivos sobre la misma RFI.</p>
+          <ul>{uploadRecovery.pending.map((item, index) => <li key={index}>{item.file.name}</li>)}</ul>
+          <div className="flex flex-col gap-2 sm:flex-row"><Button type="button" disabled={submitting !== null} onClick={() => void retryUploads()}>{submitting !== null ? "Completando adjuntos…" : "Reintentar adjuntos pendientes"}</Button><Button type="button" variant="outline" disabled={submitting !== null} onClick={() => finishSave(uploadRecovery.id)}>Continuar al detalle sin estos archivos</Button></div>
+        </div>}
+        {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+
+        {!uploadRecovery && <div className="sticky bottom-4 space-y-3 rounded-[4px] border border-border bg-card/95 p-4 backdrop-blur [overflow-wrap:anywhere]">
+          {(!editId || detail?.rfi.status === "draft") && <p id="rfi-form-send-compact" className="text-xs leading-5 text-muted-foreground">{detail?.rfi.code || "Nueva RFI"} · Al enviar: pendiente de revisión de {projectUsers.find((user) => user._id === form.responsibleUserId)?.name || "un responsable por seleccionar"}. Ya no podrá eliminarse como borrador. Adjuntos: {files.length} por subir y {removedAttachmentIds.size} por retirar.</p>}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           {embedded ? (
             <Button
               type="button"
               variant="outline"
               className="h-11 min-w-[108px] rounded-[4px] border-border font-normal text-muted-foreground shadow-none"
               onClick={onCancel}
+              disabled={submitting !== null}
             >
               Cancelar
             </Button>
           ) : (
             <Button asChild variant="outline" className="h-11 min-w-[108px] rounded-[4px] border-border font-normal text-muted-foreground shadow-none">
-              <Link to={`/proyecto/${projectId}/rfis`}>Cancelar</Link>
+              <Link to={`/proyecto/${projectId}/rfis`} aria-disabled={submitting !== null} onClick={(event) => { if (saveLock.current) event.preventDefault(); }}>Cancelar</Link>
             </Button>
           )}
           <Button
             type="button"
             variant="outline"
             className="h-11 rounded-[4px] border-border px-5 font-normal text-foreground shadow-none"
-            disabled={submitting !== null}
+            disabled={submitting !== null || conflict}
             onClick={() => handleSubmit("draft")}
           >
             {submitting === "draft" ? (
@@ -841,7 +954,8 @@ export default function RFINewPage({
             <Button
               type="button"
               className="h-11 rounded-[4px] bg-inverse px-5 font-normal text-on-color shadow-none hover:bg-inverse/90"
-              disabled={submitting !== null}
+              disabled={submitting !== null || conflict || !form.responsibleUserId || !form.subject.trim() || !form.question.trim()}
+              aria-describedby="rfi-form-send-compact rfi-form-send-impact"
               onClick={() => handleSubmit("review")}
             >
               {submitting === "review" ? (
@@ -852,7 +966,8 @@ export default function RFINewPage({
               {editId ? "Guardar y enviar a revisión" : "Enviar a revisión"}
             </Button>
           )}
-        </div>
+          </div>
+        </div>}
       </div>
     </div>
   );

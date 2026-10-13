@@ -7,8 +7,8 @@ import { calculateBudgetIndirectos } from "./indirectosBudget";
  * NEW MODEL: Transactions (parent) with line items (pagos as children)
  */
 
-import { query } from "./_generated/server";
-import { mutation } from "./functions";
+import { query, mutation as rawMutation } from "./_generated/server";
+import { applyPaymentEdit } from "./paymentEdit";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { calculateHonorariosFromRecords } from "./honorariosRules";
@@ -398,7 +398,7 @@ export const getPaymentsByDateRange = query({
 });
 
 // Update a pago (line item) amount
-export const updatePago = mutation({
+export const updatePago = rawMutation({
   args: {
     id: v.id("pagos"),
     monto: v.number(),
@@ -409,17 +409,7 @@ export const updatePago = mutation({
       throw new Error("Pago not found");
     }
 
-    await ctx.db.patch(args.id, { monto: args.monto });
-    const transaction = await ctx.db.get(existingPago.transaccion_id);
-    if (transaction) {
-      const lineItems = await ctx.db.query("pagos")
-        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
-        .collect();
-      const montoTotal = lineItems.reduce((sum, lineItem) => sum + lineItem.monto, 0);
-      if (transaction.monto_total !== montoTotal) {
-        await ctx.db.patch(transaction._id, { monto_total: montoTotal });
-      }
-    }
+    await applyPaymentEdit(ctx, { id: existingPago.transaccion_id, fields: {}, amounts: [{ id: args.id, monto: args.monto }] });
     return args.id;
   },
 });

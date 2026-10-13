@@ -18,6 +18,11 @@ import {
 import { isValidProjectLocationKey } from "./project_locations";
 import { getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
 import { updateHonorariosMonto } from "./functions";
+import {
+    feeConfigValidators, proposedFeeProject, feeConfig, feeConfigChanged,
+    loadFeeImpactRecords, feeImpactScope, feeBudgetScenario,
+    type FeeImpactRecords, type FeeProposal,
+} from "./projectFeeImpact";
 import { isDispHonorarios, isOgcIncome, normalizeOgcClassification } from "./ogcClassificationRules";
 import {
     NO_PROJECT_LOCATION,
@@ -135,6 +140,9 @@ type MonthlyOgcMovementSummary = {
     indirectos: number;
     indirectosLegacyCosto: number;
     costosDirectosObra: number;
+    baseHonorarios: number;
+    baseIndirectos: number;
+    indirectosAutomaticos: number;
     structureBreakdown: Record<string, number>;
 };
 
@@ -267,6 +275,9 @@ const createEmptyMonthlySummary = (): MonthlyOgcMovementSummary => ({
     indirectos: 0,
     indirectosLegacyCosto: 0,
     costosDirectosObra: 0,
+    baseHonorarios: 0,
+    baseIndirectos: 0,
+    indirectosAutomaticos: 0,
     structureBreakdown: emptyStructureBreakdownMap(),
 });
 
@@ -286,6 +297,9 @@ const mergeMonthlySummaries = (
 ) => {
     Object.entries(source).forEach(([monthKey, sourceSummary]) => {
         target[monthKey] = target[monthKey] || createEmptyMonthlySummary();
+        target[monthKey].baseHonorarios += sourceSummary.baseHonorarios;
+        target[monthKey].baseIndirectos += sourceSummary.baseIndirectos;
+        target[monthKey].indirectosAutomaticos += sourceSummary.indirectosAutomaticos;
         target[monthKey].honorarios += sourceSummary.honorarios;
         target[monthKey].indirectos += sourceSummary.indirectos;
         target[monthKey].indirectosLegacyCosto += sourceSummary.indirectosLegacyCosto || 0;
@@ -526,6 +540,24 @@ const summarizeProjectPayments = async (
             .collect(),
     ]);
 
+    const periodTransactions = transactions.filter(t => isDateWithinPeriod(parseReportDate(t.fecha), period));
+    const pagos = (await Promise.all(periodTransactions.map(t => ctx.db.query("pagos")
+        .withIndex("by_transaccion", q => q.eq("transaccion_id", t._id)).collect()))).flat();
+    return summarizeProjectPaymentRecords(proyecto, period, rates, { metrics, partidas, transactions, pagos });
+};
+
+export const summarizeProjectPaymentRecords = (
+    proyecto: Doc<"desarrollos">, period: PnlPeriod, rates: ExchangeRates,
+    records: Omit<FeeImpactRecords, "movements"> & { metrics: Doc<"meticas_presupuesto"> | null },
+) => {
+    const pagosByTransaction = new Map<string, Doc<"pagos">[]>();
+    for (const pago of records.pagos) {
+        const key = String(pago.transaccion_id);
+        const group = pagosByTransaction.get(key) || [];
+        group.push(pago);
+        pagosByTransaction.set(key, group);
+    }
+    const { partidas, transactions, metrics } = records;
     const partidasById = new Map(partidas.map((partida) => [partida._id as string, partida]));
     const excludedPartidaIds = getFeeExcludedPartidaIds(partidas, proyecto.excluded_partidas_honorarios);
 
@@ -537,6 +569,9 @@ const summarizeProjectPayments = async (
         indirectos: 0,
         indirectosLegacyCosto: 0,
         totalPagado: 0,
+        baseHonorarios: 0,
+        baseIndirectos: 0,
+        indirectosAutomaticos: 0,
         costosDirectosObra: 0,
         monthly: {} as Record<string, MonthlyOgcMovementSummary>,
     };
@@ -548,10 +583,7 @@ const summarizeProjectPayments = async (
     for (const transaction of periodTransactions) {
         const parsedDate = parseReportDate(transaction.fecha);
         const monthKey = parsedDate ? `${parsedDate.getFullYear()}-${parsedDate.getMonth() + 1}` : null;
-        const pagos = await ctx.db
-            .query("pagos")
-            .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
-            .collect();
+        const pagos = pagosByTransaction.get(String(transaction._id)) || [];
 
         for (const pago of pagos) {
             const partida = partidasById.get(pago.partida_id as string);
@@ -565,10 +597,14 @@ const summarizeProjectPayments = async (
             summary.totalPagado += amount;
 
             if (isEligibleFeePayment(partida, excludedPartidaIds)) {
+                summary.baseHonorarios += amount;
+                addMonthlyAmount(summary.monthly, monthKey, monthly => { monthly.baseHonorarios += amount; });
                 if (isAutomaticIndirectos(proyecto, transaction.fecha)) {
+                    summary.baseIndirectos += amount;
                     const charge = indirectosCharge(amount, proyecto);
+                    summary.indirectosAutomaticos += charge;
                     summary.indirectos += charge;
-                    addMonthlyAmount(summary.monthly, monthKey, monthly => { monthly.indirectos += charge; });
+                    addMonthlyAmount(summary.monthly, monthKey, monthly => { monthly.indirectos += charge; monthly.indirectosAutomaticos += charge; monthly.baseIndirectos += amount; });
                 }
                 const calculatedHonorarios = amount * honorariosRate;
                 summary.honorarios += calculatedHonorarios;
@@ -617,8 +653,15 @@ const getOgcFormulaTotals = async (
     rates: ExchangeRates,
     ogcMovements: OgcMovement[] = []
 ) => {
-    const movementSummary = summarizeOgcMovements(ogcMovements, period, rates, proyecto);
     const projectPaymentSummary = await summarizeProjectPayments(ctx, proyecto, period, rates);
+    return calculateOgcFormulaTotals(proyecto, period, rates, ogcMovements, projectPaymentSummary);
+};
+
+const calculateOgcFormulaTotals = (
+    proyecto: Doc<"desarrollos">, period: PnlPeriod, rates: ExchangeRates,
+    ogcMovements: OgcMovement[], projectPaymentSummary: ReturnType<typeof summarizeProjectPaymentRecords>,
+) => {
+    const movementSummary = summarizeOgcMovements(ogcMovements, period, rates, proyecto);
     const monthlyOgcMovements = {} as Record<string, MonthlyOgcMovementSummary>;
     mergeMonthlySummaries(monthlyOgcMovements, projectPaymentSummary.monthly);
     mergeMonthlySummaries(monthlyOgcMovements, movementSummary.monthly);
@@ -1085,6 +1128,74 @@ export const create = mutation({
 });
 
 // Update project
+const inspectFeeImpact = async (ctx: QueryCtx, project: Doc<"desarrollos">, proposal: FeeProposal, user: Doc<"users">) => {
+    const proposed = proposedFeeProject(project, proposal);
+    for (const id of proposal.excluded_partidas_honorarios || []) await assertBudgetReference(ctx, id, project._id, 1);
+    const records = await loadFeeImpactRecords(ctx, project);
+    records.movements = records.movements.filter(m => hasGlobalAdminAccess(user) || !m.organization_id || m.organization_id === getScopedOrganizationId(user));
+    const expectedImpact = feeImpactScope(project, proposed, records);
+    const dates = [...records.transactions, ...records.movements].map(r => parseReportDate(r.fecha)).filter((d): d is Date => Boolean(d));
+    const start = dates.length ? new Date(Math.min(...dates.map(d => d.getTime()))) : new Date(2026, 9, 1);
+    const end = dates.length ? new Date(Math.max(...dates.map(d => d.getTime()))) : new Date(2026, 9, 1);
+    end.setHours(23, 59, 59, 999);
+    const period: PnlPeriod = { year: start.getFullYear(), cutoffMonth: 12, start, end, currentMonthKey: "" };
+    const rates = normalizeExchangeRates();
+    const evaluate = (p: Doc<"desarrollos">) => {
+        const payments = summarizeProjectPaymentRecords(p, period, rates, { ...records, metrics: null });
+        const totals = calculateOgcFormulaTotals(p, period, rates, records.movements, payments);
+        const monthly = Object.fromEntries(Object.entries(totals.monthlyOgcMovements).map(([key, month]) => [key, {
+            baseHonorarios: month.baseHonorarios,
+            baseIndirectos: month.baseIndirectos,
+            honorarios: month.honorarios,
+            indirectosAutomaticos: month.indirectosAutomaticos,
+            indirectosHistoricos: month.indirectos - month.indirectosAutomaticos,
+            indirectos: month.indirectos,
+            costoHistorico: month.indirectosLegacyCosto,
+            costosReales: month.structureBreakdown.indirectos_reales || 0,
+            saldoIndirectos: month.indirectos - month.indirectosLegacyCosto - (month.structureBreakdown.indirectos_reales || 0),
+            ebitda: month.honorarios + month.indirectos - month.indirectosLegacyCosto - getMonthlyStructureTotal(month),
+        }]));
+        return { baseHonorarios: payments.baseHonorarios, baseIndirectos: payments.baseIndirectos,
+            honorarios: totals.honorarios, indirectosAutomaticos: payments.indirectosAutomaticos,
+            indirectosHistoricos: totals.indirectos - payments.indirectosAutomaticos, indirectos: totals.indirectos,
+            costoHistorico: totals.indirectosLegacyCosto, costosReales: totals.costosRealesIndirectos,
+            saldoIndirectos: totals.saldoIndirectos, ebitda: totals.ebitda, monthly };
+    };
+    const iso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    return {
+        status: "ready" as const, expectedImpact,
+        beforeConfig: feeConfig(project), afterConfig: feeConfig(proposed),
+        budgetCurrency: project.moneda_principal || "MXN", rates,
+        beforeBudget: feeBudgetScenario(project, records, false),
+        afterBudget: feeBudgetScenario(proposed, records, feeConfigChanged(project, proposed)),
+        beforePnl: evaluate(project), afterPnl: evaluate(proposed),
+        period: { start: dates.length ? iso(start) : null, end: dates.length ? iso(end) : null },
+        counts: { transactions: records.transactions.length, payments: records.pagos.length,
+            paid: records.transactions.filter(t => t.status === "Pagado").length,
+            invalidDates: records.transactions.filter(t => !parseReportDate(t.fecha)).length },
+        currencies: [...new Set(records.transactions.map(t => t.moneda || "MXN"))].sort(),
+    };
+};
+
+export const previewFeeImpact = query({
+    args: { id: v.id("desarrollos"), ...feeConfigValidators, refresh: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        const { id } = args;
+        const proposal: FeeProposal = { honorarios_porcentaje: args.honorarios_porcentaje,
+            honorarios_modo: args.honorarios_modo, indirectos_porcentaje: args.indirectos_porcentaje,
+            excluded_partidas_honorarios: args.excluded_partidas_honorarios };
+        try {
+            const user = await getCurrentUserOrThrow(ctx);
+            if (!hasAdminAccess(user) || !(await checkDesarrolloAccess(ctx, id))) throw new Error("No tienes permiso para revisar este proyecto.");
+            const project = await ctx.db.get(id);
+            if (!project) throw new Error("El proyecto ya no existe.");
+            return await inspectFeeImpact(ctx, project, proposal, user);
+        } catch (error) {
+            return { status: "error" as const, message: error instanceof Error ? error.message : "No se pudo calcular el impacto completo." };
+        }
+    },
+});
+
 export const update = mutation({
     args: {
         id: v.id("desarrollos"),
@@ -1098,9 +1209,16 @@ export const update = mutation({
         honorarios_porcentaje: v.optional(v.number()),
         excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
         honorarios_modo: v.optional(v.union(v.literal("automatico"), v.literal("transacciones"))),
+        expected_impact: v.optional(v.string()),
+        expected_fields: v.optional(v.object({
+            nombre: v.optional(v.union(v.string(), v.null())),
+            descripcion: v.optional(v.union(v.string(), v.null())),
+            status: v.optional(v.union(v.string(), v.null())),
+            ubicacion: v.optional(v.union(v.string(), v.null())),
+        })),
     },
     handler: async (ctx, args) => {
-        const { id, ...rest } = args;
+        const { id, expected_impact, expected_fields, ...rest } = args;
         const currentUser = await getCurrentUserOrThrow(ctx);
         if (!hasAdminAccess(currentUser)) {
             throw new Error("Unauthorized: Admin access required");
@@ -1109,6 +1227,14 @@ export const update = mutation({
         const hasAccess = await checkDesarrolloAccess(ctx, id);
         if (!hasAccess) {
             throw new Error("Unauthorized: Project belongs to another organization");
+        }
+
+        const existing = await ctx.db.get(id);
+        if (!existing) throw new Error("El proyecto ya no existe.");
+        for (const [field, expected] of Object.entries(expected_fields || {})) {
+            if (expected !== undefined && (existing[field as keyof typeof expected_fields] ?? null) !== expected) {
+                throw new Error(`El campo ${field} cambió mientras editabas. Revisa los valores actuales; tu borrador se conserva.`);
+            }
         }
 
         if (
@@ -1129,8 +1255,24 @@ export const update = mutation({
             await assertBudgetReference(ctx, partidaId, id, 1);
         }
         validateIndirectosPercentage(args.indirectos_porcentaje);
+        const proposal: FeeProposal = {
+            honorarios_porcentaje: args.honorarios_porcentaje,
+            honorarios_modo: args.honorarios_modo,
+            indirectos_porcentaje: args.indirectos_porcentaje,
+            excluded_partidas_honorarios: args.excluded_partidas_honorarios,
+        };
+        const proposed = proposedFeeProject(existing, proposal);
+        if (feeConfigChanged(existing, proposed)) {
+            if (!expected_impact) throw new Error("Revisa el impacto financiero antes de guardar.");
+            const impact = await inspectFeeImpact(ctx, existing, proposal, currentUser);
+            if (impact.expectedImpact !== expected_impact) throw new Error("El impacto cambió mientras lo revisabas. Revisa la actualización antes de guardar.");
+        } else if (expected_impact) {
+            // A reviewed financial proposal must not silently become a no-op after
+            // another user applies it, possibly together with different settings.
+            const impact = await inspectFeeImpact(ctx, existing, proposal, currentUser);
+            if (impact.expectedImpact !== expected_impact) throw new Error("El impacto cambió mientras lo revisabas. Revisa la actualización antes de guardar.");
+        }
         if (args.indirectos_porcentaje !== undefined) {
-            const existing = await ctx.db.get(id);
             updateData.indirectos_fecha_inicio = existing?.indirectos_fecha_inicio || INDIRECTOS_START;
         }
         await ctx.db.patch(id, updateData);
