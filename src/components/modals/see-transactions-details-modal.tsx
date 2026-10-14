@@ -115,7 +115,7 @@ export default function SeeTransactionsDetailsModal() {
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent data-square-modal="" variant="paymentDetails">
                 {paymentContext && (
-                    <>
+                    <div className="shrink-0">
                         <div className="flex justify-end mt-4 items-end">
                             <Button size={"default"} variant="outline" onClick={handleOpenAddPayment}>
                                 Nuevo Pago
@@ -233,7 +233,7 @@ export default function SeeTransactionsDetailsModal() {
                                 />
                             ))
                         )}
-                    </>
+                    </div>
                 )}
             </SheetContent>
         </Sheet>
