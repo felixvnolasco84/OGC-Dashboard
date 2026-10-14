@@ -1,5 +1,5 @@
 import { ConvexError } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { normalizeHierarchyText } from "./partidaRules";
 
@@ -40,15 +40,37 @@ export async function assertBudgetParent(ctx: Context, projectId: Id<"desarrollo
   return parent;
 }
 
-export async function assertRequisicionBudgetItems(ctx: Context, projectId: Id<"desarrollos">, items: readonly { partida_id: Id<"partidas">; familia: string }[]) {
+export async function assertRequisicionBudgetItems<T extends { partida_id: Id<"partidas">; familia: string }>(ctx: Context, projectId: Id<"desarrollos">, items: readonly T[]): Promise<T[]> {
   const families = await ctx.db.query("partidas").withIndex("by_proyecto_nivel_nombre", q =>
     q.eq("proyecto", projectId).eq("nivel", 2)).collect();
+  let roots: Doc<"partidas">[] | undefined;
+  const normalizedItems: T[] = [];
   for (const item of items) {
-    const parent = await assertBudgetReference(ctx, item.partida_id, projectId, 1);
-    if (!families.some(p => (p.partida_nombre || p.nombre) === parent.nombre && normalizeHierarchyText(p.familia) === normalizeHierarchyText(item.familia))) {
+    const reference = await assertBudgetReference(ctx, item.partida_id, projectId);
+    let parent = reference;
+    if (reference.nivel !== 1) {
+      // Older clients send the budget family/leaf used to prefill the form.
+      // Resolve it in this transaction and persist the canonical root ID.
+      if (![2, 3].includes(reference.nivel) || normalizeHierarchyText(reference.familia) !== normalizeHierarchyText(item.familia)) {
+        throw new ConvexError("El concepto presupuestario no corresponde a la familia seleccionada. Actualiza el formulario.");
+      }
+      roots ??= await ctx.db.query("partidas").withIndex("by_proyecto_nivel_nombre", q =>
+        q.eq("proyecto", projectId).eq("nivel", 1)).collect();
+      const candidates = roots.filter(root => root.nombre === (reference.partida_nombre || reference.nombre));
+      if (candidates.length !== 1) {
+        throw new ConvexError("No se pudo identificar la partida padre del material. Actualiza el formulario.");
+      }
+      parent = candidates[0];
+    }
+    // OTRO is the form's explicit option for manually requested materials;
+    // it has no budget family row, but still requires a valid project/root.
+    const isCustomFamily = item.familia.trim().toUpperCase() === "OTRO";
+    if (!isCustomFamily && !families.some(p => (p.partida_nombre || p.nombre) === parent.nombre && normalizeHierarchyText(p.familia) === normalizeHierarchyText(item.familia))) {
       throw new ConvexError("La familia de la requisición ya no existe en la partida seleccionada. Actualiza el formulario.");
     }
+    normalizedItems.push({ ...item, partida_id: parent._id });
     // sub_partida is intentionally free text in requisiciones. It is not a
     // foreign key; require the actual root/family links, not a budget leaf.
   }
+  return normalizedItems;
 }

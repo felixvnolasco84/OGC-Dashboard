@@ -1,3 +1,5 @@
+import { ConvexError } from "convex/values";
+
 export type RequestedRequisicionItem = {
     partida_id: string;
     familia: string;
@@ -8,16 +10,16 @@ export type RequestedRequisicionItem = {
 };
 
 export function assertRequestedRequisicionItems(items: readonly RequestedRequisicionItem[]) {
-    if (!items.length) throw new Error("Agrega al menos un material a la requisición.");
+    if (!items.length) throw new ConvexError("Agrega al menos un material a la requisición.");
     for (const item of items) {
         if (!Number.isFinite(item.cantidad) || item.cantidad <= 0) {
-            throw new Error("La cantidad solicitada debe ser un número mayor a cero.");
+            throw new ConvexError("La cantidad solicitada debe ser un número mayor a cero.");
         }
         if (!item.familia.trim() || !item.unidad.trim() || !item.sub_partida?.trim()) {
-            throw new Error("Cada material debe tener familia, descripción y unidad.");
+            throw new ConvexError("Cada material debe tener familia, descripción y unidad.");
         }
         if (item.monto !== undefined && (!Number.isFinite(item.monto) || item.monto < 0)) {
-            throw new Error("El importe del material debe ser un número mayor o igual a cero.");
+            throw new ConvexError("El importe del material debe ser un número mayor o igual a cero.");
         }
     }
 }
@@ -32,5 +34,5 @@ export function requisicionItemsChanged(before: readonly RequestedRequisicionIte
 }
 
 export function assertRequisicionType(tipo: string) {
-    if (!["material", "equipo"].includes(tipo)) throw new Error("Tipo de requisición inválido.");
+    if (!["material", "equipo"].includes(tipo)) throw new ConvexError("Tipo de requisición inválido.");
 }

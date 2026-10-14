@@ -1,5 +1,5 @@
 import { action, internalAction, internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { canUserAccessDesarrollo, getCurrentUserOrThrow } from "./permissions";
@@ -880,11 +880,13 @@ export const create = mutation({
     handler: async (ctx, args) => {
         const actor = await getCurrentUserOrThrow(ctx);
         const project = await ctx.db.get(args.proyecto);
-        if (!project || !canUserAccessDesarrollo(actor, project) || actor._id !== args.solicitante_id || !["admin", "user", "contratista"].includes(actor.role)) throw new Error("Sin permisos para crear la requisición");
-        const { items, ...requisicionData } = args;
+        if (!project || !canUserAccessDesarrollo(actor, project)) throw new ConvexError("No tienes acceso al proyecto de la requisición.");
+        if (actor._id !== args.solicitante_id) throw new ConvexError("El solicitante no coincide con tu sesión. Recarga la página e inténtalo de nuevo.");
+        if (!["admin", "user", "contratista"].includes(actor.role)) throw new ConvexError("Sin permisos para crear la requisición");
+        const { items: requestedItems, ...requisicionData } = args;
         assertRequisicionType(args.tipo);
-        assertRequestedRequisicionItems(items);
-        await assertRequisicionBudgetItems(ctx, args.proyecto, items);
+        assertRequestedRequisicionItems(requestedItems);
+        const items = await assertRequisicionBudgetItems(ctx, args.proyecto, requestedItems);
         
         // Create requisicion with default statuses
         const requisicionId = await ctx.db.insert("requisiciones", {
@@ -1289,7 +1291,7 @@ export const update = mutation({
         changed_by_name: v.string(),
     },
     handler: async (ctx, args) => {
-        const { id, items, changed_by_id, changed_by_name, ...updateData } = args;
+        const { id, items: requestedItems, changed_by_id, changed_by_name, ...updateData } = args;
         const actor = await getCurrentUserOrThrow(ctx);
         if (actor._id !== changed_by_id) throw new Error("Usuario no autorizado");
         
@@ -1300,9 +1302,10 @@ export const update = mutation({
         
         // Fetch old items for comparison
         if (updateData.tipo !== undefined) assertRequisicionType(updateData.tipo);
-        if (items) {
-            assertRequestedRequisicionItems(items);
-            await assertRequisicionBudgetItems(ctx, requisicion.proyecto, items);
+        let items: typeof requestedItems;
+        if (requestedItems !== undefined) {
+            assertRequestedRequisicionItems(requestedItems);
+            items = await assertRequisicionBudgetItems(ctx, requisicion.proyecto, requestedItems);
         }
         const oldItems = await ctx.db
             .query("requisicion_items")

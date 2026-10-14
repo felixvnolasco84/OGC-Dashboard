@@ -1,6 +1,7 @@
 import { Plus, Trash2, Upload, Loader2, Check, CalendarIcon, FileText, ExternalLink, Package, Clock } from "lucide-react";
 import { useRequisicionModal, RequisicionItem, SubPartidaItem } from "../../hooks/nueva-requisicion-modal";
 import { useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import { api } from "../../../convex/_generated/api";
 import { useState, useRef, useEffect, Fragment } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -528,7 +529,9 @@ export default function RequisicionModal() {
     } catch (error) {
       console.error("Error saving requisicion:", error);
       toast.error("Error", {
-        description: mode === "create" ? "No se pudo crear la requisición." : "No se pudieron guardar los cambios.",
+        description: error instanceof ConvexError && typeof error.data === "string"
+          ? error.data
+          : mode === "create" ? "No se pudo crear la requisición. Inténtalo de nuevo." : "No se pudieron guardar los cambios. Inténtalo de nuevo.",
       });
     } finally {
       setIsSubmitting(false);
