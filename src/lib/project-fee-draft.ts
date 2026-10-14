@@ -26,7 +26,8 @@ export function projectDraftPatch(baseline: Doc<"desarrollos">, draft: ProjectDr
   if (idsKey(draft.excludedPartidas) !== idsKey(baseline.excluded_partidas_honorarios || [])) {
     financial.excluded_partidas_honorarios = [...new Set(draft.excludedPartidas)].sort();
   }
-  const conceptKey = (concepts: readonly FeeConceptInput[]) => JSON.stringify(concepts.map(c => ({ concepto: c.concepto, partida_id: c.partida_id })).sort((a,b) => a.concepto.localeCompare(b.concepto)));
+  const conceptKey = (concepts: readonly FeeConceptInput[]) => JSON.stringify(concepts.map(c => ({ concepto: c.concepto, partida_id: c.partida_id,
+    excluded_partidas: idsKey(c.excluded_partidas) })).sort((a,b) => a.concepto.localeCompare(b.concepto)));
   if (draft.feeConcepts && (draft.recalculateConcepts || conceptKey(draft.feeConcepts) !== conceptKey(baseline.fee_concepts || []))) {
     financial.fee_concepts = draft.feeConcepts;
   }

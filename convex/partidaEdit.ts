@@ -9,6 +9,7 @@ import { calculateBudgetIndirectos, feeBudgetConvert } from "./indirectosBudget"
 import { calculateHonorariosFromRecords } from "./honorariosRules";
 import { repairProjectPaymentTotals } from "./budgetMaintenance";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
+import { FEE_CONCEPT_CALCULATION_VERSION } from "./feeConceptRules";
 
 export const partidaEditFields = {
   presupuesto_aprobado: v.optional(v.number()), sub_partida: v.optional(v.string()),
@@ -164,6 +165,7 @@ export async function analyzePartidaEdit(ctx: ReadCtx, args: Identity & { change
     project: { before, after, indirectosBefore: beforeIndirectos, indirectosAfter: afterIndirectos, honorarios: project.honorarios_monto ?? 0 },
     programming: { count: program.length, oldNameStillExists: plan.oldNameStillExists, renamed: plan.changes.sub_partida !== undefined },
     expectedReview: JSON.stringify([
+      FEE_CONCEPT_CALCULATION_VERSION,
       context.source, project.nombre, project.moneda_principal, project.honorarios_monto, project.indirectos_porcentaje,
       project.indirectos_fecha_inicio, [...(project.excluded_partidas_honorarios || [])].sort(), project.fee_concepts || [],
       sorted(partidas).map(partidaEditSource), plan.changes, before, after, beforeIndirectos, afterIndirectos,

@@ -12,6 +12,7 @@ import { calculateBudgetIndirectos } from "./indirectosBudget";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { reportDateIso } from "./indirectosRules";
 import { summarizeProjectPaymentRecords } from "./desarrollos";
+import { FEE_CONCEPT_CALCULATION_VERSION } from "./feeConceptRules";
 
 export const editFields = {
   proveedor_id: v.optional(v.union(v.id("proveedores"), v.null())),
@@ -190,7 +191,7 @@ export async function preparePaymentEdit(ctx: ReadCtx, draft: PaymentEditDraft) 
   const invalidatesInvoices = changedItems.length > 0 || transactionChangeInvalidatesInvoice(before, patch);
   const oldProvider = before.proveedor_id && before.proveedor_id !== effective.proveedor_id ? await ctx.db.get(before.proveedor_id) : provider;
   // Canonical exact scope includes every input used by the review, not just the entity timestamp.
-  const scope = JSON.stringify([context.source, project, sorted(records.partidas), sorted(records.transactions), sorted(records.pagos),
+  const scope = JSON.stringify([FEE_CONCEPT_CALCULATION_VERSION, context.source, project, sorted(records.partidas), sorted(records.transactions), sorted(records.pagos),
     fields, [...amounts].sort(([a], [b]) => a.localeCompare(b)), provider, oldProvider, account, sorted(invoices), sorted(allocations), sorted(documents)]);
   if (new TextEncoder().encode(scope).byteLength > 512 * 1024) throw new Error(CAPACITY);
   const dates = [reportDateIso(before.fecha), reportDateIso(effective.fecha)].filter((d): d is string => Boolean(d)).sort();

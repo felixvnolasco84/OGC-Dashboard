@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { getHonorariosBreakdown, getHonorariosModo } from "./honorariosRules";
 import { INDIRECTOS_START, validateIndirectosPercentage } from "./indirectosRules";
 import { calculateBudgetIndirectos, feeBudgetConvert } from "./indirectosBudget";
-import { deriveFeeConcepts, canonicalFeeConcepts, type FeeConceptInput } from "./feeConceptRules";
+import { deriveFeeConcepts, canonicalFeeConcepts, FEE_CONCEPT_CALCULATION_VERSION, type FeeConceptInput } from "./feeConceptRules";
 import { feeConceptInputValidator } from "./feeConceptValidators";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 
@@ -80,7 +80,7 @@ export function feeImpactScope(project: Doc<"desarrollos">, proposed: Doc<"desar
   // Exact canonical scope, rather than a collision-prone checksum. Only financial
   // inputs are sent back; bank details and document attachments are excluded.
   const scope = JSON.stringify({
-    version: 1,
+    version: FEE_CONCEPT_CALCULATION_VERSION,
     project: [project._id, project.organization_id, project.moneda_principal, project.honorarios_monto, feeConfig(project)],
     proposal: feeConfig(proposed),
     rates: [17, 18.5],

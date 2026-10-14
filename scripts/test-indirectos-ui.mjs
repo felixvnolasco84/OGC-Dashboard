@@ -99,43 +99,75 @@ try {
     await expect(review).toContainText("La activación sustituye componentes manuales desde la fecha de inicio, incluso al 0%.");
     await page.keyboard.press("Escape");
     assert.equal(await page.evaluate(() => window.indirectosMutation), undefined);
-    // All concepts use the approved total, with no exclusions; saved charges
+    // Exclusions reduce the approved denominator per concept. Paid charges
     // are distributed through a family and five leaves using the real engine.
     await page.goto("http://127.0.0.1:4197/e2e/indirectos/preview.html?view=budget");
     await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
     await page.getByRole("checkbox", { name: "Calcular Honorarios desde presupuesto", exact: true }).check();
     await page.getByRole("checkbox", { name: "Calcular General Conditions desde presupuesto", exact: true }).check();
     await page.getByRole("checkbox", { name: "Calcular Viáticos desde presupuesto", exact: true }).check();
-    await expect(page.locator('[id^="exclude-honorarios-"]')).toHaveCount(0);
+    await expect(page.locator('[id^="exclude-honorarios-"]')).toHaveCount(5);
     await expect(page.getByTestId("rate-honorarios")).toContainText("11.737089");
     await expect(page.getByTestId("rate-viaticos")).toContainText("1.408451%");
+    await page.getByText("Partidas excluidas de la base de Honorarios (0)", { exact: true }).click();
+    await page.getByLabel("Buscar partidas para excluir en Honorarios", { exact: true }).fill("viaticos");
+    await expect(page.locator('[id^="exclude-honorarios-"]')).toHaveCount(1);
+    await page.getByLabel("Buscar partidas para excluir en Honorarios", { exact: true }).fill("");
+    for (const id of ["fee", "gc", "travel", "misc"]) await page.locator(`#exclude-honorarios-${id}`).check();
+    await expect(page.getByTestId("rate-honorarios")).toContainText("15%");
+    await expect(page.getByTestId("rate-viaticos")).toContainText("1.408451%");
+    await page.getByText("Partidas excluidas de la base de Honorarios (4)", { exact: true }).click();
+    await page.getByText("Partidas excluidas de la base de Viáticos (0)", { exact: true }).click();
+    for (const id of ["fee", "gc", "travel", "misc"]) await page.locator(`#exclude-viaticos-${id}`).check();
+    await expect(page.getByTestId("rate-viaticos")).toContainText("1.8%");
+    await page.getByText("Partidas excluidas de la base de Viáticos (4)", { exact: true }).click();
     await expect(page.getByTestId("concept-review-honorarios")).toContainText("$255,600.00");
+    await expect(page.getByTestId("concept-review-honorarios")).toContainText("Aprobado excluido: $55,600.00");
+    await expect(page.getByTestId("concept-review-honorarios")).toContainText("Base aprobada después de exclusiones: $200,000.00");
     await expect(save).toBeEnabled();
+    await scrollSection(page.getByRole("checkbox", { name: "Calcular Honorarios desde presupuesto", exact: true }));
+    await page.screenshot({ path: `${root}/output/indirectos-ui/concept-exclusions-${width}.png` });
     await scrollSection(page.getByTestId("concept-review-honorarios"));
     await page.screenshot({ path: `${root}/output/indirectos-ui/concepts-review-${width}.png` });
     await save.click();
     await expect.poll(() => page.evaluate(() => window.indirectosMutation?.args.fee_concepts?.length)).toBe(3);
     const savedConcepts = await page.evaluate(() => window.indirectosMutation.args.fee_concepts);
-    assert.equal(savedConcepts.find(c => c.concepto === "honorarios").excluded_partidas.includes("travel"), false);
-    assert.equal(savedConcepts.every(c => c.excluded_partidas.length === 0), true);
+    assert.deepEqual([...savedConcepts.find(c => c.concepto === "honorarios").excluded_partidas].sort(), ["fee", "gc", "misc", "travel"]);
+    assert.deepEqual([...savedConcepts.find(c => c.concepto === "viaticos").excluded_partidas].sort(), ["fee", "gc", "misc", "travel"]);
+    assert.equal(savedConcepts.find(c => c.concepto === "general_conditions").excluded_partidas.length, 0);
     await page.getByRole("dialog").waitFor({ state: "hidden" });
     await page.getByRole("button", { name: "Expandir VIÁTICOS", exact: true }).click();
     await page.getByRole("button", { name: "Expandir Gastos de viaje", exact: true }).click();
     const travelRow = page.getByRole("row").filter({ has: page.getByRole("button", { name: "Contraer VIÁTICOS", exact: true }) });
-    await expect(travelRow).toContainText("1,408.45");
+    await expect(travelRow).toContainText("1,800");
     for (let index = 1; index <= 5; index++) {
       const leaf = page.getByRole("row").filter({ hasText: `Viático ${index}` });
       await expect(leaf).toBeVisible();
-      await expect(leaf).toContainText(index === 1 ? "140.85" : index === 3 ? "422.53" : "281.69");
+      await expect(leaf).toContainText(index === 1 ? "180" : index === 3 ? "540" : "360");
     }
     await page.getByText('El proyecto "Obra de prueba" ha sido actualizado correctamente.').waitFor({ state: "hidden" });
     await page.screenshot({ path: `${root}/output/indirectos-ui/concepts-breakdown-${width}.png`, fullPage: true });
-    await page.evaluate(() => window.feeFixtureChange({ approvedWork: 444400 }));
-    await expect(travelRow).toContainText("720");
+    await page.evaluate(() => window.feeFixtureChange({ approvedWork: 400000 }));
+    await expect(travelRow).toContainText("900");
     await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
-    await expect(page.getByTestId("rate-honorarios")).toContainText("6%");
-    await expect(page.getByTestId("rate-viaticos")).toContainText("0.72%");
+    await expect(page.getByTestId("rate-honorarios")).toContainText("7.5%");
+    await expect(page.getByTestId("rate-viaticos")).toContainText("0.9%");
     await expect(page.getByRole("button", { name: "Guardar Cambios", exact: true })).toBeDisabled();
+    // Only changing exclusions must generate a new review and payload.
+    await page.getByText("Partidas excluidas de la base de Honorarios (4)", { exact: true }).click();
+    await page.locator("#exclude-honorarios-work").check();
+    await expect(page.getByRole("alert").filter({ hasText: "presupuesto aprobado menos exclusiones" }).first()).toBeVisible();
+    await expect(save).toBeDisabled();
+    await page.locator("#exclude-honorarios-work").uncheck();
+    await page.locator("#exclude-honorarios-misc").uncheck();
+    await expect(page.getByTestId("rate-honorarios")).toContainText("7.425743%");
+    await expect(save).toBeEnabled();
+    await save.click();
+    await expect.poll(() => page.evaluate(() => window.indirectosMutation?.args.fee_concepts?.find(c => c.concepto === "honorarios").excluded_partidas.includes("misc"))).toBe(false);
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+    await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
+    await expect(page.getByTestId("rate-honorarios")).toContainText("7.425743%");
+    await expect(save).toBeDisabled();
     await page.getByRole("button", { name: "Cancelar", exact: true }).click();
     await page.goto("http://127.0.0.1:4197/e2e/indirectos/preview.html");
     await expect(page.getByText("INDIRECTOS COBRADOS", { exact: true }).filter({ visible: true }).first()).toBeVisible();
@@ -146,7 +178,7 @@ try {
     assert.deepEqual(errors, []);
     await page.close();
   }
-  console.log("Indirectos UI passed: preview, monthly scope, concurrency, field conflicts, failures, cancellation, single guarded save, desktop and mobile. Synthetic fixtures only.");
+  console.log("Indirectos UI passed: approved budget minus exclusions, exclusion-only saves, invalid net bases, leaf distribution, preview, monthly scope, concurrency, field conflicts, failures, cancellation, desktop and mobile. Synthetic fixtures only.");
 } finally {
   await browser?.close(); await server.httpServer.close();
 }

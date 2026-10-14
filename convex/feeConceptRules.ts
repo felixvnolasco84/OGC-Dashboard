@@ -1,16 +1,18 @@
 import type { Id } from "./_generated/dataModel";
 
 export const FEE_CONCEPT_START = "2026-10-01";
+export const FEE_CONCEPT_CALCULATION_VERSION = 2;
 export const FEE_CONCEPT_LABELS = {
   honorarios: "Honorarios", indirectos: "Indirectos", general_conditions: "General Conditions", viaticos: "Viáticos",
 } as const;
 export type FeeConceptKind = keyof typeof FEE_CONCEPT_LABELS;
 export type FeeConceptInput = { concepto: FeeConceptKind; partida_id: Id<"partidas">; excluded_partidas: Id<"partidas">[] };
-export type FeeConceptConfig = FeeConceptInput & { porcentaje: number; monto_original: number; base_original: number; base_aprobada?: number; fecha_inicio: string };
+export type FeeConceptConfig = FeeConceptInput & { porcentaje: number; monto_original: number; base_original: number; base_aprobada?: number; aprobado_total?: number; aprobado_excluido?: number; fecha_inicio: string };
 export type FeeConceptPartida = { _id: string; proyecto?: string; nivel: number; nombre: string; partida_nombre?: string; familia?: string; presupuesto_original?: number; presupuesto_aprobado?: number };
 export function canonicalFeeConcepts(configs: readonly FeeConceptConfig[] = []) {
   return configs.map(c => ({ concepto: c.concepto, partida_id: c.partida_id, excluded_partidas: [...new Set(c.excluded_partidas)].sort(),
-    porcentaje: c.porcentaje, monto_original: c.monto_original, base_original: c.base_original, base_aprobada: c.base_aprobada, fecha_inicio: c.fecha_inicio }))
+    porcentaje: c.porcentaje, monto_original: c.monto_original, base_original: c.base_original, base_aprobada: c.base_aprobada,
+    aprobado_total: c.aprobado_total, aprobado_excluido: c.aprobado_excluido, fecha_inicio: c.fecha_inicio }))
     .sort((a,b) => a.concepto.localeCompare(b.concepto));
 }
 type FeeTransaction = { _id: string; fecha?: string; status?: string; moneda?: string; tipo_cambio?: string | number };
@@ -44,14 +46,24 @@ export function belongsToFeeRoot(partida: FeeConceptPartida, rootId: string, par
   return Boolean(root && (String(partida._id) === String(rootId) ||
     (partida.nivel !== 1 && normalize(partida.partida_nombre) === normalize(root.nombre))));
 }
-export function deriveFeeConcepts(inputs: readonly FeeConceptInput[], partidas: readonly FeeConceptPartida[], previous: readonly FeeConceptConfig[] = [], proyectoId?: string): FeeConceptConfig[] {
+export function feeConceptBudgetBase(excludedPartidas: readonly string[], partidas: readonly FeeConceptPartida[], proyectoId?: string) {
   const roots = partidas.filter(p => p.nivel === 1 && (!proyectoId || p.proyecto === proyectoId));
-  if (!inputs.length) return [];
   if (roots.some(p => !Number.isFinite(p.presupuesto_aprobado) || p.presupuesto_aprobado! < 0)) {
     throw new Error("Revisa los importes del presupuesto aprobado antes de calcular el porcentaje.");
   }
-  const base = roots.reduce((sum, p) => sum + p.presupuesto_aprobado!, 0);
-  if (!Number.isFinite(base) || base <= 0) throw new Error("El presupuesto aprobado total debe ser mayor a cero y finito.");
+  const excluded = [...new Set(excludedPartidas)].sort();
+  if (excluded.some(id => !roots.some(p => String(p._id) === String(id)))) {
+    throw new Error("Las exclusiones deben ser partidas de nivel 1 del mismo proyecto.");
+  }
+  const aprobadoTotal = roots.reduce((sum, p) => sum + p.presupuesto_aprobado!, 0);
+  const aprobadoExcluido = roots.filter(p => excluded.includes(String(p._id))).reduce((sum, p) => sum + p.presupuesto_aprobado!, 0);
+  const base = aprobadoTotal - aprobadoExcluido;
+  if (!Number.isFinite(base) || base <= 0) throw new Error("El presupuesto aprobado menos exclusiones debe ser mayor a cero y finito.");
+  return { aprobadoTotal, aprobadoExcluido, base };
+}
+export function deriveFeeConcepts(inputs: readonly FeeConceptInput[], partidas: readonly FeeConceptPartida[], previous: readonly FeeConceptConfig[] = [], proyectoId?: string): FeeConceptConfig[] {
+  const roots = partidas.filter(p => p.nivel === 1 && (!proyectoId || p.proyecto === proyectoId));
+  if (!inputs.length) return [];
   const kinds = new Set<string>(), sources = new Set<string>();
   const configs = inputs.map(input => {
     if (!Object.prototype.hasOwnProperty.call(FEE_CONCEPT_LABELS, input.concepto) || kinds.has(input.concepto) || sources.has(String(input.partida_id))) {
@@ -66,8 +78,11 @@ export function deriveFeeConcepts(inputs: readonly FeeConceptInput[], partidas: 
       throw new Error("Revisa los importes del presupuesto original antes de calcular el porcentaje.");
     }
     const amount = root.presupuesto_original!;
+    const excluded = [...new Set(input.excluded_partidas)].sort();
+    const { base, aprobadoTotal, aprobadoExcluido } = feeConceptBudgetBase(excluded, roots);
     if (!Number.isFinite(amount / base * 100)) throw new Error("Los importes exceden el rango de cálculo válido.");
-    return { ...input, excluded_partidas: [], monto_original: amount, base_original: base, base_aprobada: base,
+    return { ...input, excluded_partidas: excluded, monto_original: amount, base_original: base, base_aprobada: base,
+      aprobado_total: aprobadoTotal, aprobado_excluido: aprobadoExcluido,
       porcentaje: amount / base * 100, fecha_inicio: previous.find(p => p.concepto === input.concepto)?.fecha_inicio || FEE_CONCEPT_START };
   });
   return configs;

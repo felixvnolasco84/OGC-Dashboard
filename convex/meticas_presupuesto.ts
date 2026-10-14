@@ -19,7 +19,6 @@ export const getByProyecto = query({
     
     // Get honorarios_monto from the proyecto
     const proyecto = await ctx.db.get(args.proyecto_id);
-    const honorarios_monto = proyecto?.honorarios_monto || 0;
     
     if (!metrics) {
       return null;
@@ -33,11 +32,13 @@ export const getByProyecto = query({
       .withIndex("by_nivel_proyecto", (q) => q.eq("nivel", 1).eq("proyecto", args.proyecto_id))
       .collect();
     const indirectos = await getBudgetIndirectos(ctx, proyecto);
+    const honorariosActual = indirectos.honorariosMontoActual ?? proyecto?.honorarios_monto;
+    const honorarios_monto = honorariosActual ?? 0;
     return {
       indirectos_monto: indirectos.automaticos,
       indirectos_manuales_sustituidos: indirectos.manualesSustituidos,
       ...metrics,
-      ...calculatePresupuestoMetrics(nivel1Partidas, proyecto?.honorarios_monto, indirectos),
+      ...calculatePresupuestoMetrics(nivel1Partidas, honorariosActual, indirectos),
       honorarios_monto,
     };
   },
@@ -150,16 +151,13 @@ export const getFilteredMetrics = query({
 
     // Calculate honorarios based on date filter
     const proyecto = await ctx.db.get(args.proyecto_id);
+    const periodPagos = (await Promise.all(filteredTransactions.map(transaction => ctx.db.query("pagos")
+      .withIndex("by_transaccion", q => q.eq("transaccion_id", transaction._id)).collect()))).flat();
     let honorarios = 0;
-    if (!startDate) {
+    if (!startDate && !proyecto?.fee_concepts?.some(c => c.concepto === "honorarios")) {
       // "Todo el tiempo" - use pre-calculated honorarios_monto
       honorarios = proyecto?.honorarios_monto || 0;
     } else {
-      const pagos = (await Promise.all(filteredTransactions.map((transaction) =>
-        ctx.db.query("pagos")
-          .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
-          .collect()
-      ))).flat();
       honorarios = calculateHonorariosFromRecords({
       feeConcepts: proyecto?.fee_concepts, convert: feeBudgetConvert(proyecto),
         proyectoId: String(args.proyecto_id),
@@ -167,16 +165,15 @@ export const getFilteredMetrics = query({
         porcentaje: proyecto?.honorarios_porcentaje,
         excludedPartidas: proyecto?.excluded_partidas_honorarios,
         transactions: filteredTransactions,
-        pagos,
+        pagos: periodPagos,
         partidas: allPartidas,
       });
     }
 
-    const periodPagos = (await Promise.all(filteredTransactions.map(transaction => ctx.db.query("pagos")
-      .withIndex("by_transaccion", q => q.eq("transaccion_id", transaction._id)).collect()))).flat();
     const indirectos = calculateBudgetIndirectos(proyecto, allPartidas, filteredTransactions, periodPagos);
     if (!startDate) {
-      gasto = calculatePresupuestoMetrics(allPartidas, proyecto?.honorarios_monto, indirectos).gasto_total;
+      const honorariosActual = proyecto?.fee_concepts?.some(c => c.concepto === "honorarios") ? honorarios : proyecto?.honorarios_monto;
+      gasto = calculatePresupuestoMetrics(allPartidas, honorariosActual, indirectos).gasto_total;
     } else {
       gasto += indirectos.automaticos - indirectos.manualesSustituidos;
     }

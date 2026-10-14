@@ -51,6 +51,17 @@ function fixture() {
 }
 
 describe("complete budget deletion", () => {
+  it("blocks removing an excluded root until its concept configuration is changed", async () => {
+    const f = fixture();
+    f.tables.partidas.push({ ...f.find("root"), _id: "fee", nombre: "HONORARIOS", presupuesto_original: 20, presupuesto_aprobado: 20 });
+    f.tables.desarrollos[0].fee_concepts = deriveFeeConcepts([{ concepto: "honorarios", partida_id: "fee", excluded_partidas: ["root"] }], f.tables.partidas);
+    const impact = await f.impact();
+    expect(impact.canDelete).toBe(false);
+    expect(impact.blockers.join(" ")).toContain("excluida de la base");
+    await expect(f.remove()).rejects.toThrow(); expect(f.writes).toEqual([]);
+    f.tables.desarrollos[0].fee_concepts = deriveFeeConcepts([{ concepto: "honorarios", partida_id: "fee", excluded_partidas: [] }], f.tables.partidas);
+    expect((await f.impact()).canDelete).toBe(true);
+  });
   it("deleting an unused branch recalculates configured rates over the remaining approved total", async () => {
     const f = fixture();
     f.tables.partidas.push({ ...f.find("root"), _id: "fee", nombre: "HONORARIOS", presupuesto_original: 20, presupuesto_aprobado: 20, pagado: 6.25 },

@@ -4,13 +4,19 @@
 
 Después de importar el presupuesto, Editar proyecto permite activar Honorarios, Indirectos, General Conditions y Viáticos seleccionando su partida de nivel 1.
 
-**Porcentaje = monto original del concepto / presupuesto aprobado total del proyecto × 100.** Todas las partidas de nivel 1 integran el aprobado total. Las familias y subpartidas no se suman otra vez. No existen exclusiones para estos conceptos.
+**Porcentaje = monto original del concepto / (presupuesto aprobado total del proyecto − aprobado de las partidas excluidas) × 100.** Cada concepto selecciona sus propias exclusiones de nivel 1. Las familias y subpartidas están incluidas en los importes de sus padres y no se suman otra vez. Se muestra el aprobado total, el aprobado excluido y la base neta.
+
+Las exclusiones restan importes aprobados del denominador. El numerador sigue siendo el original del concepto, incluso si su partida se excluye de la base. Se valida que cada exclusión pertenezca al mismo proyecto y sea de nivel 1; los duplicados solo cuentan una vez y la base neta debe ser mayor que cero.
 
 Guardar conserva una revisión Actual → Propuesto → Diferencia de Presupuesto y P&L. Cambiar el aprobado después del guardado actualiza las tasas y cargos automáticamente. No se requiere un botón de recalcular ni otra aprobación de la tasa. La edición de presupuesto conserva su revisión de impacto y revalida el cambio al guardar.
+
+Cambiar solo las exclusiones también requiere revisar y guardar el impacto. Cambiar el aprobado de una partida excluida conserva la base neta y la tasa; cambiar el aprobado de una incluida actualiza ambos. Una partida usada como exclusión debe retirarse de la configuración antes de eliminarla.
 
 ## Cargos y desglose
 
 Los conceptos configurados usan todas las líneas de pagos con estado Pagado desde **2026-10-01**, incluyendo honorarios, viáticos y partidas antes excluidas. Cada cargo es base pagada × porcentaje vigente. Los cargos automáticos no vuelven a integrar la base como nuevos pagos.
+
+Las exclusiones anteriores se aplican al presupuesto usado para obtener la tasa. Los pagos de esas partidas siguen generando cargos con la tasa resultante.
 
 Cada cargo se reparte según el monto original de las familias y subpartidas. Los porcentajes de los hijos suman el porcentaje del padre; los cargos de las hojas suman el total de la partida, con reparto determinista de centavos. Presupuesto muestra el desglose y Control usa los mismos totales. Pagado y por gastar de la jerarquía se actualizan con cambios de pagos y de presupuesto.
 
@@ -36,10 +42,10 @@ Backend y schema desplegados el 14 de octubre de 2026 en `dev:animated-walrus-61
 
 ## Pruebas
 
-- test:project-fees: fórmula sobre aprobado completo, ausencia de exclusiones, autorrecalculo, cinco subpartidas, pagos insertados/editados/eliminados, corte, monedas, revisión y concurrencia.
-- test:indirectos-ui: configuración sin exclusiones, porcentaje actualizado sin guardar otra vez, desglose de cinco hojas, revisión y guardado a 390 y 1440 px. Usa datos sintéticos sin conexión a Convex y genera capturas en output/indirectos-ui.
+- test:project-fees: fórmula sobre aprobado menos exclusiones independientes por concepto, selecciones inválidas o duplicadas, guardado de cambios solo en exclusiones, autorrecálculo, cinco subpartidas, pagos insertados/editados/eliminados, corte, monedas, revisión y concurrencia.
+- test:indirectos-ui: búsqueda y selección de exclusiones, base neta visible, rechazo de base cero, revisión y persistencia de cambios solo en exclusiones, porcentaje actualizado sin guardar otra vez, desglose de cinco hojas, revisión y guardado a 390 y 1440 px. Usa datos sintéticos sin conexión a Convex y genera capturas en output/indirectos-ui.
 - Pruebas relacionadas de P&L, Presupuesto, jerarquía, edición de pagos, edición/eliminación de partidas y clasificación OGC; TypeScript, lint y build.
 
-Validación final: 258 pruebas aprobadas, 2 omitidas; TypeScript, ESLint, build y pruebas visuales aprobados.
+Validación de la corrección: 267 pruebas aprobadas, 2 omitidas; TypeScript, ESLint, build y pruebas visuales aprobados.
 
 El plan complementado está en docs/plan-conceptos-porcentuales.md.

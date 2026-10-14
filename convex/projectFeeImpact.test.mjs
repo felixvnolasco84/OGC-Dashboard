@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { previewFeeImpact, update, getPnlSummary } from "./desarrollos";
-import { getByProyecto } from "./meticas_presupuesto";
+import { getByProyecto, getFilteredMetrics } from "./meticas_presupuesto";
 import { FEE_IMPACT_LIMIT } from "./projectFeeImpact";
 import { projectDraftPatch } from "../src/lib/project-fee-draft";
 import { deriveFeeConcepts, calculateFeeConceptPayments } from "./feeConceptRules";
@@ -61,6 +61,12 @@ function fixture(overrides = {}) {
 }
 
 describe("reviewed project fee changes", () => {
+  it("retains manual honorarios in metrics when a legacy project has no cached fee amount", async () => {
+    const f = fixture(); delete f.tables.desarrollos[0].honorarios_monto;
+    expect((await getByProyecto._handler(f.ctx, { proyecto_id: "desarrollos:p" })).gasto_total).toBe(110000);
+    expect((await getFilteredMetrics._handler(f.ctx, { proyecto_id: "desarrollos:p" })).gasto).toBe(110000);
+    expect(f.writes).toEqual([]);
+  });
   it.each([20, 5, 0])("previews and saves an active indirectos change to %s percent", async percentage => {
     const f = fixture();
     Object.assign(f.tables.desarrollos[0], { indirectos_porcentaje: 10, indirectos_fecha_inicio: "2026-10-01" });
@@ -205,6 +211,15 @@ describe("reviewed project fee changes", () => {
 });
 
 describe("project draft payload", () => {
+  it("treats an exclusion-only change as financial while ignoring order and duplicate selections", () => {
+    const baseline = fixture().tables.desarrollos[0];
+    baseline.fee_concepts = [{ concepto: "honorarios", partida_id: "partidas:fee", excluded_partidas: ["partidas:work", "partidas:v"] }];
+    const draft = { nombre: "Obra", descripcion: "Prueba", status: "Activo", honorariosPorcentaje: "10", indirectosPorcentaje: "", honorariosModo: "automatico", excludedPartidas: [],
+      feeConcepts: [{ concepto: "honorarios", partida_id: "partidas:fee", excluded_partidas: ["partidas:v", "partidas:work", "partidas:v"] }] };
+    expect(projectDraftPatch(baseline, draft).financialChanged).toBe(false);
+    const changed = { ...draft, feeConcepts: [{ ...draft.feeConcepts[0], excluded_partidas: ["partidas:v"] }] };
+    expect(projectDraftPatch(baseline, changed)).toMatchObject({ financialChanged: true, invalid: false, financial: { fee_concepts: changed.feeConcepts } });
+  });
   it("distinguishes untouched, zero activation, disabled and invalid empty active indirectos", () => {
     const baseline = fixture().tables.desarrollos[0];
     const draft = { nombre: "Obra", descripcion: "Prueba", status: "Activo", honorariosPorcentaje: "10", indirectosPorcentaje: "", honorariosModo: "automatico", excludedPartidas: [] };
@@ -216,11 +231,11 @@ describe("project draft payload", () => {
   });
 });
 
-describe("concept percentages over total approved budget", () => {
+describe("concept percentages over approved budget minus exclusions", () => {
   const input = (concepto, source, excluded = []) => ({ concepto, partida_id: `partidas:${source}`, excluded_partidas: excluded.map(id => `partidas:${id}`) });
   const root = (id, name, original, approved = original, paid = 0) => ({ _id: `partidas:${id}`, proyecto: "desarrollos:p", nivel: 1, nombre: name, presupuesto_original: original, presupuesto_aprobado: approved, pagado: paid });
   const roots = () => [root("work", "OBRA", 100000, 170000, 100000), root("fee", "HONORARIOS", 20000), root("v", "VIÁTICOS", 10000)];
-  const proposal = () => ({ fee_concepts: [input("honorarios", "fee", ["fee", "work", "v"]), input("viaticos", "v", ["fee", "work", "v"])] });
+  const proposal = () => ({ fee_concepts: [input("honorarios", "fee"), input("viaticos", "v")] });
   const children = () => [
     { ...root("familyA", "VIÁTICOS", 4000), nivel: 2, partida_nombre: "VIÁTICOS", familia: "Personal" },
     { ...root("familyB", "VIÁTICOS", 6000), nivel: 2, partida_nombre: "VIÁTICOS", familia: "Traslados" },
@@ -228,23 +243,75 @@ describe("concept percentages over total approved budget", () => {
       ({ ...root(id, "VIÁTICOS", amount), nivel: 3, partida_nombre: "VIÁTICOS", familia: family, sub_partida: id })),
   ];
 
-  it("uses original concept amounts divided by all approved roots, ignoring exclusions and descendants", () => {
+  it("subtracts each concept's excluded approved roots once without counting descendants", () => {
     const rows = [...roots(), ...children()];
     rows[1].presupuesto_aprobado = 40000; rows[0].presupuesto_aprobado = 150000;
-    const configs = deriveFeeConcepts(proposal().fee_concepts, rows);
-    expect(configs.map(c => c.base_aprobada)).toEqual([200000, 200000]);
-    expect(configs.map(c => c.porcentaje)).toEqual([10, 5]);
-    expect(configs.every(c => c.excluded_partidas.length === 0)).toBe(true);
+    const configs = deriveFeeConcepts([input("honorarios", "fee", ["fee", "v", "v"]), input("viaticos", "v", ["fee"])], rows);
+    expect(configs.map(c => c.aprobado_total)).toEqual([200000, 200000]);
+    expect(configs.map(c => c.aprobado_excluido)).toEqual([50000, 40000]);
+    expect(configs.map(c => c.base_aprobada)).toEqual([150000, 160000]);
+    expect(configs[0].porcentaje).toBeCloseTo(20000 / 150000 * 100, 10);
+    expect(configs[1].porcentaje).toBe(6.25);
+    expect(configs[0].excluded_partidas).toEqual(["partidas:fee", "partidas:v"]);
+    expect(configs[1].excluded_partidas).toEqual(["partidas:fee"]);
   });
 
-  it("applies every rate to every paid line, including its own source and previously excluded rows", () => {
+  it("budget exclusions change the rates while charges still apply to every paid line", () => {
     const rows = roots();
-    const configs = deriveFeeConcepts(proposal().fee_concepts, rows);
+    rows[1].presupuesto_original = 19000; rows[2].presupuesto_original = 9000;
+    const configs = deriveFeeConcepts([input("honorarios", "fee", ["v"]), input("viaticos", "v", ["fee"])], rows);
     const result = calculateFeeConceptPayments({ configs, partidas: rows,
       transactions: [{ _id: "tx", status: "Pagado", fecha: "2026-10-01" }],
       pagos: [{ transaccion_id: "tx", partida_id: "partidas:work", monto: 1000 }, { transaccion_id: "tx", partida_id: "partidas:fee", monto: 100 }, { transaccion_id: "tx", partida_id: "partidas:v", monto: 100 }] });
     expect(result.concepts.map(c => c.basePagada)).toEqual([1200, 1200]);
     expect(result.concepts.map(c => c.monto)).toEqual([120, 60]);
+  });
+
+  it("saving only exclusions requires review, persists them and matches queries, Control and P&L", async () => {
+    const f = fixture({ partidas: [...roots(), root("excluded", "EXCLUIDA", 50000)] });
+    const initial = await f.preview(proposal()); await f.save(proposal(), initial.expectedImpact);
+    const change = { fee_concepts: [input("honorarios", "fee", ["excluded"]), input("viaticos", "v", ["excluded"])] };
+    await expect(f.save(change)).rejects.toThrow("Revisa el impacto");
+    const impact = await f.preview(change);
+    expect(impact.afterConfig.fee_concepts.map(c => c.base_aprobada)).toEqual([200000, 200000]);
+    expect(impact.afterPnl).toMatchObject({ honorarios: 10000, indirectos: 5000 });
+    await f.save(change, impact.expectedImpact);
+    expect(f.tables.desarrollos[0].fee_concepts.every(c => c.excluded_partidas.includes("partidas:excluded"))).toBe(true);
+    expect(f.tables.partidas.find(p => p._id === "partidas:v").pagado).toBe(5000);
+    expect((await getByProyecto._handler(f.ctx, { proyecto_id: "desarrollos:p" })).gasto_total).toBe(impact.afterBudget.gasto_total);
+    const payments = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "desarrollos:p" });
+    expect(payments.indirectos).toBe(5000);
+    expect((await getPnlSummary._handler(f.ctx, { periodYear: 2026, cutoffMonth: 10 })).totals.indirectos).toBe(5000);
+    const stale = await f.preview(change);
+    f.tables.desarrollos[0].fee_concepts[0].excluded_partidas = [];
+    await expect(f.save(change, stale.expectedImpact)).rejects.toThrow("impacto cambió");
+  });
+
+  it("changing an excluded root and its approved leaf rollup leaves the net base unchanged", async () => {
+    const f = fixture({ partidas: [...roots(), ...children()] });
+    const change = { fee_concepts: [input("honorarios", "fee", ["v"])] };
+    const impact = await f.preview(change); await f.save(change, impact.expectedImpact);
+    const before = f.tables.desarrollos[0].fee_concepts[0];
+    const updateLeaf = mutation({ args: {}, handler: async ctx => ctx.db.patch("partidas:a1", { presupuesto_aprobado: 201000 }) });
+    await updateLeaf._handler(f.ctx, {});
+    const after = f.tables.desarrollos[0].fee_concepts[0];
+    expect(after.aprobado_total).toBe(400000); expect(after.aprobado_excluido).toBe(210000);
+    expect(after.base_aprobada).toBe(190000); expect(after.porcentaje).toBe(before.porcentaje);
+    expect(f.tables.desarrollos[0].honorarios_monto).toBe(10526.32);
+    const updateRoot = mutation({ args: {}, handler: async ctx => ctx.db.patch("partidas:v", { presupuesto_aprobado: 310000 }) });
+    await updateRoot._handler(f.ctx, {});
+    expect(f.tables.desarrollos[0].fee_concepts[0].base_aprobada).toBe(190000);
+    expect(f.tables.desarrollos[0].fee_concepts[0].porcentaje).toBe(before.porcentaje);
+  });
+
+  it("included approved changes refresh an excluded-base rate without another configuration save", async () => {
+    const f = fixture({ partidas: roots() });
+    const change = { fee_concepts: [input("honorarios", "fee", ["v"])] };
+    const impact = await f.preview(change); await f.save(change, impact.expectedImpact);
+    const updateBudget = mutation({ args: {}, handler: async ctx => ctx.db.patch("partidas:work", { presupuesto_aprobado: 380000 }) });
+    await updateBudget._handler(f.ctx, {});
+    expect(f.tables.desarrollos[0].fee_concepts[0]).toMatchObject({ porcentaje: 5, base_aprobada: 400000, aprobado_excluido: 10000, excluded_partidas: ["partidas:v"] });
+    expect(f.tables.desarrollos[0].honorarios_monto).toBe(5000);
   });
 
   it("preview, cached hierarchy, Control metrics and P&L agree without counting substituted manual charges twice", async () => {
@@ -297,6 +364,23 @@ describe("concept percentages over total approved budget", () => {
     f.tables.partidas[0].presupuesto_aprobado = 370000;
     const pnl = await getPnlSummary._handler(f.ctx, { periodYear: 2026, cutoffMonth: 10 });
     expect(pnl.totals.honorarios).toBe(5000); expect(pnl.totals.indirectos).toBe(2500);
+  });
+
+  it("Control and full-period queries replace honorarios cached with the previous formula without writes", async () => {
+    const f = fixture({ partidas: roots() });
+    const change = { fee_concepts: [input("honorarios", "fee", ["v"])] };
+    const impact = await f.preview(change); await f.save(change, impact.expectedImpact);
+    // Model a snapshot produced by the release that ignored budget exclusions.
+    Object.assign(f.tables.desarrollos[0].fee_concepts[0], { porcentaje: 10, base_aprobada: 200000, base_original: 200000, aprobado_excluido: 0 });
+    f.tables.desarrollos[0].honorarios_monto = 10000;
+    f.tables.partidas.find(p => p._id === "partidas:fee").pagado = 10000;
+    const writes = f.writes.length;
+    const metrics = await getByProyecto._handler(f.ctx, { proyecto_id: "desarrollos:p" });
+    expect(metrics.honorarios_monto).toBe(10526.32); expect(metrics.gasto_total).toBe(110526.32);
+    const filtered = await getFilteredMetrics._handler(f.ctx, { proyecto_id: "desarrollos:p" });
+    expect(filtered.honorarios).toBe(10526.32); expect(filtered.gasto).toBe(110526.32);
+    expect((await getPnlSummary._handler(f.ctx, { periodYear: 2026, cutoffMonth: 10 })).totals.honorarios).toBe(10526.32);
+    expect(f.writes.length).toBe(writes);
   });
 
   it("distributes viaticos across five leaves and both families with exact cent rollup", async () => {
@@ -375,6 +459,16 @@ describe("concept percentages over total approved budget", () => {
     for (const fee_concepts of [[input("honorarios", "missing")], [input("honorarios", "fee"), input("viaticos", "fee")], [input("honorarios", "fee"), input("honorarios", "v")]]) expect((await f.preview({ fee_concepts })).status).toBe("error");
     f.tables.partidas.forEach(p => { p.presupuesto_aprobado = 0; });
     expect((await f.preview(proposal())).status).toBe("error");
+    expect(f.writes).toEqual([]);
+  });
+
+  it("rejects exclusions from another project, non-roots, missing roots and an empty net base", async () => {
+    const f = fixture({ partidas: [...roots(), ...children(), { ...root("other", "OTRA OBRA", 1000), proyecto: "desarrollos:other" }] });
+    for (const excluded of [["other"], ["a1"], ["missing"], ["work", "fee", "v"]]) {
+      const change = { fee_concepts: [input("honorarios", "fee", excluded)] };
+      expect((await f.preview(change)).status).toBe("error");
+      await expect(f.save(change)).rejects.toThrow();
+    }
     expect(f.writes).toEqual([]);
   });
 

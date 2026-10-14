@@ -6,7 +6,7 @@ import { normalizeHierarchyText as normalize } from "./partidaRules";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { calculateBudgetIndirectos, feeBudgetConvert } from "./indirectosBudget";
 import { calculateHonorariosFromRecords } from "./honorariosRules";
-import { belongsToFeeRoot, canonicalFeeConcepts } from "./feeConceptRules";
+import { belongsToFeeRoot, canonicalFeeConcepts, FEE_CONCEPT_CALCULATION_VERSION } from "./feeConceptRules";
 import { repairProjectPaymentTotals } from "./budgetMaintenance";
 
 type Context = QueryCtx | MutationCtx;
@@ -17,7 +17,7 @@ const labels = {
   historial: "registros históricos de avance", requisiciones: "conceptos de requisición",
   rfis: "RFIs", bitacoras: "bitácoras", documentos: "documentos", tareas: "tareas",
   subcontratistas: "subcontratistas", facturas: "conceptos de factura",
-  memoria: "registros de memoria de clasificación", exclusiones: "configuraciones de exclusión de honorarios",
+  memoria: "registros de memoria de clasificación", exclusiones: "configuraciones de conceptos y exclusiones",
   proyecciones: "proyecciones financieras",
 };
 type Category = keyof typeof labels;
@@ -169,6 +169,7 @@ async function inspect(ctx: Context, id: Id<"partidas">, projectId: Id<"desarrol
     // Include siblings used by rollups and all roots used by project metrics.
     // This is a content snapshot, not a client-authoritative list of deletions.
     impact.expectedScope = JSON.stringify({
+      calculationVersion: FEE_CONCEPT_CALCULATION_VERSION,
       projectId, honorarios: project.honorarios_monto ?? null,
       rows: partidas.filter(p => p.nivel === 1 || partidaRootName(p) === root)
         .sort((a, b) => String(a._id).localeCompare(String(b._id)))
@@ -176,6 +177,11 @@ async function inspect(ctx: Context, id: Id<"partidas">, projectId: Id<"desarrol
           p.presupuesto_original, p.presupuesto_aprobado, p.pagado]),
     });
     if (project.fee_concepts?.length) {
+      if (project.fee_concepts.some(c => c.excluded_partidas.some(id => ids.has(id)))) {
+        impact.blockers.push("La partida está excluida de la base de un concepto automático. Retira esa exclusión antes de eliminarla.");
+        impact.expectedScope = "";
+        return { impact, project, target, selected, remaining };
+      }
       if (project.fee_concepts.some(c => ids.has(c.partida_id))) {
         impact.blockers.push("La partida es el origen de un concepto automático. Cambia su configuración antes de eliminarla.");
         impact.expectedScope = "";
@@ -263,7 +269,7 @@ async function inspect(ctx: Context, id: Id<"partidas">, projectId: Id<"desarrol
     // budget, including malformed historical cross-project references.
     add("tareas", await budget.collect(ctx.db.query("tareas")), t => (t.partidas || []).some(id => ids.has(id)));
     add("exclusiones", await budget.collect(ctx.db.query("desarrollos")), p => (p.excluded_partidas_honorarios || []).some(id => ids.has(id)) ||
-      (p.fee_concepts || []).some(c => ids.has(c.partida_id)));
+      (p.fee_concepts || []).some(c => ids.has(c.partida_id) || c.excluded_partidas.some(id => ids.has(id))));
 
     const removesName = (partida: string, familia?: string, sub?: string) => {
       const matches = (p: Doc<"partidas">) => normalize(partidaRootName(p)) === normalize(partida) &&

@@ -45,23 +45,27 @@ async function fixture({ currency = "MXN", indirectos = 5 } = {}) {
 }
 
 describe("reviewed budget edits with real Convex triggers", () => {
-  it("approved budget review and save update concept rates and Control automatically", async () => {
+  it.each([
+    { excluded: "root", base: 200, rate: 50, fee: 325, expense: 975 },
+    { excluded: "standalone", base: 1100, rate: 100 / 1100 * 100, fee: 59.09, expense: 709.09 },
+  ])("approved budget review and save respect $excluded exclusions and update Control", async ({ excluded, base, rate, fee, expense }) => {
     const f = await fixture({ indirectos: 0 });
     await f.t.run(async ctx => {
       await ctx.db.patch(f.ids.user, { role: "admin" });
       await ctx.db.patch(f.ids.fee, { presupuesto_original: 100, presupuesto_aprobado: 100 });
     });
-    const fee_concepts = [{ concepto: "honorarios", partida_id: f.ids.fee, excluded_partidas: [f.ids.root] }];
+    const fee_concepts = [{ concepto: "honorarios", partida_id: f.ids.fee, excluded_partidas: [f.ids[excluded]] }];
     const preview = await f.writer.query(api.desarrollos.previewFeeImpact, { id: f.ids.project, fee_concepts });
     expect(preview.status, preview.message).toBe("ready");
     await f.writer.mutation(api.desarrollos.update, { id: f.ids.project, fee_concepts, expected_impact: preview.expectedImpact });
     const changes = { presupuesto_aprobado: 500 };
     const impact = await f.review(f.ids.leaf, changes);
-    expect(impact.project.after.gasto_total).toBeCloseTo(704.16, 8);
+    expect(impact.project.after.gasto_total).toBeCloseTo(expense, 8);
     await f.save(f.ids.leaf, changes, impact);
-    expect((await f.get(f.ids.project)).fee_concepts[0].porcentaje).toBeCloseTo(100 / 1200 * 100, 10);
-    expect((await f.get(f.ids.project)).honorarios_monto).toBe(54.16);
-    expect((await f.writer.query(api.meticas_presupuesto.getByProyecto, { proyecto_id: f.ids.project })).gasto_total).toBeCloseTo(704.16, 8);
+    expect((await f.get(f.ids.project)).fee_concepts[0].base_aprobada).toBe(base);
+    expect((await f.get(f.ids.project)).fee_concepts[0].porcentaje).toBeCloseTo(rate, 10);
+    expect((await f.get(f.ids.project)).honorarios_monto).toBe(fee);
+    expect((await f.writer.query(api.meticas_presupuesto.getByProyecto, { proyecto_id: f.ids.project })).gasto_total).toBeCloseTo(expense, 8);
   });
   it("previews complete hierarchy/global metrics without any writes", async () => {
     const f = await fixture(); const before = await f.snapshot();

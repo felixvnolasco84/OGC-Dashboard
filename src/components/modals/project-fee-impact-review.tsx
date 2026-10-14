@@ -68,9 +68,11 @@ export default function ProjectFeeImpactReview({ impact, partidas }: { impact: F
     </details>
     {[...(impact.afterConfig.fee_concepts || [])].sort((a,b) => Object.keys(FEE_CONCEPT_LABELS).indexOf(a.concepto) - Object.keys(FEE_CONCEPT_LABELS).indexOf(b.concepto)).map(concept => <div key={concept.concepto} className="space-y-1 border p-3 text-xs" data-testid={`concept-review-${concept.concepto}`}>
       <h3 className="text-sm font-medium">{FEE_CONCEPT_LABELS[concept.concepto]} · {name(concept.partida_id)}</h3>
-      <p>Monto original: {money(concept.monto_original, impact.budgetCurrency)} · Aprobado total: {money(concept.base_aprobada ?? concept.base_original, impact.budgetCurrency)}</p>
+      <p>Monto original: {money(concept.monto_original, impact.budgetCurrency)} · Aprobado total: {money(concept.aprobado_total ?? concept.base_aprobada ?? concept.base_original, impact.budgetCurrency)}</p>
+      <p>Aprobado excluido: {money(concept.aprobado_excluido ?? 0, impact.budgetCurrency)} · Base aprobada después de exclusiones: {money(concept.base_aprobada ?? concept.base_original, impact.budgetCurrency)}</p>
+      <p>Partidas excluidas: {concept.excluded_partidas.length ? concept.excluded_partidas.map(name).join(", ") : "Ninguna"}.</p>
       <p>Porcentaje propuesto: {concept.porcentaje.toLocaleString("es-MX", { maximumFractionDigits: 6 })}% · Inicio: {concept.fecha_inicio}</p>
-      <p>Todas las partidas integran la base. La tasa se actualiza automáticamente al cambiar el presupuesto aprobado.</p>
+      <p>La tasa usa el aprobado menos exclusiones y se actualiza automáticamente al cambiar el presupuesto aprobado.</p>
       <p>Tasa aprobada anterior: {(impact.beforeConfig.fee_concepts || []).some(c => c.concepto === concept.concepto) ? `${(impact.beforeConfig.fee_concepts || []).find(c => c.concepto === concept.concepto)!.porcentaje.toLocaleString("es-MX", { maximumFractionDigits: 6 })}%` : "Sin configurar"}</p>
     </div>)}
     {impact.beforeConfig.indirectos_porcentaje === null && impact.afterConfig.indirectos_porcentaje !== null && <p className="border-l-2 border-foreground pl-3 text-xs" role="status">La activación sustituye componentes manuales desde la fecha de inicio, incluso al 0%. Los registros no se eliminan.</p>}
