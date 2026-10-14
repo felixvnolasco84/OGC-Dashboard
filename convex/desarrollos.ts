@@ -1,3 +1,5 @@
+import { currentFeeConcepts, feeChargesAtRate, feeSourceForPayment, isActiveFeeConcept, replacesIndirectIncomeCategory } from "./feeConceptRules";
+import { feeConceptInputValidator } from "./feeConceptValidators";
 import { INDIRECTOS_START, isAutomaticIndirectos, isIndirectosPartida, indirectosCharge, validateIndirectosPercentage, getFeeExcludedPartidaIds, isEligibleFeePayment } from "./indirectosRules";
 import { getBudgetIndirectos } from "./indirectosBudget";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
@@ -57,7 +59,7 @@ export const getAllWithMetrics = query(async (ctx) => {
             
             const presupuestoAprobado = metrics?.presupuesto_aprobado || 0;
             let gastoTotal = metrics?.gasto_total || 0;
-            if (proyecto.indirectos_porcentaje !== undefined) {
+            if ((proyecto.indirectos_porcentaje !== undefined || proyecto.fee_concepts?.length)) {
                 const roots = await ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", proyecto._id)).collect();
                 gastoTotal = calculatePresupuestoMetrics(roots, proyecto.honorarios_monto, await getBudgetIndirectos(ctx, proyecto)).gasto_total;
             }
@@ -347,7 +349,7 @@ const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rate
                 // Only project payment percentages generate P&L honorarios.
                 // Other OGC income stays available in the ledger and collected income.
                 if (!matchesAnyReportLabel(movement.categoria, INDIRECTOS_LABELS)) return acc;
-                if (proyecto && isAutomaticIndirectos(proyecto, movement.fecha)) return acc;
+                if (proyecto && (isAutomaticIndirectos(proyecto, movement.fecha) || replacesIndirectIncomeCategory(proyecto.fee_concepts, movement.categoria, movement.fecha))) return acc;
                 acc.indirectos += amount;
                 acc.indirectosLegacyCosto += amount;
                 addMonthlyAmount(acc.monthly, monthKey, (summary) => {
@@ -558,6 +560,7 @@ export const summarizeProjectPaymentRecords = (
         pagosByTransaction.set(key, group);
     }
     const { partidas, transactions, metrics } = records;
+    const concepts = currentFeeConcepts(proyecto.fee_concepts, partidas);
     const partidasById = new Map(partidas.map((partida) => [partida._id as string, partida]));
     const excludedPartidaIds = getFeeExcludedPartidaIds(partidas, proyecto.excluded_partidas_honorarios);
 
@@ -596,9 +599,22 @@ export const summarizeProjectPaymentRecords = (
             if (transaction.status !== "Pagado") continue;
             summary.totalPagado += amount;
 
+            const configuredCharges = feeChargesAtRate(concepts, transaction.fecha, amount);
+            const configuredHonorarios = proyecto.fee_concepts?.find(c => c.concepto === "honorarios" && isActiveFeeConcept(c, transaction.fecha));
+            for (const charge of configuredCharges) {
+                if (charge.config.concepto === "honorarios") {
+                    summary.honorarios += charge.monto; summary.baseHonorarios += charge.base;
+                    addMonthlyAmount(summary.monthly, monthKey, monthly => { monthly.honorarios += charge.monto; monthly.baseHonorarios += charge.base; });
+                } else {
+                    summary.indirectos += charge.monto; summary.indirectosAutomaticos += charge.monto; summary.baseIndirectos += charge.base;
+                    addMonthlyAmount(summary.monthly, monthKey, monthly => { monthly.indirectos += charge.monto; monthly.indirectosAutomaticos += charge.monto; monthly.baseIndirectos += charge.base; });
+                }
+            }
             if (isEligibleFeePayment(partida, excludedPartidaIds)) {
-                summary.baseHonorarios += amount;
-                addMonthlyAmount(summary.monthly, monthKey, monthly => { monthly.baseHonorarios += amount; });
+                if (!configuredHonorarios) {
+                    summary.baseHonorarios += amount;
+                    addMonthlyAmount(summary.monthly, monthKey, monthly => { monthly.baseHonorarios += amount; });
+                }
                 if (isAutomaticIndirectos(proyecto, transaction.fecha)) {
                     summary.baseIndirectos += amount;
                     const charge = indirectosCharge(amount, proyecto);
@@ -606,14 +622,14 @@ export const summarizeProjectPaymentRecords = (
                     summary.indirectos += charge;
                     addMonthlyAmount(summary.monthly, monthKey, monthly => { monthly.indirectos += charge; monthly.indirectosAutomaticos += charge; monthly.baseIndirectos += amount; });
                 }
-                const calculatedHonorarios = amount * honorariosRate;
+                const calculatedHonorarios = configuredHonorarios ? 0 : amount * honorariosRate;
                 summary.honorarios += calculatedHonorarios;
                 addMonthlyAmount(summary.monthly, monthKey, (monthlySummary) => {
                     monthlySummary.honorarios += calculatedHonorarios;
                 });
             }
 
-            if (isHonorariosPayment) {
+            if (isHonorariosPayment || feeSourceForPayment(proyecto.fee_concepts || [], partida, partidas, transaction.fecha)) {
                 continue;
             }
 
@@ -717,7 +733,7 @@ const getWipFormulaTotals = async (
 ) => {
     const presupuesto = formulaTotals.metrics?.presupuesto_aprobado || 0;
     let costoReal = formulaTotals.metrics?.gasto_total || 0;
-    if (proyecto.indirectos_porcentaje !== undefined) {
+    if ((proyecto.indirectos_porcentaje !== undefined || proyecto.fee_concepts?.length)) {
         const roots = await ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", proyecto._id)).collect();
         costoReal = calculatePresupuestoMetrics(roots, proyecto.honorarios_monto, await getBudgetIndirectos(ctx, proyecto)).gasto_total;
     }
@@ -1072,7 +1088,10 @@ export const getById = query({
             return null;
         }
 
-        return await ctx.db.get(args.id);
+        const project = await ctx.db.get(args.id);
+        if (!project?.fee_concepts?.length) return project;
+        const partidas = await ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", args.id)).collect();
+        return { ...project, fee_concepts: currentFeeConcepts(project.fee_concepts, partidas) };
     },
 });
 
@@ -1129,9 +1148,9 @@ export const create = mutation({
 
 // Update project
 const inspectFeeImpact = async (ctx: QueryCtx, project: Doc<"desarrollos">, proposal: FeeProposal, user: Doc<"users">) => {
-    const proposed = proposedFeeProject(project, proposal);
     for (const id of proposal.excluded_partidas_honorarios || []) await assertBudgetReference(ctx, id, project._id, 1);
     const records = await loadFeeImpactRecords(ctx, project);
+    const proposed = proposedFeeProject(project, proposal, records);
     records.movements = records.movements.filter(m => hasGlobalAdminAccess(user) || !m.organization_id || m.organization_id === getScopedOrganizationId(user));
     const expectedImpact = feeImpactScope(project, proposed, records);
     const dates = [...records.transactions, ...records.movements].map(r => parseReportDate(r.fecha)).filter((d): d is Date => Boolean(d));
@@ -1183,7 +1202,7 @@ export const previewFeeImpact = query({
         const { id } = args;
         const proposal: FeeProposal = { honorarios_porcentaje: args.honorarios_porcentaje,
             honorarios_modo: args.honorarios_modo, indirectos_porcentaje: args.indirectos_porcentaje,
-            excluded_partidas_honorarios: args.excluded_partidas_honorarios };
+            excluded_partidas_honorarios: args.excluded_partidas_honorarios, fee_concepts: args.fee_concepts };
         try {
             const user = await getCurrentUserOrThrow(ctx);
             if (!hasAdminAccess(user) || !(await checkDesarrolloAccess(ctx, id))) throw new Error("No tienes permiso para revisar este proyecto.");
@@ -1209,6 +1228,7 @@ export const update = mutation({
         honorarios_porcentaje: v.optional(v.number()),
         excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
         honorarios_modo: v.optional(v.union(v.literal("automatico"), v.literal("transacciones"))),
+        fee_concepts: v.optional(v.array(feeConceptInputValidator)),
         expected_impact: v.optional(v.string()),
         expected_fields: v.optional(v.object({
             nombre: v.optional(v.union(v.string(), v.null())),
@@ -1260,8 +1280,10 @@ export const update = mutation({
             honorarios_modo: args.honorarios_modo,
             indirectos_porcentaje: args.indirectos_porcentaje,
             excluded_partidas_honorarios: args.excluded_partidas_honorarios,
+            fee_concepts: args.fee_concepts,
         };
-        const proposed = proposedFeeProject(existing, proposal);
+        const conceptRecords = args.fee_concepts !== undefined ? await loadFeeImpactRecords(ctx, existing) : undefined;
+        const proposed = proposedFeeProject(existing, proposal, conceptRecords);
         if (feeConfigChanged(existing, proposed)) {
             if (!expected_impact) throw new Error("Revisa el impacto financiero antes de guardar.");
             const impact = await inspectFeeImpact(ctx, existing, proposal, currentUser);
@@ -1275,6 +1297,7 @@ export const update = mutation({
         if (args.indirectos_porcentaje !== undefined) {
             updateData.indirectos_fecha_inicio = existing?.indirectos_fecha_inicio || INDIRECTOS_START;
         }
+        if (args.fee_concepts !== undefined) updateData.fee_concepts = proposed.fee_concepts;
         await ctx.db.patch(id, updateData);
         if (args.nombre !== undefined) {
             const root = await findProjectDocumentRoot(ctx, id);

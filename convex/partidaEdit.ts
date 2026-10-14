@@ -5,7 +5,9 @@ import { getCurrentUserOrThrow, canUserAccessDesarrollo } from "./permissions";
 import { assertBudgetParent } from "./partidaReferences";
 import { cleanHierarchyText, normalizeHierarchyText as normalize, partidaEditSource } from "./partidaRules";
 import { budgetTotals, budgetRollupPatch, approvedBudgetPatch } from "./budgetRollupRules";
-import { calculateBudgetIndirectos } from "./indirectosBudget";
+import { calculateBudgetIndirectos, feeBudgetConvert } from "./indirectosBudget";
+import { calculateHonorariosFromRecords } from "./honorariosRules";
+import { repairProjectPaymentTotals } from "./budgetMaintenance";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 
 export const partidaEditFields = {
@@ -128,14 +130,19 @@ export async function analyzePartidaEdit(ctx: ReadCtx, args: Identity & { change
   const budget = new ReadBudget();
   const partidas = await budget.collect(ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", project._id)));
   const plan = planPartidaEdit(partidas, target, args.changes);
-  const transactions: Doc<"transacciones">[] = project.indirectos_porcentaje === undefined ? []
+  const transactions: Doc<"transacciones">[] = project.indirectos_porcentaje === undefined && !project.fee_concepts?.length ? []
     : await budget.collect(ctx.db.query("transacciones").withIndex("by_proyecto", q => q.eq("proyecto", project._id)));
   const pagos: Doc<"pagos">[] = [];
   for (const tx of transactions) pagos.push(...await budget.collect(ctx.db.query("pagos").withIndex("by_transaccion", q => q.eq("transaccion_id", tx._id))));
   const beforeIndirectos = calculateBudgetIndirectos(project, partidas, transactions, pagos);
   const afterIndirectos = calculateBudgetIndirectos(project, plan.after, transactions, pagos);
   const before = calculatePresupuestoMetrics(partidas, project.honorarios_monto, beforeIndirectos);
-  const after = calculatePresupuestoMetrics(plan.after, project.honorarios_monto, afterIndirectos);
+  const afterHonorarios = project.fee_concepts?.length ? calculateHonorariosFromRecords({
+    proyectoId: project._id, modo: project.honorarios_modo, porcentaje: project.honorarios_porcentaje,
+    feeConcepts: project.fee_concepts, convert: feeBudgetConvert(project), excludedPartidas: project.excluded_partidas_honorarios,
+    partidas: plan.after, transactions, pagos,
+  }) : project.honorarios_monto;
+  const after = calculatePresupuestoMetrics(plan.after, afterHonorarios, afterIndirectos);
   const details = plan.renameProgram ? await budget.collect(ctx.db.query("programa_obra_detalle").withIndex("by_proyecto", q => q.eq("proyecto", project._id))) : [];
   const program = details.filter(d => d.nivel === 3 && normalize(d.partida) === normalize(rootName(target)) &&
     normalize(d.familia) === normalize(target.familia) && normalize(d.subpartida) === normalize(target.sub_partida || target.nombre));
@@ -158,7 +165,7 @@ export async function analyzePartidaEdit(ctx: ReadCtx, args: Identity & { change
     programming: { count: program.length, oldNameStillExists: plan.oldNameStillExists, renamed: plan.changes.sub_partida !== undefined },
     expectedReview: JSON.stringify([
       context.source, project.nombre, project.moneda_principal, project.honorarios_monto, project.indirectos_porcentaje,
-      project.indirectos_fecha_inicio, [...(project.excluded_partidas_honorarios || [])].sort(),
+      project.indirectos_fecha_inicio, [...(project.excluded_partidas_honorarios || [])].sort(), project.fee_concepts || [],
       sorted(partidas).map(partidaEditSource), plan.changes, before, after, beforeIndirectos, afterIndirectos,
       sorted(program).map(d => [d._id, d.partida, d.familia, d.subpartida]),
     ]),
@@ -175,6 +182,11 @@ export async function executePartidaEdit(ctx: MutationCtx, args: Identity & { ch
   const byLevel = new Map(plan.after.map(p => [p._id, p.nivel]));
   for (const change of plan.patches.sort((a, b) => byLevel.get(b.id)! - byLevel.get(a.id)!)) await ctx.db.patch(change.id, change.patch);
   for (const detail of program) await ctx.db.patch(detail._id, { subpartida: plan.changes.sub_partida! });
+  const project = await ctx.db.get(args.proyecto);
+  if (project?.fee_concepts?.length) {
+    await repairProjectPaymentTotals(ctx, args.proyecto);
+    return await ctx.db.get(args.id);
+  }
   // Persist the reviewed global composition, including indirectos exactly once.
   const metrics = await ctx.db.query("meticas_presupuesto").withIndex("by_proyecto", q => q.eq("proyecto", args.proyecto)).first();
   if (metrics) await ctx.db.patch(metrics._id, impact.project.after);

@@ -1,3 +1,4 @@
+import { feeBudgetConvert } from "./indirectosBudget";
 import { calculateBudgetIndirectos } from "./indirectosBudget";
 /**
  * DEPRECATED: This file maintains backward compatibility with old payment queries.
@@ -363,14 +364,13 @@ export const getPaymentsByDateRange = query({
     let total = 0;
 
     for (const transaction of filtered) {
-      if (proyecto?.indirectos_porcentaje !== undefined && transaction.status !== "Pagado") continue;
       const pagos = await ctx.db
         .query("pagos")
         .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
         .collect();
-
+      periodPagos.push(...pagos);
+      if ((proyecto?.indirectos_porcentaje !== undefined || proyecto?.fee_concepts?.length) && transaction.status !== "Pagado") continue;
       for (const pago of pagos) {
-        periodPagos.push(pago);
         const partidaId = pago.partida_id as string;
         paymentsByPartida[partidaId] = (paymentsByPartida[partidaId] || 0) + pago.monto;
         total += pago.monto;
@@ -379,6 +379,7 @@ export const getPaymentsByDateRange = query({
 
 
     const honorarios = calculateHonorariosFromRecords({
+      feeConcepts: proyecto?.fee_concepts, convert: feeBudgetConvert(proyecto),
       proyectoId: String(args.proyecto_id),
       modo: proyecto?.honorarios_modo,
       porcentaje: proyecto?.honorarios_porcentaje,
@@ -392,8 +393,17 @@ export const getPaymentsByDateRange = query({
     for (const [id, amount] of Object.entries(indirectos.sustituidosPorPartida)) {
       paymentsByPartida[id] = (paymentsByPartida[id] || 0) - amount;
     }
+    for (const [id, amount] of Object.entries(indirectos.automaticosPorPartida)) {
+      paymentsByPartida[id] = (paymentsByPartida[id] || 0) + amount;
+    }
     total += indirectos.automaticos - indirectos.manualesSustituidos;
-    return { paymentsByPartida, total, honorarios, indirectos: indirectos.automaticos, indirectosSustituidosPorPartida: indirectos.sustituidosPorPartida };
+    if (proyecto?.fee_concepts?.some(c => c.concepto === "honorarios")) {
+      const sourceId = proyecto.fee_concepts.find(c => c.concepto === "honorarios")!.partida_id;
+      const paidIds = new Set(filtered.filter(t => t.status === "Pagado").map(t => String(t._id)));
+      const manualHonorarios = periodPagos.filter(p => paidIds.has(String(p.transaccion_id)) && partidas.some(root => (root._id === sourceId || root.nombre.trim().toLowerCase() === "honorarios") && (p.partida_id === root._id || partidas.find(child => child._id === p.partida_id)?.partida_nombre === root.nombre))).reduce((sum,p) => sum + p.monto, 0);
+      total += honorarios - manualHonorarios;
+    }
+    return { paymentsByPartida, total, honorarios, indirectos: indirectos.automaticos, indirectosSustituidosPorPartida: indirectos.sustituidosPorPartida, feeConcepts: indirectos.concepts, feePercentagesByPartida: indirectos.porcentajesPorPartida };
   },
 });
 

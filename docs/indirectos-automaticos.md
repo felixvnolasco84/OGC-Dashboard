@@ -1,33 +1,45 @@
 # Indirectos automáticos
 
-## Uso
+## Configuración por proyecto
 
-- Crear o editar una obra y capturar **Indirectos (%)**, independiente de honorarios.
-- Dejar vacío un proyecto sin activar conserva su cálculo anterior. Una vez activado, **0%** mantiene el esquema automático sin generar cargo.
-- El inicio es **2026-10-01**. Cambiar el porcentaje recalcula desde esa fecha; septiembre y fechas anteriores mantienen la lógica histórica.
-- En P&L → **Cargar movimientos** → captura manual o Excel, registrar el gasto real con tipo **Costo estructura** y categoría **INDIRECTOS**. La obra es opcional: sin obra afecta solamente el consolidado; con obra también afecta su rentabilidad.
-- **Saldo de indirectos** muestra el ingreso de indirectos menos sus costos reales y el componente histórico de costo. Un saldo negativo indica que el gasto excede el cargo.
+Después de importar el presupuesto, Editar proyecto permite activar Honorarios, Indirectos, General Conditions y Viáticos seleccionando su partida de nivel 1.
 
-## Cálculo y compatibilidad
+**Porcentaje = monto original del concepto / presupuesto aprobado total del proyecto × 100.** Todas las partidas de nivel 1 integran el aprobado total. Las familias y subpartidas no se suman otra vez. No existen exclusiones para estos conceptos.
 
-- El porcentaje se aplica a pagos de transacciones **Pagado**, en su fecha, usando las mismas exclusiones de partidas que honorarios en P&L. Los pagos de Honorarios no integran la base.
-- Se redondea el cargo a centavos por pago. P&L utiliza MXN y su conversión existente; el presupuesto utiliza la moneda principal de la obra.
-- Presupuesto y Control incluyen el cargo automático una sola vez, incluso sin una partida manual de indirectos. Los importes de partidas manuales posteriores al inicio son sustituidos en los totales; sus documentos y movimientos permanecen consultables.
-- Los ingresos manuales OGC de indirectos de una obra activada posteriores al inicio no se suman nuevamente al P&L. Su registro bancario sigue disponible en el ledger y en cobrado.
-- Los movimientos reales de indirectos forman parte de costos OGC; su fila de detalle y saldo no agregan un segundo gasto.
-- Las obras sin porcentaje configurado no requieren migración. No se borran ni trasladan registros históricos, ni se activan porcentajes en producción desde las pruebas.
+Guardar conserva una revisión Actual → Propuesto → Diferencia de Presupuesto y P&L. Cambiar el aprobado después del guardado actualiza las tasas y cargos automáticamente. No se requiere un botón de recalcular ni otra aprobación de la tasa. La edición de presupuesto conserva su revisión de impacto y revalida el cambio al guardar.
 
-## Validación
+## Cargos y desglose
 
-- Editar proyecto muestra una revisión **Actual → Propuesto → Diferencia** al cambiar porcentajes, modo o exclusiones. Presupuesto y P&L tienen bloques separados con moneda, periodo y bases. El filtro mensual de P&L solo cambia la revisión; guardar aplica a todo el proyecto.
-- La revisión incluye manuales sustituidos y el efecto sobre gasto total, por gastar, saldo de indirectos y EBITDA. Activar al 0% también puede sustituir manuales, sin borrar registros.
-- Solo se envían campos editados. Los cambios externos no sobrescriben el borrador. Si cambian los datos financieros, se debe revisar la actualización; el backend vuelve a comprobar el alcance y los permisos antes de guardar.
-- La simulación usa únicamente consultas. Cancelar no escribe y el guardado usa una sola mutación con los triggers existentes. Creación e importación de Excel quedan fuera de esta revisión.
-- `npm run test:project-fees`: cálculo anterior/nuevo, coincidencia con el guardado mediante los triggers sobre una base sintética, exclusiones, modos, fechas, monedas, signos, redondeo, permisos, errores y concurrencia. La prueba de rollback modela el contrato transaccional de Convex en una base de prueba; no se ejecuta contra producción.
-- La revisión completa está limitada a 2,500 registros combinados de partidas, transacciones, conceptos y movimientos del proyecto, y a 512 KiB de alcance canónico. Si se excede, se bloquea el guardado financiero sin presentar una muestra parcial. Se conserva la lectura por transacción para conceptos históricos sin `proyecto_id`.
+Los conceptos configurados usan todas las líneas de pagos con estado Pagado desde **2026-10-01**, incluyendo honorarios, viáticos y partidas antes excluidas. Cada cargo es base pagada × porcentaje vigente. Los cargos automáticos no vuelven a integrar la base como nuevos pagos.
 
-- `npm run test:pnl`: incluye corte histórico, porcentaje cero, exclusiones, monedas, gastos corporativos, cambios de pagos y sustitución de indirectos en obra/WIP.
-- `npm run test:indirectos-ui`: revisión del impacto, filtro mensual, cambios concurrentes, conflictos de campos, fallos, cancelación, guardado único y accesibilidad del formulario a 390 y 1440 px, además de cargo en presupuesto y saldo P&L. Usa datos sintéticos y stubs sin conexión a Convex; genera capturas en `output/indirectos-ui`.
-- Pruebas relacionadas de presupuesto, jerarquía de pagos y clasificación OGC; TypeScript, lint de archivos modificados y build.
+Cada cargo se reparte según el monto original de las familias y subpartidas. Los porcentajes de los hijos suman el porcentaje del padre; los cargos de las hojas suman el total de la partida, con reparto determinista de centavos. Presupuesto muestra el desglose y Control usa los mismos totales. Pagado y por gastar de la jerarquía se actualizan con cambios de pagos y de presupuesto.
 
-Para usarlo en el sistema publicado se deben desplegar conjuntamente el schema/backend de Convex y el frontend. Después, configurar el porcentaje deseado en cada obra.
+Los montos originales de los hijos determinan su participación dentro del padre. Si la rama tiene hijos pero todos sus montos originales son cero y el concepto es positivo, se solicita corregir esos importes antes de distribuirlo.
+
+Los pagos manuales de las partidas activadas se sustituyen en los totales; sus documentos y registros permanecen consultables y sus importes registrados forman parte de la base común. Los conceptos sin activar conservan sus pagos manuales. Activar un concepto indirecto independiente reemplaza el porcentaje global anterior desde el corte.
+
+## Costos reales y P&L
+
+Registrar los gastos reales mediante captura manual o Excel en P&L → Cargar movimientos, con tipo **Costo estructura** y categoría **INDIRECTOS**. La obra es opcional: sin obra afecta el consolidado de OGC; con obra afecta también su rentabilidad.
+
+Los cargos de Indirectos, General Conditions y Viáticos se agrupan como ingreso de indirectos; Honorarios se presenta por separado. Saldo de indirectos muestra ingreso menos costos reales y el componente de costo histórico, si el periodo lo incluye. Cada costo se cuenta una sola vez.
+
+Presupuesto usa la moneda de la obra; P&L usa MXN y su conversión existente. Los cargos se redondean a centavos por pago y se distribuyen sin perder centavos. El cálculo no crea transferencias bancarias ni facturas.
+
+## Compatibilidad y revisión
+
+El corte se mantiene en el 1 de octubre de 2026. Los periodos anteriores conservan su tratamiento histórico. Las obras sin conceptos configurados mantienen sus porcentajes manuales y exclusiones anteriores, disponibles en Configuración anterior y periodos históricos. Una tasa configurada al 0% sigue activa y puede sustituir manuales sin generar cargo.
+
+El filtro mensual de P&L solo cambia la revisión; guardar aplica a todo el proyecto. Cambios externos en datos financieros invalidan una revisión abierta y exigen actualizarla antes de guardar. Cancelar no escribe. La revisión completa mantiene los límites de 2,500 registros y 512 KiB de alcance canónico.
+
+Backend y schema desplegados el 14 de octubre de 2026 en `dev:animated-walrus-612`. Los cambios de frontend se incluyen en `main`; su publicación depende del hosting configurado para esa rama. El despliegue no activa conceptos ni migra proyectos. Queda pendiente conciliar los resultados contra el aprobado vigente de los Excel reales; las tasas de referencia de la reunión no son valores prefijados.
+
+## Pruebas
+
+- test:project-fees: fórmula sobre aprobado completo, ausencia de exclusiones, autorrecalculo, cinco subpartidas, pagos insertados/editados/eliminados, corte, monedas, revisión y concurrencia.
+- test:indirectos-ui: configuración sin exclusiones, porcentaje actualizado sin guardar otra vez, desglose de cinco hojas, revisión y guardado a 390 y 1440 px. Usa datos sintéticos sin conexión a Convex y genera capturas en output/indirectos-ui.
+- Pruebas relacionadas de P&L, Presupuesto, jerarquía, edición de pagos, edición/eliminación de partidas y clasificación OGC; TypeScript, lint y build.
+
+Validación final: 258 pruebas aprobadas, 2 omitidas; TypeScript, ESLint, build y pruebas visuales aprobados.
+
+El plan complementado está en docs/plan-conceptos-porcentuales.md.

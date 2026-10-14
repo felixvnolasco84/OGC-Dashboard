@@ -1,3 +1,4 @@
+import { calculateFeeConceptPayments, isActiveFeeConcept, type FeeConceptConfig, type FeeConceptPartida } from "./feeConceptRules";
 export type HonorariosModo = "automatico" | "transacciones";
 
 export function isHonorariosPartida(partida: {
@@ -19,10 +20,21 @@ export function getHonorariosBreakdown(input: {
   modo?: HonorariosModo;
   porcentaje?: number;
   excludedPartidas?: readonly string[];
-  transactions: readonly { _id: string; monto_total: number }[];
+  feeConcepts?: readonly FeeConceptConfig[];
+  convert?: (amount: number, transaction: { _id: string; moneda?: string; tipo_cambio?: string | number }) => number;
+  transactions: readonly { _id: string; monto_total: number; fecha?: string; status?: string; moneda?: string; tipo_cambio?: string | number }[];
   pagos: readonly { transaccion_id: string; partida_id?: string; monto: number }[];
-  partidas: readonly { _id: string; proyecto?: string; nivel: number; nombre: string; partida_nombre?: string }[];
-}) {
+  partidas: readonly FeeConceptPartida[];
+}): { base: number; excludedAmount: number; amount: number } {
+  const configured = input.feeConcepts?.find(c => c.concepto === "honorarios");
+  if (configured) {
+    const legacy = getHonorariosBreakdown({ ...input, feeConcepts: undefined,
+      transactions: input.transactions.filter(t => !isActiveFeeConcept(configured, t.fecha)) });
+    const current = calculateFeeConceptPayments({ configs: input.feeConcepts || [configured], partidas: input.partidas,
+      transactions: input.transactions, pagos: input.pagos, convert: input.convert }).concepts.find(c => c.concepto === "honorarios")!;
+    return { base: legacy.base + current.basePagada, excludedAmount: legacy.excludedAmount,
+      amount: Math.round((legacy.amount + current.monto) * 100) / 100 };
+  }
   const transactionIds = new Set(input.transactions.map((transaction) => String(transaction._id)));
   const partidasById = new Map(input.partidas.map((partida) => [String(partida._id), partida]));
   const periodPagos = input.pagos.filter((pago) => transactionIds.has(String(pago.transaccion_id)));

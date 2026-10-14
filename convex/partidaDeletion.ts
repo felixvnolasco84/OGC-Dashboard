@@ -4,6 +4,10 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getCurrentUserOrThrow, hasAdminAccess, canUserAccessDesarrollo } from "./permissions";
 import { normalizeHierarchyText as normalize } from "./partidaRules";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
+import { calculateBudgetIndirectos, feeBudgetConvert } from "./indirectosBudget";
+import { calculateHonorariosFromRecords } from "./honorariosRules";
+import { belongsToFeeRoot, canonicalFeeConcepts } from "./feeConceptRules";
+import { repairProjectPaymentTotals } from "./budgetMaintenance";
 
 type Context = QueryCtx | MutationCtx;
 export const DELETION_LIMITS = { scope: 500, documents: 8000, bytes: 4 * 1024 * 1024, indexRanges: 3500 };
@@ -171,9 +175,33 @@ async function inspect(ctx: Context, id: Id<"partidas">, projectId: Id<"desarrol
         .map(p => [p._id, p.nivel, p.nombre, p.partida_nombre ?? null, p.familia, p.sub_partida,
           p.presupuesto_original, p.presupuesto_aprobado, p.pagado]),
     });
+    if (project.fee_concepts?.length) {
+      if (project.fee_concepts.some(c => ids.has(c.partida_id))) {
+        impact.blockers.push("La partida es el origen de un concepto automático. Cambia su configuración antes de eliminarla.");
+        impact.expectedScope = "";
+        return { impact, project, target, selected, remaining };
+      }
+      const transactions = await budget.collect(ctx.db.query("transacciones").withIndex("by_proyecto", q => q.eq("proyecto", projectId)));
+      const pagos: Doc<"pagos">[] = [];
+      for (const tx of transactions) pagos.push(...await budget.collect(ctx.db.query("pagos").withIndex("by_transaccion", q => q.eq("transaccion_id", tx._id))));
+      const scenario = (rows: Doc<"partidas">[]) => {
+        const honorarios = calculateHonorariosFromRecords({ proyectoId: projectId, modo: project.honorarios_modo,
+          porcentaje: project.honorarios_porcentaje, excludedPartidas: project.excluded_partidas_honorarios,
+          feeConcepts: project.fee_concepts, convert: feeBudgetConvert(project), partidas: rows, transactions, pagos });
+        return calculatePresupuestoMetrics(rows, honorarios, calculateBudgetIndirectos(project, rows, transactions, pagos));
+      };
+      try { impact.budget = { before: scenario(partidas), after: scenario(remaining) }; }
+      catch (error) {
+        impact.blockers.push(error instanceof Error ? error.message : "No se puede recalcular el cargo automático después de eliminar.");
+        impact.expectedScope = "";
+        return { impact, project, target, selected, remaining };
+      }
+      impact.expectedScope = JSON.stringify([impact.expectedScope, canonicalFeeConcepts(project.fee_concepts), partidas,
+        [...transactions].sort((a,b) => a._id.localeCompare(b._id)), [...pagos].sort((a,b) => a._id.localeCompare(b._id))]);
+    }
     // Query results also have a size limit. Do not return an oversized snapshot.
     if (new TextEncoder().encode(impact.expectedScope).byteLength > 512 * 1024) throw new AnalysisLimit();
-    impact.budget = { before: calculatePresupuestoMetrics(partidas, project.honorarios_monto), after: calculatePresupuestoMetrics(remaining, project.honorarios_monto) };
+    impact.budget ||= { before: calculatePresupuestoMetrics(partidas, project.honorarios_monto), after: calculatePresupuestoMetrics(remaining, project.honorarios_monto) };
     if (![...Object.values(impact.budget.before), ...Object.values(impact.budget.after)].every(Number.isFinite)) {
       impact.budget = null;
       impact.blockers.push("Los importes exceden el rango de cálculo válido. Corrige el presupuesto antes de eliminar.");
@@ -228,12 +256,14 @@ async function inspect(ctx: Context, id: Id<"partidas">, projectId: Id<"desarrol
       const hasPaymentSource = selected.some(child => directPaymentIds.has(child._id) &&
         (child._id === p._id || p.nivel === 1 && partidaRootName(child) === p.nombre ||
           p.nivel === 2 && child.nivel === 3 && partidaRootName(child) === partidaRootName(p) && child.familia === p.familia));
-      if (p.pagado !== 0 && !hasPaymentSource) impact.blockers.push(`El registro «${p.nivel === 1 ? p.nombre : p.nivel === 2 ? p.familia : p.sub_partida || p.nombre}» tiene un importe pagado sin pagos que lo expliquen; requiere conciliación.`);
+      const automaticSource = project.fee_concepts?.some(c => belongsToFeeRoot(p, c.partida_id, partidas));
+      if (p.pagado !== 0 && !hasPaymentSource && !automaticSource) impact.blockers.push(`El registro «${p.nivel === 1 ? p.nombre : p.nivel === 2 ? p.familia : p.sub_partida || p.nombre}» tiene un importe pagado sin pagos que lo expliquen; requiere conciliación.`);
     }
     // These arrays cannot be indexed by their elements. Scan with a shared
     // budget, including malformed historical cross-project references.
     add("tareas", await budget.collect(ctx.db.query("tareas")), t => (t.partidas || []).some(id => ids.has(id)));
-    add("exclusiones", await budget.collect(ctx.db.query("desarrollos")), p => (p.excluded_partidas_honorarios || []).some(id => ids.has(id)));
+    add("exclusiones", await budget.collect(ctx.db.query("desarrollos")), p => (p.excluded_partidas_honorarios || []).some(id => ids.has(id)) ||
+      (p.fee_concepts || []).some(c => ids.has(c.partida_id)));
 
     const removesName = (partida: string, familia?: string, sub?: string) => {
       const matches = (p: Doc<"partidas">) => normalize(partidaRootName(p)) === normalize(partida) &&
@@ -281,7 +311,7 @@ export async function analyzePartidaDeletion(ctx: Context, id: Id<"partidas">, p
 // Call only with the raw mutation context: all derived updates below are
 // explicit, atomic and run once, rather than once per deleted document.
 export async function executePartidaDeletion(ctx: MutationCtx, id: Id<"partidas">, projectId: Id<"desarrollos">, expectedScope?: string) {
-  const { impact, target, selected, remaining } = await inspect(ctx, id, projectId);
+  const { impact, project, target, selected, remaining } = await inspect(ctx, id, projectId);
   if (impact.status === "missing") return { status: "already_deleted" as const, deletedIds: [] as Id<"partidas">[], removedFilters: { partidas: [] as string[], familias: [] as string[] } };
   if (!impact.canDelete) throw new ConvexError(impact.blockers.join("\n"));
   if (expectedScope !== undefined && impact.expectedScope !== expectedScope) {
@@ -295,6 +325,7 @@ export async function executePartidaDeletion(ctx: MutationCtx, id: Id<"partidas"
   const metrics = await ctx.db.query("meticas_presupuesto").withIndex("by_proyecto", q => q.eq("proyecto", projectId)).first();
   if (metrics) await ctx.db.patch(metrics._id, impact.budget!.after);
   else await ctx.db.insert("meticas_presupuesto", { proyecto: projectId, ...impact.budget!.after });
+  if (project.fee_concepts?.length) await repairProjectPaymentTotals(ctx, projectId);
   return {
     status: "deleted" as const, deletedIds: selected.map(p => p._id),
     removedFilters: {

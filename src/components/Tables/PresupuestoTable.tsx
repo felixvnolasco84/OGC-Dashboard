@@ -91,7 +91,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
   );
 
   const automaticPayments = useQuery(api.pagos.getPaymentsByDateRange,
-    projectId && proyecto?.indirectos_porcentaje !== undefined && !filteredPayments ? { proyecto_id: projectId } : "skip");
+    projectId && (proyecto?.indirectos_porcentaje !== undefined || proyecto?.fee_concepts?.length) ? { proyecto_id: projectId } : "skip");
   const displayPayments = filteredPayments || automaticPayments?.paymentsByPartida;
   const automaticIndirectos = filteredPayments ? (filteredIndirectos ?? 0) : (automaticPayments?.indirectos ?? 0);
 
@@ -302,6 +302,10 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
 
   // Compute filtered pagado for an item (recursively aggregates children)
   const getFilteredPagado = (item: PartidaRow): number => {
+    const configuredHonorariosId = proyecto?.fee_concepts?.find(c => c.concepto === "honorarios")?.partida_id;
+    if (item.level === 0 && (isHonorariosItem(item.nombre) || Boolean(configuredHonorariosId && item.originalDoc?._id === configuredHonorariosId))) {
+      return filteredPayments ? (filteredHonorarios ?? 0) : (automaticPayments?.honorarios ?? proyecto?.honorarios_monto ?? 0);
+    }
     if (!displayPayments) return item.pagado;
     const directPayment = displayPayments[item.originalDoc?._id || ""] || 0;
     if (!item.children || item.children.length === 0) {
@@ -352,7 +356,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                 {dateFilterLabel ? `Pagado (${dateFilterLabel})` : "Pagado"}
               </TableHead>
               <TableHead variant="budget">
-                Avance
+                {proyecto?.fee_concepts?.length ? "Avance / % concepto" : "Avance"}
               </TableHead>
               <TableHead variant="budget">
               </TableHead>
@@ -431,9 +435,9 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                     <TableCell variant="budget">
                       <div className="flex flex-col gap-2 text-left">
                         {/* For Honorarios level 0 items, show honorarios_monto from proyecto in pagado column */}
-                        {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_monto !== undefined ? (
+                        {item.level === 0 && (isHonorariosItem(item.nombre) || Boolean(proyecto?.fee_concepts?.find(c => c.concepto === "honorarios")?.partida_id && item.originalDoc?._id === proyecto.fee_concepts.find(c => c.concepto === "honorarios")!.partida_id)) && proyecto?.honorarios_monto !== undefined ? (
                           <>
-                            <span>{formatCurrency(filteredPayments ? (filteredHonorarios ?? 0) : proyecto.honorarios_monto, defaultCurrency)}</span>
+                            <span>{formatCurrency(displayPagado, defaultCurrency)}</span>
                             {proyecto.honorarios_modo === "transacciones" && (
                               <span className="text-xs text-muted-foreground">Incluye transacciones por pagar</span>
                             )}
@@ -452,7 +456,9 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                     </TableCell>
                     <TableCell variant="budget">
                       {/* For Honorarios level 0 items, show honorarios_porcentaje from proyecto */}
-                      {item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_modo !== "transacciones" && proyecto?.honorarios_porcentaje !== undefined ? (
+                      {automaticPayments?.feePercentagesByPartida?.[item.originalDoc?._id || ""] !== undefined ? (
+                        <span>{automaticPayments.feePercentagesByPartida[item.originalDoc?._id || ""].toLocaleString("es-MX", { maximumFractionDigits: 6 })}%</span>
+                      ) : item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_modo !== "transacciones" && proyecto?.honorarios_porcentaje !== undefined ? (
                         <span>{proyecto.honorarios_porcentaje}%</span>
                       ) : (
                         <span>{item.avance}%</span>
@@ -478,7 +484,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                 </React.Fragment>
               );
             })}
-            {proyecto?.indirectos_porcentaje !== undefined && (
+            {proyecto?.indirectos_porcentaje !== undefined && !proyecto.fee_concepts?.some(c => c.concepto !== "honorarios") && (
               <TableRow variant="budget">
                 <TableCell variant="budget">Indirectos automáticos</TableCell>
                 {showPrecioUnitario && <><TableCell variant="budget">—</TableCell><TableCell variant="budget">—</TableCell><TableCell variant="budget">—</TableCell></>}

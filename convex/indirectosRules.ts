@@ -1,7 +1,8 @@
 import { isHonorariosPartida } from "./honorariosRules";
+import { calculateFeeConceptPayments, hasActiveIndirectFeeConcepts, type FeeConceptConfig, type FeeConceptPartida } from "./feeConceptRules";
 
 export const INDIRECTOS_START = "2026-10-01";
-export type IndirectosConfig = { indirectos_porcentaje?: number; indirectos_fecha_inicio?: string };
+export type IndirectosConfig = { indirectos_porcentaje?: number; indirectos_fecha_inicio?: string; fee_concepts?: readonly FeeConceptConfig[] };
 type Partida = { _id: string; nombre: string; nivel: number; partida_nombre?: string; familia?: string; sub_partida?: string };
 type Transaction = { _id: string; fecha: string; status: string; moneda?: string; tipo_cambio?: string | number };
 const normalize = (value?: string) => (value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -23,7 +24,7 @@ export function reportDateIso(value?: string): string | null {
 
 export function isAutomaticIndirectos(config: IndirectosConfig, fecha?: string) {
   const date = reportDateIso(fecha);
-  return config.indirectos_porcentaje !== undefined && Boolean(date && date >= (config.indirectos_fecha_inicio || INDIRECTOS_START));
+  return !hasActiveIndirectFeeConcepts(config.fee_concepts, fecha) && config.indirectos_porcentaje !== undefined && Boolean(date && date >= (config.indirectos_fecha_inicio || INDIRECTOS_START));
 }
 
 export function validateIndirectosPercentage(value?: number) {
@@ -52,7 +53,7 @@ export function indirectosCharge(amount: number, config: IndirectosConfig) {
 export function calculateIndirectosFromRecords(input: {
   config: IndirectosConfig;
   excludedPartidas?: readonly string[];
-  partidas: readonly Partida[];
+  partidas: readonly FeeConceptPartida[];
   transactions: readonly Transaction[];
   pagos: readonly { transaccion_id: string; partida_id?: string; monto: number }[];
   convert?: (amount: number, transaction: Transaction) => number;
@@ -79,5 +80,14 @@ export function calculateIndirectosFromRecords(input: {
       sustituidosPorPartida[String(partida._id)] = (sustituidosPorPartida[String(partida._id)] || 0) + manualAmount;
     }
   }
-  return { baseElegible, automaticos: Math.round(automaticos * 100) / 100, manualesSustituidos, sustituidosPorPartida };
+  const configured = calculateFeeConceptPayments({ configs: input.config.fee_concepts || [], partidas: input.partidas,
+    transactions: input.transactions, pagos: input.pagos,
+    convert: input.convert ? (amount, tx) => input.convert!(amount, tx as Transaction) : undefined });
+  for (const concept of configured.concepts.filter(c => c.concepto !== "honorarios")) {
+    automaticos += concept.monto; baseElegible += concept.basePagada; manualesSustituidos += concept.manualSustituido;
+  }
+  for (const [id, amount] of Object.entries(configured.sustituidosPorPartida)) sustituidosPorPartida[id] = (sustituidosPorPartida[id] || 0) + amount;
+  return { baseElegible, automaticos: Math.round(automaticos * 100) / 100, manualesSustituidos, sustituidosPorPartida,
+    concepts: configured.concepts, automaticosPorPartida: configured.automaticosPorPartida, porcentajesPorPartida: configured.porcentajesPorPartida,
+    honorariosPartidaId: input.config.fee_concepts?.find(c => c.concepto === "honorarios")?.partida_id };
 }

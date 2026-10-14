@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { feeConceptConfigValidator } from "./feeConceptValidators";
 import {
   assistantAnswerValidator,
   assistantReferenceValidator,
@@ -55,6 +56,7 @@ export default defineSchema({
     status: v.optional(v.string()), // Activo, Cancelado, Entregado
     fecha_creacion: v.optional(v.string()),
     indirectos_porcentaje: v.optional(v.number()),
+    fee_concepts: v.optional(v.array(feeConceptConfigValidator)),
     indirectos_fecha_inicio: v.optional(v.string()),
     honorarios_porcentaje: v.optional(v.number()), // User-set percentage (e.g., 15 for 15%)
     honorarios_monto: v.optional(v.number()), // Calculated according to honorarios_modo

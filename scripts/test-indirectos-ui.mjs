@@ -99,6 +99,44 @@ try {
     await expect(review).toContainText("La activación sustituye componentes manuales desde la fecha de inicio, incluso al 0%.");
     await page.keyboard.press("Escape");
     assert.equal(await page.evaluate(() => window.indirectosMutation), undefined);
+    // All concepts use the approved total, with no exclusions; saved charges
+    // are distributed through a family and five leaves using the real engine.
+    await page.goto("http://127.0.0.1:4197/e2e/indirectos/preview.html?view=budget");
+    await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
+    await page.getByRole("checkbox", { name: "Calcular Honorarios desde presupuesto", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Calcular General Conditions desde presupuesto", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Calcular Viáticos desde presupuesto", exact: true }).check();
+    await expect(page.locator('[id^="exclude-honorarios-"]')).toHaveCount(0);
+    await expect(page.getByTestId("rate-honorarios")).toContainText("11.737089");
+    await expect(page.getByTestId("rate-viaticos")).toContainText("1.408451%");
+    await expect(page.getByTestId("concept-review-honorarios")).toContainText("$255,600.00");
+    await expect(save).toBeEnabled();
+    await scrollSection(page.getByTestId("concept-review-honorarios"));
+    await page.screenshot({ path: `${root}/output/indirectos-ui/concepts-review-${width}.png` });
+    await save.click();
+    await expect.poll(() => page.evaluate(() => window.indirectosMutation?.args.fee_concepts?.length)).toBe(3);
+    const savedConcepts = await page.evaluate(() => window.indirectosMutation.args.fee_concepts);
+    assert.equal(savedConcepts.find(c => c.concepto === "honorarios").excluded_partidas.includes("travel"), false);
+    assert.equal(savedConcepts.every(c => c.excluded_partidas.length === 0), true);
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+    await page.getByRole("button", { name: "Expandir VIÁTICOS", exact: true }).click();
+    await page.getByRole("button", { name: "Expandir Gastos de viaje", exact: true }).click();
+    const travelRow = page.getByRole("row").filter({ has: page.getByRole("button", { name: "Contraer VIÁTICOS", exact: true }) });
+    await expect(travelRow).toContainText("1,408.45");
+    for (let index = 1; index <= 5; index++) {
+      const leaf = page.getByRole("row").filter({ hasText: `Viático ${index}` });
+      await expect(leaf).toBeVisible();
+      await expect(leaf).toContainText(index === 1 ? "140.85" : index === 3 ? "422.53" : "281.69");
+    }
+    await page.getByText('El proyecto "Obra de prueba" ha sido actualizado correctamente.').waitFor({ state: "hidden" });
+    await page.screenshot({ path: `${root}/output/indirectos-ui/concepts-breakdown-${width}.png`, fullPage: true });
+    await page.evaluate(() => window.feeFixtureChange({ approvedWork: 444400 }));
+    await expect(travelRow).toContainText("720");
+    await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
+    await expect(page.getByTestId("rate-honorarios")).toContainText("6%");
+    await expect(page.getByTestId("rate-viaticos")).toContainText("0.72%");
+    await expect(page.getByRole("button", { name: "Guardar Cambios", exact: true })).toBeDisabled();
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
     await page.goto("http://127.0.0.1:4197/e2e/indirectos/preview.html");
     await expect(page.getByText("INDIRECTOS COBRADOS", { exact: true }).filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByText("SALDO DE INDIRECTOS", { exact: true }).filter({ visible: true }).first()).toBeVisible();

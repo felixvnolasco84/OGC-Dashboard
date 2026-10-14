@@ -53,6 +53,31 @@ async function fixture() {
 }
 
 describe("payment edit review and atomic save", () => {
+  it("payment edits preview and persist the distributed automatic concept amounts", async () => {
+    const f = await fixture();
+    const travelIds = await f.t.run(async ctx => {
+      await ctx.db.patch(f.ids.user, { role: "admin" });
+      await ctx.db.patch(f.ids.fee, { presupuesto_original: 200, presupuesto_aprobado: 200 });
+      const common = { proyecto: f.ids.project, nombre: "VIÁTICOS", familia: "Viaje", sub_partida: "", nivel: 1, unidad: "", cantidad: 0, precio_unitario: 0, presupuesto_original: 100, presupuesto_aprobado: 100, pagado: 0, archivo_origen: "" };
+      const root = await ctx.db.insert("partidas", common);
+      const family = await ctx.db.insert("partidas", { ...common, nivel: 2, partida_nombre: "VIÁTICOS" });
+      const a = await ctx.db.insert("partidas", { ...common, nivel: 3, partida_nombre: "VIÁTICOS", sub_partida: "Hotel", presupuesto_original: 40, presupuesto_aprobado: 40 });
+      const b = await ctx.db.insert("partidas", { ...common, nivel: 3, partida_nombre: "VIÁTICOS", sub_partida: "Comida", presupuesto_original: 60, presupuesto_aprobado: 60 });
+      return { root, family, a, b };
+    });
+    const fee_concepts = [{ concepto: "honorarios", partida_id: f.ids.fee, excluded_partidas: [] }, { concepto: "viaticos", partida_id: travelIds.root, excluded_partidas: [] }];
+    const preview = await f.writer.query(api.desarrollos.previewFeeImpact, { id: f.ids.project, fee_concepts });
+    expect(preview.status, preview.message).toBe("ready");
+    await f.writer.mutation(api.desarrollos.update, { id: f.ids.project, fee_concepts, expected_impact: preview.expectedImpact });
+    const r = await f.review({}, [{ id: f.ids.a, monto: 400 }]);
+    expect(r.result.afterBudget).toMatchObject({ honorarios: 95.65, indirectos: 47.82 });
+    await f.save(r);
+    expect((await f.get(travelIds.root)).pagado).toBe(47.82);
+    expect((await f.get(travelIds.family)).pagado).toBe(47.82);
+    expect((await f.get(travelIds.a)).pagado).toBe(19.13);
+    expect((await f.get(travelIds.b)).pagado).toBe(28.69);
+    expect((await f.writer.query(api.meticas_presupuesto.getByProyecto, { proyecto_id: f.ids.project })).gasto_total).toBeCloseTo(1243.47, 8);
+  });
   it("previews without writes and preserves concepts outside a filtered context", async () => {
     const f = await fixture(), before = await f.snapshot(), r = await f.review();
     expect(await f.snapshot()).toEqual(before);

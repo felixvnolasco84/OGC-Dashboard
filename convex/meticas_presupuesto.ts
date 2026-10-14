@@ -1,3 +1,4 @@
+import { feeBudgetConvert } from "./indirectosBudget";
 import { getBudgetIndirectos, calculateBudgetIndirectos } from "./indirectosBudget";
 import { query } from "./_generated/server";
 import { mutation } from "./functions";
@@ -160,6 +161,7 @@ export const getFilteredMetrics = query({
           .collect()
       ))).flat();
       honorarios = calculateHonorariosFromRecords({
+      feeConcepts: proyecto?.fee_concepts, convert: feeBudgetConvert(proyecto),
         proyectoId: String(args.proyecto_id),
         modo: proyecto?.honorarios_modo,
         porcentaje: proyecto?.honorarios_porcentaje,

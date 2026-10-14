@@ -1,6 +1,7 @@
 import { isHonorariosPartida } from "./honorariosRules";
 
 type BudgetPartida = {
+  _id?: string;
   nivel: number;
   nombre: string;
   presupuesto_original?: number;
@@ -11,7 +12,7 @@ type BudgetPartida = {
 export function calculatePresupuestoMetrics(
   partidas: readonly BudgetPartida[],
   honorariosMonto?: number,
-  indirectos?: { automaticos: number; manualesSustituidos: number },
+  indirectos?: { automaticos: number; manualesSustituidos: number; honorariosPartidaId?: string; concepts?: readonly { partida_id: string; manualTotal: number }[] },
 ) {
   const roots = partidas.filter((partida) => partida.nivel === 1);
   const presupuesto_original = roots.reduce((sum, partida) => sum + (partida.presupuesto_original || 0), 0);
@@ -19,7 +20,8 @@ export function calculatePresupuestoMetrics(
   // Match the HONORARIOS amount displayed in the budget table. Its cached
   // `pagado` can be replaced by hierarchy rollups, so substitute, never add twice.
   const gasto_total = roots.reduce((sum, partida) =>
-    sum + (honorariosMonto !== undefined && isHonorariosPartida(partida) ? 0 : (partida.pagado || 0)),
+    sum + (honorariosMonto !== undefined && (isHonorariosPartida(partida) || Boolean(indirectos?.honorariosPartidaId && partida._id === indirectos.honorariosPartidaId)) ? 0 :
+      (indirectos?.concepts?.find(c => c.partida_id === partida._id)?.manualTotal ?? partida.pagado ?? 0)),
   0) + (honorariosMonto ?? 0) + (indirectos?.automaticos || 0) - (indirectos?.manualesSustituidos || 0);
 
   return {

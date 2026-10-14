@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import ProjectFeeImpactReview from "./project-fee-impact-review";
+import FeeConceptEditor from "./fee-concept-editor";
+import type { FeeConceptInput } from "../../../convex/feeConceptRules";
 import { editableProjectFields, projectDraftPatch } from "@/lib/project-fee-draft";
 import type { FeeProposal } from "../../../convex/projectFeeImpact";
 import {
@@ -47,6 +49,7 @@ export default function EditProyectoModal() {
   const [ubicacion, setUbicacion] = useState<string | undefined>();
   const [excludedPartidas, setExcludedPartidas] = useState<Id<"partidas">[]>([]);
   const [partidaSearch, setPartidaSearch] = useState("");
+  const [feeConcepts, setFeeConcepts] = useState<FeeConceptInput[]>([]);
 
   const [baseline, setBaseline] = useState<Doc<"desarrollos"> | null>(null);
   const [reviewed, setReviewed] = useState<{ key: string; scope: string } | null>(null);
@@ -74,6 +77,7 @@ export default function EditProyectoModal() {
       setHonorariosModo(proyecto.honorarios_modo || "automatico");
       setUbicacion(proyecto.ubicacion);
       setExcludedPartidas(proyecto.excluded_partidas_honorarios || []);
+      setFeeConcepts((proyecto.fee_concepts || []).map(c => ({ concepto: c.concepto, partida_id: c.partida_id, excluded_partidas: c.excluded_partidas })));
       setPartidaSearch("");
       setSaveError(null);
       setReviewed(null);
@@ -82,8 +86,8 @@ export default function EditProyectoModal() {
 
   const patch = useMemo(() => baseline ? projectDraftPatch(baseline, {
     nombre, descripcion, status, ubicacion, honorariosPorcentaje, indirectosPorcentaje,
-    honorariosModo, excludedPartidas,
-  }) : null, [baseline, nombre, descripcion, status, ubicacion, honorariosPorcentaje, indirectosPorcentaje, honorariosModo, excludedPartidas]);
+    honorariosModo, excludedPartidas, feeConcepts,
+  }) : null, [baseline, nombre, descripcion, status, ubicacion, honorariosPorcentaje, indirectosPorcentaje, honorariosModo, excludedPartidas, feeConcepts]);
   const proposalKey = patch && proyectoId ? JSON.stringify({ id: proyectoId, ...patch.financial }) : "";
   const canPreview = Boolean(isOpen && patch?.financialChanged && !patch.invalid);
   useEffect(() => {
@@ -246,6 +250,11 @@ export default function EditProyectoModal() {
             </p>
           </div>
 
+          {partidas && <FeeConceptEditor value={feeConcepts} approved={baseline?.fee_concepts || []} partidas={partidas}
+            currency={baseline?.moneda_principal || "MXN"} onChange={setFeeConcepts} />}
+          <details open={feeConcepts.length === 0} className="space-y-3 border-t pt-4">
+          <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium">Configuración anterior y periodos históricos</summary>
+          <p className="border-t pt-4 text-xs text-muted-foreground">La configuración anterior se conserva para periodos históricos y conceptos sin configurar. Cada concepto automático usa su propia tasa y exclusiones desde su fecha de inicio.</p>
           <div className="space-y-2">
             <Label htmlFor="indirectos_porcentaje">Indirectos (%)</Label>
             <Input id="indirectos_porcentaje" type="number" min="0" max="100" step="0.01"
@@ -366,6 +375,7 @@ export default function EditProyectoModal() {
               </p>
             </div>
           ) : null}
+          </details>
 
           {/* Status */}
           <div className="space-y-2">
@@ -384,7 +394,7 @@ export default function EditProyectoModal() {
             </Select>
           </div>
 
-          {patch?.invalid && <p role="alert" className="text-sm text-destructive">Captura porcentajes entre 0 y 100. Para indirectos ya activados, usa 0% para mantener el esquema sin cargo; vacío no lo desactiva.</p>}
+          {patch?.invalid && <p role="alert" className="text-sm text-destructive">Selecciona una partida válida para cada concepto. En la configuración anterior, captura porcentajes entre 0 y 100; para indirectos ya activados, 0% mantiene el esquema sin cargo y vacío no lo desactiva.</p>}
           {conflicts.length > 0 && <div role="alert" className="space-y-2 border p-3 text-sm">
             <p>Otra persona cambió campos que estás editando: {conflicts.join(", ")}. Tu borrador se conserva.</p>
             {conflicts.map(key => <p key={key} className="break-words text-xs">{key}: actual «{proyecto?.[key] || "Sin valor"}» · borrador «{({ nombre, descripcion, status, ubicacion })[key] || "Sin valor"}»</p>)}

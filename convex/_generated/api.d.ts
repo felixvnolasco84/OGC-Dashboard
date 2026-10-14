@@ -32,6 +32,8 @@ import type * as crons from "../crons.js";
 import type * as currency_helpers from "../currency_helpers.js";
 import type * as desarrollos from "../desarrollos.js";
 import type * as documentos from "../documentos.js";
+import type * as feeConceptRules from "../feeConceptRules.js";
+import type * as feeConceptValidators from "../feeConceptValidators.js";
 import type * as files from "../files.js";
 import type * as functions from "../functions.js";
 import type * as honorariosRules from "../honorariosRules.js";
@@ -149,6 +151,8 @@ declare const fullApi: ApiFromModules<{
   currency_helpers: typeof currency_helpers;
   desarrollos: typeof desarrollos;
   documentos: typeof documentos;
+  feeConceptRules: typeof feeConceptRules;
+  feeConceptValidators: typeof feeConceptValidators;
   files: typeof files;
   functions: typeof functions;
   honorariosRules: typeof honorariosRules;

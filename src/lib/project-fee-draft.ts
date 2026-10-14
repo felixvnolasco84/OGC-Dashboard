@@ -1,18 +1,21 @@
 import type { Doc } from "../../convex/_generated/dataModel";
 import type { FeeProposal } from "../../convex/projectFeeImpact";
+import type { FeeConceptInput } from "../../convex/feeConceptRules";
 
 export type ProjectDraft = {
   nombre: string; descripcion: string; status: string; ubicacion?: string;
   honorariosPorcentaje: string; indirectosPorcentaje: string;
   honorariosModo: "automatico" | "transacciones";
   excludedPartidas: NonNullable<Doc<"desarrollos">["excluded_partidas_honorarios"]>;
+  feeConcepts?: FeeConceptInput[];
+  recalculateConcepts?: boolean;
 };
 export const editableProjectFields = ["nombre", "descripcion", "status", "ubicacion"] as const;
 const idsKey = (ids: readonly string[]) => JSON.stringify([...new Set(ids)].sort());
 
 export function projectDraftPatch(baseline: Doc<"desarrollos">, draft: ProjectDraft) {
   const financial: FeeProposal = {};
-  const invalid = [draft.honorariosPorcentaje, draft.indirectosPorcentaje].some(value => value !== "" &&
+  const invalid = Boolean(draft.feeConcepts?.some(c => !c.partida_id)) || [draft.honorariosPorcentaje, draft.indirectosPorcentaje].some(value => value !== "" &&
     (!Number.isFinite(Number(value)) || Number(value) < 0 || Number(value) > 100)) ||
     (baseline.indirectos_porcentaje !== undefined && draft.indirectosPorcentaje === "");
   const honorarios = draft.honorariosPorcentaje === "" ? 0 : Number(draft.honorariosPorcentaje);
@@ -22,6 +25,10 @@ export function projectDraftPatch(baseline: Doc<"desarrollos">, draft: ProjectDr
   if (draft.honorariosModo !== (baseline.honorarios_modo || "automatico")) financial.honorarios_modo = draft.honorariosModo;
   if (idsKey(draft.excludedPartidas) !== idsKey(baseline.excluded_partidas_honorarios || [])) {
     financial.excluded_partidas_honorarios = [...new Set(draft.excludedPartidas)].sort();
+  }
+  const conceptKey = (concepts: readonly FeeConceptInput[]) => JSON.stringify(concepts.map(c => ({ concepto: c.concepto, partida_id: c.partida_id })).sort((a,b) => a.concepto.localeCompare(b.concepto)));
+  if (draft.feeConcepts && (draft.recalculateConcepts || conceptKey(draft.feeConcepts) !== conceptKey(baseline.fee_concepts || []))) {
+    financial.fee_concepts = draft.feeConcepts;
   }
   const fields: { nombre?: string; descripcion?: string; status?: string; ubicacion?: string | null } = {};
   const expectedFields: Partial<Record<typeof editableProjectFields[number], string | null>> = {};

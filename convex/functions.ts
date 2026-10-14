@@ -1,4 +1,7 @@
+import { feeBudgetConvert } from "./indirectosBudget";
 import { getBudgetIndirectos } from "./indirectosBudget";
+import { canonicalFeeConcepts } from "./feeConceptRules";
+import { repairProjectPaymentTotals } from "./budgetMaintenance";
 import { mutation as rawMutation, internalMutation as rawInternalMutation } from "./_generated/server";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataModel, Doc, Id } from "./_generated/dataModel";
@@ -57,9 +60,9 @@ triggers.register("pagos", async (ctx, change) => {
 
     const proyectoDoc = await ctx.db.get(transaction.proyecto as Id<"desarrollos">);
     const manualMode = getHonorariosModo(proyectoDoc?.honorarios_modo) === "transacciones";
-    const shouldRecalculate = manualMode
+    const shouldRecalculate = Boolean(proyectoDoc?.fee_concepts?.length) || (manualMode
       ? affectedPartidas.some(isHonorariosPartida)
-      : Boolean(proyectoDoc?.excluded_partidas_honorarios?.length);
+      : Boolean(proyectoDoc?.excluded_partidas_honorarios?.length));
     if (shouldRecalculate) {
       await updateHonorariosMonto(ctx, transaction.proyecto);
     } else {
@@ -191,10 +194,9 @@ async function cascadePresupuestoAprobadoUpdate(
       // Get all nivel 2 items in this partida
       const nivel2Items = await ctx.db
         .query("partidas")
-        .withIndex("by_nivel_proyecto", (q: any) => 
-          q.eq("nivel", 2).eq("proyecto", proyecto)
+        .withIndex("by_proyecto_nivel_partida", (q: any) =>
+          q.eq("proyecto", proyecto).eq("nivel", 2).eq("partida_nombre", partida_nombre)
         )
-        .filter((q: any) => q.eq(q.field("partida_nombre"), partida_nombre))
         .collect();
       
       // Sum presupuesto_aprobado from all nivel 2 items
@@ -258,6 +260,8 @@ triggers.register("partidas", async (ctx, change) => {
         
         // Cascade presupuesto_aprobado updates up the hierarchy
         await cascadePresupuestoAprobadoUpdate(ctx, partida);
+        const project = await ctx.db.get(partida.proyecto);
+        if (project?.fee_concepts?.length) await repairProjectPaymentTotals(ctx, partida.proyecto);
         
         // Update meticas_presupuesto
         console.log("Updating meticas_presupuesto for proyecto:", partida.proyecto);
@@ -277,8 +281,14 @@ triggers.register("partidas", async (ctx, change) => {
       await ctx.db.patch(change.id, { por_gastar: porGastar });
       console.log(`Set initial por_gastar for partida ${change.id}: ${porGastar}`);
     }
-    if (partida.nivel === 1 && change.operation !== "update") {
-      await updateMeticasPresupuesto(ctx, partida.proyecto);
+    if (change.operation !== "update") {
+      const project = await ctx.db.get(partida.proyecto);
+      if (project?.fee_concepts?.length) await repairProjectPaymentTotals(ctx, partida.proyecto);
+      if (partida.nivel === 1) await updateMeticasPresupuesto(ctx, partida.proyecto);
+    }
+    if (change.operation === "update" && change.oldDoc?.presupuesto_original !== partida.presupuesto_original) {
+      const project = await ctx.db.get(partida.proyecto);
+      if (project?.fee_concepts?.length) await repairProjectPaymentTotals(ctx, partida.proyecto);
     }
   } catch (error) {
     console.error("❌ Error in partida trigger:", error);
@@ -359,17 +369,22 @@ async function updateHonorariosMonto(
       console.log("Proyecto not found, skipping honorarios calculation");
       return;
     }
+    if (proyecto.fee_concepts?.length) {
+      await repairProjectPaymentTotals(ctx, proyectoId as Id<"desarrollos">);
+      return;
+    }
     
     const transactions = await ctx.db.query("transacciones")
       .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId)).collect();
     const needsPayments = getHonorariosModo(proyecto.honorarios_modo) === "transacciones" ||
-      Boolean(proyecto.excluded_partidas_honorarios?.length);
+      Boolean(proyecto.excluded_partidas_honorarios?.length) || Boolean(proyecto.fee_concepts?.length);
     const partidas = needsPayments ? await ctx.db.query("partidas")
       .withIndex("by_proyecto", (q: any) => q.eq("proyecto", proyectoId)).collect() : [];
     const pagos = needsPayments ? (await Promise.all(transactions.map((t: any) => ctx.db.query("pagos")
       .withIndex("by_transaccion", (q: any) => q.eq("transaccion_id", t._id)).collect()))).flat() : [];
     const roundedHonorariosMonto = calculateHonorariosFromRecords({
       proyectoId, modo: proyecto.honorarios_modo, porcentaje: proyecto.honorarios_porcentaje,
+      feeConcepts: proyecto.fee_concepts, convert: feeBudgetConvert(proyecto),
       excludedPartidas: proyecto.excluded_partidas_honorarios, transactions, partidas, pagos,
     });
 
@@ -409,7 +424,9 @@ async function updateHonorariosPartida(
       .collect();
     
     // Find the honorarios partida with case-insensitive matching
-    const honorariosPartida = nivel1Partidas.find(isHonorariosPartida);
+    const project = await ctx.db.get(proyectoId);
+    const sourceId = project?.fee_concepts?.find((c: { concepto: string; partida_id: string }) => c.concepto === "honorarios")?.partida_id;
+    const honorariosPartida = nivel1Partidas.find((p: Doc<"partidas">) => sourceId ? p._id === sourceId : isHonorariosPartida(p));
     
     if (honorariosPartida) {
       // Update pagado and por_gastar for existing HONORARIOS partida
@@ -565,8 +582,13 @@ triggers.register("desarrollos", async (ctx, change) => {
       const excludedPartidasChanged = oldExcludedPartidas !== newExcludedPartidas;
       
       if (modeChanged || percentageChanged || excludedPartidasChanged ||
+          JSON.stringify(canonicalFeeConcepts(change.oldDoc.fee_concepts)) !== JSON.stringify(canonicalFeeConcepts(change.newDoc.fee_concepts)) ||
           change.oldDoc.indirectos_porcentaje !== change.newDoc.indirectos_porcentaje ||
           change.oldDoc.indirectos_fecha_inicio !== change.newDoc.indirectos_fecha_inicio) {
+        if (change.oldDoc.fee_concepts?.length && !change.newDoc.fee_concepts?.length) {
+          await repairProjectPaymentTotals(ctx, change.id);
+          return;
+        }
         if (percentageChanged) {
           console.log(`Honorarios percentage changed from ${oldPercentage} to ${newPercentage}`);
         }

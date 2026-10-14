@@ -1,3 +1,4 @@
+import { feeBudgetConvert } from "./indirectosBudget";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
@@ -5,7 +6,7 @@ import { assertCanWrite, checkDesarrolloAccess, getCurrentUserOrThrow } from "./
 import { normalizePaymentMethod, paymentScopeKey } from "./paymentAccountRules";
 import { transactionChangeInvalidatesInvoice, markInvoicesStaleForTransaction } from "./invoiceIntegrity";
 import { updateProviderStatsForTransactionChange } from "./providerStats";
-import { calculateHierarchyPaymentTotals } from "./paymentHierarchyRules";
+import { feeHierarchyPaymentTotals } from "./budgetMaintenance";
 import { calculateHonorariosFromRecords, isHonorariosPartida } from "./honorariosRules";
 import { calculateBudgetIndirectos } from "./indirectosBudget";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
@@ -150,12 +151,15 @@ export async function preparePaymentEdit(ctx: ReadCtx, draft: PaymentEditDraft) 
     for (const [value, count] of counts) if (count > max) { max = count; currency = value; }
   }
   const honorarios = financial ? calculateHonorariosFromRecords({ proyectoId: project._id, modo: project.honorarios_modo,
+      feeConcepts: project.fee_concepts, convert: feeBudgetConvert(project),
     porcentaje: project.honorarios_porcentaje, excludedPartidas: project.excluded_partidas_honorarios, ...afterRecords }) : project.honorarios_monto;
   const afterProject = { ...project, moneda_principal: currency, ...(honorarios !== undefined ? { honorarios_monto: honorarios } : {}) };
   const paid = new Set(afterRecords.transactions.filter(t => t.status === "Pagado").map(t => t._id));
   const direct = new Map<string, number>();
   for (const p of afterRecords.pagos) if (p.partida_id && paid.has(p.transaccion_id)) direct.set(p.partida_id, (direct.get(p.partida_id) || 0) + p.monto);
-  const totals = calculateHierarchyPaymentTotals(records.partidas, direct, honorarios);
+  const configuredHonorarios = project.fee_concepts?.find(c => c.concepto === "honorarios");
+  const configured = calculateBudgetIndirectos(afterProject, records.partidas, afterRecords.transactions, afterRecords.pagos);
+  const totals = feeHierarchyPaymentTotals(records.partidas, direct, honorarios, configured, configuredHonorarios?.partida_id);
   const touched = patch.status !== undefined || patch.moneda !== undefined ? afterItems : changedItems;
   const affected = new Set<string>();
   for (const item of touched) {
@@ -165,7 +169,8 @@ export async function preparePaymentEdit(ctx: ReadCtx, draft: PaymentEditDraft) 
       (row.nivel === 1 || row.nivel === 2 && row.familia === p.familia || row._id === p._id)) affected.add(row._id);
   }
   if (financial) {
-    const fee = records.partidas.find(p => p.nivel === 1 && isHonorariosPartida(p));
+    for (const row of records.partidas) if (project.fee_concepts?.some(c => row._id === c.partida_id || row.partida_nombre === records.partidas.find(p => p._id === c.partida_id)?.nombre)) affected.add(row._id);
+    const fee = records.partidas.find(p => p.nivel === 1 && (configuredHonorarios ? p._id === configuredHonorarios.partida_id : isHonorariosPartida(p)));
     if (fee) affected.add(fee._id);
   }
   afterRecords.partidas = records.partidas.map(p => affected.has(p._id)

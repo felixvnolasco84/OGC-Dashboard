@@ -532,7 +532,7 @@ const buildMonthlyDataNote = (months: PnlMonth[], pnlSummary?: PnlSummary) => {
     return `Honorarios calculados exclusivamente con el porcentaje automático de cada obra sobre pagos elegibles; indirectos automáticos desde la fecha de inicio configurada por obra; costos reales desde movimientos OGC. Los periodos anteriores conservan indirectos históricos. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
   }
 
-  return "Honorarios calculados exclusivamente con el porcentaje automático de cada obra sobre pagos elegibles; indirectos automáticos desde la fecha de inicio configurada por obra; costos reales desde movimientos OGC. Los periodos anteriores conservan indirectos históricos. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento, sin prorrateo lineal.";
+  return "Los conceptos configurados usan todos los pagos Pagado desde su fecha de inicio, sin exclusiones. Sus porcentajes se calculan con el monto original del concepto sobre el presupuesto aprobado total y se actualizan al cambiar ese presupuesto. Indirectos agrupa Indirectos, General Conditions y Viáticos. Los costos reales provienen de movimientos OGC y los periodos anteriores conservan el tratamiento histórico. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento, sin prorrateo lineal.";
 };
 
 function MonthlyPnlTable({

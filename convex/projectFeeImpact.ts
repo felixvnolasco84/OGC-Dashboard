@@ -3,7 +3,9 @@ import type { QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { getHonorariosBreakdown, getHonorariosModo } from "./honorariosRules";
 import { INDIRECTOS_START, validateIndirectosPercentage } from "./indirectosRules";
-import { calculateBudgetIndirectos } from "./indirectosBudget";
+import { calculateBudgetIndirectos, feeBudgetConvert } from "./indirectosBudget";
+import { deriveFeeConcepts, canonicalFeeConcepts, type FeeConceptInput } from "./feeConceptRules";
+import { feeConceptInputValidator } from "./feeConceptValidators";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 
 export const feeConfigValidators = {
@@ -11,8 +13,9 @@ export const feeConfigValidators = {
   honorarios_modo: v.optional(v.union(v.literal("automatico"), v.literal("transacciones"))),
   indirectos_porcentaje: v.optional(v.number()),
   excluded_partidas_honorarios: v.optional(v.array(v.id("partidas"))),
+  fee_concepts: v.optional(v.array(feeConceptInputValidator)),
 };
-export type FeeProposal = Pick<Doc<"desarrollos">, keyof typeof feeConfigValidators>;
+export type FeeProposal = Pick<Doc<"desarrollos">, "honorarios_porcentaje" | "honorarios_modo" | "indirectos_porcentaje" | "excluded_partidas_honorarios"> & { fee_concepts?: FeeConceptInput[] };
 export type FeeImpactRecords = {
   partidas: Doc<"partidas">[];
   transactions: Doc<"transacciones">[];
@@ -24,7 +27,7 @@ export type FeeImpactRecords = {
 export const FEE_IMPACT_LIMIT = 2500;
 const TOO_LARGE = "El proyecto supera el límite de revisión completa. No se guardaron cambios financieros; solicita una revisión de capacidad.";
 
-export function proposedFeeProject(project: Doc<"desarrollos">, proposal: FeeProposal) {
+export function proposedFeeProject(project: Doc<"desarrollos">, proposal: FeeProposal, records?: FeeImpactRecords) {
   validateIndirectosPercentage(proposal.indirectos_porcentaje);
   if (proposal.honorarios_porcentaje !== undefined &&
       (!Number.isFinite(proposal.honorarios_porcentaje) || proposal.honorarios_porcentaje < 0 || proposal.honorarios_porcentaje > 100)) {
@@ -35,6 +38,7 @@ export function proposedFeeProject(project: Doc<"desarrollos">, proposal: FeePro
     ...Object.fromEntries(Object.entries(proposal).filter(([, value]) => value !== undefined)),
     ...(proposal.indirectos_porcentaje !== undefined
       ? { indirectos_fecha_inicio: project.indirectos_fecha_inicio || INDIRECTOS_START } : {}),
+    ...(proposal.fee_concepts !== undefined ? { fee_concepts: deriveFeeConcepts(proposal.fee_concepts, records?.partidas || [], project.fee_concepts, project._id) } : {}),
   } as Doc<"desarrollos">;
 }
 
@@ -45,6 +49,7 @@ export function feeConfig(project: Doc<"desarrollos">) {
     indirectos_porcentaje: project.indirectos_porcentaje ?? null,
     indirectos_fecha_inicio: project.indirectos_fecha_inicio ?? null,
     excluded_partidas_honorarios: project.excluded_partidas_honorarios || [],
+    fee_concepts: canonicalFeeConcepts(project.fee_concepts),
   };
 }
 
@@ -91,9 +96,10 @@ export function feeImpactScope(project: Doc<"desarrollos">, proposed: Doc<"desar
 export function feeBudgetScenario(project: Doc<"desarrollos">, records: FeeImpactRecords, recalculate: boolean) {
   const honorarios = getHonorariosBreakdown({ proyectoId: project._id, modo: project.honorarios_modo,
     porcentaje: project.honorarios_porcentaje, excludedPartidas: project.excluded_partidas_honorarios,
+    feeConcepts: project.fee_concepts, convert: feeBudgetConvert(project),
     transactions: records.transactions, pagos: records.pagos, partidas: records.partidas });
   const indirectos = calculateBudgetIndirectos(project, records.partidas, records.transactions, records.pagos);
-  const honorariosMonto = recalculate ? honorarios.amount : project.honorarios_monto;
+  const honorariosMonto = recalculate || project.fee_concepts?.length ? honorarios.amount : project.honorarios_monto;
   return {
     ...calculatePresupuestoMetrics(records.partidas, honorariosMonto, indirectos),
     honorarios: honorariosMonto ?? 0,
@@ -103,5 +109,6 @@ export function feeBudgetScenario(project: Doc<"desarrollos">, records: FeeImpac
     indirectosBase: indirectos.baseElegible,
     indirectos: indirectos.automaticos,
     manualesSustituidos: indirectos.manualesSustituidos,
+    concepts: indirectos.concepts,
   };
 }

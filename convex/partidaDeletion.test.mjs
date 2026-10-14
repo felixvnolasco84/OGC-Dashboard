@@ -6,6 +6,7 @@ import { create as createRequisicion, update as updateRequisicion } from "./requ
 import { createSubcontratista, updateSubcontratista } from "./subcontratistas";
 import { update as updateDesarrollo } from "./desarrollos";
 import { addSubPartida } from "./programa_obra";
+import { deriveFeeConcepts } from "./feeConceptRules";
 
 function fixture() {
   const base = { proyecto: "project", presupuesto_original: 100, presupuesto_aprobado: 120, pagado: 0, por_gastar: 120, unidad: "m", cantidad: 1, precio_unitario: 120, archivo_origen: "test", familia: "", sub_partida: "" };
@@ -50,6 +51,22 @@ function fixture() {
 }
 
 describe("complete budget deletion", () => {
+  it("deleting an unused branch recalculates configured rates over the remaining approved total", async () => {
+    const f = fixture();
+    f.tables.partidas.push({ ...f.find("root"), _id: "fee", nombre: "HONORARIOS", presupuesto_original: 20, presupuesto_aprobado: 20, pagado: 6.25 },
+      { ...f.find("root"), _id: "other", nombre: "OTRA", presupuesto_original: 100, presupuesto_aprobado: 180, pagado: 100 });
+    f.tables.transacciones = [{ _id: "tx", proyecto: "project", monto_total: 100, status: "Pagado", fecha: "2026-10-01", moneda: "MXN" }];
+    f.tables.pagos = [{ _id: "pay", transaccion_id: "tx", partida_id: "other", monto: 100 }];
+    Object.assign(f.tables.desarrollos[0], { honorarios_monto: 6.25,
+      fee_concepts: deriveFeeConcepts([{ concepto: "honorarios", partida_id: "fee", excluded_partidas: [] }], f.tables.partidas) });
+    const preview = await f.impact();
+    expect(preview.canDelete).toBe(true); expect(preview.budget.after.gasto_total).toBe(110);
+    await f.remove();
+    expect(f.tables.desarrollos[0].fee_concepts[0].porcentaje).toBe(10);
+    expect(f.tables.desarrollos[0].honorarios_monto).toBe(10);
+    expect(f.tables.meticas_presupuesto[0].gasto_total).toBe(110);
+    expect((await f.impact("fee")).canDelete).toBe(false);
+  });
   it.each([["root", 3], ["family", 2], ["leaf", 1]])("deletes only the confirmed %s branch (%i records)", async (id, count) => {
     const f = fixture();
     const preview = await getDeletionImpact._handler(f.ctx, { id, projectId: "project" });
