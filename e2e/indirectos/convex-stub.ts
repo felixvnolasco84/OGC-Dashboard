@@ -26,10 +26,11 @@ let mutationFailure = false;
 let delayedMutation = false;
 let paymentBase = 100000;
 Object.assign(window, {
-  feeFixtureChange: (change: { project?: Record<string, unknown>; approvedWork?: number; paymentBase?: number; previewFailure?: boolean; mutationFailure?: boolean; delayedMutation?: boolean }) => {
+  feeFixtureChange: (change: { project?: Record<string, unknown>; approvedWork?: number; gcOriginal?: number; paymentBase?: number; previewFailure?: boolean; mutationFailure?: boolean; delayedMutation?: boolean }) => {
     Object.assign(project, change.project || {});
     if (change.paymentBase !== undefined) paymentBase = change.paymentBase;
     if (change.approvedWork !== undefined) partidas[0].presupuesto_aprobado = change.approvedWork;
+    if (change.gcOriginal !== undefined) partidas.find(p => p._id === "gc")!.presupuesto_original = change.gcOriginal;
     if (change.previewFailure !== undefined) previewFailure = change.previewFailure;
     if (change.mutationFailure !== undefined) mutationFailure = change.mutationFailure;
     if (change.delayedMutation !== undefined) delayedMutation = change.delayedMutation;

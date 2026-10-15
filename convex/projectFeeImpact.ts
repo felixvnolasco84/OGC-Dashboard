@@ -129,7 +129,7 @@ export function feeBudgetScenario(project: Doc<"desarrollos">, records: FeeImpac
     porcentaje: project.honorarios_porcentaje, excludedPartidas: project.excluded_partidas_honorarios,
     feeConcepts: project.fee_concepts, convert: feeBudgetConvert(project),
     transactions: records.transactions, pagos: records.pagos, partidas: records.partidas });
-  const indirectos = calculateBudgetIndirectos(project, records.partidas, records.transactions, records.pagos);
+  const indirectos = calculateBudgetIndirectos(project, records.partidas, records.transactions, records.pagos, false);
   const honorariosMonto = recalculate || project.fee_concepts?.length ? honorarios.amount : project.honorarios_monto;
   return {
     ...calculatePresupuestoMetrics(records.partidas, honorariosMonto, indirectos),

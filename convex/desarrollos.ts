@@ -1,4 +1,4 @@
-import { currentFeeConcepts, feeChargesAtRate, feeSourceForPayment, isActiveFeeConcept, replacesIndirectIncomeCategory } from "./feeConceptRules";
+import { currentFeeConcepts, feeChargesAtRate, createFeeSourceLookup, isActiveFeeConcept, replacesIndirectIncomeCategory } from "./feeConceptRules";
 import { feeConceptInputValidator } from "./feeConceptValidators";
 import { INDIRECTOS_START, isAutomaticIndirectos, isIndirectosPartida, indirectosCharge, validateIndirectosPercentage, getFeeExcludedPartidaIds, isEligibleFeePayment } from "./indirectosRules";
 import { getBudgetIndirectos } from "./indirectosBudget";
@@ -560,6 +560,7 @@ export const summarizeProjectPaymentRecords = (
     }
     const { partidas, transactions, metrics } = records;
     const concepts = currentFeeConcepts(proyecto.fee_concepts, partidas);
+    const feeSource = createFeeSourceLookup(concepts, partidas);
     const partidasById = new Map(partidas.map((partida) => [partida._id as string, partida]));
     const excludedPartidaIds = getFeeExcludedPartidaIds(partidas, proyecto.excluded_partidas_honorarios);
 
@@ -628,7 +629,7 @@ export const summarizeProjectPaymentRecords = (
                 });
             }
 
-            if (isHonorariosPayment || feeSourceForPayment(proyecto.fee_concepts || [], partida, partidas, transaction.fecha)) {
+            if (isHonorariosPayment || feeSource(partida, transaction.fecha)) {
                 continue;
             }
 

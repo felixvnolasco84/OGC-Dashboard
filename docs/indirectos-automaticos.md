@@ -14,7 +14,7 @@ Cambiar solo las exclusiones también requiere revisar y guardar el impacto. Cam
 
 ## Cargos y desglose
 
-**Viáticos y General Conditions configurados usan todas las líneas de pagos con estado Pagado del acumulado completo del proyecto**, incluyendo las anteriores al 1 de octubre de 2026. Honorarios y el concepto Indirectos conservan su fecha de inicio y su tratamiento anterior; no se altera su fórmula.
+**Indirectos, Viáticos y General Conditions configurados usan todas las líneas de pagos con estado Pagado del acumulado completo del proyecto**, incluyendo las anteriores al 1 de octubre de 2026. Honorarios conserva su fecha de inicio y su tratamiento anterior. El porcentaje global anterior de Indirectos conserva su corte; este cambio corresponde al concepto seleccionado desde presupuesto.
 
 Cada cargo es base pagada × porcentaje vigente. Se incluyen los importes registrados en honorarios, viáticos y partidas excluidas del presupuesto. Los cargos automáticos no vuelven a integrar la base como nuevos pagos. Las consultas por fechas y los meses de P&L solo incluyen los pagos del periodo solicitado, sin trasladar todo el acumulado a octubre.
 
@@ -38,7 +38,9 @@ Presupuesto usa la moneda de la obra; P&L usa MXN y su conversión existente. Lo
 
 ## Compatibilidad y revisión
 
-El corte del 1 de octubre de 2026 se conserva para Honorarios y los esquemas anteriores de Indirectos. Viáticos y General Conditions configurados recalculan también el ejercido previo del proyecto. Las obras sin esos conceptos configurados mantienen sus porcentajes manuales y exclusiones anteriores, disponibles en Configuración anterior y periodos históricos. Una tasa configurada al 0% sigue activa y puede sustituir manuales sin generar cargo.
+El corte del 1 de octubre de 2026 se conserva para Honorarios y los esquemas anteriores de Indirectos. Indirectos, Viáticos y General Conditions configurados recalculan también el ejercido previo del proyecto. Las obras sin esos conceptos configurados mantienen sus porcentajes manuales y exclusiones anteriores, disponibles en Configuración anterior y periodos históricos. Una tasa configurada al 0% sigue activa y puede sustituir manuales sin generar cargo.
+
+En Torre I se confirmó que Indirectos solo reconocía $103,401.40 desde octubre y generaba $3,898.80. El acumulado válido de pagos es $69,713,424.90; con la tasa vigente de 3.770545138454147% genera $2,628,576.33, con redondeo por pago. General Conditions tenía original $0 en el padre y $1,128,509.82 en su familia. Con autorización del usuario se corrigió el original del padre a $1,128,509.82 mediante edición revisada de presupuesto, conservando el aprobado. Se verificaron la tasa de 1.3499159979628834% y el cargo acumulado de $941,073.23. Los montos en cero continúan siendo válidos y no se sustituyen automáticamente por aprobados ni por sumas de hijos; el editor explica que producen cargo cero.
 
 El filtro mensual de P&L solo cambia la revisión; guardar aplica a todo el proyecto. Cambios externos en datos financieros invalidan una revisión abierta y exigen actualizarla antes de guardar. Cancelar no escribe.
 
@@ -58,4 +60,14 @@ Para esta corrección se reconstruyeron los totales derivados del proyecto afect
 
 Validación de la corrección de guardado del 15 de octubre de 2026: 279 pruebas aprobadas, 1 omitida; TypeScript de frontend y Convex, ESLint, build y pruebas del modal a 390 y 1440 px aprobados. Incluye proyectos de más de 2,500 registros, alcances superiores a 512 KiB, 1,600 transacciones sin relecturas al guardar, límites de capacidad y rechazo de cambios concurrentes aun cuando sus importes se compensen. Esta corrección está validada localmente; no se ha desplegado.
 
+La corrección del timeout de `desarrollos:previewFeeImpact` evita repartir cada pago entre las hojas cuando solo se necesitan totales. La jerarquía se sigue validando completa, incluso sin pagos. Para consultas y guardados con desglose, prepara familias, hijos, pesos y orden una sola vez por concepto; conserva el redondeo y el reparto de centavos de cada pago. Los cargos idénticos en centavos reutilizan su reparto multiplicando por el número de pagos, sin repartir el importe acumulado. Las búsquedas de partidas de origen y conceptos activos también se reutilizan.
+
+La regresión incluye una revisión y guardado de 3,000 pagos con 80 familias y 800 hojas, comparación de totales con y sin desglose, sustituciones manuales, fechas, monedas y jerarquías inválidas. Una comparación local contra la versión anterior con 100 pagos y 883 partidas redujo el cálculo de conceptos de aproximadamente 2,900 ms a 8 ms con desglose y 4 ms solo con totales; los importes y las asignaciones del desglose fueron idénticos. Con 3,000 pagos, el cálculo corregido tardó aproximadamente 11 ms tanto con desglose como solo con totales. Estos tiempos corresponden al cálculo en memoria, no a una medición del despliegue de Convex. Validación final: 285 pruebas aprobadas, 1 omitida; TypeScript de frontend y Convex, ESLint de los archivos modificados y build aprobados. No se ejecutó un despliegue para esta corrección.
+
 El plan complementado está en docs/plan-conceptos-porcentuales.md.
+
+### Verificación de Torre I del 15 de octubre de 2026
+
+Se publicó la versión 4 del cálculo en `dev:animated-walrus-612`, junto con las optimizaciones del mismo cálculo descritas arriba. La consulta desplegada confirmó Indirectos por $2,628,576.33 y General Conditions por $941,073.23, ambos sobre $69,713,424.90 de pagos válidos. La revisión financiera devuelve `ready` con 656 transacciones y 1,752 conceptos de pago; se conserva una transacción con fecha inválida fuera de los cargos automáticos. Honorarios permanece en $11,155,347.39. La simulación posterior de reconstrucción devolvió cero partidas pendientes y métricas coincidentes, por lo que no se ejecutó una reconstrucción adicional.
+
+Validación de esta corrección: 286 pruebas aprobadas y una omitida, TypeScript de frontend y Convex, ESLint, build y modal a 390 y 1440 px. El texto y aviso de original cero del editor están preparados en el frontend local; su publicación sigue el despliegue del hosting.

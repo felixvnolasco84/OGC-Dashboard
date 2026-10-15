@@ -48,7 +48,7 @@ export default function FeeConceptEditor({ value, approved, partidas, currency, 
     <div className="space-y-1">
       <h3 className="text-base font-medium">Porcentajes sobre presupuesto aprobado</h3>
       <p className="text-xs text-muted-foreground">Porcentaje = monto original del concepto ÷ (presupuesto aprobado total del proyecto − aprobado de las partidas excluidas) × 100.</p>
-      <p className="text-xs text-muted-foreground">Al cambiar el presupuesto aprobado, los porcentajes y cargos se actualizan automáticamente. Viáticos y General Conditions usan todos los pagos Pagado acumulados del proyecto. Honorarios y los demás conceptos conservan su fecha de inicio.</p>
+      <p className="text-xs text-muted-foreground">Al cambiar el presupuesto aprobado, los porcentajes y cargos se actualizan automáticamente. Indirectos, Viáticos y General Conditions usan todos los pagos Pagado acumulados del proyecto. Honorarios conserva su fecha de inicio.</p>
       <p className="text-xs text-muted-foreground">El cargo se distribuye entre familias y subpartidas según sus montos originales; el total es la suma del desglose.</p>
     </div>
     {(Object.keys(FEE_CONCEPT_LABELS) as FeeConceptKind[]).map(kind => {
@@ -83,6 +83,9 @@ export default function FeeConceptEditor({ value, approved, partidas, currency, 
             <div><dt className="inline text-muted-foreground">Porcentaje calculado: </dt><dd className="inline font-medium" data-testid={`rate-${kind}`}>{formatPercentage(calculation.porcentaje)}</dd></div>
             {old && <div><dt className="inline text-muted-foreground">Tasa actual: </dt><dd className="inline">{formatPercentage(old.porcentaje)}</dd></div>}
           </dl>}
+          {calculation?.monto_original === 0 && <p role="status" className="border-l-2 border-foreground pl-3 text-xs" data-testid={`zero-original-${kind}`}>
+            El monto original de esta partida es $0; su porcentaje y cargo automático serán $0. Revisa el monto original de la partida en Presupuesto si debe generar un cargo.
+          </p>}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         </>}
       </div>;

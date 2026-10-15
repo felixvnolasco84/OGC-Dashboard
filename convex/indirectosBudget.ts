@@ -27,9 +27,10 @@ export function calculateBudgetIndirectos(
   partidas: Doc<"partidas">[],
   transactions: Doc<"transacciones">[],
   pagos: Doc<"pagos">[],
+  allocate = true,
 ) {
   return calculateIndirectosFromRecords({
-    config: project || {}, partidas, transactions, pagos,
+    config: project || {}, partidas, transactions, pagos, allocate,
     excludedPartidas: project?.excluded_partidas_honorarios,
     convert: feeBudgetConvert(project),
   });

@@ -328,6 +328,70 @@ describe("concept percentages over approved budget minus exclusions", () => {
       ({ ...root(id, "VIÁTICOS", amount), nivel: 3, partida_nombre: "VIÁTICOS", familia: family, sub_partida: id })),
   ];
 
+  it("reviews and saves thousands of payments against a wide concept hierarchy", async () => {
+    const rows = roots();
+    for (let family = 0; family < 80; family++) {
+      const familia = `Familia ${family}`;
+      rows.push({ ...root(`family${family}`, "VIÁTICOS", 125), nivel: 2, partida_nombre: "VIÁTICOS", familia });
+      for (let leaf = 0; leaf < 10; leaf++) {
+        rows.push({ ...root(`leaf${family}-${leaf}`, "VIÁTICOS", 12.5), nivel: 3, partida_nombre: "VIÁTICOS", familia });
+      }
+    }
+    const pagos = Array.from({ length: 3000 }, (_, i) => ({ _id: `pagos:${i}`,
+      transaccion_id: "transacciones:t", partida_id: "partidas:work", monto: 10 + (i % 17) / 100 }));
+    const f = fixture({ partidas: rows, pagos });
+    f.tables.transacciones[0].monto_total = pagos.reduce((sum, p) => sum + p.monto, 0);
+    f.tables.partidas[0].pagado = f.tables.transacciones[0].monto_total;
+    const expected = rate => Math.round(pagos.reduce((sum, p) => sum + Math.round(p.monto * rate), 0)) / 100;
+    const impact = await f.preview(proposal());
+    expect(impact.status).toBe("ready");
+    expect(impact.counts.payments).toBe(3000);
+    expect(impact.afterBudget.honorarios).toBe(expected(10));
+    expect(impact.afterBudget.indirectos).toBe(expected(5));
+    expect(impact.afterPnl.honorarios).toBeCloseTo(expected(10), 8);
+    expect(impact.afterPnl.indirectos).toBeCloseTo(expected(5), 8);
+    expect(f.writes).toEqual([]);
+    await f.save(proposal(), impact.expectedImpact);
+    const leaves = f.tables.partidas.filter(p => p.nivel === 3);
+    expect(leaves.reduce((sum, p) => sum + Math.round(p.pagado * 100), 0)).toBe(Math.round(expected(5) * 100));
+    expect(f.tables.meticas_presupuesto[0].gasto_total).toBeCloseTo(impact.afterBudget.gasto_total, 8);
+  }, 30000);
+
+  it("keeps totals, manual substitutions and percentages when skipping leaf allocations", () => {
+    const rows = [...roots(), ...children()];
+    const configs = deriveFeeConcepts(proposal().fee_concepts, rows);
+    const transactions = [
+      { _id: "old", fecha: "2026-09-01", status: "Pagado", moneda: "MXN" },
+      { _id: "new", fecha: "2026-10-01", status: "Pagado", moneda: "USD" },
+      { _id: "pending", fecha: "2026-10-01", status: "Por pagar", moneda: "MXN" },
+      { _id: "invalid", fecha: "31/09/2026", status: "Pagado", moneda: "MXN" },
+    ];
+    const pagos = transactions.flatMap(tx => [
+      { transaccion_id: tx._id, partida_id: "partidas:work", monto: .335 },
+      { transaccion_id: tx._id, partida_id: "partidas:a1", monto: -10.01 },
+    ]);
+    const input = { configs, partidas: rows, transactions, pagos, convert: (amount, tx) => amount * (tx.moneda === "USD" ? 20 : 1) };
+    const full = calculateFeeConceptPayments(input);
+    const totals = calculateFeeConceptPayments({ ...input, allocate: false });
+    expect(totals.concepts).toEqual(full.concepts);
+    expect(totals.sustituidosPorPartida).toEqual(full.sustituidosPorPartida);
+    expect(totals.porcentajesPorPartida).toEqual(full.porcentajesPorPartida);
+    expect(Object.values(totals.automaticosPorPartida).every(amount => amount === 0)).toBe(true);
+    expect(Object.values(full.automaticosPorPartida).some(amount => amount > 0)).toBe(true);
+  });
+
+  it.each(["duplicate family", "orphan leaf", "negative budget", "zero child budgets"])("validates %s even for totals without payments", kind => {
+    const rows = [...roots(), ...children()];
+    if (kind === "duplicate family") rows.push({ ...rows.find(p => p._id === "partidas:familyA"), _id: "partidas:duplicate" });
+    if (kind === "orphan leaf") rows.find(p => p._id === "partidas:a1").familia = "Missing";
+    if (kind === "negative budget") rows.find(p => p._id === "partidas:a1").presupuesto_original = -1;
+    if (kind === "zero child budgets") rows.filter(p => p.familia === "Personal" && p.nivel === 3).forEach(p => { p.presupuesto_original = 0; });
+    const configs = deriveFeeConcepts(proposal().fee_concepts, rows);
+    for (const allocate of [false, true]) {
+      expect(() => calculateFeeConceptPayments({ configs, partidas: rows, transactions: [], pagos: [], allocate })).toThrow();
+    }
+  });
+
   it("subtracts each concept's excluded approved roots once without counting descendants", () => {
     const rows = [...roots(), ...children()];
     rows[1].presupuesto_aprobado = 40000; rows[0].presupuesto_aprobado = 150000;
@@ -571,6 +635,45 @@ describe("concept percentages over approved budget minus exclusions", () => {
     expect(pnl.totals.indirectos).toBeCloseTo(736731.30, 8);
     expect(pnl.totals.honorarios).toBeCloseTo(impact.afterPnl.honorarios, 8);
     expect((await getByProyecto._handler(f.ctx, { proyecto_id: "desarrollos:p" })).gasto_total).toBeCloseTo(impact.afterBudget.gasto_total, 8);
+  });
+
+  it("configured indirectos include historical paid lines in budget, hierarchy and monthly P&L", async () => {
+    const f = fixture({ partidas: [root("work", "OBRA", 180000, 180000, 100000), root("fee", "HONORARIOS", 10000),
+      root("i", "INDIRECTOS", 10000, 10000, 1000),
+      { ...root("i-family", "INDIRECTOS", 10000), nivel: 2, partida_nombre: "INDIRECTOS", familia: "Personal" }],
+    transacciones: [
+      { _id: "transacciones:sep", proyecto: "desarrollos:p", monto_total: 101000, fecha: "2026-09-30", status: "Pagado", moneda: "MXN" },
+      { _id: "transacciones:oct", proyecto: "desarrollos:p", monto_total: 100000, fecha: "2026-10-01", status: "Pagado", moneda: "MXN" },
+      { _id: "transacciones:pending", proyecto: "desarrollos:p", monto_total: 100000, fecha: "2026-09-01", status: "Por pagar", moneda: "MXN" },
+      { _id: "transacciones:invalid", proyecto: "desarrollos:p", monto_total: 100000, fecha: "NaN/NaN/NaN", status: "Pagado", moneda: "MXN" },
+    ], pagos: [
+      { _id: "pagos:sep", transaccion_id: "transacciones:sep", partida_id: "partidas:work", monto: 100000 },
+      { _id: "pagos:manual", transaccion_id: "transacciones:sep", partida_id: "partidas:i-family", monto: 1000 },
+      { _id: "pagos:oct", transaccion_id: "transacciones:oct", partida_id: "partidas:work", monto: 100000 },
+      { _id: "pagos:pending", transaccion_id: "transacciones:pending", partida_id: "partidas:work", monto: 100000 },
+      { _id: "pagos:invalid", transaccion_id: "transacciones:invalid", partida_id: "partidas:work", monto: 100000 },
+    ] });
+    const honorariosOnly = { fee_concepts: [input("honorarios", "fee")] };
+    const initial = await f.preview(honorariosOnly); await f.save(honorariosOnly, initial.expectedImpact);
+    const priorHonorarios = f.tables.desarrollos[0].honorarios_monto;
+    const change = { fee_concepts: [...honorariosOnly.fee_concepts, input("indirectos", "i")] };
+    const records = structuredClone(f.tables.pagos);
+    const impact = await f.preview(change);
+    expect(impact.afterBudget).toMatchObject({ indirectos: 10050, manualesSustituidos: 1000 });
+    expect(impact.afterBudget.concepts.find(c => c.concepto === "indirectos").basePagada).toBe(201000);
+    expect(impact.afterPnl.monthly["2026-9"].indirectosAutomaticos).toBe(5050);
+    expect(impact.afterPnl.monthly["2026-10"].indirectosAutomaticos).toBe(5000);
+    await f.save(change, impact.expectedImpact);
+    const all = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "desarrollos:p" });
+    expect(all.feeConcepts.find(c => c.concepto === "indirectos").monto).toBe(10050);
+    expect(f.tables.partidas.find(p => p._id === "partidas:i").pagado).toBe(10050);
+    expect(all.paymentsByPartida["partidas:i-family"]).toBe(10050);
+    expect(f.tables.desarrollos[0].honorarios_monto).toBe(priorHonorarios);
+    expect(f.tables.pagos).toEqual(records);
+    const october = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "desarrollos:p", start_date: "2026-10-01", end_date: "2026-10-31" });
+    expect(october.feeConcepts.find(c => c.concepto === "indirectos").monto).toBe(5000);
+    const pnl = await getPnlSummary._handler(f.ctx, { periodYear: 2026, cutoffMonth: 10 });
+    expect(pnl.totals.indirectos).toBe(10050);
   });
 
   it("historical manual concept payments are substituted once while real P&L costs remain", async () => {

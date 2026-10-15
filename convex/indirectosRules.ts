@@ -57,6 +57,7 @@ export function calculateIndirectosFromRecords(input: {
   transactions: readonly Transaction[];
   pagos: readonly { transaccion_id: string; partida_id?: string; monto: number }[];
   convert?: (amount: number, transaction: Transaction) => number;
+  allocate?: boolean;
 }) {
   const txs = new Map(input.transactions.map(t => [String(t._id), t]));
   const partidas = new Map(input.partidas.map(p => [String(p._id), p]));
@@ -82,6 +83,7 @@ export function calculateIndirectosFromRecords(input: {
   }
   const configured = calculateFeeConceptPayments({ configs: input.config.fee_concepts || [], partidas: input.partidas,
     transactions: input.transactions, pagos: input.pagos,
+    allocate: input.allocate,
     convert: input.convert ? (amount, tx) => input.convert!(amount, tx as Transaction) : undefined });
   for (const concept of configured.concepts.filter(c => c.concepto !== "honorarios")) {
     automaticos += concept.monto; baseElegible += concept.basePagada; manualesSustituidos += concept.manualSustituido;

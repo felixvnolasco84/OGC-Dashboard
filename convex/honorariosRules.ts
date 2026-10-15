@@ -31,7 +31,7 @@ export function getHonorariosBreakdown(input: {
     const legacy = getHonorariosBreakdown({ ...input, feeConcepts: undefined,
       transactions: input.transactions.filter(t => !isActiveFeeConcept(configured, t.fecha)) });
     const current = calculateFeeConceptPayments({ configs: input.feeConcepts || [configured], partidas: input.partidas,
-      transactions: input.transactions, pagos: input.pagos, convert: input.convert }).concepts.find(c => c.concepto === "honorarios")!;
+      transactions: input.transactions, pagos: input.pagos, convert: input.convert, allocate: false }).concepts.find(c => c.concepto === "honorarios")!;
     return { base: legacy.base + current.basePagada, excludedAmount: legacy.excludedAmount,
       amount: Math.round((legacy.amount + current.monto) * 100) / 100 };
   }

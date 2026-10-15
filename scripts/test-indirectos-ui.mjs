@@ -183,6 +183,13 @@ try {
     await expect(page.getByTestId("rate-honorarios")).toHaveText("7.43%");
     await expect(save).toBeDisabled();
     await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    await page.goto("http://127.0.0.1:4197/e2e/indirectos/preview.html?view=budget");
+    await page.evaluate(() => window.feeFixtureChange({ gcOriginal: 0 }));
+    await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
+    await page.getByRole("checkbox", { name: "Calcular General Conditions desde presupuesto", exact: true }).check();
+    await expect(page.getByTestId("rate-general_conditions")).toHaveText("0.00%");
+    await expect(page.getByTestId("zero-original-general_conditions")).toContainText("su porcentaje y cargo automático serán $0");
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
     await page.goto("http://127.0.0.1:4197/e2e/indirectos/preview.html");
     await expect(page.getByText("INDIRECTOS COBRADOS", { exact: true }).filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByText("SALDO DE INDIRECTOS", { exact: true }).filter({ visible: true }).first()).toBeVisible();

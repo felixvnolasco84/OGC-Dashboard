@@ -1,7 +1,7 @@
 import type { Id } from "./_generated/dataModel";
 
 export const FEE_CONCEPT_START = "2026-10-01";
-export const FEE_CONCEPT_CALCULATION_VERSION = 3;
+export const FEE_CONCEPT_CALCULATION_VERSION = 4;
 export const FEE_CONCEPT_LABELS = {
   honorarios: "Honorarios", indirectos: "Indirectos", general_conditions: "General Conditions", viaticos: "Viáticos",
 } as const;
@@ -27,7 +27,7 @@ function isoDate(fecha?: string) {
     ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
 }
 export function feeConceptUsesProjectHistory(config: Pick<FeeConceptInput, "concepto">) {
-  return config.concepto === "viaticos" || config.concepto === "general_conditions";
+  return config.concepto !== "honorarios";
 }
 export function isActiveFeeConcept(config: FeeConceptConfig, fecha?: string) {
   const date = isoDate(fecha?.trim());
@@ -48,6 +48,20 @@ export function belongsToFeeRoot(partida: FeeConceptPartida, rootId: string, par
   const root = partidas.find(p => String(p._id) === String(rootId));
   return Boolean(root && (String(partida._id) === String(rootId) ||
     (partida.nivel !== 1 && normalize(partida.partida_nombre) === normalize(root.nombre))));
+}
+
+function feeConceptsByPartida<T extends FeeConceptConfig>(configs: readonly T[], partidas: readonly FeeConceptPartida[]) {
+  const roots = new Map(partidas.map(p => [String(p._id), normalize(p.nombre)]));
+  return new Map(partidas.map(partida => {
+    const name = normalize(partida.partida_nombre);
+    return [String(partida._id), configs.filter(c => roots.has(String(c.partida_id)) &&
+      (String(partida._id) === String(c.partida_id) || partida.nivel !== 1 && name === roots.get(String(c.partida_id))))];
+  }));
+}
+
+export function createFeeSourceLookup(configs: readonly FeeConceptConfig[], partidas: readonly FeeConceptPartida[]) {
+  const sources = feeConceptsByPartida(configs, partidas);
+  return (partida: FeeConceptPartida, fecha?: string) => sources.get(String(partida._id))?.find(c => isActiveFeeConcept(c, fecha));
 }
 export function feeConceptBudgetBase(excludedPartidas: readonly string[], partidas: readonly FeeConceptPartida[], proyectoId?: string) {
   const roots = partidas.filter(p => p.nivel === 1 && (!proyectoId || p.proyecto === proyectoId));
@@ -109,34 +123,59 @@ export function feeChargesAtRate(configs: readonly FeeConceptConfig[], fecha: st
 // Allocate cents recursively. Parents are the exact sum of their children;
 // only terminal rows are added to the direct-payment map for hierarchy rollup.
 export function distributeFeeCharge(config: FeeConceptConfig, partidas: readonly FeeConceptPartida[], monto: number) {
+  return prepareFeeDistribution(config, partidas)(monto);
+}
+
+// Build and validate the hierarchy once per concept, outside the payment loop.
+function prepareFeeDistribution(config: FeeConceptConfig, partidas: readonly FeeConceptPartida[]) {
   const source = partidas.find(p => String(p._id) === String(config.partida_id));
-  const directos: Record<string, number> = {}, porPartida: Record<string, number> = {}, porcentajes: Record<string, number> = {};
   if (!source) throw new Error("La partida del concepto ya no está disponible.");
-  const descendants = partidas.filter(p => p.proyecto === source.proyecto && p.nivel > 1 && normalize(p.partida_nombre) === normalize(source.nombre));
+  const sourceName = normalize(source.nombre);
+  const descendants = partidas.filter(p => p.proyecto === source.proyecto && p.nivel > 1 && normalize(p.partida_nombre) === sourceName);
   const families = descendants.filter(p => p.nivel === 2);
-  if (new Set(families.map(p => normalize(p.familia))).size !== families.length ||
-    descendants.some(p => p.nivel === 3 && !families.some(f => normalize(f.familia) === normalize(p.familia)))) {
+  const familyNames = new Set(families.map(p => normalize(p.familia)));
+  const leavesByFamily = new Map<string, FeeConceptPartida[]>();
+  for (const leaf of descendants) {
+    if (leaf.nivel !== 3) continue;
+    const key = normalize(leaf.familia);
+    const group = leavesByFamily.get(key) || [];
+    group.push(leaf);
+    leavesByFamily.set(key, group);
+  }
+  if (familyNames.size !== families.length || [...leavesByFamily.keys()].some(name => !familyNames.has(name))) {
     throw new Error("Revisa la jerarquía del concepto: cada subpartida necesita una familia única.");
   }
-  const walk = (parent: FeeConceptPartida, cents: number, percentage: number) => {
-    porPartida[parent._id] = cents / 100; porcentajes[parent._id] = percentage;
-    const children = descendants.filter(p =>
-      (parent.nivel === 1 ? p.nivel === 2 : parent.nivel === 2 && p.nivel === 3 && normalize(p.familia) === normalize(parent.familia)))
-      .sort((a,b) => String(a._id).localeCompare(String(b._id)));
-    if (!children.length) { directos[parent._id] = cents / 100; return; }
+  type AllocationNode = { id: string; children: AllocationNode[]; weights: number[] };
+  const porcentajes: Record<string, number> = {};
+  const prepare = (parent: FeeConceptPartida, percentage: number): AllocationNode => {
+    porcentajes[parent._id] = percentage;
+    const children = (parent.nivel === 1 ? [...families] : parent.nivel === 2 ? [...(leavesByFamily.get(normalize(parent.familia)) || [])] : [])
+      .sort((a, b) => String(a._id).localeCompare(String(b._id)));
+    if (!children.length) return { id: parent._id, children: [], weights: [] };
     if (children.some(p => !Number.isFinite(p.presupuesto_original) || p.presupuesto_original! < 0)) throw new Error("Revisa los montos originales de las subpartidas del concepto.");
     const total = children.reduce((sum,p) => sum + p.presupuesto_original!, 0);
     if (total <= 0 && config.monto_original > 0) throw new Error("Las subpartidas del concepto necesitan montos originales para distribuir su cargo.");
     const weights = children.map(p => total > 0 ? p.presupuesto_original! / total : 1 / children.length);
-    const allocated = weights.map(weight => Math.floor(Math.abs(cents) * weight));
-    const residual = Math.abs(cents) - allocated.reduce((sum,value) => sum + value, 0);
-    const order = weights.map((weight,index) => ({ index, remainder: Math.abs(cents) * weight - allocated[index] }))
-      .sort((a,b) => b.remainder - a.remainder || a.index - b.index);
-    for (let index = 0; index < residual; index++) allocated[order[index % order.length].index]++;
-    children.forEach((child,index) => walk(child, allocated[index] * Math.sign(cents), percentage * weights[index]));
+    return { id: parent._id, weights, children: children.map((child, index) => prepare(child, percentage * weights[index])) };
   };
-  walk(source, Math.round(monto * 100), config.porcentaje);
-  return { directos, porPartida, porcentajes };
+  const tree = prepare(source, config.porcentaje);
+  return (monto: number) => {
+    const directos: Record<string, number> = {}, porPartida: Record<string, number> = {};
+    const walk = (parent: AllocationNode, cents: number) => {
+      porPartida[parent.id] = cents / 100;
+      if (!parent.children.length) { directos[parent.id] = cents / 100; return; }
+      const allocated = parent.weights.map(weight => Math.floor(Math.abs(cents) * weight));
+      const residual = Math.abs(cents) - allocated.reduce((sum, value) => sum + value, 0);
+      if (residual > 0) {
+        const order = parent.weights.map((weight, index) => ({ index, remainder: Math.abs(cents) * weight - allocated[index] }))
+          .sort((a, b) => b.remainder - a.remainder || a.index - b.index);
+        for (let index = 0; index < residual; index++) allocated[order[index % order.length].index]++;
+      }
+      parent.children.forEach((child, index) => walk(child, allocated[index] * Math.sign(cents)));
+    };
+    walk(tree, Math.round(monto * 100));
+    return { directos, porPartida, porcentajes };
+  };
 }
 export function feeSourceForPayment(configs: readonly FeeConceptConfig[], partida: FeeConceptPartida, partidas: readonly FeeConceptPartida[], fecha?: string) {
   return configs.find(c => isActiveFeeConcept(c, fecha) && belongsToFeeRoot(partida, c.partida_id, partidas));
@@ -145,15 +184,21 @@ export function calculateFeeConceptPayments(input: {
   configs: readonly FeeConceptConfig[]; partidas: readonly FeeConceptPartida[]; transactions: readonly FeeTransaction[];
   pagos: readonly { transaccion_id: string; partida_id?: string; monto: number }[];
   convert?: (amount: number, transaction: FeeTransaction) => number;
+  // Totals still validate the hierarchy, but need no per-payment cent allocation.
+  allocate?: boolean;
 }) {
   const txs = new Map(input.transactions.map(t => [String(t._id), t]));
   const partidas = new Map(input.partidas.map(p => [String(p._id), p]));
   const configs = currentFeeConcepts(input.configs, input.partidas);
   const concepts = configs.map(config => ({ ...config, nombre: input.partidas.find(p => String(p._id) === config.partida_id)?.nombre || FEE_CONCEPT_LABELS[config.concepto], monto: 0, basePagada: 0, manualSustituido: 0, manualTotal: 0 }));
+  const sources = feeConceptsByPartida(concepts, input.partidas);
+  const activeByTransaction = new Map(input.transactions.map(tx => [String(tx._id), concepts.filter(c => isActiveFeeConcept(c, tx.fecha))]));
   const sustituidosPorPartida: Record<string, number> = {};
   const automaticosPorPartida: Record<string, number> = {}, porcentajesPorPartida: Record<string, number> = {};
+  const distributions = new Map(concepts.map(concept => [concept.concepto, prepareFeeDistribution(concept, input.partidas)]));
+  const chargeCounts = new Map(concepts.map(concept => [concept.concepto, new Map<number, number>()]));
   for (const concept of concepts) {
-    const distribution = distributeFeeCharge(concept, input.partidas, 0);
+    const distribution = distributions.get(concept.concepto)!(0);
     Object.assign(automaticosPorPartida, distribution.directos);
     Object.assign(porcentajesPorPartida, distribution.porcentajes);
   }
@@ -161,21 +206,32 @@ export function calculateFeeConceptPayments(input: {
     const tx = txs.get(String(pago.transaccion_id)), partida = partidas.get(String(pago.partida_id));
     if (!tx || !partida || tx.status !== "Pagado") continue;
     const amount = input.convert ? input.convert(Math.abs(pago.monto), tx) : Math.abs(pago.monto);
-    for (const concept of concepts) if (belongsToFeeRoot(partida, concept.partida_id, input.partidas)) {
+    const paymentSources = sources.get(String(partida._id)) || [];
+    for (const concept of paymentSources) {
       concept.manualTotal += input.convert ? input.convert(pago.monto, tx) : pago.monto;
     }
-    for (const charge of feeChargesAtRate(configs, tx.fecha, amount)) {
-      const concept = concepts.find(c => c.concepto === charge.config.concepto)!;
-      concept.monto += charge.monto; concept.basePagada += charge.base;
-      for (const [id, allocated] of Object.entries(distributeFeeCharge(charge.config, input.partidas, charge.monto).directos)) {
-        automaticosPorPartida[id] = (automaticosPorPartida[id] || 0) + allocated;
-      }
+    for (const concept of activeByTransaction.get(String(tx._id)) || []) {
+      const charge = Math.round(amount * concept.porcentaje) / 100;
+      concept.monto += charge; concept.basePagada += amount;
+      if (input.allocate === false) continue;
+      const counts = chargeCounts.get(concept.concepto)!;
+      const cents = Math.round(charge * 100);
+      if (cents !== 0) counts.set(cents, (counts.get(cents) || 0) + 1);
     }
-    const source = feeSourceForPayment(configs, partida, input.partidas, tx.fecha);
+    const source = paymentSources.find(c => isActiveFeeConcept(c, tx.fecha));
     if (source) {
       const signed = input.convert ? input.convert(pago.monto, tx) : pago.monto;
-      concepts.find(c => c.concepto === source.concepto)!.manualSustituido += signed;
+      source.manualSustituido += signed;
       sustituidosPorPartida[String(partida._id)] = (sustituidosPorPartida[String(partida._id)] || 0) + signed;
+    }
+  }
+  // Identical rounded charges have identical allocations. Count those payments
+  // instead of traversing every leaf again; never distribute an accumulated total.
+  for (const concept of concepts) {
+    for (const [cents, count] of chargeCounts.get(concept.concepto)!) {
+      for (const [id, allocated] of Object.entries(distributions.get(concept.concepto)!(cents / 100).directos)) {
+        automaticosPorPartida[id] = (automaticosPorPartida[id] || 0) + allocated * count;
+      }
     }
   }
   for (const concept of concepts) concept.monto = Math.round(concept.monto * 100) / 100;
