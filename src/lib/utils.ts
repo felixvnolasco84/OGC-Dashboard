@@ -67,6 +67,12 @@ export function formatCurrency(amount: number, currency: string = "MXN") {
   }).format(amount);
 }
 
+// Accept percentage points (15 means 15%). Keep rounding in the display only.
+export function formatPercentage(value: number) {
+  return `${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    .format(Number.isFinite(value) ? value : 0)}%`;
+}
+
 export function formatCurrencyCompact(amount: number, currency: string = "MXN") {
 
   if (currency === "USD") {

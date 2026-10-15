@@ -4,7 +4,8 @@ import type { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FEE_CONCEPT_LABELS } from "../../../convex/feeConceptRules";
+import { FEE_CONCEPT_LABELS, feeConceptUsesProjectHistory } from "../../../convex/feeConceptRules";
+import { formatPercentage } from "@/lib/utils";
 
 export type FeeImpact = Extract<FunctionReturnType<typeof api.desarrollos.previewFeeImpact>, { status: "ready" }>;
 
@@ -43,7 +44,7 @@ export default function ProjectFeeImpactReview({ impact, partidas }: { impact: F
   const name = (id: string) => partidas.find(p => p._id === id)?.nombre || "Partida no disponible";
   const added = impact.afterConfig.excluded_partidas_honorarios.filter(id => !impact.beforeConfig.excluded_partidas_honorarios.includes(id));
   const removed = impact.beforeConfig.excluded_partidas_honorarios.filter(id => !impact.afterConfig.excluded_partidas_honorarios.includes(id));
-  const percent = (value: number | null) => value === null ? "Sin activar" : `${value}%`;
+  const percent = (value: number | null) => value === null ? "Sin activar" : formatPercentage(value);
   const mode = (value: string) => value === "automatico" ? "Automático por porcentaje" : "Por transacciones de HONORARIOS";
   const budgetRows = [
     ["Honorarios", "honorarios"], ["Cargo automático de indirectos", "indirectos"],
@@ -61,7 +62,7 @@ export default function ProjectFeeImpactReview({ impact, partidas }: { impact: F
       <summary className="min-h-11 cursor-pointer py-2 font-medium">Configuración anterior y periodos históricos</summary>
       <dl className="space-y-2">
       <div><dt className="text-muted-foreground">Modo de honorarios en Presupuesto</dt><dd>{mode(impact.beforeConfig.honorarios_modo)} → {mode(impact.afterConfig.honorarios_modo)}</dd></div>
-      <div><dt className="text-muted-foreground">Porcentaje de honorarios</dt><dd>{impact.beforeConfig.honorarios_porcentaje ?? 0}% → {impact.afterConfig.honorarios_porcentaje ?? 0}%</dd></div>
+      <div><dt className="text-muted-foreground">Porcentaje de honorarios</dt><dd>{formatPercentage(impact.beforeConfig.honorarios_porcentaje ?? 0)} → {formatPercentage(impact.afterConfig.honorarios_porcentaje ?? 0)}</dd></div>
       <div><dt className="text-muted-foreground">Indirectos</dt><dd>{percent(impact.beforeConfig.indirectos_porcentaje)} → {percent(impact.afterConfig.indirectos_porcentaje)} · Inicio: {impact.afterConfig.indirectos_fecha_inicio || "Sin activar"}</dd></div>
       <div><dt className="text-muted-foreground">Exclusiones compartidas de nivel 1 y descendientes</dt><dd>{added.length ? `Se excluyen: ${added.map(name).join(", ")}. ` : ""}{removed.length ? `Se incluyen: ${removed.map(name).join(", ")}.` : ""}{!added.length && !removed.length ? "Se conservan las exclusiones actuales." : ""}</dd></div>
       </dl>
@@ -71,9 +72,9 @@ export default function ProjectFeeImpactReview({ impact, partidas }: { impact: F
       <p>Monto original: {money(concept.monto_original, impact.budgetCurrency)} · Aprobado total: {money(concept.aprobado_total ?? concept.base_aprobada ?? concept.base_original, impact.budgetCurrency)}</p>
       <p>Aprobado excluido: {money(concept.aprobado_excluido ?? 0, impact.budgetCurrency)} · Base aprobada después de exclusiones: {money(concept.base_aprobada ?? concept.base_original, impact.budgetCurrency)}</p>
       <p>Partidas excluidas: {concept.excluded_partidas.length ? concept.excluded_partidas.map(name).join(", ") : "Ninguna"}.</p>
-      <p>Porcentaje propuesto: {concept.porcentaje.toLocaleString("es-MX", { maximumFractionDigits: 6 })}% · Inicio: {concept.fecha_inicio}</p>
+      <p>Porcentaje propuesto: {formatPercentage(concept.porcentaje)} · {feeConceptUsesProjectHistory(concept) ? "Alcance: acumulado completo del proyecto" : `Inicio: ${concept.fecha_inicio}`}</p>
       <p>La tasa usa el aprobado menos exclusiones y se actualiza automáticamente al cambiar el presupuesto aprobado.</p>
-      <p>Tasa aprobada anterior: {(impact.beforeConfig.fee_concepts || []).some(c => c.concepto === concept.concepto) ? `${(impact.beforeConfig.fee_concepts || []).find(c => c.concepto === concept.concepto)!.porcentaje.toLocaleString("es-MX", { maximumFractionDigits: 6 })}%` : "Sin configurar"}</p>
+      <p>Tasa aprobada anterior: {(impact.beforeConfig.fee_concepts || []).some(c => c.concepto === concept.concepto) ? formatPercentage((impact.beforeConfig.fee_concepts || []).find(c => c.concepto === concept.concepto)!.porcentaje) : "Sin configurar"}</p>
     </div>)}
     {impact.beforeConfig.indirectos_porcentaje === null && impact.afterConfig.indirectos_porcentaje !== null && <p className="border-l-2 border-foreground pl-3 text-xs" role="status">La activación sustituye componentes manuales desde la fecha de inicio, incluso al 0%. Los registros no se eliminan.</p>}
     <div>

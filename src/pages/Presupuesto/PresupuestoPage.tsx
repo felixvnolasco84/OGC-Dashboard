@@ -42,7 +42,7 @@ import IngresosModal from "@/components/modals/ingresos-modal";
 import { hasIncomeManagementAccess } from "../../../convex/ingresoRules";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { DeletePartidaDialog } from "@/components/Presupuesto/DeletePartidaDialog";
-import { cn } from "@/lib/utils";
+import { cn, formatPercentage } from "@/lib/utils";
 import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
 import { AddTransactionMenu } from "@/components/transactions/AddTransactionMenu";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
@@ -368,10 +368,10 @@ export default function PresupuestoPage() {
 
   // Calculate percentage differences
   const presupuestoReduction = metrics && metrics.presupuesto_original > 0
-    ? Math.round(((metrics.presupuesto_aprobado - metrics.presupuesto_original) / metrics.presupuesto_original) * 100)
+    ? ((metrics.presupuesto_aprobado - metrics.presupuesto_original) / metrics.presupuesto_original) * 100
     : 0;
   const avancePercentage = metrics && metrics.presupuesto_aprobado > 0
-    ? Math.round((metrics.gasto_total / metrics.presupuesto_aprobado) * 100)
+    ? (metrics.gasto_total / metrics.presupuesto_aprobado) * 100
     : 0;
   const totalIngresos = (ingresosTotals?.total_ingresos || 0) + (ogcIngresosTotals?.total_ingresos || 0);
 
@@ -544,7 +544,7 @@ export default function PresupuestoPage() {
                 </div>
                 <div className="text-lg text-muted-foreground">
                   <Badge variant="success">
-                    {presupuestoReduction < 0 ? 'Reducción' : 'Aumento'} {Math.abs(presupuestoReduction)}%
+                    {presupuestoReduction < 0 ? 'Reducción' : 'Aumento'} {formatPercentage(Math.abs(presupuestoReduction))}
                   </Badge>
                 </div>
               </div>
@@ -570,7 +570,7 @@ export default function PresupuestoPage() {
                   />
                 </div>
                 <Badge variant="secondary">
-                  Avance {avancePercentage}%
+                  Avance {formatPercentage(avancePercentage)}
                 </Badge>
               </div>
             </CardContent>
@@ -589,7 +589,7 @@ export default function PresupuestoPage() {
                   />
                 </div>
                 <Badge variant="secondary">
-                  Avance {avancePercentage}%
+                  Avance {formatPercentage(avancePercentage)}
                 </Badge>
               </div>
             </CardContent>

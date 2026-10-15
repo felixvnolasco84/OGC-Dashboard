@@ -1,7 +1,7 @@
 import type { Id } from "./_generated/dataModel";
 
 export const FEE_CONCEPT_START = "2026-10-01";
-export const FEE_CONCEPT_CALCULATION_VERSION = 2;
+export const FEE_CONCEPT_CALCULATION_VERSION = 3;
 export const FEE_CONCEPT_LABELS = {
   honorarios: "Honorarios", indirectos: "Indirectos", general_conditions: "General Conditions", viaticos: "Viáticos",
 } as const;
@@ -26,9 +26,12 @@ function isoDate(fecha?: string) {
   return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d
     ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
 }
+export function feeConceptUsesProjectHistory(config: Pick<FeeConceptInput, "concepto">) {
+  return config.concepto === "viaticos" || config.concepto === "general_conditions";
+}
 export function isActiveFeeConcept(config: FeeConceptConfig, fecha?: string) {
   const date = isoDate(fecha?.trim());
-  return Boolean(date && date >= config.fecha_inicio);
+  return Boolean(date && (feeConceptUsesProjectHistory(config) || date >= config.fecha_inicio));
 }
 export function hasActiveIndirectFeeConcepts(configs: readonly FeeConceptConfig[] = [], fecha?: string) {
   return configs.some(c => c.concepto !== "honorarios" && isActiveFeeConcept(c, fecha));

@@ -8,17 +8,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useAggregatedDetailsModal } from "@/hooks/aggregated-details-modal";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatPercentage as formatPercent } from "@/lib/utils";
 
 const DANGER = "#802424";
 
 function percentOf(part: number, whole: number) {
   if (!Number.isFinite(part) || !Number.isFinite(whole) || whole === 0) return null;
   return (part / whole) * 100;
-}
-
-function formatPercent(value: number) {
-  return `${value.toFixed(1)}%`;
 }
 
 function formatSignedCurrency(amount: number) {

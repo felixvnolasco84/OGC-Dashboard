@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatPercentage } from "@/lib/utils";
 import DropdownMenuComponentPartida from "../DropdownMenu/DropdownMenuComponenPartida";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -356,7 +356,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                 {dateFilterLabel ? `Pagado (${dateFilterLabel})` : "Pagado"}
               </TableHead>
               <TableHead variant="budget">
-                {proyecto?.fee_concepts?.length ? "Avance / % concepto" : "Avance"}
+                Avance
               </TableHead>
               <TableHead variant="budget">
               </TableHead>
@@ -369,6 +369,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
               const approvedDiff = getApprovedVsOriginal(item.presupuestoOriginal, item.presupuestoAprobado);
               const displayPagado = getFilteredPagado(item);
               const displayPorGastar = displayPayments ? item.presupuestoAprobado - displayPagado : item.porGastar;
+              const displayAvance = item.presupuestoAprobado > 0 ? displayPagado / item.presupuestoAprobado * 100 : 0;
               const porGastarBadge = getPorGastarBadge(displayPorGastar);
 
               return (
@@ -455,14 +456,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                       </div>
                     </TableCell>
                     <TableCell variant="budget">
-                      {/* For Honorarios level 0 items, show honorarios_porcentaje from proyecto */}
-                      {automaticPayments?.feePercentagesByPartida?.[item.originalDoc?._id || ""] !== undefined ? (
-                        <span>{automaticPayments.feePercentagesByPartida[item.originalDoc?._id || ""].toLocaleString("es-MX", { maximumFractionDigits: 6 })}%</span>
-                      ) : item.level === 0 && isHonorariosItem(item.nombre) && proyecto?.honorarios_modo !== "transacciones" && proyecto?.honorarios_porcentaje !== undefined ? (
-                        <span>{proyecto.honorarios_porcentaje}%</span>
-                      ) : (
-                        <span>{item.avance}%</span>
-                      )}
+                      <span>{formatPercentage(displayAvance)}</span>
                     </TableCell>
                     <TableCell variant="budgetMuted">
                       <DropdownMenuComponentPartida
@@ -474,8 +468,8 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                           displayName: item.displayName,
                           presupuestoOriginal: item.presupuestoOriginal,
                           presupuestoAprobado: item.presupuestoAprobado,
-                          pagado: item.pagado,
-                          avance: item.avance,
+                          pagado: displayPagado,
+                          avance: displayAvance,
                           hasChildren: Boolean(item.children?.length),
                         }}
                       />
@@ -491,7 +485,7 @@ export default function PresupuestoTable({ data, status, showPrecioUnitario, fil
                 <TableCell variant="budget">—</TableCell>
                 <TableCell variant="budget">—</TableCell>
                 <TableCell variant="budget">{formatCurrency(automaticIndirectos, defaultCurrency)}</TableCell>
-                <TableCell variant="budget">{proyecto.indirectos_porcentaje}%</TableCell>
+                <TableCell variant="budget">—</TableCell>
                 <TableCell variant="budgetMuted">Automático</TableCell>
               </TableRow>
             )}

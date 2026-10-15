@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatPercentage } from "@/lib/utils";
 
 const matches = (name: string, kind: FeeConceptKind) => {
   const value = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -47,7 +48,7 @@ export default function FeeConceptEditor({ value, approved, partidas, currency, 
     <div className="space-y-1">
       <h3 className="text-base font-medium">Porcentajes sobre presupuesto aprobado</h3>
       <p className="text-xs text-muted-foreground">Porcentaje = monto original del concepto ÷ (presupuesto aprobado total del proyecto − aprobado de las partidas excluidas) × 100.</p>
-      <p className="text-xs text-muted-foreground">Al cambiar el presupuesto aprobado, los porcentajes y cargos se actualizan automáticamente. Los cargos se aplican a todos los pagos Pagado desde el 1 de octubre de 2026.</p>
+      <p className="text-xs text-muted-foreground">Al cambiar el presupuesto aprobado, los porcentajes y cargos se actualizan automáticamente. Viáticos y General Conditions usan todos los pagos Pagado acumulados del proyecto. Honorarios y los demás conceptos conservan su fecha de inicio.</p>
       <p className="text-xs text-muted-foreground">El cargo se distribuye entre familias y subpartidas según sus montos originales; el total es la suma del desglose.</p>
     </div>
     {(Object.keys(FEE_CONCEPT_LABELS) as FeeConceptKind[]).map(kind => {
@@ -79,8 +80,8 @@ export default function FeeConceptEditor({ value, approved, partidas, currency, 
             <div><dt className="inline text-muted-foreground">Presupuesto aprobado total: </dt><dd className="inline">{money(calculation.aprobado_total!, currency)}</dd></div>
             <div><dt className="inline text-muted-foreground">Aprobado excluido: </dt><dd className="inline">{money(calculation.aprobado_excluido!, currency)}</dd></div>
             <div><dt className="inline text-muted-foreground">Base aprobada después de exclusiones: </dt><dd className="inline">{money(calculation.base_aprobada!, currency)}</dd></div>
-            <div><dt className="inline text-muted-foreground">Porcentaje calculado: </dt><dd className="inline font-medium" data-testid={`rate-${kind}`}>{calculation.porcentaje.toLocaleString("es-MX", { maximumFractionDigits: 6 })}%</dd></div>
-            {old && <div><dt className="inline text-muted-foreground">Tasa actual: </dt><dd className="inline">{old.porcentaje.toLocaleString("es-MX", { maximumFractionDigits: 6 })}%</dd></div>}
+            <div><dt className="inline text-muted-foreground">Porcentaje calculado: </dt><dd className="inline font-medium" data-testid={`rate-${kind}`}>{formatPercentage(calculation.porcentaje)}</dd></div>
+            {old && <div><dt className="inline text-muted-foreground">Tasa actual: </dt><dd className="inline">{formatPercentage(old.porcentaje)}</dd></div>}
           </dl>}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         </>}

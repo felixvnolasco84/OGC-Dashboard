@@ -30,7 +30,7 @@ import { OgcMovementsUploadModal } from "@/components/modals/ogc-movements-uploa
 import { OgcInvoiceEvidenceDialog } from "@/components/modals/ogc-invoice-evidence-dialog";
 import type { OgcInvoiceProof } from "@/lib/ogcInvoiceEvidence";
 import { getOgcTypeLabel, normalizeOgcClassification } from "../../../convex/ogcClassificationRules";
-import { cn } from "@/lib/utils";
+import { cn, formatPercentage } from "@/lib/utils";
 import { Ban, CalendarDays, Check, Copy, Info, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -369,8 +369,7 @@ const formatPnlValue = (amount?: number) => {
 };
 
 const formatPercent = (value?: number) => {
-  if (value === undefined || !Number.isFinite(value)) return "0%";
-  return `${(value * 100).toFixed(1)}%`;
+  return formatPercentage((value ?? 0) * 100);
 };
 
 const formatMetricCurrency = (amount: number) => {
@@ -529,10 +528,10 @@ const buildMonthlyDataNote = (months: PnlMonth[], pnlSummary?: PnlSummary) => {
     safeNumber(pnlSummary.totals.ingresosOgc) > 0 || safeNumber(pnlSummary.totals.costosEstructuraOgc) > 0;
 
   if (hasPeriodActivity && monthsWithMovements < months.length) {
-    return `Honorarios calculados exclusivamente con el porcentaje automático de cada obra sobre pagos elegibles; indirectos automáticos desde la fecha de inicio configurada por obra; costos reales desde movimientos OGC. Los periodos anteriores conservan indirectos históricos. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
+    return `Honorarios calculados con las reglas de cada obra sobre pagos elegibles. Viáticos y General Conditions configurados usan el acumulado completo del proyecto; los demás indirectos conservan su fecha de inicio y tratamiento histórico. Los costos reales provienen de movimientos OGC. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
   }
 
-  return "Los conceptos configurados usan todos los pagos Pagado desde su fecha de inicio. Sus porcentajes se calculan con el monto original del concepto dividido entre el presupuesto aprobado total menos el aprobado de sus partidas excluidas, y se actualizan al cambiar ese presupuesto. Las exclusiones ajustan la base presupuestal del porcentaje. Indirectos agrupa Indirectos, General Conditions y Viáticos. Los costos reales provienen de movimientos OGC y los periodos anteriores conservan el tratamiento histórico. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento, sin prorrateo lineal.";
+  return "Viáticos y General Conditions configurados usan todos los pagos Pagado acumulados del proyecto, incluidos los anteriores a octubre de 2026. Honorarios y los demás conceptos conservan su fecha de inicio y tratamiento anterior. Sus porcentajes se calculan con el monto original del concepto dividido entre el presupuesto aprobado total menos el aprobado de sus partidas excluidas, y se actualizan al cambiar ese presupuesto. Las exclusiones ajustan la base presupuestal del porcentaje. Indirectos agrupa Indirectos, General Conditions y Viáticos. Los costos reales provienen de movimientos OGC. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento, sin prorrateo lineal.";
 };
 
 function MonthlyPnlTable({

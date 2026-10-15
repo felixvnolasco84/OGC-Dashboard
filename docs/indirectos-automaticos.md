@@ -14,7 +14,9 @@ Cambiar solo las exclusiones también requiere revisar y guardar el impacto. Cam
 
 ## Cargos y desglose
 
-Los conceptos configurados usan todas las líneas de pagos con estado Pagado desde **2026-10-01**, incluyendo honorarios, viáticos y partidas antes excluidas. Cada cargo es base pagada × porcentaje vigente. Los cargos automáticos no vuelven a integrar la base como nuevos pagos.
+**Viáticos y General Conditions configurados usan todas las líneas de pagos con estado Pagado del acumulado completo del proyecto**, incluyendo las anteriores al 1 de octubre de 2026. Honorarios y el concepto Indirectos conservan su fecha de inicio y su tratamiento anterior; no se altera su fórmula.
+
+Cada cargo es base pagada × porcentaje vigente. Se incluyen los importes registrados en honorarios, viáticos y partidas excluidas del presupuesto. Los cargos automáticos no vuelven a integrar la base como nuevos pagos. Las consultas por fechas y los meses de P&L solo incluyen los pagos del periodo solicitado, sin trasladar todo el acumulado a octubre.
 
 Las exclusiones anteriores se aplican al presupuesto usado para obtener la tasa. Los pagos de esas partidas siguen generando cargos con la tasa resultante.
 
@@ -22,7 +24,9 @@ Cada cargo se reparte según el monto original de las familias y subpartidas. Lo
 
 Los montos originales de los hijos determinan su participación dentro del padre. Si la rama tiene hijos pero todos sus montos originales son cero y el concepto es positivo, se solicita corregir esos importes antes de distribuirlo.
 
-Los pagos manuales de las partidas activadas se sustituyen en los totales; sus documentos y registros permanecen consultables y sus importes registrados forman parte de la base común. Los conceptos sin activar conservan sus pagos manuales. Activar un concepto indirecto independiente reemplaza el porcentaje global anterior desde el corte.
+Los pagos manuales de las partidas activadas se sustituyen en los totales dentro del alcance del concepto; sus documentos y registros permanecen consultables y sus importes registrados forman parte de la base común. Los conceptos sin activar conservan sus pagos manuales. Activar un concepto indirecto independiente reemplaza el porcentaje global anterior dentro de su alcance.
+
+La columna **Avance** de Presupuesto muestra pagado visible / aprobado × 100 en cada partida, familia y subpartida; usa los mismos importes que se muestran en Pagado, incluidos los filtros. La tasa del concepto se consulta en su configuración. Los porcentajes visibles tienen dos decimales; el cálculo de cargos conserva la precisión completa de las tasas.
 
 ## Costos reales y P&L
 
@@ -34,18 +38,20 @@ Presupuesto usa la moneda de la obra; P&L usa MXN y su conversión existente. Lo
 
 ## Compatibilidad y revisión
 
-El corte se mantiene en el 1 de octubre de 2026. Los periodos anteriores conservan su tratamiento histórico. Las obras sin conceptos configurados mantienen sus porcentajes manuales y exclusiones anteriores, disponibles en Configuración anterior y periodos históricos. Una tasa configurada al 0% sigue activa y puede sustituir manuales sin generar cargo.
+El corte del 1 de octubre de 2026 se conserva para Honorarios y los esquemas anteriores de Indirectos. Viáticos y General Conditions configurados recalculan también el ejercido previo del proyecto. Las obras sin esos conceptos configurados mantienen sus porcentajes manuales y exclusiones anteriores, disponibles en Configuración anterior y periodos históricos. Una tasa configurada al 0% sigue activa y puede sustituir manuales sin generar cargo.
 
 El filtro mensual de P&L solo cambia la revisión; guardar aplica a todo el proyecto. Cambios externos en datos financieros invalidan una revisión abierta y exigen actualizarla antes de guardar. Cancelar no escribe. La revisión completa mantiene los límites de 2,500 registros y 512 KiB de alcance canónico.
 
 Backend y schema desplegados el 14 de octubre de 2026 en `dev:animated-walrus-612`. Los cambios de frontend se incluyen en `main`; su publicación depende del hosting configurado para esa rama. El despliegue no activa conceptos ni migra proyectos. Queda pendiente conciliar los resultados contra el aprobado vigente de los Excel reales; las tasas de referencia de la reunión no son valores prefijados.
 
+Para esta corrección se reconstruyeron los totales derivados del proyecto afectado y se verificó que una segunda reconstrucción no produjera cambios. Los registros fuente de pagos y el total de Honorarios se conservaron.
+
 ## Pruebas
 
-- test:project-fees: fórmula sobre aprobado menos exclusiones independientes por concepto, selecciones inválidas o duplicadas, guardado de cambios solo en exclusiones, autorrecálculo, cinco subpartidas, pagos insertados/editados/eliminados, corte, monedas, revisión y concurrencia.
-- test:indirectos-ui: búsqueda y selección de exclusiones, base neta visible, rechazo de base cero, revisión y persistencia de cambios solo en exclusiones, porcentaje actualizado sin guardar otra vez, desglose de cinco hojas, revisión y guardado a 390 y 1440 px. Usa datos sintéticos sin conexión a Convex y genera capturas en output/indirectos-ui.
+- test:project-fees: fórmula sobre aprobado menos exclusiones independientes por concepto, acumulado histórico de Viáticos y General Conditions sobre $6.5 millones, fechas filtradas, Honorarios sin cambios, manuales históricos sustituidos una vez, selecciones inválidas o duplicadas, autorrecálculo, cinco subpartidas, corte, monedas, revisión y concurrencia.
+- test:indirectos-ui: avance de pagado sobre aprobado, tasas y porcentajes con dos decimales, búsqueda y selección de exclusiones, base neta visible, rechazo de base cero, revisión y persistencia de cambios solo en exclusiones, porcentaje actualizado sin guardar otra vez, desglose de cinco hojas, revisión y guardado a 390 y 1440 px. Usa datos sintéticos sin conexión a Convex y genera capturas en output/indirectos-ui.
 - Pruebas relacionadas de P&L, Presupuesto, jerarquía, edición de pagos, edición/eliminación de partidas y clasificación OGC; TypeScript, lint y build.
 
-Validación de la corrección: 267 pruebas aprobadas, 2 omitidas; TypeScript, ESLint, build y pruebas visuales aprobados.
+Validación de la corrección: 269 pruebas aprobadas, 2 omitidas; TypeScript, ESLint, build y pruebas visuales aprobados.
 
 El plan complementado está en docs/plan-conceptos-porcentuales.md.

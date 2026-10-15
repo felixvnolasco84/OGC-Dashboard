@@ -10,9 +10,10 @@
 - El guardado de configuración conserva la revisión Actual → Propuesto → Diferencia y el control de concurrencia. No requiere una aprobación posterior para recalcular las tasas ante cambios de presupuesto.
 - Cambiar solo las exclusiones de un concepto genera una nueva revisión financiera y se persiste al guardar. Las partidas seleccionadas como exclusiones deben retirarse de la configuración antes de eliminarse del presupuesto.
 - Las revisiones de configuración, pagos y presupuesto hechas antes de publicar esta fórmula se invalidan y deben actualizarse antes de guardar.
-- Los cargos se aplican a todas las líneas de pagos Pagado desde el 1 de octubre de 2026, incluso las partidas que antes se excluían. Los cargos generados no son pagos nuevos y no se añaden otra vez a la base; ya no hay dependencias entre conceptos.
+- Viáticos y General Conditions configurados aplican los cargos a todas las líneas de pagos Pagado del acumulado completo del proyecto, incluidas las anteriores al 1 de octubre de 2026. Honorarios y los demás conceptos conservan su fecha de inicio y su tratamiento previo. Los cargos generados no son pagos nuevos y no se añaden otra vez a la base; no hay dependencias entre conceptos.
 - Los pagos manuales de los conceptos activados se sustituyen en sus totales, sin borrar sus registros. Sus importes registrados sí integran la base común de pagos. Los conceptos no configurados conservan su tratamiento anterior.
-- Configurar un concepto indirecto independiente reemplaza el porcentaje global de indirectos desde el corte. Honorarios configurado reemplaza su configuración anterior desde el mismo corte. Periodos anteriores y proyectos sin configurar mantienen sus reglas.
+- Configurar un concepto indirecto independiente reemplaza el porcentaje global de indirectos dentro de su alcance. Honorarios configurado reemplaza su configuración anterior desde su fecha de inicio. Los proyectos sin configurar mantienen sus reglas.
+- Los porcentajes visibles tienen dos decimales; las tasas internas conservan su precisión completa. Avance en Presupuesto significa pagado visible / aprobado × 100 para cada nivel, usando los importes visibles de la consulta y sus filtros. Las tasas se muestran en configuración y revisión de impacto.
 
 ## Familias y subpartidas
 
@@ -31,11 +32,13 @@
 
 ## Validación y publicación
 
-Pruebas de base aprobada menos exclusiones, selecciones independientes, duplicados y exclusiones inválidas, guardado de cambios solo en exclusiones, autorrecálculo por cambios en raíz y hoja incluidas o excluidas, cinco subpartidas, centavos, revisión/guardado, pagos insertados/editados/eliminados, monedas y corte histórico. Las pruebas de UI usan datos sintéticos y generan capturas en output/indirectos-ui.
+Pruebas de base aprobada menos exclusiones, acumulado histórico de Viáticos y General Conditions sobre $6.5 millones, Honorarios sin cambios, periodos filtrados, sustitución de manuales históricos una vez, selecciones independientes, duplicados y exclusiones inválidas, guardado de cambios solo en exclusiones, autorrecálculo, cinco subpartidas, centavos, revisión/guardado, monedas y corte histórico. Las pruebas de UI verifican avance y dos decimales con datos sintéticos y generan capturas en output/indirectos-ui.
 
-Backend y schema desplegados el 14 de octubre de 2026 en `dev:animated-walrus-612`. Los cambios de frontend se incluyen en `main`; su publicación depende del hosting configurado para esa rama. La corrección de exclusiones pasó 267 pruebas (2 omitidas), TypeScript, ESLint, build y pruebas visuales a 390 y 1440 px.
+Backend y schema desplegados el 14 de octubre de 2026 en `dev:animated-walrus-612`. Los cambios de frontend se incluyen en `main`; su publicación depende del hosting configurado para esa rama. La corrección de acumulado y avance pasó 269 pruebas (2 omitidas), TypeScript, ESLint, build y pruebas visuales a 390 y 1440 px.
 
 No se activaron conceptos ni se migraron proyectos como parte del despliegue. Queda pendiente conciliar los importes con los presupuestos aprobados reales; los porcentajes de referencia de la reunión pueden cambiar con esta nueva fórmula.
+
+La corrección del acumulado incluye la reconstrucción de los totales derivados del proyecto afectado. Se verificó que no quedaran diferencias pendientes en una segunda simulación y que se conservaran los registros fuente de pagos y el total de Honorarios.
 
 ## Ejemplo de la fórmula corregida
 

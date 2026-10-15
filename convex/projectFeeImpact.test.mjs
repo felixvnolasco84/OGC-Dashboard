@@ -450,8 +450,59 @@ describe("concept percentages over approved budget minus exclusions", () => {
     const impact = await f.preview(proposal()); await f.save(proposal(), impact.expectedImpact);
     const pnl = await getPnlSummary._handler(f.ctx, { periodYear: 2026, cutoffMonth: 10 });
     expect(pnl.monthlyOgcMovements["2026-9"].honorarios).toBe(10000);
+    expect(pnl.monthlyOgcMovements["2026-9"].indirectos).toBe(5000);
     expect(pnl.monthlyOgcMovements["2026-10"].honorarios).toBe(10000);
     expect(pnl.monthlyOgcMovements["2026-10"].indirectos).toBe(5000);
+  });
+
+  it("viaticos and General Conditions charge the full exercised project history, preserving honorarios", async () => {
+    const rows = [root("work", "OBRA", 38705240.36022436), root("fee", "HONORARIOS", 5076588.8976269225),
+      root("gc", "GENERAL CONDITIONS", 846098.1496044871), root("v", "VIÁTICOS", 3613120)];
+    const f = fixture({ partidas: rows, transacciones: [
+      { _id: "transacciones:sep", proyecto: "desarrollos:p", monto_total: 6142299.52, fecha: "2026-09-30", status: "Pagado", moneda: "MXN" },
+      { _id: "transacciones:oct", proyecto: "desarrollos:p", monto_total: 357700.48, fecha: "2026-10-01", status: "Pagado", moneda: "MXN" },
+      { _id: "transacciones:pending", proyecto: "desarrollos:p", monto_total: 900000, fecha: "2026-09-01", status: "Por pagar", moneda: "MXN" },
+    ], pagos: [
+      { _id: "pagos:sep", transaccion_id: "transacciones:sep", partida_id: "partidas:work", monto: 6142299.52 },
+      { _id: "pagos:oct", transaccion_id: "transacciones:oct", partida_id: "partidas:work", monto: 357700.48 },
+      { _id: "pagos:pending", transaccion_id: "transacciones:pending", partida_id: "partidas:work", monto: 900000 },
+    ] });
+    const honorariosOnly = { fee_concepts: [input("honorarios", "fee", ["fee", "gc"])] };
+    const initial = await f.preview(honorariosOnly); await f.save(honorariosOnly, initial.expectedImpact);
+    const priorHonorarios = f.tables.desarrollos[0].honorarios_monto;
+    const change = { fee_concepts: [...honorariosOnly.fee_concepts,
+      input("general_conditions", "gc", ["fee", "gc"]), input("viaticos", "v", ["fee", "gc", "v"])] };
+    const impact = await f.preview(change); await f.save(change, impact.expectedImpact);
+    const payments = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "desarrollos:p" });
+    expect(payments.feeConcepts.filter(c => c.concepto !== "honorarios").map(c => c.basePagada)).toEqual([6500000, 6500000]);
+    expect(payments.paymentsByPartida["partidas:v"]).toBe(606772.62);
+    expect(payments.paymentsByPartida["partidas:gc"]).toBe(129958.68);
+    expect(f.tables.desarrollos[0].honorarios_monto).toBe(priorHonorarios);
+    expect(payments.honorarios).toBe(priorHonorarios);
+    const october = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "desarrollos:p", start_date: "2026-10-01", end_date: "2026-10-31" });
+    expect(october.paymentsByPartida["partidas:v"]).toBe(33391.21);
+    expect(october.paymentsByPartida["partidas:gc"]).toBe(7151.74);
+    const pnl = await getPnlSummary._handler(f.ctx, { periodYear: 2026, cutoffMonth: 10 });
+    expect(pnl.totals.indirectos).toBeCloseTo(736731.30, 8);
+    expect(pnl.totals.honorarios).toBeCloseTo(impact.afterPnl.honorarios, 8);
+    expect((await getByProyecto._handler(f.ctx, { proyecto_id: "desarrollos:p" })).gasto_total).toBeCloseTo(impact.afterBudget.gasto_total, 8);
+  });
+
+  it("historical manual concept payments are substituted once while real P&L costs remain", async () => {
+    const f = fixture({ partidas: [...roots(), ...children(), root("gc", "GENERAL CONDITIONS", 4000)],
+      transacciones: [{ _id: "transacciones:t", proyecto: "desarrollos:p", fecha: "2026-09-01", status: "Pagado", monto_total: 100500, moneda: "MXN" }],
+      pagos: [{ _id: "pagos:work", transaccion_id: "transacciones:t", partida_id: "partidas:work", monto: 100000 },
+        { _id: "pagos:manual", transaccion_id: "transacciones:t", partida_id: "partidas:a1", monto: 500 }] });
+    const change = { fee_concepts: [input("viaticos", "v"), input("general_conditions", "gc")] };
+    const before = structuredClone(f.tables.pagos);
+    const impact = await f.preview(change); await f.save(change, impact.expectedImpact);
+    const payments = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "desarrollos:p" });
+    expect(payments.indirectosSustituidosPorPartida["partidas:a1"]).toBe(500);
+    const leaves = children().filter(p => p.nivel === 3).map(p => p._id);
+    expect(leaves.reduce((s,id) => s + payments.paymentsByPartida[id], 0)).toBeCloseTo(payments.feeConcepts.find(c => c.concepto === "viaticos").monto, 8);
+    expect(impact.afterPnl.costoHistorico).toBe(0);
+    expect(impact.afterPnl.costosReales).toBe(7000);
+    expect(f.tables.pagos).toEqual(before);
   });
 
   it("rejects nonpositive approved totals, invalid sources and duplicate concepts without writes", async () => {
